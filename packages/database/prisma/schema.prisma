@@ -1,0 +1,308 @@
+// Sync ERP MVP - Prisma Schema
+// Based on: specs/001-sync-erp-mvp/data-model.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Core Models
+// ============================================
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members    CompanyMember[]
+  partners   Partner[]
+  products   Product[]
+  orders     Order[]
+  movements  InventoryMovement[]
+  invoices   Invoice[]
+  payments   Payment[]
+  journals   JournalEntry[]
+  roles      Role[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companies CompanyMember[]
+}
+
+model CompanyMember {
+  id        String   @id @default(uuid())
+  userId    String
+  companyId String
+  roleId    String?
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  role    Role?   @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, companyId])
+  @@index([companyId])
+}
+
+// ============================================
+// Master Data
+// ============================================
+
+model Partner {
+  id        String      @id @default(uuid())
+  companyId String
+  type      PartnerType
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orders   Order[]
+  invoices Invoice[]
+
+  @@index([companyId])
+  @@index([companyId, type])
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  companyId   String
+  sku         String
+  name        String
+  price       Decimal  @db.Decimal(15, 2)
+  averageCost Decimal  @default(0) @db.Decimal(15, 2)
+  stockQty    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company    Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  movements  InventoryMovement[]
+
+  @@unique([companyId, sku])
+  @@index([companyId])
+}
+
+// ============================================
+// Transactions (Orders)
+// ============================================
+
+model Order {
+  id          String      @id @default(uuid())
+  companyId   String
+  partnerId   String
+  type        OrderType
+  status      OrderStatus @default(DRAFT)
+  orderNumber String?
+  date        DateTime    @default(now())
+  totalAmount Decimal     @db.Decimal(15, 2)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  company  Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  partner  Partner     @relation(fields: [partnerId], references: [id])
+  items    OrderItem[]
+  invoices Invoice[]
+
+  @@index([companyId])
+  @@index([companyId, type])
+  @@index([companyId, status])
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal @db.Decimal(15, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+}
+
+// ============================================
+// Inventory
+// ============================================
+
+model InventoryMovement {
+  id        String       @id @default(uuid())
+  companyId String
+  productId String
+  type      MovementType
+  quantity  Int
+  reference String?
+  date      DateTime     @default(now())
+  createdAt DateTime     @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([companyId])
+  @@index([productId])
+  @@index([companyId, productId])
+}
+
+// ============================================
+// Finance
+// ============================================
+
+model Invoice {
+  id        String        @id @default(uuid())
+  companyId String
+  orderId   String?
+  partnerId String
+  type      InvoiceType
+  status    InvoiceStatus @default(DRAFT)
+  invoiceNumber String?
+  dueDate   DateTime
+  amount    Decimal       @db.Decimal(15, 2)
+  balance   Decimal       @db.Decimal(15, 2)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  order    Order?    @relation(fields: [orderId], references: [id])
+  partner  Partner   @relation(fields: [partnerId], references: [id])
+  payments Payment[]
+
+  @@index([companyId])
+  @@index([companyId, type])
+  @@index([companyId, status])
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  companyId String
+  invoiceId String
+  amount    Decimal  @db.Decimal(15, 2)
+  date      DateTime @default(now())
+  method    String
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([companyId])
+  @@index([invoiceId])
+}
+
+model JournalEntry {
+  id        String        @id @default(uuid())
+  companyId String
+  reference String?
+  date      DateTime
+  createdAt DateTime      @default(now())
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lines   JournalLine[]
+
+  @@index([companyId])
+}
+
+model JournalLine {
+  id        String  @id @default(uuid())
+  journalId String
+  accountId String
+  debit     Decimal @default(0) @db.Decimal(15, 2)
+  credit    Decimal @default(0) @db.Decimal(15, 2)
+
+  journal JournalEntry @relation(fields: [journalId], references: [id], onDelete: Cascade)
+
+  @@index([journalId])
+}
+
+// ============================================
+// Access Control (RBAC)
+// ============================================
+
+model Role {
+  id        String   @id @default(uuid())
+  companyId String
+  name      String
+  createdAt DateTime @default(now())
+
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  members     CompanyMember[]
+  permissions RolePermission[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+model Permission {
+  id     String @id @default(uuid())
+  module String
+  action String
+  scope  String @default("ALL")
+
+  roles RolePermission[]
+
+  @@unique([module, action, scope])
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+// ============================================
+// Enums
+// ============================================
+
+enum PartnerType {
+  CUSTOMER
+  SUPPLIER
+}
+
+enum OrderType {
+  SALES
+  PURCHASE
+}
+
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum MovementType {
+  IN
+  OUT
+}
+
+enum InvoiceType {
+  INVOICE
+  BILL
+}
+
+enum InvoiceStatus {
+  DRAFT
+  POSTED
+  PAID
+  VOID
+}
