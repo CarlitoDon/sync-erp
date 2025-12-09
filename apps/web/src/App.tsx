@@ -8,6 +8,8 @@ import Suppliers from './pages/Suppliers';
 import Products from './pages/Products';
 import PurchaseOrders from './pages/PurchaseOrders';
 import Inventory from './pages/Inventory';
+import SalesOrders from './pages/SalesOrders';
+import Invoices from './pages/Invoices';
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
           <Route path="products" element={<Products />} />
           <Route path="purchase-orders" element={<PurchaseOrders />} />
           <Route path="inventory" element={<Inventory />} />
+          <Route path="sales-orders" element={<SalesOrders />} />
+          <Route path="invoices" element={<Invoices />} />
         </Route>
       </Routes>
     </CompanyProvider>

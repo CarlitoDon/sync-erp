@@ -89,13 +89,13 @@ Tasks are grouped by User Story (US) to enable independent implementation.
 
 ### Implementation
 
-- [ ] T030 [P] [US3] Implement `CustomerService` (Reuse PartnerService logic)
-- [ ] T031 [US3] Implement `SalesOrderService` (Create, Confirm, Check Stock)
-- [ ] T032 [US3] Implement `FulfillmentService` (Delivery Note -> Decrease Stock)
-- [ ] T033 [US3] Implement `InvoiceService` (Generate from SO, Apply Flat Tax)
-- [ ] T034 [US3] Implement `PaymentService` (Record Payment against Invoice)
-- [ ] T035 [US3] Frontend: Sales Order Form
-- [ ] T036 [US3] Frontend: Invoice View & Payment Action
+- [x] T030 [P] [US3] Implement `CustomerService` (Reuse PartnerService logic)
+- [x] T031 [US3] Implement `SalesOrderService` (Create, Confirm, Check Stock)
+- [x] T032 [US3] Implement `FulfillmentService` (Delivery Note -> Decrease Stock)
+- [x] T033 [US3] Implement `InvoiceService` (Generate from SO, Apply Flat Tax)
+- [x] T034 [US3] Implement `PaymentService` (Record Payment against Invoice)
+- [x] T035 [US3] Frontend: Sales Order Form
+- [x] T036 [US3] Frontend: Invoice View & Payment Action
 
 ---
 

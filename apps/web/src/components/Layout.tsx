@@ -7,7 +7,9 @@ const navLinks = [
   { path: '/suppliers', label: 'Suppliers' },
   { path: '/products', label: 'Products' },
   { path: '/purchase-orders', label: 'Purchase Orders' },
+  { path: '/sales-orders', label: 'Sales Orders' },
   { path: '/inventory', label: 'Inventory' },
+  { path: '/invoices', label: 'Invoices' },
   { path: '/companies', label: 'Companies' },
 ];
 

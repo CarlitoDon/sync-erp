@@ -11,6 +11,9 @@ import { productRouter } from './routes/product';
 import { purchaseOrderRouter } from './routes/purchaseOrder';
 import { inventoryRouter } from './routes/inventory';
 import { billRouter } from './routes/bill';
+import { salesOrderRouter } from './routes/salesOrder';
+import { invoiceRouter } from './routes/invoice';
+import { paymentRouter } from './routes/payment';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,6 +40,9 @@ app.use('/api/products', productRouter);
 app.use('/api/purchase-orders', purchaseOrderRouter);
 app.use('/api/inventory', inventoryRouter);
 app.use('/api/bills', billRouter);
+app.use('/api/sales-orders', salesOrderRouter);
+app.use('/api/invoices', invoiceRouter);
+app.use('/api/payments', paymentRouter);
 
 // Global Error Handler
 app.use(errorHandler);
