@@ -10,6 +10,7 @@ import PurchaseOrders from './pages/PurchaseOrders';
 import Inventory from './pages/Inventory';
 import SalesOrders from './pages/SalesOrders';
 import Invoices from './pages/Invoices';
+import Finance from './pages/Finance';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="inventory" element={<Inventory />} />
           <Route path="sales-orders" element={<SalesOrders />} />
           <Route path="invoices" element={<Invoices />} />
+          <Route path="finance" element={<Finance />} />
         </Route>
       </Routes>
     </CompanyProvider>

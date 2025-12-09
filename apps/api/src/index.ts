@@ -14,6 +14,7 @@ import { billRouter } from './routes/bill';
 import { salesOrderRouter } from './routes/salesOrder';
 import { invoiceRouter } from './routes/invoice';
 import { paymentRouter } from './routes/payment';
+import { financeRouter } from './routes/finance';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +44,7 @@ app.use('/api/bills', billRouter);
 app.use('/api/sales-orders', salesOrderRouter);
 app.use('/api/invoices', invoiceRouter);
 app.use('/api/payments', paymentRouter);
+app.use('/api/finance', financeRouter);
 
 // Global Error Handler
 app.use(errorHandler);

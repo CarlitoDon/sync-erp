@@ -28,6 +28,7 @@ model Company {
   invoices   Invoice[]
   payments   Payment[]
   journals   JournalEntry[]
+  accounts   Account[]
   roles      Role[]
 }
 
@@ -204,11 +205,39 @@ model Payment {
   @@index([invoiceId])
 }
 
+// Chart of Accounts
+model Account {
+  id          String      @id @default(uuid())
+  companyId   String
+  code        String      // e.g., "1100", "2100", "4100"
+  name        String      // e.g., "Cash", "Accounts Payable", "Sales Revenue"
+  type        AccountType
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  journalLines JournalLine[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([companyId, type])
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
 model JournalEntry {
   id        String        @id @default(uuid())
   companyId String
   reference String?
   date      DateTime
+  memo      String?
   createdAt DateTime      @default(now())
 
   company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -225,8 +254,10 @@ model JournalLine {
   credit    Decimal @default(0) @db.Decimal(15, 2)
 
   journal JournalEntry @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  account Account      @relation(fields: [accountId], references: [id])
 
   @@index([journalId])
+  @@index([accountId])
 }
 
 // ============================================

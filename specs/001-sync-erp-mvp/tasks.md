@@ -108,11 +108,11 @@ Tasks are grouped by User Story (US) to enable independent implementation.
 ### Implementation
 
 - [x] T037 [US4] Update Prisma Schema (JournalEntry, JournalLine) if needed
-- [ ] T037b [US4] Seed Default Chart of Accounts in `packages/database/seed.ts`
-- [ ] T038 [US4] Implement `JournalService` (Auto-posting triggers on Invoice/Bill/Payment)
-- [ ] T039 [US4] Implement `ReportService` (Trial Balance Calculation)
-- [ ] T039b [US4] Frontend: Chart of Accounts Management UI in `apps/web`
-- [ ] T040 [US4] Frontend: GL & Trial Balance Report Page
+- [x] T037b [US4] Seed Default Chart of Accounts in `packages/database/seed.ts`
+- [x] T038 [US4] Implement `JournalService` (Auto-posting triggers on Invoice/Bill/Payment)
+- [x] T039 [US4] Implement `ReportService` (Trial Balance Calculation)
+- [x] T039b [US4] Frontend: Chart of Accounts Management UI in `apps/web`
+- [x] T040 [US4] Frontend: GL & Trial Balance Report Page
 
 ---
 

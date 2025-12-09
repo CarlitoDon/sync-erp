@@ -28,4 +28,5 @@ export {
   MovementType,
   InvoiceType,
   InvoiceStatus,
+  AccountType,
 } from '@prisma/client';
