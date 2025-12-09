@@ -1,50 +1,86 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+SYNC IMPACT REPORT
+Version: 1.2.0 -> 1.2.1 (Patch - Tooling Adjustment)
+Modified Principles:
+- Tooling Standards: Switched from `pnpm` to `npm` workspaces.
+Added Sections:
+- None
+Templates requiring updates:
+- tasks-template.md (✅ updated to use npm)
+-->
+
+# Sync ERP Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Monorepo Architecture & Boundaries
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+-   **Strict Separation**: `apps/web` (Frontend) MUST ONLY interact with `apps/api` (Backend) via HTTP/REST.
+-   **Backend Sovereignty**: `apps/api` is the ONLY entity allowed to import `packages/database` (Prisma).
+-   **Shared Isolation**: `packages/` MUST NOT import from `apps/`.
+-   **Database Centralization**: Prisma schema acts as the single source of truth in `packages/database`.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Uni-Directional Dependencies
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+-   **Flow**: `apps/` → `packages/shared` → `packages/database`.
+-   **No Cycles**: Circular dependencies are strictly forbidden.
+-   **Workspace Link**: Use workspace protocol (e.g., `workspace:*`) for internal dependencies.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Types as Shared Contracts
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+-   **End-to-End Safety**: Types generated from Prisma (`packages/database`) flow to Shared Types (`packages/shared`), which are consumed by Frontend and Backend.
+-   **DTOs**: Data Transfer Objects must be defined in `packages/shared/types` using Zod for runtime validation.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Layered Backend Architecture
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+-   **Routes (`apps/api/src/routes`)**: Entry point. Validation only. Calls Services.
+-   **Services (`apps/api/src/services`)**: Business logic. Imports `packages/database`.
+-   **Database (`packages/database`)**: Exposes singleton `PrismaClient`. No logic.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Multi-Tenant (Multiple Company) by Design
+
+-   **Isolation**: ALL queries must be scoped by `CompanyID`.
+-   **Context**: Apps must enforce active company context from request headers/tokens.
+
+## Reference Architecture
+
+The project MUST follow this directory structure:
+
+```text
+sync-erp/
+├── apps/
+│   ├── web/                    # Vite + React Frontend
+│   └── api/                    # Express + TypeScript Backend
+├── packages/
+│   ├── database/               # Prisma Client & Schema
+│   │   ├── prisma/schema.prisma
+│   │   └── src/index.ts        # Exports singleton PrismaClient
+│   ├── shared/                 # Types, Utils, Zod Validators
+│   ├── ui/                     # Shared React Components
+│   └── tsconfig/               # Shared TS Configurations
+├── turbo.json                  # Build Orchestration
+└── package.json                # Workspaces Definition
+```
+
+## Development Standards
+
+### Tooling & Configuration
+
+-   **Package Manager**: `npm` (required for workspace efficiency).
+-   **Build System**: `turbo` (required for task orchestration).
+-   **TypeScript**: Use `tsconfig` inheritance (`extends: "@my-org/tsconfig/base.json"`).
+-   **Bundler**: Vite for Frontend, `tsc`/`tsx` for Backend.
+
+### Configuration Rules
+
+-   **Environment**: `.env` files live in `apps/*/`. Secrets defined THERE, not in packages.
+-   **Aliases**: Use paths like `@my-org/shared` in `tsconfig` to avoid relative hell.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This Constitution supersedes all other stylistic or architectural preferences.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+-   **Amendments**: Changes to this document require a Pull Request and consensus from the team.
+-   **Compliance**: Code reviews must explicitly verify compliance with these principles.
+
+**Version**: 1.2.1 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-08
