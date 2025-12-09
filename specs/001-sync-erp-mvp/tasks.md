@@ -69,15 +69,15 @@ Tasks are grouped by User Story (US) to enable independent implementation.
 ### Implementation
 
 - [x] T021 [US2] Update Prisma Schema (Partner, Product, Order, InvMovement, Invoice, Payment)
-- [ ] T022 [P] [US2] Implement `PartnerService` (Supplier CRUD)
-- [ ] T023 [P] [US2] Implement `ProductService` (CRUD + AverageCost field)
-- [ ] T024 [US2] Implement `PurchaseOrderService` (Create, Approve)
-- [ ] T025 [US2] Implement `InventoryService` (Goods Receipt -> Increase Stock + Update AVCO)
-- [ ] T026 [US2] Implement `BillService` (Create Configurable Bill from PO)
-- [ ] T027 [US2] Frontend: Supplier & Product Master Data Forms
-- [ ] T028 [US2] Frontend: Purchase Order Creation & Approval UI
-- [ ] T029 [US2] Frontend: Goods Receipt Dashboard
-- [ ] T029b [US2] Frontend: Product Stock Level View in `apps/web`
+- [x] T022 [P] [US2] Implement `PartnerService` (Supplier CRUD)
+- [x] T023 [P] [US2] Implement `ProductService` (CRUD + AverageCost field)
+- [x] T024 [US2] Implement `PurchaseOrderService` (Create, Approve)
+- [x] T025 [US2] Implement `InventoryService` (Goods Receipt -> Increase Stock + Update AVCO)
+- [x] T026 [US2] Implement `BillService` (Create Configurable Bill from PO)
+- [x] T027 [US2] Frontend: Supplier & Product Master Data Forms
+- [x] T028 [US2] Frontend: Purchase Order Creation & Approval UI
+- [x] T029 [US2] Frontend: Goods Receipt Dashboard
+- [x] T029b [US2] Frontend: Product Stock Level View in `apps/web`
 
 ---
 

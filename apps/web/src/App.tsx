@@ -4,6 +4,10 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
 import CreateCompany from './pages/CreateCompany';
+import Suppliers from './pages/Suppliers';
+import Products from './pages/Products';
+import PurchaseOrders from './pages/PurchaseOrders';
+import Inventory from './pages/Inventory';
 
 function App() {
   return (
@@ -13,6 +17,10 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="companies" element={<Companies />} />
           <Route path="companies/new" element={<CreateCompany />} />
+          <Route path="suppliers" element={<Suppliers />} />
+          <Route path="products" element={<Products />} />
+          <Route path="purchase-orders" element={<PurchaseOrders />} />
+          <Route path="inventory" element={<Inventory />} />
         </Route>
       </Routes>
     </CompanyProvider>

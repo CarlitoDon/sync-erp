@@ -1,9 +1,24 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useCompany } from '../contexts/CompanyContext';
 import CompanySwitcher from './CompanySwitcher';
 
+const navLinks = [
+  { path: '/', label: 'Dashboard' },
+  { path: '/suppliers', label: 'Suppliers' },
+  { path: '/products', label: 'Products' },
+  { path: '/purchase-orders', label: 'Purchase Orders' },
+  { path: '/inventory', label: 'Inventory' },
+  { path: '/companies', label: 'Companies' },
+];
+
 export default function Layout() {
   const { currentCompany } = useCompany();
+  const location = useLocation();
+
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -24,19 +39,20 @@ export default function Layout() {
             </div>
 
             {/* Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Link
-                to="/"
-                className="text-gray-600 hover:text-primary-600 transition-colors font-medium"
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/companies"
-                className="text-gray-600 hover:text-primary-600 transition-colors font-medium"
-              >
-                Companies
-              </Link>
+            <div className="hidden md:flex items-center space-x-6">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`text-sm font-medium transition-colors ${
+                    isActive(link.path)
+                      ? 'text-primary-600'
+                      : 'text-gray-600 hover:text-primary-600'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
 
             {/* Right side */}
