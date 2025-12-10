@@ -9,6 +9,7 @@ import { productService, Product } from '../services/productService';
 import { invoiceService } from '../services/invoiceService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
+import ActionButton from '../components/ActionButton';
 
 interface OrderItemForm {
   productId: string;
@@ -24,27 +25,30 @@ interface SalesOrdersData {
 
 export default function SalesOrders() {
   const { currentCompany } = useCompany();
-  
-  const { 
-    data: { orders, customers, products }, 
-    loading, 
-    refresh: loadData 
-  } = useCompanyData<SalesOrdersData>(async () => {
-    const [ordersData, customersData, productsData] = await Promise.all([
-      salesOrderService.list(),
-      partnerService.listCustomers(),
-      productService.list(),
-    ]);
-    return { 
-      orders: ordersData, 
-      customers: customersData, 
-      products: productsData 
-    };
-  }, {
-    orders: [],
-    customers: [],
-    products: []
-  });
+
+  const {
+    data: { orders, customers, products },
+    loading,
+    refresh: loadData,
+  } = useCompanyData<SalesOrdersData>(
+    async () => {
+      const [ordersData, customersData, productsData] = await Promise.all([
+        salesOrderService.list(),
+        partnerService.listCustomers(),
+        productService.list(),
+      ]);
+      return {
+        orders: ordersData,
+        customers: customersData,
+        products: productsData,
+      };
+    },
+    {
+      orders: [],
+      customers: [],
+      products: [],
+    }
+  );
 
   const [showForm, setShowForm] = useState(false);
 
@@ -170,11 +174,13 @@ export default function SalesOrders() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6"> 
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sales Orders</h1>
-          <p className="text-gray-500">Manage customer orders and deliveries for {currentCompany.name}</p>
+          <p className="text-gray-500">
+            Manage customer orders and deliveries for {currentCompany.name}
+          </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -363,35 +369,23 @@ export default function SalesOrders() {
                   <td className="px-6 py-4 text-right space-x-2">
                     {order.status === 'DRAFT' && (
                       <>
-                        <button
-                          onClick={() => handleConfirm(order.id)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
+                        <ActionButton onClick={() => handleConfirm(order.id)} variant="primary">
                           Confirm
-                        </button>
-                        <button
-                          onClick={() => handleCancel(order.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
+                        </ActionButton>
+                        <ActionButton onClick={() => handleCancel(order.id)} variant="danger">
                           Cancel
-                        </button>
+                        </ActionButton>
                       </>
                     )}
                     {order.status === 'CONFIRMED' && (
-                      <button
-                        onClick={() => handleShip(order.id)}
-                        className="text-green-600 hover:text-green-800"
-                      >
+                      <ActionButton onClick={() => handleShip(order.id)} variant="success">
                         Ship
-                      </button>
+                      </ActionButton>
                     )}
                     {order.status === 'COMPLETED' && (
-                      <button
-                        onClick={() => handleCreateInvoice(order.id)}
-                        className="text-purple-600 hover:text-purple-800"
-                      >
+                      <ActionButton onClick={() => handleCreateInvoice(order.id)} variant="warning">
                         Create Invoice
-                      </button>
+                      </ActionButton>
                     )}
                   </td>
                 </tr>

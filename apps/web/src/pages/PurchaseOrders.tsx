@@ -8,6 +8,7 @@ import { partnerService, Partner } from '../services/partnerService';
 import { productService, Product } from '../services/productService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
+import ActionButton from '../components/ActionButton';
 
 interface OrderItemForm {
   productId: string;
@@ -356,27 +357,18 @@ export default function PurchaseOrders() {
                   <td className="px-6 py-4 text-right space-x-2">
                     {order.status === 'DRAFT' && (
                       <>
-                        <button
-                          onClick={() => handleConfirm(order.id)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
+                        <ActionButton onClick={() => handleConfirm(order.id)} variant="primary">
                           Confirm
-                        </button>
-                        <button
-                          onClick={() => handleCancel(order.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
+                        </ActionButton>
+                        <ActionButton onClick={() => handleCancel(order.id)} variant="danger">
                           Cancel
-                        </button>
+                        </ActionButton>
                       </>
                     )}
                     {order.status === 'CONFIRMED' && (
-                      <button
-                        onClick={() => handleGoodsReceipt(order.id)}
-                        className="text-green-600 hover:text-green-800"
-                      >
+                      <ActionButton onClick={() => handleGoodsReceipt(order.id)} variant="success">
                         Receive Goods
-                      </button>
+                      </ActionButton>
                     )}
                   </td>
                 </tr>
