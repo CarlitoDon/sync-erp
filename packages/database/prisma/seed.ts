@@ -77,6 +77,7 @@ async function main() {
       create: {
         email: 'admin@sync-erp.local',
         name: 'System Admin',
+        passwordHash: '$2b$10$EpIxQi0q6.88r1.1./6.4.5.6.7.8.9.0.1.2', // Placeholder hash
       },
     });
 

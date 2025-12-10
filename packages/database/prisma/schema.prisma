@@ -20,27 +20,36 @@ model Company {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members    CompanyMember[]
-  partners   Partner[]
-  products   Product[]
-  orders     Order[]
-  movements  InventoryMovement[]
-  invoices   Invoice[]
-  payments   Payment[]
-  journals   JournalEntry[]
-  accounts   Account[]
-  roles      Role[]
+  members   CompanyMember[]
+  partners  Partner[]
+  products  Product[]
+  orders    Order[]
+  movements InventoryMovement[]
+  invoices  Invoice[]
+  payments  Payment[]
+  journals  JournalEntry[]
+  accounts  Account[]
+  roles     Role[]
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  password  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   companies CompanyMember[]
+  sessions  Session[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model CompanyMember {
@@ -166,18 +175,18 @@ model InventoryMovement {
 // ============================================
 
 model Invoice {
-  id        String        @id @default(uuid())
-  companyId String
-  orderId   String?
-  partnerId String
-  type      InvoiceType
-  status    InvoiceStatus @default(DRAFT)
+  id            String        @id @default(uuid())
+  companyId     String
+  orderId       String?
+  partnerId     String
+  type          InvoiceType
+  status        InvoiceStatus @default(DRAFT)
   invoiceNumber String?
-  dueDate   DateTime
-  amount    Decimal       @db.Decimal(15, 2)
-  balance   Decimal       @db.Decimal(15, 2)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  dueDate       DateTime
+  amount        Decimal       @db.Decimal(15, 2)
+  balance       Decimal       @db.Decimal(15, 2)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   order    Order?    @relation(fields: [orderId], references: [id])
@@ -207,14 +216,14 @@ model Payment {
 
 // Chart of Accounts
 model Account {
-  id          String      @id @default(uuid())
-  companyId   String
-  code        String      // e.g., "1100", "2100", "4100"
-  name        String      // e.g., "Cash", "Accounts Payable", "Sales Revenue"
-  type        AccountType
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id        String      @id @default(uuid())
+  companyId String
+  code      String // e.g., "1100", "2100", "4100"
+  name      String // e.g., "Cash", "Accounts Payable", "Sales Revenue"
+  type      AccountType
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   journalLines JournalLine[]
@@ -233,12 +242,12 @@ enum AccountType {
 }
 
 model JournalEntry {
-  id        String        @id @default(uuid())
+  id        String   @id @default(uuid())
   companyId String
   reference String?
   date      DateTime
   memo      String?
-  createdAt DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   lines   JournalLine[]

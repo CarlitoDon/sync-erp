@@ -1,6 +1,7 @@
-// ============================================
 // Core Types
 // ============================================
+
+export * from './auth.js';
 
 export interface Company {
   id: string;
