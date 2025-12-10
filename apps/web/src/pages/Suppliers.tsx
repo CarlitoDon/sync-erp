@@ -3,9 +3,12 @@ import { partnerService, Partner, CreatePartnerInput } from '../services/partner
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
 import { apiAction } from '../hooks/useApiAction';
+import { useConfirm } from '../components/ConfirmModal';
+import ActionButton from '../components/ActionButton';
 
 export default function Suppliers() {
   const { currentCompany } = useCompany();
+  const confirm = useConfirm();
   // Using the new hook
   const {
     data: suppliers,
@@ -33,7 +36,13 @@ export default function Suppliers() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this supplier?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Supplier',
+      message: 'Are you sure you want to delete this supplier?',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     await apiAction(() => partnerService.delete(id), 'Supplier deleted');
     loadSuppliers();
   };
@@ -160,12 +169,9 @@ export default function Suppliers() {
                   <td className="px-6 py-4 text-gray-500">{supplier.phone || '-'}</td>
                   <td className="px-6 py-4 text-gray-500">{supplier.address || '-'}</td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => handleDelete(supplier.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
+                    <ActionButton onClick={() => handleDelete(supplier.id)} variant="danger">
                       Delete
-                    </button>
+                    </ActionButton>
                   </td>
                 </tr>
               ))

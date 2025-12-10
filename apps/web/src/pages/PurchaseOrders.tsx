@@ -9,6 +9,7 @@ import { productService, Product } from '../services/productService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
 import { apiAction } from '../hooks/useApiAction';
+import { useConfirm } from '../components/ConfirmModal';
 import ActionButton from '../components/ActionButton';
 
 interface OrderItemForm {
@@ -25,6 +26,7 @@ interface PurchaseOrdersData {
 
 export default function PurchaseOrders() {
   const { currentCompany } = useCompany();
+  const confirm = useConfirm();
 
   const {
     data: { orders, suppliers, products },
@@ -107,7 +109,13 @@ export default function PurchaseOrders() {
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm('Are you sure you want to cancel this order?')) return;
+    const confirmed = await confirm({
+      title: 'Cancel Order',
+      message: 'Are you sure you want to cancel this order?',
+      confirmText: 'Yes, Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     await apiAction(() => purchaseOrderService.cancel(id), 'Order cancelled');
     loadData();
   };
@@ -271,13 +279,9 @@ export default function PurchaseOrders() {
                           {formatCurrency(item.quantity * item.price)}
                         </td>
                         <td className="px-4 py-2 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(index)}
-                            className="text-red-600 hover:text-red-800"
-                          >
+                          <ActionButton onClick={() => handleRemoveItem(index)} variant="danger">
                             Remove
-                          </button>
+                          </ActionButton>
                         </td>
                       </tr>
                     ))}

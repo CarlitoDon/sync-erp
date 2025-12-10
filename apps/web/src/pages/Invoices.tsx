@@ -8,10 +8,12 @@ import {
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
 import { apiAction } from '../hooks/useApiAction';
+import { useConfirm } from '../components/ConfirmModal';
 import ActionButton from '../components/ActionButton';
 
 export default function Invoices() {
   const { currentCompany } = useCompany();
+  const confirm = useConfirm();
 
   const {
     data: invoices,
@@ -29,7 +31,13 @@ export default function Invoices() {
   };
 
   const handleVoid = async (id: string) => {
-    if (!confirm('Are you sure you want to void this invoice?')) return;
+    const confirmed = await confirm({
+      title: 'Void Invoice',
+      message: 'Are you sure you want to void this invoice?',
+      confirmText: 'Yes, Void',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     await apiAction(() => invoiceService.void(id), 'Invoice voided');
     loadInvoices();
   };

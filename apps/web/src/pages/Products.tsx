@@ -3,9 +3,12 @@ import { productService, Product, CreateProductInput } from '../services/product
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
 import { apiAction } from '../hooks/useApiAction';
+import { useConfirm } from '../components/ConfirmModal';
+import ActionButton from '../components/ActionButton';
 
 export default function Products() {
   const { currentCompany } = useCompany();
+  const confirm = useConfirm();
   // Using the new hook
   const {
     data: products,
@@ -31,7 +34,13 @@ export default function Products() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Product',
+      message: 'Are you sure you want to delete this product?',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     await apiAction(() => productService.delete(id), 'Product deleted');
     loadProducts();
   };
@@ -180,12 +189,12 @@ export default function Products() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
+                    <ActionButton
                       onClick={() => handleDelete(product.id)}
-                      className="text-red-600 hover:text-red-800"
+                      variant="danger"
                     >
                       Delete
-                    </button>
+                    </ActionButton>
                   </td>
                 </tr>
               ))
