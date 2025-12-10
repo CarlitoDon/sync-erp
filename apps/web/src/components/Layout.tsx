@@ -1,5 +1,6 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCompany } from '../contexts/CompanyContext';
+import { useAuth } from '../contexts/AuthContext';
 import CompanySwitcher from './CompanySwitcher';
 
 const navLinks = [
@@ -16,11 +17,18 @@ const navLinks = [
 
 export default function Layout() {
   const { currentCompany } = useCompany();
+  const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
   return (
@@ -61,11 +69,20 @@ export default function Layout() {
             {/* Right side */}
             <div className="flex items-center space-x-4">
               <CompanySwitcher />
-              {currentCompany && (
-                <div className="text-sm text-gray-500">
-                  <span className="font-medium text-gray-700">{currentCompany.name}</span>
-                </div>
-              )}
+
+              <div className="flex flex-col items-end">
+                {user && <span className="text-xs text-gray-900 font-medium">{user.name}</span>}
+                {currentCompany && (
+                  <span className="text-xs text-gray-500">{currentCompany.name}</span>
+                )}
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="text-sm text-red-600 hover:text-red-800 font-medium"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </nav>
