@@ -16,6 +16,7 @@ description: 'Task list template for feature implementation'
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
+
 ## Path Conventions
 
 - **Single project**: `src/`, `tests/` at repository root
@@ -143,6 +144,35 @@ Examples of foundational tasks (adjust based on your project):
 ---
 
 [Add more user story phases as needed, following the same pattern]
+
+---
+
+## Phase N-1: UI Components & Patterns (Frontend Features)
+
+**Purpose**: Shared UI infrastructure that enables consistent frontend development
+
+**⚠️ Constitution Compliance**: This phase implements Principles VI, VII, VIII
+
+### Reusable Components
+
+- [ ] TXXX [P] Create `ActionButton` component in `apps/web/src/components/ActionButton.tsx`
+- [ ] TXXX [P] Create `ConfirmModal` with `useConfirm()` hook in `apps/web/src/components/ConfirmModal.tsx`
+- [ ] TXXX [P] Create `DataTable` component if table patterns are repeated
+
+### Global Hooks & Utilities
+
+- [ ] TXXX [P] Create `useApiAction` hook in `apps/web/src/hooks/useApiAction.ts`
+- [ ] TXXX [P] Create `useCompanyData` hook in `apps/web/src/hooks/useCompanyData.ts`
+- [ ] TXXX Setup global error toast in Axios interceptor (`apps/web/src/services/api.ts`)
+
+### Systematic Updates
+
+- [ ] TXXX Grep and replace all inline button styles with `ActionButton`
+- [ ] TXXX Grep and replace all `window.confirm()` with `useConfirm()`
+- [ ] TXXX Grep and replace all try-catch toast patterns with `apiAction()`
+- [ ] TXXX Verify no remaining instances (grep validation)
+
+**Checkpoint**: All frontend patterns consistent across application
 
 ---
 
