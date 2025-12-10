@@ -15,12 +15,16 @@ import { salesOrderRouter } from './routes/salesOrder';
 import { invoiceRouter } from './routes/invoice';
 import { paymentRouter } from './routes/payment';
 import { financeRouter } from './routes/finance';
+import { authRouter } from './routes/auth';
+
+import cookieParser from 'cookie-parser';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Global Middleware
 app.use(helmet());
+app.use(cookieParser());
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
@@ -31,6 +35,7 @@ app.use(express.json());
 
 // Public Routes
 app.use('/health', healthRouter);
+app.use('/api/auth', authRouter);
 
 // Protected Routes (require auth context)
 // Companies route uses optional auth (doesn't require companyId)

@@ -14,6 +14,7 @@ export class UserService {
       data: {
         email: data.email,
         name: data.name,
+        passwordHash: '', // Placeholder for users created without password (invites?)
         ...(companyId && {
           companies: {
             create: {
