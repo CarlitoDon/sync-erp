@@ -1,106 +1,50 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useCompany } from '../contexts/CompanyContext';
-import { useAuth } from '../contexts/AuthContext';
-import CompanySwitcher from './CompanySwitcher';
-
-const navLinks = [
-  { path: '/', label: 'Dashboard' },
-  { path: '/suppliers', label: 'Suppliers' },
-  { path: '/products', label: 'Products' },
-  { path: '/purchase-orders', label: 'Purchase Orders' },
-  { path: '/sales-orders', label: 'Sales Orders' },
-  { path: '/inventory', label: 'Inventory' },
-  { path: '/invoices', label: 'Invoices' },
-  { path: '/finance', label: 'Finance' },
-  { path: '/companies', label: 'Companies' },
-];
+import { Outlet, Link } from 'react-router-dom';
+import Sidebar from './Sidebar';
+import MobileMenuButton from './MobileMenuButton';
 
 export default function Layout() {
-  const { currentCompany } = useCompany();
-  const { user, logout } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
-    return location.pathname.startsWith(path);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="glass sticky top-0 z-50 shadow-sm">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">S</span>
-                </div>
-                <span className="text-xl font-semibold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
-                  Sync ERP
-                </span>
-              </Link>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex">
+      {/* Sidebar */}
+      <Sidebar />
 
-            {/* Navigation */}
-            <div className="hidden md:flex items-center space-x-6">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`text-sm font-medium transition-colors ${
-                    isActive(link.path)
-                      ? 'text-primary-600'
-                      : 'text-gray-600 hover:text-primary-600'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-
-            {/* Right side */}
-            <div className="flex items-center space-x-4">
-              <CompanySwitcher />
-
-              <div className="flex flex-col items-end">
-                {user && <span className="text-xs text-gray-900 font-medium">{user.name}</span>}
-                {currentCompany && (
-                  <span className="text-xs text-gray-500">{currentCompany.name}</span>
-                )}
+      {/* Main Content Area */}
+      <div
+        className={`
+        flex-1 flex flex-col min-h-screen transition-all duration-300
+        md:ml-0
+      `}
+      >
+        {/* Simplified Header (Mobile only shows hamburger) */}
+        <header className="md:hidden glass sticky top-0 z-30 shadow-sm">
+          <div className="flex items-center justify-between h-14 px-4">
+            <MobileMenuButton />
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xs">S</span>
               </div>
-
-              <button
-                onClick={handleLogout}
-                className="text-sm text-red-600 hover:text-red-800 font-medium"
-              >
-                Logout
-              </button>
-            </div>
+              <span className="text-lg font-semibold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+                Sync ERP
+              </span>
+            </Link>
+            <div className="w-10" /> {/* Spacer for balance */}
           </div>
-        </nav>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Outlet />
-      </main>
+        {/* Main Content */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
+          <Outlet />
+        </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-center text-sm text-gray-500">
-            © 2024 Sync ERP. Multi-Company Enterprise Resource Planning.
-          </p>
-        </div>
-      </footer>
+        {/* Footer */}
+        <footer className="border-t border-gray-200 mt-auto">
+          <div className="px-4 sm:px-6 lg:px-8 py-4">
+            <p className="text-center text-sm text-gray-500">
+              © 2024 Sync ERP. Multi-Company Enterprise Resource Planning.
+            </p>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
