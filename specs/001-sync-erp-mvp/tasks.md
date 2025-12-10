@@ -56,7 +56,7 @@ Tasks are grouped by User Story (US) to enable independent implementation.
 - [x] T017 [US1] Create API Endpoints for `/companies` and `/users` in `apps/api`
 - [x] T018 [US1] Implement "Create Company" Page in `apps/web`
 - [x] T019 [US1] Implement "Company Switcher" in Global Header in `apps/web`
-- [ ] T020 [P] [US1] Integration Test: Verify data isolation between companies (Manual/Script)
+- [x] T020 [P] [US1] Integration Test: Verify data isolation between companies (Manual/Script)
 
 ---
 
