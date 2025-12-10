@@ -186,9 +186,8 @@ export interface ApiResponse<T> {
 // Create/Update DTOs
 // ============================================
 
-export interface CreateCompanyDto {
-  name: string;
-}
+// Create properties removed effectively by using the export below
+export * from './company.js';
 
 export interface CreatePartnerDto {
   name: string;

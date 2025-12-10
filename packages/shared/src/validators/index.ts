@@ -16,18 +16,7 @@ export const UuidSchema = z.string().uuid();
 export const CompanyIdSchema = z.string().uuid();
 
 // ============================================
-// Company Schemas
-// ============================================
-
-export const CreateCompanySchema = z.object({
-  name: z.string().min(2, 'Company name must be at least 2 characters'),
-});
-
-export const CompanyResponseSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-  createdAt: z.coerce.date(),
-});
+// Company Schemas moved to ./company.ts
 
 // ============================================
 // Partner Schemas
@@ -156,7 +145,8 @@ export const AssignRoleSchema = z.object({
 // Type Exports (inferred from schemas)
 // ============================================
 
-export type CreateCompanyInput = z.infer<typeof CreateCompanySchema>;
+export * from './company.js';
+
 export type CreatePartnerInput = z.infer<typeof CreatePartnerSchema>;
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
