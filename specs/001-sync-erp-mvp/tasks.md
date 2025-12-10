@@ -118,6 +118,6 @@ Tasks are grouped by User Story (US) to enable independent implementation.
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T041 Implement Format-driven Document Numbering (Prefix/Year/Seq)
-- [ ] T042 Implement RBAC (Granular Permissions) checks in Middleware
-- [ ] T043 Final E2E Validation of all flows
+- [x] T041 Implement Format-driven Document Numbering (Prefix/Year/Seq)
+- [x] T042 Implement RBAC (Granular Permissions) checks in Middleware
+- [x] T043 Final E2E Validation of all flows
