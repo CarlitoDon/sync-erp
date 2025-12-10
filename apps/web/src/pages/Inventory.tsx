@@ -1,24 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { productService, StockLevel } from '../services/productService';
+import { useCompany } from '../contexts/CompanyContext';
+import { useCompanyData } from '../hooks/useCompanyData';
 
 export default function Inventory() {
-  const [stockLevels, setStockLevels] = useState<StockLevel[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadStockLevels();
-  }, []);
-
-  const loadStockLevels = async () => {
-    try {
-      const data = await productService.getStockLevels();
-      setStockLevels(data);
-    } catch (error) {
-      console.error('Failed to load stock levels:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { currentCompany } = useCompany();
+  const {
+    data: stockLevels,
+    loading,
+    refresh: loadStockLevels,
+  } = useCompanyData<StockLevel[]>(productService.getStockLevels, []);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
@@ -36,12 +27,22 @@ export default function Inventory() {
     );
   }
 
+  if (!currentCompany) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        Please select a company to view inventory.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
-          <p className="text-gray-500">Stock levels and inventory value</p>
+          <p className="text-gray-500">
+            Stock levels and inventory value for {currentCompany.name}
+          </p>
         </div>
         <button
           onClick={loadStockLevels}

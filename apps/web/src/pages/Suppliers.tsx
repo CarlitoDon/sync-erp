@@ -1,9 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { partnerService, Partner, CreatePartnerInput } from '../services/partnerService';
+import { useCompany } from '../contexts/CompanyContext';
+import { useCompanyData } from '../hooks/useCompanyData';
 
 export default function Suppliers() {
-  const [suppliers, setSuppliers] = useState<Partner[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { currentCompany } = useCompany();
+  // Using the new hook
+  const {
+    data: suppliers,
+    loading,
+    refresh: loadSuppliers,
+    setData: setSuppliers,
+  } = useCompanyData<Partner[]>(partnerService.listSuppliers, []);
+
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<CreatePartnerInput>({
     name: '',
@@ -12,21 +21,6 @@ export default function Suppliers() {
     address: '',
     type: 'SUPPLIER',
   });
-
-  useEffect(() => {
-    loadSuppliers();
-  }, []);
-
-  const loadSuppliers = async () => {
-    try {
-      const data = await partnerService.listSuppliers();
-      setSuppliers(data);
-    } catch (error) {
-      console.error('Failed to load suppliers:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,12 +52,22 @@ export default function Suppliers() {
     );
   }
 
+  if (!currentCompany) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        Please select a company to view suppliers.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Suppliers</h1>
-          <p className="text-gray-500">Manage your supplier relationships</p>
+          <p className="text-gray-500">
+            Manage your supplier relationships for {currentCompany.name}
+          </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -151,7 +155,7 @@ export default function Suppliers() {
             {suppliers.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                  No suppliers yet. Add your first supplier to get started.
+                  No suppliers found for this company.
                 </td>
               </tr>
             ) : (

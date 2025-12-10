@@ -1,32 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   invoiceService,
   paymentService,
   Invoice,
   CreatePaymentInput,
 } from '../services/invoiceService';
+import { useCompany } from '../contexts/CompanyContext';
+import { useCompanyData } from '../hooks/useCompanyData';
 
 export default function Invoices() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { currentCompany } = useCompany();
+
+  const {
+    data: invoices,
+    loading,
+    refresh: loadInvoices,
+  } = useCompanyData<Invoice[]>(invoiceService.list, []);
+
   const [showPayment, setShowPayment] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<CreatePaymentInput['method']>('BANK_TRANSFER');
-
-  useEffect(() => {
-    loadInvoices();
-  }, []);
-
-  const loadInvoices = async () => {
-    try {
-      const data = await invoiceService.list();
-      setInvoices(data);
-    } catch (error) {
-      console.error('Failed to load invoices:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePost = async (id: string) => {
     try {
@@ -94,6 +87,14 @@ export default function Invoices() {
     );
   }
 
+  if (!currentCompany) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        Please select a company to view invoices.
+      </div>
+    );
+  }
+
   const outstandingAmount = invoices
     .filter((inv) => inv.status === 'POSTED')
     .reduce((sum, inv) => sum + Number(inv.balance), 0);
@@ -103,7 +104,9 @@ export default function Invoices() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
-          <p className="text-gray-500">Accounts Receivable - Customer invoices</p>
+          <p className="text-gray-500">
+            Accounts Receivable - Customer invoices for {currentCompany.name}
+          </p>
         </div>
       </div>
 
@@ -165,7 +168,7 @@ export default function Invoices() {
             {invoices.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                  No invoices yet. Create invoices from completed sales orders.
+                  No invoices found for this company.
                 </td>
               </tr>
             ) : (

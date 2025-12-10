@@ -1,30 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { productService, Product, CreateProductInput } from '../services/productService';
+import { useCompany } from '../contexts/CompanyContext';
+import { useCompanyData } from '../hooks/useCompanyData';
 
 export default function Products() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { currentCompany } = useCompany();
+  // Using the new hook
+  const {
+    data: products,
+    loading,
+    refresh: loadProducts,
+    setData: setProducts,
+  } = useCompanyData<Product[]>(productService.list, []);
+
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<CreateProductInput>({
     sku: '',
     name: '',
     price: 0,
   });
-
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  const loadProducts = async () => {
-    try {
-      const data = await productService.list();
-      setProducts(data);
-    } catch (error) {
-      console.error('Failed to load products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +50,14 @@ export default function Products() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (!currentCompany) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        Please select a company to view products.
       </div>
     );
   }
@@ -156,7 +158,7 @@ export default function Products() {
             {products.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                  No products yet. Add your first product to get started.
+                  No products found for this company.
                 </td>
               </tr>
             ) : (

@@ -1,10 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { financeService, Account, TrialBalance } from '../services/financeService';
+import { useCompany } from '../contexts/CompanyContext';
+import { useCompanyData } from '../hooks/useCompanyData';
+
+interface FinanceData {
+  accounts: Account[];
+  trialBalance: TrialBalance | null;
+}
 
 export default function Finance() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [trialBalance, setTrialBalance] = useState<TrialBalance | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { currentCompany } = useCompany();
+
+  const {
+    data: { accounts, trialBalance },
+    loading,
+    refresh: loadData,
+  } = useCompanyData<FinanceData>(
+    async () => {
+      const [accountsData, tbData] = await Promise.all([
+        financeService.listAccounts(),
+        financeService.getTrialBalance(),
+      ]);
+      return {
+        accounts: accountsData,
+        trialBalance: tbData,
+      };
+    },
+    {
+      accounts: [],
+      trialBalance: null,
+    }
+  );
+
   const [activeTab, setActiveTab] = useState<'coa' | 'trial-balance'>('coa');
   const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [newAccount, setNewAccount] = useState({
@@ -12,25 +39,6 @@ export default function Finance() {
     name: '',
     type: 'ASSET' as Account['type'],
   });
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const [accountsData, tbData] = await Promise.all([
-        financeService.listAccounts(),
-        financeService.getTrialBalance(),
-      ]);
-      setAccounts(accountsData);
-      setTrialBalance(tbData);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSeedAccounts = async () => {
     try {
@@ -91,12 +99,22 @@ export default function Finance() {
     );
   }
 
+  if (!currentCompany) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        Please select a company to view financial reports.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Finance</h1>
-          <p className="text-gray-500">Chart of Accounts & Financial Reports</p>
+          <p className="text-gray-500">
+            Chart of Accounts & Financial Reports for {currentCompany.name}
+          </p>
         </div>
       </div>
 

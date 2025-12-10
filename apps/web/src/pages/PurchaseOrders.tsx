@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   purchaseOrderService,
   PurchaseOrder,
@@ -6,6 +6,8 @@ import {
 } from '../services/purchaseOrderService';
 import { partnerService, Partner } from '../services/partnerService';
 import { productService, Product } from '../services/productService';
+import { useCompany } from '../contexts/CompanyContext';
+import { useCompanyData } from '../hooks/useCompanyData';
 
 interface OrderItemForm {
   productId: string;
@@ -13,11 +15,39 @@ interface OrderItemForm {
   price: number;
 }
 
+interface PurchaseOrdersData {
+  orders: PurchaseOrder[];
+  suppliers: Partner[];
+  products: Product[];
+}
+
 export default function PurchaseOrders() {
-  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
-  const [suppliers, setSuppliers] = useState<Partner[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { currentCompany } = useCompany();
+
+  const {
+    data: { orders, suppliers, products },
+    loading,
+    refresh: loadData,
+  } = useCompanyData<PurchaseOrdersData>(
+    async () => {
+      const [ordersData, suppliersData, productsData] = await Promise.all([
+        purchaseOrderService.list(),
+        partnerService.listSuppliers(),
+        productService.list(),
+      ]);
+      return {
+        orders: ordersData,
+        suppliers: suppliersData,
+        products: productsData,
+      };
+    },
+    {
+      orders: [],
+      suppliers: [],
+      products: [],
+    }
+  );
+
   const [showForm, setShowForm] = useState(false);
 
   const [formData, setFormData] = useState<CreatePurchaseOrderInput>({
@@ -29,27 +59,6 @@ export default function PurchaseOrders() {
     quantity: 1,
     price: 0,
   });
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const [ordersData, suppliersData, productsData] = await Promise.all([
-        purchaseOrderService.list(),
-        partnerService.listSuppliers(),
-        productService.list(),
-      ]);
-      setOrders(ordersData);
-      setSuppliers(suppliersData);
-      setProducts(productsData);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAddItem = () => {
     if (!currentItem.productId || currentItem.quantity <= 0) return;
@@ -145,12 +154,20 @@ export default function PurchaseOrders() {
     );
   }
 
+  if (!currentCompany) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        Please select a company to view purchase orders.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Purchase Orders</h1>
-          <p className="text-gray-500">Manage your purchasing workflow</p>
+          <p className="text-gray-500">Manage your purchasing workflow for {currentCompany.name}</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -318,7 +335,7 @@ export default function PurchaseOrders() {
             {orders.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                  No purchase orders yet. Create your first PO to get started.
+                  No purchase orders found for this company.
                 </td>
               </tr>
             ) : (

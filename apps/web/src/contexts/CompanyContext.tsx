@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import type { Company } from '@sync-erp/shared';
+import { getCompanies } from '../services/companyService';
+import { useAuth } from './AuthContext';
 
 interface CompanyContextType {
   currentCompany: Company | null;
@@ -7,18 +9,63 @@ interface CompanyContextType {
   setCurrentCompany: (company: Company | null) => void;
   setCompanies: (companies: Company[]) => void;
   refreshCompanies: () => Promise<void>;
+  isLoading: boolean;
 }
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
-  const [currentCompany, setCurrentCompany] = useState<Company | null>(null);
+  const { isAuthenticated } = useAuth();
+  const [currentCompany, _setCurrentCompanyState] = useState<Company | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Wrapper to sync with localStorage
+  const setCurrentCompany = useCallback((company: Company | null) => {
+    _setCurrentCompanyState(company);
+    if (company) {
+      localStorage.setItem('currentCompanyId', company.id);
+    } else {
+      localStorage.removeItem('currentCompanyId');
+    }
+  }, []);
 
   const refreshCompanies = useCallback(async () => {
-    // This will be implemented with the API service
-    console.warn('refreshCompanies not yet implemented');
-  }, []);
+    if (!isAuthenticated) return;
+    try {
+      setIsLoading(true);
+      const data = await getCompanies();
+      setCompanies(data);
+
+      // Restore selection from localStorage if possible
+      const savedId = localStorage.getItem('currentCompanyId');
+      if (savedId) {
+        const found = data.find((c) => c.id === savedId);
+        if (found) {
+          _setCurrentCompanyState(found); // Don't trigger effect loop, just set state
+        }
+      } else if (data.length > 0 && !currentCompany) {
+        // Optional: Select first company if none selected?
+        // Let's stick to explicit selection or restoration for now.
+        // But if user has only one company, might be nice.
+      }
+    } catch (error) {
+      console.error('Failed to fetch companies:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  // Initial load
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshCompanies();
+    } else {
+      setCompanies([]);
+      setCurrentCompany(null);
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, refreshCompanies, setCurrentCompany]);
 
   return (
     <CompanyContext.Provider
@@ -28,6 +75,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         setCurrentCompany,
         setCompanies,
         refreshCompanies,
+        isLoading,
       }}
     >
       {children}

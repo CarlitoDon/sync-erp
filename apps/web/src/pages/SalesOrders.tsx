@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   salesOrderService,
   SalesOrder,
@@ -7,6 +7,8 @@ import {
 import { partnerService, Partner } from '../services/partnerService';
 import { productService, Product } from '../services/productService';
 import { invoiceService } from '../services/invoiceService';
+import { useCompany } from '../contexts/CompanyContext';
+import { useCompanyData } from '../hooks/useCompanyData';
 
 interface OrderItemForm {
   productId: string;
@@ -14,11 +16,36 @@ interface OrderItemForm {
   price: number;
 }
 
+interface SalesOrdersData {
+  orders: SalesOrder[];
+  customers: Partner[];
+  products: Product[];
+}
+
 export default function SalesOrders() {
-  const [orders, setOrders] = useState<SalesOrder[]>([]);
-  const [customers, setCustomers] = useState<Partner[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { currentCompany } = useCompany();
+  
+  const { 
+    data: { orders, customers, products }, 
+    loading, 
+    refresh: loadData 
+  } = useCompanyData<SalesOrdersData>(async () => {
+    const [ordersData, customersData, productsData] = await Promise.all([
+      salesOrderService.list(),
+      partnerService.listCustomers(),
+      productService.list(),
+    ]);
+    return { 
+      orders: ordersData, 
+      customers: customersData, 
+      products: productsData 
+    };
+  }, {
+    orders: [],
+    customers: [],
+    products: []
+  });
+
   const [showForm, setShowForm] = useState(false);
 
   const [formData, setFormData] = useState<CreateSalesOrderInput>({
@@ -30,27 +57,6 @@ export default function SalesOrders() {
     quantity: 1,
     price: 0,
   });
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const [ordersData, customersData, productsData] = await Promise.all([
-        salesOrderService.list(),
-        partnerService.listCustomers(),
-        productService.list(),
-      ]);
-      setOrders(ordersData);
-      setCustomers(customersData);
-      setProducts(productsData);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAddItem = () => {
     if (!currentItem.productId || currentItem.quantity <= 0) return;
@@ -155,12 +161,20 @@ export default function SalesOrders() {
     );
   }
 
+  if (!currentCompany) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        Please select a company to view sales orders.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sales Orders</h1>
-          <p className="text-gray-500">Manage customer orders and deliveries</p>
+          <p className="text-gray-500">Manage customer orders and deliveries for {currentCompany.name}</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -328,7 +342,7 @@ export default function SalesOrders() {
             {orders.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                  No sales orders yet. Create your first SO to get started.
+                  No sales orders found for this company.
                 </td>
               </tr>
             ) : (
