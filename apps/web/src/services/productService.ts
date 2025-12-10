@@ -27,31 +27,31 @@ export interface StockLevel {
 
 export const productService = {
   async list(): Promise<Product[]> {
-    const res = await api.get('/api/products');
+    const res = await api.get('/products');
     return res.data.data;
   },
 
   async getById(id: string): Promise<Product> {
-    const res = await api.get(`/api/products/${id}`);
+    const res = await api.get(`/products/${id}`);
     return res.data.data;
   },
 
   async create(data: CreateProductInput): Promise<Product> {
-    const res = await api.post('/api/products', data);
+    const res = await api.post('/products', data);
     return res.data.data;
   },
 
   async update(id: string, data: Partial<CreateProductInput>): Promise<Product> {
-    const res = await api.put(`/api/products/${id}`, data);
+    const res = await api.put(`/products/${id}`, data);
     return res.data.data;
   },
 
   async delete(id: string): Promise<void> {
-    await api.delete(`/api/products/${id}`);
+    await api.delete(`/products/${id}`);
   },
 
   async getStockLevels(): Promise<StockLevel[]> {
-    const res = await api.get('/api/inventory/stock');
+    const res = await api.get('/inventory/stock');
     return res.data.data;
   },
 };

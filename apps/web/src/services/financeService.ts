@@ -45,7 +45,7 @@ export const financeService = {
   // Accounts
   async listAccounts(type?: Account['type']): Promise<Account[]> {
     const params = type ? { type } : {};
-    const res = await api.get('/api/finance/accounts', { params });
+    const res = await api.get('/finance/accounts', { params });
     return res.data.data;
   },
 
@@ -54,12 +54,12 @@ export const financeService = {
     name: string;
     type: Account['type'];
   }): Promise<Account> {
-    const res = await api.post('/api/finance/accounts', data);
+    const res = await api.post('/finance/accounts', data);
     return res.data.data;
   },
 
   async seedDefaultAccounts(): Promise<Account[]> {
-    const res = await api.post('/api/finance/accounts/seed');
+    const res = await api.post('/finance/accounts/seed');
     return res.data.data;
   },
 
@@ -68,12 +68,12 @@ export const financeService = {
     const params: Record<string, string> = {};
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
-    const res = await api.get('/api/finance/journals', { params });
+    const res = await api.get('/finance/journals', { params });
     return res.data.data;
   },
 
   async getJournal(id: string): Promise<JournalEntry> {
-    const res = await api.get(`/api/finance/journals/${id}`);
+    const res = await api.get(`/finance/journals/${id}`);
     return res.data.data;
   },
 
@@ -83,14 +83,14 @@ export const financeService = {
     memo?: string;
     lines: { accountCode: string; debit?: number; credit?: number }[];
   }): Promise<JournalEntry> {
-    const res = await api.post('/api/finance/journals', data);
+    const res = await api.post('/finance/journals', data);
     return res.data.data;
   },
 
   // Reports
   async getTrialBalance(asOfDate?: string): Promise<TrialBalance> {
     const params = asOfDate ? { asOfDate } : {};
-    const res = await api.get('/api/finance/reports/trial-balance', { params });
+    const res = await api.get('/finance/reports/trial-balance', { params });
     return res.data.data;
   },
 
@@ -114,7 +114,7 @@ export const financeService = {
     const params: Record<string, string> = {};
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
-    const res = await api.get(`/api/finance/reports/general-ledger/${accountId}`, { params });
+    const res = await api.get(`/finance/reports/general-ledger/${accountId}`, { params });
     return res.data.data;
   },
 
@@ -129,7 +129,7 @@ export const financeService = {
     const params: Record<string, string> = {};
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
-    const res = await api.get('/api/finance/reports/income-statement', { params });
+    const res = await api.get('/finance/reports/income-statement', { params });
     return res.data.data;
   },
 };

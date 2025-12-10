@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { errorHandler } from './middlewares/errorHandler';
-import { authMiddleware } from './middlewares/auth';
+import { authMiddleware, optionalAuthMiddleware } from './middlewares/auth';
 import { companyRouter } from './routes/company';
 import { userRouter } from './routes/user';
 import { healthRouter } from './routes/health';
@@ -33,8 +33,11 @@ app.use(express.json());
 app.use('/health', healthRouter);
 
 // Protected Routes (require auth context)
+// Companies route uses optional auth (doesn't require companyId)
+app.use('/api/companies', optionalAuthMiddleware, companyRouter);
+
+// All other API routes require companyId
 app.use('/api', authMiddleware);
-app.use('/api/companies', companyRouter);
 app.use('/api/users', userRouter);
 app.use('/api/partners', partnerRouter);
 app.use('/api/products', productRouter);

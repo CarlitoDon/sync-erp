@@ -29,31 +29,31 @@ export interface CreateSalesOrderInput {
 export const salesOrderService = {
   async list(status?: string): Promise<SalesOrder[]> {
     const params = status ? { status } : {};
-    const res = await api.get('/api/sales-orders', { params });
+    const res = await api.get('/sales-orders', { params });
     return res.data.data;
   },
 
   async getById(id: string): Promise<SalesOrder> {
-    const res = await api.get(`/api/sales-orders/${id}`);
+    const res = await api.get(`/sales-orders/${id}`);
     return res.data.data;
   },
 
   async create(data: CreateSalesOrderInput): Promise<SalesOrder> {
-    const res = await api.post('/api/sales-orders', data);
+    const res = await api.post('/sales-orders', data);
     return res.data.data;
   },
 
   async confirm(id: string): Promise<SalesOrder> {
-    const res = await api.post(`/api/sales-orders/${id}/confirm`);
+    const res = await api.post(`/sales-orders/${id}/confirm`);
     return res.data.data;
   },
 
   async ship(id: string, reference?: string): Promise<void> {
-    await api.post(`/api/sales-orders/${id}/ship`, { reference });
+    await api.post(`/sales-orders/${id}/ship`, { reference });
   },
 
   async cancel(id: string): Promise<SalesOrder> {
-    const res = await api.post(`/api/sales-orders/${id}/cancel`);
+    const res = await api.post(`/sales-orders/${id}/cancel`);
     return res.data.data;
   },
 };

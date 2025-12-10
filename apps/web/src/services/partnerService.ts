@@ -21,36 +21,36 @@ export interface CreatePartnerInput {
 export const partnerService = {
   async list(type?: 'CUSTOMER' | 'SUPPLIER'): Promise<Partner[]> {
     const params = type ? { type } : {};
-    const res = await api.get('/api/partners', { params });
+    const res = await api.get('/partners', { params });
     return res.data.data;
   },
 
   async listSuppliers(): Promise<Partner[]> {
-    const res = await api.get('/api/partners/suppliers');
+    const res = await api.get('/partners/suppliers');
     return res.data.data;
   },
 
   async listCustomers(): Promise<Partner[]> {
-    const res = await api.get('/api/partners/customers');
+    const res = await api.get('/partners/customers');
     return res.data.data;
   },
 
   async getById(id: string): Promise<Partner> {
-    const res = await api.get(`/api/partners/${id}`);
+    const res = await api.get(`/partners/${id}`);
     return res.data.data;
   },
 
   async create(data: CreatePartnerInput): Promise<Partner> {
-    const res = await api.post('/api/partners', data);
+    const res = await api.post('/partners', data);
     return res.data.data;
   },
 
   async update(id: string, data: Partial<CreatePartnerInput>): Promise<Partner> {
-    const res = await api.put(`/api/partners/${id}`, data);
+    const res = await api.put(`/partners/${id}`, data);
     return res.data.data;
   },
 
   async delete(id: string): Promise<void> {
-    await api.delete(`/api/partners/${id}`);
+    await api.delete(`/partners/${id}`);
   },
 };
