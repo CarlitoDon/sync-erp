@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { CreateCompanySchema } from '@sync-erp/shared';
+import { CreateCompanySchema, JoinCompanySchema } from '@sync-erp/shared';
 import { CompanyService } from '../services/CompanyService';
 
 export const companyRouter = Router();
@@ -31,6 +31,26 @@ companyRouter.post('/', async (req: Request, res: Response, next: NextFunction) 
 
     const company = await companyService.create(validated, userId);
     res.status(201).json({ success: true, data: company });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/companies/join - Join existing company via invite code
+companyRouter.post('/join', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const validated = JoinCompanySchema.parse(req.body);
+    const userId = req.context.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'User ID required' },
+      });
+    }
+
+    const company = await companyService.join(validated, userId);
+    res.json({ success: true, data: company });
   } catch (error) {
     next(error);
   }
