@@ -15,7 +15,7 @@ interface CompanyContextType {
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [currentCompany, _setCurrentCompanyState] = useState<Company | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,6 +58,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
   // Initial load
   useEffect(() => {
+    if (authLoading) return;
+
     if (isAuthenticated) {
       refreshCompanies();
     } else {
@@ -65,7 +67,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       setCurrentCompany(null);
       setIsLoading(false);
     }
-  }, [isAuthenticated, refreshCompanies, setCurrentCompany]);
+  }, [isAuthenticated, authLoading, refreshCompanies, setCurrentCompany]);
 
   return (
     <CompanyContext.Provider
