@@ -29,9 +29,8 @@ export default function CreateCompany() {
       setCurrentCompany(company);
       localStorage.setItem('currentCompanyId', company.id);
       navigate('/');
-    } catch (err) {
+    } catch {
       setError('Failed to create company. Please try again.');
-      console.error(err);
     } finally {
       setIsLoading(false);
     }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { financeService, Account, TrialBalance } from '../services/financeService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
+import { apiAction } from '../hooks/useApiAction';
 
 interface FinanceData {
   accounts: Account[];
@@ -41,24 +42,23 @@ export default function Finance() {
   });
 
   const handleSeedAccounts = async () => {
-    try {
-      const seeded = await financeService.seedDefaultAccounts();
-      alert(`Seeded ${seeded.length} accounts`);
-      loadData();
-    } catch (error) {
-      console.error('Failed to seed accounts:', error);
-    }
+    const seeded = await apiAction(
+      () => financeService.seedDefaultAccounts(),
+      'Default accounts seeded!'
+    );
+    if (seeded) loadData();
   };
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await financeService.createAccount(newAccount);
+    const result = await apiAction(
+      () => financeService.createAccount(newAccount),
+      'Account created!'
+    );
+    if (result) {
       setShowCreateAccount(false);
       setNewAccount({ code: '', name: '', type: 'ASSET' });
       loadData();
-    } catch (error) {
-      console.error('Failed to create account:', error);
     }
   };
 

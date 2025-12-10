@@ -7,6 +7,8 @@ import {
 } from '../services/invoiceService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
+import { apiAction } from '../hooks/useApiAction';
+import ActionButton from '../components/ActionButton';
 
 export default function Invoices() {
   const { currentCompany } = useCompany();
@@ -22,37 +24,26 @@ export default function Invoices() {
   const [paymentMethod, setPaymentMethod] = useState<CreatePaymentInput['method']>('BANK_TRANSFER');
 
   const handlePost = async (id: string) => {
-    try {
-      await invoiceService.post(id);
-      loadInvoices();
-    } catch (error) {
-      console.error('Failed to post invoice:', error);
-    }
+    await apiAction(() => invoiceService.post(id), 'Invoice posted!');
+    loadInvoices();
   };
 
   const handleVoid = async (id: string) => {
     if (!confirm('Are you sure you want to void this invoice?')) return;
-    try {
-      await invoiceService.void(id);
-      loadInvoices();
-    } catch (error) {
-      console.error('Failed to void invoice:', error);
-    }
+    await apiAction(() => invoiceService.void(id), 'Invoice voided');
+    loadInvoices();
   };
 
   const handlePayment = async (invoiceId: string) => {
     if (paymentAmount <= 0) return;
-    try {
-      await paymentService.create({
-        invoiceId,
-        amount: paymentAmount,
-        method: paymentMethod,
-      });
+    const result = await apiAction(
+      () => paymentService.create({ invoiceId, amount: paymentAmount, method: paymentMethod }),
+      'Payment recorded!'
+    );
+    if (result) {
       setShowPayment(null);
       setPaymentAmount(0);
       loadInvoices();
-    } catch (error) {
-      console.error('Failed to record payment:', error);
     }
   };
 
@@ -194,30 +185,24 @@ export default function Invoices() {
                     <td className="px-6 py-4 text-right space-x-2">
                       {invoice.status === 'DRAFT' && (
                         <>
-                          <button
-                            onClick={() => handlePost(invoice.id)}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
+                          <ActionButton onClick={() => handlePost(invoice.id)} variant="primary">
                             Post
-                          </button>
-                          <button
-                            onClick={() => handleVoid(invoice.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
+                          </ActionButton>
+                          <ActionButton onClick={() => handleVoid(invoice.id)} variant="danger">
                             Void
-                          </button>
+                          </ActionButton>
                         </>
                       )}
                       {invoice.status === 'POSTED' && (
-                        <button
+                        <ActionButton
                           onClick={() => {
                             setShowPayment(invoice.id);
                             setPaymentAmount(Number(invoice.balance));
                           }}
-                          className="text-green-600 hover:text-green-800"
+                          variant="success"
                         >
                           Record Payment
-                        </button>
+                        </ActionButton>
                       )}
                     </td>
                   </tr>

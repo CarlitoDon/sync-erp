@@ -9,6 +9,7 @@ import { productService, Product } from '../services/productService';
 import { invoiceService } from '../services/invoiceService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
+import { apiAction } from '../hooks/useApiAction';
 import ActionButton from '../components/ActionButton';
 
 interface OrderItemForm {
@@ -82,51 +83,35 @@ export default function SalesOrders() {
     e.preventDefault();
     if (!formData.partnerId || formData.items.length === 0) return;
 
-    try {
-      await salesOrderService.create(formData);
+    const result = await apiAction(
+      () => salesOrderService.create(formData),
+      'Sales Order created!'
+    );
+    if (result) {
       setShowForm(false);
       setFormData({ partnerId: '', items: [] });
       loadData();
-    } catch (error) {
-      console.error('Failed to create SO:', error);
     }
   };
 
   const handleConfirm = async (id: string) => {
-    try {
-      await salesOrderService.confirm(id);
-      loadData();
-    } catch (error) {
-      console.error('Failed to confirm SO:', error);
-    }
+    await apiAction(() => salesOrderService.confirm(id), 'Order confirmed!');
+    loadData();
   };
 
   const handleShip = async (id: string) => {
-    try {
-      await salesOrderService.ship(id);
-      loadData();
-    } catch (error) {
-      console.error('Failed to ship:', error);
-    }
+    await apiAction(() => salesOrderService.ship(id), 'Order shipped!');
+    loadData();
   };
 
   const handleCreateInvoice = async (orderId: string) => {
-    try {
-      await invoiceService.create({ orderId, taxRate: 0.11 }); // 11% PPN
-      alert('Invoice created successfully!');
-    } catch (error) {
-      console.error('Failed to create invoice:', error);
-    }
+    await apiAction(() => invoiceService.create({ orderId, taxRate: 0.11 }), 'Invoice created!');
   };
 
   const handleCancel = async (id: string) => {
     if (!confirm('Are you sure you want to cancel this order?')) return;
-    try {
-      await salesOrderService.cancel(id);
-      loadData();
-    } catch (error) {
-      console.error('Failed to cancel SO:', error);
-    }
+    await apiAction(() => salesOrderService.cancel(id), 'Order cancelled');
+    loadData();
   };
 
   const formatCurrency = (value: number) => {
@@ -174,7 +159,7 @@ export default function SalesOrders() {
   }
 
   return (
-    <div className="space-y-6"> 
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sales Orders</h1>

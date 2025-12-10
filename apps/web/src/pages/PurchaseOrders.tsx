@@ -8,6 +8,7 @@ import { partnerService, Partner } from '../services/partnerService';
 import { productService, Product } from '../services/productService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
+import { apiAction } from '../hooks/useApiAction';
 import ActionButton from '../components/ActionButton';
 
 interface OrderItemForm {
@@ -81,42 +82,34 @@ export default function PurchaseOrders() {
     e.preventDefault();
     if (!formData.partnerId || formData.items.length === 0) return;
 
-    try {
-      await purchaseOrderService.create(formData);
+    const result = await apiAction(
+      () => purchaseOrderService.create(formData),
+      'Purchase Order created!'
+    );
+    if (result) {
       setShowForm(false);
       setFormData({ partnerId: '', items: [] });
       loadData();
-    } catch (error) {
-      console.error('Failed to create PO:', error);
     }
   };
 
   const handleConfirm = async (id: string) => {
-    try {
-      await purchaseOrderService.confirm(id);
-      loadData();
-    } catch (error) {
-      console.error('Failed to confirm PO:', error);
-    }
+    await apiAction(() => purchaseOrderService.confirm(id), 'Order confirmed!');
+    loadData();
   };
 
   const handleGoodsReceipt = async (id: string) => {
-    try {
-      await purchaseOrderService.processGoodsReceipt(id);
-      loadData();
-    } catch (error) {
-      console.error('Failed to process goods receipt:', error);
-    }
+    await apiAction(
+      () => purchaseOrderService.processGoodsReceipt(id),
+      'Goods received! Inventory updated.'
+    );
+    loadData();
   };
 
   const handleCancel = async (id: string) => {
     if (!confirm('Are you sure you want to cancel this order?')) return;
-    try {
-      await purchaseOrderService.cancel(id);
-      loadData();
-    } catch (error) {
-      console.error('Failed to cancel PO:', error);
-    }
+    await apiAction(() => purchaseOrderService.cancel(id), 'Order cancelled');
+    loadData();
   };
 
   const formatCurrency = (value: number) => {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { partnerService, Partner, CreatePartnerInput } from '../services/partnerService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
+import { apiAction } from '../hooks/useApiAction';
 
 export default function Suppliers() {
   const { currentCompany } = useCompany();
@@ -23,24 +24,18 @@ export default function Suppliers() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await partnerService.create(formData);
+    const result = await apiAction(() => partnerService.create(formData), 'Supplier created!');
+    if (result) {
       setShowForm(false);
       setFormData({ name: '', email: '', phone: '', address: '', type: 'SUPPLIER' });
       loadSuppliers();
-    } catch (error) {
-      console.error('Failed to create supplier:', error);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this supplier?')) return;
-    try {
-      await partnerService.delete(id);
-      loadSuppliers();
-    } catch (error) {
-      console.error('Failed to delete supplier:', error);
-    }
+    await apiAction(() => partnerService.delete(id), 'Supplier deleted');
+    loadSuppliers();
   };
 
   if (loading) {

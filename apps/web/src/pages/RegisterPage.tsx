@@ -24,7 +24,6 @@ export const RegisterPage: React.FC = () => {
       // Success
       navigate('/');
     } catch (err) {
-      console.error(err);
       setError((err as any).response?.data?.error?.message || 'Registration failed');
     } finally {
       setLoading(false);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { productService, Product, CreateProductInput } from '../services/productService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
+import { apiAction } from '../hooks/useApiAction';
 
 export default function Products() {
   const { currentCompany } = useCompany();
@@ -21,24 +22,18 @@ export default function Products() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await productService.create(formData);
+    const result = await apiAction(() => productService.create(formData), 'Product created!');
+    if (result) {
       setShowForm(false);
       setFormData({ sku: '', name: '', price: 0 });
       loadProducts();
-    } catch (error) {
-      console.error('Failed to create product:', error);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
-    try {
-      await productService.delete(id);
-      loadProducts();
-    } catch (error) {
-      console.error('Failed to delete product:', error);
-    }
+    await apiAction(() => productService.delete(id), 'Product deleted');
+    loadProducts();
   };
 
   const formatCurrency = (value: number) => {

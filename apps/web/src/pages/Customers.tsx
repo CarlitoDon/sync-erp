@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { partnerService, Partner, CreatePartnerInput } from '../services/partnerService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
+import { apiAction } from '../hooks/useApiAction';
 
 export default function Customers() {
   const { currentCompany } = useCompany();
@@ -22,24 +23,18 @@ export default function Customers() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await partnerService.create(formData);
+    const result = await apiAction(() => partnerService.create(formData), 'Customer created!');
+    if (result) {
       setShowForm(false);
       setFormData({ name: '', email: '', phone: '', address: '', type: 'CUSTOMER' });
       loadCustomers();
-    } catch (error) {
-      console.error('Failed to create customer:', error);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this customer?')) return;
-    try {
-      await partnerService.delete(id);
-      loadCustomers();
-    } catch (error) {
-      console.error('Failed to delete customer:', error);
-    }
+    await apiAction(() => partnerService.delete(id), 'Customer deleted');
+    loadCustomers();
   };
 
   if (loading) {

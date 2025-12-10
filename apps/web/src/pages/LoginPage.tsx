@@ -23,7 +23,6 @@ export const LoginPage: React.FC = () => {
       // Success
       navigate('/select-company');
     } catch (err) {
-      console.error(err);
       setError((err as any).response?.data?.error?.message || 'Login failed');
     } finally {
       setLoading(false);
