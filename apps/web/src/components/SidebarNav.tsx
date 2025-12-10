@@ -2,6 +2,7 @@ import SidebarItem from './SidebarItem';
 import {
   HomeIcon,
   TruckIcon,
+  UserGroupIcon,
   CubeIcon,
   ClipboardDocumentListIcon,
   ShoppingCartIcon,
@@ -14,6 +15,7 @@ import {
 const navItems = [
   { path: '/', label: 'Dashboard', icon: <HomeIcon /> },
   { path: '/suppliers', label: 'Suppliers', icon: <TruckIcon /> },
+  { path: '/customers', label: 'Customers', icon: <UserGroupIcon /> },
   { path: '/products', label: 'Products', icon: <CubeIcon /> },
   { path: '/purchase-orders', label: 'Purchase Orders', icon: <ClipboardDocumentListIcon /> },
   { path: '/sales-orders', label: 'Sales Orders', icon: <ShoppingCartIcon /> },

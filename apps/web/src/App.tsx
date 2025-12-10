@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
 import CreateCompany from './pages/CreateCompany';
 import Suppliers from './pages/Suppliers';
+import Customers from './pages/Customers';
 import Products from './pages/Products';
 import PurchaseOrders from './pages/PurchaseOrders';
 import Inventory from './pages/Inventory';
@@ -35,6 +36,7 @@ function App() {
               <Route path="companies" element={<Companies />} />
               <Route path="companies/new" element={<CreateCompany />} />
               <Route path="suppliers" element={<Suppliers />} />
+              <Route path="customers" element={<Customers />} />
               <Route path="products" element={<Products />} />
               <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="inventory" element={<Inventory />} />

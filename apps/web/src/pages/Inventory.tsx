@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { productService, StockLevel } from '../services/productService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';

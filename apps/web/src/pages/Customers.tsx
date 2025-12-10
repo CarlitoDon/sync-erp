@@ -3,14 +3,13 @@ import { partnerService, Partner, CreatePartnerInput } from '../services/partner
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
 
-export default function Suppliers() {
+export default function Customers() {
   const { currentCompany } = useCompany();
-  // Using the new hook
   const {
-    data: suppliers,
+    data: customers,
     loading,
-    refresh: loadSuppliers,
-  } = useCompanyData<Partner[]>(partnerService.listSuppliers, []);
+    refresh: loadCustomers,
+  } = useCompanyData<Partner[]>(partnerService.listCustomers, []);
 
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<CreatePartnerInput>({
@@ -18,7 +17,7 @@ export default function Suppliers() {
     email: '',
     phone: '',
     address: '',
-    type: 'SUPPLIER',
+    type: 'CUSTOMER',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,20 +25,20 @@ export default function Suppliers() {
     try {
       await partnerService.create(formData);
       setShowForm(false);
-      setFormData({ name: '', email: '', phone: '', address: '', type: 'SUPPLIER' });
-      loadSuppliers();
+      setFormData({ name: '', email: '', phone: '', address: '', type: 'CUSTOMER' });
+      loadCustomers();
     } catch (error) {
-      console.error('Failed to create supplier:', error);
+      console.error('Failed to create customer:', error);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this supplier?')) return;
+    if (!confirm('Are you sure you want to delete this customer?')) return;
     try {
       await partnerService.delete(id);
-      loadSuppliers();
+      loadCustomers();
     } catch (error) {
-      console.error('Failed to delete supplier:', error);
+      console.error('Failed to delete customer:', error);
     }
   };
 
@@ -54,7 +53,7 @@ export default function Suppliers() {
   if (!currentCompany) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
-        Please select a company to view suppliers.
+        Please select a company to view customers.
       </div>
     );
   }
@@ -63,22 +62,22 @@ export default function Suppliers() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Suppliers</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
           <p className="text-gray-500">
-            Manage your supplier relationships for {currentCompany.name}
+            Manage your customer relationships for {currentCompany.name}
           </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
-          {showForm ? 'Cancel' : '+ Add Supplier'}
+          {showForm ? 'Cancel' : '+ Add Customer'}
         </button>
       </div>
 
       {showForm && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">New Supplier</h2>
+          <h2 className="text-lg font-semibold mb-4">New Customer</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
@@ -122,7 +121,7 @@ export default function Suppliers() {
                 type="submit"
                 className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                Create Supplier
+                Create Customer
               </button>
             </div>
           </form>
@@ -151,22 +150,22 @@ export default function Suppliers() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {suppliers.length === 0 ? (
+            {customers.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                  No suppliers found for this company.
+                  No customers found for this company.
                 </td>
               </tr>
             ) : (
-              suppliers.map((supplier) => (
-                <tr key={supplier.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium text-gray-900">{supplier.name}</td>
-                  <td className="px-6 py-4 text-gray-500">{supplier.email || '-'}</td>
-                  <td className="px-6 py-4 text-gray-500">{supplier.phone || '-'}</td>
-                  <td className="px-6 py-4 text-gray-500">{supplier.address || '-'}</td>
+              customers.map((customer) => (
+                <tr key={customer.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 font-medium text-gray-900">{customer.name}</td>
+                  <td className="px-6 py-4 text-gray-500">{customer.email || '-'}</td>
+                  <td className="px-6 py-4 text-gray-500">{customer.phone || '-'}</td>
+                  <td className="px-6 py-4 text-gray-500">{customer.address || '-'}</td>
                   <td className="px-6 py-4 text-right">
                     <button
-                      onClick={() => handleDelete(supplier.id)}
+                      onClick={() => handleDelete(customer.id)}
                       className="text-red-600 hover:text-red-800"
                     >
                       Delete

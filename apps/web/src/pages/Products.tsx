@@ -10,7 +10,6 @@ export default function Products() {
     data: products,
     loading,
     refresh: loadProducts,
-    setData: setProducts,
   } = useCompanyData<Product[]>(productService.list, []);
 
   const [showForm, setShowForm] = useState(false);
