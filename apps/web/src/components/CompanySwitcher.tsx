@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCompany } from '../contexts/CompanyContext';
 import type { Company } from '@sync-erp/shared';
 
 export default function CompanySwitcher() {
+  const navigate = useNavigate();
   const { companies, currentCompany, setCurrentCompany, isLoading } = useCompany();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -74,6 +76,19 @@ export default function CompanySwitcher() {
               )}
             </button>
           ))}
+          <div className="border-t border-gray-100 my-1"></div>
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              navigate('/select-company');
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+          >
+            <div className="w-6 h-6 flex items-center justify-center">
+              <span className="text-gray-400 text-lg leading-none">+</span>
+            </div>
+            <span>Manage Companies...</span>
+          </button>
         </div>
       )}
     </div>
