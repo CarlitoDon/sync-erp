@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { BillService } from '../../src/services/BillService';
 import { JournalService } from '../../src/services/JournalService';
