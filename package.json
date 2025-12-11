@@ -12,6 +12,8 @@
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "npm run dev --workspace=@sync-erp/api",
     "dev:web": "npm run dev --workspace=@sync-erp/web",
+    "typecheck": "tsc -b",
+    "typecheck:watch": "tsc -b --watch",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
