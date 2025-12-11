@@ -1,28 +1,8 @@
 import api from './api';
-import type { Partner } from './partnerService';
+// Partner type is not used in this file anymore directly
 
-export interface Invoice {
-  id: string;
-  invoiceNumber: string;
-  orderId: string;
-  partnerId: string;
-  partner?: Partner;
-  type: 'INVOICE' | 'BILL';
-  status: 'DRAFT' | 'POSTED' | 'PAID' | 'VOID';
-  amount: number;
-  balance: number;
-  dueDate: string;
-  createdAt: string;
-  payments?: Payment[];
-}
-
-export interface Payment {
-  id: string;
-  invoiceId: string;
-  amount: number;
-  method: string;
-  date: string;
-}
+import type { Invoice, Payment } from '@sync-erp/shared';
+export type { Invoice, Payment };
 
 export interface CreateInvoiceInput {
   orderId: string;

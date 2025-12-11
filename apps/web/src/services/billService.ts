@@ -1,21 +1,8 @@
 import api from './api';
-import type { Partner } from './partnerService';
-import type { Payment } from './invoiceService'; // Share Payment type
+// Imports removed
 
-export interface Bill {
-  id: string;
-  invoiceNumber: string;
-  orderId: string;
-  partnerId: string;
-  partner?: Partner;
-  type: 'BILL';
-  status: 'DRAFT' | 'POSTED' | 'PAID' | 'VOID';
-  amount: number;
-  balance: number;
-  dueDate: string;
-  createdAt: string;
-  payments?: Payment[];
-}
+import type { Invoice as Bill } from '@sync-erp/shared';
+export type { Bill };
 
 export interface CreateBillInput {
   orderId: string;

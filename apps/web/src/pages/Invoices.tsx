@@ -10,6 +10,7 @@ import { useCompanyData } from '../hooks/useCompanyData';
 import { apiAction } from '../hooks/useApiAction';
 import { useConfirm } from '../components/ConfirmModal';
 import ActionButton from '../components/ActionButton';
+import { formatCurrency, formatDate } from '../utils/format';
 
 export default function Invoices() {
   const { currentCompany } = useCompany();
@@ -55,10 +56,6 @@ export default function Invoices() {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':
@@ -72,10 +69,6 @@ export default function Invoices() {
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID');
   };
 
   if (loading) {

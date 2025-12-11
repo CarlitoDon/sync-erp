@@ -3,6 +3,7 @@
 
 export * from './auth.js';
 export * from './finance.js';
+export * from './partner.js';
 
 export interface Company {
   id: string;
@@ -23,21 +24,7 @@ export interface CompanyMember {
   roleId?: string;
 }
 
-// ============================================
-// Partner Types (Customer & Supplier)
-// ============================================
-
-export type PartnerType = 'CUSTOMER' | 'SUPPLIER';
-
-export interface Partner {
-  id: string;
-  companyId: string;
-  type: PartnerType;
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-}
+// Partner Types moved to partner.ts
 
 // ============================================
 // Product Types
@@ -51,6 +38,8 @@ export interface Product {
   price: number;
   averageCost: number;
   stockQty: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // ============================================
@@ -147,13 +136,7 @@ export interface ApiResponse<T> {
 // Create properties removed effectively by using the export below
 export * from './company.js';
 
-export interface CreatePartnerDto {
-  name: string;
-  type: PartnerType;
-  email?: string;
-  phone?: string;
-  address?: string;
-}
+// CreatePartnerDto moved to partner.ts
 
 export interface CreateProductDto {
   sku: string;

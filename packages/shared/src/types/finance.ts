@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Partner } from './partner.js';
 
 // ============================================
 // Core Finance Types
@@ -16,7 +17,7 @@ export const TAX_RATES = [
 export interface Invoice {
   id: string;
   companyId: string;
-  orderId?: string;
+  orderId?: string | null;
   partnerId: string;
   type: InvoiceType;
   status: InvoiceStatus;
@@ -27,6 +28,10 @@ export interface Invoice {
   taxRate: number;
   balance: number;
   invoiceNumber?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  partner?: Partner;
+  payments?: Payment[];
 }
 
 export interface Payment {
@@ -36,6 +41,7 @@ export interface Payment {
   amount: number;
   date: Date;
   method: string;
+  createdAt: Date;
 }
 
 // Chart of Accounts

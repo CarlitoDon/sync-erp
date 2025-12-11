@@ -1,14 +1,9 @@
 import api from './api';
 
-export interface Product {
-  id: string;
-  sku: string;
-  name: string;
-  price: number;
-  averageCost: number;
-  stockQty: number;
-  createdAt: string;
-}
+import type { Product } from '@sync-erp/shared';
+export type { Product };
+
+// Remove local Product interface
 
 export interface CreateProductInput {
   sku: string;
