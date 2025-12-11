@@ -1,5 +1,4 @@
 import { prisma, type Product } from '@sync-erp/database';
-import { Decimal } from '@prisma/client/runtime/library';
 
 interface CreateProductInput {
   sku: string;
@@ -22,8 +21,8 @@ export class ProductService {
         companyId,
         sku: data.sku,
         name: data.name,
-        price: new Decimal(data.price),
-        averageCost: new Decimal(0),
+        price: data.price,
+        averageCost: 0,
         stockQty: 0,
       },
     });
@@ -70,7 +69,7 @@ export class ProductService {
       where: { id },
       data: {
         name: data.name,
-        price: data.price ? new Decimal(data.price) : undefined,
+        price: data.price,
       },
     });
   }
@@ -130,7 +129,7 @@ export class ProductService {
     return prisma.product.update({
       where: { id },
       data: {
-        averageCost: new Decimal(newAvgCost),
+        averageCost: newAvgCost,
         stockQty: {
           increment: newQuantity,
         },

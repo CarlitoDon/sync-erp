@@ -1,6 +1,5 @@
 import { prisma } from '@sync-erp/database';
 import type { JournalEntry } from '@sync-erp/database';
-import { Decimal } from '@prisma/client/runtime/library';
 import { AccountService } from './AccountService';
 // import { CreateJournalEntryInput } from '@sync-erp/shared';
 // Defining locally to avoid build issues
@@ -42,7 +41,7 @@ export class JournalService {
     }
 
     // Verify accounts exist
-    const lineData: { accountId: string; debit: Decimal; credit: Decimal }[] = [];
+    const lineData: { accountId: string; debit: number; credit: number }[] = [];
     for (const line of data.lines) {
       const account = await this.accountService.getById(line.accountId, companyId);
       if (!account) {
@@ -50,8 +49,8 @@ export class JournalService {
       }
       lineData.push({
         accountId: account.id,
-        debit: new Decimal(line.debit || 0),
-        credit: new Decimal(line.credit || 0),
+        debit: line.debit || 0,
+        credit: line.credit || 0,
       });
     }
 

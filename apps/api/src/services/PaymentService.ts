@@ -1,7 +1,6 @@
 import { prisma, InvoiceStatus, InvoiceType } from '@sync-erp/database';
 import type { Payment } from '@sync-erp/database';
 import { CreatePaymentDto } from '@sync-erp/shared';
-import { Decimal } from '@prisma/client/runtime/library';
 import { JournalService } from './JournalService';
 
 export class PaymentService {
@@ -42,7 +41,7 @@ export class PaymentService {
       data: {
         companyId,
         invoiceId: data.invoiceId,
-        amount: new Decimal(data.amount),
+        amount: data.amount,
         method: data.method,
       },
     });
@@ -54,7 +53,7 @@ export class PaymentService {
         where: { id: data.invoiceId },
         data: {
           status: InvoiceStatus.PAID,
-          balance: new Decimal(0),
+          balance: 0,
         },
       });
     } else {
@@ -62,7 +61,7 @@ export class PaymentService {
       await prisma.invoice.update({
         where: { id: data.invoiceId },
         data: {
-          balance: new Decimal(Number(invoice.amount) - newTotalPaid),
+          balance: Number(invoice.amount) - newTotalPaid,
         },
       });
     }

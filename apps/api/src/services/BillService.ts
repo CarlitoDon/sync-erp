@@ -1,6 +1,5 @@
 import { prisma, InvoiceType, InvoiceStatus, OrderType } from '@sync-erp/database';
 import type { Invoice } from '@sync-erp/database';
-import { Decimal } from '@prisma/client/runtime/library';
 import { JournalService } from './JournalService';
 
 interface CreateBillInput {
@@ -57,11 +56,11 @@ export class BillService {
         type: InvoiceType.BILL,
         status: InvoiceStatus.DRAFT,
         invoiceNumber,
-        amount: new Decimal(amount),
-        subtotal: new Decimal(subtotal),
-        taxAmount: new Decimal(taxAmount),
-        taxRate: new Decimal(taxRate),
-        balance: new Decimal(amount),
+        amount,
+        subtotal,
+        taxAmount,
+        taxRate,
+        balance: amount,
         dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
       },
       include: {

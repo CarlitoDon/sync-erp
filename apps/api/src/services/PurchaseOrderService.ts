@@ -1,6 +1,5 @@
 import { prisma, OrderType, OrderStatus } from '@sync-erp/database';
 import type { Order, OrderItem } from '@sync-erp/database';
-import { Decimal } from '@prisma/client/runtime/library';
 
 interface CreateOrderItemInput {
   productId: string;
@@ -35,13 +34,13 @@ export class PurchaseOrderService {
         type: OrderType.PURCHASE,
         status: OrderStatus.DRAFT,
         orderNumber,
-        totalAmount: new Decimal(totalAmount),
-        taxRate: new Decimal(data.taxRate || 0),
+        totalAmount,
+        taxRate: data.taxRate || 0,
         items: {
           create: data.items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: new Decimal(item.price),
+            price: item.price,
           })),
         },
       },
