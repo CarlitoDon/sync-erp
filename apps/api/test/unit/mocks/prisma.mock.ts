@@ -13,6 +13,8 @@ export const mockPrisma = {
     findMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
+    upsert: vi.fn(),
   },
   companyMember: {
     create: vi.fn(),
@@ -41,6 +43,7 @@ export const mockPrisma = {
     findMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
   },
   invoice: {
     create: vi.fn(),
@@ -49,6 +52,7 @@ export const mockPrisma = {
     findMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
     count: vi.fn(),
   },
   bill: {
@@ -65,6 +69,7 @@ export const mockPrisma = {
     findMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
   },
   order: {
     create: vi.fn(),
@@ -73,6 +78,7 @@ export const mockPrisma = {
     findMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
     count: vi.fn(),
   },
   account: {
@@ -82,6 +88,7 @@ export const mockPrisma = {
     findMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
     upsert: vi.fn(),
   },
   journalEntry: {
@@ -91,6 +98,7 @@ export const mockPrisma = {
     findMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
     count: vi.fn(),
   },
   journalLine: {
@@ -106,6 +114,7 @@ export const mockPrisma = {
     findMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
   },
   salesOrder: {
     create: vi.fn(),
@@ -126,7 +135,28 @@ export const mockPrisma = {
     findUnique: vi.fn(),
     findMany: vi.fn(),
   },
-  $transaction: vi.fn((callback) => callback(mockPrisma)),
+  orderItem: {
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    delete: vi.fn(),
+    deleteMany: vi.fn(),
+  },
+  inventoryMovement: {
+    create: vi.fn(),
+    findMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
+  $transaction: vi.fn((arg) => {
+    // Handle both patterns: array of queries or callback function
+    if (Array.isArray(arg)) {
+      return Promise.resolve(arg);
+    }
+    if (typeof arg === 'function') {
+      return arg(mockPrisma);
+    }
+    return Promise.resolve([]);
+  }),
 };
 
 // Reset all mocks between tests
