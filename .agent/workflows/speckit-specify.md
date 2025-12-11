@@ -1,13 +1,5 @@
 ---
 description: Create or update the feature specification from a natural language feature description.
-handoffs:
-  - label: Build Technical Plan
-    agent: speckit-plan
-    prompt: Create a plan for the spec. I am building with...
-  - label: Clarify Spec Requirements
-    agent: speckit-clarify
-    prompt: Clarify specification requirements
-    send: true
 ---
 
 ## User Input
@@ -20,21 +12,21 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-The text the user typed after `/speckit-specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `$ARGUMENTS` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
+The text typed after `/speckit-specify` is the feature description. Treat it as always available, even if `$ARGUMENTS` appears literally. Only ask the user to repeat it if the command is empty.
 
-Given that feature description, do this:
+Using that feature description:
 
-1. **Generate a concise short name** (2-4 words) for the branch:
-   - Analyze the feature description and extract the most meaningful keywords
-   - Create a 2-4 word short name that captures the essence of the feature
-   - Use action-noun format when possible (e.g., "add-user-auth", "fix-payment-bug")
-   - Preserve technical terms and acronyms (OAuth2, API, JWT, etc.)
-   - Keep it concise but descriptive enough to understand the feature at a glance
-   - Examples:
-     - "I want to add user authentication" → "user-auth"
-     - "Implement OAuth2 integration for the API" → "oauth2-api-integration"
-     - "Create a dashboard for analytics" → "analytics-dashboard"
-     - "Fix payment processing timeout bug" → "fix-payment-timeout"
+1. **Generate a concise 2–4 word branch name**:
+   - Extract key terms from the description
+   - Create a short action-noun style name (e.g., "add-user-auth", "fix-payment-bug")
+   - Keep technical terms/acronyms intact (OAuth2, API, JWT)
+   - Make it concise yet clear
+
+   Examples:
+   - "I want to add user authentication" → "user-auth"
+   - "Implement OAuth2 integration for the API" → "oauth2-api-integration"
+   - "Create a dashboard for analytics" → "analytics-dashboard"
+   - "Fix payment processing timeout bug" → "fix-payment-timeout"
 
 2. **Check for existing branches before creating new one**:
 

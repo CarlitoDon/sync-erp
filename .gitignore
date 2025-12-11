@@ -43,4 +43,6 @@ coverage/
 *.sqlite
 
 # Misc
-*.local
+
+# Generated Prisma Client
+packages/database/src/generated/
