@@ -1,7 +1,7 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { useSidebarState } from '../hooks/useSidebarState';
 
-interface SidebarContextType {
+export interface SidebarContextType {
   isCollapsed: boolean;
   setIsCollapsed: (value: boolean) => void;
   toggleCollapse: () => void;
@@ -11,7 +11,7 @@ interface SidebarContextType {
   closeMobile: () => void;
 }
 
-const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
+export const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const sidebarState = useSidebarState();
