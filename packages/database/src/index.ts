@@ -20,7 +20,7 @@ export type {
   RolePermission,
   Session,
   Account,
-} from '@prisma/client';
+} from './generated/client/client.js';
 
 // Re-export enums as values (not just types)
 export {
@@ -31,4 +31,6 @@ export {
   InvoiceType,
   InvoiceStatus,
   AccountType,
-} from '@prisma/client';
+} from './generated/client/client.js';
+
+export { Prisma } from './generated/client/client.js';
