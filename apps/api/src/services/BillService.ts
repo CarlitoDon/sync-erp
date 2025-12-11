@@ -1,11 +1,13 @@
 import { prisma, InvoiceType, InvoiceStatus, OrderType } from '@sync-erp/database';
 import type { Invoice } from '@sync-erp/database';
+import { Decimal } from '@prisma/client/runtime/library';
 import { JournalService } from './JournalService';
 
 interface CreateBillInput {
   orderId: string;
   invoiceNumber?: string;
   dueDate?: Date;
+  taxRate?: number;
 }
 
 export class BillService {
@@ -35,6 +37,17 @@ export class BillService {
     });
     const invoiceNumber = data.invoiceNumber || `BILL-${String(billCount + 1).padStart(5, '0')}`;
 
+    // Calculate tax logic matching InvoiceService
+    const subtotal = Number(order.totalAmount);
+    let taxRate = data.taxRate;
+    if (taxRate === undefined && order.taxRate !== null) {
+      taxRate = Number(order.taxRate);
+    }
+    taxRate = taxRate || 0;
+    const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
+    const taxAmount = subtotal * taxMultiplier;
+    const amount = subtotal + taxAmount;
+
     // Create the bill
     return prisma.invoice.create({
       data: {
@@ -44,8 +57,11 @@ export class BillService {
         type: InvoiceType.BILL,
         status: InvoiceStatus.DRAFT,
         invoiceNumber,
-        amount: order.totalAmount, // PO amount is total
-        balance: order.totalAmount,
+        amount: new Decimal(amount),
+        subtotal: new Decimal(subtotal),
+        taxAmount: new Decimal(taxAmount),
+        taxRate: new Decimal(taxRate),
+        balance: new Decimal(amount),
         dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
       },
       include: {
@@ -118,7 +134,9 @@ export class BillService {
     await this.journalService.postBill(
       companyId,
       updatedBill.invoiceNumber,
-      Number(updatedBill.amount)
+      Number(updatedBill.amount),
+      Number(updatedBill.subtotal),
+      Number(updatedBill.taxAmount)
     );
 
     return updatedBill;

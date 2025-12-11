@@ -144,15 +144,25 @@ export class JournalService {
   async postInvoice(
     companyId: string,
     invoiceNumber: string,
-    amount: number
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number
   ): Promise<JournalEntry> {
+    const lines: { accountCode: string; debit?: number; credit?: number }[] = [
+      { accountCode: '1300', debit: amount }, // Accounts Receivable
+    ];
+
+    if (taxAmount && taxAmount > 0) {
+      lines.push({ accountCode: '4100', credit: subtotal || amount - taxAmount }); // Sales Revenue
+      lines.push({ accountCode: '2300', credit: taxAmount }); // VAT Payable
+    } else {
+      lines.push({ accountCode: '4100', credit: amount });
+    }
+
     return this.resolveAndCreate(companyId, {
       reference: `Invoice: ${invoiceNumber}`,
       memo: `Auto-generated from invoice ${invoiceNumber}`,
-      lines: [
-        { accountCode: '1300', debit: amount },
-        { accountCode: '4100', credit: amount },
-      ],
+      lines,
     });
   }
 
@@ -161,14 +171,54 @@ export class JournalService {
    * Dr. Inventory/Expense (1400 - Simplified to Inventory for MVP)
    * Cr. Accounts Payable (2100)
    */
-  async postBill(companyId: string, billNumber: string, amount: number): Promise<JournalEntry> {
+  /**
+   * Create journal entry for Goods Receipt (Accrual)
+   * Dr. Inventory Asset (1400)
+   * Cr. GRNI / Accrued Liability (2105)
+   */
+  async postGoodsReceipt(
+    companyId: string,
+    reference: string,
+    amount: number
+  ): Promise<JournalEntry> {
+    return this.resolveAndCreate(companyId, {
+      reference,
+      memo: 'Auto-generated Accrual from Goods Receipt',
+      lines: [
+        { accountCode: '1400', debit: amount }, // Asset
+        { accountCode: '2105', credit: amount }, // Liability Suspense
+      ],
+    });
+  }
+
+  /**
+   * Create journal entry for a bill (AP)
+   * Dr. GRNI / Accrued Liability (2105) - Offsetting the accrual
+   * Dr. VAT Receivable (1500)
+   * Cr. Accounts Payable (2100)
+   */
+  async postBill(
+    companyId: string,
+    billNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number
+  ): Promise<JournalEntry> {
+    const lines: { accountCode: string; debit?: number; credit?: number }[] = [
+      { accountCode: '2100', credit: amount }, // Accounts Payable
+    ];
+
+    if (taxAmount && taxAmount > 0) {
+      lines.push({ accountCode: '2105', debit: subtotal || amount - taxAmount }); // Clear Accrual
+      lines.push({ accountCode: '1500', debit: taxAmount }); // VAT Receivable
+    } else {
+      lines.push({ accountCode: '2105', debit: amount }); // Clear Accrual
+    }
+
     return this.resolveAndCreate(companyId, {
       reference: `Bill: ${billNumber}`,
       memo: `Auto-generated from bill ${billNumber}`,
-      lines: [
-        { accountCode: '1400', debit: amount },
-        { accountCode: '2100', credit: amount },
-      ],
+      lines,
     });
   }
 
@@ -267,18 +317,20 @@ export class JournalService {
     // If Loss: Dr Expense (5200), Cr Asset (1400)
     // If Gain: Dr Asset (1400), Cr Revenue/Contra (5200)
 
+    const lines: { accountCode: string; debit?: number; credit?: number }[] = isLoss
+      ? [
+          { accountCode: '5200', debit: amount },
+          { accountCode: '1400', credit: amount },
+        ]
+      : [
+          { accountCode: '1400', debit: amount },
+          { accountCode: '5200', credit: amount },
+        ];
+
     return this.resolveAndCreate(companyId, {
       reference,
       memo,
-      lines: isLoss
-        ? [
-            { accountCode: '5200', debit: amount },
-            { accountCode: '1400', credit: amount },
-          ]
-        : [
-            { accountCode: '1400', debit: amount },
-            { accountCode: '5200', credit: amount },
-          ],
+      lines,
     });
   }
 }

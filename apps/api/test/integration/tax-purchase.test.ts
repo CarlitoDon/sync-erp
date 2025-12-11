@@ -1,0 +1,154 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { prisma } from '@sync-erp/database';
+import { BillService } from '../../src/services/BillService';
+import { JournalService } from '../../src/services/JournalService';
+import { PurchaseOrderService } from '../../src/services/PurchaseOrderService';
+
+const billService = new BillService();
+const journalService = new JournalService();
+const purchaseOrderService = new PurchaseOrderService();
+
+const COMPANY_ID = 'test-tax-purchase-001';
+
+describe('US2: Purchase Tax Selection (Input VAT)', () => {
+  let productId: string;
+  let partnerId: string;
+
+  beforeAll(async () => {
+    // 1. Setup Company
+    await prisma.company.upsert({
+      where: { id: COMPANY_ID },
+      create: { id: COMPANY_ID, name: 'Tax Purchase Company' },
+      update: {},
+    });
+
+    // 2. Setup Accounts
+    const accounts = [
+      { code: '1400', name: 'Inventory Asset', type: 'ASSET' }, // Or Suspense
+      { code: '1500', name: 'VAT Receivable', type: 'ASSET' }, // Input VAT
+      { code: '2100', name: 'Accounts Payable', type: 'LIABILITY' },
+    ];
+
+    for (const acc of accounts) {
+      await prisma.account.upsert({
+        where: { companyId_code: { companyId: COMPANY_ID, code: acc.code } },
+        update: {},
+        create: {
+          companyId: COMPANY_ID,
+          code: acc.code,
+          name: acc.name,
+          type: acc.type as any,
+          isActive: true,
+        },
+      });
+    }
+
+    // 3. Setup Partner (Supplier)
+    const partner = await prisma.partner.create({
+      data: {
+        companyId: COMPANY_ID,
+        name: 'Tax Supplier',
+        type: 'SUPPLIER',
+        email: `supplier-${Date.now()}@test.com`,
+      },
+    });
+    partnerId = partner.id;
+
+    // 4. Setup Product
+    const product = await prisma.product.create({
+      data: {
+        companyId: COMPANY_ID,
+        sku: `PURCH-PROD-${Date.now()}`,
+        name: 'Purchase Product',
+        price: 200000, // Sales price, irrelevant for PO cost?
+        stockQty: 0,
+      },
+    });
+    productId = product.id;
+  });
+
+  afterAll(async () => {
+    // Cleanup cascade
+    await prisma.journalEntry.deleteMany({ where: { companyId: COMPANY_ID } });
+    await prisma.invoice.deleteMany({ where: { companyId: COMPANY_ID } });
+    await prisma.orderItem.deleteMany({ where: { order: { companyId: COMPANY_ID } } });
+    await prisma.order.deleteMany({ where: { companyId: COMPANY_ID } });
+    await prisma.product.deleteMany({ where: { companyId: COMPANY_ID } });
+    await prisma.account.deleteMany({ where: { companyId: COMPANY_ID } });
+    await prisma.partner.deleteMany({ where: { companyId: COMPANY_ID } });
+    await prisma.company.delete({ where: { id: COMPANY_ID } });
+  });
+
+  it('should split Bill Journal into Inventory, VAT Receivable, and AP when Tax Rate is selected', async () => {
+    // 1. Create Purchase Order with 11% Tax
+    // Amount: 100,000 * 2 = 200,000.
+    // Tax: 11%.
+    const order = await purchaseOrderService.create(COMPANY_ID, 'user-1', {
+      partnerId,
+      items: [{ productId, quantity: 2, price: 100000 }],
+      taxRate: 11,
+    });
+
+    const confirmedOrder = await purchaseOrderService.confirm(order.id, COMPANY_ID);
+
+    // 2. Create Bill
+    const bill = await billService.createFromPurchaseOrder(COMPANY_ID, 'user-1', {
+      orderId: confirmedOrder.id,
+      invoiceNumber: `BILL-${Date.now()}`,
+    });
+
+    expect(Number(bill.subtotal)).toBe(200000);
+    expect(Number(bill.taxRate)).toBe(11);
+    expect(Number(bill.taxAmount)).toBe(22000); // 200,000 * 0.11
+    expect(Number(bill.amount)).toBe(222000);
+
+    // 3. Post Bill -> Triggers Journal
+    await billService.post(bill.id, COMPANY_ID);
+
+    // 4. Verify Journal
+    const journals = await journalService.list(COMPANY_ID);
+    const billJournal = journals.find((j) => j.reference?.includes(bill.invoiceNumber!)) as any;
+
+    expect(billJournal).toBeDefined();
+    expect(billJournal.lines).toHaveLength(3); // Inventory, Input VAT, AP
+
+    // Verify Lines
+    const invLine = billJournal!.lines.find((l) => l.account.code === '1400');
+    const vatLine = billJournal!.lines.find((l) => l.account.code === '1500');
+    const apLine = billJournal!.lines.find((l) => l.account.code === '2100');
+
+    expect(Number(invLine?.debit)).toBe(200000); // Net Cost
+    expect(Number(vatLine?.debit)).toBe(22000); // VAT Recoverable
+    expect(Number(apLine?.credit)).toBe(222000); // Total Payable
+  });
+
+  it('should NOT record VAT Receivable if Tax Rate is 0', async () => {
+    // 1. Create Purchase Order with 0% Tax
+    const order = await purchaseOrderService.create(COMPANY_ID, 'user-1', {
+      partnerId,
+      items: [{ productId, quantity: 1, price: 100000 }],
+      taxRate: 0,
+    });
+    const confirmedOrder = await purchaseOrderService.confirm(order.id, COMPANY_ID);
+
+    // 2. Create Bill
+    const bill = await billService.createFromPurchaseOrder(COMPANY_ID, 'user-1', {
+      orderId: confirmedOrder.id,
+    });
+
+    expect(Number(bill.taxAmount)).toBe(0);
+    expect(Number(bill.amount)).toBe(100000);
+
+    // 3. Post
+    await billService.post(bill.id, COMPANY_ID);
+
+    // 4. Verify Journal
+    const journals = await journalService.list(COMPANY_ID);
+    const billJournal = journals.find((j) => j.reference?.includes(bill.invoiceNumber!)) as any;
+
+    expect(billJournal.lines).toHaveLength(2); // Inventory + AP only
+
+    const vatLine = billJournal!.lines.find((l) => l.account.code === '1500');
+    expect(vatLine).toBeUndefined();
+  });
+});

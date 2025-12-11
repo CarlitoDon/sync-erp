@@ -11,6 +11,7 @@ interface CreateOrderItemInput {
 interface CreatePurchaseOrderInput {
   partnerId: string;
   items: CreateOrderItemInput[];
+  taxRate?: number;
 }
 
 export class PurchaseOrderService {
@@ -35,6 +36,7 @@ export class PurchaseOrderService {
         status: OrderStatus.DRAFT,
         orderNumber,
         totalAmount: new Decimal(totalAmount),
+        taxRate: new Decimal(data.taxRate || 0),
         items: {
           create: data.items.map((item) => ({
             productId: item.productId,

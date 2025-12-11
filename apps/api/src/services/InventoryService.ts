@@ -58,6 +58,21 @@ export class InventoryService {
       );
     }
 
+    // Calculate total receipt value for Journal
+    const totalReceiptValue = orderItems.reduce(
+      (sum, item) => sum + Number(item.price) * item.quantity,
+      0
+    );
+
+    if (totalReceiptValue > 0) {
+      // T017: Trigger Accrual Journal
+      await this.journalService.postGoodsReceipt(
+        companyId,
+        data.reference || `Goods receipt from ${order.orderNumber}`,
+        totalReceiptValue
+      );
+    }
+
     // Mark order as completed
     await this.purchaseOrderService.complete(data.orderId, companyId);
 
@@ -120,6 +135,63 @@ export class InventoryService {
         companyId,
         reference || `Shipment for order ${order.orderNumber}`,
         totalCogs
+      );
+    }
+
+    return movements;
+  }
+
+  /**
+   * Process sales return (stock increase + COGS reversal)
+   */
+  async processReturn(
+    companyId: string,
+    orderId: string,
+    items: { productId: string; quantity: number }[],
+    reference?: string
+  ): Promise<InventoryMovement[]> {
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, companyId },
+    });
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    const movements: InventoryMovement[] = [];
+    let totalCogsReversal = 0;
+
+    for (const item of items) {
+      // Get product for cost calculation
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      if (!product) throw new Error(`Product ${item.productId} not found`);
+
+      // Create inventory movement (IN) - Restocking
+      const movement = await prisma.inventoryMovement.create({
+        data: {
+          companyId,
+          productId: item.productId,
+          type: MovementType.IN,
+          quantity: item.quantity,
+          reference: reference || `Return for order ${order.orderNumber}`,
+        },
+      });
+      movements.push(movement);
+
+      // Increase Stock
+      await this.productService.updateStock(item.productId, item.quantity);
+
+      // Accumulate COGS Reversal value
+      // Use current Average Cost as best estimate for reversal
+      totalCogsReversal += Number(product.averageCost) * item.quantity;
+    }
+
+    // Post Reversal Journal
+    if (totalCogsReversal > 0) {
+      await this.journalService.postSalesReturn(
+        companyId,
+        reference || `Return for order ${order.orderNumber}`,
+        totalCogsReversal
       );
     }
 

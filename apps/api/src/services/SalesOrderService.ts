@@ -2,6 +2,7 @@ import { prisma, OrderType, OrderStatus } from '@sync-erp/database';
 import type { Order, OrderItem } from '@sync-erp/database';
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProductService } from './ProductService';
+import { InventoryService } from './InventoryService';
 
 interface CreateOrderItemInput {
   productId: string;
@@ -12,10 +13,12 @@ interface CreateOrderItemInput {
 interface CreateSalesOrderInput {
   partnerId: string;
   items: CreateOrderItemInput[];
+  taxRate?: number;
 }
 
 export class SalesOrderService {
   private productService = new ProductService();
+  private inventoryService = new InventoryService();
 
   /**
    * Create a new sales order
@@ -38,6 +41,7 @@ export class SalesOrderService {
         status: OrderStatus.DRAFT,
         orderNumber,
         totalAmount: new Decimal(totalAmount),
+        taxRate: new Decimal(data.taxRate || 0),
         items: {
           create: data.items.map((item) => ({
             productId: item.productId,
@@ -176,5 +180,22 @@ export class SalesOrderService {
       where: { orderId },
       include: { product: true },
     });
+  }
+
+  /**
+   * Process a return for an order
+   */
+  async returnOrder(
+    companyId: string,
+    orderId: string,
+    items: { productId: string; quantity: number }[]
+  ): Promise<void> {
+    const order = await this.getById(orderId, companyId);
+    if (!order) {
+      throw new Error('Sales order not found');
+    }
+
+    // Call inventory service to handle stock and financial reversal
+    await this.inventoryService.processReturn(companyId, orderId, items);
   }
 }
