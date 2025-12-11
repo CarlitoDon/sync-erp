@@ -1,17 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 import { mockPrisma, resetMocks } from '../mocks/prisma.mock';
 
 // Mock the database module
-vi.mock('@sync-erp/database', () => ({
-  prisma: mockPrisma,
-  AccountType: {
-    ASSET: 'ASSET',
-    LIABILITY: 'LIABILITY',
-    EQUITY: 'EQUITY',
-    REVENUE: 'REVENUE',
-    EXPENSE: 'EXPENSE',
-  },
-}));
 
 // Import after mocking
 import { AccountService } from '../../../src/services/AccountService';

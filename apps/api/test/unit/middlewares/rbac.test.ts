@@ -1,11 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import { mockPrisma, resetMocks } from '../mocks/prisma.mock';
 
 // Mock the database module
-vi.mock('@sync-erp/database', () => ({
-  prisma: mockPrisma,
-}));
 
 // Add permission and rolePermission to mock
 (mockPrisma as any).permission = {

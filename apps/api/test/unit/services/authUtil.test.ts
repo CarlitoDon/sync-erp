@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { hashPassword, comparePassword } from '../../../src/services/authUtil';
 
 describe('authUtil', () => {

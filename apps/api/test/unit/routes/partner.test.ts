@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
@@ -34,12 +34,6 @@ vi.mock('../../../src/services/PartnerService', () => ({
 }));
 
 // Mock database PartnerType enum
-vi.mock('@sync-erp/database', () => ({
-  PartnerType: {
-    SUPPLIER: 'SUPPLIER',
-    CUSTOMER: 'CUSTOMER',
-  },
-}));
 
 // Import AFTER mocking
 import { partnerRouter } from '../../../src/routes/partner';

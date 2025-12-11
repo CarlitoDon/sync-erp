@@ -1,20 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 import { mockPrisma, resetMocks } from '../mocks/prisma.mock';
 
 // Mock the database module
-vi.mock('@sync-erp/database', () => ({
-  prisma: mockPrisma,
-  InvoiceStatus: {
-    DRAFT: 'DRAFT',
-    POSTED: 'POSTED',
-    PAID: 'PAID',
-    VOID: 'VOID',
-  },
-  InvoiceType: {
-    INVOICE: 'INVOICE',
-    BILL: 'BILL',
-  },
-}));
 
 // Mock JournalService
 vi.mock('../../../src/services/JournalService', () => ({

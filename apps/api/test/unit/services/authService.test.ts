@@ -1,10 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 import { mockPrisma, resetMocks } from '../mocks/prisma.mock';
 
 // Mock the database module
-vi.mock('@sync-erp/database', () => ({
-  prisma: mockPrisma,
-}));
 
 // Mock authUtil
 vi.mock('../../../src/services/authUtil.js', () => ({

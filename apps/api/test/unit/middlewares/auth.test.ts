@@ -1,11 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import { mockPrisma, resetMocks } from '../mocks/prisma.mock';
 
 // Mock dependencies
-vi.mock('@sync-erp/database', () => ({
-  prisma: mockPrisma,
-}));
 
 vi.mock('../../../src/services/sessionService.js', () => ({
   getSession: vi.fn(),
