@@ -42,6 +42,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       { code: '1300', name: 'Accounts Receivable', type: 'ASSET' },
       { code: '1400', name: 'Inventory Asset', type: 'ASSET' },
       { code: '2100', name: 'Accounts Payable', type: 'LIABILITY' },
+      { code: '2105', name: 'GRNI/Accrued Liability', type: 'LIABILITY' }, // Required for accrual
       { code: '4100', name: 'Sales Revenue', type: 'REVENUE' },
       { code: '5000', name: 'COGS', type: 'EXPENSE' },
     ];
@@ -149,7 +150,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       await purchaseOrderService.confirm(order.id, COMPANY_ID);
     });
 
-    it('2. Should Receive Goods (Updates Stock, No Journal yet)', async () => {
+    it('2. Should Receive Goods (Updates Stock, Creates GRNI Accrual Journal)', async () => {
       // Process goods receipt
       await inventoryService.processGoodsReceipt(COMPANY_ID, {
         orderId,
@@ -161,13 +162,19 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       expect(prod?.stockQty).toBe(10);
       expect(Number(prod?.averageCost)).toBe(100);
 
-      // Verify NO Journal yet (depending on current logic, Goods Receipt might not trigger one)
+      // Verify GRNI Accrual Journal exists (Dr Inventory, Cr GRNI)
       const journals = await journalService.list(COMPANY_ID);
-      const grnJournal = journals.find((j: any) => j.reference === 'GRN-001');
-      expect(grnJournal).toBeUndefined(); // Standard behavior as per implementation analysis
+      const grnJournal = journals.find((j: any) => j.reference?.includes('GRN-001')) as any;
+      expect(grnJournal).toBeDefined();
+
+      // Verify the journal lines (Dr 1400 Inventory, Cr 2105 GRNI)
+      const drLine = grnJournal.lines.find((l: any) => l.account.code === '1400');
+      const crLine = grnJournal.lines.find((l: any) => l.account.code === '2105');
+      expect(Number(drLine?.debit)).toBe(1000); // 10 * 100
+      expect(Number(crLine?.credit)).toBe(1000);
     });
 
-    it('3. Should Create and Post Bill (Dr Inventory 1400, Cr AP 2100)', async () => {
+    it('3. Should Create and Post Bill (Dr GRNI 2105, Cr AP 2100)', async () => {
       // Create Bill from PO
       const bill = await billService.createFromPurchaseOrder(COMPANY_ID, USER_ID, {
         orderId,
@@ -182,8 +189,9 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       const billJournal = journals.find((j: any) => j.reference === 'Bill: BILL-001') as any;
 
       expect(billJournal).toBeDefined();
-      const drLine = billJournal.lines.find((l: any) => l.account.code === '1400'); // Asset
-      const crLine = billJournal.lines.find((l: any) => l.account.code === '2100'); // Liability
+      // Bill should clear GRNI accrual (Dr 2105) and record AP (Cr 2100)
+      const drLine = billJournal.lines.find((l: any) => l.account.code === '2105'); // Clear GRNI
+      const crLine = billJournal.lines.find((l: any) => l.account.code === '2100'); // Liability AP
 
       expect(Number(drLine.debit)).toBe(1000);
       expect(Number(crLine.credit)).toBe(1000);

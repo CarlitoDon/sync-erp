@@ -27,6 +27,7 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
       { code: '1400', name: 'Inventory Asset', type: 'ASSET' }, // Or Suspense
       { code: '1500', name: 'VAT Receivable', type: 'ASSET' }, // Input VAT
       { code: '2100', name: 'Accounts Payable', type: 'LIABILITY' },
+      { code: '2105', name: 'GRNI/Accrued Liability', type: 'LIABILITY' }, // Required for accrual
     ];
 
     for (const acc of accounts) {
@@ -110,14 +111,14 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     const billJournal = journals.find((j) => j.reference?.includes(bill.invoiceNumber!)) as any;
 
     expect(billJournal).toBeDefined();
-    expect(billJournal.lines).toHaveLength(3); // Inventory, Input VAT, AP
+    expect(billJournal.lines).toHaveLength(3); // GRNI, Input VAT, AP
 
-    // Verify Lines
-    const invLine = billJournal!.lines.find((l) => l.account.code === '1400');
-    const vatLine = billJournal!.lines.find((l) => l.account.code === '1500');
-    const apLine = billJournal!.lines.find((l) => l.account.code === '2100');
+    // Verify Lines - With accrual accounting: Dr GRNI (2105), Dr Input VAT (1500), Cr AP (2100)
+    const grniLine = billJournal!.lines.find((l: any) => l.account.code === '2105');
+    const vatLine = billJournal!.lines.find((l: any) => l.account.code === '1500');
+    const apLine = billJournal!.lines.find((l: any) => l.account.code === '2100');
 
-    expect(Number(invLine?.debit)).toBe(200000); // Net Cost
+    expect(Number(grniLine?.debit)).toBe(200000); // Clear GRNI accrual (Net Cost)
     expect(Number(vatLine?.debit)).toBe(22000); // VAT Recoverable
     expect(Number(apLine?.credit)).toBe(222000); // Total Payable
   });
@@ -146,7 +147,7 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     const journals = await journalService.list(COMPANY_ID);
     const billJournal = journals.find((j) => j.reference?.includes(bill.invoiceNumber!)) as any;
 
-    expect(billJournal.lines).toHaveLength(2); // Inventory + AP only
+    expect(billJournal.lines).toHaveLength(2); // GRNI + AP only (no VAT)
 
     const vatLine = billJournal!.lines.find((l) => l.account.code === '1500');
     expect(vatLine).toBeUndefined();
