@@ -1,4 +1,4 @@
-# sync-erp Development Guidelines
+﻿# sync-erp Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2025-12-10
 
@@ -11,6 +11,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 - PostgreSQL 16 (005-finance-accounting)
 - TypeScript 5.3 (Node.js) + Prisma (ORM), Express (API) (006-finance-integration)
 - TypeScript 5.3+ (Node.js 18+) + Express, Prisma, React 18, Vite (007-finance-tax-returns)
+- TypeScript 5.3.3, Node.js 18+ + Vitest 1.2.0, @vitest/coverage-v8 (008-api-test-coverage)
+- N/A (tooling configuration only) (008-api-test-coverage)
 
 - TypeScript 5.3+ + Express.js, React 18, Zod, @sync-erp/shared (002-user-auth)
 
@@ -30,9 +32,9 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 008-api-test-coverage: Added TypeScript 5.3.3, Node.js 18+ + Vitest 1.2.0, @vitest/coverage-v8
 - 007-finance-tax-returns: Added TypeScript 5.3+ (Node.js 18+) + Express, Prisma, React 18, Vite
 - 006-finance-integration: Added TypeScript 5.3 (Node.js) + Prisma (ORM), Express (API)
-- 005-finance-accounting: Added TypeScript 5.x (Node 20+) + React 18 (Frontend), Express 4 (Backend), Prisma 5 (ORM)
 
 
 <!-- MANUAL ADDITIONS START -->
