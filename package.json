@@ -21,6 +21,8 @@
     "db:push": "npm run db:push --workspace=@sync-erp/database",
     "db:migrate": "npm run db:migrate --workspace=@sync-erp/database",
     "db:seed": "npm run db:seed --workspace=@sync-erp/database",
+    "db:studio": "npm run db:studio --workspace=@sync-erp/database",
+    "db:test": "npm run db:test --workspace=@sync-erp/database",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "engines": {
@@ -35,6 +37,6 @@
     "prettier": "^3.2.0",
     "turbo": "^2.6.3",
     "turbo-windows-64": "^2.6.3",
-    "typescript": "^5.3.3"
+    "typescript": "^5.7.2"
   }
 }
