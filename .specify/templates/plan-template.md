@@ -34,7 +34,8 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 - [ ] **I. Boundaries**: Does Frontend strictly avoid direct DB/Logic imports?
 - [ ] **II. Dependencies**: Are dependencies uni-directional (Apps -> Packages)?
 - [ ] **III. Contracts**: Are shared types defined in `packages/shared-types`?
-- [ ] **IV. Layered Backend**: Is logic strictly in Services (not Routes)?
+- [ ] **IV. Layered Backend**: Is logic strictly in Services (not Controllers)?
+- [ ] **IV. Repository Pattern**: Is DB access strictly in Repositories (not Services)?
 - [ ] **V. Multi-Tenant**: Is ALL data isolated by `companyId`?
 
 ## Project Structure

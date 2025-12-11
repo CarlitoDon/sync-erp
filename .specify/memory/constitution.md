@@ -1,19 +1,18 @@
 <!--
 SYNC IMPACT REPORT
-Version: 1.2.1 -> 1.3.0 (Minor - Added Frontend Architecture Principles)
+Version: 1.3.0 -> 1.4.0 (Minor - Architectural Pattern Enforcement)
 Modified Principles:
-- None
+- I. Monorepo Architecture & Boundaries (Restricted DB access)
+- IV. Layered Backend Architecture (Enforced Controller-Service-Repository pattern)
 Added Sections:
-- VI. DRY Frontend Patterns (new principle for component abstraction)
-- VII. Systematic Refactoring Protocol (new principle for consistent changes)
-- VIII. Global UI Patterns (new principle for toasts, modals, loading states)
+- None
 Removed Sections:
 - None
 Templates requiring updates:
-- spec-template.md (✅ updated - added Constitution Compliance section)
-- tasks-template.md (✅ updated - added UI Components & Patterns phase)
+- plan-template.md (✅ updated - added Architecture Check)
+- tasks-template.md (✅ updated - added Repository tasks)
 Follow-up TODOs:
-- None
+- Refactor existing services to use Repositories (Task to be created)
 -->
 
 # Sync ERP Constitution
@@ -24,6 +23,7 @@ Follow-up TODOs:
 
 - **Strict Separation**: `apps/web` (Frontend) MUST ONLY interact with `apps/api` (Backend) via HTTP/REST.
 - **Backend Sovereignty**: `apps/api` is the ONLY entity allowed to import `packages/database` (Prisma).
+- **Repository Pattern**: Within `apps/api`, ONLY **Repositories** (`src/repositories`) are allowed to import `packages/database`. Controllers and Services MUST NOT access the database directly.
 - **Shared Isolation**: `packages/` MUST NOT import from `apps/`.
 - **Database Centralization**: Prisma schema acts as the single source of truth in `packages/database`.
 
@@ -38,10 +38,11 @@ Follow-up TODOs:
 - **End-to-End Safety**: Types generated from Prisma (`packages/database`) flow to Shared Types (`packages/shared`), which are consumed by Frontend and Backend.
 - **DTOs**: Data Transfer Objects must be defined in `packages/shared/types` using Zod for runtime validation.
 
-### IV. Layered Backend Architecture
+### IV. Layered Backend Architecture (Strict Controller-Service-Repository)
 
-- **Routes (`apps/api/src/routes`)**: Entry point. Validation only. Calls Services.
-- **Services (`apps/api/src/services`)**: Business logic. Imports `packages/database`.
+- **Controllers (`apps/api/src/controllers`)**: Handle HTTP requests, validation, and response formatting. Call Services. NEVER access DB.
+- **Services (`apps/api/src/services`)**: Contain business logic. Call Repositories. NEVER access DB directly.
+- **Repositories (`apps/api/src/repositories`)**: Encapsulate data access. Import `packages/database`. Expose domain objects, not raw Prisma types where possible.
 - **Database (`packages/database`)**: Exposes singleton `PrismaClient`. No logic.
 
 ### V. Multi-Tenant (Multiple Company) by Design
@@ -125,4 +126,4 @@ This Constitution supersedes all other stylistic or architectural preferences.
 - **Amendments**: Changes to this document require a Pull Request and consensus from the team.
 - **Compliance**: Code reviews must explicitly verify compliance with these principles.
 
-**Version**: 1.3.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-10
+**Version**: 1.4.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-11
