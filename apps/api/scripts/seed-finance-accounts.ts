@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@sync-erp/database';
 
 const ACCOUNTS = [
   { code: '1100', name: 'Cash', type: 'ASSET' },

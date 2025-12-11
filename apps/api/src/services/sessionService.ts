@@ -1,4 +1,4 @@
-import { prisma } from '@sync-erp/database';
+import { prisma, Prisma } from '@sync-erp/database';
 const SESSION_DURATION_DAYS = 7;
 
 export async function createSession(userId: string) {
@@ -26,7 +26,7 @@ export async function deleteSession(sessionId: string) {
   });
 }
 
-export async function deleteUserSessions(userId: string) {
+export async function deleteUserSessions(userId: string): Promise<Prisma.BatchPayload> {
   return prisma.session.deleteMany({
     where: { userId },
   });

@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { HEADERS, ERROR_CODES } from '@sync-erp/shared';
 import { getSession } from '../services/sessionService.js';
-import { prisma } from '@sync-erp/database';
-import { User, Session } from '@prisma/client';
+import { prisma, type User, type Session } from '@sync-erp/database';
 
 // Extend Express Request to include context using module augmentation
 declare module 'express-serve-static-core' {

@@ -1,8 +1,7 @@
-import { prisma } from '@sync-erp/database';
+import { prisma, type User, type Session } from '@sync-erp/database';
 import { RegisterPayload, LoginPayload } from '@sync-erp/shared';
 import { hashPassword, comparePassword } from './authUtil.js';
 import { createSession } from './sessionService.js';
-import { User, Session } from '@prisma/client';
 
 export interface AuthResult {
   success: boolean;
