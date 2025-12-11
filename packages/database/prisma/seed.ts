@@ -1,6 +1,17 @@
-import { PrismaClient } from '@prisma/client';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 
-const prisma = new PrismaClient();
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+import { PrismaClient } from '../src/generated/client/client.js';
+
+import { PrismaPg } from '@prisma/adapter-pg';
+import * as pg from 'pg';
+
+const connectionString = process.env.DATABASE_URL;
+const pool = new pg.Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+
+const prisma = new PrismaClient({ adapter });
 
 // Default RBAC Permissions
 const DEFAULT_PERMISSIONS = [
