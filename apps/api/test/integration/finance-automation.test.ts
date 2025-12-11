@@ -137,7 +137,7 @@ describe('Finance Automation Integration', () => {
     it('should create Expense journal for Negative Adjustment (Loss)', async () => {
       // Initial Stock: 10 - 2 (shipped) = 8.
       // Adjustment: -1. Cost @ 100,000.
-      const movement = await inventoryService.adjustStock(COMPANY_ID, {
+      await inventoryService.adjustStock(COMPANY_ID, {
         productId,
         quantity: -1, // Loss
         costPerUnit: 0, // Ignored for loss
@@ -161,7 +161,7 @@ describe('Finance Automation Integration', () => {
 
     it('should create Asset journal for Positive Adjustment (Gain)', async () => {
       // Adjustment: +1. Cost @ 120,000 (New cost).
-      const movement = await inventoryService.adjustStock(COMPANY_ID, {
+      await inventoryService.adjustStock(COMPANY_ID, {
         productId,
         quantity: 1, // Gain
         costPerUnit: 120000,

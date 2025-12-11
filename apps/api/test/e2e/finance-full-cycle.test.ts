@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { prisma, InvoiceStatus, OrderStatus } from '@sync-erp/database';
+import { prisma } from '@sync-erp/database';
 import { InventoryService } from '../../src/services/InventoryService';
 import { JournalService } from '../../src/services/JournalService';
 import { FulfillmentService } from '../../src/services/FulfillmentService';
@@ -26,8 +26,6 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
   let productId: string;
   let supplierId: string;
   let customerId: string;
-  let accountCashId: string;
-  let accountBankId: string;
 
   beforeAll(async () => {
     // 1. Setup Company
