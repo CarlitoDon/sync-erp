@@ -18,6 +18,8 @@ export type {
   Role,
   Permission,
   RolePermission,
+  Session,
+  Account,
 } from '@prisma/client';
 
 // Re-export enums as values (not just types)

@@ -85,7 +85,10 @@ partnerRouter.post('/', async (req: Request, res: Response, next: NextFunction) 
     const validated = CreatePartnerSchema.parse(req.body);
 
     const partner = await partnerService.create(companyId, {
-      ...validated,
+      name: validated.name,
+      email: validated.email,
+      phone: validated.phone,
+      address: validated.address,
       type: validated.type === 'CUSTOMER' ? PartnerType.CUSTOMER : PartnerType.SUPPLIER,
     });
     res.status(201).json({ success: true, data: partner });
