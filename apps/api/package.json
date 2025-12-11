@@ -37,7 +37,7 @@
     "decimal.js": "^10.6.0",
     "supertest": "^7.0.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.7.2",
+    "typescript": "^5.9.3",
     "vitest": "^1.2.0"
   }
 }
