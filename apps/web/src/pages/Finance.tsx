@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { financeService, Account, TrialBalance } from '../services/financeService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
 import { apiAction } from '../hooks/useApiAction';
+import { FinancialReport, ReportSection } from '../components/FinancialReport';
+import JournalEntries from './JournalEntries';
+import { AccountGroup, AccountType } from '@sync-erp/shared';
+// import { FinanceAccountGroup, AccountType } from '../types/finance'; // Removed
+
+// Helper to check account type category
+const isDebitNormal = (type: string) => ['ASSET', 'EXPENSE'].includes(type);
 
 interface FinanceData {
   accounts: Account[];
@@ -27,13 +34,13 @@ export default function Finance() {
         trialBalance: tbData,
       };
     },
-    {
-      accounts: [],
-      trialBalance: null,
-    }
+    { accounts: [], trialBalance: null }
   );
 
-  const [activeTab, setActiveTab] = useState<'coa' | 'trial-balance'>('coa');
+  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'journals'>('overview');
+  const [reportType, setReportType] = useState<'IS' | 'BS'>('BS');
+
+  // Create Account State
   const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [newAccount, setNewAccount] = useState({
     code: '',
@@ -42,31 +49,19 @@ export default function Finance() {
   });
 
   const handleSeedAccounts = async () => {
-    const seeded = await apiAction(
-      () => financeService.seedDefaultAccounts(),
-      'Default accounts seeded!'
-    );
-    if (seeded) loadData();
+    await apiAction(() => financeService.seedDefaultAccounts(), 'Default accounts seeded!');
+    loadData();
   };
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await apiAction(
-      () => financeService.createAccount(newAccount),
-      'Account created!'
-    );
-    if (result) {
-      setShowCreateAccount(false);
-      setNewAccount({ code: '', name: '', type: 'ASSET' });
-      loadData();
-    }
+    await apiAction(() => financeService.createAccount(newAccount), 'Account created!');
+    setShowCreateAccount(false);
+    setNewAccount({ code: '', name: '', type: 'ASSET' });
+    loadData();
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
-  };
-
-  const getTypeColor = (type: Account['type']) => {
+  const getTypeColor = (type: string) => {
     switch (type) {
       case 'ASSET':
         return 'bg-blue-100 text-blue-800';
@@ -83,91 +78,187 @@ export default function Finance() {
     }
   };
 
-  const groupedAccounts = {
-    ASSET: accounts.filter((a) => a.type === 'ASSET'),
-    LIABILITY: accounts.filter((a) => a.type === 'LIABILITY'),
-    EQUITY: accounts.filter((a) => a.type === 'EQUITY'),
-    REVENUE: accounts.filter((a) => a.type === 'REVENUE'),
-    EXPENSE: accounts.filter((a) => a.type === 'EXPENSE'),
-  };
+  // --- Report Aggregation Logic ---
+  const reportsData = useMemo(() => {
+    if (!trialBalance) return null;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    const entries = trialBalance.entries;
+
+    // Helper to build AccountGroup
+    const buildGroup = (type: AccountType): AccountGroup => {
+      const groupEntries = entries.filter((e) => e.accountType === type);
+      const accs = groupEntries
+        .map((e) => ({
+          id: e.accountId,
+          code: e.accountCode,
+          name: e.accountName,
+          type: e.accountType as AccountType,
+          // Calculate balance based on normal side
+          balance: isDebitNormal(e.accountType)
+            ? Number(e.debit) - Number(e.credit)
+            : Number(e.credit) - Number(e.debit),
+          isActive: true,
+          companyId: '',
+        }))
+        .filter((a) => Math.abs(a.balance) > 0.01); // Filter zero balance for report clarity
+
+      const total = accs.reduce((sum, a) => sum + a.balance, 0);
+
+      return {
+        type,
+        accounts: accs,
+        total,
+      };
+    };
+
+    // 1. Income Statement
+    const revenueGroup = buildGroup('REVENUE');
+    const expenseGroup = buildGroup('EXPENSE');
+    const netIncome = revenueGroup.total - expenseGroup.total;
+
+    const incomeStatement: { sections: ReportSection[]; netIncome: number } = {
+      sections: [
+        {
+          title: 'Revenue',
+          groups: [revenueGroup],
+          totalLabel: 'Total Revenue',
+          totalValue: revenueGroup.total,
+        },
+        {
+          title: 'Expenses',
+          groups: [expenseGroup],
+          totalLabel: 'Total Expenses',
+          totalValue: expenseGroup.total,
+        },
+      ],
+      netIncome,
+    };
+
+    // 2. Balance Sheet
+    const assetGroup = buildGroup('ASSET');
+    const liabilityGroup = buildGroup('LIABILITY');
+    const equityGroup = buildGroup('EQUITY');
+
+    // Add Net Income to Equity
+    const retainedEarnings = {
+      id: 'retained-earnings',
+      code: '3999',
+      name: 'Current Year Earnings',
+      type: 'EQUITY',
+      balance: netIncome,
+      isActive: true,
+      companyId: '',
+    };
+
+    // Create a new Equity group including Retained Earnings
+    const equityAccountsWithRE = [...equityGroup.accounts, retainedEarnings];
+    const totalEquity = equityGroup.total + netIncome;
+
+    const augmentedEquityGroup: AccountGroup = {
+      type: 'EQUITY',
+      accounts: equityAccountsWithRE,
+      total: totalEquity,
+    };
+
+    const totalAssets = assetGroup.total;
+    const totalLiabilitiesAndEquity = liabilityGroup.total + totalEquity;
+    const isBalanced = Math.abs(totalAssets - totalLiabilitiesAndEquity) < 1;
+
+    const balanceSheet = {
+      sections: [
+        {
+          title: 'Assets',
+          groups: [assetGroup],
+          totalLabel: 'Total Assets',
+          totalValue: totalAssets,
+        },
+        {
+          title: 'Liabilities',
+          groups: [liabilityGroup],
+          totalLabel: 'Total Liabilities',
+          totalValue: liabilityGroup.total,
+        },
+        {
+          title: 'Equity',
+          groups: [augmentedEquityGroup],
+          totalLabel: 'Total Equity',
+          totalValue: totalEquity,
+        },
+      ],
+      grandTotalLabel: 'Total Liabilities & Equity',
+      grandTotalValue: totalLiabilitiesAndEquity,
+      isBalanced,
+    };
+
+    return { incomeStatement, balanceSheet };
+  }, [trialBalance]);
+
+  if (loading && !accounts.length) {
+    return <div className="p-8 text-center text-gray-500">Loading finance data...</div>;
   }
 
-  if (!currentCompany) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        Please select a company to view financial reports.
-      </div>
-    );
-  }
+  if (!currentCompany) return null;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Finance</h1>
-          <p className="text-gray-500">
-            Chart of Accounts & Financial Reports for {currentCompany.name}
-          </p>
+          <p className="text-gray-500">Financial Management & Reporting</p>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs Navigation */}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8">
-          <button
-            onClick={() => setActiveTab('coa')}
-            className={`py-4 px-1 font-medium text-sm border-b-2 ${
-              activeTab === 'coa'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Chart of Accounts
-          </button>
-          <button
-            onClick={() => setActiveTab('trial-balance')}
-            className={`py-4 px-1 font-medium text-sm border-b-2 ${
-              activeTab === 'trial-balance'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Trial Balance
-          </button>
+          {[
+            { id: 'overview', label: 'Overview & CoA' },
+            { id: 'reports', label: 'Financial Reports' },
+            { id: 'journals', label: 'Journal Entries' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as 'overview' | 'reports' | 'journals')}
+              className={`py-4 px-1 font-medium text-sm border-b-2 ${
+                activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </nav>
       </div>
 
-      {/* Chart of Accounts */}
-      {activeTab === 'coa' && (
+      {/* TAB CONTENT */}
+
+      {/* 1. OVERVIEW (CoA) */}
+      {activeTab === 'overview' && (
         <div className="space-y-6">
+          {/* CoA Actions */}
           <div className="flex gap-4">
             <button
               onClick={() => setShowCreateAccount(!showCreateAccount)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
             >
               {showCreateAccount ? 'Cancel' : '+ Add Account'}
             </button>
             {accounts.length === 0 && (
               <button
                 onClick={handleSeedAccounts}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm"
               >
-                Seed Default CoA
+                Seed Default Accounts
               </button>
             )}
           </div>
 
+          {/* New Account Form */}
           {showCreateAccount && (
             <form
               onSubmit={handleCreateAccount}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-w-2xl"
             >
               <h3 className="text-lg font-semibold mb-4">New Account</h3>
               <div className="grid grid-cols-3 gap-4">
@@ -202,137 +293,106 @@ export default function Finance() {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   >
-                    <option value="ASSET">Asset</option>
-                    <option value="LIABILITY">Liability</option>
-                    <option value="EQUITY">Equity</option>
-                    <option value="REVENUE">Revenue</option>
-                    <option value="EXPENSE">Expense</option>
+                    {['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
               <button
                 type="submit"
-                className="mt-4 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                Create Account
+                Create
               </button>
             </form>
           )}
 
-          {/* Account Groups */}
+          {/* CoA List by Type */}
           <div className="grid gap-6">
-            {Object.entries(groupedAccounts).map(([type, accs]) => (
-              <div key={type} className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${getTypeColor(type as Account['type'])}`}
-                    >
-                      {type}
-                    </span>
-                    <span className="text-gray-500 text-sm font-normal">
-                      ({accs.length} accounts)
-                    </span>
-                  </h3>
+            {['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].map((type) => {
+              const typeAccounts = accounts.filter((a) => a.type === type);
+              return (
+                <div key={type} className="bg-white rounded-xl shadow-sm border border-gray-200">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(type)}`}>
+                        {type}
+                      </span>
+                      <span className="text-gray-500 text-sm font-normal">
+                        ({typeAccounts.length})
+                      </span>
+                    </h3>
+                  </div>
+                  {typeAccounts.length > 0 ? (
+                    <ul className="divide-y divide-gray-100">
+                      {typeAccounts.map((acc) => (
+                        <li
+                          key={acc.id}
+                          className="px-6 py-3 flex items-center justify-between hover:bg-gray-50"
+                        >
+                          <div>
+                            <span className="font-mono text-sm text-gray-500 mr-3 w-16 inline-block">
+                              {acc.code}
+                            </span>
+                            <span className="font-medium">{acc.name}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="px-6 py-4 text-gray-400 text-sm">No accounts</p>
+                  )}
                 </div>
-                {accs.length > 0 ? (
-                  <ul className="divide-y divide-gray-100">
-                    {accs.map((acc) => (
-                      <li key={acc.id} className="px-6 py-3 flex items-center justify-between">
-                        <div>
-                          <span className="font-mono text-sm text-gray-500 mr-3">{acc.code}</span>
-                          <span className="font-medium">{acc.name}</span>
-                        </div>
-                        {!acc.isActive && <span className="text-xs text-gray-400">Inactive</span>}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="px-6 py-4 text-gray-400 text-sm">No accounts</p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Trial Balance */}
-      {activeTab === 'trial-balance' && trialBalance && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="font-semibold text-lg">Trial Balance</h3>
-            <span
-              className={`px-3 py-1 text-sm rounded-full ${
-                trialBalance.isBalanced ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              }`}
+      {/* 2. REPORTS */}
+      {activeTab === 'reports' && reportsData && (
+        <div className="space-y-6">
+          <div className="flex gap-2 bg-gray-100 p-1 rounded-lg w-fit">
+            <button
+              onClick={() => setReportType('BS')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${reportType === 'BS' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              {trialBalance.isBalanced ? '✓ Balanced' : '✗ Unbalanced'}
-            </span>
+              Balance Sheet
+            </button>
+            <button
+              onClick={() => setReportType('IS')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${reportType === 'IS' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Income Statement
+            </button>
           </div>
 
-          {trialBalance.entries.length > 0 ? (
-            <table className="min-w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Code
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Account
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Debit
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Credit
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {trialBalance.entries.map((entry) => (
-                  <tr key={entry.accountId}>
-                    <td className="px-6 py-3 font-mono text-sm">{entry.accountCode}</td>
-                    <td className="px-6 py-3 font-medium">{entry.accountName}</td>
-                    <td className="px-6 py-3 text-center">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${getTypeColor(entry.accountType)}`}
-                      >
-                        {entry.accountType}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-right">
-                      {entry.debit > 0 ? formatCurrency(entry.debit) : '-'}
-                    </td>
-                    <td className="px-6 py-3 text-right">
-                      {entry.credit > 0 ? formatCurrency(entry.credit) : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-gray-50 font-semibold">
-                <tr>
-                  <td colSpan={3} className="px-6 py-3 text-right">
-                    Total
-                  </td>
-                  <td className="px-6 py-3 text-right">
-                    {formatCurrency(trialBalance.totalDebit)}
-                  </td>
-                  <td className="px-6 py-3 text-right">
-                    {formatCurrency(trialBalance.totalCredit)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+          {reportType === 'BS' ? (
+            <FinancialReport
+              title="Balance Sheet"
+              subtitle={`As of ${new Date().toLocaleDateString()}`}
+              sections={reportsData.balanceSheet.sections}
+              grandTotalLabel={reportsData.balanceSheet.grandTotalLabel}
+              grandTotalValue={reportsData.balanceSheet.grandTotalValue}
+              isBalanced={reportsData.balanceSheet.isBalanced}
+            />
           ) : (
-            <p className="px-6 py-12 text-center text-gray-500">
-              No journal entries yet. Create transactions to see the trial balance.
-            </p>
+            <FinancialReport
+              title="Income Statement"
+              subtitle="Current Period"
+              sections={reportsData.incomeStatement.sections}
+              grandTotalLabel="Net Income"
+              grandTotalValue={reportsData.incomeStatement.netIncome}
+            />
           )}
         </div>
       )}
+
+      {/* 3. JOURNAL ENTRIES */}
+      {activeTab === 'journals' && <JournalEntries />}
     </div>
   );
 }

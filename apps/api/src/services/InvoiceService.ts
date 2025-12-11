@@ -1,6 +1,7 @@
 import { prisma, InvoiceType, InvoiceStatus, OrderType } from '@sync-erp/database';
 import type { Invoice } from '@sync-erp/database';
 import { Decimal } from '@prisma/client/runtime/library';
+import { JournalService } from './JournalService';
 
 interface CreateInvoiceInput {
   orderId: string;
@@ -10,6 +11,8 @@ interface CreateInvoiceInput {
 }
 
 export class InvoiceService {
+  private journalService = new JournalService();
+
   /**
    * Create an invoice (accounts receivable) from a sales order
    */
@@ -105,7 +108,7 @@ export class InvoiceService {
       throw new Error(`Cannot post invoice with status: ${invoice.status}`);
     }
 
-    return prisma.invoice.update({
+    const updatedInvoice = await prisma.invoice.update({
       where: { id },
       data: {
         status: InvoiceStatus.POSTED,
@@ -114,6 +117,19 @@ export class InvoiceService {
         partner: true,
       },
     });
+
+    // Auto-post journal entry
+    if (!updatedInvoice.invoiceNumber) {
+      throw new Error(`Invoice ${id} has no invoice number`);
+    }
+
+    await this.journalService.postInvoice(
+      companyId,
+      updatedInvoice.invoiceNumber,
+      Number(updatedInvoice.amount)
+    );
+
+    return updatedInvoice;
   }
 
   /**

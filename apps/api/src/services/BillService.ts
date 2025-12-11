@@ -1,6 +1,6 @@
 import { prisma, InvoiceType, InvoiceStatus, OrderType } from '@sync-erp/database';
 import type { Invoice } from '@sync-erp/database';
-import { Decimal } from '@prisma/client/runtime/library';
+import { JournalService } from './JournalService';
 
 interface CreateBillInput {
   orderId: string;
@@ -9,8 +9,10 @@ interface CreateBillInput {
 }
 
 export class BillService {
+  private journalService = new JournalService();
+
   /**
-   * Create a bill (accounts payable invoice) from a purchase order
+   * Create a bill (accounts payable) from a purchase order
    */
   async createFromPurchaseOrder(
     companyId: string,
@@ -27,14 +29,11 @@ export class BillService {
       throw new Error('Purchase order not found');
     }
 
-    // Generate invoice number if not provided
-    const invoiceCount = await prisma.invoice.count({
+    // Generate bill number if not provided
+    const billCount = await prisma.invoice.count({
       where: { companyId, type: InvoiceType.BILL },
     });
-    const invoiceNumber = data.invoiceNumber || `BILL-${String(invoiceCount + 1).padStart(5, '0')}`;
-
-    // Calculate total from order
-    const amount = Number(order.totalAmount);
+    const invoiceNumber = data.invoiceNumber || `BILL-${String(billCount + 1).padStart(5, '0')}`;
 
     // Create the bill
     return prisma.invoice.create({
@@ -45,8 +44,8 @@ export class BillService {
         type: InvoiceType.BILL,
         status: InvoiceStatus.DRAFT,
         invoiceNumber,
-        amount: new Decimal(amount),
-        balance: new Decimal(amount), // Initially, balance = full amount
+        amount: order.totalAmount, // PO amount is total
+        balance: order.totalAmount,
         dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
       },
       include: {
@@ -101,7 +100,7 @@ export class BillService {
       throw new Error(`Cannot post bill with status: ${bill.status}`);
     }
 
-    return prisma.invoice.update({
+    const updatedBill = await prisma.invoice.update({
       where: { id },
       data: {
         status: InvoiceStatus.POSTED,
@@ -110,6 +109,19 @@ export class BillService {
         partner: true,
       },
     });
+
+    // Auto-post journal entry
+    if (!updatedBill.invoiceNumber) {
+      throw new Error(`Bill ${id} has no invoice number`);
+    }
+
+    await this.journalService.postBill(
+      companyId,
+      updatedBill.invoiceNumber,
+      Number(updatedBill.amount)
+    );
+
+    return updatedBill;
   }
 
   /**

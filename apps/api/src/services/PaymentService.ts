@@ -1,18 +1,16 @@
-import { prisma, InvoiceStatus } from '@sync-erp/database';
+import { prisma, InvoiceStatus, InvoiceType } from '@sync-erp/database';
 import type { Payment } from '@sync-erp/database';
+import { CreatePaymentDto } from '@sync-erp/shared';
 import { Decimal } from '@prisma/client/runtime/library';
-
-interface CreatePaymentInput {
-  invoiceId: string;
-  amount: number;
-  method: string; // CASH, BANK_TRANSFER, etc.
-}
+import { JournalService } from './JournalService';
 
 export class PaymentService {
+  private journalService = new JournalService();
+
   /**
    * Record a payment against an invoice
    */
-  async create(companyId: string, data: CreatePaymentInput): Promise<Payment> {
+  async create(companyId: string, data: CreatePaymentDto): Promise<Payment> {
     // Get the invoice
     const invoice = await prisma.invoice.findFirst({
       where: { id: data.invoiceId, companyId },
@@ -67,6 +65,27 @@ export class PaymentService {
           balance: new Decimal(Number(invoice.amount) - newTotalPaid),
         },
       });
+    }
+
+    // Auto-post journal entry
+    if (!invoice.invoiceNumber) {
+      throw new Error(`Invoice/Bill ${invoice.id} has no number`);
+    }
+
+    if (invoice.type === InvoiceType.INVOICE) {
+      await this.journalService.postPaymentReceived(
+        companyId,
+        invoice.invoiceNumber,
+        data.amount,
+        data.method
+      );
+    } else if (invoice.type === InvoiceType.BILL) {
+      await this.journalService.postPaymentMade(
+        companyId,
+        invoice.invoiceNumber,
+        data.amount,
+        data.method
+      );
     }
 
     return payment;

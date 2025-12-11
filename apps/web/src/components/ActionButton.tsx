@@ -8,6 +8,8 @@ interface ActionButtonProps {
   children: ReactNode;
   disabled?: boolean;
   title?: string;
+  isLoading?: boolean;
+  className?: string;
 }
 
 const variantStyles: Record<ActionButtonVariant, string> = {
@@ -25,19 +27,22 @@ export default function ActionButton({
   children,
   disabled = false,
   title,
+  isLoading = false,
+  className = '',
 }: ActionButtonProps) {
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || isLoading}
       title={title}
       className={`
         px-3 py-1.5 text-sm font-medium rounded-md border transition-colors
         ${variantStyles[variant]}
-        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        ${disabled || isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+        ${className}
       `}
     >
-      {children}
+      {isLoading ? 'Loading...' : children}
     </button>
   );
 }

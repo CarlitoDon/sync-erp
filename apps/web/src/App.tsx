@@ -15,6 +15,7 @@ import PurchaseOrders from './pages/PurchaseOrders';
 import Inventory from './pages/Inventory';
 import SalesOrders from './pages/SalesOrders';
 import Invoices from './pages/Invoices';
+import AccountsPayable from './pages/AccountsPayable';
 import Finance from './pages/Finance';
 import { RegisterPage } from './pages/RegisterPage';
 import { LoginPage } from './pages/LoginPage';
@@ -46,6 +47,7 @@ function App() {
                   <Route path="inventory" element={<Inventory />} />
                   <Route path="sales-orders" element={<SalesOrders />} />
                   <Route path="invoices" element={<Invoices />} />
+                  <Route path="bills" element={<AccountsPayable />} />
                   <Route path="finance" element={<Finance />} />
                 </Route>
               </Route>

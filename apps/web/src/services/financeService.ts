@@ -1,12 +1,6 @@
 import api from './api';
-
-export interface Account {
-  id: string;
-  code: string;
-  name: string;
-  type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
-  isActive: boolean;
-}
+import { Account, CreateJournalEntryInput, CreateJournalLineInput } from '@sync-erp/shared';
+export type { Account, CreateJournalEntryInput, CreateJournalLineInput };
 
 export interface JournalLine {
   id: string;
@@ -77,12 +71,7 @@ export const financeService = {
     return res.data.data;
   },
 
-  async createJournal(data: {
-    reference?: string;
-    date?: string;
-    memo?: string;
-    lines: { accountCode: string; debit?: number; credit?: number }[];
-  }): Promise<JournalEntry> {
+  async createJournal(data: CreateJournalEntryInput): Promise<JournalEntry> {
     const res = await api.post('/finance/journals', data);
     return res.data.data;
   },

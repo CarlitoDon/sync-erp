@@ -27,9 +27,9 @@ const CreateJournalSchema = z.object({
   lines: z
     .array(
       z.object({
-        accountCode: z.string(),
-        debit: z.number().min(0).optional(),
-        credit: z.number().min(0).optional(),
+        accountId: z.string().uuid(),
+        debit: z.number().min(0).default(0),
+        credit: z.number().min(0).default(0),
       })
     )
     .min(2),

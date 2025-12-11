@@ -2,6 +2,7 @@
 // ============================================
 
 export * from './auth.js';
+export * from './finance.js';
 
 export interface Company {
   id: string;
@@ -94,49 +95,6 @@ export interface InventoryMovement {
 }
 
 // ============================================
-// Finance Types
-// ============================================
-
-export type InvoiceType = 'INVOICE' | 'BILL';
-export type InvoiceStatus = 'DRAFT' | 'POSTED' | 'PAID' | 'VOID';
-
-export interface Invoice {
-  id: string;
-  companyId: string;
-  orderId?: string;
-  partnerId: string;
-  type: InvoiceType;
-  status: InvoiceStatus;
-  dueDate: Date;
-  amount: number;
-  balance: number;
-}
-
-export interface Payment {
-  id: string;
-  companyId: string;
-  invoiceId: string;
-  amount: number;
-  date: Date;
-  method: string;
-}
-
-export interface JournalEntry {
-  id: string;
-  companyId: string;
-  reference?: string;
-  date: Date;
-}
-
-export interface JournalLine {
-  id: string;
-  journalId: string;
-  accountId: string;
-  debit: number;
-  credit: number;
-}
-
-// ============================================
 // RBAC Types
 // ============================================
 
@@ -213,18 +171,4 @@ export interface CreateOrderItemDto {
   productId: string;
   quantity: number;
   price: number;
-}
-
-export interface CreateInvoiceDto {
-  orderId?: string;
-  partnerId: string;
-  type: InvoiceType;
-  dueDate: Date;
-  amount: number;
-}
-
-export interface CreatePaymentDto {
-  invoiceId: string;
-  amount: number;
-  method: string;
 }

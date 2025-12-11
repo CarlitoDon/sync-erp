@@ -10,6 +10,7 @@ import {
   DocumentTextIcon,
   BanknotesIcon,
   BuildingOfficeIcon,
+  CreditCardIcon,
 } from '@heroicons/react/24/outline';
 
 const navItems = [
@@ -18,6 +19,7 @@ const navItems = [
   { path: '/customers', label: 'Customers', icon: <UserGroupIcon /> },
   { path: '/products', label: 'Products', icon: <CubeIcon /> },
   { path: '/purchase-orders', label: 'Purchase Orders', icon: <ClipboardDocumentListIcon /> },
+  { path: '/bills', label: 'Bills', icon: <CreditCardIcon /> },
   { path: '/sales-orders', label: 'Sales Orders', icon: <ShoppingCartIcon /> },
   { path: '/inventory', label: 'Inventory', icon: <ArchiveBoxIcon /> },
   { path: '/invoices', label: 'Invoices', icon: <DocumentTextIcon /> },

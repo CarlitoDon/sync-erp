@@ -1,0 +1,128 @@
+openapi: 3.0.0
+info:
+  title: Finance Module API
+  version: 1.0.0
+paths:
+  /journals:
+    post:
+      summary: Create a manual journal entry
+      tags:
+        - Journals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJournalEntryInput'
+      responses:
+        '201':
+          description: Journal entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalEntry'
+
+  /finance/reports/balance-sheet:
+    get:
+      summary: Get Balance Sheet Report
+      tags:
+        - Finance
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: 'End date for the report (default: today)'
+      responses:
+        '200':
+          description: Balance Sheet data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceSheetReport'
+
+  /finance/reports/income-statement:
+    get:
+      summary: Get Income Statement (P&L) Report
+      tags:
+        - Finance
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Income Statement data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncomeStatementReport'
+
+components:
+  schemas:
+    CreateJournalEntryInput:
+      type: object
+      required:
+        - date
+        - lines
+      properties:
+        date:
+          type: string
+          format: date
+        reference:
+          type: string
+        memo:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateJournalLineInput'
+
+    CreateJournalLineInput:
+      type: object
+      required:
+        - accountId
+      properties:
+        accountId:
+          type: string
+        debit:
+          type: number
+        credit:
+          type: number
+
+    JournalEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        totalAmount:
+          type: number
+
+    BalanceSheetReport:
+      type: object
+      properties:
+        assets:
+          type: array
+        liabilities:
+          type: array
+        equity:
+          type: array
+        isBalanced:
+          type: boolean
+
+    IncomeStatementReport:
+      type: object
+      properties:
+        revenue:
+          type: array
+        expenses:
+          type: array
+        netIncome:
+          type: number
