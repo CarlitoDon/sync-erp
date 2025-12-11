@@ -7,6 +7,12 @@ import { z } from 'zod';
 export type InvoiceType = 'INVOICE' | 'BILL';
 export type InvoiceStatus = 'DRAFT' | 'POSTED' | 'PAID' | 'VOID';
 
+export const TAX_RATES = [
+  { label: 'No Tax (0%)', value: 0 },
+  { label: 'PPN 11%', value: 11 },
+  { label: 'PPN 12%', value: 12 },
+] as const;
+
 export interface Invoice {
   id: string;
   companyId: string;
@@ -16,6 +22,9 @@ export interface Invoice {
   status: InvoiceStatus;
   dueDate: Date;
   amount: number;
+  subtotal: number;
+  taxAmount: number;
+  taxRate: number;
   balance: number;
   invoiceNumber?: string | null;
 }
@@ -68,6 +77,7 @@ export interface CreateInvoiceDto {
   type: InvoiceType;
   dueDate: Date | string; // Allow string from JSON
   amount: number;
+  taxRate?: number;
 }
 
 export interface CreatePaymentDto {

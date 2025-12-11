@@ -123,6 +123,7 @@ model Order {
   orderNumber String?
   date        DateTime    @default(now())
   totalAmount Decimal     @db.Decimal(15, 2)
+  taxRate     Decimal     @default(0) @db.Decimal(5, 2)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -184,7 +185,10 @@ model Invoice {
   status        InvoiceStatus @default(DRAFT)
   invoiceNumber String?
   dueDate       DateTime
-  amount        Decimal       @db.Decimal(15, 2)
+  amount        Decimal       @db.Decimal(15, 2) // Total
+  subtotal      Decimal       @default(0) @db.Decimal(15, 2)
+  taxAmount     Decimal       @default(0) @db.Decimal(15, 2)
+  taxRate       Decimal       @default(0) @db.Decimal(5, 2)
   balance       Decimal       @db.Decimal(15, 2)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
