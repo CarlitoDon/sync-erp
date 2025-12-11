@@ -1,4 +1,4 @@
-﻿# sync-erp Development Guidelines
+# sync-erp Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2025-12-10
 
@@ -10,6 +10,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 - TypeScript 5.x (Node 20+) + React 18 (Frontend), Express 4 (Backend), Prisma 5 (ORM) (005-finance-accounting)
 - PostgreSQL 16 (005-finance-accounting)
 - TypeScript 5.3 (Node.js) + Prisma (ORM), Express (API) (006-finance-integration)
+- TypeScript 5.3+ (Node.js 18+) + Express, Prisma, React 18, Vite (007-finance-tax-returns)
 
 - TypeScript 5.3+ + Express.js, React 18, Zod, @sync-erp/shared (002-user-auth)
 
@@ -29,9 +30,9 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 007-finance-tax-returns: Added TypeScript 5.3+ (Node.js 18+) + Express, Prisma, React 18, Vite
 - 006-finance-integration: Added TypeScript 5.3 (Node.js) + Prisma (ORM), Express (API)
 - 005-finance-accounting: Added TypeScript 5.x (Node 20+) + React 18 (Frontend), Express 4 (Backend), Prisma 5 (ORM)
-- 004-sidebar: Added TypeScript 5.x + React 18 + React Router v6, React Context API, Tailwind CSS (or vanilla CSS)
 
 
 <!-- MANUAL ADDITIONS START -->
