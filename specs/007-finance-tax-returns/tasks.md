@@ -9,21 +9,21 @@
 
 ## Phase 2: Foundational (Schema & Shared Types)
 
-- [ ] T002 Update Prisma Schema with Tax Fields c:\Offline\Coding\sync-erp\packages\database\prisma\schema.prisma
+- [x] T002 Update Prisma Schema with Tax Fields c:\Offline\Coding\sync-erp\packages\database\prisma\schema.prisma
   - Add `subtotal`, `taxAmount`, `taxRate` to `Invoice` and `Bill`.
   - Add `taxRate` to `SalesOrder` and `PurchaseOrder`.
-- [ ] T003 Generate Prisma Client and Migrate c:\Offline\Coding\sync-erp\packages\database\package.json
-- [ ] T004 Define `TAX_RATES` constant and update DTOs c:\Offline\Coding\sync-erp\packages\shared\src\types\finance.ts
+- [x] T003 Generate Prisma Client and Migrate c:\Offline\Coding\sync-erp\packages\database\package.json
+- [x] T004 Define `TAX_RATES` constant and update DTOs c:\Offline\Coding\sync-erp\packages\shared\src\types\finance.ts
 
 ## Phase 3: User Story 1 - Flexible Tax Selection (Sales)
 
 **Goal**: Enable users to select Tax Rates (0%, 11%, 12%) on Sales, splitting Revenue and Tax Liability.
 **Test**: `InvoiceService` calculates Tax correctly; `JournalService` creates 3-line entry (AR/Rev/Tax).
 
-- [ ] T005 [US1] Update `InvoiceService.createFromSalesOrder` to calculate Tax c:\Offline\Coding\sync-erp\apps\api\src\services\InvoiceService.ts
-- [ ] T006 [US1] Update `JournalService.postInvoice` to handle distinct Tax Liability line c:\Offline\Coding\sync-erp\apps\api\src\services\JournalService.ts
-- [ ] T007 [US1] Update `SalesOrderService` to persist taxRate c:\Offline\Coding\sync-erp\apps\api\src\services\SalesOrderService.ts
-- [ ] T008 [US1] Integration Test for Sales Tax Journals c:\Offline\Coding\sync-erp\apps\api\test\integration\tax-sales.test.ts
+- [x] T005 [US1] Update `InvoiceService.createFromSalesOrder` to calculate Tax c:\Offline\Coding\sync-erp\apps\api\src\services\InvoiceService.ts
+- [x] T006 [US1] Update `JournalService.postInvoice` to handle distinct Tax Liability line c:\Offline\Coding\sync-erp\apps\api\src\services\JournalService.ts
+- [x] T007 [US1] Update `SalesOrderService` to persist taxRate c:\Offline\Coding\sync-erp\apps\api\src\services\SalesOrderService.ts
+- [x] T008 [US1] Integration Test for Sales Tax Journals c:\Offline\Coding\sync-erp\apps\api\test\integration\tax-sales.test.ts
 
 ## Phase 4: User Story 2 - Purchase Tax Selection (Input VAT)
 
@@ -40,26 +40,26 @@
 **Goal**: Automate COGS reversal when Returns are processed.
 **Test**: Processing a Return creates `Dr Inventory`, `Cr COGS`.
 
-- [ ] T013 [US3] Implement `InventoryService.processReturn` or similar logic c:\Offline\Coding\sync-erp\apps\api\src\services\InventoryService.ts
-- [ ] T014 [US3] Add `postSalesReturn` to `JournalService` c:\Offline\Coding\sync-erp\apps\api\src\services\JournalService.ts
-- [ ] T015 [US3] Wire `SalesOrderService` return action to Inventory/Journal logic c:\Offline\Coding\sync-erp\apps\api\src\services\SalesOrderService.ts
-- [ ] T016 [US3] Integration Test for Return Reversal c:\Offline\Coding\sync-erp\apps\api\test\integration\return-reversal.test.ts
+- [x] T013 [US3] Implement `InventoryService.processReturn` or similar logic c:\Offline\Coding\sync-erp\apps\api\src\services\InventoryService.ts
+- [x] T014 [US3] Add `postSalesReturn` to `JournalService` c:\Offline\Coding\sync-erp\apps\api\src\services\JournalService.ts
+- [x] T015 [US3] Wire `SalesOrderService` return action to Inventory/Journal logic c:\Offline\Coding\sync-erp\apps\api\src\services\SalesOrderService.ts
+- [x] T016 [US3] Integration Test for Return Reversal c:\Offline\Coding\sync-erp\apps\api\test\integration\return-reversal.test.ts
 
 ## Phase 6: User Story 4 - Goods Receipt Accrual
 
 **Goal**: Real-time liability accrual upon Goods Receipt.
 **Test**: GRN creates Accrual Journal; Bill clears Accrual Journal.
 
-- [ ] T017 [US4] Update `InventoryService` to Trigger Accrual Journal on Receipt c:\Offline\Coding\sync-erp\apps\api\src\services\InventoryService.ts
-- [ ] T018 [US4] Add `postGoodsReceipt` to `JournalService` c:\Offline\Coding\sync-erp\apps\api\src\services\JournalService.ts
-- [ ] T019 [US4] Update `BillService.post` to offset Accrual (Suspense) c:\Offline\Coding\sync-erp\apps\api\src\services\BillService.ts
-- [ ] T020 [US4] Integration Test for Accrual Handling c:\Offline\Coding\sync-erp\apps\api\test\integration\accrual.test.ts
+- [x] T017 [US4] Update `InventoryService` to Trigger Accrual Journal on Receipt c:\Offline\Coding\sync-erp\apps\api\src\services\InventoryService.ts
+- [x] T018 [US4] Add `postGoodsReceipt` to `JournalService` c:\Offline\Coding\sync-erp\apps\api\src\services\JournalService.ts
+- [x] T019 [US4] Update `BillService.post` to offset Accrual (Suspense) c:\Offline\Coding\sync-erp\apps\api\src\services\BillService.ts
+- [x] T020 [US4] Integration Test for Accrual Handling c:\Offline\Coding\sync-erp\apps\api\test\integration\accrual.test.ts
 
 ## Phase 7: Polish & Frontend Updates
 
-- [ ] T021 Update Frontend Sales Order Form for Tax Selection c:\Offline\Coding\sync-erp\apps\web\src\pages\finance\SalesOrderCreate.tsx
-- [ ] T022 Update Frontend Purchase Order Form for Tax Selection c:\Offline\Coding\sync-erp\apps\web\src\pages\finance\PurchaseOrderCreate.tsx
-- [ ] T023 Final E2E Verification of Full Cycle with Tax c:\Offline\Coding\sync-erp\apps\api\test\e2e\finance-tax-cycle.test.ts
+- [x] T021 Update Frontend Sales Order Form for Tax Selection c:\Offline\Coding\sync-erp\apps\web\src\pages\finance\SalesOrderCreate.tsx
+- [x] T022 Update Frontend Purchase Order Form for Tax Selection c:\Offline\Coding\sync-erp\apps\web\src\pages\finance\PurchaseOrderCreate.tsx
+- [x] T023 Final E2E Verification of Full Cycle with Tax c:\Offline\Coding\sync-erp\apps\api\test\e2e\finance-tax-cycle.test.ts
 
 ## Dependencies
 
