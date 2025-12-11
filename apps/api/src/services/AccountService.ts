@@ -93,6 +93,7 @@ export class AccountService {
 
       // Liabilities (2xxx)
       { code: '2100', name: 'Accounts Payable', type: AccountType.LIABILITY },
+      { code: '2105', name: 'Unbilled Liability', type: AccountType.LIABILITY },
       { code: '2200', name: 'Accrued Expenses', type: AccountType.LIABILITY },
       { code: '2300', name: 'VAT Payable', type: AccountType.LIABILITY },
 
