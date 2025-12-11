@@ -215,4 +215,70 @@ export class JournalService {
       ],
     });
   }
+
+  /**
+   * Create journal entry for Sales Shipment (COGS)
+   * Dr. COGS (5000)
+   * Cr. Inventory Asset (1400)
+   */
+  async postShipment(companyId: string, reference: string, amount: number): Promise<JournalEntry> {
+    return this.resolveAndCreate(companyId, {
+      reference,
+      memo: 'Auto-generated COGS from Shipment',
+      lines: [
+        { accountCode: '5000', debit: amount },
+        { accountCode: '1400', credit: amount },
+      ],
+    });
+  }
+
+  /**
+   * Create journal entry for Sales Return
+   * Dr. Inventory Asset (1400)
+   * Cr. COGS (5000)
+   */
+  async postSalesReturn(
+    companyId: string,
+    reference: string,
+    amount: number
+  ): Promise<JournalEntry> {
+    return this.resolveAndCreate(companyId, {
+      reference,
+      memo: 'Auto-generated reversal from Sales Return',
+      lines: [
+        { accountCode: '1400', debit: amount },
+        { accountCode: '5000', credit: amount },
+      ],
+    });
+  }
+
+  /**
+   * Create journal entry for Stock Adjustment
+   * Loss: Dr. Inventory Adjustment (5200) / Cr. Inventory Asset (1400)
+   * Gain: Dr. Inventory Asset (1400) / Cr. Inventory Adjustment (5200)
+   */
+  async postAdjustment(
+    companyId: string,
+    reference: string,
+    amount: number,
+    isLoss: boolean
+  ): Promise<JournalEntry> {
+    const memo = isLoss ? 'Stock Loss/Shrinkage' : 'Stock Gain/Found';
+    // If Loss: Dr Expense (5200), Cr Asset (1400)
+    // If Gain: Dr Asset (1400), Cr Revenue/Contra (5200)
+
+    return this.resolveAndCreate(companyId, {
+      reference,
+      memo,
+      lines: isLoss
+        ? [
+            { accountCode: '5200', debit: amount },
+            { accountCode: '1400', credit: amount },
+          ]
+        : [
+            { accountCode: '1400', debit: amount },
+            { accountCode: '5200', credit: amount },
+          ],
+    });
+  }
 }

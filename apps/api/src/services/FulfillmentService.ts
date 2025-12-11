@@ -1,7 +1,7 @@
 import { prisma, MovementType } from '@sync-erp/database';
-import type { InventoryMovement } from '@sync-erp/database';
-import { ProductService } from './ProductService';
+import { InventoryMovement } from '@sync-erp/database';
 import { SalesOrderService } from './SalesOrderService';
+import { InventoryService } from './InventoryService';
 
 interface FulfillmentInput {
   orderId: string;
@@ -9,8 +9,8 @@ interface FulfillmentInput {
 }
 
 export class FulfillmentService {
-  private productService = new ProductService();
   private salesOrderService = new SalesOrderService();
+  private inventoryService = new InventoryService();
 
   /**
    * Process shipment/delivery for a sales order (decreases stock)
@@ -25,33 +25,30 @@ export class FulfillmentService {
       throw new Error('Order must be confirmed before shipping');
     }
 
-    const orderItems = await this.salesOrderService.getItems(data.orderId);
-    const movements: InventoryMovement[] = [];
+    // Delegate to InventoryService (Centralized logic + COGS Journal)
+    const movements = await this.inventoryService.processShipment(
+      companyId,
+      data.orderId,
+      data.reference || `Shipment for Order ${order.orderNumber}`
+    );
 
-    // Check stock and create movements
-    for (const item of orderItems) {
-      const hasStock = await this.productService.checkStock(item.productId, item.quantity);
-      if (!hasStock) {
-        throw new Error(`Insufficient stock for product ${item.productId}`);
-      }
+    // Mark order as completed? InventoryService doesn't do it?
+    // InventoryService.processShipment does NOT mark order as completed in previous code view.
+    // Wait, let's check what I replaced.
+    // Replaced logic:
+    // 1. check stock
+    // 2. create movement
+    // 3. decrease stock
+    // 4. complete order
 
-      // Create inventory movement (OUT)
-      const movement = await prisma.inventoryMovement.create({
-        data: {
-          companyId,
-          productId: item.productId,
-          type: MovementType.OUT,
-          quantity: item.quantity,
-          reference: data.reference || `Shipment for ${order.orderNumber}`,
-        },
-      });
-      movements.push(movement);
+    // InventoryService.processShipment (from T007):
+    // 1. check stock, find product
+    // 2. create movement
+    // 3. update stock
+    // 4. post journal
+    // RETURNS movements.
 
-      // Decrease stock
-      await this.productService.updateStock(item.productId, -item.quantity);
-    }
-
-    // Mark order as completed
+    // So I need to keep "Mark order as completed" here if InventoryService doesn't do it.
     await this.salesOrderService.complete(data.orderId, companyId);
 
     return movements;

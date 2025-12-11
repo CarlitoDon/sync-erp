@@ -2,6 +2,7 @@ import { prisma, MovementType } from '@sync-erp/database';
 import type { InventoryMovement } from '@sync-erp/database';
 import { ProductService } from './ProductService';
 import { PurchaseOrderService } from './PurchaseOrderService';
+import { JournalService } from './JournalService';
 
 interface GoodsReceiptInput {
   orderId: string;
@@ -18,6 +19,7 @@ interface StockAdjustmentInput {
 export class InventoryService {
   private productService = new ProductService();
   private purchaseOrderService = new PurchaseOrderService();
+  private journalService = new JournalService();
 
   /**
    * Process goods receipt from a purchase order
@@ -80,6 +82,7 @@ export class InventoryService {
     }
 
     const movements: InventoryMovement[] = [];
+    let totalCogs = 0;
 
     for (const item of order.items) {
       // Check if stock is sufficient
@@ -87,6 +90,10 @@ export class InventoryService {
       if (!hasStock) {
         throw new Error(`Insufficient stock for product ${item.productId}`);
       }
+
+      // Get product for cost calculation
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      if (!product) throw new Error(`Product ${item.productId} not found`);
 
       // Create inventory movement (OUT)
       const movement = await prisma.inventoryMovement.create({
@@ -102,6 +109,18 @@ export class InventoryService {
 
       // Decrease stock
       await this.productService.updateStock(item.productId, -item.quantity);
+
+      // Accumulate COGS
+      totalCogs += Number(product.averageCost) * item.quantity;
+    }
+
+    // Post COGS Journal
+    if (totalCogs > 0) {
+      await this.journalService.postShipment(
+        companyId,
+        reference || `Shipment for order ${order.orderNumber}`,
+        totalCogs
+      );
     }
 
     return movements;
@@ -111,20 +130,50 @@ export class InventoryService {
    * Manual stock adjustment
    */
   async adjustStock(companyId: string, data: StockAdjustmentInput): Promise<InventoryMovement> {
+    const isLoss = data.quantity < 0;
+    const absQty = Math.abs(data.quantity);
+
+    // Get current product state
+    const product = await prisma.product.findUnique({ where: { id: data.productId } });
+    if (!product) throw new Error('Product not found');
+
+    // T012: Enforce Strict Stock Control for Negative Adjustments
+    if (isLoss) {
+      if (product.stockQty < absQty) {
+        throw new Error(`Insufficient stock. Current: ${product.stockQty}, Check: ${absQty}`);
+      }
+    }
+
     const movement = await prisma.inventoryMovement.create({
       data: {
         companyId,
         productId: data.productId,
         type: data.quantity > 0 ? MovementType.IN : MovementType.OUT,
-        quantity: Math.abs(data.quantity),
+        quantity: absQty,
         reference: data.reference || 'Manual adjustment',
       },
     });
 
-    if (data.quantity > 0) {
+    let journalAmount = 0;
+
+    if (!isLoss) {
+      // Gain: Use provided cost per unit (Incoming Value)
       await this.productService.updateAverageCost(data.productId, data.quantity, data.costPerUnit);
+      journalAmount = absQty * data.costPerUnit;
     } else {
+      // Loss: Use current Average Cost (Book Value)
       await this.productService.updateStock(data.productId, data.quantity);
+      journalAmount = absQty * Number(product.averageCost);
+    }
+
+    // T011: Post Journal Entry
+    if (journalAmount > 0) {
+      await this.journalService.postAdjustment(
+        companyId,
+        data.reference || `Adjustment ${movement.id}`,
+        journalAmount,
+        isLoss
+      );
     }
 
     return movement;
