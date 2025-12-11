@@ -24,6 +24,7 @@ export interface PurchaseOrder {
 export interface CreatePurchaseOrderInput {
   partnerId: string;
   items: { productId: string; quantity: number; price: number }[];
+  taxRate?: number;
 }
 
 export const purchaseOrderService = {

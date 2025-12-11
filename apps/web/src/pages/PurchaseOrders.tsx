@@ -200,6 +200,19 @@ export default function PurchaseOrders() {
               </select>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate</label>
+              <select
+                value={formData.taxRate || 0}
+                onChange={(e) => setFormData({ ...formData, taxRate: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              >
+                <option value={0}>No Tax (0%)</option>
+                <option value={11}>PPN 11%</option>
+                <option value={12}>PPN 12%</option>
+              </select>
+            </div>
+
             <div className="border rounded-lg p-4 space-y-3">
               <h3 className="font-medium">Add Items</h3>
               <div className="grid grid-cols-4 gap-3">

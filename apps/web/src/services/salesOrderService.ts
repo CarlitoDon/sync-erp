@@ -24,6 +24,7 @@ export interface SalesOrder {
 export interface CreateSalesOrderInput {
   partnerId: string;
   items: { productId: string; quantity: number; price: number }[];
+  taxRate?: number;
 }
 
 export const salesOrderService = {
