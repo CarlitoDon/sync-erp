@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { HEADERS, ERROR_CODES } from '@sync-erp/shared';
-import { getSession } from '../services/sessionService.js';
+import { AuthRepository } from '../modules/auth/auth.repository';
+
+const authRepository = new AuthRepository();
+const getSession = (sessionId: string) => authRepository.getSession(sessionId);
 import { prisma, type User, type Session } from '@sync-erp/database';
 
 // Extend Express Request to include context using module augmentation

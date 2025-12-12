@@ -1,9 +1,9 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { PaymentService } from '../services/PaymentService';
+import { Router } from 'express';
+import { PaymentController } from '../modules/accounting/controllers/payment.controller';
 import { z } from 'zod';
 
 export const paymentRouter = Router();
-const paymentService = new PaymentService();
+const controller = new PaymentController();
 
 const CreatePaymentSchema = z.object({
   invoiceId: z.string().uuid(),
@@ -12,56 +12,25 @@ const CreatePaymentSchema = z.object({
 });
 
 // GET /api/payments - List all payments
-paymentRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const companyId = req.context.companyId!;
-    const invoiceId = req.query.invoiceId as string | undefined;
-
-    const payments = await paymentService.list(companyId, invoiceId);
-    res.json({ success: true, data: payments });
-  } catch (error) {
-    next(error);
-  }
-});
+paymentRouter.get('/', controller.list);
 
 // GET /api/payments/:id - Get payment by ID
-paymentRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const companyId = req.context.companyId!;
-    const payment = await paymentService.getById(req.params.id, companyId);
-
-    if (!payment) {
-      return res.status(404).json({ success: false, error: { message: 'Payment not found' } });
-    }
-
-    res.json({ success: true, data: payment });
-  } catch (error) {
-    next(error);
-  }
-});
+paymentRouter.get('/:id', controller.getById);
 
 // POST /api/payments - Record a payment
-paymentRouter.post('/', async (req: Request, res: Response, next: NextFunction) => {
+paymentRouter.post('/', async (req, res, next) => {
   try {
-    const companyId = req.context.companyId!;
-    const validated = CreatePaymentSchema.parse(req.body);
-
-    const payment = await paymentService.create(companyId, validated);
-    res.status(201).json({ success: true, data: payment });
-  } catch (error) {
-    next(error);
+    CreatePaymentSchema.parse(req.body);
+    await controller.create(req, res, next);
+  } catch (e) {
+    next(e);
   }
 });
 
 // GET /api/payments/invoice/:invoiceId - Get payments for an invoice
-paymentRouter.get(
-  '/invoice/:invoiceId',
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const payments = await paymentService.getPaymentHistory(req.params.invoiceId);
-      res.json({ success: true, data: payments });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+paymentRouter.get('/invoice/:invoiceId', controller.getPaymentHistory);
+
+// GET /api/payments/invoice/:invoiceId - Get payments for an invoice
+// Missing method in PaymentController: getPaymentHistory?
+// Service has getPaymentHistory.
+// I should expose it in Controller.
