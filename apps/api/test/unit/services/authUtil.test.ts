@@ -1,7 +1,8 @@
+import { describe, it, expect } from 'vitest';
 import {
   hashPassword,
   comparePassword,
-} from '../../../src/services/authUtil';
+} from '../../../src/modules/auth/auth.utils';
 
 describe('authUtil', () => {
   describe('hashPassword', () => {
