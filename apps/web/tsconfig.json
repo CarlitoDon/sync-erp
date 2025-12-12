@@ -12,11 +12,6 @@
     "module": "ESNext",
     "moduleResolution": "Bundler"
   },
-  "include": [
-    "src/**/*",
-    "vitest.config.ts",
-    "vite.config.ts",
-    "test/**/*"
-  ],
+  "include": ["src/**/*", "vite.config.ts", "test/**/*"],
   "exclude": ["node_modules", "dist"]
 }
