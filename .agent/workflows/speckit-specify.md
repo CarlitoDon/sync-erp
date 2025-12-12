@@ -28,7 +28,7 @@ Using that feature description:
    - "Create a dashboard for analytics" → "analytics-dashboard"
    - "Fix payment processing timeout bug" → "fix-payment-timeout"
 
-2. **Check for existing branches before creating new one**:
+2. **Check for existing branches and determine next feature number**:
 
    a. First, fetch all remote branches to ensure we have the latest information:
 
@@ -36,25 +36,36 @@ Using that feature description:
    git fetch --all --prune
    ```
 
-   b. Find the highest feature number across all sources for the short-name:
-   - Remote branches: `git ls-remote --heads origin | grep -E 'refs/heads/[0-9]+-<short-name>$'`
-   - Local branches: `git branch | grep -E '^[* ]*[0-9]+-<short-name>$'`
-   - Specs directories: Check for directories matching `specs/[0-9]+-<short-name>`
+   b. Find the highest feature number **across ALL features** (not just matching short-name):
+   - Specs directories (most reliable): `ls -d specs/[0-9]*-* 2>/dev/null | sed 's/specs\/0*//' | cut -d'-' -f1 | sort -n | tail -1`
+   - Local branches: `git branch | grep -oE '^\*? *[0-9]+' | grep -oE '[0-9]+' | sort -n | tail -1`
+   - Remote branches: `git ls-remote --heads | grep -oE 'refs/heads/[0-9]+-' | grep -oE '[0-9]+' | sort -n | tail -1`
+
+   **PowerShell equivalent**:
+
+   ```powershell
+   # Specs directories
+   Get-ChildItem -Path specs -Directory | Where-Object { $_.Name -match '^\d+' } | ForEach-Object { [int]($_.Name -replace '^(\d+).*','$1') } | Measure-Object -Maximum | Select-Object -ExpandProperty Maximum
+
+   # Local branches
+   git branch | Select-String -Pattern '^\*?\s*(\d+)-' | ForEach-Object { [int]$_.Matches.Groups[1].Value } | Measure-Object -Maximum | Select-Object -ExpandProperty Maximum
+   ```
 
    c. Determine the next available number:
-   - Extract all numbers from all three sources
-   - Find the highest number N
+   - Compare numbers from all three sources
+   - Find the highest number N (globally, across ALL features)
    - Use N+1 for the new branch number
+   - **If no existing numbered specs/branches found, start with number 1**
 
    d. Run the script `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS"` with the calculated number and short-name:
    - Pass `--number N+1` and `--short-name "your-short-name"` along with the feature description
-   - Bash example: `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS" --json --number 5 --short-name "user-auth" "Add user authentication"`
-   - PowerShell example: `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS" -Json -Number 5 -ShortName "user-auth" "Add user authentication"`
+   - Bash example: `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS" --json --number 11 --short-name "user-auth" "Add user authentication"`
+   - PowerShell example: `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS" -Json -Number 11 -ShortName "user-auth" "Add user authentication"`
 
    **IMPORTANT**:
-   - Check all three sources (remote branches, local branches, specs directories) to find the highest number
-   - Only match branches/directories with the exact short-name pattern
-   - If no existing branches/directories found with this short-name, start with number 1
+   - Check all three sources (remote branches, local branches, specs directories) to find the **global highest number**
+   - The number should continue from the highest existing feature, regardless of short-name
+   - Example: If specs/ contains 001-auth, 005-payments, 010-refactor → next number is 011
    - You must only ever run this script once per feature
    - The JSON is provided in the terminal as output - always refer to it to get the actual content you're looking for
    - The JSON output will contain BRANCH_NAME and SPEC_FILE paths
