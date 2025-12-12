@@ -85,6 +85,9 @@ description: 'Refactor frontend to Feature-Based Architecture'
 **Goal**: Finalize routing, verify build, and cleanup.
 
 - [x] T030 Update `src/App.tsx` (or new `routes.tsx`) to import pages from their new Feature locations
+- [x] T030a Extract Providers to `src/app/AppProviders.tsx`
+- [x] T030b Extract Routing to `src/app/AppRouter.tsx`
+- [x] T030c Simplify `src/App.tsx` import
 - [x] T031 Perform global search for old import paths (e.g., `../services/`) and fix any remaining broken references
 - [x] T032 Verify `vite.config.ts` aliases work with new structure
 - [x] T033 Run full build `npm run build` and ensure no type errors

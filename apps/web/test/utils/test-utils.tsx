@@ -5,10 +5,7 @@ import {
   RenderResult,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { AuthProvider } from '../../src/contexts/AuthContext';
-import { CompanyProvider } from '../../src/contexts/CompanyContext';
-import { SidebarProvider } from '../../src/contexts/SidebarContext';
-import { ConfirmProvider } from '../../src/components/ui/ConfirmModal';
+import { AppProviders } from '../../src/app/AppProviders';
 import userEvent from '@testing-library/user-event';
 
 interface ExtendedRenderOptions extends Omit<
@@ -20,6 +17,8 @@ interface ExtendedRenderOptions extends Omit<
 
 // Wrapper component that includes all providers
 // MemoryRouter is used for testing navigation
+// Wrapper component that includes all providers
+// MemoryRouter is used for testing navigation
 const AllTheProviders = ({
   children,
   route,
@@ -29,13 +28,7 @@ const AllTheProviders = ({
 }) => {
   return (
     <MemoryRouter initialEntries={[route]}>
-      <AuthProvider>
-        <CompanyProvider>
-          <SidebarProvider>
-            <ConfirmProvider>{children}</ConfirmProvider>
-          </SidebarProvider>
-        </CompanyProvider>
-      </AuthProvider>
+      <AppProviders>{children}</AppProviders>
     </MemoryRouter>
   );
 };
