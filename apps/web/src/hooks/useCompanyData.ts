@@ -10,7 +10,7 @@ interface UseCompanyDataReturn<T> {
 }
 
 export function useCompanyData<T>(
-  fetcher: () => Promise<T>,
+  fetcher: (companyId: string) => Promise<T>,
   initialData: T
 ): UseCompanyDataReturn<T> {
   const { currentCompany } = useCompany();
@@ -39,7 +39,7 @@ export function useCompanyData<T>(
       setLoading(true);
       setError(null);
       // Call the latest fetcher from the ref
-      const result = await fetcherRef.current();
+      const result = await fetcherRef.current(currentCompany.id);
       setData(result);
     } catch (err) {
       console.error('Failed to load data:', err);

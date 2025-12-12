@@ -10,6 +10,7 @@ import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
 import { formatCurrency, formatDate } from '../../../utils/format';
+import { PaymentHistoryList } from '../components/PaymentHistoryList';
 
 export default function AccountsPayable() {
   const { currentCompany } = useCompany();
@@ -30,6 +31,7 @@ export default function AccountsPayable() {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] =
     useState<CreatePaymentInput['method']>('BANK_TRANSFER');
+  const [showHistory, setShowHistory] = useState<string | null>(null);
 
   const handlePost = async (id: string) => {
     await apiAction(() => billService.post(id), 'Bill posted!');
@@ -266,6 +268,18 @@ export default function AccountsPayable() {
                           Record Payment
                         </ActionButton>
                       )}
+                      <ActionButton
+                        variant="secondary"
+                        onClick={() =>
+                          setShowHistory(
+                            showHistory === bill.id ? null : bill.id
+                          )
+                        }
+                      >
+                        {showHistory === bill.id
+                          ? 'Hide History'
+                          : 'History'}
+                      </ActionButton>
                     </td>
                   </tr>
                   {/* Inline Payment Form (Reuse from Invoices) */}
@@ -330,6 +344,16 @@ export default function AccountsPayable() {
                             </ActionButton>
                           </div>
                         </div>
+                      </td>
+                    </tr>
+                  )}
+                  {showHistory === bill.id && (
+                    <tr className="bg-gray-50">
+                      <td colSpan={7} className="px-6 py-4">
+                        <PaymentHistoryList
+                          invoiceId={bill.id}
+                          totalAmount={bill.amount}
+                        />
                       </td>
                     </tr>
                   )}

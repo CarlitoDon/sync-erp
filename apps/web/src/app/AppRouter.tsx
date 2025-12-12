@@ -12,6 +12,7 @@ import Inventory from '../features/inventory/pages/Inventory';
 import SalesOrders from '../features/sales/pages/SalesOrders';
 import Invoices from '../features/finance/pages/Invoices';
 import AccountsPayable from '../features/finance/pages/AccountsPayable';
+import TeamManagement from '../features/company/pages/TeamManagement';
 import Finance from '../features/finance/pages/Finance';
 import { RegisterPage } from '../features/auth/components/RegisterPage';
 import { LoginPage } from '../features/auth/components/LoginPage';
@@ -47,6 +48,7 @@ export function AppRouter() {
           <Route path="invoices" element={<Invoices />} />
           <Route path="bills" element={<AccountsPayable />} />
           <Route path="finance" element={<Finance />} />
+          <Route path="team" element={<TeamManagement />} />
         </Route>
       </Route>
     </Routes>

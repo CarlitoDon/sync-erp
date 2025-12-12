@@ -4,6 +4,9 @@ import {
 } from '../services/productService';
 import { useCompany } from '../../../contexts/CompanyContext';
 import { useCompanyData } from '../../../hooks/useCompanyData';
+import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
+import ActionButton from '../../../components/ui/ActionButton';
+import { useState } from 'react';
 
 export default function Inventory() {
   const { currentCompany } = useCompany();
@@ -12,6 +15,10 @@ export default function Inventory() {
     loading,
     refresh: loadStockLevels,
   } = useCompanyData<StockLevel[]>(productService.getStockLevels, []);
+
+  const [adjustingProductId, setAdjustingProductId] = useState<
+    string | null
+  >(null);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -151,6 +158,9 @@ export default function Inventory() {
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                 Status
               </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -205,6 +215,14 @@ export default function Inventory() {
                             : 'In Stock'}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-right">
+                      <ActionButton
+                        onClick={() => setAdjustingProductId(item.id)}
+                        variant="primary"
+                      >
+                        Adjust
+                      </ActionButton>
+                    </td>
                   </tr>
                 );
               })
@@ -212,6 +230,15 @@ export default function Inventory() {
           </tbody>
         </table>
       </div>
+
+      {adjustingProductId && (
+        <StockAdjustmentModal
+          isOpen={!!adjustingProductId}
+          onClose={() => setAdjustingProductId(null)}
+          onSuccess={loadStockLevels}
+          initialProductId={adjustingProductId}
+        />
+      )}
     </div>
   );
 }

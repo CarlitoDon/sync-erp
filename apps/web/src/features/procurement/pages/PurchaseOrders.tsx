@@ -11,6 +11,7 @@ import { useCompanyData } from '../../../hooks/useCompanyData';
 import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
+import { GoodsReceiptModal } from '../../inventory/components/GoodsReceiptModal';
 
 interface OrderItemForm {
   productId: string;
@@ -65,6 +66,8 @@ export default function PurchaseOrders() {
     price: 0,
   });
 
+  const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(null);
+
   const handleAddItem = () => {
     if (!currentItem.productId || currentItem.quantity <= 0) return;
     setFormData({
@@ -104,12 +107,8 @@ export default function PurchaseOrders() {
     loadData();
   };
 
-  const handleGoodsReceipt = async (id: string) => {
-    await apiAction(
-      () => purchaseOrderService.processGoodsReceipt(id),
-      'Goods received! Inventory updated.'
-    );
-    loadData();
+  const handleGoodsReceipt = (id: string) => {
+    setGoodsReceiptId(id);
   };
 
   const handleCancel = async (id: string) => {
@@ -466,6 +465,15 @@ export default function PurchaseOrders() {
           </tbody>
         </table>
       </div>
+      
+      {goodsReceiptId && (
+        <GoodsReceiptModal
+          isOpen={!!goodsReceiptId}
+          onClose={() => setGoodsReceiptId(null)}
+          purchaseOrderId={goodsReceiptId}
+          onSuccess={loadData}
+        />
+      )}
     </div>
   );
 }

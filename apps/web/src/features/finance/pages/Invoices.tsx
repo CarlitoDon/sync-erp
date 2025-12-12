@@ -11,6 +11,7 @@ import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
 import { formatCurrency, formatDate } from '../../../utils/format';
+import { PaymentHistoryList } from '../components/PaymentHistoryList';
 
 export default function Invoices() {
   const { currentCompany } = useCompany();
@@ -26,6 +27,7 @@ export default function Invoices() {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] =
     useState<CreatePaymentInput['method']>('BANK_TRANSFER');
+  const [showHistory, setShowHistory] = useState<string | null>(null);
 
   const handlePost = async (id: string) => {
     await apiAction(() => invoiceService.post(id), 'Invoice posted!');
@@ -246,6 +248,21 @@ export default function Invoices() {
                           Record Payment
                         </ActionButton>
                       )}
+
+                      <ActionButton
+                        variant="secondary"
+                        onClick={() =>
+                          setShowHistory(
+                            showHistory === invoice.id
+                              ? null
+                              : invoice.id
+                          )
+                        }
+                      >
+                        {showHistory === invoice.id
+                          ? 'Hide History'
+                          : 'History'}
+                      </ActionButton>
                     </td>
                   </tr>
                   {showPayment === invoice.id && (
@@ -312,6 +329,16 @@ export default function Invoices() {
                             </button>
                           </div>
                         </div>
+                      </td>
+                    </tr>
+                  )}
+                  {showHistory === invoice.id && (
+                    <tr className="bg-gray-50">
+                      <td colSpan={7} className="px-6 py-4">
+                        <PaymentHistoryList
+                          invoiceId={invoice.id}
+                          totalAmount={invoice.amount}
+                        />
                       </td>
                     </tr>
                   )}

@@ -45,6 +45,11 @@ const navItems = [
     label: 'Companies',
     icon: <BuildingOfficeIcon />,
   },
+  {
+    path: '/team',
+    label: 'Team',
+    icon: <UserGroupIcon />,
+  },
 ];
 
 export default function SidebarNav() {
