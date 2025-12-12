@@ -1,17 +1,28 @@
-import { vi } from 'vitest';
-import { mockPrisma, resetMocks } from '../mocks/prisma.mock';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import {
+  mockAccountRepository,
+  resetRepositoryMocks,
+} from '../mocks/repositories.mock';
 
-// Mock the database module
+// Mock the AccountRepository module
+vi.mock(
+  '../../../src/modules/accounting/repositories/account.repository',
+  () => ({
+    AccountRepository: vi
+      .fn()
+      .mockImplementation(() => mockAccountRepository),
+  })
+);
 
 // Import after mocking
-import { AccountService } from '../../../src/services/AccountService';
+import { AccountService } from '../../../src/modules/accounting/services/account.service';
 
 describe('AccountService', () => {
   let service: AccountService;
   const companyId = 'company-1';
 
   beforeEach(() => {
-    resetMocks();
+    resetRepositoryMocks();
     service = new AccountService();
   });
 
@@ -25,7 +36,7 @@ describe('AccountService', () => {
         type: 'ASSET',
       };
 
-      mockPrisma.account.create.mockResolvedValue(mockAccount);
+      mockAccountRepository.create.mockResolvedValue(mockAccount);
 
       const result = await service.create(companyId, {
         code: '1100',
@@ -34,13 +45,11 @@ describe('AccountService', () => {
       });
 
       expect(result).toEqual(mockAccount);
-      expect(mockPrisma.account.create).toHaveBeenCalledWith({
-        data: {
-          companyId,
-          code: '1100',
-          name: 'Cash',
-          type: 'ASSET',
-        },
+      expect(mockAccountRepository.create).toHaveBeenCalledWith({
+        company: { connect: { id: companyId } },
+        code: '1100',
+        name: 'Cash',
+        type: 'ASSET',
       });
     });
   });
@@ -53,7 +62,7 @@ describe('AccountService', () => {
         code: '1100',
         name: 'Cash',
       };
-      mockPrisma.account.findFirst.mockResolvedValue(mockAccount);
+      mockAccountRepository.findById.mockResolvedValue(mockAccount);
 
       const result = await service.getById('acc-1', companyId);
 
@@ -61,7 +70,7 @@ describe('AccountService', () => {
     });
 
     it('should return null for non-existent account', async () => {
-      mockPrisma.account.findFirst.mockResolvedValue(null);
+      mockAccountRepository.findById.mockResolvedValue(null);
 
       const result = await service.getById('nonexistent', companyId);
 
@@ -77,14 +86,15 @@ describe('AccountService', () => {
         code: '1100',
         name: 'Cash',
       };
-      mockPrisma.account.findFirst.mockResolvedValue(mockAccount);
+      mockAccountRepository.findByCode.mockResolvedValue(mockAccount);
 
       const result = await service.getByCode(companyId, '1100');
 
       expect(result).toEqual(mockAccount);
-      expect(mockPrisma.account.findFirst).toHaveBeenCalledWith({
-        where: { companyId, code: '1100' },
-      });
+      expect(mockAccountRepository.findByCode).toHaveBeenCalledWith(
+        '1100',
+        companyId
+      );
     });
   });
 
@@ -94,7 +104,7 @@ describe('AccountService', () => {
         { id: 'acc-1', code: '1100', name: 'Cash' },
         { id: 'acc-2', code: '2100', name: 'AP' },
       ];
-      mockPrisma.account.findMany.mockResolvedValue(mockAccounts);
+      mockAccountRepository.findAll.mockResolvedValue(mockAccounts);
 
       const result = await service.list(companyId);
 
@@ -105,26 +115,34 @@ describe('AccountService', () => {
       const mockAccounts = [
         { id: 'acc-1', code: '1100', type: 'ASSET' },
       ];
-      mockPrisma.account.findMany.mockResolvedValue(mockAccounts);
+      mockAccountRepository.findAll.mockResolvedValue(mockAccounts);
 
       const result = await service.list(companyId, 'ASSET' as any);
 
       expect(result).toHaveLength(1);
-      expect(mockPrisma.account.findMany).toHaveBeenCalledWith({
-        where: { companyId, type: 'ASSET' },
-        orderBy: { code: 'asc' },
-      });
+      expect(mockAccountRepository.findAll).toHaveBeenCalledWith(
+        companyId,
+        'ASSET'
+      );
     });
   });
 
   describe('update', () => {
     it('should update an account', async () => {
+      const existingAccount = {
+        id: 'acc-1',
+        companyId,
+        code: '1100',
+      };
       const updatedAccount = {
         id: 'acc-1',
         name: 'Cash on Hand',
         isActive: true,
       };
-      mockPrisma.account.update.mockResolvedValue(updatedAccount);
+      mockAccountRepository.findById.mockResolvedValue(
+        existingAccount
+      );
+      mockAccountRepository.update.mockResolvedValue(updatedAccount);
 
       const result = await service.update('acc-1', companyId, {
         name: 'Cash on Hand',
@@ -132,29 +150,40 @@ describe('AccountService', () => {
 
       expect(result.name).toBe('Cash on Hand');
     });
+
+    it('should throw error if account not found', async () => {
+      mockAccountRepository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.update('nonexistent', companyId, { name: 'New' })
+      ).rejects.toThrow('Account not found');
+    });
   });
 
   describe('seedDefaultAccounts', () => {
     it('should seed default accounts for a new company', async () => {
       // All accounts don't exist yet
-      mockPrisma.account.findFirst.mockResolvedValue(null);
-      mockPrisma.account.create.mockImplementation((args) =>
+      mockAccountRepository.findByCode.mockResolvedValue(null);
+      mockAccountRepository.create.mockImplementation((data) =>
         Promise.resolve({
-          id: `acc-${args.data.code}`,
-          ...args.data,
+          id: `acc-${data.code}`,
+          companyId,
+          code: data.code,
+          name: data.name,
+          type: data.type,
         })
       );
 
       const result = await service.seedDefaultAccounts(companyId);
 
-      // Should create all 19 default accounts
-      expect(result.length).toBe(19);
-      expect(mockPrisma.account.create).toHaveBeenCalledTimes(19);
+      // Should create all 20 default accounts
+      expect(result.length).toBe(20);
+      expect(mockAccountRepository.create).toHaveBeenCalledTimes(20);
     });
 
     it('should skip existing accounts when seeding', async () => {
       // First account exists, rest don't
-      mockPrisma.account.findFirst
+      mockAccountRepository.findByCode
         .mockResolvedValueOnce({
           id: 'existing',
           code: '1100',
@@ -162,17 +191,20 @@ describe('AccountService', () => {
         })
         .mockResolvedValue(null);
 
-      mockPrisma.account.create.mockImplementation((args) =>
+      mockAccountRepository.create.mockImplementation((data) =>
         Promise.resolve({
-          id: `acc-${args.data.code}`,
-          ...args.data,
+          id: `acc-${data.code}`,
+          companyId,
+          code: data.code,
+          name: data.name,
+          type: data.type,
         })
       );
 
       const result = await service.seedDefaultAccounts(companyId);
 
-      // Should create 18 accounts (skipping the existing one)
-      expect(result.length).toBe(18);
+      // Should create 19 accounts (skipping the existing one)
+      expect(result.length).toBe(19);
     });
   });
 });

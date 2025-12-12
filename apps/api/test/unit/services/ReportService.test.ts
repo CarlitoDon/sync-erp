@@ -1,17 +1,39 @@
-import { vi } from 'vitest';
-import { mockPrisma, resetMocks } from '../mocks/prisma.mock';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import {
+  mockAccountRepository,
+  mockJournalRepository,
+  resetRepositoryMocks,
+} from '../mocks/repositories.mock';
 
-// Mock the database module
+// Mock AccountRepository
+vi.mock(
+  '../../../src/modules/accounting/repositories/account.repository',
+  () => ({
+    AccountRepository: vi
+      .fn()
+      .mockImplementation(() => mockAccountRepository),
+  })
+);
+
+// Mock JournalRepository
+vi.mock(
+  '../../../src/modules/accounting/repositories/journal.repository',
+  () => ({
+    JournalRepository: vi
+      .fn()
+      .mockImplementation(() => mockJournalRepository),
+  })
+);
 
 // Import after mocking
-import { ReportService } from '../../../src/services/ReportService';
+import { ReportService } from '../../../src/modules/accounting/services/report.service';
 
 describe('ReportService', () => {
   let service: ReportService;
   const companyId = 'company-1';
 
   beforeEach(() => {
-    resetMocks();
+    resetRepositoryMocks();
     service = new ReportService();
   });
 
@@ -34,8 +56,8 @@ describe('ReportService', () => {
         },
       ];
 
-      mockPrisma.account.findMany.mockResolvedValue(mockAccounts);
-      mockPrisma.journalLine.aggregate
+      mockAccountRepository.findAll.mockResolvedValue(mockAccounts);
+      mockJournalRepository.aggregateAccountSum
         .mockResolvedValueOnce({ _sum: { debit: 1000, credit: 200 } }) // Cash
         .mockResolvedValueOnce({ _sum: { debit: 100, credit: 500 } }); // AP
 
@@ -47,7 +69,7 @@ describe('ReportService', () => {
     });
 
     it('should mark as balanced when debits equal credits', async () => {
-      mockPrisma.account.findMany.mockResolvedValue([
+      mockAccountRepository.findAll.mockResolvedValue([
         {
           id: 'acc-1',
           code: '1000',
@@ -56,7 +78,7 @@ describe('ReportService', () => {
           isActive: true,
         },
       ]);
-      mockPrisma.journalLine.aggregate.mockResolvedValue({
+      mockJournalRepository.aggregateAccountSum.mockResolvedValue({
         _sum: { debit: 1000, credit: 1000 },
       });
 
@@ -66,7 +88,7 @@ describe('ReportService', () => {
     });
 
     it('should exclude accounts with no activity', async () => {
-      mockPrisma.account.findMany.mockResolvedValue([
+      mockAccountRepository.findAll.mockResolvedValue([
         {
           id: 'acc-1',
           code: '1000',
@@ -75,7 +97,7 @@ describe('ReportService', () => {
           isActive: true,
         },
       ]);
-      mockPrisma.journalLine.aggregate.mockResolvedValue({
+      mockJournalRepository.aggregateAccountSum.mockResolvedValue({
         _sum: { debit: 0, credit: 0 },
       });
 
@@ -118,11 +140,11 @@ describe('ReportService', () => {
         },
       ];
 
-      mockPrisma.account.findFirst.mockResolvedValue(mockAccount);
-      mockPrisma.journalLine.aggregate.mockResolvedValue({
+      mockAccountRepository.findById.mockResolvedValue(mockAccount);
+      mockJournalRepository.getOpeningBalanceSum.mockResolvedValue({
         _sum: { debit: 0, credit: 0 },
       });
-      mockPrisma.journalLine.findMany.mockResolvedValue(
+      mockJournalRepository.findLinesByAccount.mockResolvedValue(
         mockJournalLines
       );
 
@@ -137,7 +159,7 @@ describe('ReportService', () => {
     });
 
     it('should throw error if account not found', async () => {
-      mockPrisma.account.findFirst.mockResolvedValue(null);
+      mockAccountRepository.findById.mockResolvedValue(null);
 
       await expect(
         service.getGeneralLedger(companyId, 'nonexistent')
@@ -152,11 +174,11 @@ describe('ReportService', () => {
         type: 'ASSET',
       };
 
-      mockPrisma.account.findFirst.mockResolvedValue(mockAccount);
-      mockPrisma.journalLine.aggregate.mockResolvedValue({
+      mockAccountRepository.findById.mockResolvedValue(mockAccount);
+      mockJournalRepository.getOpeningBalanceSum.mockResolvedValue({
         _sum: { debit: 5000, credit: 2000 },
       });
-      mockPrisma.journalLine.findMany.mockResolvedValue([]);
+      mockJournalRepository.findLinesByAccount.mockResolvedValue([]);
 
       const result = await service.getGeneralLedger(
         companyId,
@@ -173,7 +195,7 @@ describe('ReportService', () => {
     it('should calculate income statement', async () => {
       // Revenue: credits - debits = 10000 - 1000 = 9000
       // Expenses: debits - credits = 5000 - 500 = 4500
-      mockPrisma.journalLine.aggregate
+      mockJournalRepository.aggregateTypeSum
         .mockResolvedValueOnce({
           _sum: { credit: 10000, debit: 1000 },
         }) // Revenue
@@ -193,7 +215,7 @@ describe('ReportService', () => {
     });
 
     it('should handle periods with no activity', async () => {
-      mockPrisma.journalLine.aggregate.mockResolvedValue({
+      mockJournalRepository.aggregateTypeSum.mockResolvedValue({
         _sum: { credit: null, debit: null },
       });
 

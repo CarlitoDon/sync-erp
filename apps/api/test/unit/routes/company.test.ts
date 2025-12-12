@@ -3,7 +3,7 @@ const express = require('express');
 import request from 'supertest';
 
 // Mock CompanyService
-vi.mock('../../../src/services/CompanyService', () => ({
+vi.mock('../../../src/modules/company/company.service', () => ({
   CompanyService: vi.fn().mockImplementation(() => ({
     listForUser: vi
       .fn()

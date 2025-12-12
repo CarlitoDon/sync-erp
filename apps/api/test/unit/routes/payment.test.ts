@@ -3,17 +3,22 @@ const express = require('express');
 import request from 'supertest';
 
 // Mock PaymentService
-vi.mock('../../../src/services/PaymentService', () => ({
-  PaymentService: vi.fn().mockImplementation(() => ({
-    list: vi.fn().mockResolvedValue([{ id: 'pay-1', amount: 500 }]),
-    getById: vi.fn().mockImplementation((id: string) => {
-      if (id === 'not-found') return Promise.resolve(null);
-      return Promise.resolve({ id: 'pay-1', amount: 500 });
-    }),
-    create: vi.fn().mockResolvedValue({ id: 'pay-new', amount: 100 }),
-    getPaymentHistory: vi.fn().mockResolvedValue([]),
-  })),
-}));
+vi.mock(
+  '../../../src/modules/accounting/services/payment.service',
+  () => ({
+    PaymentService: vi.fn().mockImplementation(() => ({
+      list: vi.fn().mockResolvedValue([{ id: 'pay-1', amount: 500 }]),
+      getById: vi.fn().mockImplementation((id: string) => {
+        if (id === 'not-found') return Promise.resolve(null);
+        return Promise.resolve({ id: 'pay-1', amount: 500 });
+      }),
+      create: vi
+        .fn()
+        .mockResolvedValue({ id: 'pay-new', amount: 100 }),
+      getPaymentHistory: vi.fn().mockResolvedValue([]),
+    })),
+  })
+);
 
 // Import after mocking
 import { paymentRouter } from '../../../src/routes/payment';

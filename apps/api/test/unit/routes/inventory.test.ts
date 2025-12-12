@@ -3,7 +3,7 @@ const express = require('express');
 import request from 'supertest';
 
 // Mock InventoryService
-vi.mock('../../../src/services/InventoryService', () => ({
+vi.mock('../../../src/modules/inventory/inventory.service', () => ({
   InventoryService: vi.fn().mockImplementation(() => ({
     getStockLevels: vi
       .fn()

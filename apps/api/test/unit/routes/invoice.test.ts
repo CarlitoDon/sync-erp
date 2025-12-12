@@ -3,29 +3,39 @@ const express = require('express');
 import request from 'supertest';
 
 // Mock InvoiceService
-vi.mock('../../../src/services/InvoiceService', () => ({
-  InvoiceService: vi.fn().mockImplementation(() => ({
-    list: vi
-      .fn()
-      .mockResolvedValue([{ id: 'inv-1', invoiceNumber: 'INV-001' }]),
-    getById: vi.fn().mockImplementation((id: string) => {
-      if (id === 'not-found') return Promise.resolve(null);
-      return Promise.resolve({
-        id: 'inv-1',
-        invoiceNumber: 'INV-001',
-      });
-    }),
-    getOutstanding: vi.fn().mockResolvedValue([]),
-    createFromSalesOrder: vi
-      .fn()
-      .mockResolvedValue({ id: 'inv-new', invoiceNumber: 'INV-002' }),
-    post: vi
-      .fn()
-      .mockResolvedValue({ id: 'inv-1', status: 'POSTED' }),
-    void: vi.fn().mockResolvedValue({ id: 'inv-1', status: 'VOID' }),
-    getRemainingAmount: vi.fn().mockResolvedValue(500),
-  })),
-}));
+vi.mock(
+  '../../../src/modules/accounting/services/invoice.service',
+  () => ({
+    InvoiceService: vi.fn().mockImplementation(() => ({
+      list: vi
+        .fn()
+        .mockResolvedValue([
+          { id: 'inv-1', invoiceNumber: 'INV-001' },
+        ]),
+      getById: vi.fn().mockImplementation((id: string) => {
+        if (id === 'not-found') return Promise.resolve(null);
+        return Promise.resolve({
+          id: 'inv-1',
+          invoiceNumber: 'INV-001',
+        });
+      }),
+      getOutstanding: vi.fn().mockResolvedValue([]),
+      createFromSalesOrder: vi
+        .fn()
+        .mockResolvedValue({
+          id: 'inv-new',
+          invoiceNumber: 'INV-002',
+        }),
+      post: vi
+        .fn()
+        .mockResolvedValue({ id: 'inv-1', status: 'POSTED' }),
+      void: vi
+        .fn()
+        .mockResolvedValue({ id: 'inv-1', status: 'VOID' }),
+      getRemainingAmount: vi.fn().mockResolvedValue(500),
+    })),
+  })
+);
 
 // Import after mocking
 import { invoiceRouter } from '../../../src/routes/invoice';

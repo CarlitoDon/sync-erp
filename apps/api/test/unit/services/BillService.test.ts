@@ -1,24 +1,55 @@
-import { vi } from 'vitest';
-import { mockPrisma, resetMocks } from '../mocks/prisma.mock';
-
-// Mock the database module
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import {
+  mockInvoiceRepository,
+  resetRepositoryMocks,
+} from '../mocks/repositories.mock';
 
 // Mock JournalService
-vi.mock('../../../src/services/JournalService', () => ({
-  JournalService: vi.fn().mockImplementation(() => ({
-    postBill: vi.fn().mockResolvedValue({}),
-  })),
-}));
+const mockJournalService = {
+  postBill: vi.fn().mockResolvedValue({}),
+};
+vi.mock(
+  '../../../src/modules/accounting/services/journal.service',
+  () => ({
+    JournalService: vi
+      .fn()
+      .mockImplementation(() => mockJournalService),
+  })
+);
+
+// Mock DocumentNumberService
+const mockDocumentNumberService = {
+  generate: vi.fn().mockResolvedValue('BILL-00001'),
+};
+vi.mock(
+  '../../../src/modules/common/services/document-number.service',
+  () => ({
+    DocumentNumberService: vi
+      .fn()
+      .mockImplementation(() => mockDocumentNumberService),
+  })
+);
+
+// Mock the InvoiceRepository module (BillService uses InvoiceRepository)
+vi.mock(
+  '../../../src/modules/accounting/repositories/invoice.repository',
+  () => ({
+    InvoiceRepository: vi
+      .fn()
+      .mockImplementation(() => mockInvoiceRepository),
+  })
+);
 
 // Import after mocking
-import { BillService } from '../../../src/services/BillService';
+import { BillService } from '../../../src/modules/accounting/services/bill.service';
 
 describe('BillService', () => {
   let service: BillService;
   const companyId = 'company-1';
 
   beforeEach(() => {
-    resetMocks();
+    resetRepositoryMocks();
+    vi.clearAllMocks();
     service = new BillService();
   });
 
@@ -45,13 +76,12 @@ describe('BillService', () => {
         invoiceNumber: 'BILL-00001',
       };
 
-      mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
-      mockPrisma.invoice.count.mockResolvedValue(0);
-      mockPrisma.invoice.create.mockResolvedValue(mockBill);
+      mockInvoiceRepository.findOrder.mockResolvedValue(mockOrder);
+      mockInvoiceRepository.count.mockResolvedValue(0);
+      mockInvoiceRepository.create.mockResolvedValue(mockBill);
 
       const result = await service.createFromPurchaseOrder(
         companyId,
-        'user-1',
         {
           orderId: 'order-1',
         }
@@ -61,10 +91,10 @@ describe('BillService', () => {
     });
 
     it('should throw error if purchase order not found', async () => {
-      mockPrisma.order.findFirst.mockResolvedValue(null);
+      mockInvoiceRepository.findOrder.mockResolvedValue(null);
 
       await expect(
-        service.createFromPurchaseOrder(companyId, 'user-1', {
+        service.createFromPurchaseOrder(companyId, {
           orderId: 'nonexistent',
         })
       ).rejects.toThrow('Purchase order not found');
@@ -74,7 +104,7 @@ describe('BillService', () => {
   describe('getById', () => {
     it('should return a bill by ID', async () => {
       const mockBill = { id: 'bill-1', companyId, type: 'BILL' };
-      mockPrisma.invoice.findFirst.mockResolvedValue(mockBill);
+      mockInvoiceRepository.findById.mockResolvedValue(mockBill);
 
       const result = await service.getById('bill-1', companyId);
 
@@ -82,7 +112,7 @@ describe('BillService', () => {
     });
 
     it('should return null for non-existent bill', async () => {
-      mockPrisma.invoice.findFirst.mockResolvedValue(null);
+      mockInvoiceRepository.findById.mockResolvedValue(null);
 
       const result = await service.getById('nonexistent', companyId);
 
@@ -96,7 +126,7 @@ describe('BillService', () => {
         { id: 'bill-1', type: 'BILL' },
         { id: 'bill-2', type: 'BILL' },
       ];
-      mockPrisma.invoice.findMany.mockResolvedValue(mockBills);
+      mockInvoiceRepository.findAll.mockResolvedValue(mockBills);
 
       const result = await service.list(companyId);
 
@@ -105,7 +135,7 @@ describe('BillService', () => {
 
     it('should filter by status', async () => {
       const mockBills = [{ id: 'bill-1', status: 'POSTED' }];
-      mockPrisma.invoice.findMany.mockResolvedValue(mockBills);
+      mockInvoiceRepository.findAll.mockResolvedValue(mockBills);
 
       const result = await service.list(companyId, 'POSTED');
 
@@ -126,16 +156,23 @@ describe('BillService', () => {
       };
       const postedBill = { ...mockBill, status: 'POSTED' };
 
-      mockPrisma.invoice.findFirst.mockResolvedValue(mockBill);
-      mockPrisma.invoice.update.mockResolvedValue(postedBill);
+      mockInvoiceRepository.findById.mockResolvedValue(mockBill);
+      mockInvoiceRepository.update.mockResolvedValue(postedBill);
 
       const result = await service.post('bill-1', companyId);
 
       expect(result.status).toBe('POSTED');
+      expect(mockJournalService.postBill).toHaveBeenCalledWith(
+        companyId,
+        'BILL-001',
+        1000,
+        909,
+        91
+      );
     });
 
     it('should throw error if bill not found', async () => {
-      mockPrisma.invoice.findFirst.mockResolvedValue(null);
+      mockInvoiceRepository.findById.mockResolvedValue(null);
 
       await expect(
         service.post('nonexistent', companyId)
@@ -144,7 +181,7 @@ describe('BillService', () => {
 
     it('should throw error if bill is not in draft status', async () => {
       const mockBill = { id: 'bill-1', status: 'POSTED' };
-      mockPrisma.invoice.findFirst.mockResolvedValue(mockBill);
+      mockInvoiceRepository.findById.mockResolvedValue(mockBill);
 
       await expect(service.post('bill-1', companyId)).rejects.toThrow(
         'Cannot post bill with status: POSTED'
@@ -157,8 +194,8 @@ describe('BillService', () => {
       const mockBill = { id: 'bill-1', companyId, status: 'DRAFT' };
       const voidedBill = { ...mockBill, status: 'VOID' };
 
-      mockPrisma.invoice.findFirst.mockResolvedValue(mockBill);
-      mockPrisma.invoice.update.mockResolvedValue(voidedBill);
+      mockInvoiceRepository.findById.mockResolvedValue(mockBill);
+      mockInvoiceRepository.update.mockResolvedValue(voidedBill);
 
       const result = await service.void('bill-1', companyId);
 
@@ -166,7 +203,7 @@ describe('BillService', () => {
     });
 
     it('should throw error if bill not found', async () => {
-      mockPrisma.invoice.findFirst.mockResolvedValue(null);
+      mockInvoiceRepository.findById.mockResolvedValue(null);
 
       await expect(
         service.void('nonexistent', companyId)
@@ -175,7 +212,7 @@ describe('BillService', () => {
 
     it('should throw error if bill is already paid', async () => {
       const mockBill = { id: 'bill-1', status: 'PAID' };
-      mockPrisma.invoice.findFirst.mockResolvedValue(mockBill);
+      mockInvoiceRepository.findById.mockResolvedValue(mockBill);
 
       await expect(service.void('bill-1', companyId)).rejects.toThrow(
         'Cannot void a paid bill'
@@ -186,7 +223,7 @@ describe('BillService', () => {
   describe('getOutstanding', () => {
     it('should return outstanding bills', async () => {
       const mockBills = [{ id: 'bill-1', status: 'POSTED' }];
-      mockPrisma.invoice.findMany.mockResolvedValue(mockBills);
+      mockInvoiceRepository.findAll.mockResolvedValue(mockBills);
 
       const result = await service.getOutstanding(companyId);
 
@@ -195,24 +232,27 @@ describe('BillService', () => {
   });
 
   describe('getRemainingAmount', () => {
-    it('should calculate remaining amount', async () => {
+    it('should return the balance field', async () => {
       const mockBill = {
         id: 'bill-1',
         amount: 1000,
-        payments: [{ amount: 300 }, { amount: 200 }],
+        balance: 500,
       };
-      mockPrisma.invoice.findUnique.mockResolvedValue(mockBill);
+      mockInvoiceRepository.findById.mockResolvedValue(mockBill);
 
-      const result = await service.getRemainingAmount('bill-1');
+      const result = await service.getRemainingAmount(
+        'bill-1',
+        companyId
+      );
 
       expect(result).toBe(500);
     });
 
     it('should throw error if bill not found', async () => {
-      mockPrisma.invoice.findUnique.mockResolvedValue(null);
+      mockInvoiceRepository.findById.mockResolvedValue(null);
 
       await expect(
-        service.getRemainingAmount('nonexistent')
+        service.getRemainingAmount('nonexistent', companyId)
       ).rejects.toThrow('Bill not found');
     });
   });

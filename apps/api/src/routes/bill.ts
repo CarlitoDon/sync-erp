@@ -44,4 +44,4 @@ billRouter.post('/:id/post', controller.post);
 billRouter.post('/:id/void', controller.void);
 
 // GET /api/bills/:id/remaining - Get remaining amount
-// Missing in Controller.
+billRouter.get('/:id/remaining', controller.getRemainingAmount);

@@ -1,45 +1,59 @@
-import { vi } from 'vitest';
-import { mockPrisma, resetMocks } from '../mocks/prisma.mock';
-
-// Mock the database module
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import {
+  mockJournalRepository,
+  mockAccountRepository,
+  resetRepositoryMocks,
+} from '../mocks/repositories.mock';
 
 // Mock AccountService
-vi.mock('../../../src/services/AccountService', () => ({
-  AccountService: vi.fn().mockImplementation(() => ({
-    getById: vi.fn(),
-    getByCode: vi.fn(),
-  })),
-}));
+const mockAccountService = {
+  getById: vi.fn(),
+  getByCode: vi.fn(),
+};
+vi.mock(
+  '../../../src/modules/accounting/services/account.service',
+  () => ({
+    AccountService: vi
+      .fn()
+      .mockImplementation(() => mockAccountService),
+  })
+);
+
+// Mock the JournalRepository module
+vi.mock(
+  '../../../src/modules/accounting/repositories/journal.repository',
+  () => ({
+    JournalRepository: vi
+      .fn()
+      .mockImplementation(() => mockJournalRepository),
+  })
+);
 
 // Import after mocking
-import { JournalService } from '../../../src/services/JournalService';
+import { JournalService } from '../../../src/modules/accounting/services/journal.service';
 
 describe('JournalService', () => {
   let service: JournalService;
   const companyId = 'company-1';
 
   beforeEach(() => {
-    resetMocks();
+    resetRepositoryMocks();
     vi.clearAllMocks();
     service = new JournalService();
 
     // Setup default account mocks
-    (service as any).accountService.getById = vi
-      .fn()
-      .mockResolvedValue({
-        id: 'acc-1',
-        code: '1100',
-        name: 'Cash',
-      });
-    (service as any).accountService.getByCode = vi
-      .fn()
-      .mockImplementation((_, code) =>
-        Promise.resolve({
-          id: `acc-${code}`,
-          code,
-          name: `Account ${code}`,
-        })
-      );
+    mockAccountService.getById.mockResolvedValue({
+      id: 'acc-1',
+      code: '1100',
+      name: 'Cash',
+    });
+    mockAccountService.getByCode.mockImplementation((_, code) =>
+      Promise.resolve({
+        id: `acc-${code}`,
+        code,
+        name: `Account ${code}`,
+      })
+    );
   });
 
   describe('create', () => {
@@ -51,7 +65,7 @@ describe('JournalService', () => {
         lines: [],
       };
 
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.create(companyId, {
         reference: 'JE-001',
@@ -78,9 +92,7 @@ describe('JournalService', () => {
     });
 
     it('should throw error if account not found', async () => {
-      (service as any).accountService.getById = vi
-        .fn()
-        .mockResolvedValue(null);
+      mockAccountService.getById.mockResolvedValue(null);
 
       await expect(
         service.create(companyId, {
@@ -96,9 +108,7 @@ describe('JournalService', () => {
   describe('getById', () => {
     it('should return a journal entry by ID', async () => {
       const mockJournal = { id: 'je-1', companyId };
-      mockPrisma.journalEntry.findFirst.mockResolvedValue(
-        mockJournal
-      );
+      mockJournalRepository.findById.mockResolvedValue(mockJournal);
 
       const result = await service.getById('je-1', companyId);
 
@@ -106,7 +116,7 @@ describe('JournalService', () => {
     });
 
     it('should return null for non-existent journal entry', async () => {
-      mockPrisma.journalEntry.findFirst.mockResolvedValue(null);
+      mockJournalRepository.findById.mockResolvedValue(null);
 
       const result = await service.getById('nonexistent', companyId);
 
@@ -120,9 +130,7 @@ describe('JournalService', () => {
         { id: 'je-1', date: new Date() },
         { id: 'je-2', date: new Date() },
       ];
-      mockPrisma.journalEntry.findMany.mockResolvedValue(
-        mockJournals
-      );
+      mockJournalRepository.findAll.mockResolvedValue(mockJournals);
 
       const result = await service.list(companyId);
 
@@ -131,9 +139,7 @@ describe('JournalService', () => {
 
     it('should filter by date range', async () => {
       const mockJournals = [{ id: 'je-1' }];
-      mockPrisma.journalEntry.findMany.mockResolvedValue(
-        mockJournals
-      );
+      mockJournalRepository.findAll.mockResolvedValue(mockJournals);
 
       const result = await service.list(
         companyId,
@@ -151,7 +157,7 @@ describe('JournalService', () => {
         id: 'je-1',
         reference: 'Invoice: INV-001',
       };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postInvoice(
         companyId,
@@ -169,7 +175,7 @@ describe('JournalService', () => {
         id: 'je-1',
         reference: 'Invoice: INV-002',
       };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postInvoice(
         companyId,
@@ -184,7 +190,7 @@ describe('JournalService', () => {
   describe('postBill', () => {
     it('should post bill journal entry', async () => {
       const mockJournal = { id: 'je-1', reference: 'Bill: BILL-001' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postBill(
         companyId,
@@ -199,7 +205,7 @@ describe('JournalService', () => {
 
     it('should post bill without tax', async () => {
       const mockJournal = { id: 'je-1', reference: 'Bill: BILL-002' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postBill(
         companyId,
@@ -214,7 +220,7 @@ describe('JournalService', () => {
   describe('postGoodsReceipt', () => {
     it('should post goods receipt accrual journal', async () => {
       const mockJournal = { id: 'je-1', reference: 'GR-001' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postGoodsReceipt(
         companyId,
@@ -229,7 +235,7 @@ describe('JournalService', () => {
   describe('postPaymentReceived', () => {
     it('should post payment received journal (cash)', async () => {
       const mockJournal = { id: 'je-1' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postPaymentReceived(
         companyId,
@@ -243,7 +249,7 @@ describe('JournalService', () => {
 
     it('should post payment received journal (bank transfer)', async () => {
       const mockJournal = { id: 'je-1' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postPaymentReceived(
         companyId,
@@ -259,7 +265,7 @@ describe('JournalService', () => {
   describe('postPaymentMade', () => {
     it('should post payment made journal (cash)', async () => {
       const mockJournal = { id: 'je-1' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postPaymentMade(
         companyId,
@@ -273,7 +279,7 @@ describe('JournalService', () => {
 
     it('should post payment made journal (bank transfer)', async () => {
       const mockJournal = { id: 'je-1' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postPaymentMade(
         companyId,
@@ -289,7 +295,7 @@ describe('JournalService', () => {
   describe('postShipment', () => {
     it('should post shipment COGS journal', async () => {
       const mockJournal = { id: 'je-1', memo: 'COGS' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postShipment(
         companyId,
@@ -304,7 +310,7 @@ describe('JournalService', () => {
   describe('postSalesReturn', () => {
     it('should post sales return reversal journal', async () => {
       const mockJournal = { id: 'je-1', memo: 'reversal' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postSalesReturn(
         companyId,
@@ -319,7 +325,7 @@ describe('JournalService', () => {
   describe('postAdjustment', () => {
     it('should post stock loss adjustment', async () => {
       const mockJournal = { id: 'je-1' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postAdjustment(
         companyId,
@@ -333,7 +339,7 @@ describe('JournalService', () => {
 
     it('should post stock gain adjustment', async () => {
       const mockJournal = { id: 'je-1' };
-      mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
+      mockJournalRepository.create.mockResolvedValue(mockJournal);
 
       const result = await service.postAdjustment(
         companyId,
@@ -348,9 +354,7 @@ describe('JournalService', () => {
 
   describe('resolveAndCreate (private method - tested via public methods)', () => {
     it('should throw error if system account not found', async () => {
-      (service as any).accountService.getByCode = vi
-        .fn()
-        .mockResolvedValue(null);
+      mockAccountService.getByCode.mockResolvedValue(null);
 
       await expect(
         service.postInvoice(companyId, 'INV-001', 1000)

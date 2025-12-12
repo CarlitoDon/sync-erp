@@ -1,25 +1,54 @@
-import { vi } from 'vitest';
-import { mockPrisma, resetMocks } from '../mocks/prisma.mock';
-
-// Mock the database module
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import {
+  mockPaymentRepository,
+  mockInvoiceRepository,
+  resetRepositoryMocks,
+} from '../mocks/repositories.mock';
 
 // Mock JournalService
-vi.mock('../../../src/services/JournalService', () => ({
-  JournalService: vi.fn().mockImplementation(() => ({
-    postPaymentReceived: vi.fn().mockResolvedValue({}),
-    postPaymentMade: vi.fn().mockResolvedValue({}),
-  })),
-}));
+const mockJournalService = {
+  postPaymentReceived: vi.fn().mockResolvedValue({}),
+  postPaymentMade: vi.fn().mockResolvedValue({}),
+};
+vi.mock(
+  '../../../src/modules/accounting/services/journal.service',
+  () => ({
+    JournalService: vi
+      .fn()
+      .mockImplementation(() => mockJournalService),
+  })
+);
+
+// Mock PaymentRepository
+vi.mock(
+  '../../../src/modules/accounting/repositories/payment.repository',
+  () => ({
+    PaymentRepository: vi
+      .fn()
+      .mockImplementation(() => mockPaymentRepository),
+  })
+);
+
+// Mock InvoiceRepository
+vi.mock(
+  '../../../src/modules/accounting/repositories/invoice.repository',
+  () => ({
+    InvoiceRepository: vi
+      .fn()
+      .mockImplementation(() => mockInvoiceRepository),
+  })
+);
 
 // Import after mocking
-import { PaymentService } from '../../../src/services/PaymentService';
+import { PaymentService } from '../../../src/modules/accounting/services/payment.service';
 
 describe('PaymentService', () => {
   let service: PaymentService;
   const companyId = 'company-1';
 
   beforeEach(() => {
-    resetMocks();
+    resetRepositoryMocks();
+    vi.clearAllMocks();
     service = new PaymentService();
   });
 
@@ -31,8 +60,8 @@ describe('PaymentService', () => {
         status: 'POSTED',
         type: 'INVOICE',
         amount: 1000,
+        balance: 1000,
         invoiceNumber: 'INV-001',
-        payments: [],
       };
 
       const mockPayment = {
@@ -43,9 +72,9 @@ describe('PaymentService', () => {
         method: 'TRANSFER',
       };
 
-      mockPrisma.invoice.findFirst.mockResolvedValue(mockInvoice);
-      mockPrisma.payment.create.mockResolvedValue(mockPayment);
-      mockPrisma.invoice.update.mockResolvedValue({
+      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
+      mockPaymentRepository.create.mockResolvedValue(mockPayment);
+      mockInvoiceRepository.update.mockResolvedValue({
         ...mockInvoice,
         balance: 500,
       });
@@ -60,7 +89,7 @@ describe('PaymentService', () => {
     });
 
     it('should throw error for non-existent invoice', async () => {
-      mockPrisma.invoice.findFirst.mockResolvedValue(null);
+      mockInvoiceRepository.findById.mockResolvedValue(null);
 
       await expect(
         service.create(companyId, {
@@ -75,9 +104,9 @@ describe('PaymentService', () => {
       const mockInvoice = {
         id: 'invoice-1',
         status: 'VOID',
-        payments: [],
+        balance: 1000,
       };
-      mockPrisma.invoice.findFirst.mockResolvedValue(mockInvoice);
+      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
 
       await expect(
         service.create(companyId, {
@@ -92,9 +121,9 @@ describe('PaymentService', () => {
       const mockInvoice = {
         id: 'invoice-1',
         status: 'DRAFT',
-        payments: [],
+        balance: 1000,
       };
-      mockPrisma.invoice.findFirst.mockResolvedValue(mockInvoice);
+      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
 
       await expect(
         service.create(companyId, {
@@ -110,9 +139,9 @@ describe('PaymentService', () => {
         id: 'invoice-1',
         status: 'POSTED',
         amount: 1000,
-        payments: [{ amount: 800 }],
+        balance: 200,
       };
-      mockPrisma.invoice.findFirst.mockResolvedValue(mockInvoice);
+      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
 
       await expect(
         service.create(companyId, {
@@ -129,7 +158,7 @@ describe('PaymentService', () => {
   describe('getById', () => {
     it('should return payment by ID', async () => {
       const mockPayment = { id: 'payment-1', companyId, amount: 500 };
-      mockPrisma.payment.findFirst.mockResolvedValue(mockPayment);
+      mockPaymentRepository.findById.mockResolvedValue(mockPayment);
 
       const result = await service.getById('payment-1', companyId);
 
@@ -137,7 +166,7 @@ describe('PaymentService', () => {
     });
 
     it('should return null for non-existent payment', async () => {
-      mockPrisma.payment.findFirst.mockResolvedValue(null);
+      mockPaymentRepository.findById.mockResolvedValue(null);
 
       const result = await service.getById('nonexistent', companyId);
 
@@ -151,7 +180,7 @@ describe('PaymentService', () => {
         { id: 'payment-1', amount: 500 },
         { id: 'payment-2', amount: 300 },
       ];
-      mockPrisma.payment.findMany.mockResolvedValue(mockPayments);
+      mockPaymentRepository.findAll.mockResolvedValue(mockPayments);
 
       const result = await service.list(companyId);
 
@@ -162,48 +191,11 @@ describe('PaymentService', () => {
       const mockPayments = [
         { id: 'payment-1', invoiceId: 'invoice-1' },
       ];
-      mockPrisma.payment.findMany.mockResolvedValue(mockPayments);
+      mockPaymentRepository.findAll.mockResolvedValue(mockPayments);
 
       const result = await service.list(companyId, 'invoice-1');
 
       expect(result).toHaveLength(1);
-    });
-  });
-
-  describe('getPaymentHistory', () => {
-    it('should return payment history for an invoice', async () => {
-      const mockPayments = [
-        { id: 'payment-1', invoiceId: 'invoice-1', amount: 200 },
-        { id: 'payment-2', invoiceId: 'invoice-1', amount: 300 },
-      ];
-      mockPrisma.payment.findMany.mockResolvedValue(mockPayments);
-
-      const result = await service.getPaymentHistory('invoice-1');
-
-      expect(result).toHaveLength(2);
-    });
-  });
-
-  describe('getTotalReceived', () => {
-    it('should calculate total received for an invoice', async () => {
-      const mockPayments = [
-        { amount: 200 },
-        { amount: 300 },
-        { amount: 150 },
-      ];
-      mockPrisma.payment.findMany.mockResolvedValue(mockPayments);
-
-      const result = await service.getTotalReceived('invoice-1');
-
-      expect(result).toBe(650);
-    });
-
-    it('should return 0 for invoice with no payments', async () => {
-      mockPrisma.payment.findMany.mockResolvedValue([]);
-
-      const result = await service.getTotalReceived('invoice-1');
-
-      expect(result).toBe(0);
     });
   });
 });

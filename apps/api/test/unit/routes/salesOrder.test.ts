@@ -11,9 +11,7 @@ vi.mock('../../../src/modules/sales/sales.service', () => ({
   SalesService: vi.fn().mockReturnValue(mockSalesService),
 }));
 
-vi.mock('../../../src/services/FulfillmentService', () => ({
-  FulfillmentService: vi.fn(), // If needed, or use mockFulfillmentService if used
-}));
+// FulfillmentService is now merged into SalesService (ship method)
 
 // Import after mocking
 import { salesOrderRouter } from '../../../src/routes/salesOrder';

@@ -80,6 +80,30 @@ export class AccountingController {
     }
   };
 
+  getJournalById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const { id } = req.params;
+      const entry = await this.journalService.getById(id, companyId);
+      if (!entry) {
+        res
+          .status(404)
+          .json({
+            success: false,
+            message: 'Journal entry not found',
+          });
+        return;
+      }
+      res.json({ success: true, data: entry });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   createJournal = async (
     req: Request,
     res: Response,

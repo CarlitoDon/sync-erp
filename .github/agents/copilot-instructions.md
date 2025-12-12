@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-12-10
 
 ## Active Technologies
+- TypeScript 5.x + Express, Vitest, Prisma Client (010-test-refactor-3layer)
+- PostgreSQL via Prisma (010-test-refactor-3layer)
 
 - TypeScript 5.x (Frontend & Backend) + React Router v6 (Routing), React Context API (State), Express (API), Prisma (DB) (003-company-selection)
 - PostgreSQL (via Prisma) (003-company-selection)
@@ -34,10 +36,10 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 010-test-refactor-3layer: Added TypeScript 5.x + Express, Vitest, Prisma Client
 
 - 009-web-test-coverage: Added TypeScript 5.x (React 18) + Vitest, @testing-library/react, @testing-library/jest-dom, jsdom
 - 008-api-test-coverage: Added TypeScript 5.3.3, Node.js 18+ + Vitest 1.2.0, @vitest/coverage-v8
-- 007-finance-tax-returns: Added TypeScript 5.3+ (Node.js 18+) + Express, Prisma, React 18, Vite
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
