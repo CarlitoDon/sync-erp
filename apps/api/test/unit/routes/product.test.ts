@@ -1,13 +1,25 @@
 import { vi } from 'vitest';
-import express from 'express';
+const express = require('express');
 import request from 'supertest';
 
 // Mock ProductService
 vi.mock('../../../src/services/ProductService', () => ({
   ProductService: vi.fn().mockImplementation(() => ({
     list: vi.fn().mockResolvedValue([
-      { id: 'prod-1', sku: 'SKU1', name: 'Product 1', price: 100, stockQty: 10 },
-      { id: 'prod-2', sku: 'SKU2', name: 'Product 2', price: 200, stockQty: 5 },
+      {
+        id: 'prod-1',
+        sku: 'SKU1',
+        name: 'Product 1',
+        price: 100,
+        stockQty: 10,
+      },
+      {
+        id: 'prod-2',
+        sku: 'SKU2',
+        name: 'Product 2',
+        price: 200,
+        stockQty: 5,
+      },
     ]),
     getById: vi.fn().mockResolvedValue({
       id: 'prod-1',
@@ -17,8 +29,16 @@ vi.mock('../../../src/services/ProductService', () => ({
       stockQty: 10,
       averageCost: 80,
     }),
-    create: vi.fn().mockResolvedValue({ id: 'prod-new', sku: 'NEW', name: 'New Product' }),
-    update: vi.fn().mockResolvedValue({ id: 'prod-1', name: 'Updated Product' }),
+    create: vi
+      .fn()
+      .mockResolvedValue({
+        id: 'prod-new',
+        sku: 'NEW',
+        name: 'New Product',
+      }),
+    update: vi
+      .fn()
+      .mockResolvedValue({ id: 'prod-1', name: 'Updated Product' }),
     delete: vi.fn().mockResolvedValue(undefined),
   })),
 }));
@@ -74,7 +94,9 @@ describe('Product Routes', () => {
     });
 
     it('should return 400 for invalid input', async () => {
-      const response = await request(app).post('/api/products').send({ sku: '', name: 'A' });
+      const response = await request(app)
+        .post('/api/products')
+        .send({ sku: '', name: 'A' });
       expect(response.status).toBe(400);
     });
   });
@@ -90,14 +112,18 @@ describe('Product Routes', () => {
 
   describe('DELETE /api/products/:id', () => {
     it('should delete a product', async () => {
-      const response = await request(app).delete('/api/products/prod-1');
+      const response = await request(app).delete(
+        '/api/products/prod-1'
+      );
       expect(response.status).toBe(200);
     });
   });
 
   describe('GET /api/products/:id/stock', () => {
     it('should get stock level', async () => {
-      const response = await request(app).get('/api/products/prod-1/stock');
+      const response = await request(app).get(
+        '/api/products/prod-1/stock'
+      );
       expect(response.status).toBe(200);
       expect(response.body.data.stockQty).toBe(10);
     });

@@ -1,18 +1,27 @@
 import { vi } from 'vitest';
-import express from 'express';
+const express = require('express');
 import request from 'supertest';
 
 // Mock BillService
 vi.mock('../../../src/services/BillService', () => ({
   BillService: vi.fn().mockImplementation(() => ({
-    list: vi.fn().mockResolvedValue([{ id: 'bill-1', billNumber: 'BILL-001' }]),
+    list: vi
+      .fn()
+      .mockResolvedValue([{ id: 'bill-1', billNumber: 'BILL-001' }]),
     getById: vi.fn().mockImplementation((id: string) => {
       if (id === 'not-found') return Promise.resolve(null);
-      return Promise.resolve({ id: 'bill-1', billNumber: 'BILL-001' });
+      return Promise.resolve({
+        id: 'bill-1',
+        billNumber: 'BILL-001',
+      });
     }),
     getOutstanding: vi.fn().mockResolvedValue([]),
-    createFromPurchaseOrder: vi.fn().mockResolvedValue({ id: 'bill-new' }),
-    post: vi.fn().mockResolvedValue({ id: 'bill-1', status: 'POSTED' }),
+    createFromPurchaseOrder: vi
+      .fn()
+      .mockResolvedValue({ id: 'bill-new' }),
+    post: vi
+      .fn()
+      .mockResolvedValue({ id: 'bill-1', status: 'POSTED' }),
     void: vi.fn().mockResolvedValue({ id: 'bill-1', status: 'VOID' }),
     getRemainingAmount: vi.fn().mockResolvedValue(300),
   })),
@@ -49,14 +58,18 @@ describe('Bill Routes', () => {
     });
 
     it('should filter by status', async () => {
-      const response = await request(app).get('/api/bills?status=POSTED');
+      const response = await request(app).get(
+        '/api/bills?status=POSTED'
+      );
       expect(response.status).toBe(200);
     });
   });
 
   describe('GET /api/bills/outstanding', () => {
     it('should list outstanding bills', async () => {
-      const response = await request(app).get('/api/bills/outstanding');
+      const response = await request(app).get(
+        '/api/bills/outstanding'
+      );
       expect(response.status).toBe(200);
     });
   });
@@ -93,21 +106,27 @@ describe('Bill Routes', () => {
 
   describe('POST /api/bills/:id/post', () => {
     it('should post bill', async () => {
-      const response = await request(app).post('/api/bills/bill-1/post');
+      const response = await request(app).post(
+        '/api/bills/bill-1/post'
+      );
       expect(response.status).toBe(200);
     });
   });
 
   describe('POST /api/bills/:id/void', () => {
     it('should void bill', async () => {
-      const response = await request(app).post('/api/bills/bill-1/void');
+      const response = await request(app).post(
+        '/api/bills/bill-1/void'
+      );
       expect(response.status).toBe(200);
     });
   });
 
   describe('GET /api/bills/:id/remaining', () => {
     it('should get remaining amount', async () => {
-      const response = await request(app).get('/api/bills/bill-1/remaining');
+      const response = await request(app).get(
+        '/api/bills/bill-1/remaining'
+      );
       expect(response.status).toBe(200);
       expect(response.body.data.remaining).toBe(300);
     });

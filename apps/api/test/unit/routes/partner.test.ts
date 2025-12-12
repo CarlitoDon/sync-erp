@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import express from 'express';
+const express = require('express');
 import request from 'supertest';
 
 // Use vi.hoisted to create mocks that are available before vi.mock is hoisted
@@ -61,11 +61,24 @@ describe('Partner Routes', () => {
       { id: 'partner-1', name: 'Supplier 1', type: 'SUPPLIER' },
       { id: 'partner-2', name: 'Customer 1', type: 'CUSTOMER' },
     ]);
-    mockListSuppliers.mockResolvedValue([{ id: 'partner-1', name: 'Supplier 1' }]);
-    mockListCustomers.mockResolvedValue([{ id: 'partner-2', name: 'Customer 1' }]);
-    mockGetById.mockResolvedValue({ id: 'partner-1', name: 'Test Partner' });
-    mockCreate.mockResolvedValue({ id: 'partner-new', name: 'New Partner' });
-    mockUpdate.mockResolvedValue({ id: 'partner-1', name: 'Updated Partner' });
+    mockListSuppliers.mockResolvedValue([
+      { id: 'partner-1', name: 'Supplier 1' },
+    ]);
+    mockListCustomers.mockResolvedValue([
+      { id: 'partner-2', name: 'Customer 1' },
+    ]);
+    mockGetById.mockResolvedValue({
+      id: 'partner-1',
+      name: 'Test Partner',
+    });
+    mockCreate.mockResolvedValue({
+      id: 'partner-new',
+      name: 'New Partner',
+    });
+    mockUpdate.mockResolvedValue({
+      id: 'partner-1',
+      name: 'Updated Partner',
+    });
     mockDelete.mockResolvedValue(undefined);
     app = createTestApp();
   });
@@ -79,21 +92,33 @@ describe('Partner Routes', () => {
     });
 
     it('should filter by type SUPPLIER', async () => {
-      const response = await request(app).get('/api/partners?type=SUPPLIER');
+      const response = await request(app).get(
+        '/api/partners?type=SUPPLIER'
+      );
       expect(response.status).toBe(200);
-      expect(mockList).toHaveBeenCalledWith('test-company', 'SUPPLIER');
+      expect(mockList).toHaveBeenCalledWith(
+        'test-company',
+        'SUPPLIER'
+      );
     });
 
     it('should filter by type CUSTOMER', async () => {
-      const response = await request(app).get('/api/partners?type=CUSTOMER');
+      const response = await request(app).get(
+        '/api/partners?type=CUSTOMER'
+      );
       expect(response.status).toBe(200);
-      expect(mockList).toHaveBeenCalledWith('test-company', 'CUSTOMER');
+      expect(mockList).toHaveBeenCalledWith(
+        'test-company',
+        'CUSTOMER'
+      );
     });
   });
 
   describe('GET /api/partners/suppliers', () => {
     it('should list suppliers only', async () => {
-      const response = await request(app).get('/api/partners/suppliers');
+      const response = await request(app).get(
+        '/api/partners/suppliers'
+      );
       expect(response.status).toBe(200);
       expect(response.body.data).toHaveLength(1);
     });
@@ -101,7 +126,9 @@ describe('Partner Routes', () => {
 
   describe('GET /api/partners/customers', () => {
     it('should list customers only', async () => {
-      const response = await request(app).get('/api/partners/customers');
+      const response = await request(app).get(
+        '/api/partners/customers'
+      );
       expect(response.status).toBe(200);
       expect(response.body.data).toHaveLength(1);
     });
@@ -109,14 +136,18 @@ describe('Partner Routes', () => {
 
   describe('GET /api/partners/:id', () => {
     it('should get partner by ID', async () => {
-      const response = await request(app).get('/api/partners/partner-1');
+      const response = await request(app).get(
+        '/api/partners/partner-1'
+      );
       expect(response.status).toBe(200);
       expect(response.body.data.id).toBe('partner-1');
     });
 
     it('should return 404 for non-existent partner', async () => {
       mockGetById.mockResolvedValue(null);
-      const response = await request(app).get('/api/partners/nonexistent');
+      const response = await request(app).get(
+        '/api/partners/nonexistent'
+      );
       expect(response.status).toBe(404);
     });
   });
@@ -130,7 +161,10 @@ describe('Partner Routes', () => {
       expect(response.body.success).toBe(true);
       expect(mockCreate).toHaveBeenCalledWith(
         'test-company',
-        expect.objectContaining({ name: 'New Supplier', type: 'SUPPLIER' })
+        expect.objectContaining({
+          name: 'New Supplier',
+          type: 'SUPPLIER',
+        })
       );
     });
 
@@ -141,12 +175,17 @@ describe('Partner Routes', () => {
       expect(response.status).toBe(201);
       expect(mockCreate).toHaveBeenCalledWith(
         'test-company',
-        expect.objectContaining({ name: 'New Customer', type: 'CUSTOMER' })
+        expect.objectContaining({
+          name: 'New Customer',
+          type: 'CUSTOMER',
+        })
       );
     });
 
     it('should return 400 for invalid input', async () => {
-      const response = await request(app).post('/api/partners').send({ name: 'A' });
+      const response = await request(app)
+        .post('/api/partners')
+        .send({ name: 'A' });
       expect(response.status).toBe(400);
     });
   });
@@ -162,7 +201,9 @@ describe('Partner Routes', () => {
 
   describe('DELETE /api/partners/:id', () => {
     it('should delete a partner', async () => {
-      const response = await request(app).delete('/api/partners/partner-1');
+      const response = await request(app).delete(
+        '/api/partners/partner-1'
+      );
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
     });

@@ -1,25 +1,18 @@
-import { vi } from 'vitest';
-import express from 'express';
+import { vi, describe, beforeEach, it, expect } from 'vitest';
+const express = require('express');
 import request from 'supertest';
+import {
+  mockSalesService,
+  resetServiceMocks,
+} from '../mocks/services.mock';
 
 // Mock dependencies
-vi.mock('../../../src/services/SalesOrderService', () => ({
-  SalesOrderService: vi.fn().mockImplementation(() => ({
-    list: vi.fn().mockResolvedValue([{ id: 'order-1', orderNumber: 'SO-001', status: 'DRAFT' }]),
-    getById: vi.fn().mockImplementation((id: string) => {
-      if (id === 'not-found') return Promise.resolve(null);
-      return Promise.resolve({ id: 'order-1', orderNumber: 'SO-001' });
-    }),
-    create: vi.fn().mockResolvedValue({ id: 'order-new', orderNumber: 'SO-002' }),
-    confirm: vi.fn().mockResolvedValue({ id: 'order-1', status: 'CONFIRMED' }),
-    cancel: vi.fn().mockResolvedValue({ id: 'order-1', status: 'CANCELLED' }),
-  })),
+vi.mock('../../../src/modules/sales/sales.service', () => ({
+  SalesService: vi.fn().mockReturnValue(mockSalesService),
 }));
 
 vi.mock('../../../src/services/FulfillmentService', () => ({
-  FulfillmentService: vi.fn().mockImplementation(() => ({
-    processShipment: vi.fn().mockResolvedValue([{ id: 'mov-1' }]),
-  })),
+  FulfillmentService: vi.fn(), // If needed, or use mockFulfillmentService if used
 }));
 
 // Import after mocking
@@ -29,7 +22,7 @@ import { errorHandler } from '../../../src/middlewares/errorHandler';
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
+  app.use((req: any, _res, next) => {
     req.context = { userId: 'test-user', companyId: 'test-company' };
     next();
   });
@@ -42,7 +35,33 @@ describe('Sales Order Routes', () => {
   let app: express.Express;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    resetServiceMocks();
+
+    // Setup default mock responses
+    mockSalesService.list.mockResolvedValue([
+      { id: 'order-1', orderNumber: 'SO-001', status: 'DRAFT' },
+    ]);
+    mockSalesService.getById.mockImplementation((id: string) => {
+      if (id === 'not-found') return Promise.resolve(null);
+      return Promise.resolve({
+        id: 'order-1',
+        orderNumber: 'SO-001',
+      });
+    });
+    mockSalesService.create.mockResolvedValue({
+      id: 'order-new',
+      orderNumber: 'SO-002',
+    });
+    mockSalesService.confirm.mockResolvedValue({
+      id: 'order-1',
+      status: 'CONFIRMED',
+    });
+    mockSalesService.cancel.mockResolvedValue({
+      id: 'order-1',
+      status: 'CANCELLED',
+    });
+    mockSalesService.ship.mockResolvedValue([{ id: 'mov-1' }]);
+
     app = createTestApp();
   });
 
@@ -54,19 +73,25 @@ describe('Sales Order Routes', () => {
     });
 
     it('should filter by status', async () => {
-      const response = await request(app).get('/api/sales-orders?status=DRAFT');
+      const response = await request(app).get(
+        '/api/sales-orders?status=DRAFT'
+      );
       expect(response.status).toBe(200);
     });
   });
 
   describe('GET /api/sales-orders/:id', () => {
     it('should get order by ID', async () => {
-      const response = await request(app).get('/api/sales-orders/order-1');
+      const response = await request(app).get(
+        '/api/sales-orders/order-1'
+      );
       expect(response.status).toBe(200);
     });
 
     it('should return 404 for non-existent order', async () => {
-      const response = await request(app).get('/api/sales-orders/not-found');
+      const response = await request(app).get(
+        '/api/sales-orders/not-found'
+      );
       expect(response.status).toBe(404);
     });
   });
@@ -77,34 +102,51 @@ describe('Sales Order Routes', () => {
         .post('/api/sales-orders')
         .send({
           partnerId: '123e4567-e89b-12d3-a456-426614174000',
-          items: [{ productId: '123e4567-e89b-12d3-a456-426614174001', quantity: 5, price: 100 }],
+          items: [
+            {
+              productId: '123e4567-e89b-12d3-a456-426614174001',
+              quantity: 5,
+              price: 100,
+            },
+          ],
         });
       expect(response.status).toBe(201);
     });
 
     it('should return 400 for invalid input', async () => {
-      const response = await request(app).post('/api/sales-orders').send({ partnerId: 'invalid' });
+      const response = await request(app)
+        .post('/api/sales-orders')
+        .send({ partnerId: 'valid-but-missing-details' });
+      // Note: original test sent 'invalid' for partnerId, but UUID check might be stricter.
+      // Schema validation will fail if items are missing or structure bad.
+      // We expect 400.
       expect(response.status).toBe(400);
     });
   });
 
   describe('POST /api/sales-orders/:id/confirm', () => {
     it('should confirm order', async () => {
-      const response = await request(app).post('/api/sales-orders/order-1/confirm');
+      const response = await request(app).post(
+        '/api/sales-orders/order-1/confirm'
+      );
       expect(response.status).toBe(200);
     });
   });
 
   describe('POST /api/sales-orders/:id/cancel', () => {
     it('should cancel order', async () => {
-      const response = await request(app).post('/api/sales-orders/order-1/cancel');
+      const response = await request(app).post(
+        '/api/sales-orders/order-1/cancel'
+      );
       expect(response.status).toBe(200);
     });
   });
 
   describe('POST /api/sales-orders/:id/ship', () => {
     it('should process shipment', async () => {
-      const response = await request(app).post('/api/sales-orders/order-1/ship');
+      const response = await request(app).post(
+        '/api/sales-orders/order-1/ship'
+      );
       expect(response.status).toBe(200);
     });
 

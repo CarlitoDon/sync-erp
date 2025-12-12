@@ -1,13 +1,19 @@
 import { vi } from 'vitest';
-import express from 'express';
+const express = require('express');
 import request from 'supertest';
 
 // Mock CompanyService
 vi.mock('../../../src/services/CompanyService', () => ({
   CompanyService: vi.fn().mockImplementation(() => ({
-    listForUser: vi.fn().mockResolvedValue([{ id: 'comp-1', name: 'Test Company' }]),
-    create: vi.fn().mockResolvedValue({ id: 'comp-new', name: 'New Company' }),
-    join: vi.fn().mockResolvedValue({ id: 'comp-1', name: 'Test Company' }),
+    listForUser: vi
+      .fn()
+      .mockResolvedValue([{ id: 'comp-1', name: 'Test Company' }]),
+    create: vi
+      .fn()
+      .mockResolvedValue({ id: 'comp-new', name: 'New Company' }),
+    join: vi
+      .fn()
+      .mockResolvedValue({ id: 'comp-1', name: 'Test Company' }),
     getById: vi.fn().mockImplementation((id: string) => {
       if (id === 'not-found') return Promise.resolve(null);
       return Promise.resolve({ id: 'comp-1', name: 'Test Company' });
@@ -62,12 +68,16 @@ describe('Company Routes', () => {
 
   describe('POST /api/companies', () => {
     it('should create a company', async () => {
-      const response = await request(app).post('/api/companies').send({ name: 'New Company' });
+      const response = await request(app)
+        .post('/api/companies')
+        .send({ name: 'New Company' });
       expect(response.status).toBe(201);
     });
 
     it('should return 400 for invalid input', async () => {
-      const response = await request(app).post('/api/companies').send({});
+      const response = await request(app)
+        .post('/api/companies')
+        .send({});
       expect(response.status).toBe(400);
     });
   });
@@ -99,12 +109,16 @@ describe('Company Routes', () => {
 
   describe('GET /api/companies/:id', () => {
     it('should get company by ID', async () => {
-      const response = await request(app).get('/api/companies/comp-1');
+      const response = await request(app).get(
+        '/api/companies/comp-1'
+      );
       expect(response.status).toBe(200);
     });
 
     it('should return 404 for non-existent company', async () => {
-      const response = await request(app).get('/api/companies/not-found');
+      const response = await request(app).get(
+        '/api/companies/not-found'
+      );
       expect(response.status).toBe(404);
     });
   });

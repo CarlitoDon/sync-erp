@@ -1,14 +1,20 @@
 import { vi } from 'vitest';
-import express from 'express';
+const express = require('express');
 import request from 'supertest';
 
 // Mock InventoryService
 vi.mock('../../../src/services/InventoryService', () => ({
   InventoryService: vi.fn().mockImplementation(() => ({
-    getStockLevels: vi.fn().mockResolvedValue([{ productId: 'prod-1', quantity: 100 }]),
-    getMovements: vi.fn().mockResolvedValue([{ id: 'mov-1', type: 'IN' }]),
+    getStockLevels: vi
+      .fn()
+      .mockResolvedValue([{ productId: 'prod-1', quantity: 100 }]),
+    getMovements: vi
+      .fn()
+      .mockResolvedValue([{ id: 'mov-1', type: 'IN' }]),
     processGoodsReceipt: vi.fn().mockResolvedValue([{ id: 'mov-2' }]),
-    adjustStock: vi.fn().mockResolvedValue({ id: 'mov-3', type: 'ADJUSTMENT' }),
+    adjustStock: vi
+      .fn()
+      .mockResolvedValue({ id: 'mov-3', type: 'ADJUSTMENT' }),
   })),
 }));
 
@@ -45,12 +51,16 @@ describe('Inventory Routes', () => {
 
   describe('GET /api/inventory/movements', () => {
     it('should list movements', async () => {
-      const response = await request(app).get('/api/inventory/movements');
+      const response = await request(app).get(
+        '/api/inventory/movements'
+      );
       expect(response.status).toBe(200);
     });
 
     it('should filter by productId', async () => {
-      const response = await request(app).get('/api/inventory/movements?productId=prod-1');
+      const response = await request(app).get(
+        '/api/inventory/movements?productId=prod-1'
+      );
       expect(response.status).toBe(200);
     });
   });
@@ -64,31 +74,37 @@ describe('Inventory Routes', () => {
     });
 
     it('should accept optional reference', async () => {
-      const response = await request(app).post('/api/inventory/goods-receipt').send({
-        orderId: '123e4567-e89b-12d3-a456-426614174000',
-        reference: 'GR-001',
-      });
+      const response = await request(app)
+        .post('/api/inventory/goods-receipt')
+        .send({
+          orderId: '123e4567-e89b-12d3-a456-426614174000',
+          reference: 'GR-001',
+        });
       expect(response.status).toBe(201);
     });
   });
 
   describe('POST /api/inventory/adjust', () => {
     it('should process stock adjustment', async () => {
-      const response = await request(app).post('/api/inventory/adjust').send({
-        productId: '123e4567-e89b-12d3-a456-426614174000',
-        quantity: 10,
-        costPerUnit: 50,
-      });
+      const response = await request(app)
+        .post('/api/inventory/adjust')
+        .send({
+          productId: '123e4567-e89b-12d3-a456-426614174000',
+          quantity: 10,
+          costPerUnit: 50,
+        });
       expect(response.status).toBe(201);
     });
 
     it('should accept optional reference', async () => {
-      const response = await request(app).post('/api/inventory/adjust').send({
-        productId: '123e4567-e89b-12d3-a456-426614174000',
-        quantity: -5,
-        costPerUnit: 50,
-        reference: 'ADJ-001',
-      });
+      const response = await request(app)
+        .post('/api/inventory/adjust')
+        .send({
+          productId: '123e4567-e89b-12d3-a456-426614174000',
+          quantity: -5,
+          costPerUnit: 50,
+          reference: 'ADJ-001',
+        });
       expect(response.status).toBe(201);
     });
 

@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import express from 'express';
+const express = require('express');
 import request from 'supertest';
 
 // Mock PaymentService
@@ -46,7 +46,9 @@ describe('Payment Routes', () => {
     });
 
     it('should filter by invoiceId', async () => {
-      const response = await request(app).get('/api/payments?invoiceId=inv-1');
+      const response = await request(app).get(
+        '/api/payments?invoiceId=inv-1'
+      );
       expect(response.status).toBe(200);
     });
   });
@@ -58,7 +60,9 @@ describe('Payment Routes', () => {
     });
 
     it('should return 404 for non-existent payment', async () => {
-      const response = await request(app).get('/api/payments/not-found');
+      const response = await request(app).get(
+        '/api/payments/not-found'
+      );
       expect(response.status).toBe(404);
     });
   });
@@ -85,7 +89,9 @@ describe('Payment Routes', () => {
 
   describe('GET /api/payments/invoice/:invoiceId', () => {
     it('should get payment history for invoice', async () => {
-      const response = await request(app).get('/api/payments/invoice/inv-1');
+      const response = await request(app).get(
+        '/api/payments/invoice/inv-1'
+      );
       expect(response.status).toBe(200);
     });
   });

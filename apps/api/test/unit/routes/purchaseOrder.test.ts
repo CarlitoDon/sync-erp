@@ -1,20 +1,21 @@
-import { vi } from 'vitest';
-import express from 'express';
-import request from 'supertest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+const express = require('express');
+const request = require('supertest');
+
+import {
+  mockProcurementService,
+  resetServiceMocks,
+} from '../mocks/services.mock';
 
 // Mock dependencies
-vi.mock('../../../src/services/PurchaseOrderService', () => ({
-  PurchaseOrderService: vi.fn().mockImplementation(() => ({
-    list: vi.fn().mockResolvedValue([{ id: 'order-1', orderNumber: 'PO-001' }]),
-    getById: vi.fn().mockImplementation((id: string) => {
-      if (id === 'not-found') return Promise.resolve(null);
-      return Promise.resolve({ id: 'order-1', orderNumber: 'PO-001' });
-    }),
-    create: vi.fn().mockResolvedValue({ id: 'order-new', orderNumber: 'PO-002' }),
-    confirm: vi.fn().mockResolvedValue({ id: 'order-1', status: 'CONFIRMED' }),
-    cancel: vi.fn().mockResolvedValue({ id: 'order-1', status: 'CANCELLED' }),
-  })),
-}));
+vi.mock(
+  '../../../src/modules/procurement/procurement.service',
+  () => ({
+    ProcurementService: vi
+      .fn()
+      .mockReturnValue(mockProcurementService),
+  })
+);
 
 // Import after mocking
 import { purchaseOrderRouter } from '../../../src/routes/purchaseOrder';
@@ -37,7 +38,33 @@ describe('Purchase Order Routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetServiceMocks();
     app = createTestApp();
+
+    mockProcurementService.list.mockResolvedValue([
+      { id: 'order-1', orderNumber: 'PO-001' },
+    ]);
+    mockProcurementService.getById.mockImplementation(
+      (id: string) => {
+        if (id === 'not-found') return Promise.resolve(null);
+        return Promise.resolve({
+          id: 'order-1',
+          orderNumber: 'PO-001',
+        });
+      }
+    );
+    mockProcurementService.create.mockResolvedValue({
+      id: 'order-new',
+      orderNumber: 'PO-002',
+    });
+    mockProcurementService.confirm.mockResolvedValue({
+      id: 'order-1',
+      status: 'CONFIRMED',
+    });
+    mockProcurementService.cancel.mockResolvedValue({
+      id: 'order-1',
+      status: 'CANCELLED',
+    });
   });
 
   describe('GET /api/purchase-orders', () => {
@@ -48,19 +75,25 @@ describe('Purchase Order Routes', () => {
     });
 
     it('should filter by status', async () => {
-      const response = await request(app).get('/api/purchase-orders?status=DRAFT');
+      const response = await request(app).get(
+        '/api/purchase-orders?status=DRAFT'
+      );
       expect(response.status).toBe(200);
     });
   });
 
   describe('GET /api/purchase-orders/:id', () => {
     it('should get order by ID', async () => {
-      const response = await request(app).get('/api/purchase-orders/order-1');
+      const response = await request(app).get(
+        '/api/purchase-orders/order-1'
+      );
       expect(response.status).toBe(200);
     });
 
     it('should return 404 for non-existent order', async () => {
-      const response = await request(app).get('/api/purchase-orders/not-found');
+      const response = await request(app).get(
+        '/api/purchase-orders/not-found'
+      );
       expect(response.status).toBe(404);
     });
   });
@@ -71,7 +104,13 @@ describe('Purchase Order Routes', () => {
         .post('/api/purchase-orders')
         .send({
           partnerId: '123e4567-e89b-12d3-a456-426614174000',
-          items: [{ productId: '123e4567-e89b-12d3-a456-426614174001', quantity: 10, price: 50 }],
+          items: [
+            {
+              productId: '123e4567-e89b-12d3-a456-426614174001',
+              quantity: 10,
+              price: 50,
+            },
+          ],
         });
       expect(response.status).toBe(201);
     });
@@ -86,14 +125,18 @@ describe('Purchase Order Routes', () => {
 
   describe('POST /api/purchase-orders/:id/confirm', () => {
     it('should confirm order', async () => {
-      const response = await request(app).post('/api/purchase-orders/order-1/confirm');
+      const response = await request(app).post(
+        '/api/purchase-orders/order-1/confirm'
+      );
       expect(response.status).toBe(200);
     });
   });
 
   describe('POST /api/purchase-orders/:id/cancel', () => {
     it('should cancel order', async () => {
-      const response = await request(app).post('/api/purchase-orders/order-1/cancel');
+      const response = await request(app).post(
+        '/api/purchase-orders/order-1/cancel'
+      );
       expect(response.status).toBe(200);
     });
   });
