@@ -1,4 +1,4 @@
-# sync-erp Development Guidelines
+﻿# sync-erp Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2025-12-10
 
@@ -7,6 +7,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 - PostgreSQL via Prisma (010-test-refactor-3layer)
 - TypeScript 5.x + React 18, Vite 7, Tailwind 4, Vitest 4 (011-frontend-feature-refactor)
 - LocalStorage (for auth tokens), Server State (TanStack Query / axios) (011-frontend-feature-refactor)
+- TypeScript 5.4 + React 18.2, Vite 5.1, TailwindCSS 3.4, TanStack Query v5 (012-core-ui-features)
+- N/A (Frontend only) (012-core-ui-features)
 
 - TypeScript 5.x (Frontend & Backend) + React Router v6 (Routing), React Context API (State), Express (API), Prisma (DB) (003-company-selection)
 - PostgreSQL (via Prisma) (003-company-selection)
@@ -38,10 +40,10 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 012-core-ui-features: Added TypeScript 5.4 + React 18.2, Vite 5.1, TailwindCSS 3.4, TanStack Query v5
 - 011-frontend-feature-refactor: Added TypeScript 5.x + React 18, Vite 7, Tailwind 4, Vitest 4
 - 010-test-refactor-3layer: Added TypeScript 5.x + Express, Vitest, Prisma Client
 
-- 009-web-test-coverage: Added TypeScript 5.x (React 18) + Vitest, @testing-library/react, @testing-library/jest-dom, jsdom
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
