@@ -7,11 +7,18 @@ interface SidebarItemProps {
   icon: React.ReactNode;
 }
 
-export default function SidebarItem({ path, label, icon }: SidebarItemProps) {
+export default function SidebarItem({
+  path,
+  label,
+  icon,
+}: SidebarItemProps) {
   const location = useLocation();
   const { isCollapsed, closeMobile } = useSidebar();
 
-  const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+  const isActive =
+    path === '/'
+      ? location.pathname === '/'
+      : location.pathname.startsWith(path);
 
   const handleClick = () => {
     // Close mobile sidebar on navigation
@@ -33,7 +40,9 @@ export default function SidebarItem({ path, label, icon }: SidebarItemProps) {
       `}
       title={isCollapsed ? label : undefined}
     >
-      <span className={`flex-shrink-0 w-5 h-5 ${isActive ? 'text-primary-600' : 'text-gray-500'}`}>
+      <span
+        className={`flex-shrink-0 w-5 h-5 ${isActive ? 'text-primary-600' : 'text-gray-500'}`}
+      >
         {icon}
       </span>
       {!isCollapsed && <span className="truncate">{label}</span>}

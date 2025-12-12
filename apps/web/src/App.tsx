@@ -31,21 +31,35 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
 
-              <Route element={<ProtectedRoute requireCompany={false} />}>
-                <Route path="/select-company" element={<CompanySelectionPage />} />
+              <Route
+                element={<ProtectedRoute requireCompany={false} />}
+              >
+                <Route
+                  path="/select-company"
+                  element={<CompanySelectionPage />}
+                />
               </Route>
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Layout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="companies" element={<Companies />} />
-                  <Route path="companies/new" element={<CreateCompany />} />
+                  <Route
+                    path="companies/new"
+                    element={<CreateCompany />}
+                  />
                   <Route path="suppliers" element={<Suppliers />} />
                   <Route path="customers" element={<Customers />} />
                   <Route path="products" element={<Products />} />
-                  <Route path="purchase-orders" element={<PurchaseOrders />} />
+                  <Route
+                    path="purchase-orders"
+                    element={<PurchaseOrders />}
+                  />
                   <Route path="inventory" element={<Inventory />} />
-                  <Route path="sales-orders" element={<SalesOrders />} />
+                  <Route
+                    path="sales-orders"
+                    element={<SalesOrders />}
+                  />
                   <Route path="invoices" element={<Invoices />} />
                   <Route path="bills" element={<AccountsPayable />} />
                   <Route path="finance" element={<Finance />} />

@@ -1,4 +1,10 @@
-import { Invoice, InvoiceStatus, InvoiceType, OrderType, Prisma } from '@sync-erp/database';
+import {
+  Invoice,
+  InvoiceStatus,
+  InvoiceType,
+  OrderType,
+  Prisma,
+} from '@sync-erp/database';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { JournalService } from './journal.service';
 
@@ -16,8 +22,15 @@ export class BillService {
   private journalService = new JournalService();
   private documentNumberService = new DocumentNumberService();
 
-  async createFromPurchaseOrder(companyId: string, data: CreateBillInput): Promise<Invoice> {
-    const order = await this.repository.findOrder(data.orderId, companyId, OrderType.PURCHASE);
+  async createFromPurchaseOrder(
+    companyId: string,
+    data: CreateBillInput
+  ): Promise<Invoice> {
+    const order = await this.repository.findOrder(
+      data.orderId,
+      companyId,
+      OrderType.PURCHASE
+    );
 
     if (!order) {
       throw new Error('Purchase order not found');
@@ -25,7 +38,10 @@ export class BillService {
 
     let invoiceNumber = data.invoiceNumber;
     if (!invoiceNumber) {
-      invoiceNumber = await this.documentNumberService.generate(companyId, 'BILL');
+      invoiceNumber = await this.documentNumberService.generate(
+        companyId,
+        'BILL'
+      );
     }
 
     const subtotal = Number(order.totalAmount);
@@ -51,7 +67,9 @@ export class BillService {
       taxAmount,
       taxRate,
       balance: amount,
-      dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      dueDate:
+        data.dueDate ||
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     };
 
     return this.repository.create(createData);
@@ -62,11 +80,19 @@ export class BillService {
   }
 
   async list(companyId: string, status?: string) {
-    return this.repository.findAll(companyId, InvoiceType.BILL, status as InvoiceStatus);
+    return this.repository.findAll(
+      companyId,
+      InvoiceType.BILL,
+      status as InvoiceStatus
+    );
   }
 
   async post(id: string, companyId: string): Promise<Invoice> {
-    const bill = await this.repository.findById(id, companyId, InvoiceType.BILL);
+    const bill = await this.repository.findById(
+      id,
+      companyId,
+      InvoiceType.BILL
+    );
     if (!bill) {
       throw new Error('Bill not found');
     }
@@ -95,7 +121,11 @@ export class BillService {
   }
 
   async void(id: string, companyId: string): Promise<Invoice> {
-    const bill = await this.repository.findById(id, companyId, InvoiceType.BILL);
+    const bill = await this.repository.findById(
+      id,
+      companyId,
+      InvoiceType.BILL
+    );
     if (!bill) {
       throw new Error('Bill not found');
     }
@@ -110,10 +140,17 @@ export class BillService {
   }
 
   async getOutstanding(companyId: string) {
-    return this.repository.findAll(companyId, InvoiceType.BILL, InvoiceStatus.POSTED);
+    return this.repository.findAll(
+      companyId,
+      InvoiceType.BILL,
+      InvoiceStatus.POSTED
+    );
   }
 
-  async getRemainingAmount(id: string, companyId: string): Promise<number> {
+  async getRemainingAmount(
+    id: string,
+    companyId: string
+  ): Promise<number> {
     const bill = await this.repository.findById(id, companyId);
     if (!bill) throw new Error('Bill not found');
     return Number(bill.balance);

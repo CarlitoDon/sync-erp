@@ -48,85 +48,89 @@ describe('SidebarNav', () => {
     it('has correct link for Dashboard', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /dashboard/i })).toHaveAttribute('href', '/');
+      expect(
+        screen.getByRole('link', { name: /dashboard/i })
+      ).toHaveAttribute('href', '/');
     });
 
     it('has correct link for Suppliers', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /suppliers/i })).toHaveAttribute(
-        'href',
-        '/suppliers'
-      );
+      expect(
+        screen.getByRole('link', { name: /suppliers/i })
+      ).toHaveAttribute('href', '/suppliers');
     });
 
     it('has correct link for Customers', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /customers/i })).toHaveAttribute(
-        'href',
-        '/customers'
-      );
+      expect(
+        screen.getByRole('link', { name: /customers/i })
+      ).toHaveAttribute('href', '/customers');
     });
 
     it('has correct link for Products', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /products/i })).toHaveAttribute('href', '/products');
+      expect(
+        screen.getByRole('link', { name: /products/i })
+      ).toHaveAttribute('href', '/products');
     });
 
     it('has correct link for Purchase Orders', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /purchase orders/i })).toHaveAttribute(
-        'href',
-        '/purchase-orders'
-      );
+      expect(
+        screen.getByRole('link', { name: /purchase orders/i })
+      ).toHaveAttribute('href', '/purchase-orders');
     });
 
     it('has correct link for Bills', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /bills/i })).toHaveAttribute('href', '/bills');
+      expect(
+        screen.getByRole('link', { name: /bills/i })
+      ).toHaveAttribute('href', '/bills');
     });
 
     it('has correct link for Sales Orders', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /sales orders/i })).toHaveAttribute(
-        'href',
-        '/sales-orders'
-      );
+      expect(
+        screen.getByRole('link', { name: /sales orders/i })
+      ).toHaveAttribute('href', '/sales-orders');
     });
 
     it('has correct link for Inventory', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /inventory/i })).toHaveAttribute(
-        'href',
-        '/inventory'
-      );
+      expect(
+        screen.getByRole('link', { name: /inventory/i })
+      ).toHaveAttribute('href', '/inventory');
     });
 
     it('has correct link for Invoices', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /invoices/i })).toHaveAttribute('href', '/invoices');
+      expect(
+        screen.getByRole('link', { name: /invoices/i })
+      ).toHaveAttribute('href', '/invoices');
     });
 
     it('has correct link for Finance', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /finance/i })).toHaveAttribute('href', '/finance');
+      expect(
+        screen.getByRole('link', { name: /finance/i })
+      ).toHaveAttribute('href', '/finance');
     });
 
     it('has correct link for Companies', () => {
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /companies/i })).toHaveAttribute(
-        'href',
-        '/companies'
-      );
+      expect(
+        screen.getByRole('link', { name: /companies/i })
+      ).toHaveAttribute('href', '/companies');
     });
   });
 
@@ -134,21 +138,27 @@ describe('SidebarNav', () => {
     it('highlights Dashboard when on root path', () => {
       renderComponent('/');
 
-      const dashboardLink = screen.getByRole('link', { name: /dashboard/i });
+      const dashboardLink = screen.getByRole('link', {
+        name: /dashboard/i,
+      });
       expect(dashboardLink).toHaveClass('bg-primary-100');
     });
 
     it('highlights Products when on products path', () => {
       renderComponent('/products');
 
-      const productsLink = screen.getByRole('link', { name: /products/i });
+      const productsLink = screen.getByRole('link', {
+        name: /products/i,
+      });
       expect(productsLink).toHaveClass('bg-primary-100');
     });
 
     it('highlights Finance when on finance subpath', () => {
       renderComponent('/finance/journal');
 
-      const financeLink = screen.getByRole('link', { name: /finance/i });
+      const financeLink = screen.getByRole('link', {
+        name: /finance/i,
+      });
       expect(financeLink).toHaveClass('bg-primary-100');
     });
   });

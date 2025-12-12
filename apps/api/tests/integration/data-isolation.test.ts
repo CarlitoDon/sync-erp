@@ -38,8 +38,14 @@ describe('Multi-Company Data Isolation', () => {
   let userBId: string;
 
   // Headers generators
-  const headersA = () => ({ 'x-user-id': userAId, 'x-company-id': companyAId });
-  const headersB = () => ({ 'x-user-id': userBId, 'x-company-id': companyBId });
+  const headersA = () => ({
+    'x-user-id': userAId,
+    'x-company-id': companyAId,
+  });
+  const headersB = () => ({
+    'x-user-id': userBId,
+    'x-company-id': companyBId,
+  });
 
   beforeAll(async () => {
     const timestamp = Date.now();
@@ -118,14 +124,18 @@ describe('Multi-Company Data Isolation', () => {
       const res = await request('/products', 'GET', headersA());
       expect(res.status).toBe(200);
       const products = res.body.data;
-      expect(products.some((p: any) => p.id === productAId)).toBe(true);
+      expect(products.some((p: any) => p.id === productAId)).toBe(
+        true
+      );
     });
 
     it('Company B should NOT see Product A', async () => {
       const res = await request('/products', 'GET', headersB());
       expect(res.status).toBe(200);
       const products = res.body.data;
-      expect(products.some((p: any) => p.id === productAId)).toBe(false);
+      expect(products.some((p: any) => p.id === productAId)).toBe(
+        false
+      );
     });
   });
 
@@ -147,14 +157,18 @@ describe('Multi-Company Data Isolation', () => {
       const res = await request('/partners', 'GET', headersA());
       expect(res.status).toBe(200);
       const partners = res.body.data;
-      expect(partners.some((p: any) => p.id === partnerAId)).toBe(true);
+      expect(partners.some((p: any) => p.id === partnerAId)).toBe(
+        true
+      );
     });
 
     it('Company B should NOT see Partner A', async () => {
       const res = await request('/partners', 'GET', headersB());
       expect(res.status).toBe(200);
       const partners = res.body.data;
-      expect(partners.some((p: any) => p.id === partnerAId)).toBe(false);
+      expect(partners.some((p: any) => p.id === partnerAId)).toBe(
+        false
+      );
     });
   });
 
@@ -178,11 +192,16 @@ describe('Multi-Company Data Isolation', () => {
       const prodRes = await request('/products', 'GET', headersA());
       const productAId = prodRes.body.data[0].id;
 
-      const res = await request('/purchase-orders', 'POST', headersA(), {
-        partnerId: supplierId,
-        date: new Date().toISOString(),
-        items: [{ productId: productAId, quantity: 1, price: 100 }],
-      });
+      const res = await request(
+        '/purchase-orders',
+        'POST',
+        headersA(),
+        {
+          partnerId: supplierId,
+          date: new Date().toISOString(),
+          items: [{ productId: productAId, quantity: 1, price: 100 }],
+        }
+      );
 
       if (res.status !== 201) {
         // Error logging
@@ -192,14 +211,22 @@ describe('Multi-Company Data Isolation', () => {
     });
 
     it('Company A should see PO A', async () => {
-      const res = await request('/purchase-orders', 'GET', headersA());
+      const res = await request(
+        '/purchase-orders',
+        'GET',
+        headersA()
+      );
       expect(res.status).toBe(200);
       const orders = res.body.data;
       expect(orders.some((o: any) => o.id === poAId)).toBe(true);
     });
 
     it('Company B should NOT see PO A', async () => {
-      const res = await request('/purchase-orders', 'GET', headersB());
+      const res = await request(
+        '/purchase-orders',
+        'GET',
+        headersB()
+      );
       expect(res.status).toBe(200);
       const orders = res.body.data;
       expect(orders.some((o: any) => o.id === poAId)).toBe(false);
@@ -212,12 +239,19 @@ describe('Multi-Company Data Isolation', () => {
     it('should create Account in Company A', async () => {
       // Code must be max 10 chars.
       // Using random 4 digits.
-      const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
-      const res = await request('/finance/accounts', 'POST', headersA(), {
-        code: randomCode,
-        name: 'Cash A',
-        type: 'ASSET',
-      });
+      const randomCode = Math.floor(
+        1000 + Math.random() * 9000
+      ).toString();
+      const res = await request(
+        '/finance/accounts',
+        'POST',
+        headersA(),
+        {
+          code: randomCode,
+          name: 'Cash A',
+          type: 'ASSET',
+        }
+      );
 
       if (res.status !== 201) {
         // Error logging
@@ -227,17 +261,29 @@ describe('Multi-Company Data Isolation', () => {
     });
 
     it('Company A should see Account A', async () => {
-      const res = await request('/finance/accounts', 'GET', headersA());
+      const res = await request(
+        '/finance/accounts',
+        'GET',
+        headersA()
+      );
       expect(res.status).toBe(200);
       const accounts = res.body.data;
-      expect(accounts.some((a: any) => a.id === accountAId)).toBe(true);
+      expect(accounts.some((a: any) => a.id === accountAId)).toBe(
+        true
+      );
     });
 
     it('Company B should NOT see Account A', async () => {
-      const res = await request('/finance/accounts', 'GET', headersB());
+      const res = await request(
+        '/finance/accounts',
+        'GET',
+        headersB()
+      );
       expect(res.status).toBe(200);
       const accounts = res.body.data;
-      expect(accounts.some((a: any) => a.id === accountAId)).toBe(false);
+      expect(accounts.some((a: any) => a.id === accountAId)).toBe(
+        false
+      );
     });
   });
 });

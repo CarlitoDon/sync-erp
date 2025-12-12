@@ -1,4 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { LoginPage } from '../../src/pages/LoginPage';
@@ -14,7 +19,9 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../../src/contexts/AuthContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/AuthContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/AuthContext'
+  );
   return {
     ...actual,
     useAuth: vi.fn(),
@@ -47,13 +54,17 @@ describe('LoginPage', () => {
 
   // Helper to get inputs by name attribute since labels don't have htmlFor
   const getInputByName = (name: string): HTMLInputElement => {
-    return document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
+    return document.querySelector(
+      `input[name="${name}"]`
+    ) as HTMLInputElement;
   };
 
   describe('Rendering', () => {
     it('renders sign in heading', () => {
       renderComponent();
-      expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /sign in/i })
+      ).toBeInTheDocument();
     });
 
     it('renders email input', () => {
@@ -68,12 +79,16 @@ describe('LoginPage', () => {
 
     it('renders sign in button', () => {
       renderComponent();
-      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /sign in/i })
+      ).toBeInTheDocument();
     });
 
     it('renders sign up link', () => {
       renderComponent();
-      expect(screen.getByRole('link', { name: /sign up/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: /sign up/i })
+      ).toBeInTheDocument();
     });
   });
 
@@ -81,14 +96,18 @@ describe('LoginPage', () => {
     it('allows typing in email field', () => {
       renderComponent();
       const emailInput = getInputByName('email');
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      fireEvent.change(emailInput, {
+        target: { value: 'test@example.com' },
+      });
       expect(emailInput).toHaveValue('test@example.com');
     });
 
     it('allows typing in password field', () => {
       renderComponent();
       const passwordInput = getInputByName('password');
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
+      fireEvent.change(passwordInput, {
+        target: { value: 'password123' },
+      });
       expect(passwordInput).toHaveValue('password123');
     });
   });
@@ -98,9 +117,15 @@ describe('LoginPage', () => {
       mockLogin.mockResolvedValueOnce({});
       renderComponent();
 
-      fireEvent.change(getInputByName('email'), { target: { value: 'test@example.com' } });
-      fireEvent.change(getInputByName('password'), { target: { value: 'password123' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign in/i })
+      );
 
       await waitFor(() => {
         expect(mockLogin).toHaveBeenCalledWith({
@@ -114,9 +139,15 @@ describe('LoginPage', () => {
       mockLogin.mockResolvedValueOnce({});
       renderComponent();
 
-      fireEvent.change(getInputByName('email'), { target: { value: 'test@example.com' } });
-      fireEvent.change(getInputByName('password'), { target: { value: 'password123' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign in/i })
+      );
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/select-company');
@@ -127,9 +158,15 @@ describe('LoginPage', () => {
       mockLogin.mockImplementation(() => new Promise(() => {}));
       renderComponent();
 
-      fireEvent.change(getInputByName('email'), { target: { value: 'test@example.com' } });
-      fireEvent.change(getInputByName('password'), { target: { value: 'password123' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign in/i })
+      );
 
       await waitFor(() => {
         expect(screen.getByText(/please wait/i)).toBeInTheDocument();
@@ -138,16 +175,26 @@ describe('LoginPage', () => {
 
     it('shows error message on login failure', async () => {
       mockLogin.mockRejectedValueOnce({
-        response: { data: { error: { message: 'Invalid credentials' } } },
+        response: {
+          data: { error: { message: 'Invalid credentials' } },
+        },
       });
       renderComponent();
 
-      fireEvent.change(getInputByName('email'), { target: { value: 'test@example.com' } });
-      fireEvent.change(getInputByName('password'), { target: { value: 'wrongpassword' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'wrongpassword' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign in/i })
+      );
 
       await waitFor(() => {
-        expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/invalid credentials/i)
+        ).toBeInTheDocument();
       });
     });
   });

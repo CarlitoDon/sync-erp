@@ -104,10 +104,18 @@ describe('SalesOrderService', () => {
     it('should confirm a draft order', async () => {
       const mockOrder = { id: 'order-1', companyId, status: 'DRAFT' };
       const confirmedOrder = { ...mockOrder, status: 'CONFIRMED' };
-      const mockItems = [{ productId: 'prod-1', quantity: 5, product: { name: 'Product 1' } }];
+      const mockItems = [
+        {
+          productId: 'prod-1',
+          quantity: 5,
+          product: { name: 'Product 1' },
+        },
+      ];
 
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
-      (mockPrisma as any).orderItem.findMany.mockResolvedValue(mockItems);
+      (mockPrisma as any).orderItem.findMany.mockResolvedValue(
+        mockItems
+      );
       mockPrisma.order.update.mockResolvedValue(confirmedOrder);
 
       const result = await service.confirm('order-1', companyId);
@@ -118,35 +126,53 @@ describe('SalesOrderService', () => {
     it('should throw error if order not found', async () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
-      await expect(service.confirm('nonexistent', companyId)).rejects.toThrow(
-        'Sales order not found'
-      );
+      await expect(
+        service.confirm('nonexistent', companyId)
+      ).rejects.toThrow('Sales order not found');
     });
 
     it('should throw error if order is not draft', async () => {
       const mockOrder = { id: 'order-1', status: 'COMPLETED' };
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
 
-      await expect(service.confirm('order-1', companyId)).rejects.toThrow(
+      await expect(
+        service.confirm('order-1', companyId)
+      ).rejects.toThrow(
         'Cannot confirm order with status: COMPLETED'
       );
     });
 
     it('should throw error if insufficient stock', async () => {
       const mockOrder = { id: 'order-1', status: 'DRAFT' };
-      const mockItems = [{ productId: 'prod-1', quantity: 100, product: { name: 'Product 1' } }];
+      const mockItems = [
+        {
+          productId: 'prod-1',
+          quantity: 100,
+          product: { name: 'Product 1' },
+        },
+      ];
 
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
-      (mockPrisma as any).orderItem.findMany.mockResolvedValue(mockItems);
-      (service as any).productService.checkStock = vi.fn().mockResolvedValue(false);
+      (mockPrisma as any).orderItem.findMany.mockResolvedValue(
+        mockItems
+      );
+      (service as any).productService.checkStock = vi
+        .fn()
+        .mockResolvedValue(false);
 
-      await expect(service.confirm('order-1', companyId)).rejects.toThrow('Insufficient stock');
+      await expect(
+        service.confirm('order-1', companyId)
+      ).rejects.toThrow('Insufficient stock');
     });
   });
 
   describe('complete', () => {
     it('should complete a confirmed order', async () => {
-      const mockOrder = { id: 'order-1', companyId, status: 'CONFIRMED' };
+      const mockOrder = {
+        id: 'order-1',
+        companyId,
+        status: 'CONFIRMED',
+      };
       const completedOrder = { ...mockOrder, status: 'COMPLETED' };
 
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
@@ -160,18 +186,18 @@ describe('SalesOrderService', () => {
     it('should throw error if order not found', async () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
-      await expect(service.complete('nonexistent', companyId)).rejects.toThrow(
-        'Sales order not found'
-      );
+      await expect(
+        service.complete('nonexistent', companyId)
+      ).rejects.toThrow('Sales order not found');
     });
 
     it('should throw error if order is not confirmed', async () => {
       const mockOrder = { id: 'order-1', status: 'DRAFT' };
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
 
-      await expect(service.complete('order-1', companyId)).rejects.toThrow(
-        'Cannot complete order with status: DRAFT'
-      );
+      await expect(
+        service.complete('order-1', companyId)
+      ).rejects.toThrow('Cannot complete order with status: DRAFT');
     });
   });
 
@@ -191,18 +217,18 @@ describe('SalesOrderService', () => {
     it('should throw error if order not found', async () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
-      await expect(service.cancel('nonexistent', companyId)).rejects.toThrow(
-        'Sales order not found'
-      );
+      await expect(
+        service.cancel('nonexistent', companyId)
+      ).rejects.toThrow('Sales order not found');
     });
 
     it('should throw error if order is completed', async () => {
       const mockOrder = { id: 'order-1', status: 'COMPLETED' };
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
 
-      await expect(service.cancel('order-1', companyId)).rejects.toThrow(
-        'Cannot cancel a completed order'
-      );
+      await expect(
+        service.cancel('order-1', companyId)
+      ).rejects.toThrow('Cannot cancel a completed order');
     });
   });
 
@@ -213,7 +239,9 @@ describe('SalesOrderService', () => {
         { id: 'item-2', productId: 'prod-2', quantity: 10 },
       ];
 
-      (mockPrisma as any).orderItem.findMany.mockResolvedValue(mockItems);
+      (mockPrisma as any).orderItem.findMany.mockResolvedValue(
+        mockItems
+      );
 
       const result = await service.getItems('order-1');
 
@@ -223,19 +251,29 @@ describe('SalesOrderService', () => {
 
   describe('returnOrder', () => {
     it('should process a return for an order', async () => {
-      const mockOrder = { id: 'order-1', companyId, status: 'COMPLETED' };
+      const mockOrder = {
+        id: 'order-1',
+        companyId,
+        status: 'COMPLETED',
+      };
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
 
-      await service.returnOrder(companyId, 'order-1', [{ productId: 'prod-1', quantity: 2 }]);
+      await service.returnOrder(companyId, 'order-1', [
+        { productId: 'prod-1', quantity: 2 },
+      ]);
 
-      expect((service as any).inventoryService.processReturn).toHaveBeenCalled();
+      expect(
+        (service as any).inventoryService.processReturn
+      ).toHaveBeenCalled();
     });
 
     it('should throw error if order not found', async () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.returnOrder(companyId, 'nonexistent', [{ productId: 'prod-1', quantity: 1 }])
+        service.returnOrder(companyId, 'nonexistent', [
+          { productId: 'prod-1', quantity: 1 },
+        ])
       ).rejects.toThrow('Sales order not found');
     });
   });

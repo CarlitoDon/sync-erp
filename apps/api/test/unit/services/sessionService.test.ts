@@ -38,8 +38,11 @@ describe('sessionService', () => {
       });
 
       // Verify expiresAt is approximately 7 days in the future
-      const callData = mockPrisma.session.create.mock.calls[0][0].data;
-      const daysDiff = (callData.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+      const callData =
+        mockPrisma.session.create.mock.calls[0][0].data;
+      const daysDiff =
+        (callData.expiresAt.getTime() - Date.now()) /
+        (1000 * 60 * 60 * 24);
       expect(daysDiff).toBeCloseTo(7, 0);
     });
   });

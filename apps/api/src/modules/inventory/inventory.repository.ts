@@ -1,4 +1,8 @@
-import { prisma, InventoryMovement, Prisma } from '@sync-erp/database';
+import {
+  prisma,
+  InventoryMovement,
+  Prisma,
+} from '@sync-erp/database';
 
 export class InventoryRepository {
   async createMovement(
@@ -9,7 +13,10 @@ export class InventoryRepository {
     });
   }
 
-  async findMovements(companyId: string, productId?: string): Promise<InventoryMovement[]> {
+  async findMovements(
+    companyId: string,
+    productId?: string
+  ): Promise<InventoryMovement[]> {
     return prisma.inventoryMovement.findMany({
       where: {
         companyId,

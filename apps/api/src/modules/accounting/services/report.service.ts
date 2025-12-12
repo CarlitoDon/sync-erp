@@ -44,7 +44,10 @@ export class ReportService {
   private accountRepository = new AccountRepository();
   private journalRepository = new JournalRepository();
 
-  async getTrialBalance(companyId: string, asOfDate?: Date): Promise<TrialBalanceSummary> {
+  async getTrialBalance(
+    companyId: string,
+    asOfDate?: Date
+  ): Promise<TrialBalanceSummary> {
     const dateFilter = asOfDate || new Date();
     const accounts = await this.accountRepository.findAll(companyId);
 
@@ -53,12 +56,18 @@ export class ReportService {
     let totalCredit = 0;
 
     for (const account of accounts) {
-      const sums = await this.journalRepository.aggregateAccountSum(account.id, dateFilter);
+      const sums = await this.journalRepository.aggregateAccountSum(
+        account.id,
+        dateFilter
+      );
       const debit = Number(sums._sum.debit || 0);
       const credit = Number(sums._sum.credit || 0);
 
       let balance: number;
-      if (account.type === AccountType.ASSET || account.type === AccountType.EXPENSE) {
+      if (
+        account.type === AccountType.ASSET ||
+        account.type === AccountType.EXPENSE
+      ) {
         balance = debit - credit;
       } else {
         balance = credit - debit;
@@ -93,35 +102,47 @@ export class ReportService {
     startDate?: Date,
     endDate?: Date
   ): Promise<GeneralLedgerReport> {
-    const account = await this.accountRepository.findById(accountId, companyId);
+    const account = await this.accountRepository.findById(
+      accountId,
+      companyId
+    );
     if (!account) {
       throw new Error('Account not found');
     }
 
     let openingBalance = 0;
     if (startDate) {
-      const openingSums = await this.journalRepository.getOpeningBalanceSum(accountId, startDate);
+      const openingSums =
+        await this.journalRepository.getOpeningBalanceSum(
+          accountId,
+          startDate
+        );
       const openingDebit = Number(openingSums._sum.debit || 0);
       const openingCredit = Number(openingSums._sum.credit || 0);
       openingBalance =
-        account.type === AccountType.ASSET || account.type === AccountType.EXPENSE
+        account.type === AccountType.ASSET ||
+        account.type === AccountType.EXPENSE
           ? openingDebit - openingCredit
           : openingCredit - openingDebit;
     }
 
-    const journalLines = await this.journalRepository.findLinesByAccount(
-      companyId,
-      accountId,
-      startDate,
-      endDate
-    );
+    const journalLines =
+      await this.journalRepository.findLinesByAccount(
+        companyId,
+        accountId,
+        startDate,
+        endDate
+      );
 
     let runningBalance = openingBalance;
     const entries: GeneralLedgerEntry[] = journalLines.map((line) => {
       const debit = Number(line.debit);
       const credit = Number(line.credit);
 
-      if (account.type === AccountType.ASSET || account.type === AccountType.EXPENSE) {
+      if (
+        account.type === AccountType.ASSET ||
+        account.type === AccountType.EXPENSE
+      ) {
         runningBalance += debit - credit;
       } else {
         runningBalance += credit - debit;
@@ -165,7 +186,9 @@ export class ReportService {
       startDate,
       endDate
     );
-    const revenue = Number(revenueSums._sum.credit || 0) - Number(revenueSums._sum.debit || 0);
+    const revenue =
+      Number(revenueSums._sum.credit || 0) -
+      Number(revenueSums._sum.debit || 0);
 
     const expenseSums = await this.journalRepository.aggregateTypeSum(
       companyId,
@@ -173,7 +196,9 @@ export class ReportService {
       startDate,
       endDate
     );
-    const expenses = Number(expenseSums._sum.debit || 0) - Number(expenseSums._sum.credit || 0);
+    const expenses =
+      Number(expenseSums._sum.debit || 0) -
+      Number(expenseSums._sum.credit || 0);
 
     return {
       revenue,

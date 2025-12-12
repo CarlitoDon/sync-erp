@@ -73,7 +73,11 @@ describe('UserService', () => {
 
   describe('getById', () => {
     it('should return a user by ID', async () => {
-      const mockUser = { id: 'user-1', email: 'test@example.com', name: 'Test User' };
+      const mockUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        name: 'Test User',
+      };
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       const result = await service.getById('user-1');
@@ -95,7 +99,11 @@ describe('UserService', () => {
 
   describe('getByEmail', () => {
     it('should return a user by email', async () => {
-      const mockUser = { id: 'user-1', email: 'test@example.com', name: 'Test User' };
+      const mockUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        name: 'Test User',
+      };
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       const result = await service.getByEmail('test@example.com');
@@ -109,7 +117,9 @@ describe('UserService', () => {
     it('should return null for non-existent email', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      const result = await service.getByEmail('nonexistent@example.com');
+      const result = await service.getByEmail(
+        'nonexistent@example.com'
+      );
 
       expect(result).toBeNull();
     });
@@ -121,18 +131,28 @@ describe('UserService', () => {
         {
           userId: 'user-1',
           companyId: 'company-1',
-          user: { id: 'user-1', email: 'user1@example.com', name: 'User 1' },
+          user: {
+            id: 'user-1',
+            email: 'user1@example.com',
+            name: 'User 1',
+          },
           role: { id: 'role-1', name: 'Admin' },
         },
         {
           userId: 'user-2',
           companyId: 'company-1',
-          user: { id: 'user-2', email: 'user2@example.com', name: 'User 2' },
+          user: {
+            id: 'user-2',
+            email: 'user2@example.com',
+            name: 'User 2',
+          },
           role: null,
         },
       ];
 
-      mockPrisma.companyMember.findMany.mockResolvedValue(mockMembers);
+      mockPrisma.companyMember.findMany.mockResolvedValue(
+        mockMembers
+      );
 
       const result = await service.listByCompany('company-1');
 
@@ -163,7 +183,10 @@ describe('UserService', () => {
 
       mockPrisma.companyMember.create.mockResolvedValue(mockMember);
 
-      const result = await service.assignToCompany('user-1', 'company-1');
+      const result = await service.assignToCompany(
+        'user-1',
+        'company-1'
+      );
 
       expect(result).toEqual(mockMember);
       expect(mockPrisma.companyMember.create).toHaveBeenCalledWith({
@@ -192,7 +215,11 @@ describe('UserService', () => {
 
       mockPrisma.companyMember.create.mockResolvedValue(mockMember);
 
-      const result = await service.assignToCompany('user-1', 'company-1', 'role-1');
+      const result = await service.assignToCompany(
+        'user-1',
+        'company-1',
+        'role-1'
+      );
 
       expect(result.roleId).toBe('role-1');
     });
@@ -200,10 +227,16 @@ describe('UserService', () => {
 
   describe('removeFromCompany', () => {
     it('should remove a user from a company', async () => {
-      const mockDeleted = { userId: 'user-1', companyId: 'company-1' };
+      const mockDeleted = {
+        userId: 'user-1',
+        companyId: 'company-1',
+      };
       mockPrisma.companyMember.delete.mockResolvedValue(mockDeleted);
 
-      const result = await service.removeFromCompany('user-1', 'company-1');
+      const result = await service.removeFromCompany(
+        'user-1',
+        'company-1'
+      );
 
       expect(result).toEqual(mockDeleted);
       expect(mockPrisma.companyMember.delete).toHaveBeenCalledWith({

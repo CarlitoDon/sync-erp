@@ -11,11 +11,41 @@ interface DocumentNumberConfig {
 }
 
 const DEFAULT_CONFIGS: Record<DocumentType, DocumentNumberConfig> = {
-  PO: { prefix: 'PO', separator: '-', includeYear: true, yearFormat: '4', sequenceLength: 5 },
-  SO: { prefix: 'SO', separator: '-', includeYear: true, yearFormat: '4', sequenceLength: 5 },
-  INV: { prefix: 'INV', separator: '-', includeYear: true, yearFormat: '4', sequenceLength: 5 },
-  BILL: { prefix: 'BILL', separator: '-', includeYear: true, yearFormat: '4', sequenceLength: 5 },
-  JE: { prefix: 'JE', separator: '-', includeYear: true, yearFormat: '4', sequenceLength: 5 },
+  PO: {
+    prefix: 'PO',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
+  SO: {
+    prefix: 'SO',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
+  INV: {
+    prefix: 'INV',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
+  BILL: {
+    prefix: 'BILL',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
+  JE: {
+    prefix: 'JE',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
 };
 
 export class DocumentNumberService {
@@ -23,15 +53,28 @@ export class DocumentNumberService {
    * Generate a new document number
    * Format: PREFIX-YYYY-00001 or PREFIX-YY-00001
    */
-  async generate(companyId: string, docType: DocumentType): Promise<string> {
+  async generate(
+    companyId: string,
+    docType: DocumentType
+  ): Promise<string> {
     const config = DEFAULT_CONFIGS[docType];
     const year = new Date().getFullYear();
     // YY or YYYY string
-    const yearStr = config.yearFormat === '4' ? year.toString() : year.toString().slice(-2);
+    const yearStr =
+      config.yearFormat === '4'
+        ? year.toString()
+        : year.toString().slice(-2);
 
     // Get current sequence count for this company/type/year
-    const count = await this.getSequenceCount(companyId, docType, year);
-    const sequence = String(count + 1).padStart(config.sequenceLength, '0');
+    const count = await this.getSequenceCount(
+      companyId,
+      docType,
+      year
+    );
+    const sequence = String(count + 1).padStart(
+      config.sequenceLength,
+      '0'
+    );
 
     // Build the document number
     if (config.includeYear) {
@@ -96,7 +139,9 @@ export class DocumentNumberService {
   /**
    * Parse a document number to extract components
    */
-  parse(docNumber: string): { prefix: string; year?: string; sequence: string } | null {
+  parse(
+    docNumber: string
+  ): { prefix: string; year?: string; sequence: string } | null {
     const parts = docNumber.split('-');
     if (parts.length === 3) {
       return { prefix: parts[0], year: parts[1], sequence: parts[2] };

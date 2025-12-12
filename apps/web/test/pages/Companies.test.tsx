@@ -5,7 +5,9 @@ import Companies from '../../src/pages/Companies';
 import * as CompanyContext from '../../src/contexts/CompanyContext';
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -19,7 +21,11 @@ describe('Companies', () => {
     vi.clearAllMocks();
   });
 
-  const setupMock = (overrides: Partial<ReturnType<typeof CompanyContext.useCompany>> = {}) => {
+  const setupMock = (
+    overrides: Partial<
+      ReturnType<typeof CompanyContext.useCompany>
+    > = {}
+  ) => {
     vi.mocked(CompanyContext.useCompany).mockReturnValue({
       currentCompany: null,
       companies: [],
@@ -45,7 +51,9 @@ describe('Companies', () => {
       renderComponent();
 
       // Multiple headings may contain "companies" text, just verify at least one exists
-      const headings = screen.getAllByRole('heading', { name: /companies/i });
+      const headings = screen.getAllByRole('heading', {
+        name: /companies/i,
+      });
       expect(headings.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -53,21 +61,27 @@ describe('Companies', () => {
       setupMock();
       renderComponent();
 
-      expect(screen.getByRole('link', { name: /new company/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: /new company/i })
+      ).toBeInTheDocument();
     });
 
     it('shows empty state when no companies', () => {
       setupMock({ companies: [] });
       renderComponent();
 
-      expect(screen.getByText(/no companies yet/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/no companies yet/i)
+      ).toBeInTheDocument();
     });
 
     it('shows create company link in empty state', () => {
       setupMock({ companies: [] });
       renderComponent();
 
-      const links = screen.getAllByRole('link', { name: /create company/i });
+      const links = screen.getAllByRole('link', {
+        name: /create company/i,
+      });
       expect(links.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -87,10 +101,17 @@ describe('Companies', () => {
     });
 
     it('shows Active badge on current company', () => {
-      const currentCompany = { id: '1', name: 'Acme Corp', createdAt: new Date() };
+      const currentCompany = {
+        id: '1',
+        name: 'Acme Corp',
+        createdAt: new Date(),
+      };
       setupMock({
         currentCompany,
-        companies: [currentCompany, { id: '2', name: 'Beta Inc', createdAt: new Date() }],
+        companies: [
+          currentCompany,
+          { id: '2', name: 'Beta Inc', createdAt: new Date() },
+        ],
       });
       renderComponent();
 
@@ -98,7 +119,11 @@ describe('Companies', () => {
     });
 
     it('calls setCurrentCompany when company card is clicked', () => {
-      const company = { id: '1', name: 'Acme Corp', createdAt: new Date() };
+      const company = {
+        id: '1',
+        name: 'Acme Corp',
+        createdAt: new Date(),
+      };
       setupMock({ companies: [company] });
       renderComponent();
 

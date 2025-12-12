@@ -1,4 +1,10 @@
-import { Invoice, InvoiceStatus, InvoiceType, OrderType, Prisma } from '@sync-erp/database';
+import {
+  Invoice,
+  InvoiceStatus,
+  InvoiceType,
+  OrderType,
+  Prisma,
+} from '@sync-erp/database';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { JournalService } from './journal.service';
 
@@ -16,8 +22,15 @@ export class InvoiceService {
   private journalService = new JournalService();
   private documentNumberService = new DocumentNumberService();
 
-  async createFromSalesOrder(companyId: string, data: CreateInvoiceInput): Promise<Invoice> {
-    const order = await this.repository.findOrder(data.orderId, companyId, OrderType.SALES);
+  async createFromSalesOrder(
+    companyId: string,
+    data: CreateInvoiceInput
+  ): Promise<Invoice> {
+    const order = await this.repository.findOrder(
+      data.orderId,
+      companyId,
+      OrderType.SALES
+    );
 
     if (!order) {
       throw new Error('Sales order not found');
@@ -26,7 +39,10 @@ export class InvoiceService {
     // Generate invoice number if not provided
     let invoiceNumber = data.invoiceNumber;
     if (!invoiceNumber) {
-      invoiceNumber = await this.documentNumberService.generate(companyId, 'INV');
+      invoiceNumber = await this.documentNumberService.generate(
+        companyId,
+        'INV'
+      );
     }
 
     // Calculate total with optional tax
@@ -54,28 +70,44 @@ export class InvoiceService {
       taxAmount,
       taxRate,
       balance: amount,
-      dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
+      dueDate:
+        data.dueDate ||
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
     };
 
     return this.repository.create(createData);
   }
 
   async getById(id: string, companyId: string) {
-    return this.repository.findById(id, companyId, InvoiceType.INVOICE);
+    return this.repository.findById(
+      id,
+      companyId,
+      InvoiceType.INVOICE
+    );
   }
 
   async list(companyId: string, status?: string) {
-    return this.repository.findAll(companyId, InvoiceType.INVOICE, status as InvoiceStatus);
+    return this.repository.findAll(
+      companyId,
+      InvoiceType.INVOICE,
+      status as InvoiceStatus
+    );
   }
 
   async post(id: string, companyId: string): Promise<Invoice> {
-    const invoice = await this.repository.findById(id, companyId, InvoiceType.INVOICE);
+    const invoice = await this.repository.findById(
+      id,
+      companyId,
+      InvoiceType.INVOICE
+    );
     if (!invoice) {
       throw new Error('Invoice not found');
     }
 
     if (invoice.status !== InvoiceStatus.DRAFT) {
-      throw new Error(`Cannot post invoice with status: ${invoice.status}`);
+      throw new Error(
+        `Cannot post invoice with status: ${invoice.status}`
+      );
     }
 
     const updatedInvoice = await this.repository.update(id, {
@@ -98,7 +130,11 @@ export class InvoiceService {
   }
 
   async void(id: string, companyId: string): Promise<Invoice> {
-    const invoice = await this.repository.findById(id, companyId, InvoiceType.INVOICE);
+    const invoice = await this.repository.findById(
+      id,
+      companyId,
+      InvoiceType.INVOICE
+    );
     if (!invoice) {
       throw new Error('Invoice not found');
     }
@@ -116,7 +152,11 @@ export class InvoiceService {
   }
 
   async getOutstanding(companyId: string) {
-    return this.repository.findAll(companyId, InvoiceType.INVOICE, InvoiceStatus.POSTED);
+    return this.repository.findAll(
+      companyId,
+      InvoiceType.INVOICE,
+      InvoiceStatus.POSTED
+    );
     // findAll helper accepts status. But findAll in repo uses findAll(companyId, type, status).
     // I need to ensure findAll sort order. Repo handles sort.
     // Need orderBy dueDate ideally? Repo has desc createdAt.
@@ -126,7 +166,10 @@ export class InvoiceService {
     // For now stick to default repo.
   }
 
-  async getRemainingAmount(id: string, companyId: string): Promise<number> {
+  async getRemainingAmount(
+    id: string,
+    companyId: string
+  ): Promise<number> {
     const invoice = await this.repository.findById(id, companyId); // Type optional here?
     if (!invoice) throw new Error('Invoice not found');
 

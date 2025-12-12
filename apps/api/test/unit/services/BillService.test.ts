@@ -49,9 +49,13 @@ describe('BillService', () => {
       mockPrisma.invoice.count.mockResolvedValue(0);
       mockPrisma.invoice.create.mockResolvedValue(mockBill);
 
-      const result = await service.createFromPurchaseOrder(companyId, 'user-1', {
-        orderId: 'order-1',
-      });
+      const result = await service.createFromPurchaseOrder(
+        companyId,
+        'user-1',
+        {
+          orderId: 'order-1',
+        }
+      );
 
       expect(result).toEqual(mockBill);
     });
@@ -60,7 +64,9 @@ describe('BillService', () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.createFromPurchaseOrder(companyId, 'user-1', { orderId: 'nonexistent' })
+        service.createFromPurchaseOrder(companyId, 'user-1', {
+          orderId: 'nonexistent',
+        })
       ).rejects.toThrow('Purchase order not found');
     });
   });
@@ -131,7 +137,9 @@ describe('BillService', () => {
     it('should throw error if bill not found', async () => {
       mockPrisma.invoice.findFirst.mockResolvedValue(null);
 
-      await expect(service.post('nonexistent', companyId)).rejects.toThrow('Bill not found');
+      await expect(
+        service.post('nonexistent', companyId)
+      ).rejects.toThrow('Bill not found');
     });
 
     it('should throw error if bill is not in draft status', async () => {
@@ -160,14 +168,18 @@ describe('BillService', () => {
     it('should throw error if bill not found', async () => {
       mockPrisma.invoice.findFirst.mockResolvedValue(null);
 
-      await expect(service.void('nonexistent', companyId)).rejects.toThrow('Bill not found');
+      await expect(
+        service.void('nonexistent', companyId)
+      ).rejects.toThrow('Bill not found');
     });
 
     it('should throw error if bill is already paid', async () => {
       const mockBill = { id: 'bill-1', status: 'PAID' };
       mockPrisma.invoice.findFirst.mockResolvedValue(mockBill);
 
-      await expect(service.void('bill-1', companyId)).rejects.toThrow('Cannot void a paid bill');
+      await expect(service.void('bill-1', companyId)).rejects.toThrow(
+        'Cannot void a paid bill'
+      );
     });
   });
 
@@ -199,7 +211,9 @@ describe('BillService', () => {
     it('should throw error if bill not found', async () => {
       mockPrisma.invoice.findUnique.mockResolvedValue(null);
 
-      await expect(service.getRemainingAmount('nonexistent')).rejects.toThrow('Bill not found');
+      await expect(
+        service.getRemainingAmount('nonexistent')
+      ).rejects.toThrow('Bill not found');
     });
   });
 });

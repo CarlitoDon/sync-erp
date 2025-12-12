@@ -1,9 +1,14 @@
-import { billService, CreateBillInput } from '../../src/services/billService';
+import {
+  billService,
+  CreateBillInput,
+} from '../../src/services/billService';
 import api from '../../src/services/api';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 vi.mock('../../src/services/api', async () => {
-  const { mockApi } = await vi.importActual<any>('../mocks/services.mock');
+  const { mockApi } = await vi.importActual<any>(
+    '../mocks/services.mock'
+  );
   return { default: mockApi };
 });
 
@@ -28,7 +33,9 @@ describe('billService', () => {
 
     const result = await billService.list('DRAFT');
 
-    expect(api.get).toHaveBeenCalledWith('/bills', { params: { status: 'DRAFT' } });
+    expect(api.get).toHaveBeenCalledWith('/bills', {
+      params: { status: 'DRAFT' },
+    });
     expect(result).toEqual(mockData);
   });
 

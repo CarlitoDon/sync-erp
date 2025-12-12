@@ -1,4 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { CompanySelectionPage } from '../../src/pages/CompanySelectionPage';
@@ -16,7 +21,9 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -24,7 +31,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock('../../src/contexts/AuthContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/AuthContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/AuthContext'
+  );
   return {
     ...actual,
     useAuth: vi.fn(),
@@ -56,7 +65,9 @@ describe('CompanySelectionPage', () => {
   });
 
   const setupCompanyMock = (
-    overrides: Partial<ReturnType<typeof CompanyContext.useCompany>> = {}
+    overrides: Partial<
+      ReturnType<typeof CompanyContext.useCompany>
+    > = {}
   ) => {
     vi.mocked(CompanyContext.useCompany).mockReturnValue({
       currentCompany: null,
@@ -82,7 +93,9 @@ describe('CompanySelectionPage', () => {
       setupCompanyMock({ isLoading: true });
       renderComponent();
 
-      expect(screen.getByText(/loading companies/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/loading companies/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -91,14 +104,18 @@ describe('CompanySelectionPage', () => {
       setupCompanyMock();
       renderComponent();
 
-      expect(screen.getByRole('heading', { name: /select a company/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /select a company/i })
+      ).toBeInTheDocument();
     });
 
     it('shows no companies message when list is empty', () => {
       setupCompanyMock({ companies: [] });
       renderComponent();
 
-      expect(screen.getByText(/not a member of any company/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/not a member of any company/i)
+      ).toBeInTheDocument();
     });
 
     it('displays company list when companies exist', () => {
@@ -115,14 +132,20 @@ describe('CompanySelectionPage', () => {
     });
 
     it('calls setCurrentCompany and navigates when company is selected', async () => {
-      const mockCompany = { id: '1', name: 'Acme Corp', createdAt: new Date() };
+      const mockCompany = {
+        id: '1',
+        name: 'Acme Corp',
+        createdAt: new Date(),
+      };
       setupCompanyMock({ companies: [mockCompany] });
       renderComponent();
 
       fireEvent.click(screen.getByText('Acme Corp'));
 
       await waitFor(() => {
-        expect(mockSetCurrentCompany).toHaveBeenCalledWith(mockCompany);
+        expect(mockSetCurrentCompany).toHaveBeenCalledWith(
+          mockCompany
+        );
         expect(mockNavigate).toHaveBeenCalledWith('/');
       });
     });
@@ -131,14 +154,18 @@ describe('CompanySelectionPage', () => {
       setupCompanyMock();
       renderComponent();
 
-      expect(screen.getByRole('button', { name: /create new company/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /create new company/i })
+      ).toBeInTheDocument();
     });
 
     it('shows Join Existing Company button', () => {
       setupCompanyMock();
       renderComponent();
 
-      expect(screen.getByRole('button', { name: /join existing company/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /join existing company/i })
+      ).toBeInTheDocument();
     });
   });
 
@@ -147,28 +174,44 @@ describe('CompanySelectionPage', () => {
       setupCompanyMock();
       renderComponent();
 
-      fireEvent.click(screen.getByRole('button', { name: /create new company/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /create new company/i })
+      );
 
       expect(screen.getByText(/create company/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/company name/i)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/company name/i)
+      ).toBeInTheDocument();
     });
 
     it('creates company on form submit', async () => {
-      const newCompany = { id: '3', name: 'New Corp', createdAt: new Date() };
-      vi.mocked(companyService.createCompany).mockResolvedValueOnce(newCompany);
+      const newCompany = {
+        id: '3',
+        name: 'New Corp',
+        createdAt: new Date(),
+      };
+      vi.mocked(companyService.createCompany).mockResolvedValueOnce(
+        newCompany
+      );
       mockRefreshCompanies.mockResolvedValueOnce(undefined);
 
       setupCompanyMock();
       renderComponent();
 
-      fireEvent.click(screen.getByRole('button', { name: /create new company/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /create new company/i })
+      );
       fireEvent.change(screen.getByLabelText(/company name/i), {
         target: { value: 'New Corp' },
       });
-      fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /^create$/i })
+      );
 
       await waitFor(() => {
-        expect(companyService.createCompany).toHaveBeenCalledWith({ name: 'New Corp' });
+        expect(companyService.createCompany).toHaveBeenCalledWith({
+          name: 'New Corp',
+        });
         expect(mockNavigate).toHaveBeenCalledWith('/');
       });
     });
@@ -177,10 +220,16 @@ describe('CompanySelectionPage', () => {
       setupCompanyMock();
       renderComponent();
 
-      fireEvent.click(screen.getByRole('button', { name: /create new company/i }));
-      fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /create new company/i })
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: /cancel/i })
+      );
 
-      expect(screen.queryByLabelText(/company name/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByLabelText(/company name/i)
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -189,28 +238,44 @@ describe('CompanySelectionPage', () => {
       setupCompanyMock();
       renderComponent();
 
-      fireEvent.click(screen.getByRole('button', { name: /join existing company/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /join existing company/i })
+      );
 
       expect(screen.getByText(/join company/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/invite code/i)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/invite code/i)
+      ).toBeInTheDocument();
     });
 
     it('joins company on form submit', async () => {
-      const joinedCompany = { id: '4', name: 'Partner Corp', createdAt: new Date() };
-      vi.mocked(companyService.joinCompany).mockResolvedValueOnce(joinedCompany);
+      const joinedCompany = {
+        id: '4',
+        name: 'Partner Corp',
+        createdAt: new Date(),
+      };
+      vi.mocked(companyService.joinCompany).mockResolvedValueOnce(
+        joinedCompany
+      );
       mockRefreshCompanies.mockResolvedValueOnce(undefined);
 
       setupCompanyMock();
       renderComponent();
 
-      fireEvent.click(screen.getByRole('button', { name: /join existing company/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /join existing company/i })
+      );
       fireEvent.change(screen.getByLabelText(/invite code/i), {
         target: { value: 'ABC123' },
       });
-      fireEvent.click(screen.getByRole('button', { name: /^join$/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /^join$/i })
+      );
 
       await waitFor(() => {
-        expect(companyService.joinCompany).toHaveBeenCalledWith({ inviteCode: 'ABC123' });
+        expect(companyService.joinCompany).toHaveBeenCalledWith({
+          inviteCode: 'ABC123',
+        });
         expect(mockNavigate).toHaveBeenCalledWith('/');
       });
     });
@@ -222,7 +287,9 @@ describe('CompanySelectionPage', () => {
       setupCompanyMock();
       renderComponent();
 
-      fireEvent.click(screen.getByRole('button', { name: /log out/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /log out/i })
+      );
 
       await waitFor(() => {
         expect(mockLogout).toHaveBeenCalled();

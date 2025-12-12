@@ -10,7 +10,9 @@ import {
 } from '@sync-erp/database';
 
 export class SalesRepository {
-  async create(data: Prisma.OrderUncheckedCreateInput): Promise<Order> {
+  async create(
+    data: Prisma.OrderUncheckedCreateInput
+  ): Promise<Order> {
     return prisma.order.create({
       data,
       include: {
@@ -24,7 +26,11 @@ export class SalesRepository {
     id: string,
     companyId: string
   ): Promise<
-    (Order & { items: (OrderItem & { product: Product })[]; partner: Partner | null }) | null
+    | (Order & {
+        items: (OrderItem & { product: Product })[];
+        partner: Partner | null;
+      })
+    | null
   > {
     return prisma.order.findFirst({
       where: { id, companyId, type: OrderType.SALES },
@@ -35,7 +41,10 @@ export class SalesRepository {
     });
   }
 
-  async findAll(companyId: string, status?: OrderStatus): Promise<Order[]> {
+  async findAll(
+    companyId: string,
+    status?: OrderStatus
+  ): Promise<Order[]> {
     return prisma.order.findMany({
       where: {
         companyId,
@@ -50,7 +59,10 @@ export class SalesRepository {
     });
   }
 
-  async updateStatus(id: string, status: OrderStatus): Promise<Order> {
+  async updateStatus(
+    id: string,
+    status: OrderStatus
+  ): Promise<Order> {
     return prisma.order.update({
       where: { id },
       data: { status },
@@ -67,7 +79,9 @@ export class SalesRepository {
     });
   }
 
-  async findItems(orderId: string): Promise<(OrderItem & { product: Product })[]> {
+  async findItems(
+    orderId: string
+  ): Promise<(OrderItem & { product: Product })[]> {
     return prisma.orderItem.findMany({
       where: { orderId },
       include: { product: true },

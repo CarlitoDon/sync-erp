@@ -1,13 +1,27 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ConfirmProvider, useConfirm } from '../../src/components/ConfirmModal';
+import {
+  ConfirmProvider,
+  useConfirm,
+} from '../../src/components/ConfirmModal';
 
 // Test component that uses the confirm hook
-function TestComponent({ options }: { options?: Parameters<ReturnType<typeof useConfirm>>[0] }) {
+function TestComponent({
+  options,
+}: {
+  options?: Parameters<ReturnType<typeof useConfirm>>[0];
+}) {
   const confirm = useConfirm();
 
   const handleClick = async () => {
-    const result = await confirm(options || { message: 'Are you sure?' });
+    const result = await confirm(
+      options || { message: 'Are you sure?' }
+    );
     // Store result in a data attribute for testing
     document.body.setAttribute('data-confirm-result', String(result));
   };
@@ -21,7 +35,9 @@ describe('ConfirmModal', () => {
     document.body.removeAttribute('data-confirm-result');
   });
 
-  const renderWithProvider = (options?: Parameters<ReturnType<typeof useConfirm>>[0]) => {
+  const renderWithProvider = (
+    options?: Parameters<ReturnType<typeof useConfirm>>[0]
+  ) => {
     return render(
       <ConfirmProvider>
         <TestComponent options={options} />
@@ -32,7 +48,9 @@ describe('ConfirmModal', () => {
   describe('useConfirm hook', () => {
     it('throws error when used outside ConfirmProvider', () => {
       // Suppress console.error for this test
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       expect(() => {
         render(<TestComponent />);
@@ -46,7 +64,9 @@ describe('ConfirmModal', () => {
     it('does not show modal initially', () => {
       renderWithProvider();
 
-      expect(screen.queryByText('Confirm Action')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Confirm Action')
+      ).not.toBeInTheDocument();
     });
 
     it('shows modal when confirm is called', async () => {
@@ -60,12 +80,17 @@ describe('ConfirmModal', () => {
     });
 
     it('displays custom title', async () => {
-      renderWithProvider({ message: 'Delete item?', title: 'Delete Confirmation' });
+      renderWithProvider({
+        message: 'Delete item?',
+        title: 'Delete Confirmation',
+      });
 
       fireEvent.click(screen.getByText('Open Confirm'));
 
       await waitFor(() => {
-        expect(screen.getByText('Delete Confirmation')).toBeInTheDocument();
+        expect(
+          screen.getByText('Delete Confirmation')
+        ).toBeInTheDocument();
       });
     });
 
@@ -75,12 +100,17 @@ describe('ConfirmModal', () => {
       fireEvent.click(screen.getByText('Open Confirm'));
 
       await waitFor(() => {
-        expect(screen.getByText('Confirm Action')).toBeInTheDocument();
+        expect(
+          screen.getByText('Confirm Action')
+        ).toBeInTheDocument();
       });
     });
 
     it('displays custom confirm text', async () => {
-      renderWithProvider({ message: 'Delete?', confirmText: 'Yes, Delete' });
+      renderWithProvider({
+        message: 'Delete?',
+        confirmText: 'Yes, Delete',
+      });
 
       fireEvent.click(screen.getByText('Open Confirm'));
 
@@ -90,7 +120,10 @@ describe('ConfirmModal', () => {
     });
 
     it('displays custom cancel text', async () => {
-      renderWithProvider({ message: 'Delete?', cancelText: 'No, Keep It' });
+      renderWithProvider({
+        message: 'Delete?',
+        cancelText: 'No, Keep It',
+      });
 
       fireEvent.click(screen.getByText('Open Confirm'));
 
@@ -124,7 +157,9 @@ describe('ConfirmModal', () => {
       fireEvent.click(screen.getByText('Confirm'));
 
       await waitFor(() => {
-        expect(document.body.getAttribute('data-confirm-result')).toBe('true');
+        expect(
+          document.body.getAttribute('data-confirm-result')
+        ).toBe('true');
       });
     });
 
@@ -140,7 +175,9 @@ describe('ConfirmModal', () => {
       fireEvent.click(screen.getByText('Cancel'));
 
       await waitFor(() => {
-        expect(document.body.getAttribute('data-confirm-result')).toBe('false');
+        expect(
+          document.body.getAttribute('data-confirm-result')
+        ).toBe('false');
       });
     });
 
@@ -156,7 +193,9 @@ describe('ConfirmModal', () => {
       fireEvent.click(screen.getByText('Confirm'));
 
       await waitFor(() => {
-        expect(screen.queryByText('Confirm this?')).not.toBeInTheDocument();
+        expect(
+          screen.queryByText('Confirm this?')
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -172,7 +211,9 @@ describe('ConfirmModal', () => {
       fireEvent.click(screen.getByText('Cancel'));
 
       await waitFor(() => {
-        expect(screen.queryByText('Cancel this?')).not.toBeInTheDocument();
+        expect(
+          screen.queryByText('Cancel this?')
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -191,7 +232,9 @@ describe('ConfirmModal', () => {
       fireEvent.click(backdrop!);
 
       await waitFor(() => {
-        expect(screen.queryByText('Backdrop test')).not.toBeInTheDocument();
+        expect(
+          screen.queryByText('Backdrop test')
+        ).not.toBeInTheDocument();
       });
     });
   });

@@ -1,11 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProductService } from './product.service';
-import { CreateProductSchema, UpdateProductSchema } from '@sync-erp/shared';
+import {
+  CreateProductSchema,
+  UpdateProductSchema,
+} from '@sync-erp/shared';
 
 export class ProductController {
   private service = new ProductService();
 
-  create = async (req: Request, res: Response, next: NextFunction) => {
+  create = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const validated = CreateProductSchema.parse(req.body);
@@ -26,12 +33,24 @@ export class ProductController {
     }
   };
 
-  getById = async (req: Request, res: Response, next: NextFunction) => {
+  getById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const product = await this.service.getById(req.params.id, companyId);
+      const product = await this.service.getById(
+        req.params.id,
+        companyId
+      );
       if (!product) {
-        return res.status(404).json({ success: false, error: { message: 'Product not found' } });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            error: { message: 'Product not found' },
+          });
       }
       res.json({ success: true, data: product });
     } catch (error) {
@@ -39,18 +58,30 @@ export class ProductController {
     }
   };
 
-  update = async (req: Request, res: Response, next: NextFunction) => {
+  update = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const validated = UpdateProductSchema.parse(req.body);
-      const product = await this.service.update(req.params.id, companyId, validated);
+      const product = await this.service.update(
+        req.params.id,
+        companyId,
+        validated
+      );
       res.json({ success: true, data: product });
     } catch (error) {
       next(error);
     }
   };
 
-  delete = async (req: Request, res: Response, next: NextFunction) => {
+  delete = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       await this.service.delete(req.params.id, companyId);
@@ -60,12 +91,24 @@ export class ProductController {
     }
   };
 
-  getStock = async (req: Request, res: Response, next: NextFunction) => {
+  getStock = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const product = await this.service.getById(req.params.id, companyId);
+      const product = await this.service.getById(
+        req.params.id,
+        companyId
+      );
       if (!product) {
-        return res.status(404).json({ success: false, error: { message: 'Product not found' } });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            error: { message: 'Product not found' },
+          });
       }
       res.json({
         success: true,

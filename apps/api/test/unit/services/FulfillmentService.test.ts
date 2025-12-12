@@ -32,8 +32,10 @@ describe('FulfillmentService', () => {
     resetMocks();
     vi.clearAllMocks();
     service = new FulfillmentService();
-    mockSalesOrderService = (SalesOrderService as any).mock.results[0]?.value || {};
-    mockInventoryService = (InventoryService as any).mock.results[0]?.value || {};
+    mockSalesOrderService =
+      (SalesOrderService as any).mock.results[0]?.value || {};
+    mockInventoryService =
+      (InventoryService as any).mock.results[0]?.value || {};
   });
 
   describe('processShipment', () => {
@@ -44,37 +46,50 @@ describe('FulfillmentService', () => {
         status: 'CONFIRMED',
         items: [{ productId: 'prod-1', quantity: 5 }],
       };
-      const mockMovements = [{ id: 'mov-1', type: 'OUT', quantity: 5 }];
+      const mockMovements = [
+        { id: 'mov-1', type: 'OUT', quantity: 5 },
+      ];
 
       // Setup mocks on the instance
-      (service as any).salesOrderService.getById = vi.fn().mockResolvedValue(mockOrder);
-      (service as any).inventoryService.processShipment = vi.fn().mockResolvedValue(mockMovements);
-      (service as any).salesOrderService.complete = vi.fn().mockResolvedValue(mockOrder);
+      (service as any).salesOrderService.getById = vi
+        .fn()
+        .mockResolvedValue(mockOrder);
+      (service as any).inventoryService.processShipment = vi
+        .fn()
+        .mockResolvedValue(mockMovements);
+      (service as any).salesOrderService.complete = vi
+        .fn()
+        .mockResolvedValue(mockOrder);
 
-      const result = await service.processShipment(companyId, { orderId: 'order-1' });
+      const result = await service.processShipment(companyId, {
+        orderId: 'order-1',
+      });
 
       expect(result).toEqual(mockMovements);
-      expect((service as any).salesOrderService.complete).toHaveBeenCalledWith(
-        'order-1',
-        companyId
-      );
+      expect(
+        (service as any).salesOrderService.complete
+      ).toHaveBeenCalledWith('order-1', companyId);
     });
 
     it('should throw error if order not found', async () => {
-      (service as any).salesOrderService.getById = vi.fn().mockResolvedValue(null);
+      (service as any).salesOrderService.getById = vi
+        .fn()
+        .mockResolvedValue(null);
 
-      await expect(service.processShipment(companyId, { orderId: 'nonexistent' })).rejects.toThrow(
-        'Sales order not found'
-      );
+      await expect(
+        service.processShipment(companyId, { orderId: 'nonexistent' })
+      ).rejects.toThrow('Sales order not found');
     });
 
     it('should throw error if order is not confirmed', async () => {
       const mockOrder = { id: 'order-1', status: 'DRAFT' };
-      (service as any).salesOrderService.getById = vi.fn().mockResolvedValue(mockOrder);
+      (service as any).salesOrderService.getById = vi
+        .fn()
+        .mockResolvedValue(mockOrder);
 
-      await expect(service.processShipment(companyId, { orderId: 'order-1' })).rejects.toThrow(
-        'Order must be confirmed before shipping'
-      );
+      await expect(
+        service.processShipment(companyId, { orderId: 'order-1' })
+      ).rejects.toThrow('Order must be confirmed before shipping');
     });
   });
 

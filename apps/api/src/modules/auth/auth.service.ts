@@ -55,12 +55,27 @@ export class AuthService {
 
     const user = await this.userService.getByEmail(email);
     if (!user) {
-      return { success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid credentials' } };
+      return {
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid credentials',
+        },
+      };
     }
 
-    const isValid = await comparePassword(password, user.passwordHash);
+    const isValid = await comparePassword(
+      password,
+      user.passwordHash
+    );
     if (!isValid) {
-      return { success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid credentials' } };
+      return {
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid credentials',
+        },
+      };
     }
 
     const session = await this.repository.createSession(user.id);

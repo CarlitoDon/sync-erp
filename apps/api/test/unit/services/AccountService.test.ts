@@ -47,7 +47,12 @@ describe('AccountService', () => {
 
   describe('getById', () => {
     it('should return an account by ID', async () => {
-      const mockAccount = { id: 'acc-1', companyId, code: '1100', name: 'Cash' };
+      const mockAccount = {
+        id: 'acc-1',
+        companyId,
+        code: '1100',
+        name: 'Cash',
+      };
       mockPrisma.account.findFirst.mockResolvedValue(mockAccount);
 
       const result = await service.getById('acc-1', companyId);
@@ -66,7 +71,12 @@ describe('AccountService', () => {
 
   describe('getByCode', () => {
     it('should return an account by code', async () => {
-      const mockAccount = { id: 'acc-1', companyId, code: '1100', name: 'Cash' };
+      const mockAccount = {
+        id: 'acc-1',
+        companyId,
+        code: '1100',
+        name: 'Cash',
+      };
       mockPrisma.account.findFirst.mockResolvedValue(mockAccount);
 
       const result = await service.getByCode(companyId, '1100');
@@ -92,7 +102,9 @@ describe('AccountService', () => {
     });
 
     it('should filter by account type', async () => {
-      const mockAccounts = [{ id: 'acc-1', code: '1100', type: 'ASSET' }];
+      const mockAccounts = [
+        { id: 'acc-1', code: '1100', type: 'ASSET' },
+      ];
       mockPrisma.account.findMany.mockResolvedValue(mockAccounts);
 
       const result = await service.list(companyId, 'ASSET' as any);
@@ -107,10 +119,16 @@ describe('AccountService', () => {
 
   describe('update', () => {
     it('should update an account', async () => {
-      const updatedAccount = { id: 'acc-1', name: 'Cash on Hand', isActive: true };
+      const updatedAccount = {
+        id: 'acc-1',
+        name: 'Cash on Hand',
+        isActive: true,
+      };
       mockPrisma.account.update.mockResolvedValue(updatedAccount);
 
-      const result = await service.update('acc-1', companyId, { name: 'Cash on Hand' });
+      const result = await service.update('acc-1', companyId, {
+        name: 'Cash on Hand',
+      });
 
       expect(result.name).toBe('Cash on Hand');
     });
@@ -137,7 +155,11 @@ describe('AccountService', () => {
     it('should skip existing accounts when seeding', async () => {
       // First account exists, rest don't
       mockPrisma.account.findFirst
-        .mockResolvedValueOnce({ id: 'existing', code: '1100', name: 'Cash' })
+        .mockResolvedValueOnce({
+          id: 'existing',
+          code: '1100',
+          name: 'Cash',
+        })
         .mockResolvedValue(null);
 
       mockPrisma.account.create.mockImplementation((args) =>

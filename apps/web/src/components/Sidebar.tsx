@@ -11,7 +11,8 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function Sidebar() {
-  const { isCollapsed, toggleCollapse, isMobileOpen, closeMobile } = useSidebar();
+  const { isCollapsed, toggleCollapse, isMobileOpen, closeMobile } =
+    useSidebar();
   const { currentCompany } = useCompany();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -25,7 +26,10 @@ export default function Sidebar() {
     <>
       {/* Mobile overlay */}
       {isMobileOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={closeMobile} />
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={closeMobile}
+        />
       )}
 
       {/* Sidebar */}
@@ -99,9 +103,13 @@ export default function Sidebar() {
           {/* User Info */}
           {!isCollapsed && user && (
             <div className="px-3 py-2 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {user.name}
+              </p>
               {currentCompany && (
-                <p className="text-xs text-gray-500 truncate">{currentCompany.name}</p>
+                <p className="text-xs text-gray-500 truncate">
+                  {currentCompany.name}
+                </p>
               )}
             </div>
           )}

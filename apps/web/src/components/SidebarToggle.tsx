@@ -1,4 +1,7 @@
-import { ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from '@heroicons/react/24/outline';
+import {
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+} from '@heroicons/react/24/outline';
 import { useSidebar } from '../contexts/SidebarContext';
 
 export default function SidebarToggle() {

@@ -43,7 +43,9 @@ export function useCompanyData<T>(
       setData(result);
     } catch (err) {
       console.error('Failed to load data:', err);
-      setError(err instanceof Error ? err : new Error('Unknown error'));
+      setError(
+        err instanceof Error ? err : new Error('Unknown error')
+      );
     } finally {
       setLoading(false);
     }

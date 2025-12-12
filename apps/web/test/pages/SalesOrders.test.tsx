@@ -6,7 +6,9 @@ import * as useCompanyDataHook from '../../src/hooks/useCompanyData';
 import { ConfirmProvider } from '../../src/components/ConfirmModal';
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -14,7 +16,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock('../../src/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual('../../src/hooks/useCompanyData');
+  const actual = await vi.importActual(
+    '../../src/hooks/useCompanyData'
+  );
   return {
     ...actual,
     useCompanyData: vi.fn(),
@@ -45,7 +49,9 @@ describe('SalesOrders', () => {
   });
 
   const setupMocks = (options: {
-    currentCompany?: ReturnType<typeof CompanyContext.useCompany>['currentCompany'];
+    currentCompany?: ReturnType<
+      typeof CompanyContext.useCompany
+    >['currentCompany'];
     loading?: boolean;
     orders?: unknown[];
     customers?: unknown[];
@@ -90,7 +96,9 @@ describe('SalesOrders', () => {
     it('shows loading spinner when data is loading', () => {
       setupMocks({ loading: true });
       renderComponent();
-      expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+      expect(
+        document.querySelector('.animate-spin')
+      ).toBeInTheDocument();
     });
   });
 
@@ -98,19 +106,25 @@ describe('SalesOrders', () => {
     it('renders sales orders heading', () => {
       setupMocks({});
       renderComponent();
-      expect(screen.getByRole('heading', { name: /sales orders/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /sales orders/i })
+      ).toBeInTheDocument();
     });
 
     it('renders create order button', () => {
       setupMocks({});
       renderComponent();
-      expect(screen.getByRole('button', { name: /create so/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /create so/i })
+      ).toBeInTheDocument();
     });
 
     it('shows empty message when no orders', () => {
       setupMocks({ orders: [] });
       renderComponent();
-      expect(screen.getByText(/no sales orders found/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/no sales orders found/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -141,8 +155,12 @@ describe('SalesOrders', () => {
       setupMocks({});
       renderComponent();
 
-      fireEvent.click(screen.getByRole('button', { name: /create so/i }));
-      expect(screen.getByText(/new sales order/i)).toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', { name: /create so/i })
+      );
+      expect(
+        screen.getByText(/new sales order/i)
+      ).toBeInTheDocument();
     });
   });
 });

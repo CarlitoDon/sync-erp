@@ -5,18 +5,26 @@ import { CreateCompanyDto, JoinCompanyDto } from '@sync-erp/shared';
 export class CompanyService {
   private repository = new CompanyRepository();
 
-  async create(data: CreateCompanyDto, userId?: string): Promise<Company> {
+  async create(
+    data: CreateCompanyDto,
+    userId?: string
+  ): Promise<Company> {
     return this.repository.create({ name: data.name, userId });
   }
 
   async join(data: JoinCompanyDto, userId: string): Promise<Company> {
-    const company = await this.repository.findByInviteCode(data.inviteCode);
+    const company = await this.repository.findByInviteCode(
+      data.inviteCode
+    );
 
     if (!company) {
       throw new Error('Invalid invite code');
     }
 
-    const membership = await this.repository.findMembership(userId, company.id);
+    const membership = await this.repository.findMembership(
+      userId,
+      company.id
+    );
     if (membership) {
       throw new Error('User is already a member of this company');
     }
@@ -35,8 +43,14 @@ export class CompanyService {
     return memberships.map((m) => m.company);
   }
 
-  async isMember(userId: string, companyId: string): Promise<boolean> {
-    const membership = await this.repository.findMembership(userId, companyId);
+  async isMember(
+    userId: string,
+    companyId: string
+  ): Promise<boolean> {
+    const membership = await this.repository.findMembership(
+      userId,
+      companyId
+    );
     return !!membership;
   }
 }

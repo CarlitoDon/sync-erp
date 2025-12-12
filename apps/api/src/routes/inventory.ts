@@ -11,7 +11,10 @@ inventoryRouter.get('/stock', controller.getStockLevels);
 inventoryRouter.get('/movements', controller.getMovements);
 
 // POST /api/inventory/goods-receipt - Process goods receipt from PO
-inventoryRouter.post('/goods-receipt', controller.processGoodsReceipt);
+inventoryRouter.post(
+  '/goods-receipt',
+  controller.processGoodsReceipt
+);
 
 // POST /api/inventory/adjust - Manual stock adjustment
 inventoryRouter.post('/adjust', controller.adjustStock);

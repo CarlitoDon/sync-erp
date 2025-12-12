@@ -34,11 +34,12 @@ export default function PurchaseOrders() {
     refresh: loadData,
   } = useCompanyData<PurchaseOrdersData>(
     async () => {
-      const [ordersData, suppliersData, productsData] = await Promise.all([
-        purchaseOrderService.list(),
-        partnerService.listSuppliers(),
-        productService.list(),
-      ]);
+      const [ordersData, suppliersData, productsData] =
+        await Promise.all([
+          purchaseOrderService.list(),
+          partnerService.listSuppliers(),
+          productService.list(),
+        ]);
       return {
         orders: ordersData,
         suppliers: suppliersData,
@@ -96,7 +97,10 @@ export default function PurchaseOrders() {
   };
 
   const handleConfirm = async (id: string) => {
-    await apiAction(() => purchaseOrderService.confirm(id), 'Order confirmed!');
+    await apiAction(
+      () => purchaseOrderService.confirm(id),
+      'Order confirmed!'
+    );
     loadData();
   };
 
@@ -116,12 +120,18 @@ export default function PurchaseOrders() {
       variant: 'danger',
     });
     if (!confirmed) return;
-    await apiAction(() => purchaseOrderService.cancel(id), 'Order cancelled');
+    await apiAction(
+      () => purchaseOrderService.cancel(id),
+      'Order cancelled'
+    );
     loadData();
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+    }).format(value);
   };
 
   const getStatusColor = (status: string) => {
@@ -145,7 +155,10 @@ export default function PurchaseOrders() {
   };
 
   const calculateTotal = () => {
-    return formData.items.reduce((sum, item) => sum + item.quantity * item.price, 0);
+    return formData.items.reduce(
+      (sum, item) => sum + item.quantity * item.price,
+      0
+    );
   };
 
   if (loading) {
@@ -168,8 +181,12 @@ export default function PurchaseOrders() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Purchase Orders</h1>
-          <p className="text-gray-500">Manage your purchasing workflow for {currentCompany.name}</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Purchase Orders
+          </h1>
+          <p className="text-gray-500">
+            Manage your purchasing workflow for {currentCompany.name}
+          </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -181,14 +198,23 @@ export default function PurchaseOrders() {
 
       {showForm && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">New Purchase Order</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            New Purchase Order
+          </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Supplier *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Supplier *
+              </label>
               <select
                 required
                 value={formData.partnerId}
-                onChange={(e) => setFormData({ ...formData, partnerId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    partnerId: e.target.value,
+                  })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Select a supplier</option>
@@ -201,10 +227,17 @@ export default function PurchaseOrders() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tax Rate
+              </label>
               <select
                 value={formData.taxRate || 0}
-                onChange={(e) => setFormData({ ...formData, taxRate: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    taxRate: Number(e.target.value),
+                  })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               >
                 <option value={0}>No Tax (0%)</option>
@@ -220,7 +253,9 @@ export default function PurchaseOrders() {
                   <select
                     value={currentItem.productId}
                     onChange={(e) => {
-                      const product = products.find((p) => p.id === e.target.value);
+                      const product = products.find(
+                        (p) => p.id === e.target.value
+                      );
                       setCurrentItem({
                         ...currentItem,
                         productId: e.target.value,
@@ -244,7 +279,10 @@ export default function PurchaseOrders() {
                     placeholder="Qty"
                     value={currentItem.quantity}
                     onChange={(e) =>
-                      setCurrentItem({ ...currentItem, quantity: parseInt(e.target.value) || 1 })
+                      setCurrentItem({
+                        ...currentItem,
+                        quantity: parseInt(e.target.value) || 1,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
@@ -257,7 +295,10 @@ export default function PurchaseOrders() {
                     placeholder="Unit Price"
                     value={currentItem.price}
                     onChange={(e) =>
-                      setCurrentItem({ ...currentItem, price: parseFloat(e.target.value) || 0 })
+                      setCurrentItem({
+                        ...currentItem,
+                        price: parseFloat(e.target.value) || 0,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
@@ -275,34 +316,56 @@ export default function PurchaseOrders() {
                 <table className="w-full mt-4">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-2 text-left text-sm">Product</th>
-                      <th className="px-4 py-2 text-right text-sm">Qty</th>
-                      <th className="px-4 py-2 text-right text-sm">Unit Price</th>
-                      <th className="px-4 py-2 text-right text-sm">Total</th>
+                      <th className="px-4 py-2 text-left text-sm">
+                        Product
+                      </th>
+                      <th className="px-4 py-2 text-right text-sm">
+                        Qty
+                      </th>
+                      <th className="px-4 py-2 text-right text-sm">
+                        Unit Price
+                      </th>
+                      <th className="px-4 py-2 text-right text-sm">
+                        Total
+                      </th>
                       <th className="px-4 py-2"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {formData.items.map((item, index) => (
                       <tr key={index} className="border-t">
-                        <td className="px-4 py-2">{getProductName(item.productId)}</td>
-                        <td className="px-4 py-2 text-right">{item.quantity}</td>
-                        <td className="px-4 py-2 text-right">{formatCurrency(item.price)}</td>
+                        <td className="px-4 py-2">
+                          {getProductName(item.productId)}
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          {item.quantity}
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          {formatCurrency(item.price)}
+                        </td>
                         <td className="px-4 py-2 text-right">
                           {formatCurrency(item.quantity * item.price)}
                         </td>
                         <td className="px-4 py-2 text-right">
-                          <ActionButton onClick={() => handleRemoveItem(index)} variant="danger">
+                          <ActionButton
+                            onClick={() => handleRemoveItem(index)}
+                            variant="danger"
+                          >
                             Remove
                           </ActionButton>
                         </td>
                       </tr>
                     ))}
                     <tr className="border-t font-semibold">
-                      <td colSpan={3} className="px-4 py-2 text-right">
+                      <td
+                        colSpan={3}
+                        className="px-4 py-2 text-right"
+                      >
                         Total:
                       </td>
-                      <td className="px-4 py-2 text-right">{formatCurrency(calculateTotal())}</td>
+                      <td className="px-4 py-2 text-right">
+                        {formatCurrency(calculateTotal())}
+                      </td>
                       <td></td>
                     </tr>
                   </tbody>
@@ -345,15 +408,22 @@ export default function PurchaseOrders() {
           <tbody className="divide-y divide-gray-200">
             {orders.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <td
+                  colSpan={5}
+                  className="px-6 py-12 text-center text-gray-500"
+                >
                   No purchase orders found for this company.
                 </td>
               </tr>
             ) : (
               orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-mono text-sm">{order.orderNumber}</td>
-                  <td className="px-6 py-4">{order.partner?.name || '-'}</td>
+                  <td className="px-6 py-4 font-mono text-sm">
+                    {order.orderNumber}
+                  </td>
+                  <td className="px-6 py-4">
+                    {order.partner?.name || '-'}
+                  </td>
                   <td className="px-6 py-4 text-right">
                     {formatCurrency(Number(order.totalAmount))}
                   </td>
@@ -367,16 +437,25 @@ export default function PurchaseOrders() {
                   <td className="px-6 py-4 text-right space-x-2">
                     {order.status === 'DRAFT' && (
                       <>
-                        <ActionButton onClick={() => handleConfirm(order.id)} variant="primary">
+                        <ActionButton
+                          onClick={() => handleConfirm(order.id)}
+                          variant="primary"
+                        >
                           Confirm
                         </ActionButton>
-                        <ActionButton onClick={() => handleCancel(order.id)} variant="danger">
+                        <ActionButton
+                          onClick={() => handleCancel(order.id)}
+                          variant="danger"
+                        >
                           Cancel
                         </ActionButton>
                       </>
                     )}
                     {order.status === 'CONFIRMED' && (
-                      <ActionButton onClick={() => handleGoodsReceipt(order.id)} variant="success">
+                      <ActionButton
+                        onClick={() => handleGoodsReceipt(order.id)}
+                        variant="success"
+                      >
                         Receive Goods
                       </ActionButton>
                     )}

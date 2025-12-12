@@ -16,23 +16,42 @@ export class PaymentController {
     }
   };
 
-  create = async (req: Request, res: Response, next: NextFunction) => {
+  create = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       // Validate generic input for now, assume FE sends CreatePaymentDto shape
-      const payment = await this.service.create(companyId, req.body as CreatePaymentDto);
+      const payment = await this.service.create(
+        companyId,
+        req.body as CreatePaymentDto
+      );
       res.status(201).json({ success: true, data: payment });
     } catch (error) {
       next(error);
     }
   };
 
-  getById = async (req: Request, res: Response, next: NextFunction) => {
+  getById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const payment = await this.service.getById(req.params.id, companyId);
+      const payment = await this.service.getById(
+        req.params.id,
+        companyId
+      );
       if (!payment) {
-        return res.status(404).json({ success: false, error: { message: 'Payment not found' } });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            error: { message: 'Payment not found' },
+          });
       }
       res.json({ success: true, data: payment });
     } catch (error) {
@@ -40,7 +59,11 @@ export class PaymentController {
     }
   };
 
-  getPaymentHistory = async (req: Request, res: Response, next: NextFunction) => {
+  getPaymentHistory = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       // Route param :invoiceId

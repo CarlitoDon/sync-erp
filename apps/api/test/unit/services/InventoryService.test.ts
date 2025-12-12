@@ -57,22 +57,38 @@ describe('InventoryService', () => {
       ];
       const mockMovement = { id: 'mov-1', type: 'IN', quantity: 10 };
 
-      (service as any).purchaseOrderService.getById = vi.fn().mockResolvedValue(mockOrder);
-      (service as any).purchaseOrderService.getItems = vi.fn().mockResolvedValue(mockItems);
-      (service as any).purchaseOrderService.complete = vi.fn().mockResolvedValue(mockOrder);
-      (mockPrisma as any).inventoryMovement.create.mockResolvedValue(mockMovement);
+      (service as any).purchaseOrderService.getById = vi
+        .fn()
+        .mockResolvedValue(mockOrder);
+      (service as any).purchaseOrderService.getItems = vi
+        .fn()
+        .mockResolvedValue(mockItems);
+      (service as any).purchaseOrderService.complete = vi
+        .fn()
+        .mockResolvedValue(mockOrder);
+      (mockPrisma as any).inventoryMovement.create.mockResolvedValue(
+        mockMovement
+      );
 
-      const result = await service.processGoodsReceipt(companyId, { orderId: 'order-1' });
+      const result = await service.processGoodsReceipt(companyId, {
+        orderId: 'order-1',
+      });
 
       expect(result).toHaveLength(2);
-      expect((service as any).purchaseOrderService.complete).toHaveBeenCalled();
+      expect(
+        (service as any).purchaseOrderService.complete
+      ).toHaveBeenCalled();
     });
 
     it('should throw error if order not found', async () => {
-      (service as any).purchaseOrderService.getById = vi.fn().mockResolvedValue(null);
+      (service as any).purchaseOrderService.getById = vi
+        .fn()
+        .mockResolvedValue(null);
 
       await expect(
-        service.processGoodsReceipt(companyId, { orderId: 'nonexistent' })
+        service.processGoodsReceipt(companyId, {
+          orderId: 'nonexistent',
+        })
       ).rejects.toThrow('Purchase order not found');
     });
   });
@@ -89,9 +105,14 @@ describe('InventoryService', () => {
 
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
       mockPrisma.product.findUnique.mockResolvedValue(mockProduct);
-      (mockPrisma as any).inventoryMovement.create.mockResolvedValue(mockMovement);
+      (mockPrisma as any).inventoryMovement.create.mockResolvedValue(
+        mockMovement
+      );
 
-      const result = await service.processShipment(companyId, 'order-1');
+      const result = await service.processShipment(
+        companyId,
+        'order-1'
+      );
 
       expect(result).toHaveLength(1);
     });
@@ -99,9 +120,9 @@ describe('InventoryService', () => {
     it('should throw error if order not found', async () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
-      await expect(service.processShipment(companyId, 'nonexistent')).rejects.toThrow(
-        'Order not found'
-      );
+      await expect(
+        service.processShipment(companyId, 'nonexistent')
+      ).rejects.toThrow('Order not found');
     });
 
     it('should throw error if insufficient stock', async () => {
@@ -111,11 +132,13 @@ describe('InventoryService', () => {
       };
 
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
-      (service as any).productService.checkStock = vi.fn().mockResolvedValue(false);
+      (service as any).productService.checkStock = vi
+        .fn()
+        .mockResolvedValue(false);
 
-      await expect(service.processShipment(companyId, 'order-1')).rejects.toThrow(
-        'Insufficient stock'
-      );
+      await expect(
+        service.processShipment(companyId, 'order-1')
+      ).rejects.toThrow('Insufficient stock');
     });
   });
 
@@ -128,9 +151,15 @@ describe('InventoryService', () => {
 
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
       mockPrisma.product.findUnique.mockResolvedValue(mockProduct);
-      (mockPrisma as any).inventoryMovement.create.mockResolvedValue(mockMovement);
+      (mockPrisma as any).inventoryMovement.create.mockResolvedValue(
+        mockMovement
+      );
 
-      const result = await service.processReturn(companyId, 'order-1', items);
+      const result = await service.processReturn(
+        companyId,
+        'order-1',
+        items
+      );
 
       expect(result).toHaveLength(1);
     });
@@ -139,18 +168,26 @@ describe('InventoryService', () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.processReturn(companyId, 'nonexistent', [{ productId: 'prod-1', quantity: 1 }])
+        service.processReturn(companyId, 'nonexistent', [
+          { productId: 'prod-1', quantity: 1 },
+        ])
       ).rejects.toThrow('Order not found');
     });
   });
 
   describe('adjustStock', () => {
     it('should create positive adjustment (stock gain)', async () => {
-      const mockProduct = { id: 'prod-1', stockQty: 10, averageCost: 50 };
+      const mockProduct = {
+        id: 'prod-1',
+        stockQty: 10,
+        averageCost: 50,
+      };
       const mockMovement = { id: 'mov-1', type: 'IN', quantity: 5 };
 
       mockPrisma.product.findUnique.mockResolvedValue(mockProduct);
-      (mockPrisma as any).inventoryMovement.create.mockResolvedValue(mockMovement);
+      (mockPrisma as any).inventoryMovement.create.mockResolvedValue(
+        mockMovement
+      );
 
       const result = await service.adjustStock(companyId, {
         productId: 'prod-1',
@@ -162,11 +199,17 @@ describe('InventoryService', () => {
     });
 
     it('should create negative adjustment (stock loss)', async () => {
-      const mockProduct = { id: 'prod-1', stockQty: 10, averageCost: 50 };
+      const mockProduct = {
+        id: 'prod-1',
+        stockQty: 10,
+        averageCost: 50,
+      };
       const mockMovement = { id: 'mov-1', type: 'OUT', quantity: 3 };
 
       mockPrisma.product.findUnique.mockResolvedValue(mockProduct);
-      (mockPrisma as any).inventoryMovement.create.mockResolvedValue(mockMovement);
+      (mockPrisma as any).inventoryMovement.create.mockResolvedValue(
+        mockMovement
+      );
 
       const result = await service.adjustStock(companyId, {
         productId: 'prod-1',
@@ -181,17 +224,29 @@ describe('InventoryService', () => {
       mockPrisma.product.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.adjustStock(companyId, { productId: 'nonexistent', quantity: 5, costPerUnit: 10 })
+        service.adjustStock(companyId, {
+          productId: 'nonexistent',
+          quantity: 5,
+          costPerUnit: 10,
+        })
       ).rejects.toThrow('Product not found');
     });
 
     it('should throw error if insufficient stock for negative adjustment', async () => {
-      const mockProduct = { id: 'prod-1', stockQty: 5, averageCost: 50 };
+      const mockProduct = {
+        id: 'prod-1',
+        stockQty: 5,
+        averageCost: 50,
+      };
 
       mockPrisma.product.findUnique.mockResolvedValue(mockProduct);
 
       await expect(
-        service.adjustStock(companyId, { productId: 'prod-1', quantity: -10, costPerUnit: 50 })
+        service.adjustStock(companyId, {
+          productId: 'prod-1',
+          quantity: -10,
+          costPerUnit: 50,
+        })
       ).rejects.toThrow('Insufficient stock');
     });
   });
@@ -203,7 +258,9 @@ describe('InventoryService', () => {
         { id: 'mov-2', type: 'OUT' },
       ];
 
-      (mockPrisma as any).inventoryMovement.findMany.mockResolvedValue(mockMovements);
+      (
+        mockPrisma as any
+      ).inventoryMovement.findMany.mockResolvedValue(mockMovements);
 
       const result = await service.getMovements(companyId);
 
@@ -211,9 +268,13 @@ describe('InventoryService', () => {
     });
 
     it('should filter by productId', async () => {
-      const mockMovements = [{ id: 'mov-1', productId: 'prod-1', type: 'IN' }];
+      const mockMovements = [
+        { id: 'mov-1', productId: 'prod-1', type: 'IN' },
+      ];
 
-      (mockPrisma as any).inventoryMovement.findMany.mockResolvedValue(mockMovements);
+      (
+        mockPrisma as any
+      ).inventoryMovement.findMany.mockResolvedValue(mockMovements);
 
       const result = await service.getMovements(companyId, 'prod-1');
 
@@ -224,7 +285,12 @@ describe('InventoryService', () => {
   describe('getStockLevels', () => {
     it('should return stock levels for all products', async () => {
       const mockProducts = [
-        { id: 'prod-1', sku: 'SKU1', name: 'Product 1', stockQty: 10 },
+        {
+          id: 'prod-1',
+          sku: 'SKU1',
+          name: 'Product 1',
+          stockQty: 10,
+        },
         { id: 'prod-2', sku: 'SKU2', name: 'Product 2', stockQty: 5 },
       ];
 

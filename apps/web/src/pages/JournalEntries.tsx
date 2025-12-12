@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { financeService, JournalEntry, Account } from '../services/financeService';
+import {
+  financeService,
+  JournalEntry,
+  Account,
+} from '../services/financeService';
 // import { CreateJournalEntryInput, CreateJournalLineInput } from '@sync-erp/shared';
 // Defining locally to avoid build issues
 interface CreateJournalLineInput {
@@ -25,7 +29,9 @@ export default function JournalEntries() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State
-  const [formData, setFormData] = useState<Partial<CreateJournalEntryInput>>({
+  const [formData, setFormData] = useState<
+    Partial<CreateJournalEntryInput>
+  >({
     date: new Date().toISOString().split('T')[0],
     reference: '',
     memo: '',
@@ -35,57 +41,69 @@ export default function JournalEntries() {
     ],
   });
 
-  const { execute: loadData, loading: loadingData } = useApiAction(async () => {
-    const [jParams, aParams] = await Promise.all([
-      financeService.listJournals(),
-      financeService.listAccounts(),
-    ]);
-    setJournals(jParams);
-    setAccounts(aParams);
-  });
-
-  const { execute: submitJournal, loading: submitting } = useApiAction(async () => {
-    if (!formData.date || !formData.lines || formData.lines.length < 2) return;
-
-    // Validate balance
-    const totalDebit = formData.lines.reduce(
-      (sum: number, l: CreateJournalLineInput) => sum + (Number(l.debit) || 0),
-      0
-    );
-    const totalCredit = formData.lines.reduce(
-      (sum: number, l: CreateJournalLineInput) => sum + (Number(l.credit) || 0),
-      0
-    );
-
-    if (Math.abs(totalDebit - totalCredit) > 1) {
-      // 1 unit tolerance
-      throw new Error(`Entry is unbalanced. Debit: ${totalDebit}, Credit: ${totalCredit}`);
+  const { execute: loadData, loading: loadingData } = useApiAction(
+    async () => {
+      const [jParams, aParams] = await Promise.all([
+        financeService.listJournals(),
+        financeService.listAccounts(),
+      ]);
+      setJournals(jParams);
+      setAccounts(aParams);
     }
+  );
 
-    if (formData.lines.some((l) => !l.accountId)) {
-      throw new Error('All lines must have an account selected.');
-    }
+  const { execute: submitJournal, loading: submitting } =
+    useApiAction(async () => {
+      if (
+        !formData.date ||
+        !formData.lines ||
+        formData.lines.length < 2
+      )
+        return;
 
-    await financeService.createJournal({
-      date: new Date(formData.date).toISOString().split('T')[0], // Ensure YYYY-MM-DD
-      reference: formData.reference,
-      memo: formData.memo,
-      lines: formData.lines as CreateJournalLineInput[],
+      // Validate balance
+      const totalDebit = formData.lines.reduce(
+        (sum: number, l: CreateJournalLineInput) =>
+          sum + (Number(l.debit) || 0),
+        0
+      );
+      const totalCredit = formData.lines.reduce(
+        (sum: number, l: CreateJournalLineInput) =>
+          sum + (Number(l.credit) || 0),
+        0
+      );
+
+      if (Math.abs(totalDebit - totalCredit) > 1) {
+        // 1 unit tolerance
+        throw new Error(
+          `Entry is unbalanced. Debit: ${totalDebit}, Credit: ${totalCredit}`
+        );
+      }
+
+      if (formData.lines.some((l) => !l.accountId)) {
+        throw new Error('All lines must have an account selected.');
+      }
+
+      await financeService.createJournal({
+        date: new Date(formData.date).toISOString().split('T')[0], // Ensure YYYY-MM-DD
+        reference: formData.reference,
+        memo: formData.memo,
+        lines: formData.lines as CreateJournalLineInput[],
+      });
+
+      setIsModalOpen(false);
+      setFormData({
+        date: new Date().toISOString().split('T')[0],
+        reference: '',
+        memo: '',
+        lines: [
+          { accountId: '', debit: 0, credit: 0 },
+          { accountId: '', debit: 0, credit: 0 },
+        ],
+      });
+      toast.success('Journal entry posted successfully');
+      loadData();
     });
-
-    setIsModalOpen(false);
-    setFormData({
-      date: new Date().toISOString().split('T')[0],
-      reference: '',
-      memo: '',
-      lines: [
-        { accountId: '', debit: 0, credit: 0 },
-        { accountId: '', debit: 0, credit: 0 },
-      ],
-    });
-    toast.success('Journal entry posted successfully');
-    loadData();
-  });
 
   useEffect(() => {
     loadData();
@@ -104,7 +122,10 @@ export default function JournalEntries() {
   const addLine = () => {
     setFormData({
       ...formData,
-      lines: [...(formData.lines || []), { accountId: '', debit: 0, credit: 0 }],
+      lines: [
+        ...(formData.lines || []),
+        { accountId: '', debit: 0, credit: 0 },
+      ],
     });
   };
 
@@ -118,28 +139,41 @@ export default function JournalEntries() {
   // Calculations
   const totalDebit =
     formData.lines?.reduce(
-      (sum: number, l: CreateJournalLineInput) => sum + (Number(l.debit) || 0),
+      (sum: number, l: CreateJournalLineInput) =>
+        sum + (Number(l.debit) || 0),
       0
     ) || 0;
   const totalCredit =
     formData.lines?.reduce(
-      (sum: number, l: CreateJournalLineInput) => sum + (Number(l.credit) || 0),
+      (sum: number, l: CreateJournalLineInput) =>
+        sum + (Number(l.credit) || 0),
       0
     ) || 0;
   const isBalanced = Math.abs(totalDebit - totalCredit) < 1;
 
   if (loadingData && journals.length === 0) {
-    return <div className="p-8 text-center text-gray-500">Loading finance data...</div>;
+    return (
+      <div className="p-8 text-center text-gray-500">
+        Loading finance data...
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Journal Entries</h1>
-          <p className="text-sm text-gray-500">Manage manual accounting adjustments</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Journal Entries
+          </h1>
+          <p className="text-sm text-gray-500">
+            Manage manual accounting adjustments
+          </p>
         </div>
-        <ActionButton variant="primary" onClick={() => setIsModalOpen(true)}>
+        <ActionButton
+          variant="primary"
+          onClick={() => setIsModalOpen(true)}
+        >
           <PlusIcon className="w-5 h-5 mr-2" />
           New Entry
         </ActionButton>
@@ -167,7 +201,10 @@ export default function JournalEntries() {
           <tbody className="bg-white divide-y divide-gray-200">
             {journals.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                <td
+                  colSpan={4}
+                  className="px-6 py-12 text-center text-gray-500"
+                >
                   No journal entries found.
                 </td>
               </tr>
@@ -175,7 +212,8 @@ export default function JournalEntries() {
               journals.map((journal) => {
                 // Calculate total amount (sum of debits)
                 const total = journal.lines.reduce(
-                  (sum: number, l: { debit: number }) => sum + Number(l.debit),
+                  (sum: number, l: { debit: number }) =>
+                    sum + Number(l.debit),
                   0
                 );
                 return (
@@ -214,42 +252,69 @@ export default function JournalEntries() {
               aria-hidden="true"
               onClick={() => setIsModalOpen(false)}
             ></div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
               &#8203;
             </span>
 
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">
+                <h3
+                  className="text-lg leading-6 font-medium text-gray-900 mb-4"
+                  id="modal-title"
+                >
                   New Journal Entry
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Date</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Date
+                    </label>
                     <input
                       type="date"
                       value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          date: e.target.value,
+                        })
+                      }
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Reference</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Reference
+                    </label>
                     <input
                       type="text"
                       value={formData.reference}
-                      onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          reference: e.target.value,
+                        })
+                      }
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
                       placeholder="e.g. ADJ-001"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Memo</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Memo
+                    </label>
                     <input
                       type="text"
                       value={formData.memo}
-                      onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          memo: e.target.value,
+                        })
+                      }
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
                       placeholder="Optional description"
                     />
@@ -260,61 +325,86 @@ export default function JournalEntries() {
                   <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                     <div className="col-span-6">Account</div>
                     <div className="col-span-2 text-right">Debit</div>
-                    <div className="col-span-2 text-right">Credit</div>
-                    <div className="col-span-2 text-center">Action</div>
+                    <div className="col-span-2 text-right">
+                      Credit
+                    </div>
+                    <div className="col-span-2 text-center">
+                      Action
+                    </div>
                   </div>
 
-                  {formData.lines?.map((line: CreateJournalLineInput, idx: number) => (
-                    <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-6">
-                        <select
-                          value={line.accountId}
-                          onChange={(e) => handleLineChange(idx, 'accountId', e.target.value)}
-                          className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
-                        >
-                          <option value="">Select Account...</option>
-                          {accounts.map((acc) => (
-                            <option key={acc.id} value={acc.id}>
-                              {acc.code} - {acc.name}
+                  {formData.lines?.map(
+                    (line: CreateJournalLineInput, idx: number) => (
+                      <div
+                        key={idx}
+                        className="grid grid-cols-12 gap-2 items-center"
+                      >
+                        <div className="col-span-6">
+                          <select
+                            value={line.accountId}
+                            onChange={(e) =>
+                              handleLineChange(
+                                idx,
+                                'accountId',
+                                e.target.value
+                              )
+                            }
+                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
+                          >
+                            <option value="">
+                              Select Account...
                             </option>
-                          ))}
-                        </select>
+                            {accounts.map((acc) => (
+                              <option key={acc.id} value={acc.id}>
+                                {acc.code} - {acc.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-span-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={line.debit}
+                            onChange={(e) =>
+                              handleLineChange(
+                                idx,
+                                'debit',
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2 text-right"
+                            disabled={line.credit > 0} // Standard practice: cannot be both
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={line.credit}
+                            onChange={(e) =>
+                              handleLineChange(
+                                idx,
+                                'credit',
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2 text-right"
+                            disabled={line.debit > 0}
+                          />
+                        </div>
+                        <div className="col-span-2 text-center">
+                          <button
+                            onClick={() => removeLine(idx)}
+                            className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                            disabled={formData.lines!.length <= 2}
+                          >
+                            <TrashIcon className="w-5 h-5 mx-auto" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="col-span-2">
-                        <input
-                          type="number"
-                          min="0"
-                          value={line.debit}
-                          onChange={(e) =>
-                            handleLineChange(idx, 'debit', parseFloat(e.target.value) || 0)
-                          }
-                          className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2 text-right"
-                          disabled={line.credit > 0} // Standard practice: cannot be both
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <input
-                          type="number"
-                          min="0"
-                          value={line.credit}
-                          onChange={(e) =>
-                            handleLineChange(idx, 'credit', parseFloat(e.target.value) || 0)
-                          }
-                          className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2 text-right"
-                          disabled={line.debit > 0}
-                        />
-                      </div>
-                      <div className="col-span-2 text-center">
-                        <button
-                          onClick={() => removeLine(idx)}
-                          className="text-red-500 hover:text-red-700 disabled:opacity-50"
-                          disabled={formData.lines!.length <= 2}
-                        >
-                          <TrashIcon className="w-5 h-5 mx-auto" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  )}
 
                   <div className="mt-2">
                     <button
@@ -328,15 +418,25 @@ export default function JournalEntries() {
 
                   {/* Totals */}
                   <div className="grid grid-cols-12 gap-2 pt-4 mt-4 border-t border-gray-100 font-bold">
-                    <div className="col-span-6 text-right pr-4">Total</div>
-                    <div className="col-span-2 text-right">{formatCurrency(totalDebit)}</div>
-                    <div className="col-span-2 text-right">{formatCurrency(totalCredit)}</div>
+                    <div className="col-span-6 text-right pr-4">
+                      Total
+                    </div>
+                    <div className="col-span-2 text-right">
+                      {formatCurrency(totalDebit)}
+                    </div>
+                    <div className="col-span-2 text-right">
+                      {formatCurrency(totalCredit)}
+                    </div>
                     <div className="col-span-2"></div>
                   </div>
 
                   {!isBalanced && (
                     <div className="text-red-600 text-sm font-medium text-right mt-2">
-                      Unbalanced: {formatCurrency(Math.abs(totalDebit - totalCredit))} difference
+                      Unbalanced:{' '}
+                      {formatCurrency(
+                        Math.abs(totalDebit - totalCredit)
+                      )}{' '}
+                      difference
                     </div>
                   )}
                 </div>
@@ -346,7 +446,10 @@ export default function JournalEntries() {
                   variant="primary"
                   onClick={submitJournal}
                   disabled={
-                    !isBalanced || submitting || (formData.lines?.some((l) => !l.accountId) ?? true)
+                    !isBalanced ||
+                    submitting ||
+                    (formData.lines?.some((l) => !l.accountId) ??
+                      true)
                   }
                   isLoading={submitting}
                 >

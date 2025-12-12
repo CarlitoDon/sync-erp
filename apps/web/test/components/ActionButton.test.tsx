@@ -1,4 +1,9 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+} from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import ActionButton from '../../src/components/ActionButton';
 
@@ -14,7 +19,9 @@ describe('ActionButton', () => {
 
   it('handles click events', () => {
     const handleClick = vi.fn();
-    render(<ActionButton onClick={handleClick}>Click Me</ActionButton>);
+    render(
+      <ActionButton onClick={handleClick}>Click Me</ActionButton>
+    );
 
     fireEvent.click(screen.getByText('Click Me'));
     expect(handleClick).toHaveBeenCalledTimes(1);

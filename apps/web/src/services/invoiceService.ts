@@ -14,7 +14,12 @@ export interface CreateInvoiceInput {
 export interface CreatePaymentInput {
   invoiceId: string;
   amount: number;
-  method: 'CASH' | 'BANK_TRANSFER' | 'CHECK' | 'CREDIT_CARD' | 'OTHER';
+  method:
+    | 'CASH'
+    | 'BANK_TRANSFER'
+    | 'CHECK'
+    | 'CREDIT_CARD'
+    | 'OTHER';
 }
 
 export const invoiceService = {

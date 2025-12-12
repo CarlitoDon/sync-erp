@@ -6,19 +6,27 @@ interface ProtectedRouteProps {
   requireCompany?: boolean;
 }
 
-export const ProtectedRoute = ({ requireCompany = true }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({
+  requireCompany = true,
+}: ProtectedRouteProps) => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { currentCompany, isLoading: companyLoading } = useCompany();
   const location = useLocation();
 
   if (authLoading || companyLoading) {
     // improved loading state could go here (e.g. global spinner)
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
     // Redirect to login, but save the location they were trying to go to
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return (
+      <Navigate to="/login" state={{ from: location }} replace />
+    );
   }
 
   // If company is required but not selected, redirect to selection page

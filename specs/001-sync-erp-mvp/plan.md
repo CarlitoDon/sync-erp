@@ -12,27 +12,27 @@ Implement the MVP modules (Sales, Finance, Purchasing, Inventory, Warehousing) w
 **Language/Version**: TypeScript 5.0+ (Strict Mode)
 **Primary Dependencies**:
 
--   Backend: Node.js, Express, Prisma, Zod
--   Frontend: React, Vite, TailwindCSS
--   Tooling: npm (workspaces), turbo
-    **Storage**: PostgreSQL (via `packages/database`)
-    **Testing**: Vitest (Unit/Integration)
-    **Target Platform**: Web (Responsive)
-    **Project Type**: Monorepo (Apps + Packages)
-    **Constraints**:
--   Strict Separation of Concerns (Frontend <-> API <-> DB)
--   Strict Multi-Tenancy (CompanyID scoping)
--   Uni-directional dependencies
+- Backend: Node.js, Express, Prisma, Zod
+- Frontend: React, Vite, TailwindCSS
+- Tooling: npm (workspaces), turbo
+  **Storage**: PostgreSQL (via `packages/database`)
+  **Testing**: Vitest (Unit/Integration)
+  **Target Platform**: Web (Responsive)
+  **Project Type**: Monorepo (Apps + Packages)
+  **Constraints**:
+- Strict Separation of Concerns (Frontend <-> API <-> DB)
+- Strict Multi-Tenancy (CompanyID scoping)
+- Uni-directional dependencies
 
 ## Constitution Check
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
--   [x] **I. Boundaries**: Does Frontend strictly avoid direct DB/Logic imports? (Yes, separate apps)
--   [x] **II. Dependencies**: Are dependencies uni-directional (Apps -> Packages)? (Yes, enforced by workspace)
--   [x] **III. Contracts**: Are shared types defined in `packages/shared`? (Yes)
--   [x] **IV. Layered Backend**: Is logic strictly in Services (not Routes)? (Yes, service layer pattern)
--   [x] **V. Multi-Tenant**: Is ALL data isolated by `companyId`? (Yes, mandatory in queries)
+- [x] **I. Boundaries**: Does Frontend strictly avoid direct DB/Logic imports? (Yes, separate apps)
+- [x] **II. Dependencies**: Are dependencies uni-directional (Apps -> Packages)? (Yes, enforced by workspace)
+- [x] **III. Contracts**: Are shared types defined in `packages/shared`? (Yes)
+- [x] **IV. Layered Backend**: Is logic strictly in Services (not Routes)? (Yes, service layer pattern)
+- [x] **V. Multi-Tenant**: Is ALL data isolated by `companyId`? (Yes, mandatory in queries)
 
 ## Project Structure
 

@@ -28,7 +28,10 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 // Helper to extract error message from API response
 function getErrorMessage(
-  error: AxiosError<{ error?: { message?: string }; message?: string }>
+  error: AxiosError<{
+    error?: { message?: string };
+    message?: string;
+  }>
 ): string {
   const data = error.response?.data;
 
@@ -63,7 +66,12 @@ function getErrorMessage(
 // Response interceptor - handles errors globally
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ error?: { message?: string }; message?: string }>) => {
+  (
+    error: AxiosError<{
+      error?: { message?: string };
+      message?: string;
+    }>
+  ) => {
     // Show toast for all API errors
     const message = getErrorMessage(error);
     toast.error(message);

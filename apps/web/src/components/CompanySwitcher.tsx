@@ -5,7 +5,8 @@ import type { Company } from '@sync-erp/shared';
 
 export default function CompanySwitcher() {
   const navigate = useNavigate();
-  const { companies, currentCompany, setCurrentCompany, isLoading } = useCompany();
+  const { companies, currentCompany, setCurrentCompany, isLoading } =
+    useCompany();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSelect = (company: Company) => {
@@ -14,7 +15,11 @@ export default function CompanySwitcher() {
   };
 
   if (isLoading) {
-    return <div className="text-sm text-gray-500 animate-pulse">Loading...</div>;
+    return (
+      <div className="text-sm text-gray-500 animate-pulse">
+        Loading...
+      </div>
+    );
   }
 
   if (companies.length === 0) {
@@ -41,7 +46,12 @@ export default function CompanySwitcher() {
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
@@ -58,7 +68,9 @@ export default function CompanySwitcher() {
               }`}
             >
               <div className="w-6 h-6 bg-gradient-to-br from-gray-400 to-gray-600 rounded-md flex items-center justify-center">
-                <span className="text-white text-xs font-bold">{company.name.charAt(0)}</span>
+                <span className="text-white text-xs font-bold">
+                  {company.name.charAt(0)}
+                </span>
               </div>
               <span>{company.name}</span>
               {currentCompany?.id === company.id && (
@@ -85,7 +97,9 @@ export default function CompanySwitcher() {
             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
           >
             <div className="w-6 h-6 flex items-center justify-center">
-              <span className="text-gray-400 text-lg leading-none">+</span>
+              <span className="text-gray-400 text-lg leading-none">
+                +
+              </span>
             </div>
             <span>Manage Companies...</span>
           </button>

@@ -1,15 +1,23 @@
 import { useState, useMemo } from 'react';
-import { financeService, Account, TrialBalance } from '../services/financeService';
+import {
+  financeService,
+  Account,
+  TrialBalance,
+} from '../services/financeService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
 import { apiAction } from '../hooks/useApiAction';
-import { FinancialReport, ReportSection } from '../components/FinancialReport';
+import {
+  FinancialReport,
+  ReportSection,
+} from '../components/FinancialReport';
 import JournalEntries from './JournalEntries';
 import { AccountGroup, AccountType } from '@sync-erp/shared';
 // import { FinanceAccountGroup, AccountType } from '../types/finance'; // Removed
 
 // Helper to check account type category
-const isDebitNormal = (type: string) => ['ASSET', 'EXPENSE'].includes(type);
+const isDebitNormal = (type: string) =>
+  ['ASSET', 'EXPENSE'].includes(type);
 
 interface FinanceData {
   accounts: Account[];
@@ -37,7 +45,9 @@ export default function Finance() {
     { accounts: [], trialBalance: null }
   );
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'reports' | 'journals'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'reports' | 'journals'
+  >('overview');
   const [reportType, setReportType] = useState<'IS' | 'BS'>('BS');
 
   // Create Account State
@@ -49,13 +59,19 @@ export default function Finance() {
   });
 
   const handleSeedAccounts = async () => {
-    await apiAction(() => financeService.seedDefaultAccounts(), 'Default accounts seeded!');
+    await apiAction(
+      () => financeService.seedDefaultAccounts(),
+      'Default accounts seeded!'
+    );
     loadData();
   };
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    await apiAction(() => financeService.createAccount(newAccount), 'Account created!');
+    await apiAction(
+      () => financeService.createAccount(newAccount),
+      'Account created!'
+    );
     setShowCreateAccount(false);
     setNewAccount({ code: '', name: '', type: 'ASSET' });
     loadData();
@@ -86,7 +102,9 @@ export default function Finance() {
 
     // Helper to build AccountGroup
     const buildGroup = (type: AccountType): AccountGroup => {
-      const groupEntries = entries.filter((e) => e.accountType === type);
+      const groupEntries = entries.filter(
+        (e) => e.accountType === type
+      );
       const accs = groupEntries
         .map((e) => ({
           id: e.accountId,
@@ -116,7 +134,10 @@ export default function Finance() {
     const expenseGroup = buildGroup('EXPENSE');
     const netIncome = revenueGroup.total - expenseGroup.total;
 
-    const incomeStatement: { sections: ReportSection[]; netIncome: number } = {
+    const incomeStatement: {
+      sections: ReportSection[];
+      netIncome: number;
+    } = {
       sections: [
         {
           title: 'Revenue',
@@ -151,7 +172,10 @@ export default function Finance() {
     };
 
     // Create a new Equity group including Retained Earnings
-    const equityAccountsWithRE = [...equityGroup.accounts, retainedEarnings];
+    const equityAccountsWithRE = [
+      ...equityGroup.accounts,
+      retainedEarnings,
+    ];
     const totalEquity = equityGroup.total + netIncome;
 
     const augmentedEquityGroup: AccountGroup = {
@@ -161,8 +185,10 @@ export default function Finance() {
     };
 
     const totalAssets = assetGroup.total;
-    const totalLiabilitiesAndEquity = liabilityGroup.total + totalEquity;
-    const isBalanced = Math.abs(totalAssets - totalLiabilitiesAndEquity) < 1;
+    const totalLiabilitiesAndEquity =
+      liabilityGroup.total + totalEquity;
+    const isBalanced =
+      Math.abs(totalAssets - totalLiabilitiesAndEquity) < 1;
 
     const balanceSheet = {
       sections: [
@@ -194,7 +220,11 @@ export default function Finance() {
   }, [trialBalance]);
 
   if (loading && !accounts.length) {
-    return <div className="p-8 text-center text-gray-500">Loading finance data...</div>;
+    return (
+      <div className="p-8 text-center text-gray-500">
+        Loading finance data...
+      </div>
+    );
   }
 
   if (!currentCompany) return null;
@@ -203,8 +233,12 @@ export default function Finance() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Finance</h1>
-          <p className="text-gray-500">Financial Management & Reporting</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Finance
+          </h1>
+          <p className="text-gray-500">
+            Financial Management & Reporting
+          </p>
         </div>
       </div>
 
@@ -218,7 +252,11 @@ export default function Finance() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'overview' | 'reports' | 'journals')}
+              onClick={() =>
+                setActiveTab(
+                  tab.id as 'overview' | 'reports' | 'journals'
+                )
+              }
               className={`py-4 px-1 font-medium text-sm border-b-2 ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
@@ -260,40 +298,67 @@ export default function Finance() {
               onSubmit={handleCreateAccount}
               className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-w-2xl"
             >
-              <h3 className="text-lg font-semibold mb-4">New Account</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                New Account
+              </h3>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Code
+                  </label>
                   <input
                     type="text"
                     required
                     value={newAccount.code}
-                    onChange={(e) => setNewAccount({ ...newAccount, code: e.target.value })}
+                    onChange={(e) =>
+                      setNewAccount({
+                        ...newAccount,
+                        code: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     placeholder="e.g., 1100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name
+                  </label>
                   <input
                     type="text"
                     required
                     value={newAccount.name}
-                    onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
+                    onChange={(e) =>
+                      setNewAccount({
+                        ...newAccount,
+                        name: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     placeholder="Account name"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type
+                  </label>
                   <select
                     value={newAccount.type}
                     onChange={(e) =>
-                      setNewAccount({ ...newAccount, type: e.target.value as Account['type'] })
+                      setNewAccount({
+                        ...newAccount,
+                        type: e.target.value as Account['type'],
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   >
-                    {['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].map((t) => (
+                    {[
+                      'ASSET',
+                      'LIABILITY',
+                      'EQUITY',
+                      'REVENUE',
+                      'EXPENSE',
+                    ].map((t) => (
                       <option key={t} value={t}>
                         {t}
                       </option>
@@ -312,13 +377,26 @@ export default function Finance() {
 
           {/* CoA List by Type */}
           <div className="grid gap-6">
-            {['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].map((type) => {
-              const typeAccounts = accounts.filter((a) => a.type === type);
+            {[
+              'ASSET',
+              'LIABILITY',
+              'EQUITY',
+              'REVENUE',
+              'EXPENSE',
+            ].map((type) => {
+              const typeAccounts = accounts.filter(
+                (a) => a.type === type
+              );
               return (
-                <div key={type} className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div
+                  key={type}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200"
+                >
                   <div className="px-6 py-4 border-b border-gray-200">
                     <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(type)}`}>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${getTypeColor(type)}`}
+                      >
                         {type}
                       </span>
                       <span className="text-gray-500 text-sm font-normal">
@@ -337,13 +415,17 @@ export default function Finance() {
                             <span className="font-mono text-sm text-gray-500 mr-3 w-16 inline-block">
                               {acc.code}
                             </span>
-                            <span className="font-medium">{acc.name}</span>
+                            <span className="font-medium">
+                              {acc.name}
+                            </span>
                           </div>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="px-6 py-4 text-gray-400 text-sm">No accounts</p>
+                    <p className="px-6 py-4 text-gray-400 text-sm">
+                      No accounts
+                    </p>
                   )}
                 </div>
               );
@@ -375,8 +457,12 @@ export default function Finance() {
               title="Balance Sheet"
               subtitle={`As of ${new Date().toLocaleDateString()}`}
               sections={reportsData.balanceSheet.sections}
-              grandTotalLabel={reportsData.balanceSheet.grandTotalLabel}
-              grandTotalValue={reportsData.balanceSheet.grandTotalValue}
+              grandTotalLabel={
+                reportsData.balanceSheet.grandTotalLabel
+              }
+              grandTotalValue={
+                reportsData.balanceSheet.grandTotalValue
+              }
               isBalanced={reportsData.balanceSheet.isBalanced}
             />
           ) : (

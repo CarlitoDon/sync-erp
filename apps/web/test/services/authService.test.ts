@@ -5,7 +5,9 @@ import { LoginPayload, RegisterPayload } from '@sync-erp/shared';
 
 // Mock api module
 vi.mock('../../src/services/api', async () => {
-  const { mockApi } = await vi.importActual<any>('../mocks/services.mock');
+  const { mockApi } = await vi.importActual<any>(
+    '../mocks/services.mock'
+  );
   return { default: mockApi };
 });
 
@@ -15,8 +17,17 @@ describe('authService', () => {
   });
 
   it('should call register endpoint', async () => {
-    const payload: RegisterPayload = { email: 'test@test.com', password: '123', name: 'Test' };
-    const mockResponse = { data: { token: 'abc', user: { id: '1', email: 'test@test.com' } } };
+    const payload: RegisterPayload = {
+      email: 'test@test.com',
+      password: '123',
+      name: 'Test',
+    };
+    const mockResponse = {
+      data: {
+        token: 'abc',
+        user: { id: '1', email: 'test@test.com' },
+      },
+    };
 
     (api.post as any).mockResolvedValue(mockResponse);
 
@@ -27,8 +38,13 @@ describe('authService', () => {
   });
 
   it('should call login endpoint', async () => {
-    const payload: LoginPayload = { email: 'test@test.com', password: '123' };
-    const mockResponse = { data: { token: 'abc', user: { id: '1' } } };
+    const payload: LoginPayload = {
+      email: 'test@test.com',
+      password: '123',
+    };
+    const mockResponse = {
+      data: { token: 'abc', user: { id: '1' } },
+    };
 
     (api.post as any).mockResolvedValue(mockResponse);
 

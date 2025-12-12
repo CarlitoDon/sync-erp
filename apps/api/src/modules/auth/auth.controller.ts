@@ -14,7 +14,11 @@ export class AuthController {
     });
   }
 
-  register = async (req: Request, res: Response, next: NextFunction) => {
+  register = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const payload = registerSchema.parse(req.body);
       const result = await this.service.register(payload);
@@ -58,7 +62,11 @@ export class AuthController {
     }
   };
 
-  logout = async (req: Request, res: Response, next: NextFunction) => {
+  logout = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const sessionId = req.cookies['sessionId'];
       if (sessionId) {
@@ -77,7 +85,10 @@ export class AuthController {
       if (!sessionId) {
         return res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Not authenticated' },
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Not authenticated',
+          },
         });
       }
 

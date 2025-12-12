@@ -1,5 +1,8 @@
 import { renderHook, act } from '@testing-library/react';
-import { useApiAction, apiAction } from '../../src/hooks/useApiAction';
+import {
+  useApiAction,
+  apiAction,
+} from '../../src/hooks/useApiAction';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import toast from 'react-hot-toast';
 
@@ -43,7 +46,9 @@ describe('useApiAction', () => {
     const action = vi.fn().mockRejectedValue(new Error('Fail'));
     const onSuccess = vi.fn();
 
-    const { result } = renderHook(() => useApiAction(action, { onSuccess }));
+    const { result } = renderHook(() =>
+      useApiAction(action, { onSuccess })
+    );
 
     await act(async () => {
       await result.current.execute();

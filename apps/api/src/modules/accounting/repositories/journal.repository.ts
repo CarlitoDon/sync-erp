@@ -1,7 +1,14 @@
-import { prisma, JournalEntry, Prisma, AccountType } from '@sync-erp/database';
+import {
+  prisma,
+  JournalEntry,
+  Prisma,
+  AccountType,
+} from '@sync-erp/database';
 
 export class JournalRepository {
-  async create(data: Prisma.JournalEntryUncheckedCreateInput): Promise<JournalEntry> {
+  async create(
+    data: Prisma.JournalEntryUncheckedCreateInput
+  ): Promise<JournalEntry> {
     return prisma.journalEntry.create({
       data,
       include: {
@@ -10,7 +17,10 @@ export class JournalRepository {
     });
   }
 
-  async findById(id: string, companyId: string): Promise<JournalEntry | null> {
+  async findById(
+    id: string,
+    companyId: string
+  ): Promise<JournalEntry | null> {
     return prisma.journalEntry.findFirst({
       where: { id, companyId },
       include: {
@@ -19,7 +29,11 @@ export class JournalRepository {
     });
   }
 
-  async findAll(companyId: string, startDate?: Date, endDate?: Date): Promise<JournalEntry[]> {
+  async findAll(
+    companyId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<JournalEntry[]> {
     return prisma.journalEntry.findMany({
       where: {
         companyId,
@@ -46,7 +60,10 @@ export class JournalRepository {
     });
   }
 
-  async aggregateAccountSumRange(accountId: string, startDate?: Date) {
+  async aggregateAccountSumRange(
+    accountId: string,
+    startDate?: Date
+  ) {
     return prisma.journalLine.aggregate({
       where: {
         accountId,
@@ -71,7 +88,12 @@ export class JournalRepository {
     });
   }
 
-  async findLinesByAccount(companyId: string, accountId: string, startDate?: Date, endDate?: Date) {
+  async findLinesByAccount(
+    companyId: string,
+    accountId: string,
+    startDate?: Date,
+    endDate?: Date
+  ) {
     return prisma.journalLine.findMany({
       where: {
         accountId,
@@ -86,7 +108,12 @@ export class JournalRepository {
     });
   }
 
-  async aggregateTypeSum(companyId: string, type: AccountType, startDate: Date, endDate: Date) {
+  async aggregateTypeSum(
+    companyId: string,
+    type: AccountType,
+    startDate: Date,
+    endDate: Date
+  ) {
     return prisma.journalLine.aggregate({
       where: {
         account: { companyId, type },

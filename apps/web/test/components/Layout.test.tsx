@@ -13,7 +13,9 @@ vi.mock('../../src/components/Sidebar', () => ({
 }));
 
 vi.mock('../../src/components/MobileMenuButton', () => ({
-  default: () => <button data-testid="mobile-menu-button">Menu</button>,
+  default: () => (
+    <button data-testid="mobile-menu-button">Menu</button>
+  ),
 }));
 
 const renderWithProviders = (initialRoute = '/') => {
@@ -27,11 +29,19 @@ const renderWithProviders = (initialRoute = '/') => {
                 <Route path="/" element={<Layout />}>
                   <Route
                     index
-                    element={<div data-testid="outlet-content">Dashboard Content</div>}
+                    element={
+                      <div data-testid="outlet-content">
+                        Dashboard Content
+                      </div>
+                    }
                   />
                   <Route
                     path="test"
-                    element={<div data-testid="outlet-content">Test Content</div>}
+                    element={
+                      <div data-testid="outlet-content">
+                        Test Content
+                      </div>
+                    }
                   />
                 </Route>
               </Routes>
@@ -58,13 +68,17 @@ describe('Layout', () => {
     it('renders the mobile menu button', () => {
       renderWithProviders();
 
-      expect(screen.getByTestId('mobile-menu-button')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('mobile-menu-button')
+      ).toBeInTheDocument();
     });
 
     it('renders the outlet content', () => {
       renderWithProviders();
 
-      expect(screen.getByTestId('outlet-content')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('outlet-content')
+      ).toBeInTheDocument();
     });
   });
 
@@ -93,7 +107,9 @@ describe('Layout', () => {
     it('renders ERP description', () => {
       renderWithProviders();
 
-      expect(screen.getByText(/Multi-Company Enterprise Resource Planning/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Multi-Company Enterprise Resource Planning/)
+      ).toBeInTheDocument();
     });
   });
 
@@ -101,7 +117,9 @@ describe('Layout', () => {
     it('renders index route content', () => {
       renderWithProviders('/');
 
-      expect(screen.getByText('Dashboard Content')).toBeInTheDocument();
+      expect(
+        screen.getByText('Dashboard Content')
+      ).toBeInTheDocument();
     });
 
     it('renders nested route content', () => {

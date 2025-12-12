@@ -1,9 +1,14 @@
-import { salesOrderService, CreateSalesOrderInput } from '../../src/services/salesOrderService';
+import {
+  salesOrderService,
+  CreateSalesOrderInput,
+} from '../../src/services/salesOrderService';
 import api from '../../src/services/api';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 vi.mock('../../src/services/api', async () => {
-  const { mockApi } = await vi.importActual<any>('../mocks/services.mock');
+  const { mockApi } = await vi.importActual<any>(
+    '../mocks/services.mock'
+  );
   return { default: mockApi };
 });
 
@@ -18,7 +23,9 @@ describe('salesOrderService', () => {
 
     const result = await salesOrderService.list();
 
-    expect(api.get).toHaveBeenCalledWith('/sales-orders', { params: {} });
+    expect(api.get).toHaveBeenCalledWith('/sales-orders', {
+      params: {},
+    });
     expect(result).toEqual(mockData);
   });
 
@@ -38,7 +45,9 @@ describe('salesOrderService', () => {
 
     await salesOrderService.ship('so_1', 'TRACK123');
 
-    expect(api.post).toHaveBeenCalledWith('/sales-orders/so_1/ship', { reference: 'TRACK123' });
+    expect(api.post).toHaveBeenCalledWith('/sales-orders/so_1/ship', {
+      reference: 'TRACK123',
+    });
   });
 
   it('should cancel sales order', async () => {
@@ -47,7 +56,9 @@ describe('salesOrderService', () => {
 
     const result = await salesOrderService.cancel('so_1');
 
-    expect(api.post).toHaveBeenCalledWith('/sales-orders/so_1/cancel');
+    expect(api.post).toHaveBeenCalledWith(
+      '/sales-orders/so_1/cancel'
+    );
     expect(result).toEqual(mockData);
   });
 });

@@ -1,4 +1,7 @@
-import { productService, StockLevel } from '../services/productService';
+import {
+  productService,
+  StockLevel,
+} from '../services/productService';
 import { useCompany } from '../contexts/CompanyContext';
 import { useCompanyData } from '../hooks/useCompanyData';
 
@@ -11,11 +14,17 @@ export default function Inventory() {
   } = useCompanyData<StockLevel[]>(productService.getStockLevels, []);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+    }).format(value);
   };
 
   const getTotalValue = () => {
-    return stockLevels.reduce((sum, item) => sum + item.stockQty * Number(item.averageCost), 0);
+    return stockLevels.reduce(
+      (sum, item) => sum + item.stockQty * Number(item.averageCost),
+      0
+    );
   };
 
   if (loading) {
@@ -38,7 +47,9 @@ export default function Inventory() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Inventory
+          </h1>
           <p className="text-gray-500">
             Stock levels and inventory value for {currentCompany.name}
           </p>
@@ -54,17 +65,27 @@ export default function Inventory() {
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Total Products</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{stockLevels.length}</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Total Units in Stock</p>
+          <p className="text-sm text-gray-500 uppercase">
+            Total Products
+          </p>
           <p className="text-3xl font-bold text-gray-900 mt-2">
-            {stockLevels.reduce((sum, item) => sum + item.stockQty, 0).toLocaleString()}
+            {stockLevels.length}
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Total Inventory Value</p>
+          <p className="text-sm text-gray-500 uppercase">
+            Total Units in Stock
+          </p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">
+            {stockLevels
+              .reduce((sum, item) => sum + item.stockQty, 0)
+              .toLocaleString()}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <p className="text-sm text-gray-500 uppercase">
+            Total Inventory Value
+          </p>
           <p className="text-3xl font-bold text-primary-600 mt-2">
             {formatCurrency(getTotalValue())}
           </p>
@@ -72,22 +93,34 @@ export default function Inventory() {
       </div>
 
       {/* Low Stock Alert */}
-      {stockLevels.filter((item) => item.stockQty < 10 && item.stockQty > 0).length > 0 && (
+      {stockLevels.filter(
+        (item) => item.stockQty < 10 && item.stockQty > 0
+      ).length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-          <h3 className="font-semibold text-yellow-800">⚠️ Low Stock Warning</h3>
+          <h3 className="font-semibold text-yellow-800">
+            ⚠️ Low Stock Warning
+          </h3>
           <p className="text-yellow-700 text-sm mt-1">
-            {stockLevels.filter((item) => item.stockQty < 10 && item.stockQty > 0).length} products
-            have low stock levels (below 10 units)
+            {
+              stockLevels.filter(
+                (item) => item.stockQty < 10 && item.stockQty > 0
+              ).length
+            }{' '}
+            products have low stock levels (below 10 units)
           </p>
         </div>
       )}
 
       {/* Out of Stock Alert */}
-      {stockLevels.filter((item) => item.stockQty <= 0).length > 0 && (
+      {stockLevels.filter((item) => item.stockQty <= 0).length >
+        0 && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <h3 className="font-semibold text-red-800">🚨 Out of Stock</h3>
+          <h3 className="font-semibold text-red-800">
+            🚨 Out of Stock
+          </h3>
           <p className="text-red-700 text-sm mt-1">
-            {stockLevels.filter((item) => item.stockQty <= 0).length} products are out of stock
+            {stockLevels.filter((item) => item.stockQty <= 0).length}{' '}
+            products are out of stock
           </p>
         </div>
       )}
@@ -123,17 +156,26 @@ export default function Inventory() {
           <tbody className="divide-y divide-gray-200">
             {stockLevels.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                  No products in inventory. Add products and process goods receipts.
+                <td
+                  colSpan={7}
+                  className="px-6 py-12 text-center text-gray-500"
+                >
+                  No products in inventory. Add products and process
+                  goods receipts.
                 </td>
               </tr>
             ) : (
               stockLevels.map((item) => {
-                const stockValue = item.stockQty * Number(item.averageCost);
+                const stockValue =
+                  item.stockQty * Number(item.averageCost);
                 return (
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-mono text-sm text-gray-600">{item.sku}</td>
-                    <td className="px-6 py-4 font-medium text-gray-900">{item.name}</td>
+                    <td className="px-6 py-4 font-mono text-sm text-gray-600">
+                      {item.sku}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-gray-900">
+                      {item.name}
+                    </td>
                     <td className="px-6 py-4 text-right font-semibold">
                       {item.stockQty.toLocaleString()}
                     </td>

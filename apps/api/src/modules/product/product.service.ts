@@ -1,11 +1,17 @@
 import { Product } from '@sync-erp/database';
 import { ProductRepository } from './product.repository';
-import { CreateProductInput, UpdateProductInput } from '@sync-erp/shared';
+import {
+  CreateProductInput,
+  UpdateProductInput,
+} from '@sync-erp/shared';
 
 export class ProductService {
   private repository = new ProductRepository();
 
-  async create(companyId: string, data: CreateProductInput): Promise<Product> {
+  async create(
+    companyId: string,
+    data: CreateProductInput
+  ): Promise<Product> {
     return this.repository.create({
       companyId,
       sku: data.sku,
@@ -16,11 +22,17 @@ export class ProductService {
     });
   }
 
-  async getById(id: string, companyId: string): Promise<Product | null> {
+  async getById(
+    id: string,
+    companyId: string
+  ): Promise<Product | null> {
     return this.repository.findById(id, companyId);
   }
 
-  async getBySku(sku: string, companyId: string): Promise<Product | null> {
+  async getBySku(
+    sku: string,
+    companyId: string
+  ): Promise<Product | null> {
     return this.repository.findBySku(sku, companyId);
   }
 
@@ -28,7 +40,11 @@ export class ProductService {
     return this.repository.findAll(companyId);
   }
 
-  async update(id: string, companyId: string, data: UpdateProductInput): Promise<Product> {
+  async update(
+    id: string,
+    companyId: string,
+    data: UpdateProductInput
+  ): Promise<Product> {
     const existing = await this.getById(id, companyId);
     if (!existing) {
       throw new Error('Product not found');
@@ -44,7 +60,10 @@ export class ProductService {
     await this.repository.delete(id);
   }
 
-  async updateStock(id: string, quantityChange: number): Promise<Product> {
+  async updateStock(
+    id: string,
+    quantityChange: number
+  ): Promise<Product> {
     return this.repository.incrementStock(id, quantityChange);
   }
 
@@ -65,7 +84,9 @@ export class ProductService {
     const newTotalStock = oldStock + newQuantity;
 
     const newAvgCost =
-      newTotalStock > 0 ? (totalOldValue + totalNewValue) / newTotalStock : newCostPerUnit;
+      newTotalStock > 0
+        ? (totalOldValue + totalNewValue) / newTotalStock
+        : newCostPerUnit;
 
     return this.repository.update(id, {
       averageCost: newAvgCost,
@@ -73,7 +94,10 @@ export class ProductService {
     });
   }
 
-  async checkStock(id: string, requiredQty: number): Promise<boolean> {
+  async checkStock(
+    id: string,
+    requiredQty: number
+  ): Promise<boolean> {
     const product = await this.repository.findById(id);
     if (!product) {
       return false;

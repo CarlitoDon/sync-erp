@@ -6,7 +6,9 @@ import * as SidebarContext from '../../src/contexts/SidebarContext';
 
 // Mock the SidebarContext
 vi.mock('../../src/contexts/SidebarContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/SidebarContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/SidebarContext'
+  );
   return {
     ...actual,
     useSidebar: vi.fn(),
@@ -20,7 +22,11 @@ describe('SidebarItem', () => {
     vi.clearAllMocks();
   });
 
-  const setupMock = (overrides: Partial<ReturnType<typeof SidebarContext.useSidebar>> = {}) => {
+  const setupMock = (
+    overrides: Partial<
+      ReturnType<typeof SidebarContext.useSidebar>
+    > = {}
+  ) => {
     vi.mocked(SidebarContext.useSidebar).mockReturnValue({
       isCollapsed: false,
       setIsCollapsed: vi.fn(),
@@ -47,7 +53,11 @@ describe('SidebarItem', () => {
   describe('Rendering', () => {
     it('renders a link with correct path', () => {
       setupMock();
-      renderComponent({ path: '/dashboard', label: 'Dashboard', icon: <span>🏠</span> });
+      renderComponent({
+        path: '/dashboard',
+        label: 'Dashboard',
+        icon: <span>🏠</span>,
+      });
 
       const link = screen.getByRole('link');
       expect(link).toHaveAttribute('href', '/dashboard');
@@ -55,16 +65,26 @@ describe('SidebarItem', () => {
 
     it('renders label when not collapsed', () => {
       setupMock({ isCollapsed: false });
-      renderComponent({ path: '/test', label: 'Test Label', icon: <span>📦</span> });
+      renderComponent({
+        path: '/test',
+        label: 'Test Label',
+        icon: <span>📦</span>,
+      });
 
       expect(screen.getByText('Test Label')).toBeInTheDocument();
     });
 
     it('hides label when collapsed', () => {
       setupMock({ isCollapsed: true });
-      renderComponent({ path: '/test', label: 'Test Label', icon: <span>📦</span> });
+      renderComponent({
+        path: '/test',
+        label: 'Test Label',
+        icon: <span>📦</span>,
+      });
 
-      expect(screen.queryByText('Test Label')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Test Label')
+      ).not.toBeInTheDocument();
     });
 
     it('renders icon', () => {
@@ -80,7 +100,11 @@ describe('SidebarItem', () => {
 
     it('shows title tooltip when collapsed', () => {
       setupMock({ isCollapsed: true });
-      renderComponent({ path: '/test', label: 'Test Label', icon: <span>📦</span> });
+      renderComponent({
+        path: '/test',
+        label: 'Test Label',
+        icon: <span>📦</span>,
+      });
 
       const link = screen.getByRole('link');
       expect(link).toHaveAttribute('title', 'Test Label');
@@ -88,7 +112,11 @@ describe('SidebarItem', () => {
 
     it('does not show title tooltip when expanded', () => {
       setupMock({ isCollapsed: false });
-      renderComponent({ path: '/test', label: 'Test Label', icon: <span>📦</span> });
+      renderComponent({
+        path: '/test',
+        label: 'Test Label',
+        icon: <span>📦</span>,
+      });
 
       const link = screen.getByRole('link');
       expect(link).not.toHaveAttribute('title');
@@ -98,7 +126,10 @@ describe('SidebarItem', () => {
   describe('Active State', () => {
     it('applies active styles when path matches exactly for root', () => {
       setupMock();
-      renderComponent({ path: '/', label: 'Home', icon: <span>🏠</span> }, '/');
+      renderComponent(
+        { path: '/', label: 'Home', icon: <span>🏠</span> },
+        '/'
+      );
 
       const link = screen.getByRole('link');
       expect(link).toHaveClass('bg-primary-100');
@@ -108,7 +139,11 @@ describe('SidebarItem', () => {
     it('applies active styles when path starts with item path', () => {
       setupMock();
       renderComponent(
-        { path: '/products', label: 'Products', icon: <span>📦</span> },
+        {
+          path: '/products',
+          label: 'Products',
+          icon: <span>📦</span>,
+        },
         '/products/123'
       );
 
@@ -120,7 +155,11 @@ describe('SidebarItem', () => {
     it('applies inactive styles when path does not match', () => {
       setupMock();
       renderComponent(
-        { path: '/products', label: 'Products', icon: <span>📦</span> },
+        {
+          path: '/products',
+          label: 'Products',
+          icon: <span>📦</span>,
+        },
         '/customers'
       );
 
@@ -131,7 +170,10 @@ describe('SidebarItem', () => {
 
     it('root is not active when on another path', () => {
       setupMock();
-      renderComponent({ path: '/', label: 'Home', icon: <span>🏠</span> }, '/products');
+      renderComponent(
+        { path: '/', label: 'Home', icon: <span>🏠</span> },
+        '/products'
+      );
 
       const link = screen.getByRole('link');
       expect(link).not.toHaveClass('bg-primary-100');
@@ -141,7 +183,11 @@ describe('SidebarItem', () => {
   describe('Click Behavior', () => {
     it('calls closeMobile when clicked', () => {
       setupMock();
-      renderComponent({ path: '/test', label: 'Test', icon: <span>📦</span> });
+      renderComponent({
+        path: '/test',
+        label: 'Test',
+        icon: <span>📦</span>,
+      });
 
       fireEvent.click(screen.getByRole('link'));
 
@@ -152,7 +198,11 @@ describe('SidebarItem', () => {
   describe('Collapsed Layout', () => {
     it('centers content when collapsed', () => {
       setupMock({ isCollapsed: true });
-      renderComponent({ path: '/test', label: 'Test', icon: <span>📦</span> });
+      renderComponent({
+        path: '/test',
+        label: 'Test',
+        icon: <span>📦</span>,
+      });
 
       const link = screen.getByRole('link');
       expect(link).toHaveClass('justify-center');

@@ -5,7 +5,9 @@ import * as SidebarContext from '../../src/contexts/SidebarContext';
 
 // Mock the SidebarContext
 vi.mock('../../src/contexts/SidebarContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/SidebarContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/SidebarContext'
+  );
   return {
     ...actual,
     useSidebar: vi.fn(),
@@ -37,7 +39,9 @@ describe('MobileMenuButton', () => {
   it('has accessible label "Open menu"', () => {
     render(<MobileMenuButton />);
 
-    expect(screen.getByRole('button', { name: 'Open menu' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Open menu' })
+    ).toBeInTheDocument();
   });
 
   it('calls toggleMobileOpen when clicked', () => {

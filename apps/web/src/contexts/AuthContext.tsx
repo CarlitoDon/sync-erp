@@ -1,6 +1,16 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { User } from '@sync-erp/shared'; // Ensure User is exported from shared/types
-import { authService, LoginPayload, RegisterPayload } from '../services/authService';
+import {
+  authService,
+  LoginPayload,
+  RegisterPayload,
+} from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
@@ -12,7 +22,9 @@ interface AuthContextType {
   checkAuth: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(
+  undefined
+);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

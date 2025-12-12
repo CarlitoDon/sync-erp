@@ -17,7 +17,13 @@ const controller = new AccountingController();
 const CreateAccountSchema = z.object({
   code: z.string().min(3).max(10),
   name: z.string().min(1),
-  type: z.enum(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE']),
+  type: z.enum([
+    'ASSET',
+    'LIABILITY',
+    'EQUITY',
+    'REVENUE',
+    'EXPENSE',
+  ]),
 });
 
 // ========== ACCOUNTS ==========
@@ -57,10 +63,19 @@ financeRouter.get('/journals', controller.listJournals);
 // ========== REPORTS ==========
 
 // GET /api/finance/reports/trial-balance
-financeRouter.get('/reports/trial-balance', controller.getTrialBalance);
+financeRouter.get(
+  '/reports/trial-balance',
+  controller.getTrialBalance
+);
 
 // GET /api/finance/reports/general-ledger/:accountId
-financeRouter.get('/reports/general-ledger/:accountId', controller.getGeneralLedger);
+financeRouter.get(
+  '/reports/general-ledger/:accountId',
+  controller.getGeneralLedger
+);
 
 // GET /api/finance/reports/income-statement
-financeRouter.get('/reports/income-statement', controller.getIncomeStatement);
+financeRouter.get(
+  '/reports/income-statement',
+  controller.getIncomeStatement
+);

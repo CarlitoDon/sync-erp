@@ -7,7 +7,9 @@ import * as CompanyContext from '../../src/contexts/CompanyContext';
 
 // Mock the contexts
 vi.mock('../../src/contexts/AuthContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/AuthContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/AuthContext'
+  );
   return {
     ...actual,
     useAuth: vi.fn(),
@@ -15,30 +17,50 @@ vi.mock('../../src/contexts/AuthContext', async () => {
 });
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
   };
 });
 
-const renderWithRouter = (initialRoute = '/protected', requireCompany = true) => {
+const renderWithRouter = (
+  initialRoute = '/protected',
+  requireCompany = true
+) => {
   return render(
     <MemoryRouter initialEntries={[initialRoute]}>
       <Routes>
-        <Route path="/login" element={<div data-testid="login-page">Login Page</div>} />
+        <Route
+          path="/login"
+          element={<div data-testid="login-page">Login Page</div>}
+        />
         <Route
           path="/select-company"
-          element={<div data-testid="select-company">Select Company</div>}
+          element={
+            <div data-testid="select-company">Select Company</div>
+          }
         />
-        <Route element={<ProtectedRoute requireCompany={requireCompany} />}>
+        <Route
+          element={<ProtectedRoute requireCompany={requireCompany} />}
+        >
           <Route
             path="/protected"
-            element={<div data-testid="protected-content">Protected Content</div>}
+            element={
+              <div data-testid="protected-content">
+                Protected Content
+              </div>
+            }
           />
           <Route
             path="/no-company"
-            element={<div data-testid="no-company-required">No Company Required</div>}
+            element={
+              <div data-testid="no-company-required">
+                No Company Required
+              </div>
+            }
           />
         </Route>
       </Routes>
@@ -124,7 +146,9 @@ describe('ProtectedRoute', () => {
       renderWithRouter();
 
       expect(screen.getByTestId('login-page')).toBeInTheDocument();
-      expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('protected-content')
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -150,8 +174,12 @@ describe('ProtectedRoute', () => {
 
       renderWithRouter('/protected', true);
 
-      expect(screen.getByTestId('select-company')).toBeInTheDocument();
-      expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('select-company')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('protected-content')
+      ).not.toBeInTheDocument();
     });
 
     it('allows access when requireCompany is false and no company selected', () => {
@@ -175,7 +203,9 @@ describe('ProtectedRoute', () => {
 
       renderWithRouter('/protected', false);
 
-      expect(screen.getByTestId('protected-content')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('protected-content')
+      ).toBeInTheDocument();
     });
   });
 
@@ -196,7 +226,9 @@ describe('ProtectedRoute', () => {
           name: 'Test Co',
           createdAt: new Date(),
         },
-        companies: [{ id: '1', name: 'Test Co', createdAt: new Date() }],
+        companies: [
+          { id: '1', name: 'Test Co', createdAt: new Date() },
+        ],
         setCurrentCompany: vi.fn(),
         setCompanies: vi.fn(),
         refreshCompanies: vi.fn(),
@@ -205,7 +237,9 @@ describe('ProtectedRoute', () => {
 
       renderWithRouter();
 
-      expect(screen.getByTestId('protected-content')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('protected-content')
+      ).toBeInTheDocument();
     });
   });
 });

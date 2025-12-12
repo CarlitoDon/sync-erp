@@ -50,9 +50,13 @@ describe('InvoiceService', () => {
       mockPrisma.invoice.count.mockResolvedValue(0);
       mockPrisma.invoice.create.mockResolvedValue(mockInvoice);
 
-      const result = await service.createFromSalesOrder(companyId, 'user-1', {
-        orderId: 'order-1',
-      });
+      const result = await service.createFromSalesOrder(
+        companyId,
+        'user-1',
+        {
+          orderId: 'order-1',
+        }
+      );
 
       expect(result).toEqual(mockInvoice);
     });
@@ -61,7 +65,9 @@ describe('InvoiceService', () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.createFromSalesOrder(companyId, 'user-1', { orderId: 'nonexistent' })
+        service.createFromSalesOrder(companyId, 'user-1', {
+          orderId: 'nonexistent',
+        })
       ).rejects.toThrow('Sales order not found');
     });
   });
@@ -132,7 +138,9 @@ describe('InvoiceService', () => {
     it('should throw error if invoice not found', async () => {
       mockPrisma.invoice.findFirst.mockResolvedValue(null);
 
-      await expect(service.post('nonexistent', companyId)).rejects.toThrow('Invoice not found');
+      await expect(
+        service.post('nonexistent', companyId)
+      ).rejects.toThrow('Invoice not found');
     });
 
     it('should throw error if invoice is not in draft status', async () => {
@@ -161,14 +169,18 @@ describe('InvoiceService', () => {
     it('should throw error if invoice not found', async () => {
       mockPrisma.invoice.findFirst.mockResolvedValue(null);
 
-      await expect(service.void('nonexistent', companyId)).rejects.toThrow('Invoice not found');
+      await expect(
+        service.void('nonexistent', companyId)
+      ).rejects.toThrow('Invoice not found');
     });
 
     it('should throw error if invoice is already paid', async () => {
       const mockInvoice = { id: 'inv-1', status: 'PAID' };
       mockPrisma.invoice.findFirst.mockResolvedValue(mockInvoice);
 
-      await expect(service.void('inv-1', companyId)).rejects.toThrow('Cannot void a paid invoice');
+      await expect(service.void('inv-1', companyId)).rejects.toThrow(
+        'Cannot void a paid invoice'
+      );
     });
   });
 
@@ -200,7 +212,9 @@ describe('InvoiceService', () => {
     it('should throw error if invoice not found', async () => {
       mockPrisma.invoice.findUnique.mockResolvedValue(null);
 
-      await expect(service.getRemainingAmount('nonexistent')).rejects.toThrow('Invoice not found');
+      await expect(
+        service.getRemainingAmount('nonexistent')
+      ).rejects.toThrow('Invoice not found');
     });
   });
 });

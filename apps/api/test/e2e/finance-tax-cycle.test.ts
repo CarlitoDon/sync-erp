@@ -44,7 +44,9 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
 
     for (const acc of accounts) {
       await prisma.account.upsert({
-        where: { companyId_code: { companyId: COMPANY_ID, code: acc.code } },
+        where: {
+          companyId_code: { companyId: COMPANY_ID, code: acc.code },
+        },
         update: {},
         create: {
           companyId: COMPANY_ID,
@@ -92,17 +94,33 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
 
   afterAll(async () => {
     // Cleanup
-    const deleteJournal = prisma.journalEntry.deleteMany({ where: { companyId: COMPANY_ID } });
-    const deleteInvMov = prisma.inventoryMovement.deleteMany({ where: { companyId: COMPANY_ID } });
-    const deleteInvoice = prisma.invoice.deleteMany({ where: { companyId: COMPANY_ID } });
+    const deleteJournal = prisma.journalEntry.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteInvMov = prisma.inventoryMovement.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteInvoice = prisma.invoice.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     const deleteItems = prisma.orderItem.deleteMany({
       where: { order: { companyId: COMPANY_ID } },
     });
-    const deleteOrders = prisma.order.deleteMany({ where: { companyId: COMPANY_ID } });
-    const deleteProd = prisma.product.deleteMany({ where: { companyId: COMPANY_ID } });
-    const deleteAcc = prisma.account.deleteMany({ where: { companyId: COMPANY_ID } });
-    const deletePartner = prisma.partner.deleteMany({ where: { companyId: COMPANY_ID } });
-    const deleteComp = prisma.company.delete({ where: { id: COMPANY_ID } });
+    const deleteOrders = prisma.order.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteProd = prisma.product.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteAcc = prisma.account.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deletePartner = prisma.partner.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteComp = prisma.company.delete({
+      where: { id: COMPANY_ID },
+    });
 
     await prisma.$transaction([
       deleteJournal,
@@ -119,12 +137,19 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
 
   it('Flow 2: Purchase Cycle (Input VAT & Accrual)', async () => {
     // 1. Create Purchase Order (11% Tax)
-    const po = await purchaseOrderService.create(COMPANY_ID, 'user-1', {
-      partnerId: supplierId,
-      items: [{ productId, quantity: 10, price: 100000 }],
-      taxRate: 11,
-    });
-    const confirmedPO = await purchaseOrderService.confirm(po.id, COMPANY_ID);
+    const po = await purchaseOrderService.create(
+      COMPANY_ID,
+      'user-1',
+      {
+        partnerId: supplierId,
+        items: [{ productId, quantity: 10, price: 100000 }],
+        taxRate: 11,
+      }
+    );
+    const confirmedPO = await purchaseOrderService.confirm(
+      po.id,
+      COMPANY_ID
+    );
 
     // 2. Goods Receipt -> Accrual
     await inventoryService.processGoodsReceipt(COMPANY_ID, {
@@ -134,28 +159,38 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
 
     // Check Accrual Journal
     const journals = await journalService.list(COMPANY_ID);
-    const grnJournal = journals.find((j) => j.reference === 'GRN-E2E-001');
+    const grnJournal = journals.find(
+      (j) => j.reference === 'GRN-E2E-001'
+    );
     expect(grnJournal).toBeDefined(); // Dr Inventory, Cr 2105 (1,000,000)
 
     // 3. Bill Creation -> Offset Accrual + Input VAT
-    const bill = await billService.createFromPurchaseOrder(COMPANY_ID, 'user-1', {
-      orderId: confirmedPO.id,
-      invoiceNumber: 'BILL-E2E-001',
-    });
+    const bill = await billService.createFromPurchaseOrder(
+      COMPANY_ID,
+      'user-1',
+      {
+        orderId: confirmedPO.id,
+        invoiceNumber: 'BILL-E2E-001',
+      }
+    );
     expect(Number(bill.taxAmount)).toBe(110000); // 1,000,000 * 11%
 
     await billService.post(bill.id, COMPANY_ID);
 
     // Check Bill Journal
     const allJournals = await journalService.list(COMPANY_ID);
-    const billJournal = allJournals.find((j) => j.reference?.includes('BILL-E2E-001')) as any;
+    const billJournal = allJournals.find((j) =>
+      j.reference?.includes('BILL-E2E-001')
+    ) as any;
     expect(billJournal).toBeDefined();
 
     // Validate lines: Dr 2105 1M, Dr 1500 110k, Cr 2100 1.11M
     const drAccrual = billJournal.lines.find(
       (l: any) => l.account.code === '2105' && Number(l.debit) > 0
     );
-    const drVat = billJournal.lines.find((l: any) => l.account.code === '1500');
+    const drVat = billJournal.lines.find(
+      (l: any) => l.account.code === '1500'
+    );
     expect(drAccrual).toBeDefined();
     expect(Number(drVat?.debit)).toBe(110000);
   });
@@ -168,23 +203,34 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
       taxRate: 11,
     });
 
-    await prisma.order.update({ where: { id: so.id }, data: { status: 'CONFIRMED' } });
+    await prisma.order.update({
+      where: { id: so.id },
+      data: { status: 'CONFIRMED' },
+    });
 
     // 2. Invoice
-    const invoice = await invoiceService.createFromSalesOrder(COMPANY_ID, 'user-1', {
-      orderId: so.id,
-      invoiceNumber: 'INV-E2E-001',
-    });
+    const invoice = await invoiceService.createFromSalesOrder(
+      COMPANY_ID,
+      'user-1',
+      {
+        orderId: so.id,
+        invoiceNumber: 'INV-E2E-001',
+      }
+    );
     expect(Number(invoice.taxAmount)).toBe(110000);
 
     await invoiceService.post(invoice.id, COMPANY_ID);
 
     // 3. Verify Sales Journal
     const journals = await journalService.list(COMPANY_ID);
-    const salesJournal = journals.find((j) => j.reference?.includes('INV-E2E-001')) as any;
+    const salesJournal = journals.find((j) =>
+      j.reference?.includes('INV-E2E-001')
+    ) as any;
 
     // Dr AR 1.11M, Cr Rev 1M, Cr Tax 110k
-    const crTax = salesJournal.lines.find((l: any) => l.account.code === '2300');
+    const crTax = salesJournal.lines.find(
+      (l: any) => l.account.code === '2300'
+    );
     expect(Number(crTax?.credit)).toBe(110000);
   });
 
@@ -195,10 +241,14 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     const so = orders.find((o) => o.orderNumber.startsWith('SO-')); // Only 1 so far
     if (!so) throw new Error('SO missing');
 
-    await fulfillmentService.processShipment(COMPANY_ID, { orderId: so.id });
+    await fulfillmentService.processShipment(COMPANY_ID, {
+      orderId: so.id,
+    });
 
     // 2. Return 1 item
-    await salesOrderService.returnOrder(COMPANY_ID, so.id, [{ productId, quantity: 1 }]);
+    await salesOrderService.returnOrder(COMPANY_ID, so.id, [
+      { productId, quantity: 1 },
+    ]);
 
     // 3. Verify Return Journal
     const journals = await journalService.list(COMPANY_ID);
@@ -208,7 +258,9 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
 
     // Dr Inventory, Cr COGS
     expect(returnJournal).toBeDefined();
-    const drInv = returnJournal.lines.find((l: any) => l.account.code === '1400');
+    const drInv = returnJournal.lines.find(
+      (l: any) => l.account.code === '1400'
+    );
     expect(Number(drInv?.debit)).toBeGreaterThan(0);
   });
 });

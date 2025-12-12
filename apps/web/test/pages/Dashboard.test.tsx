@@ -4,7 +4,9 @@ import Dashboard from '../../src/pages/Dashboard';
 import * as CompanyContext from '../../src/contexts/CompanyContext';
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -17,7 +19,9 @@ describe('Dashboard', () => {
   });
 
   const setupMock = (
-    currentCompany: ReturnType<typeof CompanyContext.useCompany>['currentCompany']
+    currentCompany: ReturnType<
+      typeof CompanyContext.useCompany
+    >['currentCompany']
   ) => {
     vi.mocked(CompanyContext.useCompany).mockReturnValue({
       currentCompany,
@@ -34,21 +38,31 @@ describe('Dashboard', () => {
       setupMock(null);
       render(<Dashboard />);
 
-      expect(screen.getByRole('heading', { name: /welcome to sync erp/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /welcome to sync erp/i })
+      ).toBeInTheDocument();
     });
 
     it('shows company name when company is selected', () => {
-      setupMock({ id: '1', name: 'Acme Corp', createdAt: new Date() });
+      setupMock({
+        id: '1',
+        name: 'Acme Corp',
+        createdAt: new Date(),
+      });
       render(<Dashboard />);
 
-      expect(screen.getByText(/managing acme corp/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/managing acme corp/i)
+      ).toBeInTheDocument();
     });
 
     it('shows prompt to select company when none selected', () => {
       setupMock(null);
       render(<Dashboard />);
 
-      expect(screen.getByText(/select a company to get started/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/select a company to get started/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -108,17 +122,27 @@ describe('Dashboard', () => {
       setupMock(null);
       render(<Dashboard />);
 
-      expect(screen.getByText('No recent activity')).toBeInTheDocument();
+      expect(
+        screen.getByText('No recent activity')
+      ).toBeInTheDocument();
     });
 
     it('renders getting started items', () => {
       setupMock(null);
       render(<Dashboard />);
 
-      expect(screen.getByText('Create your first company')).toBeInTheDocument();
-      expect(screen.getByText('Add products and services')).toBeInTheDocument();
-      expect(screen.getByText('Set up customers and suppliers')).toBeInTheDocument();
-      expect(screen.getByText('Create your first order')).toBeInTheDocument();
+      expect(
+        screen.getByText('Create your first company')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Add products and services')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Set up customers and suppliers')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Create your first order')
+      ).toBeInTheDocument();
     });
   });
 });

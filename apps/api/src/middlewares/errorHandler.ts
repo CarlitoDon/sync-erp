@@ -46,7 +46,9 @@ export function errorHandler(
   // Handle known application errors
   const isAppError = err instanceof AppError;
   const statusCode = isAppError ? err.statusCode : 500;
-  const errorCode = isAppError ? err.code : ERROR_CODES.INTERNAL_ERROR;
+  const errorCode = isAppError
+    ? err.code
+    : ERROR_CODES.INTERNAL_ERROR;
   const details = isAppError ? err.details : undefined;
 
   // Log server errors
@@ -65,8 +67,9 @@ export function errorHandler(
 }
 
 // Common error factories
-export const NotFoundError = (message: string = 'Resource not found') =>
-  new AppError(message, 404, ERROR_CODES.NOT_FOUND);
+export const NotFoundError = (
+  message: string = 'Resource not found'
+) => new AppError(message, 404, ERROR_CODES.NOT_FOUND);
 
 export const ValidationError = (message: string, details?: unknown) =>
   new AppError(message, 400, ERROR_CODES.VALIDATION_ERROR, details);
@@ -77,4 +80,5 @@ export const UnauthorizedError = (message: string = 'Unauthorized') =>
 export const ForbiddenError = (message: string = 'Forbidden') =>
   new AppError(message, 403, ERROR_CODES.FORBIDDEN);
 
-export const ConflictError = (message: string) => new AppError(message, 409, ERROR_CODES.CONFLICT);
+export const ConflictError = (message: string) =>
+  new AppError(message, 409, ERROR_CODES.CONFLICT);

@@ -29,13 +29,19 @@ export function FinancialReport({
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-          {subtitle && <p className="text-gray-500 mt-1">{subtitle}</p>}
+          <h2 className="text-2xl font-bold text-gray-900">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="text-gray-500 mt-1">{subtitle}</p>
+          )}
         </div>
         {isBalanced !== undefined && (
           <span
             className={`px-3 py-1 text-sm font-medium rounded-full ${
-              isBalanced ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              isBalanced
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
             }`}
           >
             {isBalanced ? 'Balanced' : 'Unbalanced'}
@@ -60,9 +66,16 @@ export function FinancialReport({
                     <table className="w-full text-sm">
                       <tbody>
                         {group.accounts.map((acc) => (
-                          <tr key={acc.id} className="group hover:bg-gray-50">
-                            <td className="py-1 text-gray-500 w-24">{acc.code}</td>
-                            <td className="py-1 text-gray-700">{acc.name}</td>
+                          <tr
+                            key={acc.id}
+                            className="group hover:bg-gray-50"
+                          >
+                            <td className="py-1 text-gray-500 w-24">
+                              {acc.code}
+                            </td>
+                            <td className="py-1 text-gray-700">
+                              {acc.name}
+                            </td>
                             <td className="py-1 text-right font-medium text-gray-900">
                               {formatCurrency(acc.balance)}
                             </td>

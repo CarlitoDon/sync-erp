@@ -2,15 +2,25 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCompany } from '../contexts/CompanyContext';
 import { useAuth } from '../contexts/AuthContext';
-import { createCompany, joinCompany } from '../services/companyService';
+import {
+  createCompany,
+  joinCompany,
+} from '../services/companyService';
 import type { Company } from '@sync-erp/shared';
 
 export function CompanySelectionPage() {
   const navigate = useNavigate();
   const { logout } = useAuth(); // Allow logout if stuck
-  const { companies, setCurrentCompany, refreshCompanies, isLoading } = useCompany();
+  const {
+    companies,
+    setCurrentCompany,
+    refreshCompanies,
+    isLoading,
+  } = useCompany();
   // State for switching views: 'list' | 'create' | 'join'
-  const [view, setView] = useState<'list' | 'create' | 'join'>('list');
+  const [view, setView] = useState<'list' | 'create' | 'join'>(
+    'list'
+  );
 
   // Form states and loading
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,12 +43,17 @@ export function CompanySelectionPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const newCompany = await createCompany({ name: newCompanyName });
+      const newCompany = await createCompany({
+        name: newCompanyName,
+      });
       await refreshCompanies(); // Reload list
       setCurrentCompany(newCompany); // Auto-select? Or go to list? User story says "Onboard". Let's auto-select.
       navigate('/');
     } catch (err) {
-      setError((err as any).response?.data?.error?.message || 'Failed to create company');
+      setError(
+        (err as any).response?.data?.error?.message ||
+          'Failed to create company'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -54,7 +69,10 @@ export function CompanySelectionPage() {
       setCurrentCompany(joinedCompany); // Auto-select
       navigate('/');
     } catch (err) {
-      setError((err as any).response?.data?.error?.message || 'Failed to join company');
+      setError(
+        (err as any).response?.data?.error?.message ||
+          'Failed to join company'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -78,7 +96,9 @@ export function CompanySelectionPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Select a Company</h2>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Select a Company
+        </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           You need to select a company context to proceed.
         </p>
@@ -111,9 +131,14 @@ export function CompanySelectionPage() {
                       onClick={() => handleSelectCompany(company)}
                     >
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{company.name}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {company.name}
+                        </p>
                         <p className="text-xs text-gray-500">
-                          Created: {new Date(company.createdAt).toLocaleDateString()}
+                          Created:{' '}
+                          {new Date(
+                            company.createdAt
+                          ).toLocaleDateString()}
                         </p>
                       </div>
                       <button className="ml-4 bg-white border border-gray-300 rounded-md shadow-sm px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -144,10 +169,18 @@ export function CompanySelectionPage() {
           {/* Create View */}
           {view === 'create' && (
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Create Company</h3>
-              <form onSubmit={handleCreateCompany} className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Create Company
+              </h3>
+              <form
+                onSubmit={handleCreateCompany}
+                className="space-y-4"
+              >
                 <div>
-                  <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="companyName"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Company Name
                   </label>
                   <input
@@ -155,7 +188,9 @@ export function CompanySelectionPage() {
                     id="companyName"
                     required
                     value={newCompanyName}
-                    onChange={(e) => setNewCompanyName(e.target.value)}
+                    onChange={(e) =>
+                      setNewCompanyName(e.target.value)
+                    }
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     placeholder="My Great Company"
                   />
@@ -184,10 +219,18 @@ export function CompanySelectionPage() {
           {/* Join View */}
           {view === 'join' && (
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Join Company</h3>
-              <form onSubmit={handleJoinCompany} className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Join Company
+              </h3>
+              <form
+                onSubmit={handleJoinCompany}
+                className="space-y-4"
+              >
                 <div>
-                  <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="inviteCode"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Invite Code
                   </label>
                   <input

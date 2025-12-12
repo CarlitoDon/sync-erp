@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from 'react';
 
 interface ConfirmOptions {
   title?: string;
@@ -19,22 +25,29 @@ interface ConfirmModalState extends ConfirmOptions {
   resolve: ((value: boolean) => void) | null;
 }
 
-export function ConfirmProvider({ children }: { children: ReactNode }) {
+export function ConfirmProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [state, setState] = useState<ConfirmModalState>({
     isOpen: false,
     message: '',
     resolve: null,
   });
 
-  const confirm = useCallback((options: ConfirmOptions): Promise<boolean> => {
-    return new Promise((resolve) => {
-      setState({
-        isOpen: true,
-        ...options,
-        resolve,
+  const confirm = useCallback(
+    (options: ConfirmOptions): Promise<boolean> => {
+      return new Promise((resolve) => {
+        setState({
+          isOpen: true,
+          ...options,
+          resolve,
+        });
       });
-    });
-  }, []);
+    },
+    []
+  );
 
   const handleConfirm = () => {
     state.resolve?.(true);
@@ -65,7 +78,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       {state.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop */}
-          <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={handleCancel} />
+          <div
+            className="fixed inset-0 bg-black/50 transition-opacity"
+            onClick={handleCancel}
+          />
 
           {/* Modal */}
           <div className="relative z-10 w-full max-w-md transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all">
@@ -108,7 +124,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 export function useConfirm() {
   const context = useContext(ConfirmContext);
   if (!context) {
-    throw new Error('useConfirm must be used within a ConfirmProvider');
+    throw new Error(
+      'useConfirm must be used within a ConfirmProvider'
+    );
   }
   return context.confirm;
 }

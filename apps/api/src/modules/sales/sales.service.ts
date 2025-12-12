@@ -1,4 +1,9 @@
-import { Order, OrderStatus, OrderType, Prisma } from '@sync-erp/database';
+import {
+  Order,
+  OrderStatus,
+  OrderType,
+  Prisma,
+} from '@sync-erp/database';
 import { SalesRepository } from './sales.repository';
 import { ProductService } from '../product/product.service';
 import { InventoryService } from '../inventory/inventory.service';
@@ -25,10 +30,16 @@ export class SalesService {
     }
   ): Promise<Order> {
     // Generate order number
-    const orderNumber = await this.documentNumberService.generate(companyId, 'SO');
+    const orderNumber = await this.documentNumberService.generate(
+      companyId,
+      'SO'
+    );
 
     // Calculate totals
-    const totalAmount = data.items.reduce((sum, item) => sum + item.quantity * item.price, 0);
+    const totalAmount = data.items.reduce(
+      (sum, item) => sum + item.quantity * item.price,
+      0
+    );
 
     // Prepare create data
     const createData: Prisma.OrderUncheckedCreateInput = {
@@ -66,14 +77,21 @@ export class SalesService {
     }
 
     if (order.status !== OrderStatus.DRAFT) {
-      throw new Error(`Cannot confirm order with status: ${order.status}`);
+      throw new Error(
+        `Cannot confirm order with status: ${order.status}`
+      );
     }
 
     // Check stock availability
     for (const item of order.items) {
-      const hasStock = await this.productService.checkStock(item.productId, item.quantity);
+      const hasStock = await this.productService.checkStock(
+        item.productId,
+        item.quantity
+      );
       if (!hasStock) {
-        throw new Error(`Insufficient stock for product: ${item.product.name}`);
+        throw new Error(
+          `Insufficient stock for product: ${item.product.name}`
+        );
       }
     }
 
@@ -101,7 +119,10 @@ export class SalesService {
     );
 
     // Mark order as completed
-    await this.repository.updateStatus(orderId, OrderStatus.COMPLETED);
+    await this.repository.updateStatus(
+      orderId,
+      OrderStatus.COMPLETED
+    );
 
     return movements;
   }

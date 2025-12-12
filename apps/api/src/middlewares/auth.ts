@@ -3,7 +3,8 @@ import { HEADERS, ERROR_CODES } from '@sync-erp/shared';
 import { AuthRepository } from '../modules/auth/auth.repository';
 
 const authRepository = new AuthRepository();
-const getSession = (sessionId: string) => authRepository.getSession(sessionId);
+const getSession = (sessionId: string) =>
+  authRepository.getSession(sessionId);
 import { prisma, type User, type Session } from '@sync-erp/database';
 
 // Extend Express Request to include context using module augmentation
@@ -21,13 +22,20 @@ declare module 'express-serve-static-core' {
 /**
  * Auth Middleware - Validates session cookie and strict company access
  */
-export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+export async function authMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const sessionId = req.cookies['sessionId'];
 
   if (!sessionId) {
     return res.status(401).json({
       success: false,
-      error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Authentication required',
+      },
     });
   }
 
@@ -37,12 +45,17 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     if (!session || session.expiresAt < new Date()) {
       return res.status(401).json({
         success: false,
-        error: { code: 'UNAUTHORIZED', message: 'Invalid or expired session' },
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid or expired session',
+        },
       });
     }
 
     const userId = session.userId;
-    const companyId = req.headers[HEADERS.COMPANY_ID] as string | undefined;
+    const companyId = req.headers[HEADERS.COMPANY_ID] as
+      | string
+      | undefined;
 
     // Validate Company Access if companyId is provided (required for most routes)
     if (companyId) {
@@ -58,7 +71,10 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       if (!membership) {
         return res.status(403).json({
           success: false,
-          error: { code: 'FORBIDDEN', message: 'User does not belong to this company' },
+          error: {
+            code: 'FORBIDDEN',
+            message: 'User does not belong to this company',
+          },
         });
       }
     } else {
@@ -92,7 +108,10 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     console.error('Auth middleware error:', error);
     return res.status(500).json({
       success: false,
-      error: { code: 'INTERNAL_ERROR', message: 'Authentication failed' },
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Authentication failed',
+      },
     });
   }
 }
@@ -100,9 +119,15 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 /**
  * Optional auth middleware - populates context but doesn't require it
  */
-export async function optionalAuthMiddleware(req: Request, _res: Response, next: NextFunction) {
+export async function optionalAuthMiddleware(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) {
   const sessionId = req.cookies['sessionId'];
-  const companyId = req.headers[HEADERS.COMPANY_ID] as string | undefined;
+  const companyId = req.headers[HEADERS.COMPANY_ID] as
+    | string
+    | undefined;
 
   req.context = {
     companyId,

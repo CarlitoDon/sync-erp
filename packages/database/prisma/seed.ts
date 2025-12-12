@@ -75,7 +75,9 @@ async function main() {
     });
   }
 
-  console.warn(`✅ Created ${DEFAULT_PERMISSIONS.length} permissions`);
+  console.warn(
+    `✅ Created ${DEFAULT_PERMISSIONS.length} permissions`
+  );
 
   // Create demo company and admin user (for development)
   if (process.env.NODE_ENV !== 'production') {

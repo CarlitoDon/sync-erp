@@ -24,7 +24,8 @@ export default function Invoices() {
 
   const [showPayment, setShowPayment] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<CreatePaymentInput['method']>('BANK_TRANSFER');
+  const [paymentMethod, setPaymentMethod] =
+    useState<CreatePaymentInput['method']>('BANK_TRANSFER');
 
   const handlePost = async (id: string) => {
     await apiAction(() => invoiceService.post(id), 'Invoice posted!');
@@ -46,7 +47,12 @@ export default function Invoices() {
   const handlePayment = async (invoiceId: string) => {
     if (paymentAmount <= 0) return;
     const result = await apiAction(
-      () => paymentService.create({ invoiceId, amount: paymentAmount, method: paymentMethod }),
+      () =>
+        paymentService.create({
+          invoiceId,
+          amount: paymentAmount,
+          method: paymentMethod,
+        }),
       'Payment recorded!'
     );
     if (result) {
@@ -95,9 +101,12 @@ export default function Invoices() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Invoices
+          </h1>
           <p className="text-gray-500">
-            Accounts Receivable - Customer invoices for {currentCompany.name}
+            Accounts Receivable - Customer invoices for{' '}
+            {currentCompany.name}
           </p>
         </div>
       </div>
@@ -105,11 +114,17 @@ export default function Invoices() {
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Total Invoices</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{invoices.length}</p>
+          <p className="text-sm text-gray-500 uppercase">
+            Total Invoices
+          </p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">
+            {invoices.length}
+          </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Outstanding</p>
+          <p className="text-sm text-gray-500 uppercase">
+            Outstanding
+          </p>
           <p className="text-3xl font-bold text-blue-600 mt-2">
             {invoices.filter((i) => i.status === 'POSTED').length}
           </p>
@@ -121,7 +136,9 @@ export default function Invoices() {
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Outstanding Amount</p>
+          <p className="text-sm text-gray-500 uppercase">
+            Outstanding Amount
+          </p>
           <p className="text-2xl font-bold text-primary-600 mt-2">
             {formatCurrency(outstandingAmount)}
           </p>
@@ -159,7 +176,10 @@ export default function Invoices() {
           <tbody className="divide-y divide-gray-200">
             {invoices.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                <td
+                  colSpan={7}
+                  className="px-6 py-12 text-center text-gray-500"
+                >
                   No invoices found for this company.
                 </td>
               </tr>
@@ -167,8 +187,12 @@ export default function Invoices() {
               invoices.map((invoice) => (
                 <>
                   <tr key={invoice.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-mono text-sm">{invoice.invoiceNumber}</td>
-                    <td className="px-6 py-4">{invoice.partner?.name || '-'}</td>
+                    <td className="px-6 py-4 font-mono text-sm">
+                      {invoice.invoiceNumber}
+                    </td>
+                    <td className="px-6 py-4">
+                      {invoice.partner?.name || '-'}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       {formatCurrency(Number(invoice.amount))}
                     </td>
@@ -178,7 +202,8 @@ export default function Invoices() {
                     <td className="px-6 py-4 text-center">
                       <span
                         className={
-                          new Date(invoice.dueDate) < new Date() && invoice.status === 'POSTED'
+                          new Date(invoice.dueDate) < new Date() &&
+                          invoice.status === 'POSTED'
                             ? 'text-red-600 font-bold'
                             : ''
                         }
@@ -196,10 +221,16 @@ export default function Invoices() {
                     <td className="px-6 py-4 text-right space-x-2">
                       {invoice.status === 'DRAFT' && (
                         <>
-                          <ActionButton onClick={() => handlePost(invoice.id)} variant="primary">
+                          <ActionButton
+                            onClick={() => handlePost(invoice.id)}
+                            variant="primary"
+                          >
                             Post
                           </ActionButton>
-                          <ActionButton onClick={() => handleVoid(invoice.id)} variant="danger">
+                          <ActionButton
+                            onClick={() => handleVoid(invoice.id)}
+                            variant="danger"
+                          >
                             Void
                           </ActionButton>
                         </>
@@ -231,7 +262,11 @@ export default function Invoices() {
                               max={Number(invoice.balance)}
                               step={0.01}
                               value={paymentAmount}
-                              onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                              onChange={(e) =>
+                                setPaymentAmount(
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
                               className="w-40 px-3 py-2 border border-gray-300 rounded-lg"
                             />
                           </div>
@@ -242,20 +277,29 @@ export default function Invoices() {
                             <select
                               value={paymentMethod}
                               onChange={(e) =>
-                                setPaymentMethod(e.target.value as CreatePaymentInput['method'])
+                                setPaymentMethod(
+                                  e.target
+                                    .value as CreatePaymentInput['method']
+                                )
                               }
                               className="w-40 px-3 py-2 border border-gray-300 rounded-lg"
                             >
-                              <option value="BANK_TRANSFER">Bank Transfer</option>
+                              <option value="BANK_TRANSFER">
+                                Bank Transfer
+                              </option>
                               <option value="CASH">Cash</option>
                               <option value="CHECK">Check</option>
-                              <option value="CREDIT_CARD">Credit Card</option>
+                              <option value="CREDIT_CARD">
+                                Credit Card
+                              </option>
                               <option value="OTHER">Other</option>
                             </select>
                           </div>
                           <div className="flex gap-2 mt-6">
                             <button
-                              onClick={() => handlePayment(invoice.id)}
+                              onClick={() =>
+                                handlePayment(invoice.id)
+                              }
                               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                             >
                               Confirm Payment

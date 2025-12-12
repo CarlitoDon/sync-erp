@@ -17,7 +17,9 @@ if (result.error) {
   const rootEnvPath = resolve(__dirname, '../../../.env');
   result = dotenv.config({ path: rootEnvPath });
   if (result.error) {
-    console.error(`Failed to load .env from ${pkgEnvPath} and ${rootEnvPath}`);
+    console.error(
+      `Failed to load .env from ${pkgEnvPath} and ${rootEnvPath}`
+    );
   }
 }
 
@@ -34,7 +36,10 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log:
+      process.env.NODE_ENV === 'development'
+        ? ['query', 'error', 'warn']
+        : ['error'],
   });
 
 if (process.env.NODE_ENV !== 'production') {

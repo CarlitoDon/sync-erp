@@ -6,7 +6,9 @@ import * as useCompanyDataHook from '../../src/hooks/useCompanyData';
 import { ConfirmProvider } from '../../src/components/ConfirmModal';
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -14,7 +16,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock('../../src/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual('../../src/hooks/useCompanyData');
+  const actual = await vi.importActual(
+    '../../src/hooks/useCompanyData'
+  );
   return {
     ...actual,
     useCompanyData: vi.fn(),
@@ -41,7 +45,9 @@ describe('AccountsPayable', () => {
   });
 
   const setupMocks = (options: {
-    currentCompany?: ReturnType<typeof CompanyContext.useCompany>['currentCompany'];
+    currentCompany?: ReturnType<
+      typeof CompanyContext.useCompany
+    >['currentCompany'];
     loading?: boolean;
     bills?: unknown[];
   }) => {
@@ -88,7 +94,9 @@ describe('AccountsPayable', () => {
     it('renders heading', () => {
       setupMocks({});
       renderComponent();
-      expect(screen.getByRole('heading', { name: /accounts payable/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /accounts payable/i })
+      ).toBeInTheDocument();
     });
 
     it('shows empty message when no bills', () => {
@@ -117,7 +125,9 @@ describe('AccountsPayable', () => {
 
       expect(screen.getByText('BILL-001')).toBeInTheDocument();
       expect(screen.getByText('Supplier B')).toBeInTheDocument();
-      expect(screen.getByRole('cell', { name: /draft/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('cell', { name: /draft/i })
+      ).toBeInTheDocument();
     });
   });
 });

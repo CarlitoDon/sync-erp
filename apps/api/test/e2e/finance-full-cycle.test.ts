@@ -41,14 +41,20 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       { code: '1300', name: 'Accounts Receivable', type: 'ASSET' },
       { code: '1400', name: 'Inventory Asset', type: 'ASSET' },
       { code: '2100', name: 'Accounts Payable', type: 'LIABILITY' },
-      { code: '2105', name: 'GRNI/Accrued Liability', type: 'LIABILITY' }, // Required for accrual
+      {
+        code: '2105',
+        name: 'GRNI/Accrued Liability',
+        type: 'LIABILITY',
+      }, // Required for accrual
       { code: '4100', name: 'Sales Revenue', type: 'REVENUE' },
       { code: '5000', name: 'COGS', type: 'EXPENSE' },
     ];
 
     for (const acc of accounts) {
       await prisma.account.upsert({
-        where: { companyId_code: { companyId: COMPANY_ID, code: acc.code } },
+        where: {
+          companyId_code: { companyId: COMPANY_ID, code: acc.code },
+        },
         update: {},
         create: {
           companyId: COMPANY_ID,
@@ -97,22 +103,36 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
 
   afterAll(async () => {
     // Cleanup
-    const deleteJournals = prisma.journalEntry.deleteMany({ where: { companyId: COMPANY_ID } });
+    const deleteJournals = prisma.journalEntry.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     const deleteMovements = prisma.inventoryMovement.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     const deletePayments = prisma.payment.deleteMany({
       where: { invoice: { companyId: COMPANY_ID } },
     });
-    const deleteInvoices = prisma.invoice.deleteMany({ where: { companyId: COMPANY_ID } });
+    const deleteInvoices = prisma.invoice.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     const deleteOrderItems = prisma.orderItem.deleteMany({
       where: { order: { companyId: COMPANY_ID } },
     });
-    const deleteOrders = prisma.order.deleteMany({ where: { companyId: COMPANY_ID } });
-    const deleteProducts = prisma.product.deleteMany({ where: { companyId: COMPANY_ID } });
-    const deleteAccounts = prisma.account.deleteMany({ where: { companyId: COMPANY_ID } });
-    const deletePartners = prisma.partner.deleteMany({ where: { companyId: COMPANY_ID } });
-    const deleteCompany = prisma.company.delete({ where: { id: COMPANY_ID } });
+    const deleteOrders = prisma.order.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteProducts = prisma.product.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteAccounts = prisma.account.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deletePartners = prisma.partner.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteCompany = prisma.company.delete({
+      where: { id: COMPANY_ID },
+    });
 
     await prisma.$transaction([
       deleteJournals,
@@ -138,10 +158,14 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
     let billId: string;
 
     it('1. Should create Purchase Order', async () => {
-      const order = await purchaseOrderService.create(COMPANY_ID, USER_ID, {
-        partnerId: supplierId,
-        items: [{ productId, quantity: 10, price: 100 }], // Cost 100 * 10 = 1000
-      });
+      const order = await purchaseOrderService.create(
+        COMPANY_ID,
+        USER_ID,
+        {
+          partnerId: supplierId,
+          items: [{ productId, quantity: 10, price: 100 }], // Cost 100 * 10 = 1000
+        }
+      );
       orderId = order.id;
       expect(order.status).toBe('DRAFT');
 
@@ -157,40 +181,58 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       });
 
       // Check Stock using Service (or Prisma)
-      const prod = await prisma.product.findUnique({ where: { id: productId } });
+      const prod = await prisma.product.findUnique({
+        where: { id: productId },
+      });
       expect(prod?.stockQty).toBe(10);
       expect(Number(prod?.averageCost)).toBe(100);
 
       // Verify GRNI Accrual Journal exists (Dr Inventory, Cr GRNI)
       const journals = await journalService.list(COMPANY_ID);
-      const grnJournal = journals.find((j: any) => j.reference?.includes('GRN-001')) as any;
+      const grnJournal = journals.find((j: any) =>
+        j.reference?.includes('GRN-001')
+      ) as any;
       expect(grnJournal).toBeDefined();
 
       // Verify the journal lines (Dr 1400 Inventory, Cr 2105 GRNI)
-      const drLine = grnJournal.lines.find((l: any) => l.account.code === '1400');
-      const crLine = grnJournal.lines.find((l: any) => l.account.code === '2105');
+      const drLine = grnJournal.lines.find(
+        (l: any) => l.account.code === '1400'
+      );
+      const crLine = grnJournal.lines.find(
+        (l: any) => l.account.code === '2105'
+      );
       expect(Number(drLine?.debit)).toBe(1000); // 10 * 100
       expect(Number(crLine?.credit)).toBe(1000);
     });
 
     it('3. Should Create and Post Bill (Dr GRNI 2105, Cr AP 2100)', async () => {
       // Create Bill from PO
-      const bill = await billService.createFromPurchaseOrder(COMPANY_ID, USER_ID, {
-        orderId,
-        invoiceNumber: 'BILL-001',
-      });
+      const bill = await billService.createFromPurchaseOrder(
+        COMPANY_ID,
+        USER_ID,
+        {
+          orderId,
+          invoiceNumber: 'BILL-001',
+        }
+      );
       billId = bill.id;
 
       // Post Bill
       await billService.post(bill.id, COMPANY_ID);
 
       const journals = await journalService.list(COMPANY_ID);
-      const billJournal = journals.find((j: any) => j.reference === 'Bill: BILL-001') as any;
+      const billJournal = journals.find(
+        (j: any) => j.reference === 'Bill: BILL-001'
+      ) as any;
 
       expect(billJournal).toBeDefined();
       // Bill should clear GRNI accrual (Dr 2105) and record AP (Cr 2100)
-      const drLine = billJournal.lines.find((l: any) => l.account.code === '2105'); // Clear GRNI
-      const crLine = billJournal.lines.find((l: any) => l.account.code === '2100'); // Liability AP
+      const drLine = billJournal.lines.find(
+        (l: any) => l.account.code === '2105'
+      ); // Clear GRNI
+      const crLine = billJournal.lines.find(
+        (l: any) => l.account.code === '2100'
+      ); // Liability AP
 
       expect(Number(drLine.debit)).toBe(1000);
       expect(Number(crLine.credit)).toBe(1000);
@@ -204,11 +246,17 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       });
 
       const journals = await journalService.list(COMPANY_ID);
-      const payJournal = journals.find((j: any) => j.reference === 'Payment made: BILL-001') as any;
+      const payJournal = journals.find(
+        (j: any) => j.reference === 'Payment made: BILL-001'
+      ) as any;
 
       expect(payJournal).toBeDefined();
-      const drLine = payJournal.lines.find((l: any) => l.account.code === '2100'); // Liability Decrease
-      const crLine = payJournal.lines.find((l: any) => l.account.code === '1100'); // Asset Decrease
+      const drLine = payJournal.lines.find(
+        (l: any) => l.account.code === '2100'
+      ); // Liability Decrease
+      const crLine = payJournal.lines.find(
+        (l: any) => l.account.code === '1100'
+      ); // Asset Decrease
 
       expect(Number(drLine.debit)).toBe(1000);
       expect(Number(crLine.credit)).toBe(1000);
@@ -225,10 +273,14 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
     let invoiceId: string;
 
     it('1. Should create Sales Order', async () => {
-      const order = await salesOrderService.create(COMPANY_ID, USER_ID, {
-        partnerId: customerId,
-        items: [{ productId, quantity: 5, price: 200 }], // Sell 5 @ 200. Cost is 100.
-      });
+      const order = await salesOrderService.create(
+        COMPANY_ID,
+        USER_ID,
+        {
+          partnerId: customerId,
+          items: [{ productId, quantity: 5, price: 200 }], // Sell 5 @ 200. Cost is 100.
+        }
+      );
       orderId = order.id;
 
       await salesOrderService.confirm(order.id, COMPANY_ID);
@@ -236,45 +288,67 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
 
     it('2. Should Ship Goods (Dr COGS 5000, Cr Inventory 1400)', async () => {
       // Get Order Number for reference check
-      const order = await prisma.order.findUnique({ where: { id: orderId } });
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+      });
 
-      await fulfillmentService.processShipment(COMPANY_ID, { orderId });
+      await fulfillmentService.processShipment(COMPANY_ID, {
+        orderId,
+      });
 
       // Check Stock
-      const prod = await prisma.product.findUnique({ where: { id: productId } });
+      const prod = await prisma.product.findUnique({
+        where: { id: productId },
+      });
       expect(prod?.stockQty).toBe(5); // 10 - 5
 
       // Check Journal
       const journals = await journalService.list(COMPANY_ID);
       const shipJournal = journals.find((j: any) =>
-        j.reference?.includes(`Shipment for Order ${order?.orderNumber}`)
+        j.reference?.includes(
+          `Shipment for Order ${order?.orderNumber}`
+        )
       ) as any;
 
       expect(shipJournal).toBeDefined();
       // Cost = 5 * 100 = 500
-      const drLine = shipJournal.lines.find((l: any) => l.account.code === '5000'); // Expense
-      const crLine = shipJournal.lines.find((l: any) => l.account.code === '1400'); // Asset
+      const drLine = shipJournal.lines.find(
+        (l: any) => l.account.code === '5000'
+      ); // Expense
+      const crLine = shipJournal.lines.find(
+        (l: any) => l.account.code === '1400'
+      ); // Asset
 
       expect(Number(drLine.debit)).toBe(500);
       expect(Number(crLine.credit)).toBe(500);
     });
 
     it('3. Should Create and Post Invoice (Dr AR 1300, Cr Revenue 4100)', async () => {
-      const invoice = await invoiceService.createFromSalesOrder(COMPANY_ID, USER_ID, {
-        orderId,
-        invoiceNumber: 'INV-001',
-      });
+      const invoice = await invoiceService.createFromSalesOrder(
+        COMPANY_ID,
+        USER_ID,
+        {
+          orderId,
+          invoiceNumber: 'INV-001',
+        }
+      );
       invoiceId = invoice.id;
 
       await invoiceService.post(invoiceId, COMPANY_ID);
 
       const journals = await journalService.list(COMPANY_ID);
-      const invJournal = journals.find((j: any) => j.reference === 'Invoice: INV-001') as any;
+      const invJournal = journals.find(
+        (j: any) => j.reference === 'Invoice: INV-001'
+      ) as any;
 
       expect(invJournal).toBeDefined();
       // Revenue = 5 * 200 = 1000
-      const drLine = invJournal.lines.find((l: any) => l.account.code === '1300'); // Asset (AR)
-      const crLine = invJournal.lines.find((l: any) => l.account.code === '4100'); // Revenue
+      const drLine = invJournal.lines.find(
+        (l: any) => l.account.code === '1300'
+      ); // Asset (AR)
+      const crLine = invJournal.lines.find(
+        (l: any) => l.account.code === '4100'
+      ); // Revenue
 
       expect(Number(drLine.debit)).toBe(1000);
       expect(Number(crLine.credit)).toBe(1000);
@@ -293,8 +367,12 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       ) as any;
 
       expect(payJournal).toBeDefined();
-      const drLine = payJournal.lines.find((l: any) => l.account.code === '1100'); // Asset (Cash)
-      const crLine = payJournal.lines.find((l: any) => l.account.code === '1300'); // Asset Decrease (AR)
+      const drLine = payJournal.lines.find(
+        (l: any) => l.account.code === '1100'
+      ); // Asset (Cash)
+      const crLine = payJournal.lines.find(
+        (l: any) => l.account.code === '1300'
+      ); // Asset Decrease (AR)
 
       expect(Number(drLine.debit)).toBe(1000);
       expect(Number(crLine.credit)).toBe(1000);

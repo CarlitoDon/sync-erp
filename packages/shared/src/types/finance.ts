@@ -45,7 +45,13 @@ export interface Payment {
 }
 
 // Chart of Accounts
-export const AccountType = z.enum(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE']);
+export const AccountType = z.enum([
+  'ASSET',
+  'LIABILITY',
+  'EQUITY',
+  'REVENUE',
+  'EXPENSE',
+]);
 export type AccountType = z.infer<typeof AccountType>;
 
 export interface Account {

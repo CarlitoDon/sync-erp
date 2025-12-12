@@ -6,7 +6,9 @@ import * as useCompanyDataHook from '../../src/hooks/useCompanyData';
 import { ConfirmProvider } from '../../src/components/ConfirmModal';
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -14,7 +16,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock('../../src/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual('../../src/hooks/useCompanyData');
+  const actual = await vi.importActual(
+    '../../src/hooks/useCompanyData'
+  );
   return {
     ...actual,
     useCompanyData: vi.fn(),
@@ -36,7 +40,9 @@ describe('Suppliers', () => {
   });
 
   const setupMocks = (options: {
-    currentCompany?: ReturnType<typeof CompanyContext.useCompany>['currentCompany'];
+    currentCompany?: ReturnType<
+      typeof CompanyContext.useCompany
+    >['currentCompany'];
     loading?: boolean;
     suppliers?: Array<{
       id: string;
@@ -82,7 +88,9 @@ describe('Suppliers', () => {
     it('shows loading spinner when data is loading', () => {
       setupMocks({ loading: true });
       renderComponent();
-      expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+      expect(
+        document.querySelector('.animate-spin')
+      ).toBeInTheDocument();
     });
   });
 
@@ -90,7 +98,9 @@ describe('Suppliers', () => {
     it('shows message to select company when none selected', () => {
       setupMocks({ currentCompany: null });
       renderComponent();
-      expect(screen.getByText(/please select a company/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/please select a company/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -98,19 +108,25 @@ describe('Suppliers', () => {
     it('renders suppliers heading', () => {
       setupMocks({});
       renderComponent();
-      expect(screen.getByRole('heading', { name: /suppliers/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /suppliers/i })
+      ).toBeInTheDocument();
     });
 
     it('renders add supplier button', () => {
       setupMocks({});
       renderComponent();
-      expect(screen.getByRole('button', { name: /add supplier/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /add supplier/i })
+      ).toBeInTheDocument();
     });
 
     it('shows empty message when no suppliers', () => {
       setupMocks({ suppliers: [] });
       renderComponent();
-      expect(screen.getByText(/no suppliers found/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/no suppliers found/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -142,7 +158,9 @@ describe('Suppliers', () => {
       setupMocks({});
       renderComponent();
 
-      fireEvent.click(screen.getByRole('button', { name: /add supplier/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /add supplier/i })
+      );
       expect(screen.getByText(/new supplier/i)).toBeInTheDocument();
     });
   });

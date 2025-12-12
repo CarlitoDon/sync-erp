@@ -39,12 +39,19 @@ export default function CreateCompany() {
   return (
     <div className="max-w-md mx-auto">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Create Company</h1>
-        <p className="text-gray-500 mb-6">Set up a new company in Sync ERP</p>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+          Create Company
+        </h1>
+        <p className="text-gray-500 mb-6">
+          Set up a new company in Sync ERP
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Company Name
             </label>
             <input

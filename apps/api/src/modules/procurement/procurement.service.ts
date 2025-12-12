@@ -1,4 +1,9 @@
-import { Order, OrderStatus, OrderType, Prisma } from '@sync-erp/database';
+import {
+  Order,
+  OrderStatus,
+  OrderType,
+  Prisma,
+} from '@sync-erp/database';
 import { ProcurementRepository } from './procurement.repository';
 import { DocumentNumberService } from '../common/services/document-number.service';
 
@@ -15,10 +20,16 @@ export class ProcurementService {
     }
   ): Promise<Order> {
     // Generate order number
-    const orderNumber = await this.documentNumberService.generate(companyId, 'PO');
+    const orderNumber = await this.documentNumberService.generate(
+      companyId,
+      'PO'
+    );
 
     // Calculate totals
-    const totalAmount = data.items.reduce((sum, item) => sum + item.quantity * item.price, 0);
+    const totalAmount = data.items.reduce(
+      (sum, item) => sum + item.quantity * item.price,
+      0
+    );
 
     // Prepare create data
     const createData: Prisma.OrderUncheckedCreateInput = {
@@ -56,7 +67,9 @@ export class ProcurementService {
     }
 
     if (order.status !== OrderStatus.DRAFT) {
-      throw new Error(`Cannot confirm order with status: ${order.status}`);
+      throw new Error(
+        `Cannot confirm order with status: ${order.status}`
+      );
     }
 
     return this.repository.updateStatus(id, OrderStatus.CONFIRMED);
@@ -69,7 +82,9 @@ export class ProcurementService {
     }
 
     if (order.status !== OrderStatus.CONFIRMED) {
-      throw new Error(`Cannot complete order with status: ${order.status}`);
+      throw new Error(
+        `Cannot complete order with status: ${order.status}`
+      );
     }
 
     return this.repository.updateStatus(id, OrderStatus.COMPLETED);

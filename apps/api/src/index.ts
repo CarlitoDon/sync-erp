@@ -2,7 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { errorHandler } from './middlewares/errorHandler';
-import { authMiddleware, optionalAuthMiddleware } from './middlewares/auth';
+import {
+  authMiddleware,
+  optionalAuthMiddleware,
+} from './middlewares/auth';
 import { companyRouter } from './routes/company';
 import { userRouter } from './routes/user';
 import { healthRouter } from './routes/health';

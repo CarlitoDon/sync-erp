@@ -39,7 +39,9 @@ export const purchaseOrderService = {
     return res.data.data;
   },
 
-  async create(data: CreatePurchaseOrderInput): Promise<PurchaseOrder> {
+  async create(
+    data: CreatePurchaseOrderInput
+  ): Promise<PurchaseOrder> {
     const res = await api.post('/purchase-orders', data);
     return res.data.data;
   },
@@ -54,7 +56,13 @@ export const purchaseOrderService = {
     return res.data.data;
   },
 
-  async processGoodsReceipt(orderId: string, reference?: string): Promise<void> {
-    await api.post('/inventory/goods-receipt', { orderId, reference });
+  async processGoodsReceipt(
+    orderId: string,
+    reference?: string
+  ): Promise<void> {
+    await api.post('/inventory/goods-receipt', {
+      orderId,
+      reference,
+    });
   },
 };

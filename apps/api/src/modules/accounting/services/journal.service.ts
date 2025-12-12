@@ -19,10 +19,19 @@ export class JournalService {
   private repository = new JournalRepository();
   private accountService = new AccountService();
 
-  async create(companyId: string, data: CreateJournalEntryInput): Promise<JournalEntry> {
+  async create(
+    companyId: string,
+    data: CreateJournalEntryInput
+  ): Promise<JournalEntry> {
     // Validate: debits must equal credits
-    const totalDebit = data.lines.reduce((sum, l) => sum + (l.debit || 0), 0);
-    const totalCredit = data.lines.reduce((sum, l) => sum + (l.credit || 0), 0);
+    const totalDebit = data.lines.reduce(
+      (sum, l) => sum + (l.debit || 0),
+      0
+    );
+    const totalCredit = data.lines.reduce(
+      (sum, l) => sum + (l.credit || 0),
+      0
+    );
 
     // Allow small floating point error
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
@@ -32,9 +41,13 @@ export class JournalService {
     }
 
     // Verify accounts exist and prepare lines
-    const lineData: Prisma.JournalLineUncheckedCreateWithoutJournalInput[] = [];
+    const lineData: Prisma.JournalLineUncheckedCreateWithoutJournalInput[] =
+      [];
     for (const line of data.lines) {
-      const account = await this.accountService.getById(line.accountId, companyId);
+      const account = await this.accountService.getById(
+        line.accountId,
+        companyId
+      );
       if (!account) {
         throw new Error(`Account not found: ${line.accountId}`);
       }
@@ -76,14 +89,23 @@ export class JournalService {
       reference: string;
       memo: string;
       date?: Date;
-      lines: { accountCode: string; debit?: number; credit?: number }[];
+      lines: {
+        accountCode: string;
+        debit?: number;
+        credit?: number;
+      }[];
     }
   ) {
     const resolvedLines: CreateJournalLineInput[] = [];
     for (const line of data.lines) {
-      const acc = await this.accountService.getByCode(companyId, line.accountCode);
+      const acc = await this.accountService.getByCode(
+        companyId,
+        line.accountCode
+      );
       if (!acc) {
-        throw new Error(`System Account code ${line.accountCode} not found. Please seed defaults.`);
+        throw new Error(
+          `System Account code ${line.accountCode} not found. Please seed defaults.`
+        );
       }
       resolvedLines.push({
         accountId: acc.id,
@@ -107,12 +129,19 @@ export class JournalService {
     subtotal?: number,
     taxAmount?: number
   ) {
-    const lines: { accountCode: string; debit?: number; credit?: number }[] = [
+    const lines: {
+      accountCode: string;
+      debit?: number;
+      credit?: number;
+    }[] = [
       { accountCode: '1300', debit: amount }, // Accounts Receivable
     ];
 
     if (taxAmount && taxAmount > 0) {
-      lines.push({ accountCode: '4100', credit: subtotal || amount - taxAmount }); // Sales Revenue
+      lines.push({
+        accountCode: '4100',
+        credit: subtotal || amount - taxAmount,
+      }); // Sales Revenue
       lines.push({ accountCode: '2300', credit: taxAmount }); // VAT Payable
     } else {
       lines.push({ accountCode: '4100', credit: amount });
@@ -125,7 +154,11 @@ export class JournalService {
     });
   }
 
-  async postGoodsReceipt(companyId: string, reference: string, amount: number) {
+  async postGoodsReceipt(
+    companyId: string,
+    reference: string,
+    amount: number
+  ) {
     return this.resolveAndCreate(companyId, {
       reference,
       memo: 'Auto-generated Accrual from Goods Receipt',
@@ -143,12 +176,19 @@ export class JournalService {
     subtotal?: number,
     taxAmount?: number
   ) {
-    const lines: { accountCode: string; debit?: number; credit?: number }[] = [
+    const lines: {
+      accountCode: string;
+      debit?: number;
+      credit?: number;
+    }[] = [
       { accountCode: '2100', credit: amount }, // Accounts Payable
     ];
 
     if (taxAmount && taxAmount > 0) {
-      lines.push({ accountCode: '2105', debit: subtotal || amount - taxAmount }); // Clear Accrual
+      lines.push({
+        accountCode: '2105',
+        debit: subtotal || amount - taxAmount,
+      }); // Clear Accrual
       lines.push({ accountCode: '1500', debit: taxAmount }); // VAT Receivable
     } else {
       lines.push({ accountCode: '2105', debit: amount }); // Clear Accrual
@@ -178,7 +218,12 @@ export class JournalService {
     });
   }
 
-  async postPaymentMade(companyId: string, billNumber: string, amount: number, method: string) {
+  async postPaymentMade(
+    companyId: string,
+    billNumber: string,
+    amount: number,
+    method: string
+  ) {
     const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
     return this.resolveAndCreate(companyId, {
       reference: `Payment made: ${billNumber}`,
@@ -190,7 +235,11 @@ export class JournalService {
     });
   }
 
-  async postShipment(companyId: string, reference: string, amount: number) {
+  async postShipment(
+    companyId: string,
+    reference: string,
+    amount: number
+  ) {
     return this.resolveAndCreate(companyId, {
       reference,
       memo: 'Auto-generated COGS from Shipment',
@@ -201,7 +250,11 @@ export class JournalService {
     });
   }
 
-  async postSalesReturn(companyId: string, reference: string, amount: number) {
+  async postSalesReturn(
+    companyId: string,
+    reference: string,
+    amount: number
+  ) {
     return this.resolveAndCreate(companyId, {
       reference,
       memo: 'Auto-generated reversal from Sales Return',
@@ -212,7 +265,12 @@ export class JournalService {
     });
   }
 
-  async postAdjustment(companyId: string, reference: string, amount: number, isLoss: boolean) {
+  async postAdjustment(
+    companyId: string,
+    reference: string,
+    amount: number,
+    isLoss: boolean
+  ) {
     const memo = isLoss ? 'Stock Loss/Shrinkage' : 'Stock Gain/Found';
     // If Loss: Dr Expense (5200), Cr Asset (1400)
     // If Gain: Dr Asset (1400), Cr Revenue/Contra (5200)

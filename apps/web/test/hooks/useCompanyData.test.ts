@@ -6,7 +6,9 @@ import { Company } from '@sync-erp/shared';
 import { mockUseCompany } from '../mocks/hooks.mock';
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const { mockUseCompany } = await vi.importActual<any>('../mocks/hooks.mock');
+  const { mockUseCompany } = await vi.importActual<any>(
+    '../mocks/hooks.mock'
+  );
   return {
     useCompany: mockUseCompany,
   };
@@ -28,7 +30,9 @@ describe('useCompanyData', () => {
     });
     const fetcher = vi.fn();
 
-    const { result } = renderHook(() => useCompanyData(fetcher, 'initial'));
+    const { result } = renderHook(() =>
+      useCompanyData(fetcher, 'initial')
+    );
 
     expect(result.current.data).toBe('initial');
     expect(result.current.loading).toBe(false);
@@ -47,7 +51,9 @@ describe('useCompanyData', () => {
     });
     const fetcher = vi.fn().mockResolvedValue('fetched data');
 
-    const { result } = renderHook(() => useCompanyData(fetcher, 'initial'));
+    const { result } = renderHook(() =>
+      useCompanyData(fetcher, 'initial')
+    );
 
     // Initially loading
     expect(result.current.loading).toBe(true);
@@ -71,9 +77,13 @@ describe('useCompanyData', () => {
       refreshCompanies: vi.fn(),
       isLoading: false,
     });
-    const fetcher = vi.fn().mockRejectedValue(new Error('Fetch failed'));
+    const fetcher = vi
+      .fn()
+      .mockRejectedValue(new Error('Fetch failed'));
 
-    const { result } = renderHook(() => useCompanyData(fetcher, 'initial'));
+    const { result } = renderHook(() =>
+      useCompanyData(fetcher, 'initial')
+    );
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

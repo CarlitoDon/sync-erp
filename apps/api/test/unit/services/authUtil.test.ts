@@ -1,4 +1,7 @@
-import { hashPassword, comparePassword } from '../../../src/services/authUtil';
+import {
+  hashPassword,
+  comparePassword,
+} from '../../../src/services/authUtil';
 
 describe('authUtil', () => {
   describe('hashPassword', () => {

@@ -7,9 +7,13 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl">
-        <h1 className="text-3xl font-bold mb-2">Welcome to Sync ERP</h1>
+        <h1 className="text-3xl font-bold mb-2">
+          Welcome to Sync ERP
+        </h1>
         <p className="text-primary-100 text-lg">
-          {currentCompany ? `Managing ${currentCompany.name}` : 'Select a company to get started'}
+          {currentCompany
+            ? `Managing ${currentCompany.name}`
+            : 'Select a company to get started'}
         </p>
       </div>
 
@@ -55,7 +59,9 @@ export default function Dashboard() {
       {/* Info Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card-hover">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Getting Started</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            Getting Started
+          </h2>
           <ul className="space-y-3 text-gray-600">
             <li className="flex items-center space-x-2">
               <span className="text-green-500">✓</span>
@@ -77,8 +83,12 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card-hover">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h2>
-          <p className="text-gray-500 text-center py-8">No recent activity</p>
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            Recent Activity
+          </h2>
+          <p className="text-gray-500 text-center py-8">
+            No recent activity
+          </p>
         </div>
       </div>
     </div>
@@ -99,7 +109,9 @@ function StatCard({ title, value, icon, color }: StatCardProps) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500 font-medium">{title}</p>
-          <p className="text-2xl font-bold text-gray-800 mt-1">{value}</p>
+          <p className="text-2xl font-bold text-gray-800 mt-1">
+            {value}
+          </p>
         </div>
         <div
           className={`w-12 h-12 bg-gradient-to-br ${color} rounded-xl flex items-center justify-center text-2xl`}

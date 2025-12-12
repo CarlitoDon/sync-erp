@@ -4,7 +4,11 @@ import { CompanyService } from './company.service';
 export class CompanyController {
   private service = new CompanyService();
 
-  create = async (req: Request, res: Response, next: NextFunction) => {
+  create = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const { name } = req.body;
       const userId = req.context?.userId; // Optional userId if authenticated
@@ -36,11 +40,20 @@ export class CompanyController {
     }
   };
 
-  getById = async (req: Request, res: Response, next: NextFunction) => {
+  getById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const company = await this.service.getById(req.params.id);
       if (!company) {
-        return res.status(404).json({ success: false, error: { message: 'Company not found' } });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            error: { message: 'Company not found' },
+          });
       }
       res.json({ success: true, data: company });
     } catch (error) {

@@ -6,7 +6,9 @@ import * as useCompanyDataHook from '../../src/hooks/useCompanyData';
 import { ConfirmProvider } from '../../src/components/ConfirmModal';
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -14,7 +16,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock('../../src/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual('../../src/hooks/useCompanyData');
+  const actual = await vi.importActual(
+    '../../src/hooks/useCompanyData'
+  );
   return {
     ...actual,
     useCompanyData: vi.fn(),
@@ -36,7 +40,9 @@ describe('Customers', () => {
   });
 
   const setupMocks = (options: {
-    currentCompany?: ReturnType<typeof CompanyContext.useCompany>['currentCompany'];
+    currentCompany?: ReturnType<
+      typeof CompanyContext.useCompany
+    >['currentCompany'];
     loading?: boolean;
     customers?: Array<{
       id: string;
@@ -82,7 +88,9 @@ describe('Customers', () => {
     it('shows loading spinner when data is loading', () => {
       setupMocks({ loading: true });
       renderComponent();
-      expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+      expect(
+        document.querySelector('.animate-spin')
+      ).toBeInTheDocument();
     });
   });
 
@@ -90,7 +98,9 @@ describe('Customers', () => {
     it('shows message to select company when none selected', () => {
       setupMocks({ currentCompany: null });
       renderComponent();
-      expect(screen.getByText(/please select a company/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/please select a company/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -98,19 +108,25 @@ describe('Customers', () => {
     it('renders customers heading', () => {
       setupMocks({});
       renderComponent();
-      expect(screen.getByRole('heading', { name: /customers/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /customers/i })
+      ).toBeInTheDocument();
     });
 
     it('renders add customer button', () => {
       setupMocks({});
       renderComponent();
-      expect(screen.getByRole('button', { name: /add customer/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /add customer/i })
+      ).toBeInTheDocument();
     });
 
     it('shows empty message when no customers', () => {
       setupMocks({ customers: [] });
       renderComponent();
-      expect(screen.getByText(/no customers found/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/no customers found/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -131,7 +147,9 @@ describe('Customers', () => {
       renderComponent();
 
       expect(screen.getByText('John Doe')).toBeInTheDocument();
-      expect(screen.getByText('john@example.com')).toBeInTheDocument();
+      expect(
+        screen.getByText('john@example.com')
+      ).toBeInTheDocument();
       expect(screen.getByText('555-0123')).toBeInTheDocument();
       expect(screen.getByText('123 Main St')).toBeInTheDocument();
     });
@@ -142,7 +160,9 @@ describe('Customers', () => {
       setupMocks({});
       renderComponent();
 
-      fireEvent.click(screen.getByRole('button', { name: /add customer/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /add customer/i })
+      );
       expect(screen.getByText(/new customer/i)).toBeInTheDocument();
     });
   });

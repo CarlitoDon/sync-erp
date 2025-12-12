@@ -1,4 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import CreateCompany from '../../src/pages/CreateCompany';
@@ -15,7 +20,9 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -56,55 +63,79 @@ describe('CreateCompany', () => {
     it('renders create company heading', () => {
       renderComponent();
 
-      expect(screen.getByRole('heading', { name: /create company/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /create company/i })
+      ).toBeInTheDocument();
     });
 
     it('renders company name input', () => {
       renderComponent();
 
-      expect(screen.getByLabelText(/company name/i)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/company name/i)
+      ).toBeInTheDocument();
     });
 
     it('renders cancel button', () => {
       renderComponent();
 
-      expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /cancel/i })
+      ).toBeInTheDocument();
     });
 
     it('renders create company submit button', () => {
       renderComponent();
 
-      expect(screen.getByRole('button', { name: /create company/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /create company/i })
+      ).toBeInTheDocument();
     });
   });
 
   describe('Form Submission', () => {
     it('creates company on valid submit', async () => {
-      const newCompany = { id: '1', name: 'New Corp', createdAt: new Date() };
-      vi.mocked(companyService.createCompany).mockResolvedValueOnce(newCompany);
+      const newCompany = {
+        id: '1',
+        name: 'New Corp',
+        createdAt: new Date(),
+      };
+      vi.mocked(companyService.createCompany).mockResolvedValueOnce(
+        newCompany
+      );
 
       renderComponent();
 
       fireEvent.change(screen.getByLabelText(/company name/i), {
         target: { value: 'New Corp' },
       });
-      fireEvent.click(screen.getByRole('button', { name: /create company/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /create company/i })
+      );
 
       await waitFor(() => {
-        expect(companyService.createCompany).toHaveBeenCalledWith({ name: 'New Corp' });
-        expect(mockSetCurrentCompany).toHaveBeenCalledWith(newCompany);
+        expect(companyService.createCompany).toHaveBeenCalledWith({
+          name: 'New Corp',
+        });
+        expect(mockSetCurrentCompany).toHaveBeenCalledWith(
+          newCompany
+        );
         expect(mockNavigate).toHaveBeenCalledWith('/');
       });
     });
 
     it('shows loading state during submission', async () => {
-      vi.mocked(companyService.createCompany).mockImplementation(() => new Promise(() => {}));
+      vi.mocked(companyService.createCompany).mockImplementation(
+        () => new Promise(() => {})
+      );
       renderComponent();
 
       fireEvent.change(screen.getByLabelText(/company name/i), {
         target: { value: 'New Corp' },
       });
-      fireEvent.click(screen.getByRole('button', { name: /create company/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /create company/i })
+      );
 
       await waitFor(() => {
         expect(screen.getByText(/creating/i)).toBeInTheDocument();
@@ -116,7 +147,9 @@ describe('CreateCompany', () => {
     it('navigates to /companies when cancel is clicked', () => {
       renderComponent();
 
-      fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /cancel/i })
+      );
 
       expect(mockNavigate).toHaveBeenCalledWith('/companies');
     });

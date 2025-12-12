@@ -47,7 +47,11 @@ describe('PurchaseOrderService', () => {
 
   describe('getById', () => {
     it('should return a purchase order by ID', async () => {
-      const mockOrder = { id: 'order-1', companyId, type: 'PURCHASE' };
+      const mockOrder = {
+        id: 'order-1',
+        companyId,
+        type: 'PURCHASE',
+      };
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
 
       const result = await service.getById('order-1', companyId);
@@ -103,16 +107,18 @@ describe('PurchaseOrderService', () => {
     it('should throw error if order not found', async () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
-      await expect(service.confirm('nonexistent', companyId)).rejects.toThrow(
-        'Purchase order not found'
-      );
+      await expect(
+        service.confirm('nonexistent', companyId)
+      ).rejects.toThrow('Purchase order not found');
     });
 
     it('should throw error if order is not draft', async () => {
       const mockOrder = { id: 'order-1', status: 'COMPLETED' };
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
 
-      await expect(service.confirm('order-1', companyId)).rejects.toThrow(
+      await expect(
+        service.confirm('order-1', companyId)
+      ).rejects.toThrow(
         'Cannot confirm order with status: COMPLETED'
       );
     });
@@ -120,7 +126,11 @@ describe('PurchaseOrderService', () => {
 
   describe('complete', () => {
     it('should complete a confirmed order', async () => {
-      const mockOrder = { id: 'order-1', companyId, status: 'CONFIRMED' };
+      const mockOrder = {
+        id: 'order-1',
+        companyId,
+        status: 'CONFIRMED',
+      };
       const completedOrder = { ...mockOrder, status: 'COMPLETED' };
 
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
@@ -134,18 +144,18 @@ describe('PurchaseOrderService', () => {
     it('should throw error if order not found', async () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
-      await expect(service.complete('nonexistent', companyId)).rejects.toThrow(
-        'Purchase order not found'
-      );
+      await expect(
+        service.complete('nonexistent', companyId)
+      ).rejects.toThrow('Purchase order not found');
     });
 
     it('should throw error if order is not confirmed', async () => {
       const mockOrder = { id: 'order-1', status: 'DRAFT' };
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
 
-      await expect(service.complete('order-1', companyId)).rejects.toThrow(
-        'Cannot complete order with status: DRAFT'
-      );
+      await expect(
+        service.complete('order-1', companyId)
+      ).rejects.toThrow('Cannot complete order with status: DRAFT');
     });
   });
 
@@ -165,18 +175,18 @@ describe('PurchaseOrderService', () => {
     it('should throw error if order not found', async () => {
       mockPrisma.order.findFirst.mockResolvedValue(null);
 
-      await expect(service.cancel('nonexistent', companyId)).rejects.toThrow(
-        'Purchase order not found'
-      );
+      await expect(
+        service.cancel('nonexistent', companyId)
+      ).rejects.toThrow('Purchase order not found');
     });
 
     it('should throw error if order is completed', async () => {
       const mockOrder = { id: 'order-1', status: 'COMPLETED' };
       mockPrisma.order.findFirst.mockResolvedValue(mockOrder);
 
-      await expect(service.cancel('order-1', companyId)).rejects.toThrow(
-        'Cannot cancel a completed order'
-      );
+      await expect(
+        service.cancel('order-1', companyId)
+      ).rejects.toThrow('Cannot cancel a completed order');
     });
   });
 
@@ -187,7 +197,9 @@ describe('PurchaseOrderService', () => {
         { id: 'item-2', productId: 'prod-2', quantity: 10 },
       ];
 
-      (mockPrisma as any).orderItem.findMany.mockResolvedValue(mockItems);
+      (mockPrisma as any).orderItem.findMany.mockResolvedValue(
+        mockItems
+      );
 
       const result = await service.getItems('order-1');
 

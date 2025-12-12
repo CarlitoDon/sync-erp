@@ -24,15 +24,21 @@ describe('JournalService', () => {
     service = new JournalService();
 
     // Setup default account mocks
-    (service as any).accountService.getById = vi.fn().mockResolvedValue({
-      id: 'acc-1',
-      code: '1100',
-      name: 'Cash',
-    });
+    (service as any).accountService.getById = vi
+      .fn()
+      .mockResolvedValue({
+        id: 'acc-1',
+        code: '1100',
+        name: 'Cash',
+      });
     (service as any).accountService.getByCode = vi
       .fn()
       .mockImplementation((_, code) =>
-        Promise.resolve({ id: `acc-${code}`, code, name: `Account ${code}` })
+        Promise.resolve({
+          id: `acc-${code}`,
+          code,
+          name: `Account ${code}`,
+        })
       );
   });
 
@@ -72,7 +78,9 @@ describe('JournalService', () => {
     });
 
     it('should throw error if account not found', async () => {
-      (service as any).accountService.getById = vi.fn().mockResolvedValue(null);
+      (service as any).accountService.getById = vi
+        .fn()
+        .mockResolvedValue(null);
 
       await expect(
         service.create(companyId, {
@@ -88,7 +96,9 @@ describe('JournalService', () => {
   describe('getById', () => {
     it('should return a journal entry by ID', async () => {
       const mockJournal = { id: 'je-1', companyId };
-      mockPrisma.journalEntry.findFirst.mockResolvedValue(mockJournal);
+      mockPrisma.journalEntry.findFirst.mockResolvedValue(
+        mockJournal
+      );
 
       const result = await service.getById('je-1', companyId);
 
@@ -110,7 +120,9 @@ describe('JournalService', () => {
         { id: 'je-1', date: new Date() },
         { id: 'je-2', date: new Date() },
       ];
-      mockPrisma.journalEntry.findMany.mockResolvedValue(mockJournals);
+      mockPrisma.journalEntry.findMany.mockResolvedValue(
+        mockJournals
+      );
 
       const result = await service.list(companyId);
 
@@ -119,9 +131,15 @@ describe('JournalService', () => {
 
     it('should filter by date range', async () => {
       const mockJournals = [{ id: 'je-1' }];
-      mockPrisma.journalEntry.findMany.mockResolvedValue(mockJournals);
+      mockPrisma.journalEntry.findMany.mockResolvedValue(
+        mockJournals
+      );
 
-      const result = await service.list(companyId, new Date('2025-01-01'), new Date('2025-12-31'));
+      const result = await service.list(
+        companyId,
+        new Date('2025-01-01'),
+        new Date('2025-12-31')
+      );
 
       expect(result).toHaveLength(1);
     });
@@ -129,19 +147,35 @@ describe('JournalService', () => {
 
   describe('postInvoice', () => {
     it('should post invoice journal entry', async () => {
-      const mockJournal = { id: 'je-1', reference: 'Invoice: INV-001' };
+      const mockJournal = {
+        id: 'je-1',
+        reference: 'Invoice: INV-001',
+      };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postInvoice(companyId, 'INV-001', 1100, 1000, 100);
+      const result = await service.postInvoice(
+        companyId,
+        'INV-001',
+        1100,
+        1000,
+        100
+      );
 
       expect(result.reference).toContain('INV-001');
     });
 
     it('should post invoice without tax', async () => {
-      const mockJournal = { id: 'je-1', reference: 'Invoice: INV-002' };
+      const mockJournal = {
+        id: 'je-1',
+        reference: 'Invoice: INV-002',
+      };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postInvoice(companyId, 'INV-002', 1000);
+      const result = await service.postInvoice(
+        companyId,
+        'INV-002',
+        1000
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -152,7 +186,13 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1', reference: 'Bill: BILL-001' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postBill(companyId, 'BILL-001', 1100, 1000, 100);
+      const result = await service.postBill(
+        companyId,
+        'BILL-001',
+        1100,
+        1000,
+        100
+      );
 
       expect(result.reference).toContain('BILL-001');
     });
@@ -161,7 +201,11 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1', reference: 'Bill: BILL-002' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postBill(companyId, 'BILL-002', 1000);
+      const result = await service.postBill(
+        companyId,
+        'BILL-002',
+        1000
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -172,7 +216,11 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1', reference: 'GR-001' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postGoodsReceipt(companyId, 'GR-001', 5000);
+      const result = await service.postGoodsReceipt(
+        companyId,
+        'GR-001',
+        5000
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -183,7 +231,12 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postPaymentReceived(companyId, 'INV-001', 500, 'CASH');
+      const result = await service.postPaymentReceived(
+        companyId,
+        'INV-001',
+        500,
+        'CASH'
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -192,7 +245,12 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postPaymentReceived(companyId, 'INV-001', 500, 'BANK_TRANSFER');
+      const result = await service.postPaymentReceived(
+        companyId,
+        'INV-001',
+        500,
+        'BANK_TRANSFER'
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -203,7 +261,12 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postPaymentMade(companyId, 'BILL-001', 500, 'CASH');
+      const result = await service.postPaymentMade(
+        companyId,
+        'BILL-001',
+        500,
+        'CASH'
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -212,7 +275,12 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postPaymentMade(companyId, 'BILL-001', 500, 'BANK_TRANSFER');
+      const result = await service.postPaymentMade(
+        companyId,
+        'BILL-001',
+        500,
+        'BANK_TRANSFER'
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -223,7 +291,11 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1', memo: 'COGS' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postShipment(companyId, 'SHIP-001', 1000);
+      const result = await service.postShipment(
+        companyId,
+        'SHIP-001',
+        1000
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -234,7 +306,11 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1', memo: 'reversal' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postSalesReturn(companyId, 'RET-001', 200);
+      const result = await service.postSalesReturn(
+        companyId,
+        'RET-001',
+        200
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -245,7 +321,12 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postAdjustment(companyId, 'ADJ-001', 100, true);
+      const result = await service.postAdjustment(
+        companyId,
+        'ADJ-001',
+        100,
+        true
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -254,7 +335,12 @@ describe('JournalService', () => {
       const mockJournal = { id: 'je-1' };
       mockPrisma.journalEntry.create.mockResolvedValue(mockJournal);
 
-      const result = await service.postAdjustment(companyId, 'ADJ-002', 50, false);
+      const result = await service.postAdjustment(
+        companyId,
+        'ADJ-002',
+        50,
+        false
+      );
 
       expect(result).toEqual(mockJournal);
     });
@@ -262,11 +348,13 @@ describe('JournalService', () => {
 
   describe('resolveAndCreate (private method - tested via public methods)', () => {
     it('should throw error if system account not found', async () => {
-      (service as any).accountService.getByCode = vi.fn().mockResolvedValue(null);
+      (service as any).accountService.getByCode = vi
+        .fn()
+        .mockResolvedValue(null);
 
-      await expect(service.postInvoice(companyId, 'INV-001', 1000)).rejects.toThrow(
-        'System Account code'
-      );
+      await expect(
+        service.postInvoice(companyId, 'INV-001', 1000)
+      ).rejects.toThrow('System Account code');
     });
   });
 });

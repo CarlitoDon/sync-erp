@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+  useEffect,
+} from 'react';
 import type { Company } from '@sync-erp/shared';
 import { getCompanies } from '../services/companyService';
 import { useAuth } from './AuthContext';
@@ -12,11 +19,18 @@ interface CompanyContextType {
   isLoading: boolean;
 }
 
-const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
+const CompanyContext = createContext<CompanyContextType | undefined>(
+  undefined
+);
 
-export function CompanyProvider({ children }: { children: ReactNode }) {
+export function CompanyProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [currentCompany, _setCurrentCompanyState] = useState<Company | null>(null);
+  const [currentCompany, _setCurrentCompanyState] =
+    useState<Company | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -67,7 +81,12 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       setCurrentCompany(null);
       setIsLoading(false);
     }
-  }, [isAuthenticated, authLoading, refreshCompanies, setCurrentCompany]);
+  }, [
+    isAuthenticated,
+    authLoading,
+    refreshCompanies,
+    setCurrentCompany,
+  ]);
 
   return (
     <CompanyContext.Provider
@@ -88,7 +107,9 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 export function useCompany() {
   const context = useContext(CompanyContext);
   if (context === undefined) {
-    throw new Error('useCompany must be used within a CompanyProvider');
+    throw new Error(
+      'useCompany must be used within a CompanyProvider'
+    );
   }
   return context;
 }

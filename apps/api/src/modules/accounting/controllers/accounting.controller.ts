@@ -9,7 +9,11 @@ export class AccountingController {
   private reportService = new ReportService();
 
   // Accounts
-  listAccounts = async (req: Request, res: Response, next: NextFunction) => {
+  listAccounts = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const accounts = await this.accountService.list(companyId);
@@ -19,20 +23,32 @@ export class AccountingController {
     }
   };
 
-  createAccount = async (req: Request, res: Response, next: NextFunction) => {
+  createAccount = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const account = await this.accountService.create(companyId, req.body);
+      const account = await this.accountService.create(
+        companyId,
+        req.body
+      );
       res.status(201).json({ success: true, data: account });
     } catch (error) {
       next(error);
     }
   };
 
-  seedAccounts = async (req: Request, res: Response, next: NextFunction) => {
+  seedAccounts = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const accounts = await this.accountService.seedDefaultAccounts(companyId);
+      const accounts =
+        await this.accountService.seedDefaultAccounts(companyId);
       res.json({ success: true, data: accounts });
     } catch (error) {
       next(error);
@@ -40,22 +56,41 @@ export class AccountingController {
   };
 
   // Journals
-  listJournals = async (req: Request, res: Response, next: NextFunction) => {
+  listJournals = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
-      const entries = await this.journalService.list(companyId, startDate, endDate);
+      const startDate = req.query.startDate
+        ? new Date(req.query.startDate as string)
+        : undefined;
+      const endDate = req.query.endDate
+        ? new Date(req.query.endDate as string)
+        : undefined;
+      const entries = await this.journalService.list(
+        companyId,
+        startDate,
+        endDate
+      );
       res.json({ success: true, data: entries });
     } catch (error) {
       next(error);
     }
   };
 
-  createJournal = async (req: Request, res: Response, next: NextFunction) => {
+  createJournal = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const entry = await this.journalService.create(companyId, req.body);
+      const entry = await this.journalService.create(
+        companyId,
+        req.body
+      );
       res.status(201).json({ success: true, data: entry });
     } catch (error) {
       next(error);
@@ -63,23 +98,40 @@ export class AccountingController {
   };
 
   // Reports
-  getTrialBalance = async (req: Request, res: Response, next: NextFunction) => {
+  getTrialBalance = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const date = req.query.date ? new Date(req.query.date as string) : new Date();
-      const report = await this.reportService.getTrialBalance(companyId, date);
+      const date = req.query.date
+        ? new Date(req.query.date as string)
+        : new Date();
+      const report = await this.reportService.getTrialBalance(
+        companyId,
+        date
+      );
       res.json({ success: true, data: report });
     } catch (error) {
       next(error);
     }
   };
 
-  getGeneralLedger = async (req: Request, res: Response, next: NextFunction) => {
+  getGeneralLedger = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const accountId = req.params.accountId;
-      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      const startDate = req.query.startDate
+        ? new Date(req.query.startDate as string)
+        : undefined;
+      const endDate = req.query.endDate
+        ? new Date(req.query.endDate as string)
+        : undefined;
 
       const report = await this.reportService.getGeneralLedger(
         companyId,
@@ -93,15 +145,25 @@ export class AccountingController {
     }
   };
 
-  getIncomeStatement = async (req: Request, res: Response, next: NextFunction) => {
+  getIncomeStatement = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const startDate = req.query.startDate
         ? new Date(req.query.startDate as string)
         : new Date(new Date().getFullYear(), 0, 1);
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
+      const endDate = req.query.endDate
+        ? new Date(req.query.endDate as string)
+        : new Date();
 
-      const report = await this.reportService.getIncomeStatement(companyId, startDate, endDate);
+      const report = await this.reportService.getIncomeStatement(
+        companyId,
+        startDate,
+        endDate
+      );
       res.json({ success: true, data: report });
     } catch (error) {
       next(error);

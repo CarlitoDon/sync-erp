@@ -75,9 +75,9 @@ As an Accountant, I want to view the General Ledger and Trial Balance, so that I
 
 ### Edge Cases
 
--   What happens when stock is insufficient for a Sales Order? (System should prevent confirmation or warn users).
--   What happens if a User belongs to multiple Companies? (System should enforce strict session switching or clear visual indicators of active context).
--   How does the system handle voiding/cancelling a processed Invoice? (Must generate reversing Journal Entries, not just delete data).
+- What happens when stock is insufficient for a Sales Order? (System should prevent confirmation or warn users).
+- What happens if a User belongs to multiple Companies? (System should enforce strict session switching or clear visual indicators of active context).
+- How does the system handle voiding/cancelling a processed Invoice? (Must generate reversing Journal Entries, not just delete data).
 
 ## Requirements _(mandatory)_
 
@@ -85,66 +85,66 @@ As an Accountant, I want to view the General Ledger and Trial Balance, so that I
 
 #### Core / Multi-Company
 
--   **FR-CORE-001**: System MUST support creation of multiple isolated Company entities. Users MUST be able to belong to multiple companies (Many-to-Many) and switch context between them.
--   **FR-CORE-002**: Data (Products, Customers, Orders, etc.) MUST be scoped to a specific Company ID. Cross-company data access MUST be strictly prevented at the database query level.
--   **FR-CORE-003**: System MUST support **Format-driven Document Numbering** (e.g., `INV/2024/0001`) scoped by Company and Module. Sequences must reset per year/config.
--   **FR-CORE-004**: System MUST support **Granular Permissions (RBAC)**. Roles must be customizable with specific permissions (e.g., `sales.create`, `sales.view`) per module.
+- **FR-CORE-001**: System MUST support creation of multiple isolated Company entities. Users MUST be able to belong to multiple companies (Many-to-Many) and switch context between them.
+- **FR-CORE-002**: Data (Products, Customers, Orders, etc.) MUST be scoped to a specific Company ID. Cross-company data access MUST be strictly prevented at the database query level.
+- **FR-CORE-003**: System MUST support **Format-driven Document Numbering** (e.g., `INV/2024/0001`) scoped by Company and Module. Sequences must reset per year/config.
+- **FR-CORE-004**: System MUST support **Granular Permissions (RBAC)**. Roles must be customizable with specific permissions (e.g., `sales.create`, `sales.view`) per module.
 
 ## Clarifications
 
 ### Session 2025-12-08
 
--   Q: How should Users relate to Companies? -> A: Many-to-Many. One User can access multiple Companies; One Company has multiple Users. Requires context switching.
--   Q: Inventory Valuation Calculation? -> A: Moving Average Cost (AVCO). Update cost on receipt; use avg cost for COGS on delivery.
--   Q: Transaction Document Numbering? -> A: Format-driven ({Prefix}/{Year}/{Seq}). Scoped by Company.
--   Q: Taxation Handling? -> A: Flat Rate per Transaction. Select rate on header, apply to total.
--   Q: Company Roles Granularity? -> A: Granular Permissions (Custom RBAC). Custom roles with specific permission flags.
+- Q: How should Users relate to Companies? -> A: Many-to-Many. One User can access multiple Companies; One Company has multiple Users. Requires context switching.
+- Q: Inventory Valuation Calculation? -> A: Moving Average Cost (AVCO). Update cost on receipt; use avg cost for COGS on delivery.
+- Q: Transaction Document Numbering? -> A: Format-driven ({Prefix}/{Year}/{Seq}). Scoped by Company.
+- Q: Taxation Handling? -> A: Flat Rate per Transaction. Select rate on header, apply to total.
+- Q: Company Roles Granularity? -> A: Granular Permissions (Custom RBAC). Custom roles with specific permission flags.
 
 #### Sales Module
 
--   **FR-SALES-001**: Users MUST be able to manage Customer profiles (Name, Address, Contact).
--   **FR-SALES-002**: Users MUST be able to create, edit, and confirm Sales Orders containing multiple line items.
--   **FR-SALES-003**: System MUST calculate totals, taxes (simple placeholder), and validate product availability.
+- **FR-SALES-001**: Users MUST be able to manage Customer profiles (Name, Address, Contact).
+- **FR-SALES-002**: Users MUST be able to create, edit, and confirm Sales Orders containing multiple line items.
+- **FR-SALES-003**: System MUST calculate totals, taxes (simple placeholder), and validate product availability.
 
 #### Purchasing Module
 
--   **FR-PURCH-001**: Users MUST be able to manage Supplier profiles.
--   **FR-PURCH-002**: Users MUST be able to create and approve Purchase Orders.
+- **FR-PURCH-001**: Users MUST be able to manage Supplier profiles.
+- **FR-PURCH-002**: Users MUST be able to create and approve Purchase Orders.
 
 #### Inventory & Warehousing Module
 
--   **FR-INV-001**: System MUST track quantity-on-hand for Products across different Locations/Warehouses.
--   **FR-WHSE-001**: System MUST allow "Goods Receipt" transactions to increase stock based on POs.
--   **FR-WHSE-002**: System MUST allow "Delivery/Dispatch" transactions to decrease stock based on SOs.
--   **FR-WHSE-003**: System MUST strictly prevent negative stock levels. Transactions (like Delivery Notes) that would result in negative inventory quantity MUST be blocked with an error.
+- **FR-INV-001**: System MUST track quantity-on-hand for Products across different Locations/Warehouses.
+- **FR-WHSE-001**: System MUST allow "Goods Receipt" transactions to increase stock based on POs.
+- **FR-WHSE-002**: System MUST allow "Delivery/Dispatch" transactions to decrease stock based on SOs.
+- **FR-WHSE-003**: System MUST strictly prevent negative stock levels. Transactions (like Delivery Notes) that would result in negative inventory quantity MUST be blocked with an error.
 
 #### Finance & Accounting Module
 
--   **FR-FIN-001**: System MUST generate Invoices from Sales Orders and Bills from Purchase Orders.
--   **FR-FIN-002**: System MUST record Payments against Invoices/Bills.
--   **FR-ACC-001**: System MUST maintain a Chart of Accounts.
--   **FR-ACC-002**: All financial transactions (Invoice, Payment, Bill) MUST automatically generate double-entry Journal Entries.
--   **FR-ACC-003**: Users MUST be able to view a basic Trial Balance report.
--   **FR-ACC-004**: System MUST calculate Inventory Valuation using **Moving Average Cost (AVCO)** method. Average cost is updated on every Goods Receipt.
--   **FR-FIN-003**: System MUST support **Flat Rate Tax** selection per transaction (Order/Invoice), applying to the document total.
+- **FR-FIN-001**: System MUST generate Invoices from Sales Orders and Bills from Purchase Orders.
+- **FR-FIN-002**: System MUST record Payments against Invoices/Bills.
+- **FR-ACC-001**: System MUST maintain a Chart of Accounts.
+- **FR-ACC-002**: All financial transactions (Invoice, Payment, Bill) MUST automatically generate double-entry Journal Entries.
+- **FR-ACC-003**: Users MUST be able to view a basic Trial Balance report.
+- **FR-ACC-004**: System MUST calculate Inventory Valuation using **Moving Average Cost (AVCO)** method. Average cost is updated on every Goods Receipt.
+- **FR-FIN-003**: System MUST support **Flat Rate Tax** selection per transaction (Order/Invoice), applying to the document total.
 
 ### Key Entities _(include if feature involves data)_
 
--   **Company**: Root entity for isolation.
--   **Partner**: Generic entity for Customer/Supplier.
--   **Product**: Item details, SKU, Price.
--   **Sales Order / Purchase Order**: Transaction headers and lines.
--   **Inventory Move**: Record of stock movement (In/Out).
--   **Invoice / Bill**: Financial demand documents.
--   **Payment**: Record of money transfer.
--   **Journal Entry**: Accounting record (Debits/Credits).
+- **Company**: Root entity for isolation.
+- **Partner**: Generic entity for Customer/Supplier.
+- **Product**: Item details, SKU, Price.
+- **Sales Order / Purchase Order**: Transaction headers and lines.
+- **Inventory Move**: Record of stock movement (In/Out).
+- **Invoice / Bill**: Financial demand documents.
+- **Payment**: Record of money transfer.
+- **Journal Entry**: Accounting record (Debits/Credits).
 
 ## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
--   **SC-001**: Admin can create a fresh Company environment in under 5 minutes.
--   **SC-002**: A user can complete the full "Order to Cash" verification scenario (SO -> Payload -> Invoice -> Payment) without error.
--   **SC-003**: A user can complete the full "Procure to Pay" verification scenario (PO -> Receive -> Bill -> Payment) without error.
--   **SC-004**: Inventory records must match physical movement simulations with 100% accuracy (no drift).
--   **SC-005**: Accounting Trial Balance is always balanced (Sum of Debits = Sum of Credits) after any transaction.
+- **SC-001**: Admin can create a fresh Company environment in under 5 minutes.
+- **SC-002**: A user can complete the full "Order to Cash" verification scenario (SO -> Payload -> Invoice -> Payment) without error.
+- **SC-003**: A user can complete the full "Procure to Pay" verification scenario (PO -> Receive -> Bill -> Payment) without error.
+- **SC-004**: Inventory records must match physical movement simulations with 100% accuracy (no drift).
+- **SC-005**: Accounting Trial Balance is always balanced (Sum of Debits = Sum of Credits) after any transaction.

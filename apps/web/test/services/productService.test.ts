@@ -1,9 +1,14 @@
-import { productService, CreateProductInput } from '../../src/services/productService';
+import {
+  productService,
+  CreateProductInput,
+} from '../../src/services/productService';
 import api from '../../src/services/api';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 vi.mock('../../src/services/api', async () => {
-  const { mockApi } = await vi.importActual<any>('../mocks/services.mock');
+  const { mockApi } = await vi.importActual<any>(
+    '../mocks/services.mock'
+  );
   return { default: mockApi };
 });
 
@@ -23,7 +28,11 @@ describe('productService', () => {
   });
 
   it('should create product', async () => {
-    const dto: CreateProductInput = { sku: 'SKU1', name: 'Product 1', price: 100 };
+    const dto: CreateProductInput = {
+      sku: 'SKU1',
+      name: 'Product 1',
+      price: 100,
+    };
     const mockData = { id: '1', ...dto };
     (api.post as any).mockResolvedValue({ data: { data: mockData } });
 

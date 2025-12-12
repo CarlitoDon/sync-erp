@@ -10,7 +10,10 @@ export interface CreateUserInput {
 export class UserService {
   private repository = new UserRepository();
 
-  async create(data: CreateUserInput, companyId?: string): Promise<User> {
+  async create(
+    data: CreateUserInput,
+    companyId?: string
+  ): Promise<User> {
     const createData: Prisma.UserCreateInput = {
       email: data.email,
       name: data.name,
@@ -37,14 +40,19 @@ export class UserService {
   }
 
   async listByCompany(companyId: string) {
-    const members = await this.repository.findMembersByCompany(companyId);
+    const members =
+      await this.repository.findMembersByCompany(companyId);
     return members.map((m) => ({
       ...m.user,
       role: m.role,
     }));
   }
 
-  async assignToCompany(userId: string, companyId: string, roleId?: string) {
+  async assignToCompany(
+    userId: string,
+    companyId: string,
+    roleId?: string
+  ) {
     return this.repository.addMember({
       userId,
       companyId,

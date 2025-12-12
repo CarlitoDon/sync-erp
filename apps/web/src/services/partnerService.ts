@@ -45,7 +45,10 @@ export const partnerService = {
     return res.data.data;
   },
 
-  async update(id: string, data: Partial<CreatePartnerInput>): Promise<Partner> {
+  async update(
+    id: string,
+    data: Partial<CreatePartnerInput>
+  ): Promise<Partner> {
     const res = await api.put(`/partners/${id}`, data);
     return res.data.data;
   },

@@ -20,19 +20,25 @@ describe('partnerService', () => {
   it('should request /partners/suppliers without /api prefix', async () => {
     await partnerService.listSuppliers();
     expect(api.get).toHaveBeenCalledWith('/partners/suppliers');
-    expect(api.get).not.toHaveBeenCalledWith(expect.stringMatching(/^\/api\//));
+    expect(api.get).not.toHaveBeenCalledWith(
+      expect.stringMatching(/^\/api\//)
+    );
   });
 
   it('should request /partners/customers without /api prefix', async () => {
     await partnerService.listCustomers();
     expect(api.get).toHaveBeenCalledWith('/partners/customers');
-    expect(api.get).not.toHaveBeenCalledWith(expect.stringMatching(/^\/api\//));
+    expect(api.get).not.toHaveBeenCalledWith(
+      expect.stringMatching(/^\/api\//)
+    );
   });
 
   it('should request /partners/${id} without /api prefix', async () => {
     const id = '123';
     await partnerService.getById(id);
     expect(api.get).toHaveBeenCalledWith(`/partners/${id}`);
-    expect(api.get).not.toHaveBeenCalledWith(expect.stringMatching(/^\/api\//));
+    expect(api.get).not.toHaveBeenCalledWith(
+      expect.stringMatching(/^\/api\//)
+    );
   });
 });

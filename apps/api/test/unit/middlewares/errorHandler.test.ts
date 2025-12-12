@@ -26,7 +26,9 @@ const createMockResponse = () => {
 describe('errorHandler middleware', () => {
   describe('AppError class', () => {
     it('should create an error with custom properties', () => {
-      const error = new AppError('Test error', 400, 'TEST_ERROR', { field: 'test' });
+      const error = new AppError('Test error', 400, 'TEST_ERROR', {
+        field: 'test',
+      });
 
       expect(error.message).toBe('Test error');
       expect(error.statusCode).toBe(400);
@@ -62,7 +64,9 @@ describe('errorHandler middleware', () => {
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Validation failed',
-          details: expect.arrayContaining([expect.objectContaining({ path: 'name' })]),
+          details: expect.arrayContaining([
+            expect.objectContaining({ path: 'name' }),
+          ]),
         },
       });
     });
@@ -89,7 +93,9 @@ describe('errorHandler middleware', () => {
       const error = new Error('Something went wrong');
 
       // Suppress console.error for this test
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       errorHandler(error, mockRequest, res, mockNext);
 
@@ -108,8 +114,14 @@ describe('errorHandler middleware', () => {
 
     it('should log server errors (500+)', () => {
       const res = createMockResponse();
-      const error = new AppError('Server crash', 503, 'SERVICE_UNAVAILABLE');
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const error = new AppError(
+        'Server crash',
+        503,
+        'SERVICE_UNAVAILABLE'
+      );
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       errorHandler(error, mockRequest, res, mockNext);
 
@@ -126,7 +138,9 @@ describe('errorHandler middleware', () => {
     });
 
     it('ValidationError should return 400', () => {
-      const error = ValidationError('Invalid input', { field: 'email' });
+      const error = ValidationError('Invalid input', {
+        field: 'email',
+      });
       expect(error.statusCode).toBe(400);
       expect(error.code).toBe('VALIDATION_ERROR');
       expect(error.details).toEqual({ field: 'email' });

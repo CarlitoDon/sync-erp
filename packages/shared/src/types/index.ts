@@ -47,7 +47,11 @@ export interface Product {
 // ============================================
 
 export type OrderType = 'SALES' | 'PURCHASE';
-export type OrderStatus = 'DRAFT' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+export type OrderStatus =
+  | 'DRAFT'
+  | 'CONFIRMED'
+  | 'COMPLETED'
+  | 'CANCELLED';
 
 export interface Order {
   id: string;

@@ -8,7 +8,9 @@ import api from '../../src/services/api';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 vi.mock('../../src/services/api', async () => {
-  const { mockApi } = await vi.importActual<any>('../mocks/services.mock');
+  const { mockApi } = await vi.importActual<any>(
+    '../mocks/services.mock'
+  );
   return { default: mockApi };
 });
 
@@ -50,12 +52,18 @@ describe('paymentService', () => {
 
     const result = await paymentService.list('inv_1');
 
-    expect(api.get).toHaveBeenCalledWith('/payments', { params: { invoiceId: 'inv_1' } });
+    expect(api.get).toHaveBeenCalledWith('/payments', {
+      params: { invoiceId: 'inv_1' },
+    });
     expect(result).toEqual(mockData);
   });
 
   it('should create payment', async () => {
-    const dto: CreatePaymentInput = { invoiceId: 'inv_1', amount: 100, method: 'CASH' };
+    const dto: CreatePaymentInput = {
+      invoiceId: 'inv_1',
+      amount: 100,
+      method: 'CASH',
+    };
     const mockData = { id: 'pay_1' };
     (api.post as any).mockResolvedValue({ data: { data: mockData } });
 

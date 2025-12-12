@@ -67,7 +67,11 @@ describe('PartnerService', () => {
 
   describe('getById', () => {
     it('should return a partner by ID and companyId', async () => {
-      const mockPartner = { id: 'partner-1', companyId, name: 'Test Partner' };
+      const mockPartner = {
+        id: 'partner-1',
+        companyId,
+        name: 'Test Partner',
+      };
       mockPrisma.partner.findFirst.mockResolvedValue(mockPartner);
 
       const result = await service.getById('partner-1', companyId);
@@ -106,7 +110,9 @@ describe('PartnerService', () => {
     });
 
     it('should filter partners by type', async () => {
-      const mockSuppliers = [{ id: 'partner-1', name: 'Supplier', type: 'SUPPLIER' }];
+      const mockSuppliers = [
+        { id: 'partner-1', name: 'Supplier', type: 'SUPPLIER' },
+      ];
 
       mockPrisma.partner.findMany.mockResolvedValue(mockSuppliers);
 
@@ -122,7 +128,9 @@ describe('PartnerService', () => {
 
   describe('listSuppliers', () => {
     it('should list only suppliers', async () => {
-      const mockSuppliers = [{ id: 'partner-1', name: 'Supplier', type: 'SUPPLIER' }];
+      const mockSuppliers = [
+        { id: 'partner-1', name: 'Supplier', type: 'SUPPLIER' },
+      ];
       mockPrisma.partner.findMany.mockResolvedValue(mockSuppliers);
 
       const result = await service.listSuppliers(companyId);
@@ -133,7 +141,9 @@ describe('PartnerService', () => {
 
   describe('listCustomers', () => {
     it('should list only customers', async () => {
-      const mockCustomers = [{ id: 'partner-2', name: 'Customer', type: 'CUSTOMER' }];
+      const mockCustomers = [
+        { id: 'partner-2', name: 'Customer', type: 'CUSTOMER' },
+      ];
       mockPrisma.partner.findMany.mockResolvedValue(mockCustomers);
 
       const result = await service.listCustomers(companyId);
@@ -144,33 +154,52 @@ describe('PartnerService', () => {
 
   describe('update', () => {
     it('should update an existing partner', async () => {
-      const existingPartner = { id: 'partner-1', companyId, name: 'Old Name' };
-      const updatedPartner = { id: 'partner-1', companyId, name: 'New Name' };
+      const existingPartner = {
+        id: 'partner-1',
+        companyId,
+        name: 'Old Name',
+      };
+      const updatedPartner = {
+        id: 'partner-1',
+        companyId,
+        name: 'New Name',
+      };
 
       mockPrisma.partner.findFirst.mockResolvedValue(existingPartner);
       mockPrisma.partner.update.mockResolvedValue(updatedPartner);
 
-      const result = await service.update('partner-1', companyId, { name: 'New Name' });
+      const result = await service.update('partner-1', companyId, {
+        name: 'New Name',
+      });
 
       expect(result.name).toBe('New Name');
       expect(mockPrisma.partner.update).toHaveBeenCalledWith({
         where: { id: 'partner-1' },
-        data: { name: 'New Name', email: undefined, phone: undefined, address: undefined },
+        data: {
+          name: 'New Name',
+          email: undefined,
+          phone: undefined,
+          address: undefined,
+        },
       });
     });
 
     it('should throw error if partner not found', async () => {
       mockPrisma.partner.findFirst.mockResolvedValue(null);
 
-      await expect(service.update('non-existent', companyId, { name: 'New' })).rejects.toThrow(
-        'Partner not found'
-      );
+      await expect(
+        service.update('non-existent', companyId, { name: 'New' })
+      ).rejects.toThrow('Partner not found');
     });
   });
 
   describe('delete', () => {
     it('should delete an existing partner', async () => {
-      const existingPartner = { id: 'partner-1', companyId, name: 'To Delete' };
+      const existingPartner = {
+        id: 'partner-1',
+        companyId,
+        name: 'To Delete',
+      };
       mockPrisma.partner.findFirst.mockResolvedValue(existingPartner);
       mockPrisma.partner.delete.mockResolvedValue(existingPartner);
 
@@ -184,7 +213,9 @@ describe('PartnerService', () => {
     it('should throw error if partner not found', async () => {
       mockPrisma.partner.findFirst.mockResolvedValue(null);
 
-      await expect(service.delete('non-existent', companyId)).rejects.toThrow('Partner not found');
+      await expect(
+        service.delete('non-existent', companyId)
+      ).rejects.toThrow('Partner not found');
     });
   });
 });

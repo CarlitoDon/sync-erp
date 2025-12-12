@@ -1,4 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { RegisterPage } from '../../src/pages/RegisterPage';
@@ -14,7 +19,9 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../../src/contexts/AuthContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/AuthContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/AuthContext'
+  );
   return {
     ...actual,
     useAuth: vi.fn(),
@@ -47,13 +54,17 @@ describe('RegisterPage', () => {
 
   // Helper to get inputs by type since labels don't have htmlFor
   const getInputByName = (name: string): HTMLInputElement => {
-    return document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
+    return document.querySelector(
+      `input[name="${name}"]`
+    ) as HTMLInputElement;
   };
 
   describe('Rendering', () => {
     it('renders create account heading', () => {
       renderComponent();
-      expect(screen.getByRole('heading', { name: /create account/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /create account/i })
+      ).toBeInTheDocument();
     });
 
     it('renders name input', () => {
@@ -73,12 +84,16 @@ describe('RegisterPage', () => {
 
     it('renders sign up button', () => {
       renderComponent();
-      expect(screen.getByRole('button', { name: /sign up/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /sign up/i })
+      ).toBeInTheDocument();
     });
 
     it('renders login link', () => {
       renderComponent();
-      expect(screen.getByRole('link', { name: /log in/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: /log in/i })
+      ).toBeInTheDocument();
     });
   });
 
@@ -87,10 +102,18 @@ describe('RegisterPage', () => {
       mockRegister.mockResolvedValueOnce({});
       renderComponent();
 
-      fireEvent.change(getInputByName('name'), { target: { value: 'Test User' } });
-      fireEvent.change(getInputByName('email'), { target: { value: 'test@example.com' } });
-      fireEvent.change(getInputByName('password'), { target: { value: 'password123' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
+      fireEvent.change(getInputByName('name'), {
+        target: { value: 'Test User' },
+      });
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign up/i })
+      );
 
       await waitFor(() => {
         expect(mockRegister).toHaveBeenCalledWith({
@@ -105,10 +128,18 @@ describe('RegisterPage', () => {
       mockRegister.mockResolvedValueOnce({});
       renderComponent();
 
-      fireEvent.change(getInputByName('name'), { target: { value: 'Test User' } });
-      fireEvent.change(getInputByName('email'), { target: { value: 'test@example.com' } });
-      fireEvent.change(getInputByName('password'), { target: { value: 'password123' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
+      fireEvent.change(getInputByName('name'), {
+        target: { value: 'Test User' },
+      });
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign up/i })
+      );
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/');
@@ -119,29 +150,51 @@ describe('RegisterPage', () => {
       mockRegister.mockImplementation(() => new Promise(() => {}));
       renderComponent();
 
-      fireEvent.change(getInputByName('name'), { target: { value: 'Test User' } });
-      fireEvent.change(getInputByName('email'), { target: { value: 'test@example.com' } });
-      fireEvent.change(getInputByName('password'), { target: { value: 'password123' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
+      fireEvent.change(getInputByName('name'), {
+        target: { value: 'Test User' },
+      });
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign up/i })
+      );
 
       await waitFor(() => {
-        expect(screen.getByText(/creating account/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/creating account/i)
+        ).toBeInTheDocument();
       });
     });
 
     it('shows error message on registration failure', async () => {
       mockRegister.mockRejectedValueOnce({
-        response: { data: { error: { message: 'Email already exists' } } },
+        response: {
+          data: { error: { message: 'Email already exists' } },
+        },
       });
       renderComponent();
 
-      fireEvent.change(getInputByName('name'), { target: { value: 'Test User' } });
-      fireEvent.change(getInputByName('email'), { target: { value: 'existing@example.com' } });
-      fireEvent.change(getInputByName('password'), { target: { value: 'password123' } });
-      fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
+      fireEvent.change(getInputByName('name'), {
+        target: { value: 'Test User' },
+      });
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'existing@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign up/i })
+      );
 
       await waitFor(() => {
-        expect(screen.getByText(/email already exists/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/email already exists/i)
+        ).toBeInTheDocument();
       });
     });
   });

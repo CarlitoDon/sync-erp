@@ -36,7 +36,10 @@ export const productService = {
     return res.data.data;
   },
 
-  async update(id: string, data: Partial<CreateProductInput>): Promise<Product> {
+  async update(
+    id: string,
+    data: Partial<CreateProductInput>
+  ): Promise<Product> {
     const res = await api.put(`/products/${id}`, data);
     return res.data.data;
   },

@@ -29,13 +29,11 @@ vi.mock('../../../src/services/ProductService', () => ({
       stockQty: 10,
       averageCost: 80,
     }),
-    create: vi
-      .fn()
-      .mockResolvedValue({
-        id: 'prod-new',
-        sku: 'NEW',
-        name: 'New Product',
-      }),
+    create: vi.fn().mockResolvedValue({
+      id: 'prod-new',
+      sku: 'NEW',
+      name: 'New Product',
+    }),
     update: vi
       .fn()
       .mockResolvedValue({ id: 'prod-1', name: 'Updated Product' }),

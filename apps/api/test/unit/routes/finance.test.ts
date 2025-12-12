@@ -34,12 +34,10 @@ vi.mock('../../../src/services/JournalService', () => ({
 
 vi.mock('../../../src/services/ReportService', () => ({
   ReportService: vi.fn().mockImplementation(() => ({
-    getTrialBalance: vi
-      .fn()
-      .mockResolvedValue({
-        accounts: [],
-        totals: { debit: 0, credit: 0 },
-      }),
+    getTrialBalance: vi.fn().mockResolvedValue({
+      accounts: [],
+      totals: { debit: 0, credit: 0 },
+    }),
     getGeneralLedger: vi
       .fn()
       .mockResolvedValue({ entries: [], balance: 0 }),

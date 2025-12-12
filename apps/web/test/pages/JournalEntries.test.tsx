@@ -1,4 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import JournalEntries from '../../src/pages/JournalEntries';
 import * as CompanyContext from '../../src/contexts/CompanyContext';
@@ -6,7 +11,9 @@ import * as useCompanyDataHook from '../../src/hooks/useCompanyData';
 import * as financeService from '../../src/services/financeService';
 
 vi.mock('../../src/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual('../../src/hooks/useCompanyData');
+  const actual = await vi.importActual(
+    '../../src/hooks/useCompanyData'
+  );
   return {
     ...actual,
     useCompanyData: vi.fn(),
@@ -14,7 +21,9 @@ vi.mock('../../src/hooks/useCompanyData', async () => {
 });
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -47,9 +56,15 @@ describe('JournalEntries', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(financeService.financeService.createJournal).mockImplementation(mockCreateJournal);
-    vi.mocked(financeService.financeService.listJournals).mockImplementation(mockListJournals);
-    vi.mocked(financeService.financeService.listAccounts).mockImplementation(mockListAccounts);
+    vi.mocked(
+      financeService.financeService.createJournal
+    ).mockImplementation(mockCreateJournal);
+    vi.mocked(
+      financeService.financeService.listJournals
+    ).mockImplementation(mockListJournals);
+    vi.mocked(
+      financeService.financeService.listAccounts
+    ).mockImplementation(mockListAccounts);
 
     mockListJournals.mockResolvedValue([]);
     mockListAccounts.mockResolvedValue([
@@ -59,7 +74,9 @@ describe('JournalEntries', () => {
   });
 
   const setupMocks = (options: {
-    currentCompany?: ReturnType<typeof CompanyContext.useCompany>['currentCompany'];
+    currentCompany?: ReturnType<
+      typeof CompanyContext.useCompany
+    >['currentCompany'];
     loading?: boolean;
     journals?: unknown[];
   }) => {
@@ -102,7 +119,9 @@ describe('JournalEntries', () => {
       renderComponent();
       // Need to wait for useEffect
       await waitFor(() => {
-        expect(screen.getByText(/no journal entries found/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/no journal entries found/i)
+        ).toBeInTheDocument();
       });
     });
   });
@@ -113,7 +132,9 @@ describe('JournalEntries', () => {
       renderComponent();
 
       fireEvent.click(screen.getByText('New Entry'));
-      expect(screen.getByRole('heading', { name: 'New Journal Entry' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: 'New Journal Entry' })
+      ).toBeInTheDocument();
     });
 
     it('adds a new line when Add Line is clicked', async () => {

@@ -1,4 +1,8 @@
-import { Payment, InvoiceStatus, InvoiceType } from '@sync-erp/database';
+import {
+  Payment,
+  InvoiceStatus,
+  InvoiceType,
+} from '@sync-erp/database';
 import { PaymentRepository } from '../repositories/payment.repository';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { JournalService } from './journal.service';
@@ -9,9 +13,15 @@ export class PaymentService {
   private invoiceRepository = new InvoiceRepository();
   private journalService = new JournalService();
 
-  async create(companyId: string, data: CreatePaymentDto): Promise<Payment> {
+  async create(
+    companyId: string,
+    data: CreatePaymentDto
+  ): Promise<Payment> {
     // Get the invoice
-    const invoice = await this.invoiceRepository.findById(data.invoiceId, companyId);
+    const invoice = await this.invoiceRepository.findById(
+      data.invoiceId,
+      companyId
+    );
 
     if (!invoice) {
       throw new Error('Invoice not found');
@@ -29,7 +39,9 @@ export class PaymentService {
     const remaining = Number(invoice.balance);
 
     if (data.amount > remaining) {
-      throw new Error(`Payment amount (${data.amount}) exceeds remaining balance (${remaining})`);
+      throw new Error(
+        `Payment amount (${data.amount}) exceeds remaining balance (${remaining})`
+      );
     }
 
     // Create the payment
@@ -42,7 +54,8 @@ export class PaymentService {
 
     // Update Invoice Balance
     const newBalance = remaining - data.amount;
-    const newStatus = newBalance <= 0 ? InvoiceStatus.PAID : invoice.status;
+    const newStatus =
+      newBalance <= 0 ? InvoiceStatus.PAID : invoice.status;
 
     await this.invoiceRepository.update(invoice.id, {
       status: newStatus,

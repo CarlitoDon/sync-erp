@@ -15,22 +15,41 @@ export class BillController {
     }
   };
 
-  create = async (req: Request, res: Response, next: NextFunction) => {
+  create = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const bill = await this.service.createFromPurchaseOrder(companyId, req.body);
+      const bill = await this.service.createFromPurchaseOrder(
+        companyId,
+        req.body
+      );
       res.status(201).json({ success: true, data: bill });
     } catch (error) {
       next(error);
     }
   };
 
-  getById = async (req: Request, res: Response, next: NextFunction) => {
+  getById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const bill = await this.service.getById(req.params.id, companyId);
+      const bill = await this.service.getById(
+        req.params.id,
+        companyId
+      );
       if (!bill) {
-        return res.status(404).json({ success: false, error: { message: 'Bill not found' } });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            error: { message: 'Bill not found' },
+          });
       }
       res.json({ success: true, data: bill });
     } catch (error) {
@@ -58,7 +77,11 @@ export class BillController {
     }
   };
 
-  getOutstanding = async (req: Request, res: Response, next: NextFunction) => {
+  getOutstanding = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const bills = await this.service.getOutstanding(companyId);
@@ -68,10 +91,17 @@ export class BillController {
     }
   };
 
-  getRemainingAmount = async (req: Request, res: Response, next: NextFunction) => {
+  getRemainingAmount = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const remaining = await this.service.getRemainingAmount(req.params.id, companyId);
+      const remaining = await this.service.getRemainingAmount(
+        req.params.id,
+        companyId
+      );
       res.json({ success: true, data: { remaining } });
     } catch (error) {
       next(error);

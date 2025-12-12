@@ -1,4 +1,9 @@
-import { prisma, type Session, type User, Prisma } from '@sync-erp/database';
+import {
+  prisma,
+  type Session,
+  type User,
+  Prisma,
+} from '@sync-erp/database';
 
 const SESSION_DURATION_DAYS = 7;
 
@@ -15,7 +20,9 @@ export class AuthRepository {
     });
   }
 
-  async getSession(sessionId: string): Promise<(Session & { user: User }) | null> {
+  async getSession(
+    sessionId: string
+  ): Promise<(Session & { user: User }) | null> {
     return prisma.session.findUnique({
       where: { id: sessionId },
       include: { user: true },
@@ -28,7 +35,9 @@ export class AuthRepository {
     });
   }
 
-  async deleteUserSessions(userId: string): Promise<Prisma.BatchPayload> {
+  async deleteUserSessions(
+    userId: string
+  ): Promise<Prisma.BatchPayload> {
     return prisma.session.deleteMany({
       where: { userId },
     });

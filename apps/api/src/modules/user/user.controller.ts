@@ -23,7 +23,12 @@ export class UserController {
       const userId = req.context.userId!;
       const user = await this.service.getById(userId);
       if (!user) {
-        return res.status(404).json({ success: false, error: { message: 'User not found' } });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            error: { message: 'User not found' },
+          });
       }
       res.json({ success: true, data: user });
     } catch (error) {
@@ -32,7 +37,11 @@ export class UserController {
   };
 
   // GET /api/users/company - List members
-  listCompanyMembers = async (req: Request, res: Response, next: NextFunction) => {
+  listCompanyMembers = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const members = await this.service.listByCompany(companyId);
@@ -43,10 +52,16 @@ export class UserController {
   };
 
   // POST /api/users/invite - Invite (Create + Assign)
-  invite = async (req: Request, res: Response, next: NextFunction) => {
+  invite = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const { email, name, roleId } = InviteUserSchema.parse(req.body);
+      const { email, name, roleId } = InviteUserSchema.parse(
+        req.body
+      );
 
       // Check if user exists
       let user = await this.service.getByEmail(email);
@@ -55,7 +70,11 @@ export class UserController {
         user = await this.service.create({ email, name }, companyId);
       } else {
         // Assign to company
-        await this.service.assignToCompany(user.id, companyId, roleId);
+        await this.service.assignToCompany(
+          user.id,
+          companyId,
+          roleId
+        );
       }
 
       res.json({ success: true, data: user });
@@ -65,26 +84,40 @@ export class UserController {
   };
 
   // POST /api/users/assign - Assign existing user
-  assign = async (req: Request, res: Response, next: NextFunction) => {
+  assign = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const { userId, roleId } = AssignUserSchema.parse(req.body);
 
       await this.service.assignToCompany(userId, companyId, roleId);
-      res.json({ success: true, message: 'User assigned to company' });
+      res.json({
+        success: true,
+        message: 'User assigned to company',
+      });
     } catch (error) {
       next(error);
     }
   };
 
   // DELETE /api/users/:id/company - Remove from company
-  removeFromCompany = async (req: Request, res: Response, next: NextFunction) => {
+  removeFromCompany = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const userId = req.params.id;
 
       await this.service.removeFromCompany(userId, companyId);
-      res.json({ success: true, message: 'User removed from company' });
+      res.json({
+        success: true,
+        message: 'User removed from company',
+      });
     } catch (error) {
       next(error);
     }

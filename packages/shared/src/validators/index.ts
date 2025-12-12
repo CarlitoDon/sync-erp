@@ -25,8 +25,17 @@ export const CompanyIdSchema = z.string().uuid();
 export const PartnerTypeSchema = z.enum(['CUSTOMER', 'SUPPLIER']);
 
 export const CreatePartnerSchema = z.object({
-  name: z.string().min(2, 'Partner name must be at least 2 characters'),
+  name: z
+    .string()
+    .min(2, 'Partner name must be at least 2 characters'),
   type: PartnerTypeSchema,
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+});
+
+export const UpdatePartnerSchema = z.object({
+  name: z.string().min(2).optional(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
@@ -46,7 +55,9 @@ export const CreateSupplierSchema = CreatePartnerSchema.extend({
 
 export const CreateProductSchema = z.object({
   sku: z.string().min(3, 'SKU must be at least 3 characters'),
-  name: z.string().min(2, 'Product name must be at least 2 characters'),
+  name: z
+    .string()
+    .min(2, 'Product name must be at least 2 characters'),
   price: z.number().positive('Price must be positive'),
 });
 
@@ -59,12 +70,22 @@ export const ProductResponseSchema = z.object({
   averageCost: z.number(),
 });
 
+export const UpdateProductSchema = z.object({
+  name: z.string().min(2).optional(),
+  price: z.number().positive().optional(),
+});
+
 // ============================================
 // Order Schemas
 // ============================================
 
 export const OrderTypeSchema = z.enum(['SALES', 'PURCHASE']);
-export const OrderStatusSchema = z.enum(['DRAFT', 'CONFIRMED', 'COMPLETED', 'CANCELLED']);
+export const OrderStatusSchema = z.enum([
+  'DRAFT',
+  'CONFIRMED',
+  'COMPLETED',
+  'CANCELLED',
+]);
 
 export const OrderItemSchema = z.object({
   productId: z.string().uuid(),
@@ -75,7 +96,9 @@ export const OrderItemSchema = z.object({
 export const CreateOrderSchema = z.object({
   partnerId: z.string().uuid(),
   type: OrderTypeSchema,
-  items: z.array(OrderItemSchema).min(1, 'Order must have at least one item'),
+  items: z
+    .array(OrderItemSchema)
+    .min(1, 'Order must have at least one item'),
 });
 
 export const CreateSalesOrderSchema = CreateOrderSchema.extend({
@@ -102,12 +125,29 @@ export const InventoryResponseSchema = z.object({
   quantityOnHand: z.number().int(),
 });
 
+export const GoodsReceiptSchema = z.object({
+  orderId: z.string().uuid(),
+  reference: z.string().optional(),
+});
+
+export const StockAdjustmentSchema = z.object({
+  productId: z.string().uuid(),
+  quantity: z.number().int(),
+  costPerUnit: z.number().nonnegative(),
+  reference: z.string().optional(),
+});
+
 // ============================================
 // Invoice Schemas
 // ============================================
 
 export const InvoiceTypeSchema = z.enum(['INVOICE', 'BILL']);
-export const InvoiceStatusSchema = z.enum(['DRAFT', 'POSTED', 'PAID', 'VOID']);
+export const InvoiceStatusSchema = z.enum([
+  'DRAFT',
+  'POSTED',
+  'PAID',
+  'VOID',
+]);
 
 export const CreateInvoiceSchema = z.object({
   orderId: z.string().uuid().optional(),
@@ -148,8 +188,14 @@ export const AssignRoleSchema = z.object({
 export * from './company.js';
 
 export type CreatePartnerInput = z.infer<typeof CreatePartnerSchema>;
+export type UpdatePartnerInput = z.infer<typeof UpdatePartnerSchema>;
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;
+export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
 export type CreateInvoiceInput = z.infer<typeof CreateInvoiceSchema>;
 export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
+export type GoodsReceiptInput = z.infer<typeof GoodsReceiptSchema>;
+export type StockAdjustmentInput = z.infer<
+  typeof StockAdjustmentSchema
+>;
 export type PaginationInput = z.infer<typeof PaginationSchema>;

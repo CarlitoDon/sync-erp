@@ -7,7 +7,9 @@ import * as useCompanyDataHook from '../../src/hooks/useCompanyData';
 import { ConfirmProvider } from '../../src/components/ConfirmModal';
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -15,7 +17,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock('../../src/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual('../../src/hooks/useCompanyData');
+  const actual = await vi.importActual(
+    '../../src/hooks/useCompanyData'
+  );
   return {
     ...actual,
     useCompanyData: vi.fn(),
@@ -38,7 +42,9 @@ describe('Products', () => {
   });
 
   const setupMocks = (options: {
-    currentCompany?: ReturnType<typeof CompanyContext.useCompany>['currentCompany'];
+    currentCompany?: ReturnType<
+      typeof CompanyContext.useCompany
+    >['currentCompany'];
     loading?: boolean;
     products?: Array<{
       id: string;
@@ -50,7 +56,11 @@ describe('Products', () => {
     }>;
   }) => {
     vi.mocked(CompanyContext.useCompany).mockReturnValue({
-      currentCompany: options.currentCompany ?? { id: '1', name: 'Test Co', createdAt: new Date() },
+      currentCompany: options.currentCompany ?? {
+        id: '1',
+        name: 'Test Co',
+        createdAt: new Date(),
+      },
       companies: [],
       setCurrentCompany: vi.fn(),
       setCompanies: vi.fn(),
@@ -82,7 +92,9 @@ describe('Products', () => {
       setupMocks({ loading: true });
       renderComponent();
 
-      expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+      expect(
+        document.querySelector('.animate-spin')
+      ).toBeInTheDocument();
     });
   });
 
@@ -92,7 +104,9 @@ describe('Products', () => {
       renderComponent();
 
       // The component should still render the table/empty state
-      expect(screen.getByRole('heading', { name: /products/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /products/i })
+      ).toBeInTheDocument();
     });
   });
 
@@ -101,21 +115,27 @@ describe('Products', () => {
       setupMocks({});
       renderComponent();
 
-      expect(screen.getByRole('heading', { name: /products/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /products/i })
+      ).toBeInTheDocument();
     });
 
     it('renders add product button', () => {
       setupMocks({});
       renderComponent();
 
-      expect(screen.getByRole('button', { name: /add product/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /add product/i })
+      ).toBeInTheDocument();
     });
 
     it('shows empty message when no products', () => {
       setupMocks({ products: [] });
       renderComponent();
 
-      expect(screen.getByText(/no products found/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/no products found/i)
+      ).toBeInTheDocument();
     });
   });
 

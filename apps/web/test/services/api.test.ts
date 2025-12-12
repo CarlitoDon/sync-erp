@@ -1,19 +1,28 @@
-import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest';
+import {
+  vi,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+} from 'vitest';
 import { HEADERS } from '@sync-erp/shared';
 // We mock axios first
-const { requestUse, responseUse, mockAxiosInstance } = vi.hoisted(() => {
-  const requestUse = vi.fn();
-  const responseUse = vi.fn();
-  const mockAxiosInstance = {
-    interceptors: {
-      request: { use: requestUse },
-      response: { use: responseUse },
-    },
-    defaults: { headers: { common: {} } },
-    get: vi.fn(),
-  };
-  return { requestUse, responseUse, mockAxiosInstance };
-});
+const { requestUse, responseUse, mockAxiosInstance } = vi.hoisted(
+  () => {
+    const requestUse = vi.fn();
+    const responseUse = vi.fn();
+    const mockAxiosInstance = {
+      interceptors: {
+        request: { use: requestUse },
+        response: { use: responseUse },
+      },
+      defaults: { headers: { common: {} } },
+      get: vi.fn(),
+    };
+    return { requestUse, responseUse, mockAxiosInstance };
+  }
+);
 
 vi.mock('axios', () => ({
   default: {
@@ -110,7 +119,9 @@ describe('api service', () => {
         // ignore
       }
 
-      expect(toast.error).toHaveBeenCalledWith('Please login to continue');
+      expect(toast.error).toHaveBeenCalledWith(
+        'Please login to continue'
+      );
     });
   });
 });

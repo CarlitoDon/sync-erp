@@ -2,7 +2,10 @@ import { Company, CompanyMember } from '@sync-erp/database';
 import { prisma } from '@sync-erp/database';
 
 export class CompanyRepository {
-  async create(data: { name: string; userId?: string }): Promise<Company> {
+  async create(data: {
+    name: string;
+    userId?: string;
+  }): Promise<Company> {
     return prisma.company.create({
       data: {
         name: data.name,
@@ -20,7 +23,9 @@ export class CompanyRepository {
     });
   }
 
-  async findByInviteCode(inviteCode: string): Promise<Company | null> {
+  async findByInviteCode(
+    inviteCode: string
+  ): Promise<Company | null> {
     return prisma.company.findUnique({
       where: { inviteCode },
     });
@@ -32,7 +37,10 @@ export class CompanyRepository {
     });
   }
 
-  async findMembership(userId: string, companyId: string): Promise<CompanyMember | null> {
+  async findMembership(
+    userId: string,
+    companyId: string
+  ): Promise<CompanyMember | null> {
     return prisma.companyMember.findUnique({
       where: {
         userId_companyId: {
@@ -43,7 +51,10 @@ export class CompanyRepository {
     });
   }
 
-  async addMember(userId: string, companyId: string): Promise<CompanyMember> {
+  async addMember(
+    userId: string,
+    companyId: string
+  ): Promise<CompanyMember> {
     return prisma.companyMember.create({
       data: {
         userId,
@@ -52,7 +63,9 @@ export class CompanyRepository {
     });
   }
 
-  async findMemberships(userId: string): Promise<(CompanyMember & { company: Company })[]> {
+  async findMemberships(
+    userId: string
+  ): Promise<(CompanyMember & { company: Company })[]> {
     return prisma.companyMember.findMany({
       where: { userId },
       include: {

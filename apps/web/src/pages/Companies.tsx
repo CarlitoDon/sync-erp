@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import { useCompany } from '../contexts/CompanyContext';
 
 export default function Companies() {
-  const { companies, currentCompany, setCurrentCompany } = useCompany();
+  const { companies, currentCompany, setCurrentCompany } =
+    useCompany();
 
   const handleSelectCompany = (company: typeof currentCompany) => {
     if (company) {
@@ -16,8 +17,12 @@ export default function Companies() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Companies</h1>
-          <p className="text-gray-500 mt-1">Manage your companies and switch context</p>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Companies
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Manage your companies and switch context
+          </p>
         </div>
         <Link
           to="/companies/new"
@@ -33,8 +38,12 @@ export default function Companies() {
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">🏢</span>
           </div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">No companies yet</h3>
-          <p className="text-gray-500 mb-6">Create your first company to get started</p>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+            No companies yet
+          </h3>
+          <p className="text-gray-500 mb-6">
+            Create your first company to get started
+          </p>
           <Link
             to="/companies/new"
             className="inline-block px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transition-all"
@@ -66,9 +75,12 @@ export default function Companies() {
                   </span>
                 )}
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mt-4">{company.name}</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mt-4">
+                {company.name}
+              </h3>
               <p className="text-sm text-gray-500 mt-1">
-                Created {new Date(company.createdAt).toLocaleDateString()}
+                Created{' '}
+                {new Date(company.createdAt).toLocaleDateString()}
               </p>
             </div>
           ))}

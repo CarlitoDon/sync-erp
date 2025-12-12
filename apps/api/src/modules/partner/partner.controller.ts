@@ -1,12 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { PartnerService } from './partner.service';
-import { CreatePartnerSchema, UpdatePartnerSchema, PartnerTypeSchema } from '@sync-erp/shared';
+import {
+  CreatePartnerSchema,
+  UpdatePartnerSchema,
+  PartnerTypeSchema,
+} from '@sync-erp/shared';
 import { PartnerType } from '@sync-erp/database';
 
 export class PartnerController {
   private service = new PartnerService();
 
-  create = async (req: Request, res: Response, next: NextFunction) => {
+  create = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const validated = CreatePartnerSchema.parse(req.body);
@@ -38,7 +46,11 @@ export class PartnerController {
     }
   };
 
-  listSuppliers = async (req: Request, res: Response, next: NextFunction) => {
+  listSuppliers = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const suppliers = await this.service.listSuppliers(companyId);
@@ -48,7 +60,11 @@ export class PartnerController {
     }
   };
 
-  listCustomers = async (req: Request, res: Response, next: NextFunction) => {
+  listCustomers = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const customers = await this.service.listCustomers(companyId);
@@ -58,12 +74,24 @@ export class PartnerController {
     }
   };
 
-  getById = async (req: Request, res: Response, next: NextFunction) => {
+  getById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const partner = await this.service.getById(req.params.id, companyId);
+      const partner = await this.service.getById(
+        req.params.id,
+        companyId
+      );
       if (!partner) {
-        return res.status(404).json({ success: false, error: { message: 'Partner not found' } });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            error: { message: 'Partner not found' },
+          });
       }
       res.json({ success: true, data: partner });
     } catch (error) {
@@ -71,18 +99,30 @@ export class PartnerController {
     }
   };
 
-  update = async (req: Request, res: Response, next: NextFunction) => {
+  update = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       const validated = UpdatePartnerSchema.parse(req.body);
-      const partner = await this.service.update(req.params.id, companyId, validated);
+      const partner = await this.service.update(
+        req.params.id,
+        companyId,
+        validated
+      );
       res.json({ success: true, data: partner });
     } catch (error) {
       next(error);
     }
   };
 
-  delete = async (req: Request, res: Response, next: NextFunction) => {
+  delete = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       await this.service.delete(req.params.id, companyId);

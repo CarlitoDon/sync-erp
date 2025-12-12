@@ -17,15 +17,25 @@ export class SalesController {
     }
   };
 
-  getById = async (req: Request, res: Response, next: NextFunction) => {
+  getById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const order = await this.service.getById(req.params.id, companyId);
+      const order = await this.service.getById(
+        req.params.id,
+        companyId
+      );
 
       if (!order) {
         return res
           .status(404)
-          .json({ success: false, error: { message: 'Sales order not found' } });
+          .json({
+            success: false,
+            error: { message: 'Sales order not found' },
+          });
       }
 
       res.json({ success: true, data: order });
@@ -34,7 +44,11 @@ export class SalesController {
     }
   };
 
-  create = async (req: Request, res: Response, next: NextFunction) => {
+  create = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
       // userId is not used for creation logic currently, audit can be added later
@@ -53,10 +67,17 @@ export class SalesController {
     }
   };
 
-  confirm = async (req: Request, res: Response, next: NextFunction) => {
+  confirm = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const order = await this.service.confirm(req.params.id, companyId);
+      const order = await this.service.confirm(
+        req.params.id,
+        companyId
+      );
       res.json({ success: true, data: order });
     } catch (error) {
       next(error);
@@ -68,17 +89,28 @@ export class SalesController {
       const companyId = req.context.companyId!;
       const reference = req.body.reference as string | undefined;
 
-      const movements = await this.service.ship(companyId, req.params.id, reference);
+      const movements = await this.service.ship(
+        companyId,
+        req.params.id,
+        reference
+      );
       res.json({ success: true, data: movements });
     } catch (error) {
       next(error);
     }
   };
 
-  cancel = async (req: Request, res: Response, next: NextFunction) => {
+  cancel = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const companyId = req.context.companyId!;
-      const order = await this.service.cancel(req.params.id, companyId);
+      const order = await this.service.cancel(
+        req.params.id,
+        companyId
+      );
       res.json({ success: true, data: order });
     } catch (error) {
       next(error);

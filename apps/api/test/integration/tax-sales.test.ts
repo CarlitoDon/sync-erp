@@ -30,7 +30,9 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
 
     for (const acc of accounts) {
       await prisma.account.upsert({
-        where: { companyId_code: { companyId: COMPANY_ID, code: acc.code } },
+        where: {
+          companyId_code: { companyId: COMPANY_ID, code: acc.code },
+        },
         update: {},
         create: {
           companyId: COMPANY_ID,
@@ -68,13 +70,27 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
 
   afterAll(async () => {
     // Cleanup cascade
-    await prisma.journalEntry.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.invoice.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.orderItem.deleteMany({ where: { order: { companyId: COMPANY_ID } } });
-    await prisma.order.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.product.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.account.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.partner.deleteMany({ where: { companyId: COMPANY_ID } });
+    await prisma.journalEntry.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.invoice.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.orderItem.deleteMany({
+      where: { order: { companyId: COMPANY_ID } },
+    });
+    await prisma.order.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.product.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.account.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.partner.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     await prisma.company.delete({ where: { id: COMPANY_ID } });
   });
 
@@ -98,9 +114,13 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
     });
 
     // 2. Create Invoice
-    const invoice = await invoiceService.createFromSalesOrder(COMPANY_ID, 'user-1', {
-      orderId: order.id,
-    });
+    const invoice = await invoiceService.createFromSalesOrder(
+      COMPANY_ID,
+      'user-1',
+      {
+        orderId: order.id,
+      }
+    );
 
     expect(Number(invoice.subtotal)).toBe(200000);
     expect(Number(invoice.taxRate)).toBe(11);
@@ -112,15 +132,23 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
 
     // 4. Verify Journal
     const journals = await journalService.list(COMPANY_ID);
-    const invJournal = journals.find((j) => j.reference?.includes(invoice.invoiceNumber!)) as any;
+    const invJournal = journals.find((j) =>
+      j.reference?.includes(invoice.invoiceNumber!)
+    ) as any;
 
     expect(invJournal).toBeDefined();
     expect(invJournal.lines).toHaveLength(3); // AR, Rev, Tax
 
     // Verify Lines
-    const arLine = invJournal.lines.find((l: any) => l.account.code === '1300');
-    const revLine = invJournal.lines.find((l: any) => l.account.code === '4100');
-    const taxLine = invJournal.lines.find((l: any) => l.account.code === '2300');
+    const arLine = invJournal.lines.find(
+      (l: any) => l.account.code === '1300'
+    );
+    const revLine = invJournal.lines.find(
+      (l: any) => l.account.code === '4100'
+    );
+    const taxLine = invJournal.lines.find(
+      (l: any) => l.account.code === '2300'
+    );
 
     expect(Number(arLine?.debit)).toBe(222000); // Full Amount
     expect(Number(revLine?.credit)).toBe(200000); // Net Sales
@@ -145,9 +173,13 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
     });
 
     // 2. Create Invoice
-    const invoice = await invoiceService.createFromSalesOrder(COMPANY_ID, 'user-1', {
-      orderId: order.id,
-    });
+    const invoice = await invoiceService.createFromSalesOrder(
+      COMPANY_ID,
+      'user-1',
+      {
+        orderId: order.id,
+      }
+    );
 
     expect(Number(invoice.taxAmount)).toBe(0);
     expect(Number(invoice.amount)).toBe(100000);
@@ -157,11 +189,15 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
 
     // 4. Verify Journal
     const journals = await journalService.list(COMPANY_ID);
-    const invJournal = journals.find((j) => j.reference?.includes(invoice.invoiceNumber!)) as any;
+    const invJournal = journals.find((j) =>
+      j.reference?.includes(invoice.invoiceNumber!)
+    ) as any;
 
     expect(invJournal.lines).toHaveLength(2); // AR + Rev only
 
-    const taxLine = invJournal.lines.find((l: any) => l.account.code === '2300');
+    const taxLine = invJournal.lines.find(
+      (l: any) => l.account.code === '2300'
+    );
     expect(taxLine).toBeUndefined();
   });
 });

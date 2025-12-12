@@ -1,9 +1,16 @@
-import { prisma, InventoryMovement, MovementType } from '@sync-erp/database';
+import {
+  prisma,
+  InventoryMovement,
+  MovementType,
+} from '@sync-erp/database';
 import { InventoryRepository } from './inventory.repository';
 import { ProductService } from '../product/product.service';
 import { ProcurementService } from '../procurement/procurement.service';
 import { JournalService } from '../accounting/services/journal.service';
-import { GoodsReceiptInput, StockAdjustmentInput } from '@sync-erp/shared';
+import {
+  GoodsReceiptInput,
+  StockAdjustmentInput,
+} from '@sync-erp/shared';
 
 export class InventoryService {
   private repository = new InventoryRepository();
@@ -18,12 +25,17 @@ export class InventoryService {
     companyId: string,
     data: GoodsReceiptInput
   ): Promise<InventoryMovement[]> {
-    const order = await this.procurementService.getById(data.orderId, companyId);
+    const order = await this.procurementService.getById(
+      data.orderId,
+      companyId
+    );
     if (!order) {
       throw new Error('Purchase order not found');
     }
 
-    const orderItems = await this.procurementService.getItems(data.orderId);
+    const orderItems = await this.procurementService.getItems(
+      data.orderId
+    );
     const movements: InventoryMovement[] = [];
 
     // Create inventory movements for each order item
@@ -34,7 +46,8 @@ export class InventoryService {
         productId: item.productId,
         type: MovementType.IN,
         quantity: item.quantity,
-        reference: data.reference || `Goods receipt from ${order.orderNumber}`,
+        reference:
+          data.reference || `Goods receipt from ${order.orderNumber}`,
       });
       movements.push(movement);
 
@@ -100,14 +113,23 @@ export class InventoryService {
 
     for (const item of order.items) {
       // Check if stock is sufficient
-      const hasStock = await this.productService.checkStock(item.productId, item.quantity);
+      const hasStock = await this.productService.checkStock(
+        item.productId,
+        item.quantity
+      );
       if (!hasStock) {
-        throw new Error(`Insufficient stock for product ${item.productId}`);
+        throw new Error(
+          `Insufficient stock for product ${item.productId}`
+        );
       }
 
       // Get product for cost calculation
-      const product = await this.productService.getById(item.productId, companyId);
-      if (!product) throw new Error(`Product ${item.productId} not found`);
+      const product = await this.productService.getById(
+        item.productId,
+        companyId
+      );
+      if (!product)
+        throw new Error(`Product ${item.productId} not found`);
 
       // Create inventory movement (OUT)
       const movement = await this.repository.createMovement({
@@ -115,12 +137,16 @@ export class InventoryService {
         productId: item.productId,
         type: MovementType.OUT,
         quantity: item.quantity,
-        reference: reference || `Shipment for order ${order.orderNumber}`,
+        reference:
+          reference || `Shipment for order ${order.orderNumber}`,
       });
       movements.push(movement);
 
       // Decrease stock
-      await this.productService.updateStock(item.productId, -item.quantity);
+      await this.productService.updateStock(
+        item.productId,
+        -item.quantity
+      );
 
       // Accumulate COGS
       totalCogs += Number(product.averageCost) * item.quantity;
@@ -160,8 +186,12 @@ export class InventoryService {
 
     for (const item of items) {
       // Get product for cost calculation
-      const product = await this.productService.getById(item.productId, companyId);
-      if (!product) throw new Error(`Product ${item.productId} not found`);
+      const product = await this.productService.getById(
+        item.productId,
+        companyId
+      );
+      if (!product)
+        throw new Error(`Product ${item.productId} not found`);
 
       // Create inventory movement (IN) - Restocking
       const movement = await this.repository.createMovement({
@@ -169,15 +199,20 @@ export class InventoryService {
         productId: item.productId,
         type: MovementType.IN,
         quantity: item.quantity,
-        reference: reference || `Return for order ${order.orderNumber}`,
+        reference:
+          reference || `Return for order ${order.orderNumber}`,
       });
       movements.push(movement);
 
       // Increase Stock
-      await this.productService.updateStock(item.productId, item.quantity);
+      await this.productService.updateStock(
+        item.productId,
+        item.quantity
+      );
 
       // Accumulate COGS Reversal value
-      totalCogsReversal += Number(product.averageCost) * item.quantity;
+      totalCogsReversal +=
+        Number(product.averageCost) * item.quantity;
     }
 
     // Post Reversal Journal
@@ -195,18 +230,26 @@ export class InventoryService {
   /**
    * Manual stock adjustment
    */
-  async adjustStock(companyId: string, data: StockAdjustmentInput): Promise<InventoryMovement> {
+  async adjustStock(
+    companyId: string,
+    data: StockAdjustmentInput
+  ): Promise<InventoryMovement> {
     const isLoss = data.quantity < 0;
     const absQty = Math.abs(data.quantity);
 
     // Get current product state
-    const product = await this.productService.getById(data.productId, companyId);
+    const product = await this.productService.getById(
+      data.productId,
+      companyId
+    );
     if (!product) throw new Error('Product not found');
 
     // T012: Enforce Strict Stock Control for Negative Adjustments
     if (isLoss) {
       if (product.stockQty < absQty) {
-        throw new Error(`Insufficient stock. Current: ${product.stockQty}, Check: ${absQty}`);
+        throw new Error(
+          `Insufficient stock. Current: ${product.stockQty}, Check: ${absQty}`
+        );
       }
     }
 
@@ -222,11 +265,18 @@ export class InventoryService {
 
     if (!isLoss) {
       // Gain: Use provided cost per unit (Incoming Value)
-      await this.productService.updateAverageCost(data.productId, data.quantity, data.costPerUnit);
+      await this.productService.updateAverageCost(
+        data.productId,
+        data.quantity,
+        data.costPerUnit
+      );
       journalAmount = absQty * data.costPerUnit;
     } else {
       // Loss: Use current Average Cost (Book Value)
-      await this.productService.updateStock(data.productId, data.quantity);
+      await this.productService.updateStock(
+        data.productId,
+        data.quantity
+      );
       journalAmount = absQty * Number(product.averageCost);
     }
 
@@ -243,7 +293,10 @@ export class InventoryService {
     return movement;
   }
 
-  async getMovements(companyId: string, productId?: string): Promise<InventoryMovement[]> {
+  async getMovements(
+    companyId: string,
+    productId?: string
+  ): Promise<InventoryMovement[]> {
     return this.repository.findMovements(companyId, productId);
   }
 

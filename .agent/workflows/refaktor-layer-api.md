@@ -98,9 +98,10 @@ dto/
 /middlewares
 /routes
 
-````
+```
 
 Rules:
+
 - Every domain gets exactly three files by default: controller, service, repository.
 - If domain does not require repository (e.g. pure logic), keep empty placeholder for future.
 - DTO folder exists for each domain.
@@ -110,6 +111,7 @@ Rules:
 ## 2) Extract Controllers Across All Services
 
 ### 2.1 Controller Candidate Detection
+
 Search all service codebase for anything involving:
 
 - `req.body`, `req.params`, `req.query`
@@ -127,24 +129,24 @@ Example:
 ```ts
 class SalesController {
   async createOrder(req, res) {
-    const dto = req.body
-    const result = await salesService.createOrder(dto)
-    return res.json(result)
+    const dto = req.body;
+    const result = await salesService.createOrder(dto);
+    return res.json(result);
   }
 }
-````
+```
 
 Controllers must contain:
 
-* Input extraction
-* Input validation (or delegated validation)
-* Mapping to service calls
+- Input extraction
+- Input validation (or delegated validation)
+- Mapping to service calls
 
 Controllers must NOT contain:
 
-* Database access
-* Business rules
-* Cross-domain orchestration
+- Database access
+- Business rules
+- Cross-domain orchestration
 
 ---
 
@@ -154,10 +156,10 @@ Controllers must NOT contain:
 
 Search each service for direct Prisma code:
 
-* `prisma.product.create()`
-* `prisma.salesOrder.findMany()`
-* `prisma.journalEntry.update()`
-* `$transaction()` blocks
+- `prisma.product.create()`
+- `prisma.salesOrder.findMany()`
+- `prisma.journalEntry.update()`
+- `$transaction()` blocks
 
 Mark these as “Repository Logic”.
 
@@ -172,10 +174,10 @@ Examples:
 ```ts
 class SalesRepository {
   create(data, tx) {
-    return prisma.salesOrder.create({ data, tx })
+    return prisma.salesOrder.create({ data, tx });
   }
   findById(id) {
-    return prisma.salesOrder.findUnique({ where: { id } })
+    return prisma.salesOrder.findUnique({ where: { id } });
   }
 }
 ```
@@ -185,17 +187,17 @@ class SalesRepository {
 ```ts
 class ProductRepository {
   findAll() {
-    return prisma.product.findMany()
+    return prisma.product.findMany();
   }
 }
 ```
 
 Repository rules:
 
-* Contains only DB operations
-* No business rules
-* No HTTP concerns
-* Returns raw DB objects
+- Contains only DB operations
+- No business rules
+- No HTTP concerns
+- Returns raw DB objects
 
 ---
 
@@ -205,11 +207,11 @@ Repository rules:
 
 From each existing service, extract:
 
-* Calculations (totals, tax, discounts)
-* Cross-module calls (PO triggers journal, sales triggers stock movement)
-* Validation of business rules
-* Multi-step use-cases (create, update, confirm, approve)
-* Transaction orchestration
+- Calculations (totals, tax, discounts)
+- Cross-module calls (PO triggers journal, sales triggers stock movement)
+- Validation of business rules
+- Multi-step use-cases (create, update, confirm, approve)
+- Transaction orchestration
 
 ### 4.2 Normalize into `<domain>.service.ts`
 
@@ -220,11 +222,11 @@ Example across modules:
 ```ts
 class SalesService {
   async createOrder(dto) {
-    return prisma.$transaction(async tx => {
-      const order = await salesRepository.create(dto, tx)
-      await inventoryService.reserveStock(order.items, tx)
-      return order
-    })
+    return prisma.$transaction(async (tx) => {
+      const order = await salesRepository.create(dto, tx);
+      await inventoryService.reserveStock(order.items, tx);
+      return order;
+    });
   }
 }
 ```
@@ -235,7 +237,11 @@ class SalesService {
 class InventoryService {
   async reserveStock(items, tx) {
     for (const item of items) {
-      await inventoryRepository.decreaseStock(item.productId, item.qty, tx)
+      await inventoryRepository.decreaseStock(
+        item.productId,
+        item.qty,
+        tx
+      );
     }
   }
 }
@@ -246,17 +252,20 @@ class InventoryService {
 ```ts
 class AccountingService {
   async recordSale(order, tx) {
-    const lines = this.composeJournalLines(order)
-    return journalRepository.create({ refType: 'SO', refId: order.id, lines }, tx)
+    const lines = this.composeJournalLines(order);
+    return journalRepository.create(
+      { refType: 'SO', refId: order.id, lines },
+      tx
+    );
   }
 }
 ```
 
 Service rules:
 
-* Contains business logic
-* Contains cross-module orchestration
-* Does not know about HTTP
+- Contains business logic
+- Contains cross-module orchestration
+- Does not know about HTTP
 
 ---
 
@@ -276,14 +285,14 @@ router.post('/sales', salesController.createOrder)
 
 Perform migration for all modules:
 
-* Sales
-* Procurement
-* Accounting
-* Inventory
-* Product
-* Customer
-* Auth
-* Shipping
+- Sales
+- Procurement
+- Accounting
+- Inventory
+- Product
+- Customer
+- Auth
+- Shipping
 
 ---
 
@@ -315,46 +324,46 @@ Controllers perform validation; services no longer validate raw HTTP bodies.
 
 ### 7.1 Sales Module Tests
 
-* Create order
-* Update order
-* Calculate totals
-* Trigger stock reduction
-* Ledger integration
+- Create order
+- Update order
+- Calculate totals
+- Trigger stock reduction
+- Ledger integration
 
 ### 7.2 Procurement Module Tests
 
-* Create PO
-* Create PO items
-* Approve PO
-* Trigger accounting journal
+- Create PO
+- Create PO items
+- Approve PO
+- Trigger accounting journal
 
 ### 7.3 Inventory Module Tests
 
-* Increase/decrease stock
-* Stock reservation workflow
-* Stock movement histories
+- Increase/decrease stock
+- Stock reservation workflow
+- Stock movement histories
 
 ### 7.4 Accounting Module Tests
 
-* Debit/credit correctness
-* Journal posting
-* Reference integrity
+- Debit/credit correctness
+- Journal posting
+- Reference integrity
 
 ### 7.5 Product Module Tests
 
-* Product CRUD
-* Price updates
+- Product CRUD
+- Price updates
 
 ### 7.6 Customer Module Tests
 
-* Customer creation
-* Update address/contact
+- Customer creation
+- Update address/contact
 
 ### 7.7 Auth Module Tests
 
-* Login
-* Token generation
-* Role/permission checks
+- Login
+- Token generation
+- Role/permission checks
 
 All behaviors must match pre-refactor state.
 
@@ -364,10 +373,10 @@ All behaviors must match pre-refactor state.
 
 Eliminate:
 
-* Old service functions containing HTTP logic
-* Direct route calls to service methods
-* Inline Prisma calls lingering in services
-* Duplicated validation logic
+- Old service functions containing HTTP logic
+- Direct route calls to service methods
+- Inline Prisma calls lingering in services
+- Duplicated validation logic
 
 Verify no old imports remain in modules.
 
@@ -377,32 +386,34 @@ Verify no old imports remain in modules.
 
 ### After refactor, system must have:
 
-* Dedicated controllers for all modules
-* Clean service layer with only business logic
-* Repository layer handling all persistence
-* DTO validation for every endpoint
-* Unified folder structure
-* Full backward compatibility
+- Dedicated controllers for all modules
+- Clean service layer with only business logic
+- Repository layer handling all persistence
+- DTO validation for every endpoint
+- Unified folder structure
+- Full backward compatibility
 
 Delivered artifacts:
 
-* controller/service/repository for every module
-* updated route bindings
-* regression test logs
-* summary of removed/deprecated code
+- controller/service/repository for every module
+- updated route bindings
+- regression test logs
+- summary of removed/deprecated code
 
 ---
 
 ## 10) Optional Enhancements (Phase 2)
 
-* Introduce Application Service Layer for multi-domain workflows
-* Add Domain Events (e.g., `SalesOrderCreated → CreateJournal → UpdateStock`)
-* Add Unit of Work abstraction for transaction boundary control
-* Replace in-service orchestration with Saga pattern for long-running flows
-* Auto-generate OpenAPI schemas from DTOs
+- Introduce Application Service Layer for multi-domain workflows
+- Add Domain Events (e.g., `SalesOrderCreated → CreateJournal → UpdateStock`)
+- Add Unit of Work abstraction for transaction boundary control
+- Replace in-service orchestration with Saga pattern for long-running flows
+- Auto-generate OpenAPI schemas from DTOs
 
 ---
 
 # End of Workflow
+
+```
 
 ```

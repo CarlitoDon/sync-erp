@@ -22,12 +22,16 @@ vi.mock('../../src/components/SidebarNav', () => ({
 }));
 
 vi.mock('../../src/components/CompanySwitcher', () => ({
-  default: () => <div data-testid="company-switcher">Company Switcher</div>,
+  default: () => (
+    <div data-testid="company-switcher">Company Switcher</div>
+  ),
 }));
 
 // Mock the contexts
 vi.mock('../../src/contexts/SidebarContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/SidebarContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/SidebarContext'
+  );
   return {
     ...actual,
     useSidebar: vi.fn(),
@@ -35,7 +39,9 @@ vi.mock('../../src/contexts/SidebarContext', async () => {
 });
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -43,7 +49,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock('../../src/contexts/AuthContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/AuthContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/AuthContext'
+  );
   return {
     ...actual,
     useAuth: vi.fn(),
@@ -141,7 +149,9 @@ describe('Sidebar', () => {
       setupMocks({ sidebar: { isCollapsed: false } });
       renderComponent();
 
-      expect(screen.getByTestId('company-switcher')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('company-switcher')
+      ).toBeInTheDocument();
     });
 
     it('shows user name when expanded', () => {
@@ -169,7 +179,9 @@ describe('Sidebar', () => {
       setupMocks({ sidebar: { isCollapsed: false } });
       renderComponent();
 
-      expect(screen.getByTitle('Collapse sidebar')).toBeInTheDocument();
+      expect(
+        screen.getByTitle('Collapse sidebar')
+      ).toBeInTheDocument();
     });
   });
 
@@ -178,7 +190,9 @@ describe('Sidebar', () => {
       setupMocks({ sidebar: { isCollapsed: true } });
       renderComponent();
 
-      expect(screen.queryByTestId('company-switcher')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('company-switcher')
+      ).not.toBeInTheDocument();
     });
 
     it('hides user name when collapsed', () => {

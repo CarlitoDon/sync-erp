@@ -45,7 +45,10 @@ describe('PaymentService', () => {
 
       mockPrisma.invoice.findFirst.mockResolvedValue(mockInvoice);
       mockPrisma.payment.create.mockResolvedValue(mockPayment);
-      mockPrisma.invoice.update.mockResolvedValue({ ...mockInvoice, balance: 500 });
+      mockPrisma.invoice.update.mockResolvedValue({
+        ...mockInvoice,
+        balance: 500,
+      });
 
       const result = await service.create(companyId, {
         invoiceId: 'invoice-1',
@@ -60,25 +63,45 @@ describe('PaymentService', () => {
       mockPrisma.invoice.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.create(companyId, { invoiceId: 'nonexistent', amount: 100, method: 'CASH' })
+        service.create(companyId, {
+          invoiceId: 'nonexistent',
+          amount: 100,
+          method: 'CASH',
+        })
       ).rejects.toThrow('Invoice not found');
     });
 
     it('should throw error for voided invoice', async () => {
-      const mockInvoice = { id: 'invoice-1', status: 'VOID', payments: [] };
+      const mockInvoice = {
+        id: 'invoice-1',
+        status: 'VOID',
+        payments: [],
+      };
       mockPrisma.invoice.findFirst.mockResolvedValue(mockInvoice);
 
       await expect(
-        service.create(companyId, { invoiceId: 'invoice-1', amount: 100, method: 'CASH' })
+        service.create(companyId, {
+          invoiceId: 'invoice-1',
+          amount: 100,
+          method: 'CASH',
+        })
       ).rejects.toThrow('Cannot pay a voided invoice');
     });
 
     it('should throw error for draft invoice', async () => {
-      const mockInvoice = { id: 'invoice-1', status: 'DRAFT', payments: [] };
+      const mockInvoice = {
+        id: 'invoice-1',
+        status: 'DRAFT',
+        payments: [],
+      };
       mockPrisma.invoice.findFirst.mockResolvedValue(mockInvoice);
 
       await expect(
-        service.create(companyId, { invoiceId: 'invoice-1', amount: 100, method: 'CASH' })
+        service.create(companyId, {
+          invoiceId: 'invoice-1',
+          amount: 100,
+          method: 'CASH',
+        })
       ).rejects.toThrow('Invoice must be posted before payment');
     });
 
@@ -92,8 +115,14 @@ describe('PaymentService', () => {
       mockPrisma.invoice.findFirst.mockResolvedValue(mockInvoice);
 
       await expect(
-        service.create(companyId, { invoiceId: 'invoice-1', amount: 500, method: 'CASH' })
-      ).rejects.toThrow('Payment amount (500) exceeds remaining balance (200)');
+        service.create(companyId, {
+          invoiceId: 'invoice-1',
+          amount: 500,
+          method: 'CASH',
+        })
+      ).rejects.toThrow(
+        'Payment amount (500) exceeds remaining balance (200)'
+      );
     });
   });
 
@@ -130,7 +159,9 @@ describe('PaymentService', () => {
     });
 
     it('should filter by invoiceId', async () => {
-      const mockPayments = [{ id: 'payment-1', invoiceId: 'invoice-1' }];
+      const mockPayments = [
+        { id: 'payment-1', invoiceId: 'invoice-1' },
+      ];
       mockPrisma.payment.findMany.mockResolvedValue(mockPayments);
 
       const result = await service.list(companyId, 'invoice-1');
@@ -155,7 +186,11 @@ describe('PaymentService', () => {
 
   describe('getTotalReceived', () => {
     it('should calculate total received for an invoice', async () => {
-      const mockPayments = [{ amount: 200 }, { amount: 300 }, { amount: 150 }];
+      const mockPayments = [
+        { amount: 200 },
+        { amount: 300 },
+        { amount: 150 },
+      ];
       mockPrisma.payment.findMany.mockResolvedValue(mockPayments);
 
       const result = await service.getTotalReceived('invoice-1');

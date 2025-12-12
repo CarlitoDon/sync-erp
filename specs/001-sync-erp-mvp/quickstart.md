@@ -5,54 +5,54 @@
 
 ## Prerequisites
 
--   Node.js 18+
--   PostgreSQL running locally
--   npm installed
+- Node.js 18+
+- PostgreSQL running locally
+- npm installed
 
 ## Setup
 
 1. **Install Dependencies**:
 
-    ```bash
-    npm install
-    ```
+   ```bash
+   npm install
+   ```
 
 2. **Database Setup**:
-    ```bash
-    # In packages/database
-    npm run db:generate
-    npm run db:push
-    ```
+   ```bash
+   # In packages/database
+   npm run db:generate
+   npm run db:push
+   ```
 
 ## Development
 
 1. **Start Backend**:
 
-    ```bash
-    npm run dev --filter=api
-    ```
+   ```bash
+   npm run dev --filter=api
+   ```
 
 2. **Start Frontend**:
-    ```bash
-    npm run dev --filter=web
-    ```
+   ```bash
+   npm run dev --filter=web
+   ```
 
 ## Verification Steps (Manual)
 
 ### 1. Create Company (Admin)
 
--   POST `/api/companies` with `{ "name": "Acme Corp" }`.
--   Verify response contains `id`.
--   Save `id` for header `x-company-id`.
+- POST `/api/companies` with `{ "name": "Acme Corp" }`.
+- Verify response contains `id`.
+- Save `id` for header `x-company-id`.
 
 ### 2. Create Master Data
 
--   POST `/api/products` (Header: `x-company-id: <AcmeID>`)
--   POST `/api/partners` (Customer)
+- POST `/api/products` (Header: `x-company-id: <AcmeID>`)
+- POST `/api/partners` (Customer)
 
 ### 3. Run Order-to-Cash
 
--   POST `/api/orders` (Type: SALES)
--   Check Inventory (should be reserved)
--   POST `/api/invoices` (from Order)
--   POST `/api/payments`
+- POST `/api/orders` (Type: SALES)
+- Check Inventory (should be reserved)
+- POST `/api/invoices` (from Order)
+- POST `/api/payments`

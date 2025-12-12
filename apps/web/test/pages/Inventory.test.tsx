@@ -5,7 +5,9 @@ import * as CompanyContext from '../../src/contexts/CompanyContext';
 import * as useCompanyDataHook from '../../src/hooks/useCompanyData';
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -13,7 +15,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock('../../src/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual('../../src/hooks/useCompanyData');
+  const actual = await vi.importActual(
+    '../../src/hooks/useCompanyData'
+  );
   return {
     ...actual,
     useCompanyData: vi.fn(),
@@ -32,7 +36,9 @@ describe('Inventory', () => {
   });
 
   const setupMocks = (options: {
-    currentCompany?: ReturnType<typeof CompanyContext.useCompany>['currentCompany'];
+    currentCompany?: ReturnType<
+      typeof CompanyContext.useCompany
+    >['currentCompany'];
     loading?: boolean;
     stockLevels?: Array<{
       id: string;
@@ -74,7 +80,9 @@ describe('Inventory', () => {
     it('shows loading spinner when data is loading', () => {
       setupMocks({ loading: true });
       renderComponent();
-      expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+      expect(
+        document.querySelector('.animate-spin')
+      ).toBeInTheDocument();
     });
   });
 
@@ -82,7 +90,9 @@ describe('Inventory', () => {
     it('renders inventory heading', () => {
       setupMocks({});
       renderComponent();
-      expect(screen.getByRole('heading', { name: /inventory/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /inventory/i })
+      ).toBeInTheDocument();
     });
 
     it('renders refresh button', () => {
@@ -94,7 +104,9 @@ describe('Inventory', () => {
     it('shows empty message when no inventory', () => {
       setupMocks({ stockLevels: [] });
       renderComponent();
-      expect(screen.getByText(/no products in inventory/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/no products in inventory/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -145,7 +157,9 @@ describe('Inventory', () => {
       });
       renderComponent();
 
-      expect(screen.getByRole('heading', { name: /low stock warning/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /low stock warning/i })
+      ).toBeInTheDocument();
     });
 
     it('shows out of stock alert', () => {
@@ -163,7 +177,9 @@ describe('Inventory', () => {
       });
       renderComponent();
 
-      expect(screen.getByRole('heading', { name: /out of stock/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /out of stock/i })
+      ).toBeInTheDocument();
     });
   });
 });

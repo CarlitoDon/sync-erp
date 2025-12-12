@@ -1,4 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import CompanySwitcher from '../../src/components/CompanySwitcher';
@@ -17,7 +22,9 @@ vi.mock('react-router-dom', async () => {
 
 // Mock the CompanyContext
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -37,7 +44,11 @@ describe('CompanySwitcher', () => {
     vi.clearAllMocks();
   });
 
-  const setupMock = (overrides: Partial<ReturnType<typeof CompanyContext.useCompany>> = {}) => {
+  const setupMock = (
+    overrides: Partial<
+      ReturnType<typeof CompanyContext.useCompany>
+    > = {}
+  ) => {
     vi.mocked(CompanyContext.useCompany).mockReturnValue({
       companies: mockCompanies,
       currentCompany: mockCompanies[0],
@@ -108,7 +119,9 @@ describe('CompanySwitcher', () => {
       fireEvent.click(screen.getByRole('button'));
 
       // All companies should now be visible (Acme appears twice: button + dropdown)
-      expect(screen.getAllByText('Acme Corp').length).toBeGreaterThanOrEqual(2);
+      expect(
+        screen.getAllByText('Acme Corp').length
+      ).toBeGreaterThanOrEqual(2);
       expect(screen.getByText('Beta Inc')).toBeInTheDocument();
       expect(screen.getByText('Gamma LLC')).toBeInTheDocument();
     });
@@ -121,7 +134,9 @@ describe('CompanySwitcher', () => {
 
       // Open
       fireEvent.click(button);
-      expect(screen.getAllByText('Acme Corp').length).toBeGreaterThan(1); // In button and dropdown
+      expect(screen.getAllByText('Acme Corp').length).toBeGreaterThan(
+        1
+      ); // In button and dropdown
 
       // Close
       fireEvent.click(button);
@@ -140,7 +155,9 @@ describe('CompanySwitcher', () => {
       // Click on Beta Inc
       fireEvent.click(screen.getByText('Beta Inc'));
 
-      expect(mockSetCurrentCompany).toHaveBeenCalledWith(mockCompanies[1]);
+      expect(mockSetCurrentCompany).toHaveBeenCalledWith(
+        mockCompanies[1]
+      );
     });
 
     it('closes dropdown after selecting a company', () => {
@@ -151,7 +168,9 @@ describe('CompanySwitcher', () => {
       fireEvent.click(screen.getByRole('button'));
 
       // Companies should be visible
-      expect(screen.getAllByText('Beta Inc').length).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText('Beta Inc').length
+      ).toBeGreaterThanOrEqual(1);
 
       // Click on Beta Inc
       fireEvent.click(screen.getByText('Beta Inc'));

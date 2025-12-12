@@ -8,7 +8,13 @@ const controller = new PaymentController();
 const CreatePaymentSchema = z.object({
   invoiceId: z.string().uuid(),
   amount: z.number().positive(),
-  method: z.enum(['CASH', 'BANK_TRANSFER', 'CHECK', 'CREDIT_CARD', 'OTHER']),
+  method: z.enum([
+    'CASH',
+    'BANK_TRANSFER',
+    'CHECK',
+    'CREDIT_CARD',
+    'OTHER',
+  ]),
 });
 
 // GET /api/payments - List all payments
@@ -28,7 +34,10 @@ paymentRouter.post('/', async (req, res, next) => {
 });
 
 // GET /api/payments/invoice/:invoiceId - Get payments for an invoice
-paymentRouter.get('/invoice/:invoiceId', controller.getPaymentHistory);
+paymentRouter.get(
+  '/invoice/:invoiceId',
+  controller.getPaymentHistory
+);
 
 // GET /api/payments/invoice/:invoiceId - Get payments for an invoice
 // Missing method in PaymentController: getPaymentHistory?

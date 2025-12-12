@@ -1,6 +1,14 @@
 import api from './api';
-import { Account, CreateJournalEntryInput, CreateJournalLineInput } from '@sync-erp/shared';
-export type { Account, CreateJournalEntryInput, CreateJournalLineInput };
+import {
+  Account,
+  CreateJournalEntryInput,
+  CreateJournalLineInput,
+} from '@sync-erp/shared';
+export type {
+  Account,
+  CreateJournalEntryInput,
+  CreateJournalLineInput,
+};
 
 export interface JournalLine {
   id: string;
@@ -58,7 +66,10 @@ export const financeService = {
   },
 
   // Journals
-  async listJournals(startDate?: string, endDate?: string): Promise<JournalEntry[]> {
+  async listJournals(
+    startDate?: string,
+    endDate?: string
+  ): Promise<JournalEntry[]> {
     const params: Record<string, string> = {};
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
@@ -71,7 +82,9 @@ export const financeService = {
     return res.data.data;
   },
 
-  async createJournal(data: CreateJournalEntryInput): Promise<JournalEntry> {
+  async createJournal(
+    data: CreateJournalEntryInput
+  ): Promise<JournalEntry> {
     const res = await api.post('/finance/journals', data);
     return res.data.data;
   },
@@ -79,7 +92,9 @@ export const financeService = {
   // Reports
   async getTrialBalance(asOfDate?: string): Promise<TrialBalance> {
     const params = asOfDate ? { asOfDate } : {};
-    const res = await api.get('/finance/reports/trial-balance', { params });
+    const res = await api.get('/finance/reports/trial-balance', {
+      params,
+    });
     return res.data.data;
   },
 
@@ -103,7 +118,10 @@ export const financeService = {
     const params: Record<string, string> = {};
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
-    const res = await api.get(`/finance/reports/general-ledger/${accountId}`, { params });
+    const res = await api.get(
+      `/finance/reports/general-ledger/${accountId}`,
+      { params }
+    );
     return res.data.data;
   },
 
@@ -118,7 +136,9 @@ export const financeService = {
     const params: Record<string, string> = {};
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
-    const res = await api.get('/finance/reports/income-statement', { params });
+    const res = await api.get('/finance/reports/income-statement', {
+      params,
+    });
     return res.data.data;
   },
 };

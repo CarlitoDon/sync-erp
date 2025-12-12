@@ -1,12 +1,12 @@
 import { prisma } from '@sync-erp/database';
-import { BillService } from '../../src/services/BillService';
-import { JournalService } from '../../src/services/JournalService';
-import { PurchaseOrderService } from '../../src/services/PurchaseOrderService';
-import { InventoryService } from '../../src/services/InventoryService';
+import { BillService } from '../../src/modules/accounting/services/bill.service';
+import { JournalService } from '../../src/modules/accounting/services/journal.service';
+import { ProcurementService } from '../../src/modules/procurement/procurement.service';
+import { InventoryService } from '../../src/modules/inventory/inventory.service';
 
 const billService = new BillService();
 const journalService = new JournalService();
-const purchaseOrderService = new PurchaseOrderService();
+const procurementService = new ProcurementService();
 const inventoryService = new InventoryService();
 
 const COMPANY_ID = 'test-accrual-001';
@@ -33,19 +33,22 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
 
     for (const acc of accounts) {
       await prisma.account.upsert({
-        where: { companyId_code: { companyId: COMPANY_ID, code: acc.code } },
+        where: {
+          companyId_code: { companyId: COMPANY_ID, code: acc.code },
+        },
         update: {},
         create: {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
           type: acc.type as any,
-          isActive: true,
+          isActive: true, // Ensure active
         },
       });
     }
 
     // 3. Setup Product
+    // Use upsert or delete/create to avoid unique constraint if test re-runs
     const product = await prisma.product.create({
       data: {
         companyId: COMPANY_ID,
@@ -53,6 +56,7 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
         name: 'Accrual Product',
         price: 100000,
         stockQty: 0,
+        averageCost: 0, // Ensure averageCost is init
       },
     });
     productId = product.id;
@@ -71,26 +75,52 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
 
   afterAll(async () => {
     // Cleanup cascade
-    await prisma.journalEntry.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.invoice.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.inventoryMovement.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.orderItem.deleteMany({ where: { order: { companyId: COMPANY_ID } } });
-    await prisma.order.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.product.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.account.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.partner.deleteMany({ where: { companyId: COMPANY_ID } });
+    // Order matters for FK
+    await prisma.journalLine.deleteMany({
+      where: { account: { companyId: COMPANY_ID } },
+    }); // Lines first if not cascade
+    await prisma.payment.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.journalEntry.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.invoice.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.inventoryMovement.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.orderItem.deleteMany({
+      where: { order: { companyId: COMPANY_ID } },
+    });
+    await prisma.order.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.product.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.account.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.partner.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     await prisma.company.delete({ where: { id: COMPANY_ID } });
   });
 
   it('should post GRNI journal on receipt and reverse it on Bill', async () => {
     // 1. Create Purchase Order
-    const order = await purchaseOrderService.create(COMPANY_ID, 'user-1', {
+    // ProcurementService.create(companyId, data)
+    const order = await procurementService.create(COMPANY_ID, {
       partnerId,
       items: [{ productId, quantity: 5, price: 100000 }],
-      taxRate: 11, // Tax should apply to Bill, not Accrual usually? Or Accrual is net?
-      // Standard practice: Accrual is Net. Tax is recognized on Invoice.
+      taxRate: 11,
     });
-    const confirmedOrder = await purchaseOrderService.confirm(order.id, COMPANY_ID);
+    const confirmedOrder = await procurementService.confirm(
+      order.id,
+      COMPANY_ID
+    );
 
     // 2. Process Goods Receipt (Should trigger Accrual)
     // Value: 5 * 100,000 = 500,000
@@ -101,21 +131,33 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
 
     // 3. Verify Accrual Journal
     const journals = await journalService.list(COMPANY_ID);
-    const grnJournal = journals.find((j) => j.reference === 'GRN-001');
+    const grnJournal = journals.find(
+      (j) => j.reference === 'GRN-001'
+    );
 
     expect(grnJournal).toBeDefined();
     // Dr 1400 (Asset), Cr 2105 (Liability)
-    const grnAsset = (grnJournal as any).lines.find((l: any) => l.account.code === '1400');
-    const grnLiab = (grnJournal as any).lines.find((l: any) => l.account.code === '2105');
+    // journalService.list returns includes?
+    // JournalRepository.findAll includes lines and account.
+    const grnAsset = (grnJournal as any).lines.find(
+      (l: any) => l.account.code === '1400'
+    );
+    const grnLiab = (grnJournal as any).lines.find(
+      (l: any) => l.account.code === '2105'
+    );
 
     expect(Number(grnAsset?.debit)).toBe(500000);
     expect(Number(grnLiab?.credit)).toBe(500000);
 
     // 4. Create Bill
-    const bill = await billService.createFromPurchaseOrder(COMPANY_ID, 'user-1', {
-      orderId: confirmedOrder.id,
-      invoiceNumber: 'INV-SUP-001',
-    });
+    // BillService.createFromPurchaseOrder(companyId, data)
+    const bill = await billService.createFromPurchaseOrder(
+      COMPANY_ID,
+      {
+        orderId: confirmedOrder.id,
+        invoiceNumber: 'INV-SUP-001',
+      }
+    );
 
     expect(Number(bill.subtotal)).toBe(500000);
     expect(Number(bill.taxAmount)).toBe(55000); // 11% tax
@@ -125,14 +167,22 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
 
     // 6. Verify Bill Journal
     const allJournals = await journalService.list(COMPANY_ID);
-    const billJournal = allJournals.find((j) => j.reference?.includes('INV-SUP-001'));
+    const billJournal = allJournals.find((j) =>
+      j.reference?.includes('INV-SUP-001')
+    );
 
     expect(billJournal).toBeDefined();
 
     // Dr 2105 (Liability - Clearing Accrual), Dr 1500 (VAT), Cr 2100 (AP)
-    const billAccrual = (billJournal as any).lines.find((l: any) => l.account.code === '2105');
-    const billVat = (billJournal as any).lines.find((l: any) => l.account.code === '1500');
-    const billAp = (billJournal as any).lines.find((l: any) => l.account.code === '2100');
+    const billAccrual = (billJournal as any).lines.find(
+      (l: any) => l.account.code === '2105'
+    );
+    const billVat = (billJournal as any).lines.find(
+      (l: any) => l.account.code === '1500'
+    );
+    const billAp = (billJournal as any).lines.find(
+      (l: any) => l.account.code === '2100'
+    );
 
     expect(Number(billAccrual?.debit)).toBe(500000); // Clears the Credit from GRN
     expect(Number(billVat?.debit)).toBe(55000);

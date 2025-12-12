@@ -26,12 +26,18 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
       { code: '1400', name: 'Inventory Asset', type: 'ASSET' }, // Or Suspense
       { code: '1500', name: 'VAT Receivable', type: 'ASSET' }, // Input VAT
       { code: '2100', name: 'Accounts Payable', type: 'LIABILITY' },
-      { code: '2105', name: 'GRNI/Accrued Liability', type: 'LIABILITY' }, // Required for accrual
+      {
+        code: '2105',
+        name: 'GRNI/Accrued Liability',
+        type: 'LIABILITY',
+      }, // Required for accrual
     ];
 
     for (const acc of accounts) {
       await prisma.account.upsert({
-        where: { companyId_code: { companyId: COMPANY_ID, code: acc.code } },
+        where: {
+          companyId_code: { companyId: COMPANY_ID, code: acc.code },
+        },
         update: {},
         create: {
           companyId: COMPANY_ID,
@@ -69,13 +75,27 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
 
   afterAll(async () => {
     // Cleanup cascade
-    await prisma.journalEntry.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.invoice.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.orderItem.deleteMany({ where: { order: { companyId: COMPANY_ID } } });
-    await prisma.order.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.product.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.account.deleteMany({ where: { companyId: COMPANY_ID } });
-    await prisma.partner.deleteMany({ where: { companyId: COMPANY_ID } });
+    await prisma.journalEntry.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.invoice.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.orderItem.deleteMany({
+      where: { order: { companyId: COMPANY_ID } },
+    });
+    await prisma.order.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.product.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.account.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.partner.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     await prisma.company.delete({ where: { id: COMPANY_ID } });
   });
 
@@ -83,19 +103,30 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     // 1. Create Purchase Order with 11% Tax
     // Amount: 100,000 * 2 = 200,000.
     // Tax: 11%.
-    const order = await purchaseOrderService.create(COMPANY_ID, 'user-1', {
-      partnerId,
-      items: [{ productId, quantity: 2, price: 100000 }],
-      taxRate: 11,
-    });
+    const order = await purchaseOrderService.create(
+      COMPANY_ID,
+      'user-1',
+      {
+        partnerId,
+        items: [{ productId, quantity: 2, price: 100000 }],
+        taxRate: 11,
+      }
+    );
 
-    const confirmedOrder = await purchaseOrderService.confirm(order.id, COMPANY_ID);
+    const confirmedOrder = await purchaseOrderService.confirm(
+      order.id,
+      COMPANY_ID
+    );
 
     // 2. Create Bill
-    const bill = await billService.createFromPurchaseOrder(COMPANY_ID, 'user-1', {
-      orderId: confirmedOrder.id,
-      invoiceNumber: `BILL-${Date.now()}`,
-    });
+    const bill = await billService.createFromPurchaseOrder(
+      COMPANY_ID,
+      'user-1',
+      {
+        orderId: confirmedOrder.id,
+        invoiceNumber: `BILL-${Date.now()}`,
+      }
+    );
 
     expect(Number(bill.subtotal)).toBe(200000);
     expect(Number(bill.taxRate)).toBe(11);
@@ -107,15 +138,23 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
 
     // 4. Verify Journal
     const journals = await journalService.list(COMPANY_ID);
-    const billJournal = journals.find((j) => j.reference?.includes(bill.invoiceNumber!)) as any;
+    const billJournal = journals.find((j) =>
+      j.reference?.includes(bill.invoiceNumber!)
+    ) as any;
 
     expect(billJournal).toBeDefined();
     expect(billJournal.lines).toHaveLength(3); // GRNI, Input VAT, AP
 
     // Verify Lines - With accrual accounting: Dr GRNI (2105), Dr Input VAT (1500), Cr AP (2100)
-    const grniLine = billJournal!.lines.find((l: any) => l.account.code === '2105');
-    const vatLine = billJournal!.lines.find((l: any) => l.account.code === '1500');
-    const apLine = billJournal!.lines.find((l: any) => l.account.code === '2100');
+    const grniLine = billJournal!.lines.find(
+      (l: any) => l.account.code === '2105'
+    );
+    const vatLine = billJournal!.lines.find(
+      (l: any) => l.account.code === '1500'
+    );
+    const apLine = billJournal!.lines.find(
+      (l: any) => l.account.code === '2100'
+    );
 
     expect(Number(grniLine?.debit)).toBe(200000); // Clear GRNI accrual (Net Cost)
     expect(Number(vatLine?.debit)).toBe(22000); // VAT Recoverable
@@ -124,17 +163,28 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
 
   it('should NOT record VAT Receivable if Tax Rate is 0', async () => {
     // 1. Create Purchase Order with 0% Tax
-    const order = await purchaseOrderService.create(COMPANY_ID, 'user-1', {
-      partnerId,
-      items: [{ productId, quantity: 1, price: 100000 }],
-      taxRate: 0,
-    });
-    const confirmedOrder = await purchaseOrderService.confirm(order.id, COMPANY_ID);
+    const order = await purchaseOrderService.create(
+      COMPANY_ID,
+      'user-1',
+      {
+        partnerId,
+        items: [{ productId, quantity: 1, price: 100000 }],
+        taxRate: 0,
+      }
+    );
+    const confirmedOrder = await purchaseOrderService.confirm(
+      order.id,
+      COMPANY_ID
+    );
 
     // 2. Create Bill
-    const bill = await billService.createFromPurchaseOrder(COMPANY_ID, 'user-1', {
-      orderId: confirmedOrder.id,
-    });
+    const bill = await billService.createFromPurchaseOrder(
+      COMPANY_ID,
+      'user-1',
+      {
+        orderId: confirmedOrder.id,
+      }
+    );
 
     expect(Number(bill.taxAmount)).toBe(0);
     expect(Number(bill.amount)).toBe(100000);
@@ -144,11 +194,15 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
 
     // 4. Verify Journal
     const journals = await journalService.list(COMPANY_ID);
-    const billJournal = journals.find((j) => j.reference?.includes(bill.invoiceNumber!)) as any;
+    const billJournal = journals.find((j) =>
+      j.reference?.includes(bill.invoiceNumber!)
+    ) as any;
 
     expect(billJournal.lines).toHaveLength(2); // GRNI + AP only (no VAT)
 
-    const vatLine = billJournal!.lines.find((l) => l.account.code === '1500');
+    const vatLine = billJournal!.lines.find(
+      (l) => l.account.code === '1500'
+    );
     expect(vatLine).toBeUndefined();
   });
 });

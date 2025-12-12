@@ -85,13 +85,23 @@ describe('ProductService', () => {
 
   describe('update', () => {
     it('should update a product', async () => {
-      const existingProduct = { id: 'prod-1', companyId, name: 'Old Name' };
-      const updatedProduct = { id: 'prod-1', companyId, name: 'New Name' };
+      const existingProduct = {
+        id: 'prod-1',
+        companyId,
+        name: 'Old Name',
+      };
+      const updatedProduct = {
+        id: 'prod-1',
+        companyId,
+        name: 'New Name',
+      };
 
       mockPrisma.product.findFirst.mockResolvedValue(existingProduct);
       mockPrisma.product.update.mockResolvedValue(updatedProduct);
 
-      const result = await service.update('prod-1', companyId, { name: 'New Name' });
+      const result = await service.update('prod-1', companyId, {
+        name: 'New Name',
+      });
 
       expect(result.name).toBe('New Name');
     });
@@ -99,9 +109,9 @@ describe('ProductService', () => {
     it('should throw error if product not found', async () => {
       mockPrisma.product.findFirst.mockResolvedValue(null);
 
-      await expect(service.update('nonexistent', companyId, { name: 'New' })).rejects.toThrow(
-        'Product not found'
-      );
+      await expect(
+        service.update('nonexistent', companyId, { name: 'New' })
+      ).rejects.toThrow('Product not found');
     });
   });
 
@@ -121,7 +131,9 @@ describe('ProductService', () => {
     it('should throw error if product not found', async () => {
       mockPrisma.product.findFirst.mockResolvedValue(null);
 
-      await expect(service.delete('nonexistent', companyId)).rejects.toThrow('Product not found');
+      await expect(
+        service.delete('nonexistent', companyId)
+      ).rejects.toThrow('Product not found');
     });
   });
 
@@ -157,7 +169,9 @@ describe('ProductService', () => {
         averageCost: 100, // Total value = 1000
       };
 
-      mockPrisma.product.findUnique.mockResolvedValue(existingProduct);
+      mockPrisma.product.findUnique.mockResolvedValue(
+        existingProduct
+      );
       mockPrisma.product.update.mockImplementation((args) =>
         Promise.resolve({
           id: 'prod-1',
@@ -167,7 +181,11 @@ describe('ProductService', () => {
 
       // Add 10 units at $150 each
       // New AVCO = (10 * 100 + 10 * 150) / 20 = 2500 / 20 = 125
-      const result = await service.updateAverageCost('prod-1', 10, 150);
+      const result = await service.updateAverageCost(
+        'prod-1',
+        10,
+        150
+      );
 
       expect(mockPrisma.product.update).toHaveBeenCalledWith({
         where: { id: 'prod-1' },
@@ -180,15 +198,24 @@ describe('ProductService', () => {
     it('should throw error if product not found', async () => {
       mockPrisma.product.findUnique.mockResolvedValue(null);
 
-      await expect(service.updateAverageCost('nonexistent', 10, 100)).rejects.toThrow(
-        'Product not found'
-      );
+      await expect(
+        service.updateAverageCost('nonexistent', 10, 100)
+      ).rejects.toThrow('Product not found');
     });
 
     it('should use newCostPerUnit when starting from zero stock', async () => {
-      const existingProduct = { id: 'prod-1', stockQty: 0, averageCost: 0 };
-      mockPrisma.product.findUnique.mockResolvedValue(existingProduct);
-      mockPrisma.product.update.mockResolvedValue({ id: 'prod-1', averageCost: 50 });
+      const existingProduct = {
+        id: 'prod-1',
+        stockQty: 0,
+        averageCost: 0,
+      };
+      mockPrisma.product.findUnique.mockResolvedValue(
+        existingProduct
+      );
+      mockPrisma.product.update.mockResolvedValue({
+        id: 'prod-1',
+        averageCost: 50,
+      });
 
       await service.updateAverageCost('prod-1', 10, 50);
 
@@ -198,7 +225,10 @@ describe('ProductService', () => {
 
   describe('checkStock', () => {
     it('should return true when stock is sufficient', async () => {
-      mockPrisma.product.findUnique.mockResolvedValue({ id: 'prod-1', stockQty: 20 });
+      mockPrisma.product.findUnique.mockResolvedValue({
+        id: 'prod-1',
+        stockQty: 20,
+      });
 
       const result = await service.checkStock('prod-1', 10);
 
@@ -206,7 +236,10 @@ describe('ProductService', () => {
     });
 
     it('should return false when stock is insufficient', async () => {
-      mockPrisma.product.findUnique.mockResolvedValue({ id: 'prod-1', stockQty: 5 });
+      mockPrisma.product.findUnique.mockResolvedValue({
+        id: 'prod-1',
+        stockQty: 5,
+      });
 
       const result = await service.checkStock('prod-1', 10);
 

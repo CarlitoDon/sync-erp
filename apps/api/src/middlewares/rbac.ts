@@ -67,12 +67,16 @@ export function requirePermission(config: RBACConfig | Permission) {
       // Check if role has required permission
       const hasPermission = membership.role.permissions.some(
         (rp) =>
-          (rp.permission.module === module || rp.permission.module === '*') &&
-          (rp.permission.action === action || rp.permission.action === '*')
+          (rp.permission.module === module ||
+            rp.permission.module === '*') &&
+          (rp.permission.action === action ||
+            rp.permission.action === '*')
       );
 
       if (!hasPermission) {
-        throw ForbiddenError(`Permission denied: requires ${module}:${action}`);
+        throw ForbiddenError(
+          `Permission denied: requires ${module}:${action}`
+        );
       }
 
       next();
@@ -128,13 +132,17 @@ export function requireAnyPermission(...permissions: Permission[]) {
         const [module, action] = perm.split(':');
         return membership.role!.permissions.some(
           (rp) =>
-            (rp.permission.module === module || rp.permission.module === '*') &&
-            (rp.permission.action === action || rp.permission.action === '*')
+            (rp.permission.module === module ||
+              rp.permission.module === '*') &&
+            (rp.permission.action === action ||
+              rp.permission.action === '*')
         );
       });
 
       if (!hasAnyPermission) {
-        throw ForbiddenError(`Permission denied: requires one of ${permissions.join(', ')}`);
+        throw ForbiddenError(
+          `Permission denied: requires one of ${permissions.join(', ')}`
+        );
       }
 
       next();
@@ -179,7 +187,11 @@ export class RBACService {
   /**
    * Assign role to user
    */
-  async assignRoleToUser(userId: string, companyId: string, roleId: string) {
+  async assignRoleToUser(
+    userId: string,
+    companyId: string,
+    roleId: string
+  ) {
     return prisma.companyMember.update({
       where: {
         userId_companyId: { userId, companyId },

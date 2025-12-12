@@ -1,18 +1,26 @@
 import { prisma, Payment, Prisma } from '@sync-erp/database';
 
 export class PaymentRepository {
-  async create(data: Prisma.PaymentUncheckedCreateInput): Promise<Payment> {
+  async create(
+    data: Prisma.PaymentUncheckedCreateInput
+  ): Promise<Payment> {
     return prisma.payment.create({ data });
   }
 
-  async findById(id: string, companyId: string): Promise<Payment | null> {
+  async findById(
+    id: string,
+    companyId: string
+  ): Promise<Payment | null> {
     return prisma.payment.findFirst({
       where: { id, companyId },
       include: { invoice: true },
     });
   }
 
-  async findAll(companyId: string, invoiceId?: string): Promise<Payment[]> {
+  async findAll(
+    companyId: string,
+    invoiceId?: string
+  ): Promise<Payment[]> {
     return prisma.payment.findMany({
       where: {
         companyId,

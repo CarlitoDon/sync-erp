@@ -1,11 +1,16 @@
 import { prisma, type Product, Prisma } from '@sync-erp/database';
 
 export class ProductRepository {
-  async create(data: Prisma.ProductCreateManyInput): Promise<Product> {
+  async create(
+    data: Prisma.ProductCreateManyInput
+  ): Promise<Product> {
     return prisma.product.create({ data });
   }
 
-  async findById(id: string, companyId?: string): Promise<Product | null> {
+  async findById(
+    id: string,
+    companyId?: string
+  ): Promise<Product | null> {
     const where: Prisma.ProductWhereInput = { id };
     if (companyId) {
       where.companyId = companyId;
@@ -13,7 +18,10 @@ export class ProductRepository {
     return prisma.product.findFirst({ where });
   }
 
-  async findBySku(sku: string, companyId: string): Promise<Product | null> {
+  async findBySku(
+    sku: string,
+    companyId: string
+  ): Promise<Product | null> {
     return prisma.product.findFirst({
       where: { sku, companyId },
     });
@@ -26,7 +34,10 @@ export class ProductRepository {
     });
   }
 
-  async update(id: string, data: Prisma.ProductUpdateInput): Promise<Product> {
+  async update(
+    id: string,
+    data: Prisma.ProductUpdateInput
+  ): Promise<Product> {
     return prisma.product.update({
       where: { id },
       data,
@@ -40,7 +51,10 @@ export class ProductRepository {
   }
 
   // Specialized atomic update
-  async incrementStock(id: string, quantity: number): Promise<Product> {
+  async incrementStock(
+    id: string,
+    quantity: number
+  ): Promise<Product> {
     return prisma.product.update({
       where: { id },
       data: {

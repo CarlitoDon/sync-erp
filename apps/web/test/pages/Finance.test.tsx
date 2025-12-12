@@ -6,7 +6,9 @@ import * as useCompanyDataHook from '../../src/hooks/useCompanyData';
 import { AccountType } from '@sync-erp/shared';
 
 vi.mock('../../src/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual('../../src/contexts/CompanyContext');
+  const actual = await vi.importActual(
+    '../../src/contexts/CompanyContext'
+  );
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -14,7 +16,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock('../../src/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual('../../src/hooks/useCompanyData');
+  const actual = await vi.importActual(
+    '../../src/hooks/useCompanyData'
+  );
   return {
     ...actual,
     useCompanyData: vi.fn(),
@@ -39,7 +43,11 @@ vi.mock('../../src/services/financeService', () => ({
 
 // Mock child component to simplify testing
 vi.mock('../../src/pages/JournalEntries', () => ({
-  default: () => <div data-testid="journal-entries-component">Journal Entries Component</div>,
+  default: () => (
+    <div data-testid="journal-entries-component">
+      Journal Entries Component
+    </div>
+  ),
 }));
 
 // Mock FinancialReport component
@@ -55,7 +63,9 @@ describe('Finance', () => {
   });
 
   const setupMocks = (options: {
-    currentCompany?: ReturnType<typeof CompanyContext.useCompany>['currentCompany'];
+    currentCompany?: ReturnType<
+      typeof CompanyContext.useCompany
+    >['currentCompany'];
     loading?: boolean;
     accounts?: Array<{
       id: string;
@@ -105,7 +115,9 @@ describe('Finance', () => {
     it('shows loading spinner when data is loading', () => {
       setupMocks({ loading: true });
       renderComponent();
-      expect(screen.getByText(/loading finance data/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/loading finance data/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -121,7 +133,9 @@ describe('Finance', () => {
     it('renders finance heading', () => {
       setupMocks({});
       renderComponent();
-      expect(screen.getByRole('heading', { name: /finance/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /finance/i })
+      ).toBeInTheDocument();
     });
 
     it('renders journal entries tab', () => {
@@ -144,7 +158,9 @@ describe('Finance', () => {
 
     it('displays chart of accounts', () => {
       setupMocks({
-        accounts: [{ id: '1', code: '1000', name: 'Cash', type: 'ASSET' }],
+        accounts: [
+          { id: '1', code: '1000', name: 'Cash', type: 'ASSET' },
+        ],
       });
       renderComponent();
 
@@ -160,7 +176,9 @@ describe('Finance', () => {
       renderComponent();
 
       fireEvent.click(screen.getByText('Financial Reports'));
-      expect(screen.getByTestId('financial-report')).toHaveTextContent('Balance Sheet');
+      expect(
+        screen.getByTestId('financial-report')
+      ).toHaveTextContent('Balance Sheet');
     });
   });
 });

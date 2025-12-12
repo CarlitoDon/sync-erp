@@ -18,8 +18,20 @@ describe('ReportService', () => {
   describe('getTrialBalance', () => {
     it('should generate trial balance with all accounts', async () => {
       const mockAccounts = [
-        { id: 'acc-1', code: '1000', name: 'Cash', type: 'ASSET', isActive: true },
-        { id: 'acc-2', code: '2000', name: 'Accounts Payable', type: 'LIABILITY', isActive: true },
+        {
+          id: 'acc-1',
+          code: '1000',
+          name: 'Cash',
+          type: 'ASSET',
+          isActive: true,
+        },
+        {
+          id: 'acc-2',
+          code: '2000',
+          name: 'Accounts Payable',
+          type: 'LIABILITY',
+          isActive: true,
+        },
       ];
 
       mockPrisma.account.findMany.mockResolvedValue(mockAccounts);
@@ -36,9 +48,17 @@ describe('ReportService', () => {
 
     it('should mark as balanced when debits equal credits', async () => {
       mockPrisma.account.findMany.mockResolvedValue([
-        { id: 'acc-1', code: '1000', name: 'Cash', type: 'ASSET', isActive: true },
+        {
+          id: 'acc-1',
+          code: '1000',
+          name: 'Cash',
+          type: 'ASSET',
+          isActive: true,
+        },
       ]);
-      mockPrisma.journalLine.aggregate.mockResolvedValue({ _sum: { debit: 1000, credit: 1000 } });
+      mockPrisma.journalLine.aggregate.mockResolvedValue({
+        _sum: { debit: 1000, credit: 1000 },
+      });
 
       const result = await service.getTrialBalance(companyId);
 
@@ -47,9 +67,17 @@ describe('ReportService', () => {
 
     it('should exclude accounts with no activity', async () => {
       mockPrisma.account.findMany.mockResolvedValue([
-        { id: 'acc-1', code: '1000', name: 'Cash', type: 'ASSET', isActive: true },
+        {
+          id: 'acc-1',
+          code: '1000',
+          name: 'Cash',
+          type: 'ASSET',
+          isActive: true,
+        },
       ]);
-      mockPrisma.journalLine.aggregate.mockResolvedValue({ _sum: { debit: 0, credit: 0 } });
+      mockPrisma.journalLine.aggregate.mockResolvedValue({
+        _sum: { debit: 0, credit: 0 },
+      });
 
       const result = await service.getTrialBalance(companyId);
 
@@ -59,29 +87,49 @@ describe('ReportService', () => {
 
   describe('getGeneralLedger', () => {
     it('should generate general ledger for an account', async () => {
-      const mockAccount = { id: 'acc-1', code: '1000', name: 'Cash', type: 'ASSET' };
+      const mockAccount = {
+        id: 'acc-1',
+        code: '1000',
+        name: 'Cash',
+        type: 'ASSET',
+      };
       const mockJournalLines = [
         {
           id: 'line-1',
           accountId: 'acc-1',
           debit: 1000,
           credit: 0,
-          journal: { date: new Date('2025-01-01'), reference: 'INV-001', memo: 'Sale' },
+          journal: {
+            date: new Date('2025-01-01'),
+            reference: 'INV-001',
+            memo: 'Sale',
+          },
         },
         {
           id: 'line-2',
           accountId: 'acc-1',
           debit: 0,
           credit: 500,
-          journal: { date: new Date('2025-01-02'), reference: 'PMT-001', memo: 'Payment' },
+          journal: {
+            date: new Date('2025-01-02'),
+            reference: 'PMT-001',
+            memo: 'Payment',
+          },
         },
       ];
 
       mockPrisma.account.findFirst.mockResolvedValue(mockAccount);
-      mockPrisma.journalLine.aggregate.mockResolvedValue({ _sum: { debit: 0, credit: 0 } });
-      mockPrisma.journalLine.findMany.mockResolvedValue(mockJournalLines);
+      mockPrisma.journalLine.aggregate.mockResolvedValue({
+        _sum: { debit: 0, credit: 0 },
+      });
+      mockPrisma.journalLine.findMany.mockResolvedValue(
+        mockJournalLines
+      );
 
-      const result = await service.getGeneralLedger(companyId, 'acc-1');
+      const result = await service.getGeneralLedger(
+        companyId,
+        'acc-1'
+      );
 
       expect(result.account.code).toBe('1000');
       expect(result.entries).toHaveLength(2);
@@ -91,16 +139,23 @@ describe('ReportService', () => {
     it('should throw error if account not found', async () => {
       mockPrisma.account.findFirst.mockResolvedValue(null);
 
-      await expect(service.getGeneralLedger(companyId, 'nonexistent')).rejects.toThrow(
-        'Account not found'
-      );
+      await expect(
+        service.getGeneralLedger(companyId, 'nonexistent')
+      ).rejects.toThrow('Account not found');
     });
 
     it('should calculate opening balance when startDate provided', async () => {
-      const mockAccount = { id: 'acc-1', code: '1000', name: 'Cash', type: 'ASSET' };
+      const mockAccount = {
+        id: 'acc-1',
+        code: '1000',
+        name: 'Cash',
+        type: 'ASSET',
+      };
 
       mockPrisma.account.findFirst.mockResolvedValue(mockAccount);
-      mockPrisma.journalLine.aggregate.mockResolvedValue({ _sum: { debit: 5000, credit: 2000 } });
+      mockPrisma.journalLine.aggregate.mockResolvedValue({
+        _sum: { debit: 5000, credit: 2000 },
+      });
       mockPrisma.journalLine.findMany.mockResolvedValue([]);
 
       const result = await service.getGeneralLedger(
@@ -119,8 +174,12 @@ describe('ReportService', () => {
       // Revenue: credits - debits = 10000 - 1000 = 9000
       // Expenses: debits - credits = 5000 - 500 = 4500
       mockPrisma.journalLine.aggregate
-        .mockResolvedValueOnce({ _sum: { credit: 10000, debit: 1000 } }) // Revenue
-        .mockResolvedValueOnce({ _sum: { debit: 5000, credit: 500 } }); // Expenses
+        .mockResolvedValueOnce({
+          _sum: { credit: 10000, debit: 1000 },
+        }) // Revenue
+        .mockResolvedValueOnce({
+          _sum: { debit: 5000, credit: 500 },
+        }); // Expenses
 
       const result = await service.getIncomeStatement(
         companyId,
@@ -134,7 +193,9 @@ describe('ReportService', () => {
     });
 
     it('should handle periods with no activity', async () => {
-      mockPrisma.journalLine.aggregate.mockResolvedValue({ _sum: { credit: null, debit: null } });
+      mockPrisma.journalLine.aggregate.mockResolvedValue({
+        _sum: { credit: null, debit: null },
+      });
 
       const result = await service.getIncomeStatement(
         companyId,
