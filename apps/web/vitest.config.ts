@@ -18,8 +18,22 @@ export default defineConfig({
     setupFiles: ['./test/setup.ts'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
-      exclude: ['node_modules/', 'test/setup.ts'],
+      reporter: ['text', 'json', 'html'],
+      all: true,
+      exclude: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/.turbo/**',
+        '**/test/**',
+        '**/*.config.ts',
+        '**/*.d.ts',
+        'src/main.tsx',
+        'src/types/**',
+      ],
+      thresholds: {
+        lines: 80,
+        statements: 80,
+      },
     },
   },
 });

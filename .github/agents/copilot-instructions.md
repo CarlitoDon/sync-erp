@@ -13,6 +13,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 - TypeScript 5.3+ (Node.js 18+) + Express, Prisma, React 18, Vite (007-finance-tax-returns)
 - TypeScript 5.3.3, Node.js 18+ + Vitest 1.2.0, @vitest/coverage-v8 (008-api-test-coverage)
 - N/A (tooling configuration only) (008-api-test-coverage)
+- TypeScript 5.x (React 18) + Vitest, @testing-library/react, @testing-library/jest-dom, jsdom (009-web-test-coverage)
 
 - TypeScript 5.3+ + Express.js, React 18, Zod, @sync-erp/shared (002-user-auth)
 
@@ -32,9 +33,9 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 009-web-test-coverage: Added TypeScript 5.x (React 18) + Vitest, @testing-library/react, @testing-library/jest-dom, jsdom
 - 008-api-test-coverage: Added TypeScript 5.3.3, Node.js 18+ + Vitest 1.2.0, @vitest/coverage-v8
 - 007-finance-tax-returns: Added TypeScript 5.3+ (Node.js 18+) + Express, Prisma, React 18, Vite
-- 006-finance-integration: Added TypeScript 5.3 (Node.js) + Prisma (ORM), Express (API)
 
 
 <!-- MANUAL ADDITIONS START -->
