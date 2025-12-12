@@ -37,6 +37,7 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 - [ ] **IV. Layered Backend**: Is logic strictly in Services (not Controllers)?
 - [ ] **IV. Repository Pattern**: Is DB access strictly in Repositories (not Services)?
 - [ ] **V. Multi-Tenant**: Is ALL data isolated by `companyId`?
+- [ ] **VI. Feature-First**: Is business logic in `src/features/` (not global)?
 
 ## Project Structure
 
@@ -65,9 +66,11 @@ specs/[###-feature]/
 apps/
 ├── web/                    # Frontend (Vite + React)
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   └── services/       # API clients
+│   │   ├── app/            # Setup
+│   │   ├── components/     # UI Atoms
+│   │   ├── features/       # Business Domains
+│   │   ├── hooks/          # Global Hooks
+│   │   └── services/       # Global Services
 │   └── vite.config.ts
 │
 └── api/                    # Backend (Express)

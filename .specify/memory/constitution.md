@@ -1,18 +1,18 @@
 <!--
 SYNC IMPACT REPORT
-Version: 1.3.0 -> 1.4.0 (Minor - Architectural Pattern Enforcement)
+Version: 1.4.0 -> 1.5.0 (Minor - Feature-Based Frontend Architecture)
 Modified Principles:
-- I. Monorepo Architecture & Boundaries (Restricted DB access)
-- IV. Layered Backend Architecture (Enforced Controller-Service-Repository pattern)
+- VI. Feature-Based & DRY Frontend Architecture (Enforced Feature folders)
 Added Sections:
 - None
 Removed Sections:
 - None
 Templates requiring updates:
-- plan-template.md (✅ updated - added Architecture Check)
-- tasks-template.md (✅ updated - added Repository tasks)
+- plan-template.md (✅ updated - added Feature-First check)
+- spec-template.md (✅ updated - added Feature Isolation check)
+- tasks-template.md (✅ updated - reflected feature paths)
 Follow-up TODOs:
-- Refactor existing services to use Repositories (Task to be created)
+- Refactor existing frontend pages to `src/features` (Task to be created)
 -->
 
 # Sync ERP Constitution
@@ -50,15 +50,15 @@ Follow-up TODOs:
 - **Isolation**: ALL queries must be scoped by `CompanyID`.
 - **Context**: Apps must enforce active company context from request headers/tokens.
 
-### VI. DRY Frontend Patterns
+### VI. Feature-Based & DRY Frontend Architecture
 
-- **Component Abstraction**: When similar UI patterns appear in 2+ places, extract to a reusable component (e.g., `ActionButton`, `DataTable`).
-- **Hook Abstraction**: When similar logic appears in 2+ places, extract to a custom hook (e.g., `useApiAction`, `useCompanyData`).
-- **No Copy-Paste**: Duplicate code is a signal to create abstraction. Copy-paste is FORBIDDEN for:
-  - Button styling patterns
-  - Error handling try-catch blocks
-  - API call patterns
-  - Form validation logic
+- **Feature Sovereignty**: Business logic (components, hooks, services, types) MUST reside in `src/features/[domain]/`, NOT in global folders.
+- **Global Scope**:
+  - `src/components/ui/`: Strictly for generic, reuseable UI atoms (e.g., Button, Modal) with NO business logic.
+  - `src/hooks/`, `src/services/`, `src/utils/`: Strictly for app-wide shared logic (e.g., `useAuth`, `api.ts`).
+- **DRY Patterns**:
+  - **Component Abstraction**: Extract repeated UI patterns to `components/ui` or `features/[domain]/components`.
+  - **No Copy-Paste**: Forbidden for styling, error handling, API patterns.
 
 ### VII. Systematic Refactoring Protocol
 
@@ -87,11 +87,19 @@ sync-erp/
 ├── apps/
 │   ├── web/                    # Vite + React Frontend
 │   │   ├── src/
-│   │   │   ├── components/     # Reusable UI components
-│   │   │   ├── hooks/          # Custom React hooks
-│   │   │   ├── contexts/       # React contexts (Auth, Company, etc.)
-│   │   │   ├── services/       # API service layer
-│   │   │   └── pages/          # Page components
+│   │   │   ├── app/            # Global setup (App.tsx, routes, providers)
+│   │   │   ├── components/
+│   │   │   │   ├── ui/         # Generic UI atoms (logic-free)
+│   │   │   │   └── layout/     # Structural components (Sidebar, Header)
+│   │   │   ├── features/       # Business Domains
+│   │   │   │   └── [domain]/   # e.g., auth, finance
+│   │   │   │       ├── components/
+│   │   │   │       ├── hooks/
+│   │   │   │       ├── services/
+│   │   │   │       └── types/
+│   │   │   ├── hooks/          # Global utility hooks
+│   │   │   ├── services/       # Global API clients
+│   │   │   └── utils/          # Global helpers
 │   └── api/                    # Express + TypeScript Backend
 ├── packages/
 │   ├── database/               # Prisma Client & Schema
@@ -126,4 +134,4 @@ This Constitution supersedes all other stylistic or architectural preferences.
 - **Amendments**: Changes to this document require a Pull Request and consensus from the team.
 - **Compliance**: Code reviews must explicitly verify compliance with these principles.
 
-**Version**: 1.4.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-11
+**Version**: 1.5.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-12

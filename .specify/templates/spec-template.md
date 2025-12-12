@@ -125,7 +125,8 @@ _Example of marking unclear requirements:_
 
 ### Frontend Architecture Checklist
 
-- [ ] **Component Abstraction**: Any repeated UI pattern extracted to reusable component
+- [ ] **Feature Isolation**: Logic in `src/features` (not global pages/components)
+- [ ] **Component Abstraction**: Any repeated UI pattern extracted to reusable `ui` component
 - [ ] **Hook Abstraction**: Any repeated logic extracted to custom hook
 - [ ] **No Copy-Paste**: No duplicate button styles, error handling, or API patterns
 - [ ] **Global Error Handling**: Errors handled via Axios interceptor, not per-page try-catch

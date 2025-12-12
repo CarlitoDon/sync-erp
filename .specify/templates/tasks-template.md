@@ -116,8 +116,8 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T014 [US1] Create Repository in `apps/api/src/repositories/[repository].ts`
 - [ ] T015 [US1] Implement Service in `apps/api/src/services/[service].ts` (uses Repository)
 - [ ] T016 [US1] Implement Controller in `apps/api/src/controllers/[controller].ts` (uses Service)
-- [ ] T017 [US1] Create UI Component in `apps/web/src/components/[component].tsx`
-- [ ] T018 [US1] Integrate API in `apps/web/src/services/[api].ts`
+- [ ] T017 [US1] Create UI in `apps/web/src/features/[domain]/components/[component].tsx`
+- [ ] T018 [US1] Integration in `apps/web/src/features/[domain]/services/[api].ts`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -154,10 +154,12 @@ Examples of foundational tasks (adjust based on your project):
 
 **⚠️ Constitution Compliance**: This phase implements Principles VI, VII, VIII
 
-### Reusable Components
+- Adopts Feature-Based Architecture (`src/features/`)
 
-- [ ] TXXX [P] Create `ActionButton` component in `apps/web/src/components/ActionButton.tsx`
-- [ ] TXXX [P] Create `ConfirmModal` with `useConfirm()` hook in `apps/web/src/components/ConfirmModal.tsx`
+### Reusable Components (UI Atoms)
+
+- [ ] TXXX [P] Create `ActionButton` component in `apps/web/src/components/ui/ActionButton.tsx`
+- [ ] TXXX [P] Create `ConfirmModal` in `apps/web/src/components/ui/ConfirmModal.tsx`
 - [ ] TXXX [P] Create `DataTable` component if table patterns are repeated
 
 ### Global Hooks & Utilities
