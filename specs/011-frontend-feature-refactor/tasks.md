@@ -28,7 +28,7 @@ description: 'Refactor frontend to Feature-Based Architecture'
 **Purpose**: Establish the UI layer and shared utilities before migrating complex domains.
 
 - [x] T003 [P] [US1] Move UI Atoms (`ActionButton`, `ConfirmModal`) to `src/components/ui/`
-- [x] T004 [P] [US1] Move Layouts (`Sidebar`*, `Layout`, `CompanySwitcher`*, `MobileMenuButton`) to `src/components/layout/`
+- [x] T004 [P] [US1] Move Layouts (`Sidebar`_, `Layout`, `CompanySwitcher`_, `MobileMenuButton`) to `src/components/layout/`
 - [x] T005 [P] [US1] Update imports for moved UI/Layout components across the app
 - [x] T006 [P] [US1] Update imports for moved UI/Layout components across the app
 
@@ -54,41 +54,41 @@ description: 'Refactor frontend to Feature-Based Architecture'
 
 **Goal**: Migrate Sales and Partners logic.
 
-- [ ] T015 [P] [US2] Move `salesOrderService.ts` to `src/features/sales/services/`
-- [ ] T016 [P] [US2] Move `SalesOrders.tsx` to `src/features/sales/pages/`
-- [ ] T017 [P] [US2] Move `Customers.tsx` to `src/features/sales/pages/` (Decision: Sales context)
-- [ ] T018 [P] [US2] Move `partnerService.ts` to `src/features/partners/services/`
-- [ ] T019 [P] [US2] Move `Suppliers.tsx` to `src/features/procurement/pages/` (Decision: Procurement context, verify imports)
-- [ ] T020 [P] [US2] Update Sales/Partner tests and move to `apps/web/test/features/[domain]/`
+- [x] T015 [P] [US2] Move `salesOrderService.ts` to `src/features/sales/services/`
+- [x] T016 [P] [US2] Move `SalesOrders.tsx` to `src/features/sales/pages/`
+- [x] T017 [P] [US2] Move `Customers.tsx` to `src/features/sales/pages/` (Decision: Sales context)
+- [x] T018 [P] [US2] Move `partnerService.ts` to `src/features/partners/services/`
+- [x] T019 [P] [US2] Move `Suppliers.tsx` to `src/features/procurement/pages/` (Decision: Procurement context, verify imports)
+- [x] T020 [P] [US2] Update Sales/Partner tests and move to `apps/web/test/features/[domain]/`
 
 ## Phase 6: User Story 2 - Procurement & Inventory Domains (Priority: P1)
 
 **Goal**: Migrate Procurement and Inventory logic.
 
-- [ ] T021 [P] [US2] Move `purchaseOrderService.ts` to `src/features/procurement/services/`
-- [ ] T022 [P] [US2] Move `PurchaseOrders.tsx` to `src/features/procurement/pages/`
-- [ ] T023 [P] [US2] Move `productService.ts` to `src/features/inventory/services/`
-- [ ] T024 [P] [US2] Move `Inventory.tsx`, `Products.tsx` to `src/features/inventory/pages/`
-- [ ] T025 [P] [US2] Update Procurement/Inventory tests and move to `apps/web/test/features/[domain]/`
+- [x] T021 [P] [US2] Move `purchaseOrderService.ts` to `src/features/procurement/services/`
+- [x] T022 [P] [US2] Move `PurchaseOrders.tsx` to `src/features/procurement/pages/`
+- [x] T023 [P] [US2] Move `productService.ts` to `src/features/inventory/services/`
+- [x] T024 [P] [US2] Move `Inventory.tsx`, `Products.tsx` to `src/features/inventory/pages/`
+- [x] T025 [P] [US2] Update Procurement/Inventory tests and move to `apps/web/test/features/[domain]/`
 
 ## Phase 7: User Story 2 - Company & Dashboard Domains (Priority: P1)
 
 **Goal**: Migrate Company and Dashboard logic.
 
-- [ ] T026 [P] [US2] Move `companyService.ts` to `src/features/company/services/`
-- [ ] T027 [P] [US2] Move `Companies.tsx`, `CompanySelectionPage.tsx`, `CreateCompany.tsx` to `src/features/company/pages/`
-- [ ] T028 [P] [US2] Move `Dashboard.tsx` to `src/features/dashboard/pages/`
-- [ ] T029 [P] [US2] Update Company/Dashboard tests and move to `apps/web/test/features/[domain]/`
+- [x] T026 [P] [US2] Move `companyService.ts` to `src/features/company/services/`
+- [x] T027 [P] [US2] Move `Companies.tsx`, `CompanySelectionPage.tsx`, `CreateCompany.tsx` to `src/features/company/pages/`
+- [x] T028 [P] [US2] Move `Dashboard.tsx` to `src/features/dashboard/pages/`
+- [x] T029 [P] [US2] Update Company/Dashboard tests and move to `apps/web/test/features/[domain]/`
 
 ## Phase 8: Polish & Routing (Cross-Cutting)
 
 **Goal**: Finalize routing, verify build, and cleanup.
 
-- [ ] T030 Update `src/App.tsx` (or new `routes.tsx`) to import pages from their new Feature locations
-- [ ] T031 Perform global search for old import paths (e.g., `../services/`) and fix any remaining broken references
-- [ ] T032 Verify `vite.config.ts` aliases work with new structure
-- [ ] T033 Run full build `npm run build` and ensure no type errors
-- [ ] T034 Run all tests `npm test` and ensure zero regression
+- [x] T030 Update `src/App.tsx` (or new `routes.tsx`) to import pages from their new Feature locations
+- [x] T031 Perform global search for old import paths (e.g., `../services/`) and fix any remaining broken references
+- [x] T032 Verify `vite.config.ts` aliases work with new structure
+- [x] T033 Run full build `npm run build` and ensure no type errors
+- [x] T034 Run all tests `npm test` and ensure zero regression
 
 ## Dependencies
 
