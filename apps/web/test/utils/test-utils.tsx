@@ -8,7 +8,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../../src/contexts/AuthContext';
 import { CompanyProvider } from '../../src/contexts/CompanyContext';
 import { SidebarProvider } from '../../src/contexts/SidebarContext';
-import { ConfirmProvider } from '../../src/components/ConfirmModal';
+import { ConfirmProvider } from '../../src/components/ui/ConfirmModal';
 import userEvent from '@testing-library/user-event';
 
 interface ExtendedRenderOptions extends Omit<
