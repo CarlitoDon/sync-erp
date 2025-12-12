@@ -20,7 +20,7 @@ interface CreateJournalEntryInput {
 }
 import ActionButton from '../../../components/ui/ActionButton';
 import { useApiAction } from '../../../hooks/useApiAction';
-import { formatDate, formatCurrency } from '../utils/format';
+import { formatCurrency, formatDate } from '../../../utils/format';
 import { toast } from 'react-hot-toast';
 
 export default function JournalEntries() {

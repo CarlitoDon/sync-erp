@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import Invoices from '../../../src/pages/Invoices';
+import Invoices from '../../../src/features/finance/pages/Invoices';
 import * as CompanyContext from '../../../src/contexts/CompanyContext';
 import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
 import { ConfirmProvider } from '../../../src/components/ui/ConfirmModal';

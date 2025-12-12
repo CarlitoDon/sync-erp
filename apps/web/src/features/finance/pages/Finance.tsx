@@ -10,7 +10,7 @@ import { apiAction } from '../../../hooks/useApiAction';
 import {
   FinancialReport,
   ReportSection,
-} from '../../../components/FinancialReport';
+} from '../components/FinancialReport';
 import JournalEntries from './JournalEntries';
 import { AccountGroup, AccountType } from '@sync-erp/shared';
 // import { FinanceAccountGroup, AccountType } from '../types/finance'; // Removed

@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../../../services/api';
 // Imports removed
 
 import type { Invoice as Bill } from '@sync-erp/shared';

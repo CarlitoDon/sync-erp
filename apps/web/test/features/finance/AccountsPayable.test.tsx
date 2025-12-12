@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import AccountsPayable from '../../../src/pages/AccountsPayable';
+import AccountsPayable from '../../../src/features/finance/pages/AccountsPayable';
 import * as CompanyContext from '../../../src/contexts/CompanyContext';
 import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
 import { ConfirmProvider } from '../../../src/components/ui/ConfirmModal';

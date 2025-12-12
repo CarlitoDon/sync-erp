@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../../../services/api';
 // Partner type is not used in this file anymore directly
 
 import type { Invoice, Payment } from '@sync-erp/shared';

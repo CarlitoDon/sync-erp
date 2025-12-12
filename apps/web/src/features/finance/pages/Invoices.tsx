@@ -10,7 +10,7 @@ import { useCompanyData } from '../../../hooks/useCompanyData';
 import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
-import { formatCurrency, formatDate } from '../utils/format';
+import { formatCurrency, formatDate } from '../../../utils/format';
 
 export default function Invoices() {
   const { currentCompany } = useCompany();

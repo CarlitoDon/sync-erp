@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import Finance from '../../../src/pages/Finance';
+import Finance from '../../../src/features/finance/pages/Finance';
 import * as CompanyContext from '../../../src/contexts/CompanyContext';
 import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
 import { AccountType } from '@sync-erp/shared';

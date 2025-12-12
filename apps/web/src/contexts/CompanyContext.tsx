@@ -7,7 +7,7 @@ import {
   useEffect,
 } from 'react';
 import type { Company } from '@sync-erp/shared';
-import { getCompanies } from '../services/companyService';
+import { getCompanies } from '../features/company/services/companyService';
 import { useAuth } from './AuthContext';
 
 interface CompanyContextType {

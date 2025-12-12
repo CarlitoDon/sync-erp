@@ -4,10 +4,10 @@ import {
   fireEvent,
   waitFor,
 } from '@testing-library/react';
-import JournalEntries from '../../../src/pages/JournalEntries';
+import JournalEntries from '../../../src/features/finance/pages/JournalEntries';
 import * as CompanyContext from '../../../src/contexts/CompanyContext';
 import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
-import * as financeService from '../../../src/services/financeService';
+import * as financeService from '../../../src/features/finance/services/financeService';
 
 vi.mock('../../../src/hooks/useCompanyData', async () => {
   const actual = await vi.importActual(
@@ -29,7 +29,7 @@ vi.mock('../../../src/contexts/CompanyContext', async () => {
   };
 });
 
-vi.mock('../../../src/services/financeService', () => ({
+vi.mock('../../../src/features/finance/services/financeService', () => ({
   financeService: {
     listJournals: vi.fn(),
     createJournal: vi.fn(),
