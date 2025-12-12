@@ -49,16 +49,11 @@ financeRouter.post('/accounts/seed', controller.seedAccounts);
 // GET /api/finance/journals - List journal entries
 financeRouter.get('/journals', controller.listJournals);
 
-// GET /api/finance/journals/:id - Get journal entry // Was missing in Controller? No, check Controller.
-// Controller has listJournals, createJournal. getById was missing in my Controller snippet?
-// Let me check AccountingController content.
-// Step 1265: createJournal, listJournals. getById WAS MISSING!
-// I need to add getById to AccountingController before updating route!
-// And getById for Journal?
-// I will keep existing inline handler for getById if Controller misses it, or update Controller.
-// I prefer updating Controller.
-// Wait, I can't update Controller easily in parallel.
-// I'll update Controller first.
+// GET /api/finance/journals/:id - Get journal entry by ID
+financeRouter.get('/journals/:id', controller.getJournalById);
+
+// POST /api/finance/journals - Create journal entry
+financeRouter.post('/journals', controller.createJournal);
 
 // ========== REPORTS ==========
 

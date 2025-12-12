@@ -13,8 +13,8 @@ const JoinCompanySchema = z.object({
   inviteCode: z.string().min(5),
 });
 
-// POST /api/companies/create - Create new company
-companyRouter.post('/create', async (req, res, next) => {
+// POST /api/companies - Create new company
+companyRouter.post('/', async (req, res, next) => {
   try {
     CreateCompanySchema.parse(req.body);
     await controller.create(req, res, next);
