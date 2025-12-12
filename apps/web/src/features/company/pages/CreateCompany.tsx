@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreateCompanySchema } from '@sync-erp/shared';
 import { createCompany } from '../services/companyService';
-import { useCompany } from '../contexts/CompanyContext';
+import { useCompany } from '../../../contexts/CompanyContext';
 
 export default function CreateCompany() {
   const navigate = useNavigate();

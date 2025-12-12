@@ -3,12 +3,12 @@ import {
   partnerService,
   Partner,
   CreatePartnerInput,
-} from '../services/partnerService';
-import { useCompany } from '../contexts/CompanyContext';
-import { useCompanyData } from '../hooks/useCompanyData';
-import { apiAction } from '../hooks/useApiAction';
-import { useConfirm } from '../components/ui/ConfirmModal';
-import ActionButton from '../components/ui/ActionButton';
+} from '../../partners/services/partnerService';
+import { useCompany } from '../../../contexts/CompanyContext';
+import { useCompanyData } from '../../../hooks/useCompanyData';
+import { apiAction } from '../../../hooks/useApiAction';
+import { useConfirm } from '../../../components/ui/ConfirmModal';
+import ActionButton from '../../../components/ui/ActionButton';
 
 export default function Customers() {
   const { currentCompany } = useCompany();

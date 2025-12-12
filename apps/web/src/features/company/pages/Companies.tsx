@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useCompany } from '../contexts/CompanyContext';
+import { useCompany } from '../../../contexts/CompanyContext';
 
 export default function Companies() {
   const { companies, currentCompany, setCurrentCompany } =

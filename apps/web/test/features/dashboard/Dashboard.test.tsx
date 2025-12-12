@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react';
-import Dashboard from '../../src/pages/Dashboard';
-import * as CompanyContext from '../../src/contexts/CompanyContext';
+import Dashboard from '../../../src/features/dashboard/pages/Dashboard';
+import * as CompanyContext from '../../../src/contexts/CompanyContext';
 
-vi.mock('../../src/contexts/CompanyContext', async () => {
+vi.mock('../../../src/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../src/contexts/CompanyContext'
+    '../../../src/contexts/CompanyContext'
   );
   return {
     ...actual,

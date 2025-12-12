@@ -4,11 +4,11 @@ import {
   Product,
   CreateProductInput,
 } from '../services/productService';
-import { useCompany } from '../contexts/CompanyContext';
-import { useCompanyData } from '../hooks/useCompanyData';
-import { apiAction } from '../hooks/useApiAction';
-import { useConfirm } from '../components/ui/ConfirmModal';
-import ActionButton from '../components/ui/ActionButton';
+import { useCompany } from '../../../contexts/CompanyContext';
+import { useCompanyData } from '../../../hooks/useCompanyData';
+import { apiAction } from '../../../hooks/useApiAction';
+import { useConfirm } from '../../../components/ui/ConfirmModal';
+import ActionButton from '../../../components/ui/ActionButton';
 
 export default function Products() {
   const { currentCompany } = useCompany();

@@ -1,6 +1,6 @@
-import api from './api';
-import type { Partner } from './partnerService';
-import type { Product } from './productService';
+import api from '../../../services/api';
+import type { Partner } from '../../partners/services/partnerService';
+import type { Product } from '../../inventory/services/productService';
 
 export interface OrderItem {
   id: string;

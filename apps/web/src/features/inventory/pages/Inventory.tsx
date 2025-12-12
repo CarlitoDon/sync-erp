@@ -2,8 +2,8 @@ import {
   productService,
   StockLevel,
 } from '../services/productService';
-import { useCompany } from '../contexts/CompanyContext';
-import { useCompanyData } from '../hooks/useCompanyData';
+import { useCompany } from '../../../contexts/CompanyContext';
+import { useCompanyData } from '../../../hooks/useCompanyData';
 
 export default function Inventory() {
   const { currentCompany } = useCompany();

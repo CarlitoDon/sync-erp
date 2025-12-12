@@ -1,11 +1,11 @@
 import { render, screen } from '@testing-library/react';
-import Inventory from '../../src/pages/Inventory';
-import * as CompanyContext from '../../src/contexts/CompanyContext';
-import * as useCompanyDataHook from '../../src/hooks/useCompanyData';
+import Inventory from '../../../src/features/inventory/pages/Inventory';
+import * as CompanyContext from '../../../src/contexts/CompanyContext';
+import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
 
-vi.mock('../../src/contexts/CompanyContext', async () => {
+vi.mock('../../../src/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../src/contexts/CompanyContext'
+    '../../../src/contexts/CompanyContext'
   );
   return {
     ...actual,
@@ -13,9 +13,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
   };
 });
 
-vi.mock('../../src/hooks/useCompanyData', async () => {
+vi.mock('../../../src/hooks/useCompanyData', async () => {
   const actual = await vi.importActual(
-    '../../src/hooks/useCompanyData'
+    '../../../src/hooks/useCompanyData'
   );
   return {
     ...actual,
@@ -23,7 +23,7 @@ vi.mock('../../src/hooks/useCompanyData', async () => {
   };
 });
 
-vi.mock('../../src/services/productService', () => ({
+vi.mock('../../../src/features/inventory/services/productService', () => ({
   productService: {
     getStockLevels: vi.fn(),
   },

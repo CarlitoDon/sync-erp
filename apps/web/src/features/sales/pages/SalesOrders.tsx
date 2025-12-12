@@ -4,14 +4,14 @@ import {
   SalesOrder,
   CreateSalesOrderInput,
 } from '../services/salesOrderService';
-import { partnerService, Partner } from '../services/partnerService';
-import { productService, Product } from '../services/productService';
-import { invoiceService } from '../services/invoiceService';
-import { useCompany } from '../contexts/CompanyContext';
-import { useCompanyData } from '../hooks/useCompanyData';
-import { apiAction } from '../hooks/useApiAction';
-import { useConfirm } from '../components/ui/ConfirmModal';
-import ActionButton from '../components/ui/ActionButton';
+import { partnerService, Partner } from '../../partners/services/partnerService';
+import { productService, Product } from '../../inventory/services/productService';
+import { invoiceService } from '../../finance/services/invoiceService';
+import { useCompany } from '../../../contexts/CompanyContext';
+import { useCompanyData } from '../../../hooks/useCompanyData';
+import { apiAction } from '../../../hooks/useApiAction';
+import { useConfirm } from '../../../components/ui/ConfirmModal';
+import ActionButton from '../../../components/ui/ActionButton';
 
 interface OrderItemForm {
   productId: string;

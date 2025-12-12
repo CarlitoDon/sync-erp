@@ -1,11 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import Companies from '../../src/pages/Companies';
-import * as CompanyContext from '../../src/contexts/CompanyContext';
+import Companies from '../../../src/features/company/pages/Companies';
+import * as CompanyContext from '../../../src/contexts/CompanyContext';
 
-vi.mock('../../src/contexts/CompanyContext', async () => {
+vi.mock('../../../src/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../src/contexts/CompanyContext'
+    '../../../src/contexts/CompanyContext'
   );
   return {
     ...actual,

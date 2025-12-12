@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../../../services/api';
 
 import type { Product } from '@sync-erp/shared';
 export type { Product };

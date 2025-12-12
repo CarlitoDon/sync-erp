@@ -1,4 +1,4 @@
-import { useCompany } from '../contexts/CompanyContext';
+import { useCompany } from '../../../contexts/CompanyContext';
 
 export default function Dashboard() {
   const { currentCompany } = useCompany();

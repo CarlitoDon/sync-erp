@@ -1,12 +1,12 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import SalesOrders from '../../src/pages/SalesOrders';
-import * as CompanyContext from '../../src/contexts/CompanyContext';
-import * as useCompanyDataHook from '../../src/hooks/useCompanyData';
-import { ConfirmProvider } from '../../src/components/ui/ConfirmModal';
+import SalesOrders from '../../../src/features/sales/pages/SalesOrders';
+import * as CompanyContext from '../../../src/contexts/CompanyContext';
+import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
+import { ConfirmProvider } from '../../../src/components/ui/ConfirmModal';
 
-vi.mock('../../src/contexts/CompanyContext', async () => {
+vi.mock('../../../src/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../src/contexts/CompanyContext'
+    '../../../src/contexts/CompanyContext'
   );
   return {
     ...actual,
@@ -14,9 +14,9 @@ vi.mock('../../src/contexts/CompanyContext', async () => {
   };
 });
 
-vi.mock('../../src/hooks/useCompanyData', async () => {
+vi.mock('../../../src/hooks/useCompanyData', async () => {
   const actual = await vi.importActual(
-    '../../src/hooks/useCompanyData'
+    '../../../src/hooks/useCompanyData'
   );
   return {
     ...actual,
@@ -24,7 +24,7 @@ vi.mock('../../src/hooks/useCompanyData', async () => {
   };
 });
 
-vi.mock('../../src/services/salesOrderService', () => ({
+vi.mock('../../../src/features/sales/services/salesOrderService', () => ({
   salesOrderService: {
     list: vi.fn(),
     create: vi.fn(),
@@ -34,11 +34,11 @@ vi.mock('../../src/services/salesOrderService', () => ({
   },
 }));
 
-vi.mock('../../src/services/partnerService', () => ({
+vi.mock('../../../src/services/partnerService', () => ({
   partnerService: { listCustomers: vi.fn() },
 }));
 
-vi.mock('../../src/services/productService', () => ({
+vi.mock('../../../src/services/productService', () => ({
   productService: { list: vi.fn() },
 }));
 

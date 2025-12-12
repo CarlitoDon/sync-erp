@@ -4,13 +4,13 @@ import {
   PurchaseOrder,
   CreatePurchaseOrderInput,
 } from '../services/purchaseOrderService';
-import { partnerService, Partner } from '../services/partnerService';
-import { productService, Product } from '../services/productService';
-import { useCompany } from '../contexts/CompanyContext';
-import { useCompanyData } from '../hooks/useCompanyData';
-import { apiAction } from '../hooks/useApiAction';
-import { useConfirm } from '../components/ui/ConfirmModal';
-import ActionButton from '../components/ui/ActionButton';
+import { partnerService, Partner } from '../../partners/services/partnerService';
+import { productService, Product } from '../../inventory/services/productService';
+import { useCompany } from '../../../contexts/CompanyContext';
+import { useCompanyData } from '../../../hooks/useCompanyData';
+import { apiAction } from '../../../hooks/useApiAction';
+import { useConfirm } from '../../../components/ui/ConfirmModal';
+import ActionButton from '../../../components/ui/ActionButton';
 
 interface OrderItemForm {
   productId: string;
