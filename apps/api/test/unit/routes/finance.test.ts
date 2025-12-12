@@ -3,49 +3,60 @@ const express = require('express');
 import request from 'supertest';
 
 // Mock services
-vi.mock('../../../src/services/AccountService', () => ({
-  AccountService: vi.fn().mockImplementation(() => ({
-    list: vi
-      .fn()
-      .mockResolvedValue([
-        { id: 'acc-1', code: '1000', name: 'Cash' },
-      ]),
-    create: vi
-      .fn()
-      .mockResolvedValue({ id: 'acc-new', code: '1001' }),
-    seedDefaultAccounts: vi
-      .fn()
-      .mockResolvedValue([{ id: 'acc-1' }, { id: 'acc-2' }]),
-  })),
-}));
+vi.mock(
+  '../../../src/modules/accounting/services/account.service',
+  () => ({
+    AccountService: vi.fn().mockImplementation(() => ({
+      list: vi
+        .fn()
+        .mockResolvedValue([
+          { id: 'acc-1', code: '1000', name: 'Cash' },
+        ]),
+      create: vi
+        .fn()
+        .mockResolvedValue({ id: 'acc-new', code: '1001' }),
+      seedDefaultAccounts: vi
+        .fn()
+        .mockResolvedValue([{ id: 'acc-1' }, { id: 'acc-2' }]),
+    })),
+  })
+);
 
-vi.mock('../../../src/services/JournalService', () => ({
-  JournalService: vi.fn().mockImplementation(() => ({
-    list: vi
-      .fn()
-      .mockResolvedValue([{ id: 'je-1', entryNumber: 'JE-001' }]),
-    getById: vi.fn().mockImplementation((id: string) => {
-      if (id === 'not-found') return Promise.resolve(null);
-      return Promise.resolve({ id: 'je-1', entryNumber: 'JE-001' });
-    }),
-    create: vi.fn().mockResolvedValue({ id: 'je-new' }),
-  })),
-}));
+vi.mock(
+  '../../../src/modules/accounting/services/journal.service',
+  () => ({
+    JournalService: vi.fn().mockImplementation(() => ({
+      list: vi
+        .fn()
+        .mockResolvedValue([{ id: 'je-1', entryNumber: 'JE-001' }]),
+      getById: vi.fn().mockImplementation((id: string) => {
+        if (id === 'not-found') return Promise.resolve(null);
+        return Promise.resolve({ id: 'je-1', entryNumber: 'JE-001' });
+      }),
+      create: vi.fn().mockResolvedValue({ id: 'je-new' }),
+    })),
+  })
+);
 
-vi.mock('../../../src/services/ReportService', () => ({
-  ReportService: vi.fn().mockImplementation(() => ({
-    getTrialBalance: vi.fn().mockResolvedValue({
-      accounts: [],
-      totals: { debit: 0, credit: 0 },
-    }),
-    getGeneralLedger: vi
-      .fn()
-      .mockResolvedValue({ entries: [], balance: 0 }),
-    getIncomeStatement: vi
-      .fn()
-      .mockResolvedValue({ revenue: [], expenses: [], netIncome: 0 }),
-  })),
-}));
+vi.mock(
+  '../../../src/modules/accounting/services/report.service',
+  () => ({
+    ReportService: vi.fn().mockImplementation(() => ({
+      getTrialBalance: vi.fn().mockResolvedValue({
+        accounts: [],
+        totals: { debit: 0, credit: 0 },
+      }),
+      getGeneralLedger: vi
+        .fn()
+        .mockResolvedValue({ entries: [], balance: 0 }),
+      getIncomeStatement: vi.fn().mockResolvedValue({
+        revenue: [],
+        expenses: [],
+        netIncome: 0,
+      }),
+    })),
+  })
+);
 
 // Import after mocking
 import { financeRouter } from '../../../src/routes/finance';
@@ -105,7 +116,8 @@ describe('Finance Routes', () => {
         '/api/finance/accounts/seed'
       );
       expect(response.status).toBe(200);
-      expect(response.body.message).toContain('accounts created');
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(2); // Mocked to return 2 accounts
     });
   });
 

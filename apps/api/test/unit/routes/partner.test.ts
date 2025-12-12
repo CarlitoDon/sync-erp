@@ -21,7 +21,7 @@ const {
   mockDelete: vi.fn(),
 }));
 
-vi.mock('../../../src/services/PartnerService', () => ({
+vi.mock('../../../src/modules/partner/partner.service', () => ({
   PartnerService: vi.fn().mockImplementation(() => ({
     list: mockList,
     listSuppliers: mockListSuppliers,

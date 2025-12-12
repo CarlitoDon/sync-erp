@@ -3,7 +3,7 @@ const express = require('express');
 import request from 'supertest';
 
 // Mock ProductService
-vi.mock('../../../src/services/ProductService', () => ({
+vi.mock('../../../src/modules/product/product.service', () => ({
   ProductService: vi.fn().mockImplementation(() => ({
     list: vi.fn().mockResolvedValue([
       {
