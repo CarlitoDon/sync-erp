@@ -1,5 +1,4 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Suppliers from '../../src/pages/Suppliers';
 import * as CompanyContext from '../../src/contexts/CompanyContext';
 import * as useCompanyDataHook from '../../src/hooks/useCompanyData';

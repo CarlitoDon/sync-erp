@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Dashboard from '../../src/pages/Dashboard';
 import * as CompanyContext from '../../src/contexts/CompanyContext';
 

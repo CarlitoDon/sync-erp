@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { RegisterPayload } from '../services/authService';
+import { AxiosError } from 'axios';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,8 +26,8 @@ export const RegisterPage: React.FC = () => {
       navigate('/');
     } catch (err) {
       setError(
-        (err as any).response?.data?.error?.message ||
-          'Registration failed'
+        (err as AxiosError<{ error: { message: string } }>)?.response
+          ?.data?.error?.message || 'Registration failed'
       );
     } finally {
       setLoading(false);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginPayload } from '../services/authService';
+import { AxiosError } from 'axios';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +25,8 @@ export const LoginPage: React.FC = () => {
       navigate('/select-company');
     } catch (err) {
       setError(
-        (err as any).response?.data?.error?.message || 'Login failed'
+        (err as AxiosError<{ error: { message: string } }>)?.response
+          ?.data?.error?.message || 'Login failed'
       );
     } finally {
       setLoading(false);

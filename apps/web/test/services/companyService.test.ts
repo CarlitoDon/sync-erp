@@ -1,6 +1,5 @@
 import * as companyService from '../../src/services/companyService';
 import api from '../../src/services/api';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { CreateCompanyDto, JoinCompanyDto } from '@sync-erp/shared';
 
 // Mock api

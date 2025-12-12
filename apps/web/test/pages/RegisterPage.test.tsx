@@ -4,7 +4,6 @@ import {
   fireEvent,
   waitFor,
 } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { RegisterPage } from '../../src/pages/RegisterPage';
 import * as AuthContext from '../../src/contexts/AuthContext';

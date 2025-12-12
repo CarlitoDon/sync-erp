@@ -1,6 +1,5 @@
 import { authService } from '../../src/services/authService';
 import api from '../../src/services/api';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { LoginPayload, RegisterPayload } from '@sync-erp/shared';
 
 // Mock api module

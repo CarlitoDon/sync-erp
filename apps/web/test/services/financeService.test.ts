@@ -1,6 +1,5 @@
 import { financeService } from '../../src/services/financeService';
 import api from '../../src/services/api';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { CreateJournalEntryInput } from '@sync-erp/shared';
 
 vi.mock('../../src/services/api', async () => {

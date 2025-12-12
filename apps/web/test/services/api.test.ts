@@ -1,11 +1,3 @@
-import {
-  vi,
-  describe,
-  it,
-  expect,
-  beforeEach,
-  beforeAll,
-} from 'vitest';
 import { HEADERS } from '@sync-erp/shared';
 // We mock axios first
 const { requestUse, responseUse, mockAxiosInstance } = vi.hoisted(

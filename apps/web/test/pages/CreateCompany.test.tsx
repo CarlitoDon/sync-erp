@@ -4,7 +4,6 @@ import {
   fireEvent,
   waitFor,
 } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import CreateCompany from '../../src/pages/CreateCompany';
 import * as CompanyContext from '../../src/contexts/CompanyContext';

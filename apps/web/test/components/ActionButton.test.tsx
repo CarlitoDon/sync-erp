@@ -4,7 +4,6 @@ import {
   fireEvent,
   cleanup,
 } from '@testing-library/react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
 import ActionButton from '../../src/components/ActionButton';
 
 describe('ActionButton', () => {

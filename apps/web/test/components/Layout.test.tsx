@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import Layout from '../../src/components/Layout';
 import { SidebarProvider } from '../../src/contexts/SidebarContext';

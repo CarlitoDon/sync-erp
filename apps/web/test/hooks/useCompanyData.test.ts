@@ -1,6 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useCompanyData } from '../../src/hooks/useCompanyData';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { Company } from '@sync-erp/shared';
 
 import { mockUseCompany } from '../mocks/hooks.mock';

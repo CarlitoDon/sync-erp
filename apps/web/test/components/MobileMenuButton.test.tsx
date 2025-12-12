@@ -1,5 +1,4 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import MobileMenuButton from '../../src/components/MobileMenuButton';
 import * as SidebarContext from '../../src/contexts/SidebarContext';
 

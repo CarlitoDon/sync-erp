@@ -3,7 +3,6 @@ import {
   CreatePurchaseOrderInput,
 } from '../../src/services/purchaseOrderService';
 import api from '../../src/services/api';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 vi.mock('../../src/services/api', async () => {
   const { mockApi } = await vi.importActual<any>(

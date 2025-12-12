@@ -3,7 +3,6 @@ import {
   useApiAction,
   apiAction,
 } from '../../src/hooks/useApiAction';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 import toast from 'react-hot-toast';
 
 // Mock react-hot-toast

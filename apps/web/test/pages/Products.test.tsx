@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Products from '../../src/pages/Products';
 import * as CompanyContext from '../../src/contexts/CompanyContext';

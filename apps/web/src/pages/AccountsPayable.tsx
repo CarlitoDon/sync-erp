@@ -143,7 +143,16 @@ export default function AccountsPayable() {
           {['ALL', 'DRAFT', 'POSTED', 'PAID'].map((status) => (
             <button
               key={status}
-              onClick={() => setFilterStatus(status as any)}
+              onClick={() =>
+                setFilterStatus(
+                  status as
+                    | 'ALL'
+                    | 'DRAFT'
+                    | 'POSTED'
+                    | 'PAID'
+                    | 'VOID'
+                )
+              }
               className={`${
                 filterStatus === status
                   ? 'border-blue-500 text-blue-600'

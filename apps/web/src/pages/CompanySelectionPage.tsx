@@ -7,6 +7,7 @@ import {
   joinCompany,
 } from '../services/companyService';
 import type { Company } from '@sync-erp/shared';
+import { AxiosError } from 'axios';
 
 export function CompanySelectionPage() {
   const navigate = useNavigate();
@@ -51,8 +52,8 @@ export function CompanySelectionPage() {
       navigate('/');
     } catch (err) {
       setError(
-        (err as any).response?.data?.error?.message ||
-          'Failed to create company'
+        (err as AxiosError<{ error: { message: string } }>)?.response
+          ?.data?.error?.message || 'Failed to create company'
       );
     } finally {
       setIsSubmitting(false);
@@ -70,8 +71,8 @@ export function CompanySelectionPage() {
       navigate('/');
     } catch (err) {
       setError(
-        (err as any).response?.data?.error?.message ||
-          'Failed to join company'
+        (err as AxiosError<{ error: { message: string } }>)?.response
+          ?.data?.error?.message || 'Failed to join company'
       );
     } finally {
       setIsSubmitting(false);
