@@ -9,6 +9,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 - LocalStorage (for auth tokens), Server State (TanStack Query / axios) (011-frontend-feature-refactor)
 - TypeScript 5.4 + React 18.2, Vite 5.1, TailwindCSS 3.4, TanStack Query v5 (012-core-ui-features)
 - N/A (Frontend only) (012-core-ui-features)
+- TypeScript 5.x, Node.js 20+ + Express, Zod, @sync-erp/shared (013-backend-shared-validation)
+- N/A (validation layer only) (013-backend-shared-validation)
 
 - TypeScript 5.x (Frontend & Backend) + React Router v6 (Routing), React Context API (State), Express (API), Prisma (DB) (003-company-selection)
 - PostgreSQL (via Prisma) (003-company-selection)
@@ -40,9 +42,9 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 013-backend-shared-validation: Added TypeScript 5.x, Node.js 20+ + Express, Zod, @sync-erp/shared
 - 012-core-ui-features: Added TypeScript 5.4 + React 18.2, Vite 5.1, TailwindCSS 3.4, TanStack Query v5
 - 011-frontend-feature-refactor: Added TypeScript 5.x + React 18, Vite 7, Tailwind 4, Vitest 4
-- 010-test-refactor-3layer: Added TypeScript 5.x + Express, Vitest, Prisma Client
 
 
 <!-- MANUAL ADDITIONS START -->
