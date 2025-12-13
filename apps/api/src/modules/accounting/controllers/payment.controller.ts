@@ -46,12 +46,10 @@ export class PaymentController {
         companyId
       );
       if (!payment) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            error: { message: 'Payment not found' },
-          });
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Payment not found' },
+        });
       }
       res.json({ success: true, data: payment });
     } catch (error) {

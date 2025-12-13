@@ -1,18 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from './user.service';
-import { z } from 'zod';
-
-// Minimal schemas for User Controller (Internal/Admin mostly)
-const AssignUserSchema = z.object({
-  userId: z.string().uuid(),
-  roleId: z.string().uuid().optional(),
-});
-
-const InviteUserSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(2),
-  roleId: z.string().uuid().optional(),
-});
+import { InviteUserSchema, AssignRoleSchema } from '@sync-erp/shared';
 
 export class UserController {
   private service = new UserService();
@@ -23,12 +11,10 @@ export class UserController {
       const userId = req.context.userId!;
       const user = await this.service.getById(userId);
       if (!user) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            error: { message: 'User not found' },
-          });
+        return res.status(404).json({
+          success: false,
+          error: { message: 'User not found' },
+        });
       }
       res.json({ success: true, data: user });
     } catch (error) {
@@ -59,9 +45,7 @@ export class UserController {
   ) => {
     try {
       const companyId = req.context.companyId!;
-      const { email, name, roleId } = InviteUserSchema.parse(
-        req.body
-      );
+      const { email, name } = InviteUserSchema.parse(req.body);
 
       // Check if user exists
       let user = await this.service.getByEmail(email);
@@ -70,11 +54,7 @@ export class UserController {
         user = await this.service.create({ email, name }, companyId);
       } else {
         // Assign to company
-        await this.service.assignToCompany(
-          user.id,
-          companyId,
-          roleId
-        );
+        await this.service.assignToCompany(user.id, companyId);
       }
 
       res.json({ success: true, data: user });
@@ -91,7 +71,7 @@ export class UserController {
   ) => {
     try {
       const companyId = req.context.companyId!;
-      const { userId, roleId } = AssignUserSchema.parse(req.body);
+      const { userId, roleId } = AssignRoleSchema.parse(req.body);
 
       await this.service.assignToCompany(userId, companyId, roleId);
       res.json({

@@ -77,7 +77,7 @@ packages/shared/src/validators/
 **File**: `apps/api/src/modules/user/user.controller.ts`
 
 1. Remove local `InviteUserSchema` definition
-2. Remove local `AssignUserSchema` definition
+2. Remove local `AssignRoleSchema` definition
 3. Import from shared:
    ```typescript
    import {

@@ -39,11 +39,14 @@ vi.mock('../../../src/contexts/AuthContext', async () => {
   };
 });
 
-vi.mock('../../../src/features/company/services/companyService', () => ({
-  createCompany: vi.fn(),
-  joinCompany: vi.fn(),
-  getCompanies: vi.fn(),
-}));
+vi.mock(
+  '../../../src/features/company/services/companyService',
+  () => ({
+    createCompany: vi.fn(),
+    joinCompany: vi.fn(),
+    getCompanies: vi.fn(),
+  })
+);
 
 describe('CompanySelectionPage', () => {
   const mockSetCurrentCompany = vi.fn();

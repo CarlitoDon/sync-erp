@@ -24,12 +24,10 @@ export class CompanyController {
       const { inviteCode } = req.body;
       const userId = req.context?.userId;
       if (!userId) {
-        return res
-          .status(401)
-          .json({
-            success: false,
-            error: { message: 'Unauthorized' },
-          });
+        return res.status(401).json({
+          success: false,
+          error: { message: 'Unauthorized' },
+        });
       }
       const company = await this.service.join({ inviteCode }, userId);
       res.json({ success: true, data: company });
@@ -42,12 +40,10 @@ export class CompanyController {
     try {
       const userId = req.context?.userId;
       if (!userId) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: { message: 'userId is required' },
-          });
+        return res.status(400).json({
+          success: false,
+          error: { message: 'userId is required' },
+        });
       }
       const companies = await this.service.listForUser(userId);
       res.json({ success: true, data: companies });

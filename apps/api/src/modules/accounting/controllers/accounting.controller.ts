@@ -90,12 +90,10 @@ export class AccountingController {
       const { id } = req.params;
       const entry = await this.journalService.getById(id, companyId);
       if (!entry) {
-        res
-          .status(404)
-          .json({
-            success: false,
-            message: 'Journal entry not found',
-          });
+        res.status(404).json({
+          success: false,
+          message: 'Journal entry not found',
+        });
         return;
       }
       res.json({ success: true, data: entry });

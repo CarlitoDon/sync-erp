@@ -28,11 +28,14 @@ vi.mock('../../../src/contexts/CompanyContext', async () => {
   };
 });
 
-vi.mock('../../../src/features/company/services/companyService', () => ({
-  createCompany: vi.fn(),
-  getCompanies: vi.fn(),
-  joinCompany: vi.fn(),
-}));
+vi.mock(
+  '../../../src/features/company/services/companyService',
+  () => ({
+    createCompany: vi.fn(),
+    getCompanies: vi.fn(),
+    joinCompany: vi.fn(),
+  })
+);
 
 describe('CreateCompany', () => {
   const mockSetCompanies = vi.fn();

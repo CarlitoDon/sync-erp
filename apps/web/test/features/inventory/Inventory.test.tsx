@@ -23,11 +23,14 @@ vi.mock('../../../src/hooks/useCompanyData', async () => {
   };
 });
 
-vi.mock('../../../src/features/inventory/services/productService', () => ({
-  productService: {
-    getStockLevels: vi.fn(),
-  },
-}));
+vi.mock(
+  '../../../src/features/inventory/services/productService',
+  () => ({
+    productService: {
+      getStockLevels: vi.fn(),
+    },
+  })
+);
 
 describe('Inventory', () => {
   beforeEach(() => {

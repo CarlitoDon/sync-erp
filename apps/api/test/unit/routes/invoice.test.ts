@@ -20,12 +20,10 @@ vi.mock(
         });
       }),
       getOutstanding: vi.fn().mockResolvedValue([]),
-      createFromSalesOrder: vi
-        .fn()
-        .mockResolvedValue({
-          id: 'inv-new',
-          invoiceNumber: 'INV-002',
-        }),
+      createFromSalesOrder: vi.fn().mockResolvedValue({
+        id: 'inv-new',
+        invoiceNumber: 'INV-002',
+      }),
       post: vi
         .fn()
         .mockResolvedValue({ id: 'inv-1', status: 'POSTED' }),

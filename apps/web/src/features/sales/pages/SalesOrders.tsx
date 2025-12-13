@@ -4,8 +4,14 @@ import {
   SalesOrder,
   CreateSalesOrderInput,
 } from '../services/salesOrderService';
-import { partnerService, Partner } from '../../partners/services/partnerService';
-import { productService, Product } from '../../inventory/services/productService';
+import {
+  partnerService,
+  Partner,
+} from '../../partners/services/partnerService';
+import {
+  productService,
+  Product,
+} from '../../inventory/services/productService';
 import { invoiceService } from '../../finance/services/invoiceService';
 import { useCompany } from '../../../contexts/CompanyContext';
 import { useCompanyData } from '../../../hooks/useCompanyData';

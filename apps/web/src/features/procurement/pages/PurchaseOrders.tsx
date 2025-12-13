@@ -4,8 +4,14 @@ import {
   PurchaseOrder,
   CreatePurchaseOrderInput,
 } from '../services/purchaseOrderService';
-import { partnerService, Partner } from '../../partners/services/partnerService';
-import { productService, Product } from '../../inventory/services/productService';
+import {
+  partnerService,
+  Partner,
+} from '../../partners/services/partnerService';
+import {
+  productService,
+  Product,
+} from '../../inventory/services/productService';
 import { useCompany } from '../../../contexts/CompanyContext';
 import { useCompanyData } from '../../../hooks/useCompanyData';
 import { apiAction } from '../../../hooks/useApiAction';
@@ -66,7 +72,9 @@ export default function PurchaseOrders() {
     price: 0,
   });
 
-  const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(null);
+  const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(
+    null
+  );
 
   const handleAddItem = () => {
     if (!currentItem.productId || currentItem.quantity <= 0) return;
@@ -465,7 +473,7 @@ export default function PurchaseOrders() {
           </tbody>
         </table>
       </div>
-      
+
       {goodsReceiptId && (
         <GoodsReceiptModal
           isOpen={!!goodsReceiptId}

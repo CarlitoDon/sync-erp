@@ -3,6 +3,7 @@
 Auto-generated from all feature plans. Last updated: 2025-12-10
 
 ## Active Technologies
+
 - TypeScript 5.x + Express, Vitest, Prisma Client (010-test-refactor-3layer)
 - PostgreSQL via Prisma (010-test-refactor-3layer)
 - TypeScript 5.x + React 18, Vite 7, Tailwind 4, Vitest 4 (011-frontend-feature-refactor)
@@ -42,10 +43,10 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+
 - 013-backend-shared-validation: Added TypeScript 5.x, Node.js 20+ + Express, Zod, @sync-erp/shared
 - 012-core-ui-features: Added TypeScript 5.4 + React 18.2, Vite 5.1, TailwindCSS 3.4, TanStack Query v5
 - 011-frontend-feature-refactor: Added TypeScript 5.x + React 18, Vite 7, Tailwind 4, Vitest 4
-
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

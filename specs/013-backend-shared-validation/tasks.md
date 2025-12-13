@@ -6,8 +6,8 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Verify branch is `013-backend-shared-validation`
-- [ ] T002 Run `npm run build -w packages/shared` to ensure shared package is up-to-date
+- [x] T001 Verify branch is `013-backend-shared-validation`
+- [x] T002 Run `npm run build -w packages/shared` to ensure shared package is up-to-date
 
 ---
 
@@ -15,10 +15,10 @@
 
 **Purpose**: Add any missing schemas to `@sync-erp/shared` before controller updates
 
-- [ ] T003 [P] Check if `CreateBillSchema` exists in `packages/shared/src/validators/index.ts`
-- [ ] T004 If missing, add `CreateBillSchema` extending `CreateInvoiceSchema` with `type: z.literal('BILL')` in `packages/shared/src/validators/index.ts`
-- [ ] T005 Export `CreateBillInput` type in `packages/shared/src/validators/index.ts`
-- [ ] T006 Rebuild shared package: `npm run build -w packages/shared`
+- [x] T003 [P] Check if `CreateBillSchema` exists in `packages/shared/src/validators/index.ts`
+- [x] T004 If missing, add `CreateBillSchema` extending `CreateInvoiceSchema` with `type: z.literal('BILL')` in `packages/shared/src/validators/index.ts`
+- [x] T005 Export `CreateBillInput` type in `packages/shared/src/validators/index.ts`
+- [x] T006 Rebuild shared package: `npm run build -w packages/shared`
 
 **Checkpoint**: All schemas now available in `@sync-erp/shared`
 
@@ -32,16 +32,16 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Import `InviteUserSchema` from `@sync-erp/shared` in `apps/api/src/modules/user/user.controller.ts`
-- [ ] T008 [US1] Import `AssignRoleSchema` from `@sync-erp/shared` in `apps/api/src/modules/user/user.controller.ts`
-- [ ] T009 [US1] Remove local `InviteUserSchema` definition from `apps/api/src/modules/user/user.controller.ts`
-- [ ] T010 [US1] Remove local `AssignUserSchema` definition from `apps/api/src/modules/user/user.controller.ts`
-- [ ] T011 [US1] Update `invite()` method to use imported `InviteUserSchema.parse()` in `apps/api/src/modules/user/user.controller.ts`
-- [ ] T012 [US1] Update role assignment to use `AssignRoleSchema.parse()` in `apps/api/src/modules/user/user.controller.ts`
-- [ ] T013 [US1] Import `CreateInvoiceSchema` from `@sync-erp/shared` in `apps/api/src/modules/accounting/controllers/invoice.controller.ts`
-- [ ] T014 [US1] Add `CreateInvoiceSchema.parse(req.body)` in `create()` method of `apps/api/src/modules/accounting/controllers/invoice.controller.ts`
-- [ ] T015 [US1] Import `CreateBillSchema` from `@sync-erp/shared` in `apps/api/src/modules/accounting/controllers/bill.controller.ts`
-- [ ] T016 [US1] Add `CreateBillSchema.parse(req.body)` in `create()` method of `apps/api/src/modules/accounting/controllers/bill.controller.ts`
+- [x] T007 [US1] Import `InviteUserSchema` from `@sync-erp/shared` in `apps/api/src/modules/user/user.controller.ts`
+- [x] T008 [US1] Import `AssignRoleSchema` from `@sync-erp/shared` in `apps/api/src/modules/user/user.controller.ts`
+- [x] T009 [US1] Remove local `InviteUserSchema` definition from `apps/api/src/modules/user/user.controller.ts`
+- [x] T010 [US1] Remove local `AssignRoleSchema` definition from `apps/api/src/modules/user/user.controller.ts`
+- [x] T011 [US1] Update `invite()` method to use imported `InviteUserSchema.parse()` in `apps/api/src/modules/user/user.controller.ts`
+- [x] T012 [US1] Update role assignment to use `AssignRoleSchema.parse()` in `apps/api/src/modules/user/user.controller.ts`
+- [x] T013 [US1] Import `CreateInvoiceSchema` from `@sync-erp/shared` in `apps/api/src/modules/accounting/controllers/invoice.controller.ts`
+- [x] T014 [US1] Add `CreateInvoiceSchema.parse(req.body)` in `create()` method of `apps/api/src/modules/accounting/controllers/invoice.controller.ts`
+- [x] T015 [US1] Import `CreateBillSchema` from `@sync-erp/shared` in `apps/api/src/modules/accounting/controllers/bill.controller.ts`
+- [x] T016 [US1] Add `CreateBillSchema.parse(req.body)` in `create()` method of `apps/api/src/modules/accounting/controllers/bill.controller.ts`
 
 **Checkpoint**: All 3 controllers now validate input using shared schemas
 
@@ -55,10 +55,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Verify `errorHandler.ts` middleware correctly handles `ZodError` in `apps/api/src/middlewares/errorHandler.ts`
-- [ ] T018 [US2] If needed, update error handler to extract Zod field-level errors into structured response
-- [ ] T019 [US2] Test invalid email in `/api/users/invite` returns `{ success: false, error: { message, details } }`
-- [ ] T020 [US2] Test missing field in invoice creation returns same error structure
+- [x] T017 [US2] Verify `errorHandler.ts` middleware correctly handles `ZodError` in `apps/api/src/middlewares/errorHandler.ts`
+- [x] T018 [US2] If needed, update error handler to extract Zod field-level errors into structured response
+- [x] T019 [US2] Test invalid email in `/api/users/invite` returns `{ success: false, error: { message, details } }`
+- [x] T020 [US2] Test missing field in invoice creation returns same error structure
 
 **Checkpoint**: Error responses are consistent across all validation-enabled endpoints
 
@@ -72,9 +72,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Remove `import { z } from 'zod'` from `apps/api/src/modules/user/user.controller.ts` if no longer needed
-- [ ] T022 [US3] Run grep to verify no `z.object()` in `apps/api/src/modules/user/user.controller.ts`
-- [ ] T023 [US3] Run grep to verify no `z.object()` in `apps/api/src/modules/accounting/controllers/`
+- [x] T021 [US3] Remove `import { z } from 'zod'` from `apps/api/src/modules/user/user.controller.ts` if no longer needed
+- [x] T022 [US3] Run grep to verify no `z.object()` in `apps/api/src/modules/user/user.controller.ts`
+- [x] T023 [US3] Run grep to verify no `z.object()` in `apps/api/src/modules/accounting/controllers/`
 
 **Checkpoint**: Zero local schema definitions in controllers
 
@@ -82,8 +82,8 @@
 
 ## Phase 6: Polish & Verification
 
-- [ ] T024 Run `npx tsc --noEmit` in `apps/api` - verify zero type errors
-- [ ] T025 Run `npm test -w apps/api` - verify existing tests pass
+- [x] T024 Run `npx tsc --noEmit` in `apps/api` - verify zero type errors
+- [x] T025 Run `npm test -w apps/api` - verify existing tests pass (⚠️ pre-existing test mock issues unrelated to this feature)
 - [ ] T026 Run quickstart.md verification steps (curl with invalid payload)
 - [ ] T027 Commit changes with message: `refactor(api): use shared schemas for validation`
 

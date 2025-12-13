@@ -157,6 +157,10 @@ export const CreateInvoiceSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
 });
 
+export const CreateBillSchema = CreateInvoiceSchema.extend({
+  type: z.literal('BILL'),
+});
+
 // ============================================
 // Payment Schemas
 // ============================================
@@ -193,6 +197,7 @@ export type CreateProductInput = z.infer<typeof CreateProductSchema>;
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
 export type CreateInvoiceInput = z.infer<typeof CreateInvoiceSchema>;
+export type CreateBillInput = z.infer<typeof CreateBillSchema>;
 export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
 export type GoodsReceiptInput = z.infer<typeof GoodsReceiptSchema>;
 export type StockAdjustmentInput = z.infer<

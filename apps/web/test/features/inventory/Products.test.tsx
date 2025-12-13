@@ -25,15 +25,18 @@ vi.mock('../../../src/hooks/useCompanyData', async () => {
   };
 });
 
-vi.mock('../../../src/features/inventory/services/productService', () => ({
-  productService: {
-    list: vi.fn(),
-    create: vi.fn(),
-    delete: vi.fn(),
-  },
-  Product: {},
-  CreateProductInput: {},
-}));
+vi.mock(
+  '../../../src/features/inventory/services/productService',
+  () => ({
+    productService: {
+      list: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+    },
+    Product: {},
+    CreateProductInput: {},
+  })
+);
 
 describe('Products', () => {
   beforeEach(() => {

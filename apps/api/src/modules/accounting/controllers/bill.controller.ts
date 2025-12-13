@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { BillService } from '../services/bill.service';
+import { CreateBillSchema } from '@sync-erp/shared';
 
 export class BillController {
   private service = new BillService();
@@ -22,9 +23,14 @@ export class BillController {
   ) => {
     try {
       const companyId = req.context.companyId!;
+      const validated = CreateBillSchema.parse(req.body);
+      // Service expects orderId - extract from validated data
       const bill = await this.service.createFromPurchaseOrder(
         companyId,
-        req.body
+        {
+          orderId: validated.orderId!,
+          dueDate: validated.dueDate,
+        }
       );
       res.status(201).json({ success: true, data: bill });
     } catch (error) {
@@ -44,12 +50,10 @@ export class BillController {
         companyId
       );
       if (!bill) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            error: { message: 'Bill not found' },
-          });
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Bill not found' },
+        });
       }
       res.json({ success: true, data: bill });
     } catch (error) {

@@ -29,13 +29,16 @@ vi.mock('../../../src/contexts/CompanyContext', async () => {
   };
 });
 
-vi.mock('../../../src/features/finance/services/financeService', () => ({
-  financeService: {
-    listJournals: vi.fn(),
-    createJournal: vi.fn(),
-    listAccounts: vi.fn(),
-  },
-}));
+vi.mock(
+  '../../../src/features/finance/services/financeService',
+  () => ({
+    financeService: {
+      listJournals: vi.fn(),
+      createJournal: vi.fn(),
+      listAccounts: vi.fn(),
+    },
+  })
+);
 
 vi.mock('../../../src/hooks/useApiAction', () => ({
   useApiAction: (fn: () => Promise<void>) => ({

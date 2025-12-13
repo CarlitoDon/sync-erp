@@ -24,15 +24,18 @@ vi.mock('../../../src/hooks/useCompanyData', async () => {
   };
 });
 
-vi.mock('../../../src/features/sales/services/salesOrderService', () => ({
-  salesOrderService: {
-    list: vi.fn(),
-    create: vi.fn(),
-    confirm: vi.fn(),
-    ship: vi.fn(),
-    cancel: vi.fn(),
-  },
-}));
+vi.mock(
+  '../../../src/features/sales/services/salesOrderService',
+  () => ({
+    salesOrderService: {
+      list: vi.fn(),
+      create: vi.fn(),
+      confirm: vi.fn(),
+      ship: vi.fn(),
+      cancel: vi.fn(),
+    },
+  })
+);
 
 vi.mock('../../../src/services/partnerService', () => ({
   partnerService: { listCustomers: vi.fn() },
