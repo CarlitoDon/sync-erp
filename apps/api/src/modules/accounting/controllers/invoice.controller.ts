@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { InvoiceService } from '../services/invoice.service';
+import { CreateInvoiceSchema } from '@sync-erp/shared';
 
 export class InvoiceController {
   private service = new InvoiceService();
@@ -22,10 +23,14 @@ export class InvoiceController {
   ) => {
     try {
       const companyId = req.context.companyId!;
-      // Assuming body matches CreateInvoiceInput
+      const validated = CreateInvoiceSchema.parse(req.body);
+      // Service expects orderId - extract from validated data
       const invoice = await this.service.createFromSalesOrder(
         companyId,
-        req.body
+        {
+          orderId: validated.orderId!,
+          dueDate: validated.dueDate,
+        }
       );
       res.status(201).json({ success: true, data: invoice });
     } catch (error) {
@@ -45,12 +50,10 @@ export class InvoiceController {
         companyId
       );
       if (!invoice) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            error: { message: 'Invoice not found' },
-          });
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Invoice not found' },
+        });
       }
       res.json({ success: true, data: invoice });
     } catch (error) {

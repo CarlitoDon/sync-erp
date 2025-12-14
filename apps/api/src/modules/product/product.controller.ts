@@ -45,12 +45,10 @@ export class ProductController {
         companyId
       );
       if (!product) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            error: { message: 'Product not found' },
-          });
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Product not found' },
+        });
       }
       res.json({ success: true, data: product });
     } catch (error) {
@@ -103,12 +101,10 @@ export class ProductController {
         companyId
       );
       if (!product) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            error: { message: 'Product not found' },
-          });
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Product not found' },
+        });
       }
       res.json({
         success: true,

@@ -10,3 +10,10 @@ export const JoinCompanySchema = z.object({
 
 export type CreateCompanyInput = z.infer<typeof CreateCompanySchema>;
 export type JoinCompanyInput = z.infer<typeof JoinCompanySchema>;
+
+export const InviteUserSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  name: z.string().min(2, 'Name is required'),
+});
+
+export type InviteUserInput = z.infer<typeof InviteUserSchema>;

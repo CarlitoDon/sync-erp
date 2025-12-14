@@ -1,0 +1,168 @@
+openapi: 3.0.3
+info:
+  title: Create Bill API Contract
+  version: 1.0.0
+  description: API contract for manual bill creation
+
+paths:
+  /api/bills:
+    post:
+      summary: Create a new bill
+      description: |
+        Creates a new bill. Supports two modes:
+        1. **From Purchase Order**: Provide `orderId` to create a bill linked to a PO
+        2. **Manual Entry**: Provide `partnerId` and `subtotal` without `orderId`
+      operationId: createBill
+      tags:
+        - Bills
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CreateBillFromPO'
+                - $ref: '#/components/schemas/CreateManualBill'
+            examples:
+              fromPurchaseOrder:
+                summary: Create from Purchase Order
+                value:
+                  orderId: '123e4567-e89b-12d3-a456-426614174000'
+                  dueDate: '2025-01-15'
+              manualEntry:
+                summary: Manual Bill Entry
+                value:
+                  partnerId: '456e7890-e12b-34c5-d678-901234567890'
+                  subtotal: 1000000
+                  taxRate: 11
+                  dueDate: '2025-01-15'
+                  notes: 'Monthly electricity bill'
+      responses:
+        '201':
+          description: Bill created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    CreateBillFromPO:
+      type: object
+      required:
+        - orderId
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Purchase Order ID
+        dueDate:
+          type: string
+          format: date
+          description: Payment due date (defaults to 30 days)
+        notes:
+          type: string
+          description: Optional notes
+
+    CreateManualBill:
+      type: object
+      required:
+        - partnerId
+        - subtotal
+      properties:
+        partnerId:
+          type: string
+          format: uuid
+          description: Supplier Partner ID (must be type=SUPPLIER)
+        subtotal:
+          type: number
+          format: double
+          minimum: 0.01
+          description: Bill subtotal before tax
+        taxRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          default: 0
+          description: Tax rate percentage (e.g., 11 for 11%)
+        dueDate:
+          type: string
+          format: date
+          description: Payment due date (defaults to 30 days)
+        notes:
+          type: string
+          description: Optional notes
+
+    BillResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Bill'
+
+    Bill:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoiceNumber:
+          type: string
+          example: 'BILL-000023'
+        partnerId:
+          type: string
+          format: uuid
+        partner:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        type:
+          type: string
+          enum: [BILL]
+        status:
+          type: string
+          enum: [DRAFT, POSTED, PAID, VOID]
+        subtotal:
+          type: number
+        taxRate:
+          type: number
+        taxAmount:
+          type: number
+        amount:
+          type: number
+          description: Total = subtotal + taxAmount
+        balance:
+          type: number
+          description: Remaining unpaid amount
+        dueDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+            code:
+              type: string

@@ -87,10 +87,17 @@ export class InvoiceService {
   }
 
   async list(companyId: string, status?: string) {
+    // Validate status if provided - only allow valid InvoiceStatus values
+    const validStatuses = ['DRAFT', 'POSTED', 'PAID', 'VOID'];
+    const validatedStatus =
+      status && validStatuses.includes(status)
+        ? (status as InvoiceStatus)
+        : undefined;
+
     return this.repository.findAll(
       companyId,
       InvoiceType.INVOICE,
-      status as InvoiceStatus
+      validatedStatus
     );
   }
 

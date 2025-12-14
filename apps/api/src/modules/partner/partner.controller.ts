@@ -86,12 +86,10 @@ export class PartnerController {
         companyId
       );
       if (!partner) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            error: { message: 'Partner not found' },
-          });
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Partner not found' },
+        });
       }
       res.json({ success: true, data: partner });
     } catch (error) {

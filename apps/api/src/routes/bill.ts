@@ -1,20 +1,8 @@
 import { Router } from 'express';
 import { BillController } from '../modules/accounting/controllers/bill.controller';
-import { z } from 'zod';
 
 export const billRouter = Router();
 const controller = new BillController();
-
-const CreateBillSchema = z.object({
-  orderId: z.string().uuid(),
-  invoiceNumber: z.string().optional(),
-  dueDate: z
-    .string()
-    .datetime()
-    .optional()
-    .transform((val) => (val ? new Date(val) : undefined)),
-  notes: z.string().optional(),
-});
 
 // GET /api/bills - List all bills
 billRouter.get('/', controller.list);
@@ -27,15 +15,9 @@ billRouter.get('/outstanding', controller.getOutstanding);
 // GET /api/bills/:id - Get bill by ID
 billRouter.get('/:id', controller.getById);
 
-// POST /api/bills - Create bill from PO
-billRouter.post('/', async (req, res, next) => {
-  try {
-    CreateBillSchema.parse(req.body);
-    await controller.create(req, res, next);
-  } catch (e) {
-    next(e);
-  }
-});
+// POST /api/bills - Create bill (from PO or manual entry)
+// Controller handles validation - detects mode by checking payload
+billRouter.post('/', controller.create);
 
 // POST /api/bills/:id/post - Post/approve bill
 billRouter.post('/:id/post', controller.post);

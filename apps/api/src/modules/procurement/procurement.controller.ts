@@ -30,12 +30,10 @@ export class ProcurementController {
       );
 
       if (!order) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            error: { message: 'Purchase order not found' },
-          });
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Purchase order not found' },
+        });
       }
 
       res.json({ success: true, data: order });

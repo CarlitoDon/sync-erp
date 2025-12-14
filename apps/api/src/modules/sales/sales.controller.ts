@@ -30,12 +30,10 @@ export class SalesController {
       );
 
       if (!order) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            error: { message: 'Sales order not found' },
-          });
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Sales order not found' },
+        });
       }
 
       res.json({ success: true, data: order });

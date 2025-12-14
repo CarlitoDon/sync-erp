@@ -10,7 +10,7 @@ import {
   authService,
   LoginPayload,
   RegisterPayload,
-} from '../services/authService';
+} from '../features/auth/services/authService';
 
 interface AuthContextType {
   user: User | null;

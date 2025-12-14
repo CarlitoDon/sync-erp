@@ -1,18 +1,18 @@
 <!--
 SYNC IMPACT REPORT
-Version: 1.4.0 -> 1.5.0 (Minor - Feature-Based Frontend Architecture)
+Version: 1.5.0 -> 1.6.0 (Minor - Added Service Pattern Principle)
 Modified Principles:
-- VI. Feature-Based & DRY Frontend Architecture (Enforced Feature folders)
-Added Sections:
 - None
+Added Sections:
+- IX. Callback-Safe Service Patterns (New principle for frontend services)
 Removed Sections:
 - None
 Templates requiring updates:
-- plan-template.md (✅ updated - added Feature-First check)
-- spec-template.md (✅ updated - added Feature Isolation check)
-- tasks-template.md (✅ updated - reflected feature paths)
+- plan-template.md (⚠ pending - may add service pattern check)
+- spec-template.md (✅ no changes needed)
+- tasks-template.md (✅ no changes needed)
 Follow-up TODOs:
-- Refactor existing frontend pages to `src/features` (Task to be created)
+- Refactor existing services to follow standalone function pattern
 -->
 
 # Sync ERP Constitution
@@ -78,6 +78,37 @@ Follow-up TODOs:
 - **Loading States**: Use consistent loading patterns via hooks (e.g., `useCompanyData` returns `loading` state).
 - **No Native Browser UI**: Avoid `alert()`, `confirm()`, `prompt()`. Always use custom styled components.
 
+### IX. Callback-Safe Service Patterns
+
+- **No `this` in Services**: Frontend service objects MUST NOT use `this` to call internal methods. When service methods are passed as callbacks to hooks (e.g., `useCompanyData`), `this` context is lost.
+- **Standalone Functions**: Service internal methods MUST be standalone functions, not object methods:
+
+  ```typescript
+  // ✅ CORRECT: Standalone functions
+  export const myService = { getMetrics };
+
+  async function getMetrics() {
+    const data = await fetchHelper(); // Direct call, no 'this'
+    return data;
+  }
+
+  async function fetchHelper() {
+    /* ... */
+  }
+
+  // ❌ WRONG: Object methods with 'this'
+  export const myService = {
+    async getMetrics() {
+      return await this.helper(); // 'this' will be undefined!
+    },
+    async helper() {
+      /* ... */
+    },
+  };
+  ```
+
+- **Rationale**: React hooks like `useCompanyData(service.getMetrics, null)` extract the method reference, losing the object context. Using standalone functions avoids this class of runtime errors entirely.
+
 ## Reference Architecture
 
 The project MUST follow this directory structure:
@@ -134,4 +165,4 @@ This Constitution supersedes all other stylistic or architectural preferences.
 - **Amendments**: Changes to this document require a Pull Request and consensus from the team.
 - **Compliance**: Code reviews must explicitly verify compliance with these principles.
 
-**Version**: 1.5.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-12
+**Version**: 1.6.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-13
