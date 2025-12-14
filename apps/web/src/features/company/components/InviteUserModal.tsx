@@ -44,7 +44,7 @@ export function InviteUserModal({
     if (!currentCompany) return;
     setLoading(true);
     await apiAction(
-      () => userService.invite(currentCompany.id, data),
+      () => userService.invite(data),
       {
         onSuccess: () => {
           onSuccess?.();

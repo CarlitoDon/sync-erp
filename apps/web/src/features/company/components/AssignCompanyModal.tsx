@@ -64,7 +64,7 @@ export function AssignCompanyModal({
     setLoading(true);
     await apiAction(
       () =>
-        userService.assign(currentCompany.id, {
+        userService.assign({
           userId,
           roleId: data.roleId,
         }),
