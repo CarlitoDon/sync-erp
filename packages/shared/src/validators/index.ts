@@ -161,6 +161,15 @@ export const CreateBillSchema = CreateInvoiceSchema.extend({
   type: z.literal('BILL'),
 });
 
+// Manual Bill Creation (without Purchase Order)
+export const CreateManualBillSchema = z.object({
+  partnerId: z.string().uuid('Invalid supplier ID'),
+  subtotal: z.number().positive('Subtotal must be positive'),
+  taxRate: z.number().min(0).max(100).default(0),
+  dueDate: z.coerce.date().optional(),
+  notes: z.string().optional(),
+});
+
 // ============================================
 // Payment Schemas
 // ============================================
@@ -198,6 +207,7 @@ export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
 export type CreateInvoiceInput = z.infer<typeof CreateInvoiceSchema>;
 export type CreateBillInput = z.infer<typeof CreateBillSchema>;
+export type CreateManualBillInput = z.infer<typeof CreateManualBillSchema>;
 export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
 export type GoodsReceiptInput = z.infer<typeof GoodsReceiptSchema>;
 export type StockAdjustmentInput = z.infer<

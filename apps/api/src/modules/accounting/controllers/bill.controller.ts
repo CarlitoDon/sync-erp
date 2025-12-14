@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { BillService } from '../services/bill.service';
-import { CreateBillSchema } from '@sync-erp/shared';
+import {
+  CreateBillSchema,
+  CreateManualBillSchema,
+} from '@sync-erp/shared';
 
 export class BillController {
   private service = new BillService();
@@ -23,15 +26,24 @@ export class BillController {
   ) => {
     try {
       const companyId = req.context.companyId!;
+
+      // Check if this is manual creation (no orderId, has partnerId + subtotal)
+      if (
+        !req.body.orderId &&
+        req.body.partnerId &&
+        req.body.subtotal !== undefined
+      ) {
+        const validated = CreateManualBillSchema.parse(req.body);
+        const bill = await this.service.createManual(companyId, validated);
+        return res.status(201).json({ success: true, data: bill });
+      }
+
+      // Otherwise, use PO-based creation
       const validated = CreateBillSchema.parse(req.body);
-      // Service expects orderId - extract from validated data
-      const bill = await this.service.createFromPurchaseOrder(
-        companyId,
-        {
-          orderId: validated.orderId!,
-          dueDate: validated.dueDate,
-        }
-      );
+      const bill = await this.service.createFromPurchaseOrder(companyId, {
+        orderId: validated.orderId!,
+        dueDate: validated.dueDate,
+      });
       res.status(201).json({ success: true, data: bill });
     } catch (error) {
       next(error);
