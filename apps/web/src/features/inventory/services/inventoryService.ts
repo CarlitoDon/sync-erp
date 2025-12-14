@@ -1,4 +1,5 @@
 import api from '../../../services/api';
+import { ensureArray } from '../../../utils/safeData';
 import {
   GoodsReceiptInput,
   StockAdjustmentInput,
@@ -15,7 +16,7 @@ export const processGoodsReceipt = async (
   }>('/inventory/goods-receipt', data, {
     headers: { 'x-company-id': companyId },
   });
-  return response.data.data;
+  return ensureArray(response.data?.data);
 };
 
 export const adjustStock = async (
@@ -28,5 +29,5 @@ export const adjustStock = async (
   }>('/inventory/adjust', data, {
     headers: { 'x-company-id': companyId },
   });
-  return response.data.data;
+  return response.data?.data ?? response.data;
 };

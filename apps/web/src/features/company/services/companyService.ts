@@ -1,4 +1,5 @@
 import api from '../../../services/api';
+import { ensureArray } from '../../../utils/safeData';
 import type {
   Company,
   CreateCompanyDto,
@@ -9,7 +10,7 @@ import type {
 export async function getCompanies(): Promise<Company[]> {
   const response =
     await api.get<ApiResponse<Company[]>>('/companies');
-  return response.data.data || [];
+  return ensureArray(response.data?.data);
 }
 
 export async function getCompanyById(
@@ -18,7 +19,7 @@ export async function getCompanyById(
   const response = await api.get<ApiResponse<Company>>(
     `/companies/${id}`
   );
-  return response.data.data || null;
+  return response.data?.data ?? null;
 }
 
 export async function createCompany(
@@ -28,7 +29,7 @@ export async function createCompany(
     '/companies',
     data
   );
-  if (!response.data.data) {
+  if (!response.data?.data) {
     throw new Error('Failed to create company');
   }
   return response.data.data;
@@ -41,7 +42,7 @@ export async function joinCompany(
     '/companies/join',
     data
   );
-  if (!response.data.data) {
+  if (!response.data?.data) {
     throw new Error('Failed to join company');
   }
   return response.data.data;

@@ -1,4 +1,5 @@
 import api from '../../../services/api';
+import { ensureArray } from '../../../utils/safeData';
 import { Payment } from '@sync-erp/shared';
 
 export const paymentService = {
@@ -6,6 +7,6 @@ export const paymentService = {
     invoiceId: string
   ): Promise<Payment[]> => {
     const response = await api.get(`/payments/invoice/${invoiceId}`);
-    return response.data;
+    return ensureArray(response.data?.data);
   },
 };

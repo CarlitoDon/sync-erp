@@ -1,4 +1,5 @@
 import api from '../../../services/api';
+import { ensureArray } from '../../../utils/safeData';
 
 export interface Partner {
   id: string;
@@ -22,27 +23,27 @@ export const partnerService = {
   async list(type?: 'CUSTOMER' | 'SUPPLIER'): Promise<Partner[]> {
     const params = type ? { type } : {};
     const res = await api.get('/partners', { params });
-    return res.data.data;
+    return ensureArray(res.data?.data);
   },
 
   async listSuppliers(): Promise<Partner[]> {
     const res = await api.get('/partners/suppliers');
-    return res.data.data;
+    return ensureArray(res.data?.data);
   },
 
   async listCustomers(): Promise<Partner[]> {
     const res = await api.get('/partners/customers');
-    return res.data.data;
+    return ensureArray(res.data?.data);
   },
 
   async getById(id: string): Promise<Partner> {
     const res = await api.get(`/partners/${id}`);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   async create(data: CreatePartnerInput): Promise<Partner> {
     const res = await api.post('/partners', data);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   async update(
@@ -50,7 +51,7 @@ export const partnerService = {
     data: Partial<CreatePartnerInput>
   ): Promise<Partner> {
     const res = await api.put(`/partners/${id}`, data);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   async delete(id: string): Promise<void> {

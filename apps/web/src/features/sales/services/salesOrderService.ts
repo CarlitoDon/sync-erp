@@ -1,4 +1,5 @@
 import api from '../../../services/api';
+import { ensureArray } from '../../../utils/safeData';
 import type { Partner } from '../../partners/services/partnerService';
 import type { Product } from '../../inventory/services/productService';
 
@@ -31,22 +32,22 @@ export const salesOrderService = {
   async list(status?: string): Promise<SalesOrder[]> {
     const params = status ? { status } : {};
     const res = await api.get('/sales-orders', { params });
-    return res.data.data;
+    return ensureArray(res.data?.data);
   },
 
   async getById(id: string): Promise<SalesOrder> {
     const res = await api.get(`/sales-orders/${id}`);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   async create(data: CreateSalesOrderInput): Promise<SalesOrder> {
     const res = await api.post('/sales-orders', data);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   async confirm(id: string): Promise<SalesOrder> {
     const res = await api.post(`/sales-orders/${id}/confirm`);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   async ship(id: string, reference?: string): Promise<void> {
@@ -55,6 +56,6 @@ export const salesOrderService = {
 
   async cancel(id: string): Promise<SalesOrder> {
     const res = await api.post(`/sales-orders/${id}/cancel`);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 };

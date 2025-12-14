@@ -4,6 +4,8 @@ import {
   CreateJournalEntryInput,
   CreateJournalLineInput,
 } from '@sync-erp/shared';
+import { ensureArray } from '../../../utils/safeData';
+
 export type {
   Account,
   CreateJournalEntryInput,
@@ -48,7 +50,7 @@ export const financeService = {
   async listAccounts(type?: Account['type']): Promise<Account[]> {
     const params = type ? { type } : {};
     const res = await api.get('/finance/accounts', { params });
-    return res.data.data;
+    return ensureArray(res.data?.data);
   },
 
   async createAccount(data: {
@@ -57,12 +59,12 @@ export const financeService = {
     type: Account['type'];
   }): Promise<Account> {
     const res = await api.post('/finance/accounts', data);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   async seedDefaultAccounts(): Promise<Account[]> {
     const res = await api.post('/finance/accounts/seed');
-    return res.data.data;
+    return ensureArray(res.data?.data);
   },
 
   // Journals
@@ -74,19 +76,19 @@ export const financeService = {
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
     const res = await api.get('/finance/journals', { params });
-    return res.data.data;
+    return ensureArray(res.data?.data);
   },
 
   async getJournal(id: string): Promise<JournalEntry> {
     const res = await api.get(`/finance/journals/${id}`);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   async createJournal(
     data: CreateJournalEntryInput
   ): Promise<JournalEntry> {
     const res = await api.post('/finance/journals', data);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   // Reports
@@ -95,7 +97,7 @@ export const financeService = {
     const res = await api.get('/finance/reports/trial-balance', {
       params,
     });
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   async getGeneralLedger(
@@ -122,7 +124,7 @@ export const financeService = {
       `/finance/reports/general-ledger/${accountId}`,
       { params }
     );
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   async getIncomeStatement(
@@ -139,6 +141,6 @@ export const financeService = {
     const res = await api.get('/finance/reports/income-statement', {
       params,
     });
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 };
