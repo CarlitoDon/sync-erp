@@ -1,14 +1,23 @@
-import { useState } from 'react';
-import { billService, Bill } from '../services/billService';
+import { useState, useEffect, useMemo } from 'react';
+import {
+  billService,
+  Bill,
+  CreateManualBillInput,
+} from '../services/billService';
 import {
   paymentService,
   CreatePaymentInput,
 } from '../services/invoiceService';
+import {
+  partnerService,
+  Partner,
+} from '../../partners/services/partnerService';
 import { useCompany } from '../../../contexts/CompanyContext';
 import { useCompanyData } from '../../../hooks/useCompanyData';
 import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
+import FormModal from '../../../components/ui/FormModal';
 import { formatCurrency, formatDate } from '../../../utils/format';
 import { PaymentHistoryList } from '../components/PaymentHistoryList';
 
@@ -33,6 +42,37 @@ export default function AccountsPayable() {
     useState<CreatePaymentInput['method']>('BANK_TRANSFER');
   const [showHistory, setShowHistory] = useState<string | null>(null);
 
+  // Create Bill Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [suppliers, setSuppliers] = useState<Partner[]>([]);
+  const [formData, setFormData] = useState<CreateManualBillInput>({
+    partnerId: '',
+    subtotal: 0,
+    taxRate: 0,
+    dueDate: '',
+    notes: '',
+  });
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
+  // Load suppliers when modal opens
+  useEffect(() => {
+    if (showCreateModal && currentCompany) {
+      partnerService.listSuppliers().then(setSuppliers).catch(console.error);
+    }
+  }, [showCreateModal, currentCompany]);
+
+  // Tax calculation
+  const taxAmount = useMemo(() => {
+    const rate = formData.taxRate || 0;
+    const multiplier = rate > 1 ? rate / 100 : rate;
+    return formData.subtotal * multiplier;
+  }, [formData.subtotal, formData.taxRate]);
+
+  const totalAmount = useMemo(
+    () => formData.subtotal + taxAmount,
+    [formData.subtotal, taxAmount]
+  );
+
   const handlePost = async (id: string) => {
     await apiAction(() => billService.post(id), 'Bill posted!');
     loadBills();
@@ -48,6 +88,52 @@ export default function AccountsPayable() {
     if (!confirmed) return;
     await apiAction(() => billService.void(id), 'Bill voided');
     loadBills();
+  };
+
+  // Create Bill validation and submit
+  const validateCreateForm = (): boolean => {
+    const errors: { [key: string]: string } = {};
+    if (!formData.partnerId) {
+      errors.partnerId = 'Supplier is required';
+    }
+    if (!formData.subtotal || formData.subtotal <= 0) {
+      errors.subtotal = 'Amount must be greater than 0';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCreateBill = async () => {
+    if (!validateCreateForm()) return;
+
+    const result = await apiAction(
+      () => billService.createManual(formData),
+      'Bill created!'
+    );
+    if (result) {
+      setShowCreateModal(false);
+      setFormData({
+        partnerId: '',
+        subtotal: 0,
+        taxRate: 0,
+        dueDate: '',
+        notes: '',
+      });
+      setFormErrors({});
+      loadBills();
+    }
+  };
+
+  const resetCreateForm = () => {
+    setShowCreateModal(false);
+    setFormData({
+      partnerId: '',
+      subtotal: 0,
+      taxRate: 0,
+      dueDate: '',
+      notes: '',
+    });
+    setFormErrors({});
   };
 
   const handlePayment = async (invoiceId: string) => {
@@ -107,8 +193,171 @@ export default function AccountsPayable() {
     .reduce((sum, b) => sum + Number(b.balance), 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <>
+      {/* Create Bill Modal */}
+      <FormModal
+        isOpen={showCreateModal}
+        onClose={resetCreateForm}
+        title="Create Manual Bill"
+        maxWidth="lg"
+      >
+        <div className="space-y-4">
+          {/* Supplier */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Supplier *
+            </label>
+            <select
+              value={formData.partnerId}
+              onChange={(e) =>
+                setFormData({ ...formData, partnerId: e.target.value })
+              }
+              className={`w-full px-3 py-2 border rounded-lg ${
+                formErrors.partnerId
+                  ? 'border-red-500'
+                  : 'border-gray-300'
+              }`}
+            >
+              <option value="">Select Supplier</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            {formErrors.partnerId && (
+              <p className="text-red-500 text-sm mt-1">
+                {formErrors.partnerId}
+              </p>
+            )}
+          </div>
+
+          {/* Subtotal */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Subtotal Amount *
+            </label>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={formData.subtotal || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  subtotal: parseFloat(e.target.value) || 0,
+                })
+              }
+              className={`w-full px-3 py-2 border rounded-lg ${
+                formErrors.subtotal
+                  ? 'border-red-500'
+                  : 'border-gray-300'
+              }`}
+              placeholder="0.00"
+            />
+            {formErrors.subtotal && (
+              <p className="text-red-500 text-sm mt-1">
+                {formErrors.subtotal}
+              </p>
+            )}
+          </div>
+
+          {/* Tax Rate */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tax Rate (%)
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              value={formData.taxRate || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  taxRate: parseFloat(e.target.value) || 0,
+                })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="0"
+            />
+          </div>
+
+          {/* Calculated Amounts */}
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Tax Amount:</span>
+              <span className="font-medium">
+                {formatCurrency(taxAmount)}
+              </span>
+            </div>
+            <div className="flex justify-between text-base font-bold mt-2">
+              <span>Total:</span>
+              <span className="text-blue-600">
+                {formatCurrency(totalAmount)}
+              </span>
+            </div>
+          </div>
+
+          {/* Due Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Due Date
+            </label>
+            <input
+              type="date"
+              value={formData.dueDate || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, dueDate: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Leave blank for default 30 days
+            </p>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
+            <textarea
+              value={formData.notes || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Optional notes..."
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={resetCreateForm}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateBill}
+              disabled={!formData.partnerId || formData.subtotal <= 0}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Create Bill
+            </button>
+          </div>
+        </div>
+      </FormModal>
+
+      {/* Main Content */}
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             Accounts Payable
@@ -117,6 +366,12 @@ export default function AccountsPayable() {
             Manage Supplier Bills and Payments
           </p>
         </div>
+        <ActionButton
+          variant="primary"
+          onClick={() => setShowCreateModal(true)}
+        >
+          + Create Bill
+        </ActionButton>
       </div>
 
       {/* Summary Cards */}
@@ -362,7 +617,8 @@ export default function AccountsPayable() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

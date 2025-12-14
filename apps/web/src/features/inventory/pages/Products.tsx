@@ -9,23 +9,32 @@ import { useCompanyData } from '../../../hooks/useCompanyData';
 import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
+import FormModal from '../../../components/ui/FormModal';
 
 export default function Products() {
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
-  // Using the new hook
   const {
     data: products,
     loading,
     refresh: loadProducts,
   } = useCompanyData<Product[]>(productService.list, []);
 
-  const [showForm, setShowForm] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<CreateProductInput>({
     sku: '',
     name: '',
     price: 0,
   });
+
+  const resetForm = () => {
+    setFormData({ sku: '', name: '', price: 0 });
+  };
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+    resetForm();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,8 +43,7 @@ export default function Products() {
       'Product created!'
     );
     if (result) {
-      setShowForm(false);
-      setFormData({ sku: '', name: '', price: 0 });
+      handleClose();
       loadProducts();
     }
   };
@@ -88,79 +96,85 @@ export default function Products() {
           <p className="text-gray-500">Manage your product catalog</p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => setIsModalOpen(true)}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
-          {showForm ? 'Cancel' : '+ Add Product'}
+          + Add Product
         </button>
       </div>
 
-      {showForm && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">New Product</h2>
-          <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-3 gap-4"
-          >
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                SKU *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.sku}
-                onChange={(e) =>
-                  setFormData({ ...formData, sku: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="e.g., PROD-001"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Selling Price *
-              </label>
-              <input
-                type="number"
-                required
-                min={0}
-                step={0.01}
-                value={formData.price}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    price: parseFloat(e.target.value) || 0,
-                  })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-            <div className="col-span-3">
-              <button
-                type="submit"
-                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                Create Product
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      {/* Modal Form */}
+      <FormModal
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        title="New Product"
+      >
+        <form onSubmit={handleSubmit} className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              SKU *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.sku}
+              onChange={(e) =>
+                setFormData({ ...formData, sku: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="e.g., PROD-001"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Selling Price *
+            </label>
+            <input
+              type="number"
+              required
+              min={0}
+              step={0.01}
+              value={formData.price}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  price: parseFloat(e.target.value) || 0,
+                })
+              }
+              className="w-full px-3 py,2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+          <div className="col-span-3 flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Create Product
+            </button>
+          </div>
+        </form>
+      </FormModal>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">

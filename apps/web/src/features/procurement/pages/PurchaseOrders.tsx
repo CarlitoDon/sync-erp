@@ -18,6 +18,7 @@ import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
 import { GoodsReceiptModal } from '../../inventory/components/GoodsReceiptModal';
+import FormModal from '../../../components/ui/FormModal';
 
 interface OrderItemForm {
   productId: string;
@@ -60,7 +61,7 @@ export default function PurchaseOrders() {
     }
   );
 
-  const [showForm, setShowForm] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [formData, setFormData] = useState<CreatePurchaseOrderInput>({
     partnerId: '',
@@ -101,10 +102,15 @@ export default function PurchaseOrders() {
       'Purchase Order created!'
     );
     if (result) {
-      setShowForm(false);
-      setFormData({ partnerId: '', items: [] });
+      handleClose();
       loadData();
     }
+  };
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+    setFormData({ partnerId: '', items: [] });
+    setCurrentItem({ productId: '', quantity: 1, price: 0 });
   };
 
   const handleConfirm = async (id: string) => {
@@ -196,19 +202,21 @@ export default function PurchaseOrders() {
           </p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => setIsModalOpen(true)}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
-          {showForm ? 'Cancel' : '+ Create PO'}
+          + Create PO
         </button>
       </div>
 
-      {showForm && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">
-            New Purchase Order
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Modal Form */}
+      <FormModal
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        title="New Purchase Order"
+        maxWidth="4xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Supplier *
@@ -380,6 +388,14 @@ export default function PurchaseOrders() {
               )}
             </div>
 
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={formData.items.length === 0}
@@ -387,9 +403,9 @@ export default function PurchaseOrders() {
             >
               Create Purchase Order
             </button>
-          </form>
-        </div>
-      )}
+          </div>
+        </form>
+      </FormModal>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">

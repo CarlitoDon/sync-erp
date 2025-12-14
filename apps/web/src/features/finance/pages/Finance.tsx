@@ -13,7 +13,7 @@ import {
 } from '../components/FinancialReport';
 import JournalEntries from './JournalEntries';
 import { AccountGroup, AccountType } from '@sync-erp/shared';
-// import { FinanceAccountGroup, AccountType } from '../types/finance'; // Removed
+import FormModal from '../../../components/ui/FormModal';
 
 // Helper to check account type category
 const isDebitNormal = (type: string) =>
@@ -51,7 +51,7 @@ export default function Finance() {
   const [reportType, setReportType] = useState<'IS' | 'BS'>('BS');
 
   // Create Account State
-  const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [newAccount, setNewAccount] = useState({
     code: '',
     name: '',
@@ -68,13 +68,20 @@ export default function Finance() {
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    await apiAction(
+    const result = await apiAction(
       () => financeService.createAccount(newAccount),
       'Account created!'
     );
-    setShowCreateAccount(false);
+    if (result) {
+      setIsAccountModalOpen(false);
+      setNewAccount({ code: '', name: '', type: 'ASSET' });
+      loadData();
+    }
+  };
+
+  const handleCloseAccountModal = () => {
+    setIsAccountModalOpen(false);
     setNewAccount({ code: '', name: '', type: 'ASSET' });
-    loadData();
   };
 
   const getTypeColor = (type: string) => {
@@ -277,10 +284,10 @@ export default function Finance() {
           {/* CoA Actions */}
           <div className="flex gap-4">
             <button
-              onClick={() => setShowCreateAccount(!showCreateAccount)}
+              onClick={() => setIsAccountModalOpen(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
             >
-              {showCreateAccount ? 'Cancel' : '+ Add Account'}
+              + Add Account
             </button>
             {accounts.length === 0 && (
               <button
@@ -292,15 +299,14 @@ export default function Finance() {
             )}
           </div>
 
-          {/* New Account Form */}
-          {showCreateAccount && (
-            <form
-              onSubmit={handleCreateAccount}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-w-2xl"
-            >
-              <h3 className="text-lg font-semibold mb-4">
-                New Account
-              </h3>
+          {/* New Account Modal */}
+          <FormModal
+            isOpen={isAccountModalOpen}
+            onClose={handleCloseAccountModal}
+            title="New Account"
+            maxWidth="md"
+          >
+            <form onSubmit={handleCreateAccount} className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -366,14 +372,24 @@ export default function Finance() {
                   </select>
                 </div>
               </div>
-              <button
-                type="submit"
-                className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Create
-              </button>
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={handleCloseAccountModal}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Create
+                </button>
+              </div>
             </form>
-          )}
+          </FormModal>
+
 
           {/* CoA List by Type */}
           <div className="grid gap-6">

@@ -19,6 +19,7 @@ interface CreateJournalEntryInput {
   lines: CreateJournalLineInput[];
 }
 import ActionButton from '../../../components/ui/ActionButton';
+import FormModal from '../../../components/ui/FormModal';
 import { useApiAction } from '../../../hooks/useApiAction';
 import { formatCurrency, formatDate } from '../../../utils/format';
 import { toast } from 'react-hot-toast';
@@ -239,34 +240,13 @@ export default function JournalEntries() {
       </div>
 
       {/* Modal */}
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-50 overflow-y-auto"
-          aria-labelledby="modal-title"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-              aria-hidden="true"
-              onClick={() => setIsModalOpen(false)}
-            ></div>
-            <span
-              className="hidden sm:inline-block sm:align-middle sm:h-screen"
-              aria-hidden="true"
-            >
-              &#8203;
-            </span>
-
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <h3
-                  className="text-lg leading-6 font-medium text-gray-900 mb-4"
-                  id="modal-title"
-                >
-                  New Journal Entry
-                </h3>
+      <FormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="New Journal Entry"
+        maxWidth="4xl"
+      >
+        <div className="space-y-6">
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div>
@@ -440,33 +420,31 @@ export default function JournalEntries() {
                     </div>
                   )}
                 </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <ActionButton
-                  variant="primary"
-                  onClick={submitJournal}
-                  disabled={
-                    !isBalanced ||
-                    submitting ||
-                    (formData.lines?.some((l) => !l.accountId) ??
-                      true)
-                  }
-                  isLoading={submitting}
-                >
-                  Post Entry
-                </ActionButton>
-                <ActionButton
-                  variant="secondary"
-                  onClick={() => setIsModalOpen(false)}
-                  className="mr-3"
-                >
-                  Cancel
-                </ActionButton>
-              </div>
-            </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={submitJournal}
+              disabled={
+                !isBalanced ||
+                submitting ||
+                (formData.lines?.some((l) => !l.accountId) ?? true)
+              }
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              {submitting ? 'Posting...' : 'Post Entry'}
+            </button>
           </div>
         </div>
-      )}
+      </FormModal>
     </div>
   );
 }
