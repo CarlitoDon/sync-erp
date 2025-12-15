@@ -16,7 +16,66 @@ You are updating the project memory at `.agent/rules/memory.md`. This file store
 
 Follow this execution flow:
 
-1. Load existing memory at `.agent/rules/memory.md`.
+1. Check if `.agent/rules/memory.md` exists:
+   - If **exists**: Load and read existing content
+   - If **not exists**: Create it using `write_to_file` with this template:
+
+   ```markdown
+   ---
+   trigger: always_on
+   ---
+
+   <!--
+   MEMORY SYNC REPORT
+   Version: 1.0.0 (Initial)
+   Added Sections:
+   - Project Overview
+   - Key Decisions Log
+   - Known Issues & Workarounds
+   - Frequently Used Patterns
+   Last Updated: [TODAY'S DATE]
+   -->
+
+   # Project Memory
+
+   **Version**: 1.0.0 | **Last Updated**: [TODAY'S DATE]
+
+   ## Overview
+
+   | Property     | Value                              |
+   | ------------ | ---------------------------------- |
+   | Project      | [Project Name]                     |
+   | Type         | [Project Type]                     |
+   | Stack        | [Tech Stack]                       |
+   | Constitution | See `.agent/rules/constitution.md` |
+
+   ---
+
+   ## Key Decisions Log
+
+   > Decisions that affect future development. Add new entries at top.
+
+   ---
+
+   ## Known Issues & Workarounds
+
+   > Persistent issues that need workarounds. Mark RESOLVED when fixed.
+
+   | Issue | Status | Workaround |
+   | ----- | ------ | ---------- |
+
+   ---
+
+   ## Frequently Used Patterns
+
+   ---
+
+   ## Update Guidelines
+
+   1. **Version Bump**: MAJOR.MINOR.PATCH following semver
+   2. **Adding Decisions**: Add at TOP of Key Decisions Log with date
+   3. **Sync Report**: Update HTML comment at top when modifying
+   ```
 
 2. Parse user input to determine the type of memory entry:
    - **Decision**: Keywords like "ingat", "remember", "keputusan", "decision", "gunakan", "use", "pakai"
