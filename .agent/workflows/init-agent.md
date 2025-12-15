@@ -32,15 +32,16 @@ Analyze this codebase to generate or update `.agent/rules/instructions.md` for g
    - **Project Conventions**: Patterns that differ from common practices
    - **Integration Points**: External dependencies, cross-component communication
 
-3. **Key Analysis Points for This Project**
+3. **Key Analysis Points** (Discover from codebase)
 
-   For Sync ERP specifically, analyze:
-   - Monorepo structure (`apps/`, `packages/`)
-   - Controller → Service → Repository layering
-   - Multi-tenant isolation patterns
-   - Feature-based frontend architecture
-   - Zod schema validation patterns
-   - TypeScript configuration inheritance
+   Analyze based on what you find:
+   - Project structure (monorepo, single app, etc.)
+   - Framework patterns (React, Vue, Express, etc.)
+   - Data layer patterns (ORM, raw SQL, API clients)
+   - Validation patterns (Zod, Yup, Joi, etc.)
+   - State management patterns
+   - Testing patterns
+   - Build/deploy configuration
 
 4. **Generate/Update Instructions**
 
@@ -82,21 +83,16 @@ Analyze this codebase to generate or update `.agent/rules/instructions.md` for g
 
    ## Do's and Don'ts
 
-   [Project-specific rules, derived from constitution]
+   [Project-specific rules]
 
    ## Key Files Reference
 
    [Important files to understand patterns]
    ```
 
-7. **Cross-Reference with Constitution**
+7. **Cross-Reference with Constitution** (if exists)
 
-   Read `.agent/rules/constitution.md` and ensure instructions align with principles:
-   - Architecture & Dependency Flow
-   - Shared Type Contracts
-   - Layered Backend
-   - Schema-First Development
-   - etc.
+   If `.agent/rules/constitution.md` exists, read it and ensure instructions align with its principles.
 
 8. **Write and Confirm**
    - Write to `.agent/rules/instructions.md`
@@ -106,29 +102,25 @@ Analyze this codebase to generate or update `.agent/rules/instructions.md` for g
 ## Example Output Structure
 
 ```markdown
-# AI Agent Instructions for Sync ERP
+# AI Agent Instructions for [Project Name]
 
 ## Architecture
 
-- Monorepo: `apps/` (web, api) + `packages/` (shared, database)
-- Frontend ↔ Backend via HTTP/REST only
-- Backend uses Controller → Service → Repository
+- [Describe project structure discovered]
+- [Describe key architectural patterns]
 
 ## Patterns
 
-- Use `apiAction()` for API calls with toast feedback
-- Use `useConfirm()` instead of `window.confirm()`
-- Schema-first: Add fields to Zod before frontend/backend
+- [Pattern 1 with code example]
+- [Pattern 2 with code example]
 
 ## Commands
 
-- `npm run dev` - Start dev servers
-- `npx tsc --noEmit` - TypeScript check (source of truth)
-- `cd packages/shared && npm run build` - Rebuild shared
+- [Key development commands]
+- [Build/test commands]
 
 ## Don't
 
-- Don't use `this` in frontend services
-- Don't create manual interfaces for API types (use z.infer)
-- Don't access database from Controllers or Services
+- [Anti-patterns discovered or documented]
+- [Common mistakes to avoid]
 ```
