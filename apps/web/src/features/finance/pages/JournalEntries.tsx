@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import {
   financeService,
@@ -223,7 +224,12 @@ export default function JournalEntries() {
                       {formatDate(journal.date)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {journal.reference || '-'}
+                      <Link
+                        to={`/journals/${journal.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {journal.reference || 'View Entry'}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-md truncate">
                       {journal.memo || '-'}

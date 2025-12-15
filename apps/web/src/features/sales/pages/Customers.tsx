@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   partnerService,
   Partner,
@@ -223,7 +224,12 @@ export default function Customers() {
               customers.map((customer) => (
                 <tr key={customer.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-900">
-                    {customer.name}
+                    <Link
+                      to={`/customers/${customer.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {customer.name}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 text-gray-500">
                     {customer.email || '-'}

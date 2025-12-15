@@ -31,3 +31,14 @@ export const adjustStock = async (
   });
   return response.data?.data ?? response.data;
 };
+
+export const getMovements = async (
+  productId?: string
+): Promise<InventoryMovement[]> => {
+  const params = productId ? { productId } : {};
+  const response = await api.get<{
+    success: boolean;
+    data: InventoryMovement[];
+  }>('/inventory/movements', { params });
+  return ensureArray(response.data?.data);
+};
