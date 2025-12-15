@@ -168,10 +168,14 @@ export default function PurchaseOrders() {
   };
 
   const calculateTotal = () => {
-    return formData.items.reduce(
+    const subtotal = formData.items.reduce(
       (sum, item) => sum + item.quantity * item.price,
       0
     );
+    const taxRate = formData.taxRate || 0;
+    const taxAmount = (subtotal * taxRate) / 100;
+    const grandTotal = subtotal + taxAmount;
+    return { subtotal, taxAmount, grandTotal, taxRate };
   };
 
   if (loading) {
@@ -371,18 +375,52 @@ export default function PurchaseOrders() {
                         </td>
                       </tr>
                     ))}
-                    <tr className="border-t font-semibold">
-                      <td
-                        colSpan={3}
-                        className="px-4 py-2 text-right"
-                      >
-                        Total:
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        {formatCurrency(calculateTotal())}
-                      </td>
-                      <td></td>
-                    </tr>
+                    {/* Total Summary */}
+                    {(() => {
+                      const totals = calculateTotal();
+                      return (
+                        <>
+                          <tr className="border-t">
+                            <td
+                              colSpan={3}
+                              className="px-4 py-2 text-right text-gray-600"
+                            >
+                              Subtotal:
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              {formatCurrency(totals.subtotal)}
+                            </td>
+                            <td></td>
+                          </tr>
+                          {totals.taxRate > 0 && (
+                            <tr>
+                              <td
+                                colSpan={3}
+                                className="px-4 py-2 text-right text-gray-600"
+                              >
+                                PPN ({totals.taxRate}%):
+                              </td>
+                              <td className="px-4 py-2 text-right">
+                                {formatCurrency(totals.taxAmount)}
+                              </td>
+                              <td></td>
+                            </tr>
+                          )}
+                          <tr className={totals.taxRate > 0 ? 'border-t-2 font-semibold' : 'font-semibold'}>
+                            <td
+                              colSpan={3}
+                              className="px-4 py-2 text-right"
+                            >
+                              Total:
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              {formatCurrency(totals.grandTotal)}
+                            </td>
+                            <td></td>
+                          </tr>
+                        </>
+                      );
+                    })()}
                   </tbody>
                 </table>
               )}

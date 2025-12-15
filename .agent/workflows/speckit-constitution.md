@@ -63,7 +63,11 @@ Follow this execution flow:
 
 7. Write the completed constitution back to `.specify/memory/constitution.md` (overwrite).
 
-8. Output a final summary to the user with:
+8. Copy constitution to agent rules directory:
+   - Copy `.specify/memory/constitution.md` to `.agent/rules/constitution.md` (overwrite).
+   - This ensures agent-level rules stay in sync with the project constitution.
+
+9. Output a final summary to the user with:
    - New version and bump rationale.
    - Any files flagged for manual follow-up.
    - Suggested commit message (e.g., `docs: amend constitution to vX.Y.Z (principle additions + governance update)`).

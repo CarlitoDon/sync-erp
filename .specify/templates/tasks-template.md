@@ -190,6 +190,16 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 
+### Task Completion Verification (Constitution Principles VIII & IX) ⚠️
+
+> **CRITICAL**: These verification steps MUST pass before marking feature complete
+
+- [ ] TXXX TypeScript check: `npx tsc --noEmit` (verify zero errors)
+- [ ] TXXX Check `typecheck:watch` terminal (if running) for errors
+- [ ] TXXX Full build: `npm run build` (verify all packages build)
+- [ ] TXXX If `packages/shared` modified: rebuild before checking dependents
+- [ ] TXXX Schema-first: New API fields exist in Zod schema, types use `z.infer`
+
 ---
 
 ## Dependencies & Execution Order

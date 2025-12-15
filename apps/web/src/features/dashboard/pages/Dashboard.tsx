@@ -2,6 +2,7 @@ import { useCompany } from '../../../contexts/CompanyContext';
 import { useCompanyData } from '../../../hooks/useCompanyData';
 import { dashboardService } from '../services/dashboardService';
 import { formatCurrency, formatDate } from '../../../utils/format';
+import OnboardingGuide from '../components/OnboardingGuide';
 import type { DashboardMetrics, RecentTransaction } from '../types';
 
 export default function Dashboard() {
@@ -105,45 +106,7 @@ export default function Dashboard() {
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card-hover">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Getting Started
-          </h2>
-          <ul className="space-y-3 text-gray-600">
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
-              <span>Create your first company</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <span
-                className={
-                  (metrics?.productsCount || 0) > 0
-                    ? 'text-green-500'
-                    : 'text-gray-300'
-                }
-              >
-                {(metrics?.productsCount || 0) > 0 ? '✓' : '○'}
-              </span>
-              <span>Add products and services</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-gray-300">○</span>
-              <span>Set up customers and suppliers</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <span
-                className={
-                  (metrics?.pendingOrders || 0) > 0
-                    ? 'text-green-500'
-                    : 'text-gray-300'
-                }
-              >
-                {(metrics?.pendingOrders || 0) > 0 ? '✓' : '○'}
-              </span>
-              <span>Create your first order</span>
-            </li>
-          </ul>
-        </div>
+        <OnboardingGuide metrics={metrics} />
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card-hover">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">

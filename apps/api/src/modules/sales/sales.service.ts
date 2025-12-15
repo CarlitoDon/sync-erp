@@ -35,11 +35,14 @@ export class SalesService {
       'SO'
     );
 
-    // Calculate totals
-    const totalAmount = data.items.reduce(
+    // Calculate totals (including tax)
+    const subtotal = data.items.reduce(
       (sum, item) => sum + item.quantity * item.price,
       0
     );
+    const taxRate = data.taxRate || 0;
+    const taxAmount = (subtotal * taxRate) / 100;
+    const totalAmount = subtotal + taxAmount;
 
     // Prepare create data
     const createData: Prisma.OrderUncheckedCreateInput = {

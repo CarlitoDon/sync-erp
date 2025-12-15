@@ -31,13 +31,13 @@
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-- [ ] **I. Boundaries**: Does Frontend strictly avoid direct DB/Logic imports?
-- [ ] **II. Dependencies**: Are dependencies uni-directional (Apps -> Packages)?
-- [ ] **III. Contracts**: Are shared types defined in `packages/shared-types`?
-- [ ] **IV. Layered Backend**: Is logic strictly in Services (not Controllers)?
-- [ ] **IV. Repository Pattern**: Is DB access strictly in Repositories (not Services)?
-- [ ] **V. Multi-Tenant**: Is ALL data isolated by `companyId`?
-- [ ] **VI. Feature-First**: Is business logic in `src/features/` (not global)?
+- [ ] **I. Architecture**: Frontend ↔ Backend via HTTP only? Dependencies uni-directional?
+- [ ] **II. Contracts**: Shared types in `packages/shared`? Validators exported?
+- [ ] **III. Backend Layers**: Controller → Service → Repository pattern?
+- [ ] **IV. Multi-Tenant**: ALL data isolated by `companyId`?
+- [ ] **V. Frontend**: Business logic in `src/features/`? Global patterns followed?
+- [ ] **VIII. Verification**: `npx tsc --noEmit` and `npm run build` will pass?
+- [ ] **IX. Schema-First**: New API fields added to Zod schema FIRST? Types use `z.infer`?
 
 ## Project Structure
 
