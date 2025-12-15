@@ -8,6 +8,7 @@ export interface DashboardMetrics {
 
   // US2: Quick Stats
   pendingOrders: number;
+  totalOrders: number;
   unpaidInvoices: number;
   unpaidBills: number;
 

@@ -56,6 +56,7 @@ export const dashboardService = {
       totalPayables,
       productsCount: products.length,
       pendingOrders,
+      totalOrders: orders.length,
       unpaidInvoices: invoices.length,
       unpaidBills: bills.length,
       recentTransactions: await getRecentTransactions(),

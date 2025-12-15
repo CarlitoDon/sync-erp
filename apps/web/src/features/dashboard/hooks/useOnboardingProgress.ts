@@ -114,7 +114,7 @@ export function useOnboardingProgress(
           isCompleted = additionalData.customersCount > 0;
           break;
         case 'create-order':
-          isCompleted = (metrics?.pendingOrders || 0) > 0;
+          isCompleted = (metrics?.totalOrders || 0) > 0;
           break;
         case 'setup-accounts':
           isCompleted = additionalData.accountsCount > 0;
