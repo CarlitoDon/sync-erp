@@ -23,7 +23,8 @@ sync-erp/
 1. **Schema-First**: Add fields to `packages/shared/src/validators/*.ts` BEFORE implementing frontend/backend
 2. **Multi-Tenant**: ALL queries MUST scope by `companyId` (from `X-Company-Id` header)
 3. **Three Layers**: Controller → Service → Repository (never skip layers)
-4. **Build Check**: Run `npx tsc --noEmit` before marking tasks complete
+4. **DRY Principle**: Extract common logic into shared utilities/hooks
+5. **Build Check**: Run `npx tsc --noEmit` before marking tasks complete
 
 ## Backend Patterns
 
@@ -77,15 +78,17 @@ async findAll(companyId: string): Promise<Partner[]> {
 ### Data Fetching Hook
 
 ```typescript
-const { data, loading, refresh } = useCompanyData(
+// Fetcher receives companyId from hook context
+const { data, loading, refresh, setData } = useCompanyData(
   (companyId) => partnerService.list(companyId),
   []  // initial value
 );
 ```
 
-### API Action with Toast
+### API Action (Two Options)
 
 ```typescript
+// Option A: Utility function (one-off actions)
 import { apiAction } from '../utils/apiAction';
 
 const result = await apiAction(
@@ -93,6 +96,13 @@ const result = await apiAction(
   { successMessage: 'Partner created!' }
 );
 if (result) { refresh(); }
+
+// Option B: Hook pattern (reusable with loading state)
+const { execute, loading } = useApiAction(
+  (id: string) => partnerService.delete(id),
+  { successMessage: 'Deleted!', onSuccess: refresh }
+);
+// Then call: execute(partnerId)
 ```
 
 ### Confirmation Dialog
@@ -149,7 +159,6 @@ cd packages/shared && npm run build
 | TypeScript check | `npx tsc --noEmit` |
 | Build all | `npm run build` |
 | Run tests | `npm run test` |
-| Unit tests only | `npm run test:unit --workspace=@sync-erp/api` |
 | Prisma studio | `npm run db:studio` |
 | Generate Prisma | `npm run db:generate` |
 | Migrate DB | `npm run db:migrate` |
@@ -162,6 +171,7 @@ cd packages/shared && npm run build
 - ❌ Use `window.confirm()` (use `useConfirm()` hook)
 - ❌ Skip `companyId` in queries (multi-tenant violation)
 - ❌ Use `this` in frontend services (context lost in hooks)
+- ❌ Duplicate logic across components (extract to shared utilities)
 
 ## Key Files Reference
 
@@ -172,5 +182,6 @@ cd packages/shared && npm run build
 | Zod Validators | `packages/shared/src/validators/index.ts` |
 | API Entry | `apps/api/src/index.ts` |
 | Three-Layer Example | `apps/api/src/modules/partner/` |
-| Frontend Hook | `apps/web/src/hooks/useCompanyData.ts` |
-| API Action Helper | `apps/web/src/utils/apiAction.ts` |
+| Data Fetching Hook | `apps/web/src/hooks/useCompanyData.ts` |
+| API Action Hook | `apps/web/src/hooks/useApiAction.ts` |
+| API Action Utility | `apps/web/src/utils/apiAction.ts` |
