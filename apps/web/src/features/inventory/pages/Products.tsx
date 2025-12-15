@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   productService,
   Product,
@@ -217,7 +218,12 @@ export default function Products() {
                     {product.sku}
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-900">
-                    {product.name}
+                    <Link
+                      to={`/products/${product.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {product.name}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 text-right text-gray-500">
                     {formatCurrency(Number(product.price))}

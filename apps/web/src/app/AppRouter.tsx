@@ -21,6 +21,11 @@ import Finance from '../features/finance/pages/Finance';
 import { RegisterPage } from '../features/auth/components/RegisterPage';
 import { LoginPage } from '../features/auth/components/LoginPage';
 import { CompanySelectionPage } from '../features/company/pages/CompanySelectionPage';
+import CustomerDetail from '../features/sales/pages/CustomerDetail';
+import SupplierDetail from '../features/procurement/pages/SupplierDetail';
+import ProductDetail from '../features/inventory/pages/ProductDetail';
+import JournalDetail from '../features/finance/pages/JournalDetail';
+import JournalEntries from '../features/finance/pages/JournalEntries';
 
 export function AppRouter() {
   return (
@@ -41,8 +46,11 @@ export function AppRouter() {
           <Route path="companies" element={<Companies />} />
           <Route path="companies/new" element={<CreateCompany />} />
           <Route path="suppliers" element={<Suppliers />} />
+          <Route path="suppliers/:id" element={<SupplierDetail />} />
           <Route path="customers" element={<Customers />} />
+          <Route path="customers/:id" element={<CustomerDetail />} />
           <Route path="products" element={<Products />} />
+          <Route path="products/:id" element={<ProductDetail />} />
           <Route path="purchase-orders" element={<PurchaseOrders />} />
           <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
           <Route path="inventory" element={<Inventory />} />
@@ -53,6 +61,8 @@ export function AppRouter() {
           <Route path="bills" element={<AccountsPayable />} />
           <Route path="bills/:id" element={<BillDetail />} />
           <Route path="finance" element={<Finance />} />
+          <Route path="journals" element={<JournalEntries />} />
+          <Route path="journals/:id" element={<JournalDetail />} />
           <Route path="team" element={<TeamManagement />} />
         </Route>
       </Route>

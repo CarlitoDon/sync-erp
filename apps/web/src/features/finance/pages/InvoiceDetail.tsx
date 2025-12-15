@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+  import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { invoiceService, paymentService, CreatePaymentInput } from '../services/invoiceService';
 import { useCompany } from '../../../contexts/CompanyContext';
@@ -23,6 +23,7 @@ interface InvoiceWithOrder {
   status: string;
   orderId?: string | null;
   order?: { id: string; orderNumber: string } | null;
+  partnerId?: string;
   partner?: { name: string } | null;
   payments?: Array<{
     id: string;
@@ -199,6 +200,7 @@ export default function InvoiceDetail() {
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
         title="Payment History"
+        maxWidth="2xl"
       >
         <PaymentHistoryList 
           invoiceId={invoice.id} 
@@ -221,7 +223,16 @@ export default function InvoiceDetail() {
               Invoice {invoice.invoiceNumber}
             </h1>
             <p className="text-gray-500">
-              {invoice.partner?.name || 'Unknown Customer'}
+              {invoice.partner ? (
+                <Link
+                  to={`/customers/${invoice.partnerId}`}
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  {invoice.partner.name}
+                </Link>
+              ) : (
+                'Unknown Customer'
+              )}
             </p>
           </div>
           <span

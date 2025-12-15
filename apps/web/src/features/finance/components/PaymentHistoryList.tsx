@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Payment } from '@sync-erp/shared';
 import { paymentService } from '../services/paymentService';
 import { apiAction } from '../../../utils/apiAction';
+import { formatDate } from '../../../utils/format';
 
 interface PaymentHistoryListProps {
   invoiceId: string;
@@ -49,14 +50,6 @@ export function PaymentHistoryList({
     }).format(amount);
   };
 
-  const formatDate = (dateString: string | Date) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
   if (loading) {
     return (
       <div className="text-sm text-gray-500 animate-pulse">
@@ -67,11 +60,9 @@ export function PaymentHistoryList({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900">
-        Payment History
-      </h3>
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

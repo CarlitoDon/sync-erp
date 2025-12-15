@@ -27,6 +27,7 @@ interface BillWithOrder {
   status: string;
   orderId?: string | null;
   order?: { id: string; orderNumber: string } | null;
+  partnerId?: string;
   partner?: { name: string } | null;
   payments?: Array<{
     id: string;
@@ -203,6 +204,7 @@ export default function BillDetail() {
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
         title="Payment History"
+        maxWidth="2xl"
       >
         <PaymentHistoryList 
           invoiceId={bill.id} 
@@ -225,7 +227,16 @@ export default function BillDetail() {
               Bill {bill.invoiceNumber}
             </h1>
             <p className="text-gray-500">
-              {bill.partner?.name || 'Unknown Supplier'}
+              {bill.partner ? (
+                <Link
+                  to={`/suppliers/${bill.partnerId}`}
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  {bill.partner.name}
+                </Link>
+              ) : (
+                'Unknown Supplier'
+              )}
             </p>
           </div>
           <span
