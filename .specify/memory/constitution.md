@@ -1,23 +1,24 @@
 <!--
 SYNC IMPACT REPORT
-Version: 1.8.0 -> 1.9.0 (Minor - Added Schema-First Development Principle)
+Version: 1.9.0 -> 1.10.0 (Minor - Added Modular Parity & Performance Principles)
 Modified Principles:
-- II. Shared Type Contracts → expanded with schema-first rules
+- None
 Added Sections:
-- IX. Schema-First Development (New principle to prevent validation gaps)
+- X. Modular Parity (Symmetry)
+- XI. Performance by Design (Preventing N+1)
 Removed Sections:
 - None
 Templates requiring updates:
-- plan-template.md (✅ updated - added Principle IX check)
+- plan-template.md (✅ updated - added Principle X/XI checks)
 - spec-template.md (✅ no changes needed)
-- tasks-template.md (✅ updated - added schema verification step)
+- tasks-template.md (✅ no changes needed)
 Follow-up TODOs:
-- Refactor frontend types to use z.infer<typeof Schema>
+- None
 -->
 
 # Sync ERP Constitution
 
-## Core Principles (9 Total)
+## Core Principles (11 Total)
 
 ### I. Architecture & Dependency Flow
 
@@ -138,6 +139,18 @@ const [form, setForm] = useState<CreateOrderInput>({...});
 
 **Rationale**: Prevents silent data loss from Zod stripping unknown fields.
 
+### X. Modular Parity (Symmetry)
+
+- **Mirror Implementation**: Related domains (e.g., Sales ↔ Procurement, AR ↔ AP) MUST implement equivalent features in pairs.
+- **Cognitive Consistency**: Use identical naming patterns, file structures, and UI layouts for symmetric workflows.
+- **Check**: "If I build 'Create Invoice from SO', does 'Create Bill from PO' exist?"
+
+### XI. Performance by Design (Preventing N+1)
+
+- **Backend Optimization**: Repositories MUST support eager loading (`include` or joins) to provide related data in a single query (e.g., `Order` with `Invoices`).
+- **Forbidden**: Frontend MUST NOT fetch individual related records inside a loop or based on list iteration.
+- **404 Handling**: Avoid patterns where missing 1:1 relations trigger error toasts. Prefer silent checks or eager loaded `null` values.
+
 ## Project Structure
 
 ```text
@@ -165,4 +178,4 @@ sync-erp/
 - **Compliance**: Code reviews MUST verify principle adherence.
 - **Tooling**: `npm` + `turbo` + `vite` (frontend) + `tsc` (backend).
 
-**Version**: 1.9.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-15
+**Version**: 1.10.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-15

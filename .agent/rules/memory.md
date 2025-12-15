@@ -4,11 +4,11 @@ trigger: always_on
 
 <!--
 MEMORY SYNC REPORT
-Version: 1.0.0 -> 1.0.1 (Patch - Added DRY Principle Decision)
+Version: 1.0.1 -> 1.0.2 (Patch - Added N+1/Parity Decisions)
 Added Sections:
 - None
 Modified Sections:
-- Key Decisions Log (added DRY entry)
+- Key Decisions Log (added N+1 and Parity entries)
 Removed Sections:
 - None
 Last Updated: 2025-12-15
@@ -16,7 +16,7 @@ Last Updated: 2025-12-15
 
 # Project Memory
 
-**Version**: 1.0.1 | **Last Updated**: 2025-12-15
+**Version**: 1.0.2 | **Last Updated**: 2025-12-15
 
 ## Overview
 
@@ -32,6 +32,18 @@ Last Updated: 2025-12-15
 ## Key Decisions Log
 
 > Decisions that affect future development. Add new entries at top.
+
+### [2025-12-15] Backend-First Data Linking (Avoid N+1)
+
+**Decision**: Use backend DB joins (`include`) for related data (e.g., Invoices on Order) instead of client-side loops.
+**Rationale**: Eliminates "N+1" fetch performance issues and prevents 404 errors on missing optional relations.
+**Reference**: Performance Best Practice
+
+### [2025-12-15] Module Parity
+
+**Decision**: Implement related modules (Sales/Procurement, Finance AP/AR) as implementation pairs (Symmetry).
+**Rationale**: Reduces cognitive load and ensures consistent UX/DX. If feature exists in Module A, it should exist in Mirror Module B.
+**Reference**: UI/UX Consistency
 
 ### [2025-12-15] DRY Principle
 

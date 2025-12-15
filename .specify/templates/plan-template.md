@@ -38,6 +38,8 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 - [ ] **V. Frontend**: Business logic in `src/features/`? Global patterns followed?
 - [ ] **VIII. Verification**: `npx tsc --noEmit` and `npm run build` will pass?
 - [ ] **IX. Schema-First**: New API fields added to Zod schema FIRST? Types use `z.infer`?
+- [ ] **X. Parity**: If Feature A exists in Sales, does it exist in Procurement? (and vice versa)
+- [ ] **XI. Performance**: No N+1 Client loops? Lists use Backend `include` for relations?
 
 ## Project Structure
 
