@@ -10,17 +10,9 @@ export interface CreateBillInput {
   dueDate?: string;
 }
 
-export interface CreateManualBillInput {
-  partnerId: string;
-  subtotal: number;
-  taxRate?: number;
-  dueDate?: string;
-  notes?: string;
-}
-
 export const billService = {
-  async list(status?: string): Promise<Bill[]> {
-    const params = status ? { status } : {};
+  async list(filters: { status?: string; partnerId?: string; orderId?: string } = {}): Promise<Bill[]> {
+    const params = { ...filters };
     const res = await api.get('/bills', { params });
     return ensureArray(res.data?.data);
   },
@@ -36,11 +28,6 @@ export const billService = {
   },
 
   async create(data: CreateBillInput): Promise<Bill> {
-    const res = await api.post('/bills', data);
-    return res.data?.data ?? res.data;
-  },
-
-  async createManual(data: CreateManualBillInput): Promise<Bill> {
     const res = await api.post('/bills', data);
     return res.data?.data ?? res.data;
   },

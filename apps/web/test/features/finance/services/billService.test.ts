@@ -30,7 +30,7 @@ describe('billService', () => {
     const mockData = [{ id: '1' }];
     (api.get as any).mockResolvedValue({ data: { data: mockData } });
 
-    const result = await billService.list('DRAFT');
+    const result = await billService.list({ status: 'DRAFT' });
 
     expect(api.get).toHaveBeenCalledWith('/bills', {
       params: { status: 'DRAFT' },

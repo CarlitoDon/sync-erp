@@ -15,14 +15,6 @@ export interface CreateBillInput {
   taxRate?: number;
 }
 
-export interface CreateManualBillInput {
-  partnerId: string;
-  subtotal: number;
-  taxRate?: number;
-  dueDate?: Date;
-  notes?: string;
-}
-
 import { DocumentNumberService } from '../../common/services/document-number.service';
 
 export class BillService {
@@ -74,40 +66,6 @@ export class BillService {
       subtotal,
       taxAmount,
       taxRate,
-      balance: amount,
-      dueDate:
-        data.dueDate ||
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    };
-
-    return this.repository.create(createData);
-  }
-
-  async createManual(
-    companyId: string,
-    data: CreateManualBillInput
-  ): Promise<Invoice> {
-    const invoiceNumber = await this.documentNumberService.generate(
-      companyId,
-      'BILL'
-    );
-
-    const taxRate = data.taxRate ?? 0;
-    const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
-    const taxAmount = data.subtotal * taxMultiplier;
-    const amount = data.subtotal + taxAmount;
-
-    const createData: Prisma.InvoiceUncheckedCreateInput = {
-      companyId,
-      partnerId: data.partnerId,
-      orderId: null, // No PO for manual bills
-      type: InvoiceType.BILL,
-      status: InvoiceStatus.DRAFT,
-      invoiceNumber,
-      subtotal: data.subtotal,
-      taxRate,
-      taxAmount,
-      amount,
       balance: amount,
       dueDate:
         data.dueDate ||
