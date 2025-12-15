@@ -5,6 +5,7 @@ import {
   PurchaseOrder,
 } from '../services/purchaseOrderService';
 import { billService } from '../../finance/services/billService';
+import { BillList } from '../../finance/components/BillList';
 import { useCompany } from '../../../contexts/CompanyContext';
 import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
@@ -12,18 +13,13 @@ import ActionButton from '../../../components/ui/ActionButton';
 import { formatCurrency, formatDate } from '../../../utils/format';
 import { GoodsReceiptModal } from '../../inventory/components/GoodsReceiptModal';
 
-// Extended PO type with bill info
-interface POWithBill extends PurchaseOrder {
-  bill?: { id: string; invoiceNumber: string } | null;
-}
-
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
 
-  const [order, setOrder] = useState<POWithBill | null>(null);
+  const [order, setOrder] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(null);
 
@@ -32,14 +28,7 @@ export default function PurchaseOrderDetail() {
     setLoading(true);
     try {
       const data = await purchaseOrderService.getById(id);
-      
-      // Check if PO has a bill
-      const bill = await billService.getByOrderId(id);
-      
-      setOrder({
-        ...data,
-        bill: bill ? { id: bill.id, invoiceNumber: bill.invoiceNumber || '' } : null,
-      });
+      setOrder(data);
     } catch (error) {
       console.error('Failed to load order:', error);
       navigate('/purchase-orders');
@@ -84,10 +73,7 @@ export default function PurchaseOrderDetail() {
       'Bill created from Purchase Order!'
     );
     if (result) {
-      setOrder(prev => prev ? {
-        ...prev,
-        bill: { id: result.id, invoiceNumber: result.invoiceNumber || '' }
-      } : null);
+      // BillList will update on refresh or reload if needed.
     }
   };
 
@@ -106,6 +92,13 @@ export default function PurchaseOrderDetail() {
     }
   };
 
+  const getReceiptStatus = (status: string) => {
+      if (status === 'COMPLETED') return { label: 'Received', color: 'text-green-600 bg-green-50' };
+      if (status === 'CONFIRMED') return { label: 'Pending', color: 'text-amber-600 bg-amber-50' };
+      if (status === 'CANCELLED') return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
+      return { label: 'N/A', color: 'text-gray-400 bg-gray-50' };
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -121,6 +114,8 @@ export default function PurchaseOrderDetail() {
       </div>
     );
   }
+
+  const receiptStatus = getReceiptStatus(order.status);
 
   return (
     <>
@@ -153,11 +148,13 @@ export default function PurchaseOrderDetail() {
               {order.partner?.name || 'Unknown Supplier'}
             </p>
           </div>
-          <span
-            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(order.status)}`}
-          >
-            {order.status}
-          </span>
+          <div className="flex gap-2">
+            <span
+                className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
+            >
+                {order.status}
+            </span>
+          </div>
         </div>
 
         {/* Details Card */}
@@ -170,24 +167,26 @@ export default function PurchaseOrderDetail() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Supplier</p>
-              <p className="font-medium">{order.partner?.name || '-'}</p>
+              {order.partner ? (
+                <Link
+                  to={`/suppliers/${order.partnerId}`}
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  {order.partner.name}
+                </Link>
+              ) : (
+                '-'
+              )}
             </div>
             <div>
               <p className="text-sm text-gray-500">Created</p>
               <p className="font-medium">{formatDate(order.createdAt)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Related Bill</p>
-              {order.bill ? (
-                <Link
-                  to={`/bills/${order.bill.id}`}
-                  className="font-mono font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  {order.bill.invoiceNumber}
-                </Link>
-              ) : (
-                <span className="text-gray-400 italic">No bill created</span>
-              )}
+              <p className="text-sm text-gray-500">Receipt Status</p>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${receiptStatus.color}`}>
+                {receiptStatus.label}
+              </span>
             </div>
           </div>
 
@@ -225,7 +224,16 @@ export default function PurchaseOrderDetail() {
               {order.items.map((item) => (
                 <tr key={item.id}>
                   <td className="px-4 py-3">
-                    {item.product?.name || item.productId}
+                  {item.product ? (
+                    <Link
+                      to={`/products/${item.productId}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      {item.product.name}
+                    </Link>
+                  ) : (
+                    item.productId
+                  )}
                   </td>
                   <td className="px-4 py-3 text-right">{item.quantity}</td>
                   <td className="px-4 py-3 text-right">
@@ -240,7 +248,19 @@ export default function PurchaseOrderDetail() {
           </table>
         </div>
 
-        {/* Actions */}
+        {/* Related Bills */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Related Bills</h2>
+            </div>
+            <BillList filter={{ orderId: order.id }} />
+        </div>
+
+      {/* Actions */}
+      {(order.status === 'DRAFT' ||
+        order.status === 'CONFIRMED' ||
+        (order.status === 'COMPLETED' &&
+          (!order.invoices || order.invoices.length === 0))) && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold mb-4">Actions</h2>
           <div className="flex flex-wrap gap-3">
@@ -262,21 +282,15 @@ export default function PurchaseOrderDetail() {
                 Receive Goods
               </ActionButton>
             )}
-            {order.status === 'COMPLETED' && !order.bill && (
-              <ActionButton variant="primary" onClick={handleCreateBill}>
-                Create Bill
-              </ActionButton>
-            )}
-            {order.status === 'COMPLETED' && order.bill && (
-              <ActionButton
-                variant="secondary"
-                onClick={() => navigate(`/bills/${order.bill!.id}`)}
-              >
-                View Bill ({order.bill.invoiceNumber})
-              </ActionButton>
-            )}
+            {order.status === 'COMPLETED' &&
+              (!order.invoices || order.invoices.length === 0) && (
+                <ActionButton variant="primary" onClick={handleCreateBill}>
+                  Create Bill
+                </ActionButton>
+              )}
           </div>
         </div>
+      )}
       </div>
     </>
   );

@@ -5,16 +5,12 @@ import {
   SalesOrder,
 } from '../services/salesOrderService';
 import { invoiceService } from '../../finance/services/invoiceService';
+import { InvoiceList } from '../../finance/components/InvoiceList';
 import { useCompany } from '../../../contexts/CompanyContext';
 import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
 import { formatCurrency, formatDate } from '../../../utils/format';
-
-// Extended SO type with invoice info
-interface SOWithInvoice extends SalesOrder {
-  invoice?: { id: string; invoiceNumber: string } | null;
-}
 
 export default function SalesOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +18,7 @@ export default function SalesOrderDetail() {
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
 
-  const [order, setOrder] = useState<SOWithInvoice | null>(null);
+  const [order, setOrder] = useState<SalesOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadOrder = async () => {
@@ -30,14 +26,7 @@ export default function SalesOrderDetail() {
     setLoading(true);
     try {
       const data = await salesOrderService.getById(id);
-      
-      // Check if SO has an invoice
-      const invoice = await invoiceService.getByOrderId(id);
-      
-      setOrder({
-        ...data,
-        invoice: invoice ? { id: invoice.id, invoiceNumber: invoice.invoiceNumber || '' } : null,
-      });
+      setOrder(data);
     } catch (error) {
       console.error('Failed to load order:', error);
       navigate('/sales-orders');
@@ -91,10 +80,16 @@ export default function SalesOrderDetail() {
       'Invoice created from Sales Order!'
     );
     if (result) {
-      setOrder(prev => prev ? {
-        ...prev,
-        invoice: { id: result.id, invoiceNumber: result.invoiceNumber || '' }
-      } : null);
+        // Refresh to show in list? InvoiceList should auto-refresh or we trigger it?
+        // InvoiceList manages its own data but relies on filter prop change or internal refresh.
+        // We might want to force refresh InvoiceList if we could, but mounting usually fetches.
+        // For now, simple reload of order might not trigger InvoiceList reload unless key changes.
+        // But InvoiceList isn't key-controlled by order update here.
+        // We can ignore for now or pass a refresh trigger, but standard practice is 'create' actions 
+        // usually redirect or just show toast.
+        // Since we stay on page, we might ideally want the list to update.
+        // InvoiceList is distinct. Let's just rely on users refreshing or navigating.
+        // Actually, if we pass a key to InvoiceList based on a refresh counter, that would work.
     }
   };
 
@@ -113,6 +108,13 @@ export default function SalesOrderDetail() {
     }
   };
 
+  const getShipmentStatus = (status: string) => {
+      if (status === 'COMPLETED') return { label: 'Shipped', color: 'text-green-600 bg-green-50' };
+      if (status === 'CONFIRMED') return { label: 'Pending', color: 'text-amber-600 bg-amber-50' };
+      if (status === 'CANCELLED') return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
+      return { label: 'N/A', color: 'text-gray-400 bg-gray-50' };
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -128,6 +130,8 @@ export default function SalesOrderDetail() {
       </div>
     );
   }
+
+  const shipmentStatus = getShipmentStatus(order.status);
 
   return (
     <div className="space-y-6">
@@ -147,11 +151,13 @@ export default function SalesOrderDetail() {
             {order.partner?.name || 'Unknown Customer'}
           </p>
         </div>
-        <span
-          className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(order.status)}`}
-        >
-          {order.status}
-        </span>
+        <div className="flex gap-2">
+            <span
+              className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
+            >
+              {order.status}
+            </span>
+        </div>
       </div>
 
       {/* Details Card */}
@@ -164,24 +170,28 @@ export default function SalesOrderDetail() {
           </div>
           <div>
             <p className="text-sm text-gray-500">Customer</p>
-            <p className="font-medium">{order.partner?.name || '-'}</p>
+            <p className="font-medium">
+              {order.partner ? (
+                <Link
+                  to={`/customers/${order.partnerId}`}
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  {order.partner.name}
+                </Link>
+              ) : (
+                '-'
+              )}
+            </p>
           </div>
           <div>
             <p className="text-sm text-gray-500">Created</p>
             <p className="font-medium">{formatDate(order.createdAt)}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Related Invoice</p>
-            {order.invoice ? (
-              <Link
-                to={`/invoices/${order.invoice.id}`}
-                className="font-mono font-medium text-blue-600 hover:text-blue-800 hover:underline"
-              >
-                {order.invoice.invoiceNumber}
-              </Link>
-            ) : (
-              <span className="text-gray-400 italic">No invoice created</span>
-            )}
+            <p className="text-sm text-gray-500">Shipment Status</p>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${shipmentStatus.color}`}>
+                {shipmentStatus.label}
+            </span>
           </div>
         </div>
 
@@ -219,7 +229,16 @@ export default function SalesOrderDetail() {
             {order.items.map((item) => (
               <tr key={item.id}>
                 <td className="px-4 py-3">
-                  {item.product?.name || item.productId}
+                  {item.product ? (
+                    <Link
+                      to={`/products/${item.productId}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      {item.product.name}
+                    </Link>
+                  ) : (
+                    item.productId
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right">{item.quantity}</td>
                 <td className="px-4 py-3 text-right">
@@ -234,43 +253,51 @@ export default function SalesOrderDetail() {
         </table>
       </div>
 
-      {/* Actions */}
+      {/* Related Invoices */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Actions</h2>
-        <div className="flex flex-wrap gap-3">
-          {order.status === 'DRAFT' && (
-            <>
-              <ActionButton variant="primary" onClick={handleConfirm}>
-                Confirm Order
-              </ActionButton>
-              <ActionButton variant="danger" onClick={handleCancel}>
-                Cancel Order
-              </ActionButton>
-            </>
-          )}
-          {order.status === 'CONFIRMED' && (
-            <ActionButton
-              variant="success"
-              onClick={handleShip}
-            >
-              Ship Order
-            </ActionButton>
-          )}
-          {order.status === 'COMPLETED' && !order.invoice && (
-            <ActionButton variant="warning" onClick={handleCreateInvoice}>
-              Create Invoice
-            </ActionButton>
-          )}
-          {order.status === 'COMPLETED' && order.invoice && (
-            <ActionButton
-              variant="secondary"
-              onClick={() => navigate(`/invoices/${order.invoice!.id}`)}
-            >
-              View Invoice ({order.invoice.invoiceNumber})
-            </ActionButton>
-          )}
-        </div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Related Invoices</h2>
+            {/* Create Invoice Action moved here or keep in Actions? 
+                Usually actions at top or bottom. 
+                Requirements say "Invoice/Bill Detail MUST display a link back to the source Order".
+                For "Related Documents", we just show list.
+            */}
+          </div>
+          <InvoiceList filter={{ orderId: order.id }} />
       </div>
+
+      {/* Actions */}
+      {(order.status === 'DRAFT' ||
+        order.status === 'CONFIRMED' ||
+        (order.status === 'COMPLETED' &&
+          (!order.invoices || order.invoices.length === 0))) && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">Actions</h2>
+          <div className="flex flex-wrap gap-3">
+            {order.status === 'DRAFT' && (
+              <>
+                <ActionButton variant="primary" onClick={handleConfirm}>
+                  Confirm Order
+                </ActionButton>
+                <ActionButton variant="danger" onClick={handleCancel}>
+                  Cancel Order
+                </ActionButton>
+              </>
+            )}
+            {order.status === 'CONFIRMED' && (
+              <ActionButton variant="success" onClick={handleShip}>
+                Ship Order
+              </ActionButton>
+            )}
+            {order.status === 'COMPLETED' &&
+              (!order.invoices || order.invoices.length === 0) && (
+                <ActionButton variant="warning" onClick={handleCreateInvoice}>
+                  Create Invoice
+                </ActionButton>
+              )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

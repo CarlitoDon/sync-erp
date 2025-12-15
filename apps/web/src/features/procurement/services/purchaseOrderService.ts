@@ -31,8 +31,8 @@ export interface CreatePurchaseOrderInput {
 }
 
 export const purchaseOrderService = {
-  async list(status?: string): Promise<PurchaseOrder[]> {
-    const params = status ? { status } : {};
+  async list(filters?: { status?: string; partnerId?: string }): Promise<PurchaseOrder[]> {
+    const params = filters || {};
     const res = await api.get('/purchase-orders', { params });
     return ensureArray(res.data?.data);
   },
