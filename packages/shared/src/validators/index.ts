@@ -5,6 +5,7 @@ import { z } from 'zod';
 // ============================================
 
 export * from './auth.js';
+export * from './company.js';
 
 export const PaginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -99,6 +100,7 @@ export const CreateOrderSchema = z.object({
   items: z
     .array(OrderItemSchema)
     .min(1, 'Order must have at least one item'),
+  taxRate: z.number().min(0).max(100).optional(),
 });
 
 export const CreateSalesOrderSchema = CreateOrderSchema.extend({
