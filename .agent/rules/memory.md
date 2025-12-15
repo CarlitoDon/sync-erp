@@ -4,12 +4,11 @@ trigger: always_on
 
 <!--
 MEMORY SYNC REPORT
-Version: 0.0.0 -> 1.0.0 (Initial Structure)
+Version: 1.0.0 -> 1.0.1 (Patch - Added DRY Principle Decision)
 Added Sections:
-- Project Overview
-- Key Decisions Log
-- Known Issues & Workarounds
-- Frequently Used Patterns
+- None
+Modified Sections:
+- Key Decisions Log (added DRY entry)
 Removed Sections:
 - None
 Last Updated: 2025-12-15
@@ -17,7 +16,7 @@ Last Updated: 2025-12-15
 
 # Project Memory
 
-**Version**: 1.0.0 | **Last Updated**: 2025-12-15
+**Version**: 1.0.1 | **Last Updated**: 2025-12-15
 
 ## Overview
 
@@ -33,6 +32,12 @@ Last Updated: 2025-12-15
 ## Key Decisions Log
 
 > Decisions that affect future development. Add new entries at top.
+
+### [2025-12-15] DRY Principle
+
+**Decision**: Apply DRY (Don't Repeat Yourself) - extract common logic into shared utilities/hooks.
+**Rationale**: Reduces code duplication, improves maintainability, centralizes bug fixes.
+**Reference**: N/A (general best practice)
 
 ### [2025-12-15] Schema-First Development
 

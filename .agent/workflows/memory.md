@@ -60,7 +60,10 @@ Follow this execution flow:
    - Update `Last Updated` date to today
    - Document what was added
 
-5. Write updated memory back to `.agent/rules/memory.md`.
+5. Use the `multi_replace_file_content` or `replace_file_content` tool to update `.agent/rules/memory.md`:
+   - Use `multi_replace_file_content` when updating multiple non-contiguous sections (e.g., SYNC REPORT + Key Decisions Log)
+   - Use `replace_file_content` for single contiguous block changes
+   - **NEVER** use shell commands like `cat` to overwrite the file
 
 6. Confirm to user what was added.
 
