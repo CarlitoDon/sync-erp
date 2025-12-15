@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   purchaseOrderService,
@@ -65,13 +65,7 @@ export default function PurchaseOrders() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Track which orders have bills (orderId -> bill info mapping)
-  const [orderBills, setOrderBills] = useState<Record<string, { 
-    id: string; 
-    invoiceNumber: string;
-    status: string;
-    balance: number;
-  }>>({}); 
+ 
   
   const [formData, setFormData] = useState<CreatePurchaseOrderInput>({
     partnerId: '',
@@ -87,36 +81,7 @@ export default function PurchaseOrders() {
     null
   );
 
-  // Load bills for completed orders
-  const loadOrderBills = async (ordersList: PurchaseOrder[]) => {
-    const completedOrders = ordersList.filter(o => o.status === 'COMPLETED');
-    const billMap: Record<string, { 
-      id: string; 
-      invoiceNumber: string;
-      status: string;
-      balance: number;
-    }> = {};
-    
-    for (const order of completedOrders) {
-      const bill = await billService.getByOrderId(order.id);
-      if (bill) {
-        billMap[order.id] = { 
-          id: bill.id, 
-          invoiceNumber: bill.invoiceNumber || '',
-          status: bill.status || 'DRAFT',
-          balance: Number(bill.balance) || 0,
-        };
-      }
-    }
-    setOrderBills(billMap);
-  };
 
-  // Load bills when orders change
-  useEffect(() => {
-    if (orders.length > 0) {
-      loadOrderBills(orders);
-    }
-  }, [orders]);
 
   const handleAddItem = () => {
     if (!currentItem.productId || currentItem.quantity <= 0) return;
@@ -187,16 +152,6 @@ export default function PurchaseOrders() {
       'Bill created from Purchase Order!'
     );
     if (result) {
-      // Add to orderBills map
-      setOrderBills(prev => ({
-        ...prev,
-        [orderId]: { 
-          id: result.id, 
-          invoiceNumber: result.invoiceNumber || '',
-          status: result.status || 'DRAFT',
-          balance: Number(result.balance) || 0,
-        }
-      }));
       loadData();
     }
   };
@@ -616,7 +571,7 @@ export default function PurchaseOrders() {
                         Receive Goods
                       </ActionButton>
                     )}
-                    {order.status === 'COMPLETED' && !orderBills[order.id] && (
+                    {order.status === 'COMPLETED' && (!order.invoices || order.invoices.length === 0) && (
                       <ActionButton
                         onClick={() => handleCreateBill(order.id)}
                         variant="primary"
@@ -624,16 +579,16 @@ export default function PurchaseOrders() {
                         Create Bill
                       </ActionButton>
                     )}
-                    {order.status === 'COMPLETED' && orderBills[order.id] && (
+                    {order.status === 'COMPLETED' && order.invoices && order.invoices.length > 0 && (
                       <div className="flex flex-col items-end gap-1">
                         <ActionButton
-                          onClick={() => handleViewBill(orderBills[order.id].id)}
+                          onClick={() => handleViewBill(order.invoices![0].id)}
                           variant="secondary"
                         >
                           View Bill
                         </ActionButton>
-                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${getBillStatusBadge(orderBills[order.id].status, orderBills[order.id].balance).color}`}>
-                          {getBillStatusBadge(orderBills[order.id].status, orderBills[order.id].balance).label}
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${getBillStatusBadge(order.invoices![0].status, Number(order.invoices![0].balance)).color}`}>
+                          {getBillStatusBadge(order.invoices![0].status, Number(order.invoices![0].balance)).label}
                         </span>
                       </div>
                     )}

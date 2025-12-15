@@ -54,6 +54,7 @@ export class SalesRepository {
       include: {
         items: true,
         partner: true,
+        invoices: true,
       },
       orderBy: { createdAt: 'desc' },
     });

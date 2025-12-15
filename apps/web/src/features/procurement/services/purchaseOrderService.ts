@@ -2,6 +2,7 @@ import api from '../../../services/api';
 import { ensureArray } from '../../../utils/safeData';
 import type { Partner } from '../../partners/services/partnerService';
 import type { Product } from '../../inventory/services/productService';
+import type { Invoice } from '@sync-erp/shared';
 
 export interface OrderItem {
   id: string;
@@ -19,6 +20,7 @@ export interface PurchaseOrder {
   status: 'DRAFT' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
   totalAmount: number;
   items: OrderItem[];
+  invoices?: Invoice[];
   createdAt: string;
 }
 
