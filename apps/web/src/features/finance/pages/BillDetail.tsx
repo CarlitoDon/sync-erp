@@ -145,11 +145,39 @@ export default function BillDetail() {
         isOpen={showPayment}
         onClose={() => setShowPayment(false)}
         title="Record Payment"
+        maxWidth="md"
       >
         <div className="space-y-4">
+          {/* Bill Info Header */}
+          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Bill Number</span>
+              <span className="font-mono font-medium">{bill.invoiceNumber}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Supplier</span>
+              <span className="font-medium">{bill.partner?.name || '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Total Amount</span>
+              <span className="font-medium">{formatCurrency(Number(bill.amount))}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Outstanding Balance</span>
+              <span className="font-bold text-red-600">{formatCurrency(Number(bill.balance))}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Due Date</span>
+              <span className={new Date(bill.dueDate) < new Date() ? 'text-red-600 font-bold' : ''}>
+                {formatDate(bill.dueDate)}
+              </span>
+            </div>
+          </div>
+
+          {/* Payment Form */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Amount
+              Payment Amount *
             </label>
             <input
               type="number"
@@ -158,8 +186,8 @@ export default function BillDetail() {
               max={Number(bill.balance)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
-            <p className="text-sm text-gray-500 mt-1">
-              Remaining: {formatCurrency(Number(bill.balance))}
+            <p className="text-xs text-gray-500 mt-1">
+              Max: {formatCurrency(Number(bill.balance))}
             </p>
           </div>
 
@@ -174,26 +202,30 @@ export default function BillDetail() {
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option value="CASH">Cash</option>
               <option value="BANK_TRANSFER">Bank Transfer</option>
+              <option value="CASH">Cash</option>
+              <option value="CHECK">Check</option>
               <option value="CREDIT_CARD">Credit Card</option>
               <option value="OTHER">Other</option>
             </select>
           </div>
 
-          <div className="flex gap-3 justify-end pt-4 border-t">
+          {/* Actions */}
+          <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
             <button
+              type="button"
               onClick={() => setShowPayment(false)}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleRecordPayment}
               disabled={paymentAmount <= 0 || paymentAmount > Number(bill.balance)}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300"
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              Record Payment
+              Confirm Payment
             </button>
           </div>
         </div>

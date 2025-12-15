@@ -14,6 +14,7 @@ import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
 import { formatCurrency, formatDate } from '../../../utils/format';
 import { PaymentHistoryList } from './PaymentHistoryList';
+import FormModal from '../../../components/ui/FormModal';
 
 // Extend Bill type with order relation
 interface BillWithOrder extends Bill {
@@ -44,7 +45,7 @@ export const BillList = ({ filter }: BillListProps) => {
   >('ALL');
 
   // Payment Modal State
-  const [showPayment, setShowPayment] = useState<string | null>(null);
+  const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] =
     useState<CreatePaymentInput['method']>('BANK_TRANSFER');
@@ -71,20 +72,30 @@ export const BillList = ({ filter }: BillListProps) => {
     loadBills();
   };
 
-  const handlePayment = async (invoiceId: string) => {
-    if (paymentAmount <= 0) return;
+  const openPaymentModal = (bill: Bill) => {
+    setSelectedBill(bill);
+    setPaymentAmount(Number(bill.balance));
+    setPaymentMethod('BANK_TRANSFER');
+  };
+
+  const closePaymentModal = () => {
+    setSelectedBill(null);
+    setPaymentAmount(0);
+  };
+
+  const handlePayment = async () => {
+    if (!selectedBill || paymentAmount <= 0) return;
     const result = await apiAction(
       () =>
         paymentService.create({
-          invoiceId,
+          invoiceId: selectedBill.id,
           amount: paymentAmount,
           method: paymentMethod,
         }),
       'Payment recorded!'
     );
     if (result) {
-      setShowPayment(null);
-      setPaymentAmount(0);
+      closePaymentModal();
       loadBills();
     }
   };
@@ -94,7 +105,7 @@ export const BillList = ({ filter }: BillListProps) => {
       case 'DRAFT':
         return 'bg-gray-100 text-gray-800';
       case 'POSTED':
-        return 'bg-blue-100 text-blue-800'; // Posted means Unpaid/Open
+        return 'bg-blue-100 text-blue-800';
       case 'PAID':
         return 'bg-green-100 text-green-800';
       case 'VOID':
@@ -122,18 +133,106 @@ export const BillList = ({ filter }: BillListProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Payment Modal */}
+      <FormModal
+        isOpen={selectedBill !== null}
+        onClose={closePaymentModal}
+        title="Record Payment"
+        maxWidth="md"
+      >
+        {selectedBill && (
+          <div className="space-y-4">
+            {/* Bill Info Header */}
+            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Bill Number</span>
+                <span className="font-mono font-medium">{selectedBill.invoiceNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Supplier</span>
+                <span className="font-medium">{selectedBill.partner?.name || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Total Amount</span>
+                <span className="font-medium">{formatCurrency(Number(selectedBill.amount))}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Outstanding Balance</span>
+                <span className="font-bold text-red-600">{formatCurrency(Number(selectedBill.balance))}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Due Date</span>
+                <span className={new Date(selectedBill.dueDate) < new Date() ? 'text-red-600 font-bold' : ''}>
+                  {formatDate(selectedBill.dueDate)}
+                </span>
+              </div>
+            </div>
+
+            {/* Payment Form */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Amount *
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={Number(selectedBill.balance)}
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Max: {formatCurrency(Number(selectedBill.balance))}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Method
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value as CreatePaymentInput['method'])}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="BANK_TRANSFER">Bank Transfer</option>
+                <option value="CASH">Cash</option>
+                <option value="CHECK">Check</option>
+                <option value="CREDIT_CARD">Credit Card</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={closePaymentModal}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handlePayment}
+                disabled={paymentAmount <= 0 || paymentAmount > Number(selectedBill.balance)}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Confirm Payment
+              </button>
+            </div>
+          </div>
+        )}
+      </FormModal>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <p className="text-sm text-gray-500 uppercase">Total Bills</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">
-            {bills.length}
-          </p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">{bills.length}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Unpaid Bills
-          </p>
+          <p className="text-sm text-gray-500 uppercase">Unpaid Bills</p>
           <p className="text-3xl font-bold text-blue-600 mt-2">
             {bills.filter((b) => b.status === 'POSTED').length}
           </p>
@@ -145,12 +244,8 @@ export const BillList = ({ filter }: BillListProps) => {
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Outstanding Amount
-          </p>
-          <p className="text-2xl font-bold text-red-600 mt-2">
-            {formatCurrency(outstandingAmount)}
-          </p>
+          <p className="text-sm text-gray-500 uppercase">Outstanding Amount</p>
+          <p className="text-2xl font-bold text-red-600 mt-2">{formatCurrency(outstandingAmount)}</p>
         </div>
       </div>
 
@@ -160,11 +255,7 @@ export const BillList = ({ filter }: BillListProps) => {
           {['ALL', 'DRAFT', 'POSTED', 'PAID'].map((status) => (
             <button
               key={status}
-              onClick={() =>
-                setFilterStatus(
-                  status as 'ALL' | 'DRAFT' | 'POSTED' | 'PAID' | 'VOID'
-                )
-              }
+              onClick={() => setFilterStatus(status as 'ALL' | 'DRAFT' | 'POSTED' | 'PAID' | 'VOID')}
               className={`${
                 filterStatus === status
                   ? 'border-blue-500 text-blue-600'
@@ -182,39 +273,20 @@ export const BillList = ({ filter }: BillListProps) => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Bill #
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Supplier
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Source PO
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Amount
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Balance
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                Due Date
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                Status
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bill #</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Supplier</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source PO</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Balance</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Due Date</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {filteredBills.length === 0 ? (
               <tr>
-                <td
-                  colSpan={8}
-                  className="px-6 py-12 text-center text-gray-500"
-                >
+                <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                   No bills found.
                 </td>
               </tr>
@@ -223,19 +295,13 @@ export const BillList = ({ filter }: BillListProps) => {
                 <Fragment key={bill.id}>
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-mono text-sm">
-                      <Link
-                        to={`/bills/${bill.id}`}
-                        className="text-blue-600 hover:underline"
-                      >
+                      <Link to={`/bills/${bill.id}`} className="text-blue-600 hover:underline">
                         {bill.invoiceNumber}
                       </Link>
                     </td>
                     <td className="px-6 py-4">
                       {bill.partner?.name ? (
-                        <Link
-                          to={`/suppliers/${bill.partnerId}`}
-                          className="text-blue-600 hover:underline"
-                        >
+                        <Link to={`/suppliers/${bill.partnerId}`} className="text-blue-600 hover:underline">
                           {bill.partner.name}
                         </Link>
                       ) : '-'}
@@ -252,17 +318,12 @@ export const BillList = ({ filter }: BillListProps) => {
                         <span className="text-gray-400 italic">Manual</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      {formatCurrency(Number(bill.amount))}
-                    </td>
-                    <td className="px-6 py-4 text-right font-semibold">
-                      {formatCurrency(Number(bill.balance))}
-                    </td>
+                    <td className="px-6 py-4 text-right">{formatCurrency(Number(bill.amount))}</td>
+                    <td className="px-6 py-4 text-right font-semibold">{formatCurrency(Number(bill.balance))}</td>
                     <td className="px-6 py-4 text-center">
                       <span
                         className={
-                          new Date(bill.dueDate) < new Date() &&
-                          bill.status === 'POSTED'
+                          new Date(bill.dueDate) < new Date() && bill.status === 'POSTED'
                             ? 'text-red-600 font-bold'
                             : ''
                         }
@@ -271,126 +332,34 @@ export const BillList = ({ filter }: BillListProps) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(bill.status)}`}
-                      >
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(bill.status)}`}>
                         {bill.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
                       {bill.status === 'DRAFT' && (
                         <>
-                          <ActionButton
-                            variant="primary"
-                            onClick={() => handlePost(bill.id)}
-                          >
-                            Post
-                          </ActionButton>
-                          <ActionButton
-                            variant="danger"
-                            onClick={() => handleVoid(bill.id)}
-                          >
-                            Void
-                          </ActionButton>
+                          <ActionButton variant="primary" onClick={() => handlePost(bill.id)}>Post</ActionButton>
+                          <ActionButton variant="danger" onClick={() => handleVoid(bill.id)}>Void</ActionButton>
                         </>
                       )}
                       {bill.status === 'POSTED' && (
-                        <ActionButton
-                          variant="success"
-                          onClick={() => {
-                            setShowPayment(bill.id);
-                            setPaymentAmount(Number(bill.balance));
-                          }}
-                        >
+                        <ActionButton variant="success" onClick={() => openPaymentModal(bill)}>
                           Record Payment
                         </ActionButton>
                       )}
                       <ActionButton
                         variant="secondary"
-                        onClick={() =>
-                          setShowHistory(
-                            showHistory === bill.id ? null : bill.id
-                          )
-                        }
+                        onClick={() => setShowHistory(showHistory === bill.id ? null : bill.id)}
                       >
-                        {showHistory === bill.id
-                          ? 'Hide History'
-                          : 'History'}
+                        {showHistory === bill.id ? 'Hide History' : 'History'}
                       </ActionButton>
                     </td>
                   </tr>
-                  {/* Inline Payment Form (Reuse from Invoices) */}
-                  {showPayment === bill.id && (
-                    <tr className="bg-gray-50">
-                      <td colSpan={8} className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Amount
-                            </label>
-                            <input
-                              type="number"
-                              min={0}
-                              max={Number(bill.balance)}
-                              value={paymentAmount}
-                              onChange={(e) =>
-                                setPaymentAmount(
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
-                              className="w-40 px-3 py-2 border border-gray-300 rounded-lg"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Method
-                            </label>
-                            <select
-                              value={paymentMethod}
-                              onChange={(e) =>
-                                setPaymentMethod(
-                                  e.target
-                                    .value as CreatePaymentInput['method']
-                                )
-                              }
-                              className="w-40 px-3 py-2 border border-gray-300 rounded-lg"
-                            >
-                              <option value="BANK_TRANSFER">
-                                Bank Transfer
-                              </option>
-                              <option value="CASH">Cash</option>
-                              <option value="CHECK">Check</option>
-                              <option value="CREDIT_CARD">
-                                Credit Card
-                              </option>
-                              <option value="OTHER">Other</option>
-                            </select>
-                          </div>
-                          <div className="flex gap-2 mt-6">
-                            <ActionButton
-                              variant="success"
-                              onClick={() => handlePayment(bill.id)}
-                            >
-                              Confirm
-                            </ActionButton>
-                            <ActionButton
-                              variant="secondary"
-                              onClick={() => setShowPayment(null)}
-                            >
-                              Cancel
-                            </ActionButton>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                   {showHistory === bill.id && (
                     <tr className="bg-gray-50">
                       <td colSpan={8} className="px-6 py-4">
-                        <PaymentHistoryList
-                          invoiceId={bill.id}
-                          totalAmount={bill.amount}
-                        />
+                        <PaymentHistoryList invoiceId={bill.id} totalAmount={bill.amount} />
                       </td>
                     </tr>
                   )}

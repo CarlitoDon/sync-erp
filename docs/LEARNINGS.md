@@ -1,103 +1,304 @@
-# Developer Learning Points & Insights
+# Sync ERP: Design System & Consistency Manifesto
 
-**Date:** December 15, 2025
-**Project:** Sync ERP
-
-This document captures key technical learnings, architectural decisions, and "gotchas" encountered during the development of the Sales, Procurement, and Finance modules.
+> "Design is not just what it looks like and feels like. Design is how it works." — Steve Jobs
 
 ---
 
-## 1. Architectural Patterns & Best Practices
+## The Problem: Case A1
 
-### The "Parity Principle" in ERP Design
+Today we encountered **Case A1**: The "Record Payment" modal looked different between List views and Detail views. Same action, different UI. This is unacceptable.
 
-One of the strongest drivers for our recent productivity was enforcing **Symmetry** between related modules. Code reusability is not just about sharing functions, but sharing _mental models_.
+**Why did this happen?**
 
-- **Procurement ↔ Sales**: `PurchaseOrder` and `SalesOrder` share nearly identical structures (Items, Partners, Taxes). Structure the code similarly to make context switching easier.
-- **Payables ↔ Receivables**: `Bill` (Vendor) and `Invoice` (Customer) are mirror images.
-- **Implementation Strategy**: When implementing a feature (e.g., "Create Invoice from SO"), always immediately ask: "Does the equivalent (Create Bill from PO) exist?" Implement them in pairs.
+1. **No shared component** — The payment form was duplicated across 4 files
+2. **Copy-paste development** — Each file evolved independently
+3. **No design token enforcement** — Styling decisions were made ad-hoc
 
-### Three-Layer Backend Architecture
-
-We strictly follow **Controller → Service → Repository**.
-
-- **Controller**: Handles HTTP, DTO validation, and Response formatting. _Should not contain business logic._
-- **Service**: Contains business logic (calculations, complex checks like stock availability, cross-module calls).
-- **Repository**: Handles direct Database/ORM access. _Should not contain business logic._
-  - _Key Learning_: Keep Prisma `include` logic in the Repository. Services should ask Repositories for "Orders with Invoices", not fetch Orders and then fetch Invoices separately.
+This document establishes patterns to prevent such inconsistencies forever.
 
 ---
 
-## 2. Frontend Performance & Data Fetching
+## Part 1: The Component Hierarchy Principle
 
-### avoiding the Client-Side N+1 Problem
+### Rule: Extract shared UI into reusable components
 
-**The Incident:** We encountered severe performance issues and console errors (404s) when the Sales Order list tried to fetch status for every single specific order individually.
+When the **same action** appears in multiple places, it MUST use the **same component**.
 
-**The Anti-Pattern:**
+```
+apps/web/src/components/
+├── ui/                     # Primitive components (Button, Modal, Input)
+│   ├── FormModal.tsx
+│   ├── ActionButton.tsx
+│   └── ConfirmModal.tsx
+├── shared/                 # Business-aware shared components (NEW)
+│   ├── RecordPaymentModal.tsx    ← Extract this!
+│   ├── PaymentHistoryModal.tsx
+│   └── OrderStatusBadge.tsx
+```
 
-```typescript
-// ❌ BAD: Fetching list, then looping to fetch details
-const orders = await listOrders();
-for (const order of orders) {
-  const invoice = await getInvoiceByOrder(order.id); // N Requests!
+### Why?
+
+When you change the payment form, you change it **once**. Every screen updates automatically.
+
+### Implementation Pattern for RecordPaymentModal
+
+```tsx
+// components/shared/RecordPaymentModal.tsx
+interface RecordPaymentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  document: {
+    id: string;
+    documentNumber: string;
+    partnerName: string;
+    totalAmount: number;
+    balance: number;
+    dueDate: Date | string;
+    type: 'INVOICE' | 'BILL';
+  };
 }
+
+export const RecordPaymentModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  document,
+}: RecordPaymentModalProps) => {
+  // All payment logic centralized here
+};
 ```
 
-**The Solution (Eager Loading):**
-Leverage the Backend's ability to join data.
+Now `BillList`, `BillDetail`, `InvoiceList`, `InvoiceDetail` all use:
 
-```typescript
-// ✅ GOOD: Fetch everything in one go
-// Backend (Repository)
-return prisma.order.findMany({ include: { invoices: true } });
-
-// Frontend
-orders.map(order => <div>{order.invoices[0]?.status}</div>);
+```tsx
+<RecordPaymentModal
+  isOpen={showPayment}
+  onClose={() => setShowPayment(false)}
+  onSuccess={loadData}
+  document={{
+    id: bill.id,
+    documentNumber: bill.invoiceNumber,
+    partnerName: bill.partner?.name || '-',
+    totalAmount: Number(bill.amount),
+    balance: Number(bill.balance),
+    dueDate: bill.dueDate,
+    type: 'BILL',
+  }}
+/>
 ```
 
-**Takeaway:** If you are calling an API inside a loop or `useEffect` that depends on a list, you are likely creating a performance bottleneck. Move the logic to the backend `include` or `join`.
+---
 
-### UI State Management
+## Part 2: The Module Parity Principle
 
-- **Optimistic Updates**: Using `loadData()` to refresh the entire table is safer but slower. For simple status changes (e.g., "Ship"), modifying the local state immediately (Optimistic UI) usually provides a better UX, but requires careful sync with the backend. We currently use "Action -> Await -> Refresh", which is robust but network-heavy.
+### Rule: Mirror modules MUST have identical UX
+
+| Sales Module       | Procurement Module    |
+| ------------------ | --------------------- |
+| `SalesOrderList`   | `PurchaseOrderList`   |
+| `SalesOrderDetail` | `PurchaseOrderDetail` |
+| `CustomerDetail`   | `SupplierDetail`      |
+| `InvoiceList`      | `BillList`            |
+| `InvoiceDetail`    | `BillDetail`          |
+
+### Why?
+
+Users learn patterns, not screens. If "Record Payment" works one way on invoices, it MUST work identically on bills.
+
+### Enforcement
+
+Before implementing a feature in Module A, ask:
+
+1. Does Module B have an equivalent?
+2. If yes, implement both simultaneously
+3. Use shared components to guarantee parity
 
 ---
 
-## 3. Error Handling & User Experience
+## Part 3: The Action Pattern Library
 
-### The "Toast Trap"
+Every user action falls into categories. Each category has ONE way to be implemented.
 
-**Issue:** Our global API interceptor was configured to show a Red Error Toast for **ALL** errors, including 404s.
-**Impact:** Harmless checks (e.g., "Does this order have an invoice?") resulted in scary error messages for the user.
-**Fix:**
+### Status Change Actions
 
-1. **Frontend**: Don't suppress errors blindly with `any` types.
-2. **Architecture**: Avoid the error condition entirely (see N+1 fix above).
-3. **Policy**: 404s are often "Expected logic flows" (e.g., Resource not found -> Create new one), not "System Exceptions". Global handlers must discriminate or allow overrides.
+| Action Type      | Component      | Variant     | Example               |
+| ---------------- | -------------- | ----------- | --------------------- |
+| Confirm/Approve  | `ActionButton` | `primary`   | Confirm Order, Post   |
+| Cancel/Void      | `ActionButton` | `danger`    | Cancel Order, Void    |
+| Complete/Success | `ActionButton` | `success`   | Ship, Record Payment  |
+| View/Navigate    | `ActionButton` | `secondary` | View Invoice, History |
+
+### Modal Actions
+
+| Scenario                   | Modal Type     | Design                           |
+| -------------------------- | -------------- | -------------------------------- |
+| Destructive confirmation   | `ConfirmModal` | Red button, warning message      |
+| Data entry (single entity) | `FormModal`    | Info header + form + actions     |
+| List/History view          | `FormModal`    | Table or list, close button only |
+
+### Data Entry Modal Structure (ALWAYS)
+
+```
+┌─────────────────────────────────────────┐
+│  Modal Title                       [X]  │
+├─────────────────────────────────────────┤
+│  ┌─────────────────────────────────┐    │
+│  │  Context Info Block (gray bg)  │    │  ← REQUIRED: What are we editing?
+│  │  - Key field 1: Value          │    │
+│  │  - Key field 2: Value          │    │
+│  │  - Important value (bold/red)  │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  Form Field 1 *                         │  ← Form fields
+│  [________________________]             │
+│                                         │
+│  Form Field 2                           │
+│  [________________________]             │
+│                                         │
+├─────────────────────────────────────────┤
+│               [Cancel]  [Confirm Action]│  ← ALWAYS: Cancel left, Primary right
+└─────────────────────────────────────────┘
+```
 
 ---
 
-## 4. Prisma & Database Modeling
+## Part 4: The Design Token System
 
-### Relation vs Field
+### Color Semantics (NEVER deviate)
 
-- We learned to rely on Prisma's auto-generated relations.
-- **One-to-Many Semantics**: Even if logically "1 Sales Order has 1 Invoice", the database often models this as `Order` -> `Invoice[]` (One-to-Many) for flexibility (e.g., partial invoicing in the future).
-- **Frontend Adaptation**: Always check array length or safe access (`invoices?.[0]`) rather than assuming a single object field unless the schema explicitly enforces `@unique`.
+| Purpose        | Color Class      | Usage                        |
+| -------------- | ---------------- | ---------------------------- |
+| Primary action | `bg-blue-600`    | Confirm, Submit, Save        |
+| Success action | `bg-green-600`   | Complete, Paid, Record       |
+| Danger action  | `bg-red-600`     | Delete, Void, Cancel         |
+| Warning state  | `text-amber-600` | Pending, Overdue soon        |
+| Danger state   | `text-red-600`   | Overdue, Outstanding balance |
+| Neutral        | `bg-gray-100`    | Cancel button, Secondary     |
+
+### Badge/Status Colors
+
+| Status    | Background     | Text             |
+| --------- | -------------- | ---------------- |
+| DRAFT     | `bg-gray-100`  | `text-gray-800`  |
+| CONFIRMED | `bg-blue-100`  | `text-blue-800`  |
+| POSTED    | `bg-blue-100`  | `text-blue-800`  |
+| COMPLETED | `bg-green-100` | `text-green-800` |
+| PAID      | `bg-green-100` | `text-green-800` |
+| CANCELLED | `bg-red-100`   | `text-red-800`   |
+| VOID      | `bg-red-100`   | `text-red-800`   |
 
 ---
 
-## 5. Development Workflow (Agentic)
+## Part 5: The Checklist Before Implementation
 
-### Context is King
+Before writing ANY new UI, answer these questions:
 
-- Providing the AI/Agent with "Related Files" (e.g., showing `PurchaseOrder.tsx` when working on `SalesOrder.tsx`) drastically improves code quality by enabling checking for consistency/parity.
-- **Iterative Refactoring**: Don't settle for "Quick Fixes" (like suppressing errors). Always push for the "Root Cause Fix" (Refactoring the data fetch strategy) once the immediate fire is put out.
+### 1. Component Reuse
+
+- [ ] Does this UI pattern already exist elsewhere?
+- [ ] If yes, can I extract a shared component?
+- [ ] If not, should I create one for future reuse?
+
+### 2. Module Parity
+
+- [ ] Does this feature have a mirror in another module?
+- [ ] Am I implementing both simultaneously?
+- [ ] Am I using the same component for both?
+
+### 3. Action Consistency
+
+- [ ] Does this action type exist elsewhere?
+- [ ] Am I using the correct button variant?
+- [ ] Am I following the modal structure pattern?
+
+### 4. Token Compliance
+
+- [ ] Am I using semantic color classes, not arbitrary colors?
+- [ ] Does the status badge use the standard color mapping?
 
 ---
 
-## Action Items / Future Improvements
+## Part 6: File Organization for Shared Components
 
-- [ ] **Shared Types**: Move Frontend locally defined interfaces (`SalesOrder`, `PurchaseOrder`) to `@sync-erp/shared` to guarantee they match the Backend DTOs.
-- [ ] **Status Badge Component**: Extract the duplicated `getStatusColor` and `getInvoiceStatusBadge` logic into a shared UI component to ensure consistency across the app.
+### Current State (Problematic)
+
+```
+features/
+├── finance/
+│   ├── components/
+│   │   ├── BillList.tsx          ← Has payment form inline
+│   │   ├── InvoiceList.tsx       ← Has payment form inline (duplicate)
+│   │   └── PaymentHistoryList.tsx
+│   └── pages/
+│       ├── BillDetail.tsx        ← Has payment form inline (duplicate)
+│       └── InvoiceDetail.tsx     ← Has payment form inline (duplicate)
+```
+
+### Target State (Consistent)
+
+```
+components/
+├── ui/                            # Primitives
+│   ├── FormModal.tsx
+│   ├── ActionButton.tsx
+│   └── ConfirmModal.tsx
+├── shared/                        # Business components
+│   ├── RecordPaymentModal.tsx     ← Extracted, used by all 4 files
+│   ├── PaymentHistoryModal.tsx
+│   ├── OrderStatusBadge.tsx
+│   └── DocumentInfoHeader.tsx
+
+features/
+├── finance/
+│   ├── components/
+│   │   ├── BillList.tsx          ← Uses <RecordPaymentModal />
+│   │   └── InvoiceList.tsx       ← Uses <RecordPaymentModal />
+│   └── pages/
+│       ├── BillDetail.tsx        ← Uses <RecordPaymentModal />
+│       └── InvoiceDetail.tsx     ← Uses <RecordPaymentModal />
+```
+
+---
+
+## Part 7: The Steve Jobs Test
+
+Before shipping any feature, ask:
+
+> "If Steve Jobs reviewed this, would he approve?"
+
+### The Criteria
+
+1. **Obsessive Consistency** — Does this look and behave exactly like its siblings?
+2. **Simplicity** — Can we remove anything without losing meaning?
+3. **Delight** — Does the interaction feel polished and intentional?
+4. **Defensibility** — Can we explain WHY every design decision was made?
+
+If the answer to any of these is "no," go back and fix it.
+
+---
+
+## Immediate Action Items
+
+1. **Extract `RecordPaymentModal`** to `components/shared/`
+2. **Refactor all 4 files** to use the shared component
+3. **Extract `DocumentInfoHeader`** for reuse in modals
+4. **Create `StatusBadge`** component with centralized color mapping
+5. **Update Constitution** with UI Consistency Principle
+
+---
+
+## Summary
+
+| Problem                   | Solution                                     |
+| ------------------------- | -------------------------------------------- |
+| Duplicate UI code         | Extract shared components                    |
+| Inconsistent styling      | Design token system + centralized components |
+| Forgetting mirror modules | Parity checklist before implementation       |
+| Ad-hoc design decisions   | Action Pattern Library reference             |
+
+**The goal is simple: Write it once, use it everywhere, change it once.**
+
+---
+
+_This document is a living reference. Update it when new patterns emerge._

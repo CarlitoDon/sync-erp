@@ -4,11 +4,11 @@ trigger: always_on
 
 <!--
 MEMORY SYNC REPORT
-Version: 1.0.1 -> 1.0.2 (Patch - Added N+1/Parity Decisions)
+Version: 1.0.2 -> 1.0.3 (Patch - Added UI Consistency Decision)
 Added Sections:
 - None
 Modified Sections:
-- Key Decisions Log (added N+1 and Parity entries)
+- Key Decisions Log (added UI Consistency / Shared Components entry)
 Removed Sections:
 - None
 Last Updated: 2025-12-15
@@ -16,7 +16,7 @@ Last Updated: 2025-12-15
 
 # Project Memory
 
-**Version**: 1.0.2 | **Last Updated**: 2025-12-15
+**Version**: 1.0.3 | **Last Updated**: 2025-12-15
 
 ## Overview
 
@@ -32,6 +32,12 @@ Last Updated: 2025-12-15
 ## Key Decisions Log
 
 > Decisions that affect future development. Add new entries at top.
+
+### [2025-12-15] UI Consistency via Shared Components
+
+**Decision**: Same UI actions MUST use shared components. Extract common UI (e.g., RecordPaymentModal) to `components/shared/`.
+**Rationale**: Case A1 exposed duplicate payment forms across 4 files evolving independently. Shared components ensure "change once, update everywhere" and Steve Jobs-level consistency.
+**Reference**: See `docs/LEARNINGS.md` for full Design System Manifesto.
 
 ### [2025-12-15] Backend-First Data Linking (Avoid N+1)
 
