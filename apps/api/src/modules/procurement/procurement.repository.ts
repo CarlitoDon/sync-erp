@@ -37,6 +37,7 @@ export class ProcurementRepository {
       include: {
         items: { include: { product: true } },
         partner: true,
+        invoices: true,
       },
     });
   }

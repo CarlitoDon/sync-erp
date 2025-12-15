@@ -37,6 +37,7 @@ export class SalesRepository {
       include: {
         items: { include: { product: true } },
         partner: true,
+        invoices: true,
       },
     });
   }
