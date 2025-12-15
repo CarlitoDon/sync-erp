@@ -36,7 +36,11 @@ invoiceRouter.get('/', controller.list);
 // For now, I'll inline usage of Service in Controller if I can? No, I only have Controller instance.
 // I'll use `controller.list` with forced query override for now? No.
 // I'll skip replacing /outstanding route for a moment or map it to a custom handler calling controller.list if arguments match.
+// GET /api/invoices/outstanding - Get outstanding invoices
 invoiceRouter.get('/outstanding', controller.getOutstanding);
+
+// GET /api/invoices/by-order/:orderId - Get invoice by Order ID
+invoiceRouter.get('/by-order/:orderId', controller.getByOrderId);
 
 // GET /api/invoices/:id - Get invoice by ID
 invoiceRouter.get('/:id', controller.getById);

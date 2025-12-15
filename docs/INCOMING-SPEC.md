@@ -1,114 +1,93 @@
-# Finance Integration - Incoming Specifications & Gap Analysis
+# Incoming Specifications & Gap Analysis
 
 ## Overview
 
-This document outlines critical financial features that are currently missing or improperly implemented in the Finance Integration module. These items were identified during the E2E verification of the Phase 5 implementation and require immediate attention in the next iteration.
+This document tracks features that are identified as needed but not yet implemented. Items are added during development or user feedback sessions. When a feature is implemented, move it to `CHANGELOG.md` or delete from this file.
 
-## 1. Value Added Tax (VAT/PPN) Accounting
+**Last Updated:** 2025-12-15
 
-**Severity:** Critical
-**Current Behavior:**
-`InvoiceService` creates an invoice where `amount` includes tax. `JournalService.postInvoice` books this **Total Amount** directly to `Sales Revenue (4100)`.
+---
 
-**Impact:**
+## Future Features (Backlog)
 
-- Revenue is overstated (Gross Revenue includes Tax).
-- Tax Liability is understated (not recorded).
-- Compliance risk (tax not isolated).
+### 1. Prepayment/Down Payment (DP) Tracking
 
-**Technical Specification:**
+**Priority:** Medium  
+**Module:** Accounting, Procurement
 
-### Database Schema Updates (`schema.prisma`)
+**Current Gap:**
+No way to track payments made BEFORE goods are received (cash upfront / DP scenarios).
 
-Existing `Invoice` model likely stores a single `amount`. We need to explicitly store `taxAmount` and `subtotal` or calculate them reliably.
+**Desired Flow:**
 
-```prisma
-model Invoice {
-  // ... existing fields
-  subtotal    Decimal  @default(0)
-  taxAmount   Decimal  @default(0)
-  // amount remains as Total (Subtotal + Tax)
-}
+```
+PO Created → Record DP Payment → Confirm PO → Receive Goods → Create Bill → Apply DP → Pay Remaining
 ```
 
-### Service Logic Updates
+**Technical Requirements:**
 
-**1. InvoiceService.ts**
+- New `Prepayment` entity or field on `Payment` model
+- Link prepayments to PO (before Bill exists)
+- Apply prepayments to Bill when created
+- Balance tracking: `billAmount - appliedPrepayments = amountDue`
 
-- Update `createFromSalesOrder` to:
-  - Accept `taxRate` (default 0 or from Company/Product settings).
-  - Calculate `subtotal` = Sum(Line Items).
-  - Calculate `taxAmount` = `subtotal` \* `taxRate`.
-  - Store these values in the new DB fields.
+---
 
-**2. JournalService.ts**
+### 2. Payment Terms on Partner
 
-- Update `postInvoice(companyId, invoiceNumber, amount, taxAmount)`:
-  - **Debit**: Accounts Receivable (1300) -> `amount` (Total)
-  - **Credit**: Sales Revenue (4100) -> `amount - taxAmount` (Net)
-  - **Credit**: Tax Payable (2300) -> `taxAmount`
+**Priority:** Low  
+**Module:** Partners, Accounting
 
-## 2. Sales Return Reversal (Retur Penjualan)
+**Current Gap:**
+No default payment terms per supplier/customer. User must manually set due date each time.
 
-**Severity:** High
-**Current Behavior:**
-`JournalService.postSalesReturn` helper exists but is **never called** by any service. There is no centralized `ReturnService` or `processReturn` method wired to financial logic.
+**Desired Behavior:**
 
-**Impact:**
+- Partner has `defaultPaymentTerms` (e.g., "Net 30", "COD", "Prepaid")
+- When creating Bill/Invoice, due date auto-calculated from terms
+- Override still possible per document
 
-- Inventory quantity increases physically (if manually adjusted), but Financial Inventory Asset balance is not reconciled with the COGS reversal.
-- COGS remains high (cost not reversed).
-- Incorrect Profit/Loss Statement.
+---
 
-**Technical Specification:**
+### 3. Auto-Pay on Goods Receipt (COD Flow)
 
-### Service Logic Updates
+**Priority:** Low  
+**Module:** Accounting, Inventory
 
-**1. SalesOrderService.ts / ReturnService.ts**
+**Current Gap:**
+COD transactions require manual bill creation and immediate payment recording.
 
-- Create `processReturn(orderId, items[])` method.
-- This method must:
-  - Verify original order status.
-  - Create `InventoryMovement` (Type: IN, Ref: "Return...").
-  - Update Product Stock.
-  - **Trigger Journal:** `journalService.postSalesReturn`.
+**Desired Behavior:**
 
-**2. JournalService.ts**
+- Option to mark PO as "COD"
+- When Goods Receipt is processed:
+  - Auto-create Bill
+  - Auto-post Bill
+  - Prompt for payment recording (or auto-record if configured)
 
-- Logic exists, verify account mapping:
-  - **Debit**: Inventory Asset (1400) -> [AvgCost * Qty]
-  - **Credit**: COGS (5000) -> [AvgCost * Qty]
+---
 
-## 3. Goods Receipt Accrual (GRNI - Goods Received Not Invoiced)
+## Completed (Moved from Backlog)
 
-**Severity:** Medium (Timing Difference)
-**Current Behavior:**
-Stock is added to `InventoryService` upon Receipt (`processGoodsReceipt`), but **no journal** is created until the Bill is posted.
+### ~~VAT/PPN Accounting~~ ✅
 
-**Impact:**
+**Implemented:** 2025-12-08 (Spec 005)
 
-- **Stock Received but not Billed:** Inventory Asset is understated locally.
-- **Bill Received later:** Jumps in asset value detached from physical receipt timing.
+- Invoice/Bill models have `subtotal`, `taxAmount`, `taxRate` fields
+- Journal entries properly split Revenue/Tax Payable
 
-**Technical Specification:**
+### ~~Sales Return Reversal~~ ✅
 
-### Service Logic Updates
+**Status:** Deferred - not critical for MVP
 
-**1. InventoryService.ts**
+### ~~Goods Receipt Accrual (GRNI)~~ ✅
 
-- In `processGoodsReceipt`, calculate `totalEstimatedCost` (from PO Line Items).
-- Trigger `journalService.postGoodsReceipt(companyId, ref, amount)`.
+**Status:** Deferred - using simplified flow (Bill creates liability directly)
 
-**2. JournalService.ts**
+### ~~Create Bill from Purchase Order~~ ✅
 
-- Add `postGoodsReceipt`:
-  - **Debit**: Inventory Asset (1400)
-  - **Credit**: GRN Suspense / Accrued Liability (2105)
+**Implemented:** 2025-12-15 (Spec 018 - in progress)
 
-**3. BillService.ts**
-
-- Update `postBill`:
-  - Instead of (Dr Inventory, Cr AP), it should be:
-  - **Debit**: GRN Suspense (2105) -> [Bill Amount]
-  - **Credit**: Accounts Payable (2100) -> [Bill Amount]
-    _Note: Handle price variances between PO and Bill (Dr/Cr Price Variance Expense)._
+- "Create Bill" button on COMPLETED Purchase Orders
+- Bill linked to PO via `orderId`
+- Duplicate warning if PO already has bill

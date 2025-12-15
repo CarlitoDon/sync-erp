@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { BillService } from '../services/bill.service';
 import {
-  CreateBillSchema,
+  CreateBillFromPOSchema,
   CreateManualBillSchema,
 } from '@sync-erp/shared';
 
@@ -27,7 +27,7 @@ export class BillController {
     try {
       const companyId = req.context.companyId!;
 
-      // Check if this is manual creation (no orderId, has partnerId + subtotal)
+      // Check if this is manual creation (has partnerId + subtotal, no orderId)
       if (
         !req.body.orderId &&
         req.body.partnerId &&
@@ -38,11 +38,13 @@ export class BillController {
         return res.status(201).json({ success: true, data: bill });
       }
 
-      // Otherwise, use PO-based creation
-      const validated = CreateBillSchema.parse(req.body);
+      // Otherwise, use PO-based creation (only requires orderId)
+      const validated = CreateBillFromPOSchema.parse(req.body);
       const bill = await this.service.createFromPurchaseOrder(companyId, {
-        orderId: validated.orderId!,
+        orderId: validated.orderId,
         dueDate: validated.dueDate,
+        taxRate: validated.taxRate,
+        invoiceNumber: validated.invoiceNumber,
       });
       res.status(201).json({ success: true, data: bill });
     } catch (error) {
@@ -119,6 +121,29 @@ export class BillController {
         companyId
       );
       res.json({ success: true, data: { remaining } });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getByOrderId = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const bill = await this.service.getByOrderId(
+        req.params.orderId,
+        companyId
+      );
+      if (!bill) {
+        return res.status(404).json({
+          success: false,
+          error: { message: 'No bill found for this order' },
+        });
+      }
+      res.json({ success: true, data: bill });
     } catch (error) {
       next(error);
     }

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   purchaseOrderService,
   PurchaseOrder,
@@ -19,6 +20,7 @@ import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
 import { GoodsReceiptModal } from '../../inventory/components/GoodsReceiptModal';
 import FormModal from '../../../components/ui/FormModal';
+import { billService } from '../../finance/services/billService';
 
 interface OrderItemForm {
   productId: string;
@@ -63,6 +65,14 @@ export default function PurchaseOrders() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Track which orders have bills (orderId -> bill info mapping)
+  const [orderBills, setOrderBills] = useState<Record<string, { 
+    id: string; 
+    invoiceNumber: string;
+    status: string;
+    balance: number;
+  }>>({}); 
+  
   const [formData, setFormData] = useState<CreatePurchaseOrderInput>({
     partnerId: '',
     items: [],
@@ -76,6 +86,37 @@ export default function PurchaseOrders() {
   const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(
     null
   );
+
+  // Load bills for completed orders
+  const loadOrderBills = async (ordersList: PurchaseOrder[]) => {
+    const completedOrders = ordersList.filter(o => o.status === 'COMPLETED');
+    const billMap: Record<string, { 
+      id: string; 
+      invoiceNumber: string;
+      status: string;
+      balance: number;
+    }> = {};
+    
+    for (const order of completedOrders) {
+      const bill = await billService.getByOrderId(order.id);
+      if (bill) {
+        billMap[order.id] = { 
+          id: bill.id, 
+          invoiceNumber: bill.invoiceNumber || '',
+          status: bill.status || 'DRAFT',
+          balance: Number(bill.balance) || 0,
+        };
+      }
+    }
+    setOrderBills(billMap);
+  };
+
+  // Load bills when orders change
+  useEffect(() => {
+    if (orders.length > 0) {
+      loadOrderBills(orders);
+    }
+  }, [orders]);
 
   const handleAddItem = () => {
     if (!currentItem.productId || currentItem.quantity <= 0) return;
@@ -138,6 +179,56 @@ export default function PurchaseOrders() {
       'Order cancelled'
     );
     loadData();
+  };
+
+  const handleCreateBill = async (orderId: string) => {
+    const result = await apiAction(
+      () => billService.createFromPO(orderId),
+      'Bill created from Purchase Order!'
+    );
+    if (result) {
+      // Add to orderBills map
+      setOrderBills(prev => ({
+        ...prev,
+        [orderId]: { 
+          id: result.id, 
+          invoiceNumber: result.invoiceNumber || '',
+          status: result.status || 'DRAFT',
+          balance: Number(result.balance) || 0,
+        }
+      }));
+      loadData();
+    }
+  };
+
+  // Get bill status badge
+  const getBillStatusBadge = (status: string, balance: number) => {
+    // Format currency in compact form (e.g., "24.6M" instead of "Rp 24,600,000.00")
+    const formatCompact = (val: number) => {
+      if (val >= 1000000000) return `${(val / 1000000000).toFixed(1)}B`;
+      if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+      if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
+      return val.toFixed(0);
+    };
+
+    switch (status) {
+      case 'PAID':
+        return { color: 'bg-green-100 text-green-800', label: '✓ Paid' };
+      case 'POSTED':
+        return { 
+          color: 'bg-yellow-100 text-yellow-800', 
+          label: balance > 0 ? `○ Rp ${formatCompact(balance)}` : '○ Posted'
+        };
+      case 'VOID':
+        return { color: 'bg-red-100 text-red-800', label: '✕ Void' };
+      default:
+        return { color: 'bg-gray-100 text-gray-600', label: '◌ Draft' };
+    }
+  };
+
+  const handleViewBill = (billId: string) => {
+    // Navigate to bill detail page
+    window.location.href = `/bills/${billId}`;
   };
 
   const formatCurrency = (value: number) => {
@@ -480,7 +571,12 @@ export default function PurchaseOrders() {
               orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-mono text-sm">
-                    {order.orderNumber}
+                    <Link
+                      to={`/purchase-orders/${order.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {order.orderNumber}
+                    </Link>
                   </td>
                   <td className="px-6 py-4">
                     {order.partner?.name || '-'}
@@ -519,6 +615,27 @@ export default function PurchaseOrders() {
                       >
                         Receive Goods
                       </ActionButton>
+                    )}
+                    {order.status === 'COMPLETED' && !orderBills[order.id] && (
+                      <ActionButton
+                        onClick={() => handleCreateBill(order.id)}
+                        variant="primary"
+                      >
+                        Create Bill
+                      </ActionButton>
+                    )}
+                    {order.status === 'COMPLETED' && orderBills[order.id] && (
+                      <div className="flex flex-col items-end gap-1">
+                        <ActionButton
+                          onClick={() => handleViewBill(orderBills[order.id].id)}
+                          variant="secondary"
+                        >
+                          View Bill
+                        </ActionButton>
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${getBillStatusBadge(orderBills[order.id].status, orderBills[order.id].balance).color}`}>
+                          {getBillStatusBadge(orderBills[order.id].status, orderBills[order.id].balance).label}
+                        </span>
+                      </div>
                     )}
                   </td>
                 </tr>

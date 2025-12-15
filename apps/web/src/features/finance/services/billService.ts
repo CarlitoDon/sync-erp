@@ -59,4 +59,19 @@ export const billService = {
     const res = await api.get(`/bills/${id}/remaining`);
     return res.data?.data?.remaining ?? 0;
   },
+
+  async createFromPO(orderId: string): Promise<Bill> {
+    const res = await api.post('/bills', { orderId });
+    return res.data?.data ?? res.data;
+  },
+
+  async getByOrderId(orderId: string): Promise<Bill | null> {
+    try {
+      const res = await api.get(`/bills/by-order/${orderId}`);
+      return res.data?.data ?? null;
+    } catch {
+      // 404 means no bill exists for this order
+      return null;
+    }
+  },
 };

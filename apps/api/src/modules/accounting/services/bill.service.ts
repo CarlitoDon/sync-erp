@@ -204,4 +204,8 @@ export class BillService {
     if (!bill) throw new Error('Bill not found');
     return Number(bill.balance);
   }
+
+  async getByOrderId(orderId: string, companyId: string) {
+    return this.repository.findByOrderId(orderId, companyId, InvoiceType.BILL);
+  }
 }

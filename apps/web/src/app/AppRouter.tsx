@@ -8,10 +8,14 @@ import Suppliers from '../features/procurement/pages/Suppliers';
 import Customers from '../features/sales/pages/Customers';
 import Products from '../features/inventory/pages/Products';
 import PurchaseOrders from '../features/procurement/pages/PurchaseOrders';
+import PurchaseOrderDetail from '../features/procurement/pages/PurchaseOrderDetail';
 import Inventory from '../features/inventory/pages/Inventory';
 import SalesOrders from '../features/sales/pages/SalesOrders';
+import SalesOrderDetail from '../features/sales/pages/SalesOrderDetail';
 import Invoices from '../features/finance/pages/Invoices';
+import InvoiceDetail from '../features/finance/pages/InvoiceDetail';
 import AccountsPayable from '../features/finance/pages/AccountsPayable';
+import BillDetail from '../features/finance/pages/BillDetail';
 import TeamManagement from '../features/company/pages/TeamManagement';
 import Finance from '../features/finance/pages/Finance';
 import { RegisterPage } from '../features/auth/components/RegisterPage';
@@ -39,14 +43,15 @@ export function AppRouter() {
           <Route path="suppliers" element={<Suppliers />} />
           <Route path="customers" element={<Customers />} />
           <Route path="products" element={<Products />} />
-          <Route
-            path="purchase-orders"
-            element={<PurchaseOrders />}
-          />
+          <Route path="purchase-orders" element={<PurchaseOrders />} />
+          <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
           <Route path="inventory" element={<Inventory />} />
           <Route path="sales-orders" element={<SalesOrders />} />
+          <Route path="sales-orders/:id" element={<SalesOrderDetail />} />
           <Route path="invoices" element={<Invoices />} />
+          <Route path="invoices/:id" element={<InvoiceDetail />} />
           <Route path="bills" element={<AccountsPayable />} />
+          <Route path="bills/:id" element={<BillDetail />} />
           <Route path="finance" element={<Finance />} />
           <Route path="team" element={<TeamManagement />} />
         </Route>

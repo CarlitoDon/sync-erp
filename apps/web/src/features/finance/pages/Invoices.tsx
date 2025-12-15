@@ -12,6 +12,12 @@ import { useConfirm } from '../../../components/ui/ConfirmModal';
 import ActionButton from '../../../components/ui/ActionButton';
 import { formatCurrency, formatDate } from '../../../utils/format';
 import { PaymentHistoryList } from '../components/PaymentHistoryList';
+import { Link } from 'react-router-dom';
+
+// Extend Invoice type with order
+interface InvoiceWithOrder extends Invoice {
+  order?: { orderNumber: string } | null;
+}
 
 export default function Invoices() {
   const { currentCompany } = useCompany();
@@ -22,6 +28,10 @@ export default function Invoices() {
     loading,
     refresh: loadInvoices,
   } = useCompanyData<Invoice[]>(invoiceService.list, []);
+
+  const [filterStatus, setFilterStatus] = useState<
+    'ALL' | 'DRAFT' | 'POSTED' | 'PAID' | 'VOID'
+  >('ALL');
 
   const [showPayment, setShowPayment] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
@@ -95,6 +105,10 @@ export default function Invoices() {
     );
   }
 
+  const filteredInvoices = invoices.filter(
+    (inv) => filterStatus === 'ALL' || inv.status === filterStatus
+  );
+
   const outstandingAmount = invoices
     .filter((inv) => inv.status === 'POSTED')
     .reduce((sum, inv) => sum + Number(inv.balance), 0);
@@ -146,6 +160,32 @@ export default function Invoices() {
           </p>
         </div>
       </div>
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          {['ALL', 'DRAFT', 'POSTED', 'PAID'].map((status) => (
+            <button
+              key={status}
+              onClick={() =>
+                setFilterStatus(
+                  status as
+                    | 'ALL'
+                    | 'DRAFT'
+                    | 'POSTED'
+                    | 'PAID'
+                    | 'VOID'
+                )
+              }
+              className={`${
+                filterStatus === status
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              {status === 'ALL' ? 'All Invoices' : status}
+            </button>
+          ))}
+        </nav>
+      </div>
 
       {/* Invoice Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -157,6 +197,9 @@ export default function Invoices() {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Customer
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Source SO
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                 Amount
@@ -186,14 +229,24 @@ export default function Invoices() {
                 </td>
               </tr>
             ) : (
-              invoices.map((invoice) => (
+              filteredInvoices.map((invoice) => (
                 <>
                   <tr key={invoice.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-mono text-sm">
-                      {invoice.invoiceNumber}
+                      <Link 
+                        to={`/invoices/${invoice.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {invoice.invoiceNumber}
+                      </Link>
                     </td>
                     <td className="px-6 py-4">
                       {invoice.partner?.name || '-'}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-sm text-gray-500">
+                      {(invoice as InvoiceWithOrder).order?.orderNumber || (
+                        <span className="text-gray-400 italic">Manual</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       {formatCurrency(Number(invoice.amount))}

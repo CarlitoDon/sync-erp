@@ -12,6 +12,9 @@ billRouter.get('/', controller.list);
 // I will implement in Controller soon.
 billRouter.get('/outstanding', controller.getOutstanding);
 
+// GET /api/bills/by-order/:orderId - Get bill by order ID (for duplicate check)
+billRouter.get('/by-order/:orderId', controller.getByOrderId);
+
 // GET /api/bills/:id - Get bill by ID
 billRouter.get('/:id', controller.getById);
 

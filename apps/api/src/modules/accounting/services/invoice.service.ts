@@ -173,6 +173,14 @@ export class InvoiceService {
     // For now stick to default repo.
   }
 
+  async getByOrderId(orderId: string, companyId: string) {
+    return this.repository.findByOrderId(
+      orderId,
+      companyId,
+      InvoiceType.INVOICE
+    );
+  }
+
   async getRemainingAmount(
     id: string,
     companyId: string

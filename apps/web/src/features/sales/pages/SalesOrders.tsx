@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   salesOrderService,
   SalesOrder,
@@ -61,7 +62,46 @@ export default function SalesOrders() {
     }
   );
 
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Track which orders have invoices
+  const [orderInvoices, setOrderInvoices] = useState<Record<string, { 
+    id: string; 
+    invoiceNumber: string;
+    status: string;
+    balance: number;
+  }>>({});
+
+  // Load invoices for completed orders
+  const loadOrderInvoices = async (ordersList: SalesOrder[]) => {
+    const completedOrders = ordersList.filter(o => o.status === 'COMPLETED');
+    const invoiceMap: Record<string, { 
+      id: string; 
+      invoiceNumber: string;
+      status: string;
+      balance: number;
+    }> = {};
+    
+    for (const order of completedOrders) {
+      const invoice = await invoiceService.getByOrderId(order.id);
+      if (invoice) {
+        invoiceMap[order.id] = { 
+          id: invoice.id, 
+          invoiceNumber: invoice.invoiceNumber || '',
+          status: invoice.status || 'DRAFT',
+          balance: Number(invoice.balance) || 0,
+        };
+      }
+    }
+    setOrderInvoices(invoiceMap);
+  };
+
+  useEffect(() => {
+    if (orders.length > 0) {
+      loadOrderInvoices(orders);
+    }
+  }, [orders]);
 
   const [formData, setFormData] = useState<CreateSalesOrderInput>({
     partnerId: '',
@@ -126,10 +166,49 @@ export default function SalesOrders() {
   };
 
   const handleCreateInvoice = async (orderId: string) => {
-    await apiAction(
-      () => invoiceService.create({ orderId, taxRate: 0.11 }),
+    const result = await apiAction(
+      () => invoiceService.createFromSO(orderId),
       'Invoice created!'
     );
+    if (result) {
+      setOrderInvoices(prev => ({
+        ...prev,
+        [orderId]: { 
+          id: result.id, 
+          invoiceNumber: result.invoiceNumber || '',
+          status: result.status || 'DRAFT',
+          balance: Number(result.balance) || 0,
+        }
+      }));
+      loadData();
+    }
+  };
+
+  const handleViewInvoice = (invoiceId: string) => {
+    window.location.href = `/invoices/${invoiceId}`;
+  };
+
+  const getInvoiceStatusBadge = (status: string, balance: number) => {
+    const formatCompact = (val: number) => {
+      if (val >= 1000000000) return `${(val / 1000000000).toFixed(1)}B`;
+      if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+      if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
+      return val.toFixed(0);
+    };
+
+    switch (status) {
+      case 'PAID':
+        return { color: 'bg-green-100 text-green-800', label: '✓ Paid' };
+      case 'POSTED':
+        return { 
+          color: 'bg-yellow-100 text-yellow-800', 
+          label: balance > 0 ? `○ Rp ${formatCompact(balance)}` : '○ Posted'
+        };
+      case 'VOID':
+        return { color: 'bg-red-100 text-red-800', label: '✕ Void' };
+      default:
+        return { color: 'bg-gray-100 text-gray-600', label: '◌ Draft' };
+    }
   };
 
   const handleCancel = async (id: string) => {
@@ -489,7 +568,12 @@ export default function SalesOrders() {
               orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-mono text-sm">
-                    {order.orderNumber}
+                    <Link
+                      to={`/sales-orders/${order.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {order.orderNumber}
+                    </Link>
                   </td>
                   <td className="px-6 py-4">
                     {order.partner?.name || '-'}
@@ -529,13 +613,26 @@ export default function SalesOrders() {
                         Ship
                       </ActionButton>
                     )}
-                    {order.status === 'COMPLETED' && (
+                    {order.status === 'COMPLETED' && !orderInvoices[order.id] && (
                       <ActionButton
                         onClick={() => handleCreateInvoice(order.id)}
                         variant="warning"
                       >
                         Create Invoice
                       </ActionButton>
+                    )}
+                    {order.status === 'COMPLETED' && orderInvoices[order.id] && (
+                      <div className="flex flex-col items-end gap-1">
+                        <ActionButton
+                          onClick={() => handleViewInvoice(orderInvoices[order.id].id)}
+                          variant="secondary"
+                        >
+                          View Invoice
+                        </ActionButton>
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${getInvoiceStatusBadge(orderInvoices[order.id].status, orderInvoices[order.id].balance).color}`}>
+                          {getInvoiceStatusBadge(orderInvoices[order.id].status, orderInvoices[order.id].balance).label}
+                        </span>
+                      </div>
                     )}
                   </td>
                 </tr>

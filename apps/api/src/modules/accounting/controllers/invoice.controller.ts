@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { InvoiceService } from '../services/invoice.service';
-import { CreateInvoiceSchema } from '@sync-erp/shared';
+import { CreateInvoiceFromSOSchema } from '@sync-erp/shared';
 
 export class InvoiceController {
   private service = new InvoiceService();
@@ -23,13 +23,15 @@ export class InvoiceController {
   ) => {
     try {
       const companyId = req.context.companyId!;
-      const validated = CreateInvoiceSchema.parse(req.body);
-      // Service expects orderId - extract from validated data
+      // Use CreateInvoiceFromSOSchema - only requires orderId
+      const validated = CreateInvoiceFromSOSchema.parse(req.body);
       const invoice = await this.service.createFromSalesOrder(
         companyId,
         {
-          orderId: validated.orderId!,
+          orderId: validated.orderId,
           dueDate: validated.dueDate,
+          taxRate: validated.taxRate,
+          invoiceNumber: validated.invoiceNumber,
         }
       );
       res.status(201).json({ success: true, data: invoice });
@@ -96,6 +98,29 @@ export class InvoiceController {
       const companyId = req.context.companyId!;
       const invoices = await this.service.getOutstanding(companyId);
       res.json({ success: true, data: invoices });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getByOrderId = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const invoice = await this.service.getByOrderId(
+        req.params.orderId,
+        companyId
+      );
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Invoice not found' },
+        });
+      }
+      res.json({ success: true, data: invoice });
     } catch (error) {
       next(error);
     }

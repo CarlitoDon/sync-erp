@@ -58,6 +58,22 @@ export const invoiceService = {
     const res = await api.get(`/invoices/${id}/remaining`);
     return res.data?.data?.remaining ?? 0;
   },
+
+  // Check if Sales Order already has an invoice
+  async getByOrderId(orderId: string): Promise<Invoice | null> {
+    try {
+      const res = await api.get(`/invoices/by-order/${orderId}`);
+      return res.data?.data ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  // Create invoice from Sales Order
+  async createFromSO(orderId: string): Promise<Invoice> {
+    const res = await api.post('/invoices', { orderId });
+    return res.data?.data ?? res.data;
+  },
 };
 
 export const paymentService = {

@@ -4,6 +4,11 @@ import {
   Bill,
   CreateManualBillInput,
 } from '../services/billService';
+
+// Extend Bill type with order relation (included by backend)
+interface BillWithOrder extends Bill {
+  order?: { orderNumber: string } | null;
+}
 import {
   paymentService,
   CreatePaymentInput,
@@ -433,6 +438,9 @@ export default function AccountsPayable() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Supplier
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Source PO
+              </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                 Amount
               </th>
@@ -454,7 +462,7 @@ export default function AccountsPayable() {
             {filteredBills.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="px-6 py-12 text-center text-gray-500"
                 >
                   No bills found.
@@ -469,6 +477,11 @@ export default function AccountsPayable() {
                     </td>
                     <td className="px-6 py-4">
                       {bill.partner?.name || '-'}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-sm text-gray-500">
+                      {(bill as BillWithOrder).order?.orderNumber || (
+                        <span className="text-gray-400 italic">Manual</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       {formatCurrency(Number(bill.amount))}

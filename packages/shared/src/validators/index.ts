@@ -172,6 +172,22 @@ export const CreateManualBillSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Bill Creation from Purchase Order (only requires orderId)
+export const CreateBillFromPOSchema = z.object({
+  orderId: z.string().uuid('Invalid order ID'),
+  dueDate: z.coerce.date().optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  invoiceNumber: z.string().optional(),
+});
+
+// Invoice Creation from Sales Order (only requires orderId)
+export const CreateInvoiceFromSOSchema = z.object({
+  orderId: z.string().uuid('Invalid order ID'),
+  dueDate: z.coerce.date().optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  invoiceNumber: z.string().optional(),
+});
+
 // ============================================
 // Payment Schemas
 // ============================================
@@ -208,8 +224,10 @@ export type CreateProductInput = z.infer<typeof CreateProductSchema>;
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
 export type CreateInvoiceInput = z.infer<typeof CreateInvoiceSchema>;
+export type CreateInvoiceFromSOInput = z.infer<typeof CreateInvoiceFromSOSchema>;
 export type CreateBillInput = z.infer<typeof CreateBillSchema>;
 export type CreateManualBillInput = z.infer<typeof CreateManualBillSchema>;
+export type CreateBillFromPOInput = z.infer<typeof CreateBillFromPOSchema>;
 export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
 export type GoodsReceiptInput = z.infer<typeof GoodsReceiptSchema>;
 export type StockAdjustmentInput = z.infer<

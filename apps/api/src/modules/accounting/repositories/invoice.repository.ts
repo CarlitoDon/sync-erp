@@ -52,6 +52,7 @@ export class InvoiceRepository {
       include: {
         partner: true,
         payments: true,
+        order: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -86,6 +87,25 @@ export class InvoiceRepository {
     return prisma.order.findFirst({
       where: { id, companyId, type },
       include: { items: true, partner: true },
+    });
+  }
+
+  // Find invoice/bill by orderId (for duplicate check)
+  async findByOrderId(
+    orderId: string,
+    companyId: string,
+    type?: InvoiceType
+  ): Promise<Invoice | null> {
+    return prisma.invoice.findFirst({
+      where: {
+        orderId,
+        companyId,
+        ...(type && { type }),
+      },
+      include: {
+        partner: true,
+        order: true,
+      },
     });
   }
 }
