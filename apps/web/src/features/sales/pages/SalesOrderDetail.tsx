@@ -5,7 +5,6 @@ import {
   SalesOrder,
 } from '../services/salesOrderService';
 import { invoiceService } from '../../finance/services/invoiceService';
-import { InvoiceList } from '../../finance/components/InvoiceList';
 import { useCompany } from '../../../contexts/CompanyContext';
 import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
@@ -80,16 +79,7 @@ export default function SalesOrderDetail() {
       'Invoice created from Sales Order!'
     );
     if (result) {
-        // Refresh to show in list? InvoiceList should auto-refresh or we trigger it?
-        // InvoiceList manages its own data but relies on filter prop change or internal refresh.
-        // We might want to force refresh InvoiceList if we could, but mounting usually fetches.
-        // For now, simple reload of order might not trigger InvoiceList reload unless key changes.
-        // But InvoiceList isn't key-controlled by order update here.
-        // We can ignore for now or pass a refresh trigger, but standard practice is 'create' actions 
-        // usually redirect or just show toast.
-        // Since we stay on page, we might ideally want the list to update.
-        // InvoiceList is distinct. Let's just rely on users refreshing or navigating.
-        // Actually, if we pass a key to InvoiceList based on a refresh counter, that would work.
+      loadOrder();
     }
   };
 
@@ -253,51 +243,41 @@ export default function SalesOrderDetail() {
         </table>
       </div>
 
-      {/* Related Invoices */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Related Invoices</h2>
-            {/* Create Invoice Action moved here or keep in Actions? 
-                Usually actions at top or bottom. 
-                Requirements say "Invoice/Bill Detail MUST display a link back to the source Order".
-                For "Related Documents", we just show list.
-            */}
-          </div>
-          <InvoiceList filter={{ orderId: order.id }} />
-      </div>
-
       {/* Actions */}
-      {(order.status === 'DRAFT' ||
-        order.status === 'CONFIRMED' ||
-        (order.status === 'COMPLETED' &&
-          (!order.invoices || order.invoices.length === 0))) && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            {order.status === 'DRAFT' && (
-              <>
-                <ActionButton variant="primary" onClick={handleConfirm}>
-                  Confirm Order
-                </ActionButton>
-                <ActionButton variant="danger" onClick={handleCancel}>
-                  Cancel Order
-                </ActionButton>
-              </>
-            )}
-            {order.status === 'CONFIRMED' && (
-              <ActionButton variant="success" onClick={handleShip}>
-                Ship Order
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold mb-4">Actions</h2>
+        <div className="flex flex-wrap gap-3">
+          {order.status === 'DRAFT' && (
+            <>
+              <ActionButton variant="primary" onClick={handleConfirm}>
+                Confirm Order
+              </ActionButton>
+              <ActionButton variant="danger" onClick={handleCancel}>
+                Cancel Order
+              </ActionButton>
+            </>
+          )}
+          {order.status === 'CONFIRMED' && (
+            <ActionButton variant="success" onClick={handleShip}>
+              Ship Order
+            </ActionButton>
+          )}
+          {order.status === 'COMPLETED' &&
+            (!order.invoices || order.invoices.length === 0) && (
+              <ActionButton variant="warning" onClick={handleCreateInvoice}>
+                Create Invoice
               </ActionButton>
             )}
-            {order.status === 'COMPLETED' &&
-              (!order.invoices || order.invoices.length === 0) && (
-                <ActionButton variant="warning" onClick={handleCreateInvoice}>
-                  Create Invoice
-                </ActionButton>
-              )}
-          </div>
+          {order.invoices && order.invoices.length > 0 && (
+            <ActionButton
+              variant="secondary"
+              onClick={() => navigate(`/invoices/${order.invoices![0].id}`)}
+            >
+              View Invoice
+            </ActionButton>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -5,7 +5,6 @@ import {
   PurchaseOrder,
 } from '../services/purchaseOrderService';
 import { billService } from '../../finance/services/billService';
-import { BillList } from '../../finance/components/BillList';
 import { useCompany } from '../../../contexts/CompanyContext';
 import { apiAction } from '../../../hooks/useApiAction';
 import { useConfirm } from '../../../components/ui/ConfirmModal';
@@ -73,7 +72,7 @@ export default function PurchaseOrderDetail() {
       'Bill created from Purchase Order!'
     );
     if (result) {
-      // BillList will update on refresh or reload if needed.
+      loadOrder();
     }
   };
 
@@ -248,49 +247,44 @@ export default function PurchaseOrderDetail() {
           </table>
         </div>
 
-        {/* Related Bills */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Related Bills</h2>
-            </div>
-            <BillList filter={{ orderId: order.id }} />
-        </div>
-
       {/* Actions */}
-      {(order.status === 'DRAFT' ||
-        order.status === 'CONFIRMED' ||
-        (order.status === 'COMPLETED' &&
-          (!order.invoices || order.invoices.length === 0))) && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            {order.status === 'DRAFT' && (
-              <>
-                <ActionButton variant="primary" onClick={handleConfirm}>
-                  Confirm Order
-                </ActionButton>
-                <ActionButton variant="danger" onClick={handleCancel}>
-                  Cancel Order
-                </ActionButton>
-              </>
-            )}
-            {order.status === 'CONFIRMED' && (
-              <ActionButton
-                variant="success"
-                onClick={() => setGoodsReceiptId(order.id)}
-              >
-                Receive Goods
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold mb-4">Actions</h2>
+        <div className="flex flex-wrap gap-3">
+          {order.status === 'DRAFT' && (
+            <>
+              <ActionButton variant="primary" onClick={handleConfirm}>
+                Confirm Order
+              </ActionButton>
+              <ActionButton variant="danger" onClick={handleCancel}>
+                Cancel Order
+              </ActionButton>
+            </>
+          )}
+          {order.status === 'CONFIRMED' && (
+            <ActionButton
+              variant="success"
+              onClick={() => setGoodsReceiptId(order.id)}
+            >
+              Receive Goods
+            </ActionButton>
+          )}
+          {order.status === 'COMPLETED' &&
+            (!order.invoices || order.invoices.length === 0) && (
+              <ActionButton variant="primary" onClick={handleCreateBill}>
+                Create Bill
               </ActionButton>
             )}
-            {order.status === 'COMPLETED' &&
-              (!order.invoices || order.invoices.length === 0) && (
-                <ActionButton variant="primary" onClick={handleCreateBill}>
-                  Create Bill
-                </ActionButton>
-              )}
-          </div>
+          {order.invoices && order.invoices.length > 0 && (
+            <ActionButton
+              variant="secondary"
+              onClick={() => navigate(`/bills/${order.invoices![0].id}`)}
+            >
+              View Bill
+            </ActionButton>
+          )}
         </div>
-      )}
+      </div>
       </div>
     </>
   );
