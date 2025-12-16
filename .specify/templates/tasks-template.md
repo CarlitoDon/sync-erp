@@ -114,10 +114,11 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T012 [P] [US1] Define DTOs in `packages/shared/src/types/[entity].ts`
 - [ ] T013 [P] [US1] Add Prisma model in `packages/database/prisma/schema.prisma`
 - [ ] T014 [US1] Create Repository in `apps/api/src/repositories/[repository].ts`
-- [ ] T015 [US1] Implement Service in `apps/api/src/services/[service].ts` (uses Repository)
-- [ ] T016 [US1] Implement Controller in `apps/api/src/controllers/[controller].ts` (uses Service)
-- [ ] T017 [US1] Create UI in `apps/web/src/features/[domain]/components/[component].tsx`
-- [ ] T018 [US1] Integration in `apps/web/src/features/[domain]/services/[api].ts`
+- [ ] T015 [US1] Create Policy in `apps/api/src/modules/[domain]/[domain].policy.ts` (Business Shape Rules)
+- [ ] T016 [US1] Implement Service in `apps/api/src/services/[service].ts` (Checks Policy + Uses Repository)
+- [ ] T017 [US1] Implement Controller in `apps/api/src/controllers/[controller].ts` (Dumb HTTP Adapter)
+- [ ] T018 [US1] Create UI in `apps/web/src/features/[domain]/components/[component].tsx` (State Projection)
+- [ ] T019 [US1] Integration in `apps/web/src/features/[domain]/services/[api].ts`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 

@@ -33,13 +33,16 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 - [ ] **I. Architecture**: Frontend ↔ Backend via HTTP only? Dependencies uni-directional?
 - [ ] **II. Contracts**: Shared types in `packages/shared`? Validators exported?
-- [ ] **III. Backend Layers**: Controller → Service → Repository pattern?
+- [ ] **III. Backend Layers**: Service checks `Policy` before Action? (Service → Policy → Repository)
 - [ ] **IV. Multi-Tenant**: ALL data isolated by `companyId`?
-- [ ] **V. Frontend**: Business logic in `src/features/`? Global patterns followed?
+- [ ] **V. Frontend**: UI is State Projection? No complex conditionals?
 - [ ] **VIII. Verification**: `npx tsc --noEmit` and `npm run build` will pass?
 - [ ] **IX. Schema-First**: New API fields added to Zod schema FIRST? Types use `z.infer`?
 - [ ] **X. Parity**: If Feature A exists in Sales, does it exist in Procurement? (and vice versa)
 - [ ] **XI. Performance**: No N+1 Client loops? Lists use Backend `include` for relations?
+- [ ] **XII. Apple-Standard**: Does logic derive from `BusinessShape`? No technical questions to user?
+- [ ] **XIII. Data Flow**: Is Frontend pure reflection? No local business state calculation?
+- [ ] **XIV-XVII. Human Experience**: Clear Navigation? Simplified Workflows? Performance-First? Pixel Perfect?
 
 ## Project Structure
 

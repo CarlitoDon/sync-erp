@@ -1,24 +1,27 @@
 <!--
 SYNC IMPACT REPORT
-Version: 1.9.0 -> 1.10.0 (Minor - Added Modular Parity & Performance Principles)
+Version: 2.2.0 -> 2.2.1 (PATCH - Restored Schema-First Example)
 Modified Principles:
-- None
+- IX. Schema-First Development (Restored Example and Rationale)
 Added Sections:
-- X. Modular Parity (Symmetry)
-- XI. Performance by Design (Preventing N+1)
+- None
 Removed Sections:
 - None
 Templates requiring updates:
-- plan-template.md (✅ updated - added Principle X/XI checks)
-- spec-template.md (✅ no changes needed)
-- tasks-template.md (✅ no changes needed)
+- None
 Follow-up TODOs:
 - None
 -->
 
 # Sync ERP Constitution
 
-## Core Principles (11 Total)
+> "Simplicity is the ultimate sophistication."
+
+## Core Principles (17 Total)
+
+---
+
+### Part A: Technical Architecture
 
 ### I. Architecture & Dependency Flow
 
@@ -40,13 +43,16 @@ packages/shared ←── packages/shared ←── (Prisma types)
 - **Export All**: Validators MUST be re-exported from `packages/shared/src/validators/index.ts`.
 - **Type Inference**: Use `z.infer<typeof Schema>` instead of manual interface definitions.
 
-### III. Layered Backend (Controller → Service → Repository)
+### III. Layered Backend (Route → Controller → Service → Policy → Repository)
 
-| Layer      | Location           | Responsibility               | Can Import          |
-| ---------- | ------------------ | ---------------------------- | ------------------- |
-| Controller | `src/controllers`  | HTTP, validation, formatting | Service             |
-| Service    | `src/services`     | Business logic               | Repository          |
-| Repository | `src/repositories` | Data access                  | `packages/database` |
+| Layer          | Location                      | Responsibility                                             | Can Import                |
+| :------------- | :---------------------------- | :--------------------------------------------------------- | :------------------------ |
+| **Route**      | `src/routes/*.ts`             | **Dump Adapter**: Maps URL → Controller. No Logic.         | Controller, Middleware    |
+| **Controller** | `src/modules/*/controller.ts` | **HTTP Boundary**: Req/Res, Validation. No Business Logic. | Service                   |
+| **Service**    | `src/modules/*/service.ts`    | **Orchestrator**: The "Why". Combines Rules + Repo.        | Policy, Rules, Repository |
+| **Rules**      | `src/modules/*/rules/*.ts`    | **Pure Business Logic**: Stateless, Unit Testable.         | None (Pure)               |
+| **Policy**     | `src/modules/*/policy.ts`     | **Shape Constraints**: "Can this run?"                     | Shared Constants          |
+| **Repository** | `src/modules/*/repository.ts` | **Data Access**: Query, Transaction. No Rules.             | `packages/database`       |
 
 ### IV. Multi-Tenant Isolation
 
@@ -59,11 +65,16 @@ packages/shared ←── packages/shared ←── (Prisma types)
 
 - `src/features/[domain]/` - Business logic (components, hooks, services, types)
 - `src/components/ui/` - Generic UI atoms only (NO business logic)
-- `src/hooks/`, `src/services/`, `src/utils/` - App-wide shared utilities
+
+**Refined Rules**:
+
+- **No Local Logic**: Frontend components MUST NOT calculate derived business state.
+- **State Projection**: UI purely renders the `backendState` and reacts to `HTTP 200/400`.
 
 **Mandatory Patterns**:
 | Pattern | Implementation | Forbidden |
 |---------|----------------|-----------|
+| State Projection | UI renders usage of `backendState` | Local complex conditionals |
 | Error handling | Axios interceptor | Per-page try-catch |
 | Success feedback | `apiAction()` helper | Direct `toast()` |
 | Confirmation | `useConfirm()` hook | `window.confirm()` |
@@ -101,7 +112,7 @@ Check `typecheck:watch` terminal if running. IDE errors may be stale.
 
 ### IX. Schema-First Development
 
-**Problem Prevented**: Zod strips unknown fields silently. If frontend sends a field not in schema, backend receives `undefined`.
+**Problem Prevented**: Zod strips unknown fields silently.
 
 **Workflow** (MUST follow for new API fields):
 
@@ -141,34 +152,109 @@ const [form, setForm] = useState<CreateOrderInput>({...});
 
 ### X. Modular Parity (Symmetry)
 
-- **Mirror Implementation**: Related domains (e.g., Sales ↔ Procurement, AR ↔ AP) MUST implement equivalent features in pairs.
-- **Cognitive Consistency**: Use identical naming patterns, file structures, and UI layouts for symmetric workflows.
-- **Check**: "If I build 'Create Invoice from SO', does 'Create Bill from PO' exist?"
+- **Mirror Implementation**: Related domains (e.g., Sales ↔ Procurement) MUST implement equivalent features.
+- **Cognitive Consistency**: Use identical naming patterns and UI layouts.
 
 ### XI. Performance by Design (Preventing N+1)
 
-- **Backend Optimization**: Repositories MUST support eager loading (`include` or joins) to provide related data in a single query (e.g., `Order` with `Invoices`).
-- **Forbidden**: Frontend MUST NOT fetch individual related records inside a loop or based on list iteration.
-- **404 Handling**: Avoid patterns where missing 1:1 relations trigger error toasts. Prefer silent checks or eager loaded `null` values.
+- **Backend Optimization**: Repositories MUST support eager loading (`include` or joins).
+- **Forbidden**: Frontend MUST NOT fetch individual related records inside a loop.
+- **404 Handling**: Avoid patterns where missing 1:1 relations trigger error toasts.
+
+### XII. The Apple-Like Standard (Core Tenets)
+
+- **Decision Lives Once**: The "Business Shape" dictates all downstream logic.
+- **State > CRUD**: The core system is driven by explicit rigid state machines.
+- **Invisible Complexity**: Never ask the user a technical question.
+- **No Knobs**: Configuration tables exist but are hidden from the user interface.
+
+### XIII. The Data Flow Standard (Single Direction of Truth)
+
+```text
+UI → API → Controller → Service → Rules/Policy → Repository → DB
+↑                                                             ↓
+└──────────────────────── (Response) ─────────────────────────┘
+```
+
+1.  **Frontend Never "Key"**: Frontend is a read-only projection.
+2.  **Backend Always Wins**: All decisions happen in Service/Rules.
+3.  **Feature = Service + Rule**: Not controller or route.
+4.  **Onboarding is Config**: Toggles flags, not logic.
+
+---
+
+### Part B: Human Experience Philosophy
+
+### XIV. Human Interface & Design Philosophy
+
+Our primary goal is to create an application that feels **clear, intuitive, and effortless**.
+
+**Simplicity & Clarity**:
+
+- **Essentialism**: Ruthlessly cut non-essential features and visual noise.
+- **Clear Navigation**: Users MUST never wonder "where am I?" or "what do I do next?".
+- **Visuals**: Adopt a clean, minimalist aesthetic. Prefer designed lists over generic tables.
+
+**Human-Centered Design**:
+
+- **Emotional Connection**: The app MUST be pleasing to use ("delightful") and feel stable.
+- **Simplified Workflows**: Break complex ERP tasks into linear, bite-sized steps (Wizards).
+- **Assistance**: Anticipate user needs with smart suggestions.
+
+### XV. Privacy by Design
+
+We treat user data with the same respect as Apple treats personal data.
+
+**Minimization & Transparency**:
+
+- **Opt-In**: Explicitly ask for permission before accessing sensitive interactions.
+- **Transparency**: Clearly explain _why_ data is needed.
+- **Local Processing**: Where possible, process data on the client side.
+
+**Security**:
+
+- **Access Control**: Strict Role-Based Access Control (RBAC).
+- **Encryption**: Sensitive business data MUST be treated as confidential.
+
+### XVI. Engineering Excellence
+
+Apple-like software is not just about looks; it is about how it runs.
+
+**Performance-First**:
+
+- **Responsiveness**: UI MUST remain fluid (60fps). Interactions MUST feel instant.
+- **Efficiency**: Background heavy calculations so the main thread never blocks.
+- **Instant Launch**: Use optimistic UI updates to make network requests feel instantaneous.
+
+**Architecture & Quality**:
+
+- **Modularity**: Code is organized into strict, decoupled modules.
+- **CI/CD**: "Test early, test often." Automated pipelines MUST verify every commit.
+- **Maintainability**: Code MUST be clean, readable, and standard-compliant.
+
+### XVII. Development Standards (The Non-Negotiables)
+
+1.  **Zero-Lag Rule**: No interaction MUST freeze the UI.
+2.  **Pixel Perfection**: Alignment, spacing, and typography MUST be consistent.
+3.  **Battery/Resource Minded**: Avoid unnecessary polling or heavy background scripts.
+4.  **Tests as Spec**: Every feature MUST have accompanying tests.
+
+---
 
 ## Project Structure
 
 ```text
 sync-erp/
 ├── apps/
-│   ├── web/src/                    # Vite + React
-│   │   ├── app/                    # Routes, providers
-│   │   ├── components/ui/          # Generic atoms
-│   │   ├── features/[domain]/      # Business domains
-│   │   └── hooks/, services/, utils/
-│   └── api/src/                    # Express + TS
-│       ├── controllers/, services/, repositories/
-│       └── modules/[domain]/
-├── packages/
-│   ├── database/prisma/            # Schema + PrismaClient
-│   └── shared/src/                 # Types, validators
-├── turbo.json                      # Build orchestration
-└── .specify/                       # SpecKit workflows
+│   ├── web/src/                    # Vite + React (State Projection)
+│   └── api/src/                    # Express + TS (Orchestrator)
+│       ├── routes/                 # Dumb Adapters
+│       └── modules/[domain]/       # DOMAIN-FIRST STRUCTURE
+│           ├── controller.ts       # HTTP Boundary
+│           ├── service.ts          # Orchestrator
+│           ├── policy.ts           # Shape Constraints
+│           ├── rules/              # Pure Logic
+│           └── repository.ts       # Data Access
 ```
 
 ## Governance
@@ -178,4 +264,4 @@ sync-erp/
 - **Compliance**: Code reviews MUST verify principle adherence.
 - **Tooling**: `npm` + `turbo` + `vite` (frontend) + `tsc` (backend).
 
-**Version**: 1.10.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-15
+**Version**: 2.2.1 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-16

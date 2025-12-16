@@ -118,12 +118,11 @@ _Example of marking unclear requirements:_
 
 <!--
   ACTION REQUIRED: For any feature involving frontend UI, verify compliance with:
-  - Constitution Principle VI (DRY Frontend Patterns)
-  - Constitution Principle VII (Systematic Refactoring)
-  - Constitution Principle VIII (Global UI Patterns)
+  - Constitution Part A: Principles V, VI, VII (Frontend Patterns)
+  - Constitution Part B: Principles XIV-XVII (Human Experience)
 -->
 
-### Frontend Architecture Checklist
+### Technical Architecture Checklist (Part A)
 
 - [ ] **Feature Isolation**: Logic in `src/features` (not global pages/components)
 - [ ] **Component Abstraction**: Any repeated UI pattern extracted to reusable `ui` component
@@ -133,3 +132,12 @@ _Example of marking unclear requirements:_
 - [ ] **Success Toasts**: Using `apiAction()` helper, not direct toast imports
 - [ ] **Confirmation Dialogs**: Using `useConfirm()` hook, not native `window.confirm()`
 - [ ] **Systematic Updates**: All instances updated when changing patterns (grep verified)
+
+### Human Experience Checklist (Part B - Principles XIV-XVII)
+
+- [ ] **Simplicity & Clarity**: Ruthlessly cut non-essential features/fields. Only show what matters NOW.
+- [ ] **Clear Navigation**: User never wonders "where am I?" or "what do I do next?".
+- [ ] **Simplified Workflows**: Complex tasks broken into linear, bite-sized steps (Wizards).
+- [ ] **Assistance**: Smart suggestions provided where possible (e.g., "Reorder based on history?").
+- [ ] **Zero-Lag**: No interaction freezes the UI. Heavy work is backgrounded.
+- [ ] **Pixel Perfection**: Alignment, spacing, typography are consistent.
