@@ -1,6 +1,6 @@
 import { prisma } from '@sync-erp/database';
 
-export type DocumentType = 'PO' | 'SO' | 'INV' | 'BILL' | 'JE';
+export type DocumentType = 'PO' | 'SO' | 'INV' | 'BILL' | 'JE' | 'CN';
 
 interface DocumentNumberConfig {
   prefix: string;
@@ -41,6 +41,13 @@ const DEFAULT_CONFIGS: Record<DocumentType, DocumentNumberConfig> = {
   },
   JE: {
     prefix: 'JE',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
+  CN: {
+    prefix: 'CN',
     separator: '-',
     includeYear: true,
     yearFormat: '4',
@@ -119,6 +126,15 @@ export class DocumentNumberService {
           where: {
             companyId,
             type: 'BILL',
+            createdAt: { gte: yearStart, lt: yearEnd },
+          },
+        });
+
+      case 'CN':
+        return prisma.invoice.count({
+          where: {
+            companyId,
+            type: 'CREDIT_NOTE',
             createdAt: { gte: yearStart, lt: yearEnd },
           },
         });

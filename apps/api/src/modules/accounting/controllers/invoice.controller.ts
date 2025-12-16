@@ -67,11 +67,16 @@ export class InvoiceController {
     try {
       const companyId = req.context.companyId!;
       const company = req.company!;
+      const idempotencyKey = req.headers['x-idempotency-key'] as
+        | string
+        | undefined;
+
       const invoice = await this.service.post(
         req.params.id,
         companyId,
         company.businessShape,
-        company.configs
+        company.configs,
+        idempotencyKey
       );
       res.json({ success: true, data: invoice });
     } catch (error) {

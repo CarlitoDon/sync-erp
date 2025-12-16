@@ -108,4 +108,20 @@ export class InvoiceRepository {
       },
     });
   }
+
+  async decreaseBalanceWithGuard(
+    id: string,
+    amount: number
+  ): Promise<Invoice> {
+    return prisma.invoice.update({
+      where: {
+        id,
+        balance: { gte: amount }, // Concurrency Guard
+      },
+      data: {
+        balance: { decrement: amount },
+      },
+      include: { partner: true, payments: true }, // Ensure consistent return type
+    });
+  }
 }

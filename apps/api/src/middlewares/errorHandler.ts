@@ -2,17 +2,23 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { ERROR_CODES } from '@sync-erp/shared';
 
+// Type for error details - validation errors or key-value pairs
+export type ErrorDetails =
+  | { path: string; message: string }[]
+  | Record<string, string | string[]>
+  | string;
+
 // Custom error class for application errors
 export class AppError extends Error {
   statusCode: number;
   code: string;
-  details?: unknown;
+  details?: ErrorDetails;
 
   constructor(
     message: string,
     statusCode: number = 500,
     code: string = ERROR_CODES.INTERNAL_ERROR,
-    details?: unknown
+    details?: ErrorDetails
   ) {
     super(message);
     this.statusCode = statusCode;
@@ -71,7 +77,10 @@ export const NotFoundError = (
   message: string = 'Resource not found'
 ) => new AppError(message, 404, ERROR_CODES.NOT_FOUND);
 
-export const ValidationError = (message: string, details?: unknown) =>
+export const ValidationError = (
+  message: string,
+  details?: ErrorDetails
+) =>
   new AppError(message, 400, ERROR_CODES.VALIDATION_ERROR, details);
 
 export const UnauthorizedError = (message: string = 'Unauthorized') =>

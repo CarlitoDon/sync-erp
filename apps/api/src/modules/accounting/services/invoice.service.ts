@@ -5,10 +5,13 @@ import {
   OrderType,
   Prisma,
   BusinessShape,
+  IdempotencyScope,
 } from '@sync-erp/database';
+import { DomainError } from '@sync-erp/shared';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { JournalService } from './journal.service';
 import { InventoryService } from '../../inventory/inventory.service';
+import { ReversalPolicy } from '../policies/reversal.policy';
 
 export interface CreateInvoiceInput {
   orderId: string;
@@ -18,14 +21,14 @@ export interface CreateInvoiceInput {
 }
 
 import { DocumentNumberService } from '../../common/services/document-number.service';
+import { IdempotencyService } from '../../common/services/idempotency.service';
 
 export class InvoiceService {
   private repository = new InvoiceRepository();
   private journalService = new JournalService();
   private documentNumberService = new DocumentNumberService();
   private inventoryService = new InventoryService();
-
-  // ... (createFromSalesOrder, getById, list same as before)
+  private idempotencyService = new IdempotencyService();
 
   async createFromSalesOrder(
     companyId: string,
@@ -111,63 +114,156 @@ export class InvoiceService {
     );
   }
 
+  async createCreditNote(
+    companyId: string,
+    originalInvoiceId: string,
+    _reason?: string
+  ): Promise<Invoice> {
+    const original = await this.repository.findById(
+      originalInvoiceId,
+      companyId,
+      InvoiceType.INVOICE
+    );
+
+    if (!original) {
+      throw new Error('Original invoice not found');
+    }
+
+    // Apply Reversal Policy
+    const policyResult = ReversalPolicy.canCreateCreditNote(original);
+    if (!policyResult.allowed) {
+      throw new DomainError(
+        policyResult.reason || 'Credit note not allowed'
+      );
+    }
+
+    // Generate CN Number
+    const cnNumber = await this.documentNumberService.generate(
+      companyId,
+      'CN'
+    );
+
+    // Create Credit Note
+    const creditNote = await this.repository.create({
+      companyId,
+      partnerId: original.partnerId,
+      type: InvoiceType.CREDIT_NOTE,
+      status: InvoiceStatus.POSTED, // Auto-post for now? Or Draft? Spec says Reversal.
+      // Usually CN is created and posted immediately if it's a direct reversal.
+      // Let's Auto-Post to ensure Journal is created.
+      invoiceNumber: cnNumber,
+      relatedInvoiceId: original.id,
+      amount: original.amount,
+      subtotal: original.subtotal,
+      taxAmount: original.taxAmount,
+      taxRate: original.taxRate,
+      balance: 0, // CN has no "balance" to pay? Or it sits on account?
+      // Apple Principle: Simple. It clears the debt.
+      // If Paid, it creates "Credit" on Customer Account.
+      // If Unpaid, it clears the Invoice Balance.
+      // For MVP: Just create the record and Journal.
+      // We are not auto-applying to Balance yet.
+      // So balance = amount (Credit Balance).
+      dueDate: new Date(),
+    });
+
+    // Post Journal Reversal
+    await this.journalService.postCreditNote(
+      companyId,
+      cnNumber,
+      Number(creditNote.amount),
+      Number(creditNote.subtotal),
+      Number(creditNote.taxAmount)
+    );
+
+    return creditNote;
+  }
+
   async post(
     id: string,
     companyId: string,
     shape?: BusinessShape,
-    configs?: { key: string; value: Prisma.JsonValue }[]
+    configs?: { key: string; value: Prisma.JsonValue }[],
+    idempotencyKey?: string
   ): Promise<Invoice> {
-    const invoice = await this.repository.findById(
-      id,
-      companyId,
-      InvoiceType.INVOICE
-    );
-    if (!invoice) {
-      throw new Error('Invoice not found');
-    }
-
-    if (invoice.status !== InvoiceStatus.DRAFT) {
-      throw new Error(
-        `Cannot post invoice with status: ${invoice.status}`
-      );
-    }
-
-    // Trigger Stock Movement (FR-008)
-    // Only if it's a Sales Invoice (which post handles specifically)
-    // And assuming Order needs shipment.
-    // We try to ship. If already shipped, logic in Logic Layer handle it?
-    // InventoryService.processShipment creates movement.
-    // If we call it multiple times, we decrement stock multiple times.
-    // Ideally we check Order Status. But Post Invoice implies "Goods Left + Debt Created".
-    if (invoice.orderId) {
-      // If shipment fails (e.g. no stock), we blocking posting!
-      // This satisfies requirement "System MUST NOT allow negative stock".
-      await this.inventoryService.processShipment(
+    // 1. Idempotency Check
+    if (idempotencyKey) {
+      const lock = await this.idempotencyService.lock<Invoice>(
+        idempotencyKey,
         companyId,
-        invoice.orderId,
-        `Shipment for Invoice ${invoice.invoiceNumber}`,
-        shape,
-        configs
+        IdempotencyScope.INVOICE_POST
       );
+      if (lock.saved && lock.response) {
+        return lock.response;
+      }
     }
 
-    const updatedInvoice = await this.repository.update(id, {
-      status: InvoiceStatus.POSTED,
-    });
+    try {
+      const invoice = await this.repository.findById(
+        id,
+        companyId,
+        InvoiceType.INVOICE
+      );
+      if (!invoice) {
+        throw new Error('Invoice not found');
+      }
 
-    if (!updatedInvoice.invoiceNumber) {
-      throw new Error(`Invoice ${id} has no invoice number`);
+      if (invoice.status !== InvoiceStatus.DRAFT) {
+        throw new Error(
+          `Cannot post invoice with status: ${invoice.status}`
+        );
+      }
+
+      // Trigger Stock Movement (FR-008)
+      // Only if it's a Sales Invoice (which post handles specifically)
+      // And assuming Order needs shipment.
+      // We try to ship. If already shipped, logic in Logic Layer handle it?
+      // InventoryService.processShipment creates movement.
+      // If we call it multiple times, we decrement stock multiple times.
+      // Ideally we check Order Status. But Post Invoice implies "Goods Left + Debt Created".
+      if (invoice.orderId) {
+        // If shipment fails (e.g. no stock), we blocking posting!
+        // This satisfies requirement "System MUST NOT allow negative stock".
+        await this.inventoryService.processShipment(
+          companyId,
+          invoice.orderId,
+          `Shipment for Invoice ${invoice.invoiceNumber}`,
+          shape,
+          configs
+        );
+      }
+
+      const updatedInvoice = await this.repository.update(id, {
+        status: InvoiceStatus.POSTED,
+      });
+
+      if (!updatedInvoice.invoiceNumber) {
+        throw new Error(`Invoice ${id} has no invoice number`);
+      }
+
+      await this.journalService.postInvoice(
+        companyId,
+        updatedInvoice.invoiceNumber,
+        Number(updatedInvoice.amount),
+        Number(updatedInvoice.subtotal),
+        Number(updatedInvoice.taxAmount)
+      );
+
+      // 2. Idempotency Complete
+      if (idempotencyKey) {
+        await this.idempotencyService.complete(
+          idempotencyKey,
+          updatedInvoice
+        );
+      }
+
+      return updatedInvoice;
+    } catch (error) {
+      if (idempotencyKey) {
+        await this.idempotencyService.fail(idempotencyKey);
+      }
+      throw error;
     }
-
-    await this.journalService.postInvoice(
-      companyId,
-      updatedInvoice.invoiceNumber,
-      Number(updatedInvoice.amount),
-      Number(updatedInvoice.subtotal),
-      Number(updatedInvoice.taxAmount)
-    );
-
-    return updatedInvoice;
   }
 
   async void(id: string, companyId: string): Promise<Invoice> {

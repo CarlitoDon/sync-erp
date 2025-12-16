@@ -1,4 +1,4 @@
-import { Product } from '@sync-erp/database';
+import { Product, Prisma } from '@sync-erp/database';
 import { ProductRepository } from './product.repository';
 import {
   CreateProductInput,
@@ -66,6 +66,26 @@ export class ProductService {
     quantityChange: number
   ): Promise<Product> {
     return this.repository.incrementStock(id, quantityChange);
+  }
+
+  async decreaseStock(
+    id: string,
+    quantity: number
+  ): Promise<Product> {
+    try {
+      return await this.repository.decreaseStockWithGuard(
+        id,
+        quantity
+      );
+    } catch (error) {
+      if (
+        (error as Prisma.PrismaClientKnownRequestError).code ===
+        'P2025'
+      ) {
+        throw new Error(`Insufficient stock or product not found`);
+      }
+      throw error;
+    }
   }
 
   /**

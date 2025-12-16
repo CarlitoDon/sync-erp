@@ -33,6 +33,8 @@ export {
   AccountType,
   BusinessShape,
   CostingMethod,
+  IdempotencyScope,
+  IdempotencyStatus,
 } from './generated/client/client.js';
 
 export { Prisma } from './generated/client/client.js';

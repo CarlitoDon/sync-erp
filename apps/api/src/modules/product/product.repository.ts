@@ -62,4 +62,19 @@ export class ProductRepository {
       },
     });
   }
+
+  async decreaseStockWithGuard(
+    id: string,
+    quantity: number
+  ): Promise<Product> {
+    return prisma.product.update({
+      where: {
+        id,
+        stockQty: { gte: quantity }, // Concurrency Guard
+      },
+      data: {
+        stockQty: { decrement: quantity },
+      },
+    });
+  }
 }

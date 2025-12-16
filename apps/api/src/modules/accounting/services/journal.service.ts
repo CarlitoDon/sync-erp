@@ -19,6 +19,34 @@ export class JournalService {
   private repository = new JournalRepository();
   private accountService = new AccountService();
 
+  async reverse(
+    companyId: string,
+    journalId: string,
+    reason?: string
+  ): Promise<JournalEntry> {
+    const original = await this.repository.findById(
+      journalId,
+      companyId
+    );
+    if (!original) {
+      throw new Error('Journal entry not found');
+    }
+
+    const reversalLines: CreateJournalLineInput[] =
+      original.lines.map((line) => ({
+        accountId: line.accountId,
+        debit: Number(line.credit), // Swap
+        credit: Number(line.debit), // Swap
+      }));
+
+    return this.create(companyId, {
+      date: new Date(),
+      reference: `Reversal: ${original.reference || journalId}`,
+      memo: reason || `Reversal of journal ${journalId}`,
+      lines: reversalLines,
+    });
+  }
+
   async create(
     companyId: string,
     data: CreateJournalEntryInput
@@ -150,6 +178,38 @@ export class JournalService {
     return this.resolveAndCreate(companyId, {
       reference: `Invoice: ${invoiceNumber}`,
       memo: `Auto-generated from invoice ${invoiceNumber}`,
+      lines,
+    });
+  }
+
+  async postCreditNote(
+    companyId: string,
+    invoiceNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number
+  ) {
+    const lines: {
+      accountCode: string;
+      debit?: number;
+      credit?: number;
+    }[] = [
+      { accountCode: '1300', credit: amount }, // Credit AR (reduce debt)
+    ];
+
+    if (taxAmount && taxAmount > 0) {
+      lines.push({
+        accountCode: '4100',
+        debit: subtotal || amount - taxAmount,
+      }); // Reduct Sales Revenue
+      lines.push({ accountCode: '2300', debit: taxAmount }); // Reduct VAT Payable
+    } else {
+      lines.push({ accountCode: '4100', debit: amount });
+    }
+
+    return this.resolveAndCreate(companyId, {
+      reference: `Credit Note: ${invoiceNumber}`,
+      memo: `Reversal for invoice ${invoiceNumber}`,
       lines,
     });
   }

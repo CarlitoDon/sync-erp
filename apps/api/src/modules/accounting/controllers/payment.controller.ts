@@ -23,10 +23,15 @@ export class PaymentController {
   ) => {
     try {
       const companyId = req.context.companyId!;
+      const idempotencyKey = req.headers['x-idempotency-key'] as
+        | string
+        | undefined;
+
       // Validate generic input for now, assume FE sends CreatePaymentDto shape
       const payment = await this.service.create(
         companyId,
-        req.body as CreatePaymentDto
+        req.body as CreatePaymentDto,
+        idempotencyKey
       );
       res.status(201).json({ success: true, data: payment });
     } catch (error) {

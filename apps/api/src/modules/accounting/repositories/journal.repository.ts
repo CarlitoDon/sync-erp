@@ -1,14 +1,7 @@
-import {
-  prisma,
-  JournalEntry,
-  Prisma,
-  AccountType,
-} from '@sync-erp/database';
+import { prisma, Prisma, AccountType } from '@sync-erp/database';
 
 export class JournalRepository {
-  async create(
-    data: Prisma.JournalEntryUncheckedCreateInput
-  ): Promise<JournalEntry> {
+  async create(data: Prisma.JournalEntryUncheckedCreateInput) {
     return prisma.journalEntry.create({
       data,
       include: {
@@ -17,10 +10,7 @@ export class JournalRepository {
     });
   }
 
-  async findById(
-    id: string,
-    companyId: string
-  ): Promise<JournalEntry | null> {
+  async findById(id: string, companyId: string) {
     return prisma.journalEntry.findFirst({
       where: { id, companyId },
       include: {
@@ -29,11 +19,7 @@ export class JournalRepository {
     });
   }
 
-  async findAll(
-    companyId: string,
-    startDate?: Date,
-    endDate?: Date
-  ): Promise<JournalEntry[]> {
+  async findAll(companyId: string, startDate?: Date, endDate?: Date) {
     return prisma.journalEntry.findMany({
       where: {
         companyId,

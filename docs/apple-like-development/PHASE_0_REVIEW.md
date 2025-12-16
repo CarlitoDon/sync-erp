@@ -1,72 +1,183 @@
-# Phase 0 Gate Review & Handover
+# Phase 0.5 Gate Review
 
-**Date**: 2025-12-16
-**Status**: APPROVED (With Risky Notes)
-**Reviewer**: Tech Lead (Skeptical Persona)
+**Review Date:** 2025-12-16  
+**Reviewer:** Technical Reviewer  
+**Verdict:** 🟢 PASS with conditions
 
-## 1. Validasi Klaim: “Phase 0 CLOSED”
+---
 
-### 1.1 BusinessShape sebagai single source of truth
+## Executive Summary
 
-**Status: ✅ VALID**
+| Area        | Status               | Notes                                |
+| ----------- | -------------------- | ------------------------------------ |
+| Idempotency | 🟢 Pass              | Zombie lock risk noted               |
+| Reversals   | 🟢 Strong            | Policy refinement for Phase 2        |
+| Concurrency | 🟢 Pass              | SAGA drift risk noted                |
+| Overall     | 🟡 Production-Intent | Not bulletproof, not audit-grade yet |
 
-- Enum ada di shared
-- Persisted di DB
-- Loaded di auth middleware
-- Dipakai di policy, bukan controller
-- Immutable enforced by policy + service
+**Position:** Safe to proceed to Phase 1, not safe to scale/audit/regulatory-grade.
 
-### 1.2 Policy sebagai hard gate (CA-01)
+---
 
-**Status: ✅ VALID**
+## Latent Risks (Watchlist)
 
-- Policy reject → repo tidak dipanggil
-- Verified via specific unit tests mocking the repository.
+### Risk 1: PROCESSING Zombie Lock
 
-### 1.3 Config-driven behavior (CA-02)
+**Severity:** ⚠️ Future Outage Class  
+**Area:** Idempotency
 
-**Status: ✅ VALID**
+**Scenario:**
 
-- Config disable → operation blocked
-- Tanpa if di controller
-- Tanpa branching di UI
+1. Request enters
+2. Lock created with `PROCESSING`
+3. Process crashes
+4. State remains `PROCESSING` forever
+5. All retries permanently deadlocked
 
-### 1.4 Shape selection lifecycle
+**Current State:** Not handled  
+**Required Fix (Phase 2):**
 
-**Status: ✅ VALID**
+```typescript
+// Add to IdempotencyKey model
+updatedAt DateTime @updatedAt
 
-- Endpoint eksplisit, One-time only, Auto-seeding.
+// Recovery logic
+if (status === 'PROCESSING' && updatedAt < now() - 5min) {
+  // Treat as FAILED, allow retry
+}
+```
 
-## 2. Latent Risks (Watchlist for Phase 1)
+**Phase 1 Action:** None required, but document in Known Issues
 
-These are not bugs to fix now, but risks to manage moving forward.
+---
 
-### ⚠️ Risk #1 — BusinessShape Flatness
+### Risk 2: Scope Collision
 
-- **Issue**: `enum BusinessShape` is flat (RETAIL, MANUFACTURING). Adding hybrids will be expensive.
-- **Mitigation**: Use shape as a "profile" (preset of configs), not a hardcoded "persona" in every `if` statement.
+**Severity:** ⚠️ Refactor Risk  
+**Area:** Idempotency
 
-### ⚠️ Risk #2 — SystemConfig Scope
+**Current Implementation:**
 
-- **Issue**: Currently global and implicit. Risk of becoming a "dumping ground for booleans".
-- **Mitigation**: Document config references carefully. Do not add config without clear policy.
+```typescript
+scope: 'INVOICE_POST' | 'PAYMENT_CREATE';
+```
 
-### ⚠️ Risk #3 — Transaction Boundary Integrity
+**Risk:** Two different invoices could cache each other if key generation is wrong.
 
-- **Issue**: Ownership of transactions in complex multi-service flows (Purchase -> Stock -> Journal) is implicit.
-- **Mitigation**: In Phase 1, define explicit transaction boundaries (e.g., Use Case wrapper or Unit of Work pattern).
+**Invariant to Maintain:**
 
-### ⚠️ Risk #4 — Middleware Power
+```
+idempotencyKey = f(userId, entityId, action)
+// NOT just random UUID
+```
 
-- **Issue**: Auth middleware loads Company, User, Shape, and Configs.
-- **Mitigation**: Prevent "God Object" middleware. Keep it strictly for Identity + Context.
+**Phase 1 Action:** Verify key generation includes entity context
 
-### ⚠️ Risk #5 — Frontend Bypass
+---
 
-- **Issue**: UI attempting to replicate policy logic optimistically.
-- **Mitigation**: Backend must always be authoritative. UI should handle domain errors gracefully.
+### Risk 3: Manual SAGA Rollback Drift
 
-## 3. Conclusion
+**Severity:** ⚠️ Data Integrity Risk  
+**Area:** Concurrency Guard
 
-**Verdict**: 🟢 **SAFE TO PROCEED TO PHASE 1**
-**Condition**: Proceed with full awareness of the 5 latent risks above. Do NOT refactor Phase 0 further. Maintain the current separation of concerns.
+**Current Implementation:**
+
+```typescript
+// Track successful decreases
+const decreased: { productId: string; quantity: number }[] = [];
+
+// On failure, rollback
+for (const item of decreased) {
+  await productService.updateStock(item.productId, item.quantity);
+}
+```
+
+**Risk Scenarios:**
+
+1. Rollback fails mid-way → partial stock restoration
+2. Retry without idempotency on rollback → double restore
+
+**Current State:** Acceptable for single-operator scenarios  
+**Phase 2 Action:** Consider transactional approach or event-sourcing
+
+---
+
+### Risk 4: No Reversal Policy
+
+**Severity:** 🟡 Gap (not bug)  
+**Area:** Reversals
+
+**Unanswered Questions:**
+
+- Can all statuses be reversed?
+- Is there a time limit for reversals?
+- Can a reversal be reversed?
+
+**Current State:** Unlimited reversals allowed  
+**Phase 2 Action:** Implement `ReversalPolicy` with rules
+
+---
+
+## Missing Gate Condition
+
+### API Error Contract Documentation
+
+**Status:** ❌ NOT DONE
+
+**Requirement:** Frontend must know how to interpret domain errors.
+
+**Current State:**
+
+- `DomainError` exists with codes
+- `ERROR_CODES` exported from shared
+- No documentation of when each error occurs
+
+**Phase 1 Blocker?** No, but should be done early in Phase 1.
+
+**Action:** Create `docs/api/ERROR_CODES.md` documenting:
+
+- Error code
+- HTTP status
+- When it occurs
+- Frontend handling recommendation
+
+---
+
+## Phase 1 Permissions
+
+### ✅ ALLOWED
+
+- Onboarding UI
+- Shape selection UI
+- Inventory view
+- Sales UI (simple)
+- Invoice/Payment forms
+
+### ❌ NOT ALLOWED
+
+- Approval workflows
+- Active FIFO (stick with Average)
+- Manufacturing module
+- Complex reporting
+- Multi-step transactions beyond current scope
+
+---
+
+## Gate Checklist
+
+| Item                          | Status                  |
+| ----------------------------- | ----------------------- |
+| Idempotent posting            | ✅                      |
+| Safe reversal                 | ✅                      |
+| Concurrency guard             | ✅                      |
+| Clear DomainError codes       | ✅                      |
+| Immutable BusinessShape       | ✅                      |
+| API error contract documented | ⬜ Do in Phase 1 Week 1 |
+
+---
+
+## Final Position
+
+> "Aman untuk melanjutkan. Aman untuk dipresentasikan sebagai serious ERP core. Belum aman untuk merasa selesai."
+
+**Approved to proceed to Phase 1.**

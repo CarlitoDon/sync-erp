@@ -14,7 +14,6 @@ import {
   GoodsReceiptInput,
   StockAdjustmentInput,
   DomainError,
-  DomainErrorCodes,
 } from '@sync-erp/shared';
 
 export class InventoryService {
@@ -139,48 +138,59 @@ export class InventoryService {
 
     const movements: InventoryMovement[] = [];
     let totalCogs = 0;
+    const successfulItems: { productId: string; quantity: number }[] =
+      [];
 
-    for (const item of order.items) {
-      // Check if stock is sufficient
-      const hasStock = await this.productService.checkStock(
-        item.productId,
-        item.quantity
-      );
-      if (!hasStock) {
-        throw new DomainError(
-          `Insufficient stock for product ${item.productId}`,
-          400,
-          DomainErrorCodes.INSUFFICIENT_STOCK
+    try {
+      for (const item of order.items) {
+        // Atomic Decrease with Guard (T019)
+        // Replaces simple checkStock + updateStock
+        await this.productService.decreaseStock(
+          item.productId,
+          item.quantity
         );
+        successfulItems.push({
+          productId: item.productId,
+          quantity: item.quantity,
+        });
+
+        // Get product for cost calculation
+        const product = await this.productService.getById(
+          item.productId,
+          companyId
+        );
+        if (!product)
+          throw new Error(`Product ${item.productId} not found`);
+
+        // Create inventory movement (OUT)
+        const movement = await this.repository.createMovement({
+          companyId,
+          productId: item.productId,
+          type: MovementType.OUT,
+          quantity: item.quantity,
+          reference:
+            reference || `Shipment for order ${order.orderNumber}`,
+        });
+        movements.push(movement);
+
+        // Snapshot COGS on OrderItem (T017 Accuracy)
+        await prisma.orderItem.update({
+          where: { id: item.id },
+          data: { cost: product.averageCost },
+        });
+
+        // Accumulate COGS
+        totalCogs += Number(product.averageCost) * item.quantity;
       }
-
-      // Get product for cost calculation
-      const product = await this.productService.getById(
-        item.productId,
-        companyId
-      );
-      if (!product)
-        throw new Error(`Product ${item.productId} not found`);
-
-      // Create inventory movement (OUT)
-      const movement = await this.repository.createMovement({
-        companyId,
-        productId: item.productId,
-        type: MovementType.OUT,
-        quantity: item.quantity,
-        reference:
-          reference || `Shipment for order ${order.orderNumber}`,
-      });
-      movements.push(movement);
-
-      // Decrease stock
-      await this.productService.updateStock(
-        item.productId,
-        -item.quantity
-      );
-
-      // Accumulate COGS
-      totalCogs += Number(product.averageCost) * item.quantity;
+    } catch (error) {
+      // Manual Rollback on failure (SAGA-like)
+      for (const s of successfulItems) {
+        await this.productService.updateStock(
+          s.productId,
+          s.quantity
+        ); // Re-increment
+      }
+      throw error;
     }
 
     // Post COGS Journal
@@ -206,6 +216,7 @@ export class InventoryService {
   ): Promise<InventoryMovement[]> {
     const order = await prisma.order.findFirst({
       where: { id: orderId, companyId },
+      include: { items: true },
     });
 
     if (!order) {
@@ -216,13 +227,23 @@ export class InventoryService {
     let totalCogsReversal = 0;
 
     for (const item of items) {
-      // Get product for cost calculation
+      // Find original order item to get snapshot cost
+      const orderItem = order.items.find(
+        (oi) => oi.productId === item.productId
+      );
+
+      // Get product for fallback cost
       const product = await this.productService.getById(
         item.productId,
         companyId
       );
       if (!product)
         throw new Error(`Product ${item.productId} not found`);
+
+      // Determine Cost Basis: Snapshot -> Current Avg (Fallback)
+      const costBasis = orderItem?.cost
+        ? Number(orderItem.cost)
+        : Number(product.averageCost);
 
       // Create inventory movement (IN) - Restocking
       const movement = await this.repository.createMovement({
@@ -242,8 +263,7 @@ export class InventoryService {
       );
 
       // Accumulate COGS Reversal value
-      totalCogsReversal +=
-        Number(product.averageCost) * item.quantity;
+      totalCogsReversal += costBasis * item.quantity;
     }
 
     // Post Reversal Journal

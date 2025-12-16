@@ -183,7 +183,12 @@ Invisible feature: Siapa, kapan, dari modul apa.
 
 ## Urutan Eksekusi yang Disarankan
 
-1. Kunci **Inventory + Accounting flow**
+- [x] **Phase 1: MVP Core Flows** (Inventory, Sales, Procurement, Accounting) - _Core Verified / Hardening Required_
+- [ ] **Phase 0.5: Stability Hardening (CRITICAL)** <!-- Idempotency, Reversal, Concurrency -->
+  1. Idempotency (Sales, Inventory, Accounting)
+  2. Reversals (Credit Note, Stock Correction, Reverse Journal)
+  3. Concurrency Guards (Pessimistic Locking)\_
+
 2. Pastikan AVG costing solid
 3. Rapikan repository & rule
 4. Baru bikin onboarding UI
