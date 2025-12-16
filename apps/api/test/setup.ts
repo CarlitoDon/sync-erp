@@ -37,6 +37,16 @@ export enum AccountType {
   REVENUE = 'REVENUE',
   EXPENSE = 'EXPENSE',
 }
+export enum BusinessShape {
+  PENDING = 'PENDING',
+  RETAIL = 'RETAIL',
+  MANUFACTURING = 'MANUFACTURING',
+  SERVICE = 'SERVICE',
+}
+export enum CostingMethod {
+  AVG = 'AVG',
+  FIFO = 'FIFO',
+}
 
 // Mock the @sync-erp/database module
 vi.mock('@sync-erp/database', () => ({
@@ -48,6 +58,8 @@ vi.mock('@sync-erp/database', () => ({
   InvoiceType,
   InvoiceStatus,
   AccountType,
+  BusinessShape,
+  CostingMethod,
   Prisma: {},
 }));
 
@@ -57,3 +69,4 @@ export { mockPrisma, resetMocks };
 beforeEach(() => {
   resetMocks();
 });
+
