@@ -15,31 +15,41 @@ import {
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: <HomeIcon /> },
-  { path: '/suppliers', label: 'Suppliers', icon: <TruckIcon /> },
+  
+  // Sales
   { path: '/customers', label: 'Customers', icon: <UserGroupIcon /> },
-  { path: '/products', label: 'Products', icon: <CubeIcon /> },
-  {
-    path: '/purchase-orders',
-    label: 'Purchase Orders',
-    icon: <ClipboardDocumentListIcon />,
-  },
-  { path: '/bills', label: 'Bills', icon: <CreditCardIcon /> },
   {
     path: '/sales-orders',
     label: 'Sales Orders',
     icon: <ShoppingCartIcon />,
   },
   {
-    path: '/inventory',
-    label: 'Inventory',
-    icon: <ArchiveBoxIcon />,
-  },
-  {
     path: '/invoices',
     label: 'Invoices',
     icon: <DocumentTextIcon />,
   },
+
+  // Purchasing
+  { path: '/suppliers', label: 'Suppliers', icon: <TruckIcon /> },
+  {
+    path: '/purchase-orders',
+    label: 'Purchase Orders',
+    icon: <ClipboardDocumentListIcon />,
+  },
+  { path: '/bills', label: 'Bills', icon: <CreditCardIcon /> },
+
+  // Inventory
+  { path: '/products', label: 'Products', icon: <CubeIcon /> },
+  {
+    path: '/inventory',
+    label: 'Inventory',
+    icon: <ArchiveBoxIcon />,
+  },
+
+  // Finance
   { path: '/finance', label: 'Finance', icon: <BanknotesIcon /> },
+
+  // System
   {
     path: '/companies',
     label: 'Companies',

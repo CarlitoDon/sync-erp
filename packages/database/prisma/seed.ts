@@ -90,7 +90,7 @@ async function main() {
       create: {
         email: 'admin@sync-erp.local',
         name: 'System Admin',
-        passwordHash: '$2b$10$EpIxQi0q6.88r1.1./6.4.5.6.7.8.9.0.1.2', // Placeholder hash
+        passwordHash: '$2b$10$sw11gC0LBcucZMk3qa/Rq.04xFOFIjKDuXg7DSom9zHWfpsSFxIMe', // password: 'password'
       },
     });
 
@@ -155,10 +155,246 @@ async function main() {
       },
     });
 
+  // ... (previous demo company creation)
+
     console.warn('✅ Demo data created');
     console.warn(`   - User: ${demoUser.email}`);
     console.warn(`   - Company: ${demoCompany.name}`);
     console.warn(`   - Role: ${adminRole.name}`);
+
+    // ==========================================
+    // 1. Seed Chart of Accounts
+    // ==========================================
+    console.warn('📊 Seeding Chart of Accounts...');
+    const ACCOUNTS = [
+      // Assets
+      { code: '1100', name: 'Cash on Hand', type: 'ASSET' as const },
+      { code: '1200', name: 'Bank Account', type: 'ASSET' as const },
+      { code: '1300', name: 'Accounts Receivable', type: 'ASSET' as const },
+      { code: '1400', name: 'Inventory Asset', type: 'ASSET' as const },
+      { code: '1500', name: 'Office Equipment', type: 'ASSET' as const },
+      
+      // Liabilities
+      { code: '2100', name: 'Accounts Payable', type: 'LIABILITY' as const },
+      { code: '2200', name: 'Sales Tax Payable', type: 'LIABILITY' as const },
+      
+      // Equity
+      { code: '3100', name: 'Owner\'s Capital', type: 'EQUITY' as const },
+      { code: '3200', name: 'Retained Earnings', type: 'EQUITY' as const },
+      
+      // Revenue
+      { code: '4100', name: 'Sales Revenue', type: 'REVENUE' as const },
+      { code: '4200', name: 'Service Income', type: 'REVENUE' as const },
+      
+      // Expenses
+      { code: '5100', name: 'Cost of Goods Sold', type: 'EXPENSE' as const },
+      { code: '6100', name: 'Rent Expense', type: 'EXPENSE' as const },
+      { code: '6200', name: 'Utilities Expense', type: 'EXPENSE' as const },
+      { code: '6300', name: 'Salaries Expense', type: 'EXPENSE' as const },
+    ];
+
+    for (const acc of ACCOUNTS) {
+      await prisma.account.upsert({
+        where: {
+          companyId_code: { companyId: demoCompany.id, code: acc.code },
+        },
+        update: {},
+        create: {
+          companyId: demoCompany.id,
+          ...acc,
+        },
+      });
+    }
+
+    // ==========================================
+    // 2. Seed Partners
+    // ==========================================
+    console.warn('🤝 Seeding Partners...');
+    const PARTNERS = [
+      // Customers
+      { type: 'CUSTOMER' as const, name: 'Adi Santoso', email: 'adi@example.com', address: 'Jl. Merdeka No. 1' },
+      { type: 'CUSTOMER' as const, name: 'Budi Hartono', email: 'budi@example.com', address: 'Jl. Sudirman No. 45' },
+      { type: 'CUSTOMER' as const, name: 'PT. Maju Jaya', email: 'procurement@majujaya.com', address: 'Kawasan Industri Pulogadung' },
+      { type: 'CUSTOMER' as const, name: 'CV. Sejahtera', email: 'admin@sejahtera.id', address: 'Cikarang Barat' },
+      { type: 'CUSTOMER' as const, name: 'Toko Elektronik Makmur', email: 'tem@example.com', address: 'Glodok Plaza' },
+      
+      // Suppliers
+      { type: 'SUPPLIER' as const, name: 'PT. Component Ind', email: 'sales@comp-ind.com', address: 'Bekasi Timur' },
+      { type: 'SUPPLIER' as const, name: 'Global Tech Supply', email: 'sales@globaltech.com', address: 'Jakarta Pusat' },
+      { type: 'SUPPLIER' as const, name: 'CV. Packaging Solusi', email: 'order@packaging.com', address: 'Tangerang' },
+      { type: 'SUPPLIER' as const, name: 'Distributor A1', email: 'sales@dist-a1.com', address: 'Mangga Dua' },
+      { type: 'SUPPLIER' as const, name: 'Logistics Partner', email: 'ops@logistics.com', address: 'Bandara Soetta' },
+    ];
+
+    for (const p of PARTNERS) {
+      await prisma.partner.create({
+        data: {
+          companyId: demoCompany.id,
+          ...p,
+        },
+      });
+    }
+
+    // ==========================================
+    // 3. Seed Products & Inventory
+    // ==========================================
+    console.warn('📦 Seeding Products...');
+    const PRODUCTS = [
+      { sku: 'LAP-001', name: 'Laptop Pro X1', price: 15000000, cost: 12000000, stock: 10 },
+      { sku: 'MON-001', name: 'Monitor 24 Inch', price: 2500000, cost: 1800000, stock: 25 },
+      { sku: 'KEY-001', name: 'Mechanical Keyboard', price: 850000, cost: 500000, stock: 50 },
+      { sku: 'MOU-001', name: 'Wireless Mouse', price: 350000, cost: 150000, stock: 100 },
+      { sku: 'DSK-001', name: 'Standing Desk', price: 4500000, cost: 2500000, stock: 5 },
+      { sku: 'CHA-001', name: 'Ergo Chair', price: 3200000, cost: 1800000, stock: 8 },
+      { sku: 'HDP-001', name: 'Noise Cancel Headphone', price: 1200000, cost: 750000, stock: 30 },
+      { sku: 'CAB-001', name: 'USB-C Cable 2m', price: 150000, cost: 50000, stock: 200 },
+      { sku: 'HUB-001', name: 'USB-C Hub Multi', price: 750000, cost: 400000, stock: 40 },
+      { sku: 'CAM-001', name: 'Webcam 1080p', price: 950000, cost: 600000, stock: 15 },
+    ];
+
+    for (const prod of PRODUCTS) {
+      // Create Product
+      const product = await prisma.product.upsert({
+        where: {
+          companyId_sku: { companyId: demoCompany.id, sku: prod.sku },
+        },
+        update: {},
+        create: {
+          companyId: demoCompany.id,
+          sku: prod.sku,
+          name: prod.name,
+          price: prod.price,
+          averageCost: prod.cost,
+          stockQty: prod.stock, // Set initial cache
+        },
+      });
+
+      // Create Initial Movement
+      if (prod.stock > 0) {
+        await prisma.inventoryMovement.create({
+          data: {
+            companyId: demoCompany.id,
+            productId: product.id,
+            type: 'IN',
+            quantity: prod.stock,
+            reference: 'INITIAL_SEED',
+            date: new Date(),
+          },
+        });
+      }
+    }
+    // ==========================================
+    // 4. Seed Transactions (SO, PO, Invoices, Bills)
+    // ==========================================
+    console.warn('💰 Seeding Transactions...');
+
+    // Helper to find partner by name
+    const findPartner = async (name: string) => {
+      return prisma.partner.findFirst({
+        where: { companyId: demoCompany.id, name: { contains: name } },
+      });
+    };
+
+    // Helper to find product by SKU
+    const findProduct = async (sku: string) => {
+      return prisma.product.findUnique({
+        where: { companyId_sku: { companyId: demoCompany.id, sku } },
+      });
+    };
+
+    const customer = await findPartner('Adi Santoso');
+    const supplier = await findPartner('Component Ind');
+    const product1 = await findProduct('LAP-001'); // Laptop
+    const product2 = await findProduct('MOU-001'); // Mouse
+
+    if (customer && supplier && product1 && product2) {
+      // --- 4a. Sales Order (Draft) ---
+      await prisma.order.create({
+        data: {
+          companyId: demoCompany.id,
+          partnerId: customer.id,
+          type: 'SALES',
+          status: 'DRAFT',
+          orderNumber: 'SO-001',
+          date: new Date(),
+          totalAmount: 15350000,
+          items: {
+            create: [
+              { productId: product1.id, quantity: 1, price: 15000000 },
+              { productId: product2.id, quantity: 1, price: 350000 },
+            ],
+          },
+        },
+      });
+
+      // --- 4b. Purchase Order (Confirmed) -> Bill ---
+      const po = await prisma.order.create({
+        data: {
+          companyId: demoCompany.id,
+          partnerId: supplier.id,
+          type: 'PURCHASE',
+          status: 'CONFIRMED',
+          orderNumber: 'PO-001',
+          date: new Date(),
+          totalAmount: 120000000, // 10 Laptops cost
+          items: {
+            create: [
+              { productId: product1.id, quantity: 10, price: 12000000 },
+            ],
+          },
+        },
+      });
+
+      // Create Bill for PO
+      await prisma.invoice.create({
+        data: {
+          companyId: demoCompany.id,
+          partnerId: supplier.id,
+          orderId: po.id,
+          type: 'BILL',
+          status: 'POSTED',
+          invoiceNumber: 'BILL-PO-001',
+          dueDate: new Date(new Date().setDate(new Date().getDate() + 30)), // +30 days
+          amount: 120000000,
+          subtotal: 120000000,
+          balance: 120000000,
+        },
+      });
+
+      // --- 4c. Sales Order (Completed) -> Invoice ---
+      const so = await prisma.order.create({
+        data: {
+          companyId: demoCompany.id,
+          partnerId: customer.id,
+          type: 'SALES',
+          status: 'COMPLETED',
+          orderNumber: 'SO-002',
+          date: new Date(),
+          totalAmount: 30000000,
+          items: {
+            create: [
+              { productId: product1.id, quantity: 2, price: 15000000 },
+            ],
+          },
+        },
+      });
+
+      // Create Invoice for SO
+      await prisma.invoice.create({
+        data: {
+          companyId: demoCompany.id,
+          partnerId: customer.id,
+          orderId: so.id,
+          type: 'INVOICE',
+          status: 'DRAFT',
+          invoiceNumber: 'INV-SO-002',
+          dueDate: new Date(new Date().setDate(new Date().getDate() + 14)), // +14 days
+          amount: 30000000,
+          subtotal: 30000000,
+          balance: 30000000,
+        },
+      });
+    }
   }
 
   console.warn('🎉 Database seed completed!');
