@@ -16,7 +16,7 @@ Jika satu fitur melanggar ini, tunda.
 
 ---
 
-## Phase 0 — Foundation (WAJIB, SERING DILEWATI)
+## Phase 0 — Foundation (SELESAI ✅)
 
 **Ini bukan MVP, ini landasan. Jangan lompat.**
 

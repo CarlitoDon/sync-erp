@@ -4,7 +4,7 @@ This checklist tracks the execution of the "Core Integrity First" strategy.
 
 > **Legend**:
 >
-> - [ ] Todo
+> - [x] Todo
 > - [/] In Progress
 > - [x] Done
 
@@ -14,19 +14,19 @@ This checklist tracks the execution of the "Core Integrity First" strategy.
 
 We must define the "Business Shape" before we can enforce it.
 
-- [ ] **1.1 Shared Contract**
-  - [ ] Create `BusinessShape` enum in `packages/shared/src/types/company.ts` (`RETAIL` | `MANUFACTURING` | `SERVICE`).
-  - [ ] Export `BusinessShape` from root `packages/shared/src/index.ts`.
-  - [ ] Run `npm run build` in `packages/shared`.
+- [x] **1.1 Shared Contract**
+  - [x] Create `BusinessShape` enum in `packages/shared/src/types/company.ts` (`RETAIL` | `MANUFACTURING` | `SERVICE`).
+  - [x] Export `BusinessShape` from root `packages/shared/src/index.ts`.
+  - [x] Run `npm run build` in `packages/shared`.
 
-- [ ] **1.2 Database Schema**
-  - [ ] Update `Company` model in `packages/database/prisma/schema.prisma` to include `shape` (Enum) and `status` (Enum).
-  - [ ] Run `npx prisma migrate dev --name add_business_shape`.
-  - [ ] Run `npx prisma generate`.
+- [x] **1.2 Database Schema**
+  - [x] Update `Company` model in `packages/database/prisma/schema.prisma` to include `shape` (Enum) and `status` (Enum).
+  - [x] Run `npx prisma migrate dev --name add_business_shape`.
+  - [x] Run `npx prisma generate`.
 
-- [ ] **1.3 Request Context**
-  - [ ] Update `apps/api/src/types/express.d.ts` to include `shape` in `req.company`.
-  - [ ] Update `authMiddleware` to load the shape into the request object.
+- [x] **1.3 Request Context**
+  - [x] Update `apps/api/src/types/express.d.ts` to include `shape` in `req.company`.
+  - [x] Update `authMiddleware` to load the shape into the request object.
 
 ---
 
@@ -34,26 +34,26 @@ We must define the "Business Shape" before we can enforce it.
 
 We use **Inventory** as the prototype for the new "Policy-Driven" architecture.
 
-- [ ] **2.1 File Structure**
-  - [ ] Rename/Move existing files in `apps/api/src/modules/inventory/`.
-  - [ ] Create folder structure: `entities/`, `dto/`, `rules/`, `policy/`.
+- [x] **2.1 File Structure**
+  - [x] Rename/Move existing files in `apps/api/src/modules/inventory/`.
+  - [x] Create folder structure: `entities/`, `dto/`, `rules/`, `policy/`.
 
-- [ ] **2.2 Policy Layer (New)**
-  - [ ] Create `inventory.constants.ts`.
-  - [ ] Create `inventory.policy.ts` with methods like `canCreateWIP()`, `canTrackStock()`.
+- [x] **2.2 Policy Layer (New)**
+  - [x] Create `inventory.constants.ts`.
+  - [x] Create `inventory.policy.ts` with methods like `canCreateWIP()`, `canTrackStock()`.
 
-- [ ] **2.3 Rules Layer (New)**
-  - [ ] Extract logic from Service to `rules/stockRule.ts` (e.g. `ensureAvailable()`).
-  - [ ] Extract logic to `rules/reservationRule.ts`.
+- [x] **2.3 Rules Layer (New)**
+  - [x] Extract logic from Service to `rules/stockRule.ts` (e.g. `ensureAvailable()`).
+  - [x] Extract logic to `rules/reservationRule.ts`.
 
-- [ ] **2.4 Service Refactor**
-  - [ ] Rewrite `InventoryService` to inject `InventoryPolicy`.
-  - [ ] Enforce: `policy.ensureCan(ACTION)` before every method.
-  - [ ] Replace direct logic with `Rules` calls.
+- [x] **2.4 Service Refactor**
+  - [x] Rewrite `InventoryService` to inject `InventoryPolicy`.
+  - [x] Enforce: `policy.ensureCan(ACTION)` before every method.
+  - [x] Replace direct logic with `Rules` calls.
 
-- [ ] **2.5 Controller Refactor**
-  - [ ] Ensure `InventoryController` has ZERO business logic.
-  - [ ] Ensure it uses the new Service.
+- [x] **2.5 Controller Refactor**
+  - [x] Ensure `InventoryController` has ZERO business logic.
+  - [x] Ensure it uses the new Service.
 
 ---
 
@@ -61,13 +61,13 @@ We use **Inventory** as the prototype for the new "Policy-Driven" architecture.
 
 Apply the same pattern to Sales to verify "Modular Parity".
 
-- [ ] **3.1 Structure & Policy**
-  - [ ] Create `sales.policy.ts`.
-  - [ ] Define "Retail Sales" vs "Service Sales" constraints.
+- [x] **3.1 Structure & Policy**
+  - [x] Create `sales.policy.ts`.
+  - [x] Define "Retail Sales" vs "Service Sales" constraints.
 
-- [ ] **3.2 Service Refactor**
-  - [ ] Refactor `SalesService` to use Policy.
-  - [ ] Ensure Sales triggers Inventory (via Event/Call) respecting the shape.
+- [x] **3.2 Service Refactor**
+  - [x] Refactor `SalesService` to use Policy.
+  - [x] Ensure Sales triggers Inventory (via Event/Call) respecting the shape.
 
 ---
 
@@ -75,19 +75,19 @@ Apply the same pattern to Sales to verify "Modular Parity".
 
 Now that the core respects the shape, we build the switch.
 
-- [ ] **4.1 Backend State Machine**
-  - [ ] Create `apps/api/src/modules/onboarding/onboarding.machine.ts`.
-  - [ ] Define transitions: `WELCOME` → `SHAPE_SELECTION` → `SETUP`.
+- [x] **4.1 Backend State Machine**
+  - [x] Create `apps/api/src/modules/onboarding/onboarding.machine.ts`.
+  - [x] Define transitions: `WELCOME` → `SHAPE_SELECTION` → `SETUP`.
 
-- [ ] **4.2 Shape Selection Endpoint**
-  - [ ] Create `POST /onboarding/select-shape`.
-  - [ ] Implement: Save to DB + Trigger Default Configuration (e.g. standard COA).
+- [x] **4.2 Shape Selection Endpoint**
+  - [x] Create `POST /onboarding/select-shape`.
+  - [x] Implement: Save to DB + Trigger Default Configuration (e.g. standard COA).
 
 ---
 
 ## Technical Verification Gates
 
-- [ ] **Gate 1**: Can I compile `packages/shared`?
-- [ ] **Gate 2**: Does `npx tsc --noEmit` pass in `apps/api`?
-- [ ] **Gate 3**: Can a "Retail" company successfully block a "Manufacturing" action (WIP)?
-- [ ] **Gate 4**: Can a "Service" company successfully block a stock movement?
+- [x] **Gate 1**: Can I compile `packages/shared`?
+- [x] **Gate 2**: Does `npx tsc --noEmit` pass in `apps/api`?
+- [x] **Gate 3**: Can a "Retail" company successfully block a "Manufacturing" action (WIP)?
+- [x] **Gate 4**: Can a "Service" company successfully block a stock movement?
