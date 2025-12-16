@@ -4,11 +4,11 @@ trigger: always_on
 
 <!--
 MEMORY SYNC REPORT
-Version: 1.0.4 -> 1.0.5 (Patch - Added Case A1 Issue)
+Version: 1.0.5 -> 1.0.6 (Patch - Added Phase 0 Gate Review)
 Added Sections:
-- None
+- Phase 0 Gate Review - Approved with Risks
 Modified Sections:
-- Known Issues & Workarounds (added Case A1)
+- None
 Removed Sections:
 - None
 Last Updated: 2025-12-16
@@ -16,22 +16,34 @@ Last Updated: 2025-12-16
 
 # Project Memory
 
-**Version**: 1.0.5 | **Last Updated**: 2025-12-16
+**Version**: 1.0.6 | **Last Updated**: 2025-12-16
 
 ## Overview
 
-| Property | Value |
-|----------|-------|
-| Project | Sync ERP |
-| Type | Multi-Tenant Enterprise Resource Planning |
-| Stack | Vite + React (Frontend), Express + TS (Backend), Prisma (ORM) |
-| Constitution | v1.9.0 (see `.agent/rules/constitution.md`) |
+| Property     | Value                                                         |
+| ------------ | ------------------------------------------------------------- |
+| Project      | Sync ERP                                                      |
+| Type         | Multi-Tenant Enterprise Resource Planning                     |
+| Stack        | Vite + React (Frontend), Express + TS (Backend), Prisma (ORM) |
+| Constitution | v1.9.0 (see `.agent/rules/constitution.md`)                   |
 
 ---
 
 ## Key Decisions Log
 
 > Decisions that affect future development. Add new entries at top.
+
+### [2025-12-16] Phase 0 Gate Review - Approved with Risks
+
+**Decision**: Phase 0 is CLOSED. Corrective Actions (Policy Hard Stop, Config-Driven) are verified.
+**Latent Risks (Watchlist for Phase 1)**:
+
+1. **BusinessShape Flatness**: Adding new shapes is expensive. Use shape as "profile", not "persona".
+2. **SystemConfig Scope**: Currently global/implicit. Avoid using as "dumping ground for booleans".
+3. **Transaction Boundary**: Implicit ownership is currently safe but needs explicit definition for complex flows (Purchase -> Stock -> Journal).
+4. **Middleware Power**: Auth middleware loads Context, Shape, and Config. Risk of becoming a "God Object". Keep it strictly for Identity + Context.
+5. **Frontend Bypass**: UI must not replicate policy logic optimistically. Backend is authoritative.
+   **Reference**: `docs/apple-like-development/PHASE_0_REVIEW.md`
 
 ### [2025-12-16] Case A1 Prevention - Complete Integration Check
 
@@ -81,12 +93,12 @@ Last Updated: 2025-12-16
 
 > Persistent issues that need workarounds. Mark RESOLVED when fixed.
 
-| Issue | Status | Workaround |
-|-------|--------|------------|
-| Old orders have subtotal-only `totalAmount` | KNOWN | Only new orders include tax |
-| IDE lint may be stale | KNOWN | Use `npx tsc --noEmit` as source of truth |
-| **Dev server always running during development** | NOTE | User runs `Dev: Start All` and `TypeScript: Watch` in separate terminals. Do NOT try to start dev server yourself. |
-| **Case A1: Orphan files created but not integrated** | KNOWN | After creating any new file, grep for imports to verify it's actually used. Check `grep -r "import.*filename" apps/` |
+| Issue                                                | Status | Workaround                                                                                                           |
+| ---------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
+| Old orders have subtotal-only `totalAmount`          | KNOWN  | Only new orders include tax                                                                                          |
+| IDE lint may be stale                                | KNOWN  | Use `npx tsc --noEmit` as source of truth                                                                            |
+| **Dev server always running during development**     | NOTE   | User runs `Dev: Start All` and `TypeScript: Watch` in separate terminals. Do NOT try to start dev server yourself.   |
+| **Case A1: Orphan files created but not integrated** | KNOWN  | After creating any new file, grep for imports to verify it's actually used. Check `grep -r "import.*filename" apps/` |
 
 ---
 
@@ -99,7 +111,9 @@ const result = await apiAction(
   () => myService.create(data),
   'Item created!'
 );
-if (result) { /* success */ }
+if (result) {
+  /* success */
+}
 ```
 
 ### Data Fetching with Company Context
@@ -120,7 +134,9 @@ const proceed = await confirm.show({
   message: 'This action cannot be undone.',
   danger: true,
 });
-if (proceed) { /* delete */ }
+if (proceed) {
+  /* delete */
+}
 ```
 
 ### Case A1 Prevention Check
