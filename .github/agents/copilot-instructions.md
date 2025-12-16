@@ -5,6 +5,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 ## Active Technologies
 - TypeScript 5.x, React 18, Node.js 20 + `react-router-dom`, `@sync-erp/shared`, `axios` (019-optimize-details)
 - Postgres (Prisma ORM) (019-optimize-details)
+- TypeScript 5.x (Node.js 20.x) + Express, Prisma ORM, Zod, Vitest (020-apple-backend-refactor)
 
 - TypeScript 5.x + Express, Vitest, Prisma Client (010-test-refactor-3layer)
 - PostgreSQL via Prisma (010-test-refactor-3layer)
@@ -45,10 +46,10 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 020-apple-backend-refactor: Added TypeScript 5.x (Node.js 20.x) + Express, Prisma ORM, Zod, Vitest
 - 019-optimize-details: Added TypeScript 5.x, React 18, Node.js 20 + `react-router-dom`, `@sync-erp/shared`, `axios`
 
 - 013-backend-shared-validation: Added TypeScript 5.x, Node.js 20+ + Express, Zod, @sync-erp/shared
-- 012-core-ui-features: Added TypeScript 5.4 + React 18.2, Vite 5.1, TailwindCSS 3.4, TanStack Query v5
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

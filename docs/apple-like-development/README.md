@@ -54,6 +54,11 @@ This directory contains the foundational documents for the "Apple-Like" pivot of
     - A step-by-step checklist to execute the "Core-First" strategy.
     - Covers Database, Shared Types, Inventory Refactor, and Onboarding groundwork.
 
+11. **[ROADMAP.md](./ROADMAP.md)**
+    - _The Phase Plan._
+    - Defines MVP → v1 → v2 progression with clear exit criteria.
+    - Phase 0: Foundation, Phase 1: MVP, Phase 2: Professional, Phase 3: Depth.
+
 ## Core Mandates
 
 - **Decision Lives Once**: The Business Shape selection controls 100+ downstream system behaviors.

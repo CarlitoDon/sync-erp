@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: Sync ERP - Company Shape Selection API
+  description: API endpoints for managing company business shape
+  version: 1.0.0
+
+paths:
+  /api/company/select-shape:
+    post:
+      summary: Select business shape for a company
+      description: |
+        Sets the business shape for a company. This is a one-time operation.
+        Once a shape is selected, it cannot be changed.
+
+        Side effects:
+        - Seeds default SystemConfig for the selected shape
+        - Seeds shape-appropriate Chart of Accounts
+      tags:
+        - Company
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectShapeRequest'
+      responses:
+        '200':
+          description: Shape selected successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelectShapeResponse'
+        '400':
+          description: |
+            Bad Request:
+            - Shape already set (not PENDING)
+            - Invalid shape value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - missing or invalid token
+        '403':
+          description: Forbidden - user lacks permission to change company settings
+
+  /api/company/shape:
+    get:
+      summary: Get current company shape
+      description: Returns the current business shape of the authenticated company
+      tags:
+        - Company
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current shape
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetShapeResponse'
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    BusinessShape:
+      type: string
+      enum:
+        - PENDING
+        - RETAIL
+        - MANUFACTURING
+        - SERVICE
+      description: |
+        Business shape determines system behavior:
+        - PENDING: Initial state, all operations blocked
+        - RETAIL: Trading business, stock tracking, AVG costing
+        - MANUFACTURING: Full inventory with WIP, FIFO costing
+        - SERVICE: No physical stock, service-only operations
+
+    SelectShapeRequest:
+      type: object
+      required:
+        - shape
+      properties:
+        shape:
+          type: string
+          enum:
+            - RETAIL
+            - MANUFACTURING
+            - SERVICE
+          description: The business shape to set (cannot be PENDING)
+      example:
+        shape: RETAIL
+
+    SelectShapeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        shape:
+          $ref: '#/components/schemas/BusinessShape'
+        message:
+          type: string
+          example: 'Business shape set to RETAIL. Default configuration applied.'
+        configSeeded:
+          type: boolean
+          description: Whether SystemConfig was seeded
+          example: true
+        coaSeeded:
+          type: boolean
+          description: Whether Chart of Accounts was seeded
+          example: true
+
+    GetShapeResponse:
+      type: object
+      properties:
+        shape:
+          $ref: '#/components/schemas/BusinessShape'
+        isPending:
+          type: boolean
+          description: Whether shape selection is still required
+          example: false
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: 'Business shape cannot be changed after initial selection'
+        code:
+          type: string
+          example: 'SHAPE_ALREADY_SET'
