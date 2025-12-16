@@ -1,0 +1,116 @@
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/scripts/seed-finance-accounts.ts
+  16:3  warning  Unexpected console statement  no-console
+  35:5  warning  Unexpected console statement  no-console
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/middlewares/auth.test.ts
+    6:3   warning  'mockSessionService' is defined but never used  @typescript-eslint/no-unused-vars
+    7:3   warning  'resetServiceMocks' is defined but never used   @typescript-eslint/no-unused-vars
+  268:13  warning  'res' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  271:7   warning  Unexpected console statement                    no-console
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/modules/accounting/t005_bill_service.test.ts
+  35:7  warning  'mockJournalService' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/modules/accounting/t007_invoice_link.test.ts
+   4:3  warning  'InvoiceType' is defined but never used        @typescript-eslint/no-unused-vars
+  34:7  warning  'mockRepo' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/modules/accounting/t010_quote_to_cash.test.ts
+  88:10  warning  'JournalRepository' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/modules/accounting/t015_payment_idempotency.test.ts
+  4:3  warning  'InvoiceStatus' is defined but never used  @typescript-eslint/no-unused-vars
+  5:3  warning  'InvoiceType' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/modules/accounting/t020_payment_guard.test.ts
+   3:10  warning  'InvoiceStatus' is defined but never used             @typescript-eslint/no-unused-vars
+   3:25  warning  'InvoiceType' is defined but never used               @typescript-eslint/no-unused-vars
+  29:7   warning  'mockInvoiceRepo' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/modules/accounting/t022_invoice_posting_saga.test.ts
+  11:3  warning  'SagaCompensationFailedError' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/modules/inventory/t002_policy_enforcement.test.ts
+  27:7  warning  'mockRepo' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/modules/procurement/t003_procurement_cycle.test.ts
+  7:3   warning  'prisma' is defined but never used       @typescript-eslint/no-unused-vars
+  9:10  warning  'DomainError' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/routes/company.test.ts
+   7:3  warning  'afterEach' is defined but never used                    @typescript-eslint/no-unused-vars
+  23:7  warning  'mockAuthMiddleware' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  25:7  warning  'mockRbacMiddleware' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/services/AuthService.test.ts
+  4:3  warning  'mockUserRepository' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/services/InventoryService.test.ts
+  4:3  warning  'mockProductRepository' is defined but never used      @typescript-eslint/no-unused-vars
+  5:3  warning  'mockProcurementRepository' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/api/test/unit/services/JournalService.test.ts
+  4:3  warning  'mockAccountRepository' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/contexts/CompanyContext.tsx
+  71:6  warning  React Hook useCallback has a missing dependency: 'currentCompany'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/features/auth/components/LoginPage.tsx
+  92:14  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/features/company/components/AssignCompanyModal.tsx
+  46:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/features/company/components/AssignCompanyModal.tsx:46:5
+  44 |     // For MVP, hardcode roles or fetch if endpoint exists.
+  45 |     // Assuming generic roles for now.
+> 46 |     setRoles([
+     |     ^^^^^^^^ Avoid calling setState() directly within an effect
+  47 |       { id: 'admin-uuid', name: 'Admin' }, // Replace with actual Role fetching
+  48 |       { id: 'member-uuid', name: 'Member' },
+  49 |       { id: 'viewer-uuid', name: 'Viewer' },  react-hooks/set-state-in-effect
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/features/dashboard/components/OnboardingGuide.tsx
+  97:33  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/features/finance/pages/BillDetail.tsx
+  73:6  warning  React Hook useEffect has a missing dependency: 'loadBill'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/features/finance/pages/InvoiceDetail.tsx
+  75:6  warning  React Hook useEffect has a missing dependency: 'loadInvoice'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/features/finance/pages/JournalEntries.tsx
+  112:6  warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/features/procurement/pages/PurchaseOrderDetail.tsx
+  43:6  warning  React Hook useEffect has a missing dependency: 'loadOrder'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/features/sales/pages/SalesOrderDetail.tsx
+  39:6  warning  React Hook useEffect has a missing dependency: 'loadOrder'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/wecik/Documents/Offline/sync-erp/apps/web/src/utils/apiAction.ts
+   5:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/wecik/Documents/Offline/sync-erp/packages/database/get_admin_id.ts
+  21:5  warning  Unexpected console statement  no-console
+  23:5  warning  Unexpected console statement  no-console
+
+/Users/wecik/Documents/Offline/sync-erp/packages/database/scripts/test-database.ts
+   5:3  warning  Unexpected console statement  no-console
+  10:5  warning  Unexpected console statement  no-console
+  17:5  warning  Unexpected console statement  no-console
+  18:5  warning  Unexpected console statement  no-console
+  19:5  warning  Unexpected console statement  no-console
+  20:5  warning  Unexpected console statement  no-console
+  22:5  warning  Unexpected console statement  no-console
+
+✖ 46 problems (3 errors, 43 warnings)
+

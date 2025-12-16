@@ -34,7 +34,6 @@ export default function PurchaseOrderList({
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filter)]);
 
   const getStatusColor = (status: string) => {

@@ -33,14 +33,18 @@ module.exports = {
 
   overrides: [
     {
-      files: ['**/*.test.ts', '**/*.spec.ts'],
+      files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts'],
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
-        '@typescript-eslint/no-unused-vars': [
-          'warn',
-          { argsIgnorePattern: '^_' },
-        ],
+        '@typescript-eslint/no-unused-vars': 'off',
+        'no-console': 'off',
+      },
+    },
+    {
+      files: ['**/scripts/**/*.ts', '**/seed*.ts'],
+      rules: {
+        'no-console': 'off',
       },
     },
   ],

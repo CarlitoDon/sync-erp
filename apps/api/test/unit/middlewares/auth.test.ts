@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { Request, Response, NextFunction } from 'express';
-// import { mockPrisma } from '../mocks/prisma.mock';
-import {
-  mockSessionService,
-  resetServiceMocks,
-} from '../mocks/services.mock';
 
 // Mock dependencies
 const { mockGetSession } = vi.hoisted(() => {
@@ -179,10 +174,11 @@ describe('auth middleware', () => {
       mockGetSession.mockResolvedValue(mockSession);
 
       vi.mocked(prisma.companyMember.findUnique).mockResolvedValue({
+        id: 'member-1',
         userId: 'user-1',
         companyId: 'company-1',
-        role: 'USER',
-        joinedAt: new Date(),
+        roleId: null,
+        createdAt: new Date(),
       });
 
       vi.mocked(prisma.company.findUnique).mockResolvedValue({
@@ -267,8 +263,7 @@ describe('auth middleware', () => {
       );
       const res = createMockResponse();
 
-      // expect(mockNext).toHaveBeenCalled();
-      console.log('Skipping flaky assertion for now');
+      // Skipping flaky assertion for now
       expect(req.context.userId).toBeUndefined();
     });
   });

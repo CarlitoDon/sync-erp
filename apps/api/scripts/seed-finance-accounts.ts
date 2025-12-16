@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { prisma } from '@sync-erp/database';
 
 const ACCOUNTS = [
