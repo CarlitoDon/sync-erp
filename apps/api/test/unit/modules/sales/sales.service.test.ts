@@ -13,7 +13,9 @@ import { SalesService } from '../../../../src/modules/sales/sales.service';
 vi.mock('../../../../src/modules/sales/sales.repository');
 vi.mock('../../../../src/modules/product/product.service');
 vi.mock('../../../../src/modules/inventory/inventory.service');
-vi.mock('../../../../src/modules/common/services/document-number.service');
+vi.mock(
+  '../../../../src/modules/common/services/document-number.service'
+);
 
 describe('SalesService', () => {
   let service: SalesService;

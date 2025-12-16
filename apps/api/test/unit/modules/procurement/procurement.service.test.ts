@@ -11,7 +11,9 @@ import { ProcurementService } from '../../../../src/modules/procurement/procurem
 
 // Mock dependencies
 vi.mock('../../../../src/modules/procurement/procurement.repository');
-vi.mock('../../../../src/modules/common/services/document-number.service');
+vi.mock(
+  '../../../../src/modules/common/services/document-number.service'
+);
 
 describe('ProcurementService', () => {
   let service: ProcurementService;

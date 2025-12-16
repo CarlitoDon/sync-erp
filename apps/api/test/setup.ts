@@ -69,4 +69,3 @@ export { mockPrisma, resetMocks };
 beforeEach(() => {
   resetMocks();
 });
-

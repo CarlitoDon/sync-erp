@@ -29,13 +29,21 @@ describe('InventoryService', () => {
 
     it('throws DomainError for SERVICE company shape', async () => {
       await expect(
-        service.processGoodsReceipt('company-1', mockData, BusinessShape.SERVICE)
+        service.processGoodsReceipt(
+          'company-1',
+          mockData,
+          BusinessShape.SERVICE
+        )
       ).rejects.toThrowError(DomainError);
     });
 
     it('throws DomainError for PENDING company shape', async () => {
       await expect(
-        service.processGoodsReceipt('company-1', mockData, BusinessShape.PENDING)
+        service.processGoodsReceipt(
+          'company-1',
+          mockData,
+          BusinessShape.PENDING
+        )
       ).rejects.toThrowError(DomainError);
     });
 
@@ -53,16 +61,61 @@ describe('InventoryService', () => {
 
     it('throws DomainError for SERVICE company shape', async () => {
       await expect(
-        service.adjustStock('company-1', mockData, BusinessShape.SERVICE)
+        service.adjustStock(
+          'company-1',
+          mockData,
+          BusinessShape.SERVICE
+        )
       ).rejects.toThrowError(DomainError);
     });
 
     it('throws DomainError for PENDING company shape', async () => {
       await expect(
-        service.adjustStock('company-1', mockData, BusinessShape.PENDING)
+        service.adjustStock(
+          'company-1',
+          mockData,
+          BusinessShape.PENDING
+        )
       ).rejects.toThrowError(DomainError);
     });
 
     // Note: Full success tests require mocking repository
+  });
+
+  describe('CA-01 & CA-02 Verification', () => {
+    const mockData = {
+      productId: 'prod-1',
+      quantity: 5,
+      costPerUnit: 100,
+      reference: 'Manual adjustment',
+    };
+
+    it('CA-02: throws DomainError if config disabled', async () => {
+      const configs = [{ key: 'inventory.enabled', value: false }];
+      await expect(
+        service.adjustStock(
+          'company-1',
+          mockData,
+          BusinessShape.RETAIL,
+          configs
+        )
+      ).rejects.toThrowError(DomainError);
+    });
+
+    it('CA-01: Policy Hard Stop - Repository MUST NOT be called if Policy rejects', async () => {
+      // 1. Trigger Policy Rejection (SERVICE shape)
+      try {
+        await service.adjustStock(
+          'company-1',
+          mockData,
+          BusinessShape.SERVICE
+        );
+      } catch (e) {
+        // Expected error
+      }
+
+      const mockRepo = (service as any).repository;
+      expect(mockRepo.createMovement).not.toHaveBeenCalled();
+    });
   });
 });
