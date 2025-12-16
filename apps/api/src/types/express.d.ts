@@ -1,4 +1,14 @@
-import { User, Session } from '@sync-erp/database';
+import { User, Session, BusinessShape } from '@sync-erp/database';
+
+/**
+ * Company context loaded by authMiddleware.
+ * Includes businessShape for Policy layer checks.
+ */
+interface CompanyContext {
+  id: string;
+  name: string;
+  businessShape: BusinessShape;
+}
 
 declare global {
   namespace Express {
@@ -9,8 +19,14 @@ declare global {
       };
       user?: User;
       session?: Session;
+      /**
+       * Company context with businessShape for Policy checks.
+       * Available after authMiddleware runs.
+       */
+      company?: CompanyContext;
     }
   }
 }
 
 export {};
+

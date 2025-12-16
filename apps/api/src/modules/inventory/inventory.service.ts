@@ -2,11 +2,13 @@ import {
   prisma,
   InventoryMovement,
   MovementType,
+  BusinessShape,
 } from '@sync-erp/database';
 import { InventoryRepository } from './inventory.repository';
 import { ProductService } from '../product/product.service';
 import { ProcurementService } from '../procurement/procurement.service';
 import { JournalService } from '../accounting/services/journal.service';
+import { InventoryPolicy } from './inventory.policy';
 import {
   GoodsReceiptInput,
   StockAdjustmentInput,
@@ -20,11 +22,20 @@ export class InventoryService {
 
   /**
    * Process goods receipt from a purchase order
+   * @param companyId - Company ID
+   * @param data - Goods receipt input
+   * @param shape - Business Shape for Policy check
    */
   async processGoodsReceipt(
     companyId: string,
-    data: GoodsReceiptInput
+    data: GoodsReceiptInput,
+    shape?: BusinessShape
   ): Promise<InventoryMovement[]> {
+    // Policy check FIRST (if shape provided)
+    if (shape) {
+      InventoryPolicy.ensureCanAdjustStock(shape);
+    }
+
     const order = await this.procurementService.getById(
       data.orderId,
       companyId
@@ -229,11 +240,20 @@ export class InventoryService {
 
   /**
    * Manual stock adjustment
+   * @param companyId - Company ID
+   * @param data - Stock adjustment input
+   * @param shape - Business Shape for Policy check
    */
   async adjustStock(
     companyId: string,
-    data: StockAdjustmentInput
+    data: StockAdjustmentInput,
+    shape?: BusinessShape
   ): Promise<InventoryMovement> {
+    // Policy check FIRST (if shape provided)
+    if (shape) {
+      InventoryPolicy.ensureCanAdjustStock(shape);
+    }
+
     const isLoss = data.quantity < 0;
     const absQty = Math.abs(data.quantity);
 

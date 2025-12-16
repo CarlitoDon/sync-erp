@@ -1,4 +1,4 @@
-import { Company, CompanyMember } from '@sync-erp/database';
+import { Company, CompanyMember, BusinessShape } from '@sync-erp/database';
 import { prisma } from '@sync-erp/database';
 
 export class CompanyRepository {
@@ -73,4 +73,18 @@ export class CompanyRepository {
       },
     });
   }
+
+  /**
+   * Update company businessShape (immutable once set from PENDING).
+   */
+  async updateShape(
+    companyId: string,
+    shape: BusinessShape
+  ): Promise<Company> {
+    return prisma.company.update({
+      where: { id: companyId },
+      data: { businessShape: shape },
+    });
+  }
 }
+

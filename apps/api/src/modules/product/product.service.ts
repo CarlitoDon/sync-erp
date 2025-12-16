@@ -4,6 +4,7 @@ import {
   CreateProductInput,
   UpdateProductInput,
 } from '@sync-erp/shared';
+import { calculateNewAvgCost } from '../inventory/rules/stockRule';
 
 export class ProductService {
   private repository = new ProductRepository();
@@ -67,6 +68,10 @@ export class ProductService {
     return this.repository.incrementStock(id, quantityChange);
   }
 
+  /**
+   * Update product stock and recalculate weighted average cost.
+   * Uses stockRule.calculateNewAvgCost for DRY compliance.
+   */
   async updateAverageCost(
     id: string,
     newQuantity: number,
@@ -77,16 +82,13 @@ export class ProductService {
       throw new Error('Product not found');
     }
 
-    const oldStock = product.stockQty;
-    const oldCost = Number(product.averageCost);
-    const totalOldValue = oldStock * oldCost;
-    const totalNewValue = newQuantity * newCostPerUnit;
-    const newTotalStock = oldStock + newQuantity;
-
-    const newAvgCost =
-      newTotalStock > 0
-        ? (totalOldValue + totalNewValue) / newTotalStock
-        : newCostPerUnit;
+    // Use stockRule for AVG calculation (Constitution compliance)
+    const newAvgCost = calculateNewAvgCost(
+      product.stockQty,
+      Number(product.averageCost),
+      newQuantity,
+      newCostPerUnit
+    );
 
     return this.repository.update(id, {
       averageCost: newAvgCost,

@@ -3,22 +3,37 @@ import {
   OrderStatus,
   OrderType,
   Prisma,
+  BusinessShape,
 } from '@sync-erp/database';
 import { ProcurementRepository } from './procurement.repository';
+import { ProcurementPolicy } from './procurement.policy';
 import { DocumentNumberService } from '../common/services/document-number.service';
 
 export class ProcurementService {
   private repository = new ProcurementRepository();
   private documentNumberService = new DocumentNumberService();
 
+  /**
+   * Create a new purchase order.
+   * @param companyId - Company ID
+   * @param data - Order data
+   * @param shape - Optional BusinessShape for Policy check (physical goods)
+   */
   async create(
     companyId: string,
     data: {
       partnerId: string;
       items: { productId: string; quantity: number; price: number }[];
       taxRate?: number;
-    }
+    },
+    shape?: BusinessShape
   ): Promise<Order> {
+    // Policy check: SERVICE companies cannot purchase physical goods
+    // Only enforce if shape is provided and items contain physical products
+    if (shape && data.items.length > 0) {
+      ProcurementPolicy.ensureCanPurchasePhysicalGoods(shape);
+    }
+
     // Generate order number
     const orderNumber = await this.documentNumberService.generate(
       companyId,

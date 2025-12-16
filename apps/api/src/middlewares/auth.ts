@@ -77,6 +77,29 @@ export async function authMiddleware(
           },
         });
       }
+
+      // Load company context with businessShape for Policy layer
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: {
+          id: true,
+          name: true,
+          businessShape: true,
+        },
+      });
+
+      if (!company) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Company not found',
+          },
+        });
+      }
+
+      // Set company context for Policy checks
+      req.company = company;
     } else {
       // Per original index.ts, most routes require companyId.
       // However, some might not (e.g. /me).

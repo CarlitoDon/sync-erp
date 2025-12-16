@@ -3,8 +3,10 @@ import {
   OrderStatus,
   OrderType,
   Prisma,
+  BusinessShape,
 } from '@sync-erp/database';
 import { SalesRepository } from './sales.repository';
+import { SalesPolicy } from './sales.policy';
 import { ProductService } from '../product/product.service';
 import { InventoryService } from '../inventory/inventory.service';
 
@@ -21,14 +23,27 @@ export class SalesService {
   private inventoryService = new InventoryService();
   private documentNumberService = new DocumentNumberService();
 
+  /**
+   * Create a new sales order.
+   * @param companyId - Company ID
+   * @param data - Order data
+   * @param shape - Optional BusinessShape for Policy check (physical goods)
+   */
   async create(
     companyId: string,
     data: {
       partnerId: string;
       items: { productId: string; quantity: number; price: number }[];
       taxRate?: number;
-    }
+    },
+    shape?: BusinessShape
   ): Promise<Order> {
+    // Policy check: SERVICE companies cannot sell physical goods
+    // Only enforce if shape is provided and items contain physical products
+    if (shape && data.items.length > 0) {
+      SalesPolicy.ensureCanSellPhysicalGoods(shape);
+    }
+
     // Generate order number
     const orderNumber = await this.documentNumberService.generate(
       companyId,

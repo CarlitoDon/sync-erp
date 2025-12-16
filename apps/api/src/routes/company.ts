@@ -36,5 +36,18 @@ companyRouter.post('/join', async (req, res, next) => {
 // GET /api/companies - List user's companies
 companyRouter.get('/', controller.list);
 
-// GET /api/companies/:id - Get company by ID
+// ============================================
+// Business Shape Endpoints (Apple-Like Core)
+// MUST be before /:id to prevent :id from catching these paths
+// ============================================
+
+// GET /api/companies/shape - Get current business shape
+companyRouter.get('/shape', controller.getShape);
+
+// POST /api/companies/select-shape - Select business shape (one-time)
+companyRouter.post('/select-shape', controller.selectShape);
+
+// GET /api/companies/:id - Get company by ID (MUST be last due to param matching)
 companyRouter.get('/:id', controller.getById);
+
+
