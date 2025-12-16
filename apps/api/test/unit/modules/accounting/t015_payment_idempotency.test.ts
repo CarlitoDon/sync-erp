@@ -69,11 +69,12 @@ describe('T015: Payment Idempotency (FR-Safety)', () => {
 
     const result = await service.create(companyId, input, 'key-abc');
 
-    // Verify lock called with enum
+    // Verify lock called with enum and entityId
     expect(mockIdempotency.lock).toHaveBeenCalledWith(
       'key-abc',
       companyId,
-      IdempotencyScope.PAYMENT_CREATE
+      IdempotencyScope.PAYMENT_CREATE,
+      invoiceId
     );
 
     // Verify Saga executed

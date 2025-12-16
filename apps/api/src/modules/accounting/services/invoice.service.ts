@@ -197,7 +197,8 @@ export class InvoiceService {
       const lock = await this.idempotencyService.lock<Invoice>(
         idempotencyKey,
         companyId,
-        IdempotencyScope.INVOICE_POST
+        IdempotencyScope.INVOICE_POST,
+        id // entityId: invoice being posted
       );
       if (lock.saved && lock.response) {
         return lock.response;

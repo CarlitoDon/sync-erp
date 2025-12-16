@@ -80,11 +80,12 @@ describe('T014: Invoice Idempotency (FR-Safety)', () => {
       'key-123'
     );
 
-    // Verify lock called with enum
+    // Verify lock called with enum and entityId
     expect(mockIdempotency.lock).toHaveBeenCalledWith(
       'key-123',
       companyId,
-      IdempotencyScope.INVOICE_POST
+      IdempotencyScope.INVOICE_POST,
+      invoiceId
     );
 
     // Verify Saga Called

@@ -49,6 +49,7 @@ docs/apple-like-development/
 ### 4. Phase Reviews
 
 - **[reviews/PHASE_0_REVIEW.md](./reviews/PHASE_0_REVIEW.md)** — Foundation gate review ✅
+- **[reviews/PHASE_0_CRITICAL_AUDIT.md](./reviews/PHASE_0_CRITICAL_AUDIT.md)** — 🔴 Gap analysis & hard gate checklist
 - **[reviews/PHASE_1_REVIEW.md](./reviews/PHASE_1_REVIEW.md)** — MVP gate review ✅
 
 ---

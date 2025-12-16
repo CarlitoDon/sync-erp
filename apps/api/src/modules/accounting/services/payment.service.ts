@@ -25,7 +25,8 @@ export class PaymentService {
       const lock = await this.idempotencyService.lock<Payment>(
         idempotencyKey,
         companyId,
-        IdempotencyScope.PAYMENT_CREATE
+        IdempotencyScope.PAYMENT_CREATE,
+        data.invoiceId // entityId: invoice receiving payment
       );
       if (lock.saved && lock.response) {
         return lock.response;

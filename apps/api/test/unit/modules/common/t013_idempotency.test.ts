@@ -26,7 +26,7 @@ describe('T013: Idempotency Infrastructure', () => {
     service = new IdempotencyService();
   });
 
-  it('should lock new key successfully', async () => {
+  it('should lock new key successfully with entityId', async () => {
     vi.mocked(prisma.idempotencyKey.findUnique).mockResolvedValue(
       null
     );
@@ -34,7 +34,12 @@ describe('T013: Idempotency Infrastructure', () => {
       {} as any
     );
 
-    const result = await service.lock('key-1', 'co-1', 'TEST' as any);
+    const result = await service.lock(
+      'key-1',
+      'co-1',
+      'TEST' as any,
+      'entity-1'
+    );
 
     expect(result.saved).toBe(false);
     expect(prisma.idempotencyKey.create).toHaveBeenCalledWith({
@@ -42,23 +47,30 @@ describe('T013: Idempotency Infrastructure', () => {
         id: 'key-1',
         companyId: 'co-1',
         scope: 'TEST',
+        entityId: 'entity-1',
         status: IdempotencyStatus.PROCESSING,
       },
     });
   });
 
-  it('should return saved response if COMPLETED', async () => {
+  it('should return saved response if COMPLETED with matching entityId', async () => {
     vi.mocked(prisma.idempotencyKey.findUnique).mockResolvedValue({
       id: 'key-1',
       companyId: 'co-1',
       scope: 'TEST',
+      entityId: 'entity-1',
       status: IdempotencyStatus.COMPLETED,
       response: { foo: 'bar' },
       updatedAt: new Date(),
       createdAt: new Date(),
     } as any);
 
-    const result = await service.lock('key-1', 'co-1', 'TEST' as any);
+    const result = await service.lock(
+      'key-1',
+      'co-1',
+      'TEST' as any,
+      'entity-1'
+    );
 
     expect(result.saved).toBe(true);
     expect(result.response).toEqual({ foo: 'bar' });
@@ -70,13 +82,14 @@ describe('T013: Idempotency Infrastructure', () => {
       id: 'key-1',
       companyId: 'co-1',
       scope: 'TEST',
+      entityId: 'entity-1',
       status: IdempotencyStatus.PROCESSING,
       updatedAt: new Date(), // Not stale
       createdAt: new Date(),
     } as any);
 
     await expect(
-      service.lock('key-1', 'co-1', 'TEST' as any)
+      service.lock('key-1', 'co-1', 'TEST' as any, 'entity-1')
     ).rejects.toThrow(/processing/);
   });
 
@@ -85,14 +98,59 @@ describe('T013: Idempotency Infrastructure', () => {
       id: 'key-1',
       companyId: 'co-1',
       scope: 'OTHER',
+      entityId: 'entity-1',
       status: IdempotencyStatus.COMPLETED,
       updatedAt: new Date(),
       createdAt: new Date(),
     } as any);
 
     await expect(
-      service.lock('key-1', 'co-1', 'TEST' as any)
+      service.lock('key-1', 'co-1', 'TEST' as any, 'entity-1')
     ).rejects.toThrow(/mismatch/);
+  });
+
+  // T009: Entity mismatch test - CRITICAL for fixing the bug
+  it('should throw error on Entity Mismatch', async () => {
+    vi.mocked(prisma.idempotencyKey.findUnique).mockResolvedValue({
+      id: 'key-1',
+      companyId: 'co-1',
+      scope: 'TEST',
+      entityId: 'entity-A', // Bound to entity-A
+      status: IdempotencyStatus.COMPLETED,
+      response: { result: 'for-entity-A' },
+      updatedAt: new Date(),
+      createdAt: new Date(),
+    } as any);
+
+    // Try to use same key for entity-B
+    await expect(
+      service.lock('key-1', 'co-1', 'TEST' as any, 'entity-B')
+    ).rejects.toThrow(/entity mismatch/i);
+  });
+
+  // T016: Backward compatibility - old keys without entityId should still work
+  it('should accept old keys without entityId (backward compat)', async () => {
+    vi.mocked(prisma.idempotencyKey.findUnique).mockResolvedValue({
+      id: 'key-1',
+      companyId: 'co-1',
+      scope: 'TEST',
+      entityId: null, // Old key without entityId
+      status: IdempotencyStatus.COMPLETED,
+      response: { result: 'old-data' },
+      updatedAt: new Date(),
+      createdAt: new Date(),
+    } as any);
+
+    // Should work even with different entityId because old key has null entityId
+    const result = await service.lock(
+      'key-1',
+      'co-1',
+      'TEST' as any,
+      'entity-new'
+    );
+
+    expect(result.saved).toBe(true);
+    expect(result.response).toEqual({ result: 'old-data' });
   });
 
   it('should complete processing', async () => {

@@ -14,12 +14,14 @@ export class IdempotencyService {
    * - If key exists and COMPLETED: return { saved: true, response: ... }
    * - If key exists and PROCESSING (not stale): throw Error (Concurrent Request)
    * - If key exists and PROCESSING (stale): delete and retry as new
+   * - If key exists but entityId mismatch: throw Error (Entity Mismatch)
    * - If new: create key with PROCESSING and return { saved: false }
    */
   async lock<T = Prisma.JsonObject>(
     key: string,
     companyId: string,
-    scope: IdempotencyScope
+    scope: IdempotencyScope,
+    entityId: string
   ): Promise<{ saved: boolean; response?: T }> {
     // 1. Check if exists
     const existing = await prisma.idempotencyKey.findUnique({
@@ -28,11 +30,26 @@ export class IdempotencyService {
 
     if (existing) {
       if (existing.companyId !== companyId) {
+        console.warn(
+          `[IDEMPOTENCY] Ownership mismatch: key=${key}, expected company=${companyId}, got=${existing.companyId}`
+        );
         throw new Error('Idempotency key ownership mismatch');
       }
       if (existing.scope !== scope) {
+        console.warn(
+          `[IDEMPOTENCY] Scope mismatch: key=${key}, expected=${scope}, got=${existing.scope}`
+        );
         throw new Error(
           `Idempotency key scope mismatch: expected ${scope}`
+        );
+      }
+      // T006: Entity ID validation - if existing key has entityId AND it differs, reject
+      if (existing.entityId && existing.entityId !== entityId) {
+        console.warn(
+          `[IDEMPOTENCY] Entity mismatch: key=${key}, expected entity=${entityId}, got=${existing.entityId}`
+        );
+        throw new Error(
+          `Idempotency key entity mismatch: key is bound to entity ${existing.entityId}`
         );
       }
 
@@ -60,13 +77,14 @@ export class IdempotencyService {
       }
     }
 
-    // 2. Create new lock
+    // 2. Create new lock with entityId
     try {
       await prisma.idempotencyKey.create({
         data: {
           id: key,
           companyId,
           scope,
+          entityId, // T007: Store entityId
           status: IdempotencyStatus.PROCESSING,
         },
       });
