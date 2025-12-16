@@ -97,6 +97,7 @@ export class InvoicePostingSaga extends SagaOrchestrator<
     // 4. Create journal entry (Revenue + AR)
     const journal = await this.journalService.postInvoice(
       input.companyId,
+      input.invoiceId,
       updatedInvoice.invoiceNumber,
       Number(updatedInvoice.amount),
       Number(updatedInvoice.subtotal),

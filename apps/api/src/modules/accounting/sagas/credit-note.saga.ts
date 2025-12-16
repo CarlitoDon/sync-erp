@@ -63,6 +63,7 @@ export class CreditNoteSaga extends SagaOrchestrator<
     // 2. Create reversing journal entry
     const journal = await this.journalService.postCreditNote(
       input.companyId,
+      context.id, // creditNoteId
       invoice.invoiceNumber || input.invoiceId,
       input.amount
     );

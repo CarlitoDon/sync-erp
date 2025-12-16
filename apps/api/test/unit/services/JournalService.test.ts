@@ -161,6 +161,7 @@ describe('JournalService', () => {
 
       const result = await service.postInvoice(
         companyId,
+        'inv-001-id',
         'INV-001',
         1100,
         1000,
@@ -179,6 +180,7 @@ describe('JournalService', () => {
 
       const result = await service.postInvoice(
         companyId,
+        'inv-002-id',
         'INV-002',
         1000
       );
@@ -194,6 +196,7 @@ describe('JournalService', () => {
 
       const result = await service.postBill(
         companyId,
+        'bill-001-id',
         'BILL-001',
         1100,
         1000,
@@ -209,6 +212,7 @@ describe('JournalService', () => {
 
       const result = await service.postBill(
         companyId,
+        'bill-002-id',
         'BILL-002',
         1000
       );
@@ -239,6 +243,7 @@ describe('JournalService', () => {
 
       const result = await service.postPaymentReceived(
         companyId,
+        'pay-001-id',
         'INV-001',
         500,
         'CASH'
@@ -253,6 +258,7 @@ describe('JournalService', () => {
 
       const result = await service.postPaymentReceived(
         companyId,
+        'pay-002-id',
         'INV-001',
         500,
         'BANK_TRANSFER'
@@ -269,6 +275,7 @@ describe('JournalService', () => {
 
       const result = await service.postPaymentMade(
         companyId,
+        'pay-003-id',
         'BILL-001',
         500,
         'CASH'
@@ -283,6 +290,7 @@ describe('JournalService', () => {
 
       const result = await service.postPaymentMade(
         companyId,
+        'pay-004-id',
         'BILL-001',
         500,
         'BANK_TRANSFER'
@@ -357,7 +365,7 @@ describe('JournalService', () => {
       mockAccountService.getByCode.mockResolvedValue(null);
 
       await expect(
-        service.postInvoice(companyId, 'INV-001', 1000)
+        service.postInvoice(companyId, 'inv-fail-id', 'INV-001', 1000)
       ).rejects.toThrow('System Account code');
     });
   });

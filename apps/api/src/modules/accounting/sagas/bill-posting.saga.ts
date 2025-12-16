@@ -72,6 +72,7 @@ export class BillPostingSaga extends SagaOrchestrator<
     // 3. Create AP journal entry
     const journal = await this.journalService.postBill(
       input.companyId,
+      input.billId,
       updatedBill.invoiceNumber,
       Number(updatedBill.amount),
       Number(updatedBill.subtotal),

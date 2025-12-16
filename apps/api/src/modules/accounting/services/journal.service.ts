@@ -1,4 +1,8 @@
-import { JournalEntry, Prisma } from '@sync-erp/database';
+import {
+  JournalEntry,
+  JournalSourceType,
+  Prisma,
+} from '@sync-erp/database';
 import { JournalRepository } from '../repositories/journal.repository';
 import { AccountService } from './account.service';
 
@@ -12,6 +16,8 @@ export interface CreateJournalEntryInput {
   date?: string | Date;
   reference?: string;
   memo?: string;
+  sourceType?: JournalSourceType;
+  sourceId?: string;
   lines: CreateJournalLineInput[];
 }
 
@@ -91,6 +97,8 @@ export class JournalService {
       reference: data.reference,
       date: data.date ? new Date(data.date) : new Date(),
       memo: data.memo,
+      sourceType: data.sourceType,
+      sourceId: data.sourceId,
       lines: {
         create: lineData,
       },
@@ -117,6 +125,8 @@ export class JournalService {
       reference: string;
       memo: string;
       date?: Date;
+      sourceType?: JournalSourceType;
+      sourceId?: string;
       lines: {
         accountCode: string;
         debit?: number;
@@ -146,12 +156,15 @@ export class JournalService {
       date: data.date,
       reference: data.reference,
       memo: data.memo,
+      sourceType: data.sourceType,
+      sourceId: data.sourceId,
       lines: resolvedLines,
     });
   }
 
   async postInvoice(
     companyId: string,
+    invoiceId: string,
     invoiceNumber: string,
     amount: number,
     subtotal?: number,
@@ -178,12 +191,15 @@ export class JournalService {
     return this.resolveAndCreate(companyId, {
       reference: `Invoice: ${invoiceNumber}`,
       memo: `Auto-generated from invoice ${invoiceNumber}`,
+      sourceType: JournalSourceType.INVOICE,
+      sourceId: invoiceId,
       lines,
     });
   }
 
   async postCreditNote(
     companyId: string,
+    creditNoteId: string,
     invoiceNumber: string,
     amount: number,
     subtotal?: number,
@@ -210,6 +226,8 @@ export class JournalService {
     return this.resolveAndCreate(companyId, {
       reference: `Credit Note: ${invoiceNumber}`,
       memo: `Reversal for invoice ${invoiceNumber}`,
+      sourceType: JournalSourceType.CREDIT_NOTE,
+      sourceId: creditNoteId,
       lines,
     });
   }
@@ -231,6 +249,7 @@ export class JournalService {
 
   async postBill(
     companyId: string,
+    billId: string,
     billNumber: string,
     amount: number,
     subtotal?: number,
@@ -257,12 +276,15 @@ export class JournalService {
     return this.resolveAndCreate(companyId, {
       reference: `Bill: ${billNumber}`,
       memo: `Auto-generated from bill ${billNumber}`,
+      sourceType: JournalSourceType.BILL,
+      sourceId: billId,
       lines,
     });
   }
 
   async postPaymentReceived(
     companyId: string,
+    paymentId: string,
     invoiceNumber: string,
     amount: number,
     method: string
@@ -271,6 +293,8 @@ export class JournalService {
     return this.resolveAndCreate(companyId, {
       reference: `Payment received: ${invoiceNumber}`,
       memo: `Payment via ${method}`,
+      sourceType: JournalSourceType.PAYMENT,
+      sourceId: paymentId,
       lines: [
         { accountCode: cashAccount, debit: amount },
         { accountCode: '1300', credit: amount },
@@ -280,6 +304,7 @@ export class JournalService {
 
   async postPaymentMade(
     companyId: string,
+    paymentId: string,
     billNumber: string,
     amount: number,
     method: string
@@ -288,6 +313,8 @@ export class JournalService {
     return this.resolveAndCreate(companyId, {
       reference: `Payment made: ${billNumber}`,
       memo: `Payment via ${method}`,
+      sourceType: JournalSourceType.PAYMENT,
+      sourceId: paymentId,
       lines: [
         { accountCode: '2100', debit: amount },
         { accountCode: cashAccount, credit: amount },

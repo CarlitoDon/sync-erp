@@ -84,6 +84,7 @@ export class PaymentPostingSaga extends SagaOrchestrator<
     // 4. Create cash journal
     const journal = await this.journalService.postPaymentReceived(
       input.companyId,
+      payment.id,
       invoice.invoiceNumber || input.invoiceId,
       input.amount,
       input.method

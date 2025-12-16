@@ -133,7 +133,7 @@ if (stepData.stockMovementId) {
 
 ## C. Accounting Integrity
 
-### C1. Double Posting Prevention — 🔴 NONE
+### C1. Double Posting Prevention — ✅ RESOLVED (2025-12-16)
 
 **Schema:**
 

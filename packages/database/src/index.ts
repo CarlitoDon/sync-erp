@@ -38,6 +38,7 @@ export {
   IdempotencyStatus,
   SagaType,
   SagaStep,
+  JournalSourceType,
 } from './generated/client/client.js';
 
 export { Prisma } from './generated/client/client.js';

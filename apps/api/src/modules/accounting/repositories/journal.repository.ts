@@ -2,12 +2,29 @@ import { prisma, Prisma, AccountType } from '@sync-erp/database';
 
 export class JournalRepository {
   async create(data: Prisma.JournalEntryUncheckedCreateInput) {
-    return prisma.journalEntry.create({
-      data,
-      include: {
-        lines: { include: { account: true } },
-      },
-    });
+    try {
+      return await prisma.journalEntry.create({
+        data,
+        include: {
+          lines: { include: { account: true } },
+        },
+      });
+    } catch (err) {
+      // Handle unique constraint violation (P2002)
+      if (
+        (err as Prisma.PrismaClientKnownRequestError).code === 'P2002'
+      ) {
+        const sourceType = data.sourceType || 'UNKNOWN';
+        const sourceId = data.sourceId || 'UNKNOWN';
+        console.warn(
+          `[JOURNAL] Duplicate journal entry blocked: ${sourceType}:${sourceId}`
+        );
+        throw new Error(
+          `Journal entry already exists for ${sourceType} ${sourceId}`
+        );
+      }
+      throw err;
+    }
   }
 
   async findById(id: string, companyId: string) {

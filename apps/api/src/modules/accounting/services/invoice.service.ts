@@ -170,6 +170,7 @@ export class InvoiceService {
     // Post Journal Reversal
     await this.journalService.postCreditNote(
       companyId,
+      creditNote.id,
       cnNumber,
       Number(creditNote.amount),
       Number(creditNote.subtotal),

@@ -267,17 +267,28 @@ enum AccountType {
   EXPENSE
 }
 
+enum JournalSourceType {
+  INVOICE
+  BILL
+  PAYMENT
+  CREDIT_NOTE
+  ADJUSTMENT
+}
+
 model JournalEntry {
-  id        String   @id @default(uuid())
-  companyId String
-  reference String?
-  date      DateTime
-  memo      String?
-  createdAt DateTime @default(now())
+  id         String             @id @default(uuid())
+  companyId  String
+  reference  String?
+  date       DateTime
+  memo       String?
+  sourceType JournalSourceType? // Source document type (nullable for backward compat)
+  sourceId   String? // Source document ID (nullable for backward compat)
+  createdAt  DateTime           @default(now())
 
   company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   lines   JournalLine[]
 
+  @@unique([companyId, sourceType, sourceId]) // Prevent double-posting
   @@index([companyId])
 }
 

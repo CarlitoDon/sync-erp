@@ -48,10 +48,10 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 024-fix-journal-double-post: Added TypeScript 5.9, Node.js 20+ + Express, Prisma, Vitest
 - 023-fix-idempotency-scope: Added TypeScript 5.9, Node.js 20+ + Express, Prisma, Vitest
 
 - 020-apple-backend-refactor: Added TypeScript 5.x (Node.js 20.x) + Express, Prisma ORM, Zod, Vitest
-- 019-optimize-details: Added TypeScript 5.x, React 18, Node.js 20 + `react-router-dom`, `@sync-erp/shared`, `axios`
 
 
 <!-- MANUAL ADDITIONS START -->
