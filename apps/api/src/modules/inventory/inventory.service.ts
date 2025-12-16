@@ -3,6 +3,7 @@ import {
   InventoryMovement,
   MovementType,
   BusinessShape,
+  Prisma,
 } from '@sync-erp/database';
 import { InventoryRepository } from './inventory.repository';
 import { ProductService } from '../product/product.service';
@@ -12,6 +13,8 @@ import { InventoryPolicy } from './inventory.policy';
 import {
   GoodsReceiptInput,
   StockAdjustmentInput,
+  DomainError,
+  DomainErrorCodes,
 } from '@sync-erp/shared';
 
 export class InventoryService {
@@ -92,13 +95,28 @@ export class InventoryService {
   }
 
   /**
-   * Process shipment/delivery (stock decrease)
+   * Process shipment for a sales order
+   * @param companyId - Company ID
+   * @param orderId - Sales Order ID
+   * @param reference - Optional reference
+   * @param shape - Business Shape for Policy check
+   * @param configs - System Configs for Policy check
    */
   async processShipment(
     companyId: string,
     orderId: string,
-    reference?: string
+    reference?: string,
+    shape?: BusinessShape,
+    configs?: { key: string; value: Prisma.JsonValue }[]
   ): Promise<InventoryMovement[]> {
+    // Policy checks
+    if (configs) {
+      InventoryPolicy.ensureInventoryEnabled(configs);
+    }
+    if (shape) {
+      InventoryPolicy.ensureCanAdjustStock(shape);
+    }
+
     // Note: Assuming PurchaseOrderService or similar handles Sales Orders?
     // The original code used prisma.order.findFirst directly.
     // Ideally we should use SalesOrderService. But SalesOrderService is likely legacy too.
@@ -116,7 +134,7 @@ export class InventoryService {
     });
 
     if (!order) {
-      throw new Error('Order not found');
+      throw new DomainError('Order not found', 404);
     }
 
     const movements: InventoryMovement[] = [];
@@ -129,8 +147,10 @@ export class InventoryService {
         item.quantity
       );
       if (!hasStock) {
-        throw new Error(
-          `Insufficient stock for product ${item.productId}`
+        throw new DomainError(
+          `Insufficient stock for product ${item.productId}`,
+          400,
+          DomainErrorCodes.INSUFFICIENT_STOCK
         );
       }
 
@@ -247,11 +267,16 @@ export class InventoryService {
   async adjustStock(
     companyId: string,
     data: StockAdjustmentInput,
-    shape?: BusinessShape
+    shape?: BusinessShape,
+    configs?: { key: string; value: Prisma.JsonValue }[]
   ): Promise<InventoryMovement> {
-    // Policy check FIRST (if shape provided)
+    // Policy check FIRST
     if (shape) {
       InventoryPolicy.ensureCanAdjustStock(shape);
+    }
+    // Config check
+    if (configs) {
+      InventoryPolicy.ensureInventoryEnabled(configs);
     }
 
     const isLoss = data.quantity < 0;

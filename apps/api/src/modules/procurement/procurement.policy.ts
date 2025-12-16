@@ -19,7 +19,10 @@ export class ProcurementPolicy {
    * SERVICE companies can only purchase services, not physical goods.
    */
   static canPurchasePhysicalGoods(shape: BusinessShape): boolean {
-    return shape !== BusinessShape.SERVICE && shape !== BusinessShape.PENDING;
+    return (
+      shape !== BusinessShape.SERVICE &&
+      shape !== BusinessShape.PENDING
+    );
   }
 
   /**

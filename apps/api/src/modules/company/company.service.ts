@@ -74,7 +74,10 @@ export class CompanyService {
     CompanyPolicy.ensureValidTargetShape(newShape);
 
     // Update shape
-    const updated = await this.repository.updateShape(companyId, newShape);
+    const updated = await this.repository.updateShape(
+      companyId,
+      newShape
+    );
 
     // Auto-seed configuration for the selected shape
     await this.seedSystemConfig(companyId, newShape);
@@ -92,7 +95,8 @@ export class CompanyService {
     companyId: string,
     shape: BusinessShape
   ): Promise<void> {
-    const defaultCostingMethod = InventoryPolicy.getDefaultCostingMethod(shape);
+    const defaultCostingMethod =
+      InventoryPolicy.getDefaultCostingMethod(shape);
 
     const configs = [
       {
@@ -148,21 +152,53 @@ export class CompanyService {
     // Minimal CoA based on shape
     const baseAccounts = [
       { code: '1000', name: 'Cash', type: 'ASSET' as const },
-      { code: '1100', name: 'Accounts Receivable', type: 'ASSET' as const },
-      { code: '2000', name: 'Accounts Payable', type: 'LIABILITY' as const },
+      {
+        code: '1100',
+        name: 'Accounts Receivable',
+        type: 'ASSET' as const,
+      },
+      {
+        code: '2000',
+        name: 'Accounts Payable',
+        type: 'LIABILITY' as const,
+      },
       { code: '3000', name: 'Equity', type: 'EQUITY' as const },
-      { code: '4000', name: 'Sales Revenue', type: 'REVENUE' as const },
-      { code: '5000', name: 'Cost of Goods Sold', type: 'EXPENSE' as const },
-      { code: '6000', name: 'Operating Expenses', type: 'EXPENSE' as const },
+      {
+        code: '4000',
+        name: 'Sales Revenue',
+        type: 'REVENUE' as const,
+      },
+      {
+        code: '5000',
+        name: 'Cost of Goods Sold',
+        type: 'EXPENSE' as const,
+      },
+      {
+        code: '6000',
+        name: 'Operating Expenses',
+        type: 'EXPENSE' as const,
+      },
     ];
 
     // Add inventory accounts for non-service shapes
     const inventoryAccounts =
       shape !== BusinessShape.SERVICE
         ? [
-            { code: '1200', name: 'Inventory', type: 'ASSET' as const },
-            { code: '1210', name: 'Goods in Transit', type: 'ASSET' as const },
-            { code: '5200', name: 'Inventory Adjustment', type: 'EXPENSE' as const },
+            {
+              code: '1200',
+              name: 'Inventory',
+              type: 'ASSET' as const,
+            },
+            {
+              code: '1210',
+              name: 'Goods in Transit',
+              type: 'ASSET' as const,
+            },
+            {
+              code: '5200',
+              name: 'Inventory Adjustment',
+              type: 'EXPENSE' as const,
+            },
           ]
         : [];
 
@@ -170,8 +206,16 @@ export class CompanyService {
     const manufacturingAccounts =
       shape === BusinessShape.MANUFACTURING
         ? [
-            { code: '1220', name: 'Work in Progress', type: 'ASSET' as const },
-            { code: '1230', name: 'Raw Materials', type: 'ASSET' as const },
+            {
+              code: '1220',
+              name: 'Work in Progress',
+              type: 'ASSET' as const,
+            },
+            {
+              code: '1230',
+              name: 'Raw Materials',
+              type: 'ASSET' as const,
+            },
           ]
         : [];
 
@@ -193,4 +237,3 @@ export class CompanyService {
     }
   }
 }
-

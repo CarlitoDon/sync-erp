@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { BillService } from '../services/bill.service';
-import {
-  CreateBillFromPOSchema,
-} from '@sync-erp/shared';
+import { CreateBillFromPOSchema } from '@sync-erp/shared';
 
 export class BillController {
   private service = new BillService();
@@ -28,12 +26,15 @@ export class BillController {
 
       // Otherwise, use PO-based creation (only requires orderId)
       const validated = CreateBillFromPOSchema.parse(req.body);
-      const bill = await this.service.createFromPurchaseOrder(companyId, {
-        orderId: validated.orderId,
-        dueDate: validated.dueDate,
-        taxRate: validated.taxRate,
-        invoiceNumber: validated.invoiceNumber,
-      });
+      const bill = await this.service.createFromPurchaseOrder(
+        companyId,
+        {
+          orderId: validated.orderId,
+          dueDate: validated.dueDate,
+          taxRate: validated.taxRate,
+          invoiceNumber: validated.invoiceNumber,
+        }
+      );
       res.status(201).json({ success: true, data: bill });
     } catch (error) {
       next(error);

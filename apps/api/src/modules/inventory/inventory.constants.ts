@@ -1,6 +1,6 @@
 /**
  * Inventory Module Constants
- * 
+ *
  * Movement types and other inventory-related constants.
  */
 
@@ -16,7 +16,8 @@ export const MovementType = {
   WIP_OUTPUT: 'WIP_OUTPUT',
 } as const;
 
-export type MovementType = (typeof MovementType)[keyof typeof MovementType];
+export type MovementType =
+  (typeof MovementType)[keyof typeof MovementType];
 
 /**
  * Movement operation categories.
@@ -29,7 +30,8 @@ export const MovementCategory = {
   TRANSFER: 'TRANSFER',
 } as const;
 
-export type MovementCategory = (typeof MovementCategory)[keyof typeof MovementCategory];
+export type MovementCategory =
+  (typeof MovementCategory)[keyof typeof MovementCategory];
 
 /**
  * Default unit of measure for new products.
@@ -44,4 +46,5 @@ export const CostingMethod = {
   FIFO: 'FIFO',
 } as const;
 
-export type CostingMethod = (typeof CostingMethod)[keyof typeof CostingMethod];
+export type CostingMethod =
+  (typeof CostingMethod)[keyof typeof CostingMethod];

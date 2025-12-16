@@ -44,7 +44,12 @@ export class BillService {
       );
     }
 
-    const subtotal = Number(order.totalAmount);
+    // Calculate subtotal from items (Net) avoiding double tax from order.totalAmount (Gross)
+    const subtotal = order.items.reduce(
+      (sum, item) => sum + Number(item.price) * item.quantity,
+      0
+    );
+
     let taxRate = data.taxRate;
     if (taxRate === undefined && order.taxRate !== null) {
       taxRate = Number(order.taxRate);
@@ -55,6 +60,8 @@ export class BillService {
     const taxAmount = subtotal * taxMultiplier;
     const amount = subtotal + taxAmount;
 
+    // Create lines from order items
+    // Assuming Invoice has 'items' relation to InvoiceLine/BillLine
     const createData: Prisma.InvoiceUncheckedCreateInput = {
       companyId,
       orderId: data.orderId,
@@ -164,6 +171,10 @@ export class BillService {
   }
 
   async getByOrderId(orderId: string, companyId: string) {
-    return this.repository.findByOrderId(orderId, companyId, InvoiceType.BILL);
+    return this.repository.findByOrderId(
+      orderId,
+      companyId,
+      InvoiceType.BILL
+    );
   }
 }

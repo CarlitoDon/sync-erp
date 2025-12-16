@@ -100,7 +100,8 @@ export class CompanyController {
         });
       }
 
-      const currentShape = existingCompany.businessShape as BusinessShape;
+      const currentShape =
+        existingCompany.businessShape as BusinessShape;
 
       // Validate input
       const validated = SelectShapeSchema.parse(req.body);
@@ -165,5 +166,3 @@ export class CompanyController {
     }
   };
 }
-
-

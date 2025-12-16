@@ -1,4 +1,8 @@
-import { Company, CompanyMember, BusinessShape } from '@sync-erp/database';
+import {
+  Company,
+  CompanyMember,
+  BusinessShape,
+} from '@sync-erp/database';
 import { prisma } from '@sync-erp/database';
 
 export class CompanyRepository {
@@ -87,4 +91,3 @@ export class CompanyRepository {
     });
   }
 }
-

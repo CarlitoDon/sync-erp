@@ -66,9 +66,12 @@ export class InvoiceController {
   post = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const companyId = req.context.companyId!;
+      const company = req.company!;
       const invoice = await this.service.post(
         req.params.id,
-        companyId
+        companyId,
+        company.businessShape,
+        company.configs
       );
       res.json({ success: true, data: invoice });
     } catch (error) {

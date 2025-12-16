@@ -19,7 +19,10 @@ export class SalesPolicy {
    * SERVICE companies can only sell services, not physical goods.
    */
   static canSellPhysicalGoods(shape: BusinessShape): boolean {
-    return shape !== BusinessShape.SERVICE && shape !== BusinessShape.PENDING;
+    return (
+      shape !== BusinessShape.SERVICE &&
+      shape !== BusinessShape.PENDING
+    );
   }
 
   /**

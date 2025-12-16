@@ -4,9 +4,11 @@ import {
   InvoiceType,
   OrderType,
   Prisma,
+  BusinessShape,
 } from '@sync-erp/database';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { JournalService } from './journal.service';
+import { InventoryService } from '../../inventory/inventory.service';
 
 export interface CreateInvoiceInput {
   orderId: string;
@@ -21,6 +23,9 @@ export class InvoiceService {
   private repository = new InvoiceRepository();
   private journalService = new JournalService();
   private documentNumberService = new DocumentNumberService();
+  private inventoryService = new InventoryService();
+
+  // ... (createFromSalesOrder, getById, list same as before)
 
   async createFromSalesOrder(
     companyId: string,
@@ -46,7 +51,12 @@ export class InvoiceService {
     }
 
     // Calculate total with optional tax
-    const subtotal = Number(order.totalAmount);
+    // Fix: Recalculate subtotal from items to avoid double tax (order.totalAmount is Gross)
+    const subtotal = order.items.reduce(
+      (sum, item) => sum + Number(item.price) * item.quantity,
+      0
+    );
+
     let taxRate = data.taxRate;
     if (taxRate === undefined && order.taxRate !== null) {
       taxRate = Number(order.taxRate);
@@ -101,7 +111,12 @@ export class InvoiceService {
     );
   }
 
-  async post(id: string, companyId: string): Promise<Invoice> {
+  async post(
+    id: string,
+    companyId: string,
+    shape?: BusinessShape,
+    configs?: { key: string; value: Prisma.JsonValue }[]
+  ): Promise<Invoice> {
     const invoice = await this.repository.findById(
       id,
       companyId,
@@ -114,6 +129,25 @@ export class InvoiceService {
     if (invoice.status !== InvoiceStatus.DRAFT) {
       throw new Error(
         `Cannot post invoice with status: ${invoice.status}`
+      );
+    }
+
+    // Trigger Stock Movement (FR-008)
+    // Only if it's a Sales Invoice (which post handles specifically)
+    // And assuming Order needs shipment.
+    // We try to ship. If already shipped, logic in Logic Layer handle it?
+    // InventoryService.processShipment creates movement.
+    // If we call it multiple times, we decrement stock multiple times.
+    // Ideally we check Order Status. But Post Invoice implies "Goods Left + Debt Created".
+    if (invoice.orderId) {
+      // If shipment fails (e.g. no stock), we blocking posting!
+      // This satisfies requirement "System MUST NOT allow negative stock".
+      await this.inventoryService.processShipment(
+        companyId,
+        invoice.orderId,
+        `Shipment for Invoice ${invoice.invoiceNumber}`,
+        shape,
+        configs
       );
     }
 

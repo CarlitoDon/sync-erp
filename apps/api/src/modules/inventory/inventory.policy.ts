@@ -7,7 +7,7 @@
  * Pattern: Policy.ensure*() throws DomainError if constraint violated.
  */
 
-import { BusinessShape } from '@sync-erp/database';
+import { BusinessShape, Prisma } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 /**
@@ -19,7 +19,10 @@ export class InventoryPolicy {
    * SERVICE companies cannot track physical stock.
    */
   static canAdjustStock(shape: BusinessShape): boolean {
-    return shape !== BusinessShape.SERVICE && shape !== BusinessShape.PENDING;
+    return (
+      shape !== BusinessShape.SERVICE &&
+      shape !== BusinessShape.PENDING
+    );
   }
 
   /**
@@ -91,7 +94,9 @@ export class InventoryPolicy {
   /**
    * Get the default costing method for a shape.
    */
-  static getDefaultCostingMethod(shape: BusinessShape): 'AVG' | 'FIFO' | null {
+  static getDefaultCostingMethod(
+    shape: BusinessShape
+  ): 'AVG' | 'FIFO' | null {
     switch (shape) {
       case BusinessShape.RETAIL:
         return 'AVG';
@@ -103,6 +108,25 @@ export class InventoryPolicy {
         return null;
       default:
         return 'AVG';
+    }
+  }
+
+  /**
+   * Ensure inventory module is enabled in system config.
+   * "Config-driven behavior".
+   */
+  static ensureInventoryEnabled(
+    configs: { key: string; value: Prisma.JsonValue }[]
+  ): void {
+    const inventoryEnabled = configs.find(
+      (c) => c.key === 'inventory.enabled'
+    );
+    if (inventoryEnabled && inventoryEnabled.value === false) {
+      throw new DomainError(
+        'Inventory module is disabled by configuration',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
     }
   }
 }

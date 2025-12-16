@@ -57,7 +57,10 @@ export function calculateNewAvgCost(
  * @param avgCost - Average cost per unit
  * @returns Total cost of goods sold
  */
-export function calculateHPP_AVG(quantity: number, avgCost: number): number {
+export function calculateHPP_AVG(
+  quantity: number,
+  avgCost: number
+): number {
   return quantity * avgCost;
 }
 

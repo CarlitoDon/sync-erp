@@ -28,7 +28,8 @@ export class InventoryController {
   ) => {
     try {
       const companyId = req.context.companyId!;
-      const stockLevels = await this.service.getStockLevels(companyId);
+      const stockLevels =
+        await this.service.getStockLevels(companyId);
       res.json({ success: true, data: stockLevels });
     } catch (error) {
       if (error instanceof DomainError) {
@@ -100,7 +101,8 @@ export class InventoryController {
       const movement = await this.service.adjustStock(
         companyId,
         validated,
-        company.businessShape
+        company.businessShape,
+        company.configs
       );
       res.status(201).json({ success: true, data: movement });
     } catch (error) {
@@ -111,4 +113,3 @@ export class InventoryController {
     }
   };
 }
-
