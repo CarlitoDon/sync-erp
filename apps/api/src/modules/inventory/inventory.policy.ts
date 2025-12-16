@@ -1,0 +1,108 @@
+/**
+ * Inventory Policy
+ *
+ * Enforces BusinessShape constraints for inventory operations.
+ * All methods are stateless and unit-testable.
+ *
+ * Pattern: Policy.ensure*() throws DomainError if constraint violated.
+ */
+
+import { BusinessShape } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+
+/**
+ * InventoryPolicy - Shape-based constraints for inventory operations.
+ */
+export class InventoryPolicy {
+  /**
+   * Check if stock adjustment is allowed for this shape.
+   * SERVICE companies cannot track physical stock.
+   */
+  static canAdjustStock(shape: BusinessShape): boolean {
+    return shape !== BusinessShape.SERVICE && shape !== BusinessShape.PENDING;
+  }
+
+  /**
+   * Ensure stock adjustment is allowed, throw if not.
+   */
+  static ensureCanAdjustStock(shape: BusinessShape): void {
+    if (shape === BusinessShape.PENDING) {
+      throw new DomainError(
+        'Operations blocked until business shape is selected',
+        400,
+        DomainErrorCodes.SHAPE_PENDING
+      );
+    }
+
+    if (!this.canAdjustStock(shape)) {
+      throw new DomainError(
+        'Stock tracking is disabled for Service companies',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+  }
+
+  /**
+   * Check if WIP (Work In Progress) operations are allowed.
+   * Only MANUFACTURING companies can use WIP.
+   */
+  static canCreateWIP(shape: BusinessShape): boolean {
+    return shape === BusinessShape.MANUFACTURING;
+  }
+
+  /**
+   * Ensure WIP creation is allowed, throw if not.
+   */
+  static ensureCanCreateWIP(shape: BusinessShape): void {
+    if (shape === BusinessShape.PENDING) {
+      throw new DomainError(
+        'Operations blocked until business shape is selected',
+        400,
+        DomainErrorCodes.SHAPE_PENDING
+      );
+    }
+
+    if (!this.canCreateWIP(shape)) {
+      throw new DomainError(
+        'Work In Progress (WIP) is only available for Manufacturing companies',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+  }
+
+  /**
+   * Check if multi-warehouse is allowed for this shape.
+   * MANUFACTURING companies have this enabled by default.
+   */
+  static canUseMultiWarehouse(shape: BusinessShape): boolean {
+    return shape === BusinessShape.MANUFACTURING;
+  }
+
+  /**
+   * Check if reservation is allowed for this shape.
+   * Only MANUFACTURING companies have reservation by default.
+   */
+  static canUseReservation(shape: BusinessShape): boolean {
+    return shape === BusinessShape.MANUFACTURING;
+  }
+
+  /**
+   * Get the default costing method for a shape.
+   */
+  static getDefaultCostingMethod(shape: BusinessShape): 'AVG' | 'FIFO' | null {
+    switch (shape) {
+      case BusinessShape.RETAIL:
+        return 'AVG';
+      case BusinessShape.MANUFACTURING:
+        return 'FIFO';
+      case BusinessShape.SERVICE:
+        return null; // No inventory costing for service
+      case BusinessShape.PENDING:
+        return null;
+      default:
+        return 'AVG';
+    }
+  }
+}
