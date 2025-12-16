@@ -109,7 +109,7 @@ if (stepData.stockMovementId) {
 
 | Saga           | Step             | Compensation Status           |
 | -------------- | ---------------- | ----------------------------- |
-| InvoicePosting | Stock OUT        | ❌ `console.warn()` only      |
+| InvoicePosting | Stock OUT        | ✅ Reversed                   |
 | InvoicePosting | Journal          | ❌ Not reversed               |
 | InvoicePosting | Status → POSTED  | ✅ Reverted                   |
 | PaymentPosting | Balance decrease | ✅ Has guard                  |
@@ -257,7 +257,7 @@ These MUST be fixed before production:
 
 - [ ] **Central PENDING guard** — Middleware level, not scattered policies
 - [ ] **Idempotency key = entity-scoped** — Not arbitrary string
-- [ ] **InvoicePostingSaga stock compensation** — Actual reversal, not `console.warn()`
+- [x] **InvoicePostingSaga stock compensation** — Actual reversal, not `console.warn()`
 - [ ] **Journal sourceType/sourceId** — Unique constraint for double-post prevention
 - [ ] **Entity-level lock before saga** — Prevent parallel saga execution
 
@@ -267,7 +267,7 @@ These MUST be fixed before production:
 
 1. ~~**B1 (Idempotency scope)** — Silent data corruption risk~~ ✅ **RESOLVED** (2025-12-16)
 2. **C1 (Journal double-post)** — Accounting integrity
-3. **B2 (Stock compensation)** — Inventory integrity
+3. ~~**B2 (Stock compensation)**~~ ✅ **RESOLVED** (2025-12-16)
 4. **D2 (Parallel saga)** — Concurrency safety
 5. **A1 (PENDING guard)** — Domain integrity
 

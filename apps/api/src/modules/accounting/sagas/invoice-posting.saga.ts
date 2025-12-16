@@ -125,16 +125,46 @@ export class InvoicePostingSaga extends SagaOrchestrator<
     }
 
     // 2. Restore stock (if shipped)
-    // Note: Stock OUT doesn't have direct reversal - we need to create IN movement
-    // For now, we rely on the fact that if journal fails, we haven't shipped yet
-    // In future, we might need a dedicated reversal method in InventoryService
     if (stepData.stockMovementId) {
-      // The stock movement is tracked but reversing requires specific logic
-      // For Phase 1, we log the compensation - manual intervention may be needed
-      console.warn(
-        `[SAGA] Stock movement ${stepData.stockMovementId} may need manual review`
+      // Fetch invoice with order details to get items
+      const invoice = await this.invoiceRepository.findById(
+        context.entityId,
+        context.companyId,
+        'INVOICE'
       );
-      // TODO: Implement stock reversal in InventoryService
+
+      const invoiceWithOrder = invoice as Invoice & {
+        order: {
+          id: string;
+          items: { productId: string; quantity: number }[];
+        };
+      };
+
+      if (
+        invoiceWithOrder &&
+        invoiceWithOrder.orderId &&
+        invoiceWithOrder.order
+      ) {
+        // Map items for return
+        const returnItems = invoiceWithOrder.order.items.map(
+          (item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })
+        );
+
+        // Execute return (reverses stock + COGS)
+        await this.inventoryService.processReturn(
+          context.companyId,
+          invoiceWithOrder.orderId,
+          returnItems,
+          `Saga compensation for Invoice ${invoiceWithOrder.invoiceNumber}`
+        );
+      } else {
+        console.warn(
+          `[SAGA] Could not restore stock for ${context.entityId}: Order or items not found by invoice ID`
+        );
+      }
     }
 
     // 3. Revert invoice status back to DRAFT
