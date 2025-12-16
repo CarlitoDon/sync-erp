@@ -59,4 +59,3 @@ export const InviteUserSchema = z.object({
 });
 
 export type InviteUserInput = z.infer<typeof InviteUserSchema>;
-

@@ -224,10 +224,16 @@ export type CreateProductInput = z.infer<typeof CreateProductSchema>;
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
 export type CreateInvoiceInput = z.infer<typeof CreateInvoiceSchema>;
-export type CreateInvoiceFromSOInput = z.infer<typeof CreateInvoiceFromSOSchema>;
+export type CreateInvoiceFromSOInput = z.infer<
+  typeof CreateInvoiceFromSOSchema
+>;
 export type CreateBillInput = z.infer<typeof CreateBillSchema>;
-export type CreateManualBillInput = z.infer<typeof CreateManualBillSchema>;
-export type CreateBillFromPOInput = z.infer<typeof CreateBillFromPOSchema>;
+export type CreateManualBillInput = z.infer<
+  typeof CreateManualBillSchema
+>;
+export type CreateBillFromPOInput = z.infer<
+  typeof CreateBillFromPOSchema
+>;
 export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
 export type GoodsReceiptInput = z.infer<typeof GoodsReceiptSchema>;
 export type StockAdjustmentInput = z.infer<

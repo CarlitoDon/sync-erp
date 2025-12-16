@@ -90,7 +90,8 @@ async function main() {
       create: {
         email: 'admin@sync-erp.local',
         name: 'System Admin',
-        passwordHash: '$2b$10$sw11gC0LBcucZMk3qa/Rq.04xFOFIjKDuXg7DSom9zHWfpsSFxIMe', // password: 'password'
+        passwordHash:
+          '$2b$10$sw11gC0LBcucZMk3qa/Rq.04xFOFIjKDuXg7DSom9zHWfpsSFxIMe', // password: 'password'
       },
     });
 
@@ -178,7 +179,10 @@ async function main() {
     for (const config of CONFIGS) {
       await prisma.systemConfig.upsert({
         where: {
-          companyId_key: { companyId: demoCompany.id, key: config.key },
+          companyId_key: {
+            companyId: demoCompany.id,
+            key: config.key,
+          },
         },
         update: { value: config.value },
         create: {
@@ -197,35 +201,98 @@ async function main() {
       // Assets
       { code: '1100', name: 'Cash on Hand', type: 'ASSET' as const },
       { code: '1200', name: 'Bank Account', type: 'ASSET' as const },
-      { code: '1300', name: 'Accounts Receivable', type: 'ASSET' as const },
-      { code: '1400', name: 'Inventory Asset', type: 'ASSET' as const },
-      { code: '1210', name: 'Goods in Transit', type: 'ASSET' as const }, // Added
-      { code: '1500', name: 'Office Equipment', type: 'ASSET' as const },
-      
+      {
+        code: '1300',
+        name: 'Accounts Receivable',
+        type: 'ASSET' as const,
+      },
+      {
+        code: '1400',
+        name: 'Inventory Asset',
+        type: 'ASSET' as const,
+      },
+      {
+        code: '1210',
+        name: 'Goods in Transit',
+        type: 'ASSET' as const,
+      }, // Added
+      {
+        code: '1500',
+        name: 'Office Equipment',
+        type: 'ASSET' as const,
+      },
+
       // Liabilities
-      { code: '2100', name: 'Accounts Payable', type: 'LIABILITY' as const },
-      { code: '2200', name: 'Sales Tax Payable', type: 'LIABILITY' as const },
-      
+      {
+        code: '2100',
+        name: 'Accounts Payable',
+        type: 'LIABILITY' as const,
+      },
+      {
+        code: '2200',
+        name: 'Sales Tax Payable',
+        type: 'LIABILITY' as const,
+      },
+
       // Equity
-      { code: '3100', name: 'Owner\'s Capital', type: 'EQUITY' as const },
-      { code: '3200', name: 'Retained Earnings', type: 'EQUITY' as const },
-      
+      {
+        code: '3100',
+        name: "Owner's Capital",
+        type: 'EQUITY' as const,
+      },
+      {
+        code: '3200',
+        name: 'Retained Earnings',
+        type: 'EQUITY' as const,
+      },
+
       // Revenue
-      { code: '4100', name: 'Sales Revenue', type: 'REVENUE' as const },
-      { code: '4200', name: 'Service Income', type: 'REVENUE' as const },
-      
+      {
+        code: '4100',
+        name: 'Sales Revenue',
+        type: 'REVENUE' as const,
+      },
+      {
+        code: '4200',
+        name: 'Service Income',
+        type: 'REVENUE' as const,
+      },
+
       // Expenses
-      { code: '5100', name: 'Cost of Goods Sold', type: 'EXPENSE' as const },
-      { code: '5200', name: 'Inventory Adjustment', type: 'EXPENSE' as const }, // Added
-      { code: '6100', name: 'Rent Expense', type: 'EXPENSE' as const },
-      { code: '6200', name: 'Utilities Expense', type: 'EXPENSE' as const },
-      { code: '6300', name: 'Salaries Expense', type: 'EXPENSE' as const },
+      {
+        code: '5100',
+        name: 'Cost of Goods Sold',
+        type: 'EXPENSE' as const,
+      },
+      {
+        code: '5200',
+        name: 'Inventory Adjustment',
+        type: 'EXPENSE' as const,
+      }, // Added
+      {
+        code: '6100',
+        name: 'Rent Expense',
+        type: 'EXPENSE' as const,
+      },
+      {
+        code: '6200',
+        name: 'Utilities Expense',
+        type: 'EXPENSE' as const,
+      },
+      {
+        code: '6300',
+        name: 'Salaries Expense',
+        type: 'EXPENSE' as const,
+      },
     ];
 
     for (const acc of ACCOUNTS) {
       await prisma.account.upsert({
         where: {
-          companyId_code: { companyId: demoCompany.id, code: acc.code },
+          companyId_code: {
+            companyId: demoCompany.id,
+            code: acc.code,
+          },
         },
         update: {},
         create: {
@@ -241,18 +308,68 @@ async function main() {
     console.warn('🤝 Seeding Partners...');
     const PARTNERS = [
       // Customers
-      { type: 'CUSTOMER' as const, name: 'Adi Santoso', email: 'adi@example.com', address: 'Jl. Merdeka No. 1' },
-      { type: 'CUSTOMER' as const, name: 'Budi Hartono', email: 'budi@example.com', address: 'Jl. Sudirman No. 45' },
-      { type: 'CUSTOMER' as const, name: 'PT. Maju Jaya', email: 'procurement@majujaya.com', address: 'Kawasan Industri Pulogadung' },
-      { type: 'CUSTOMER' as const, name: 'CV. Sejahtera', email: 'admin@sejahtera.id', address: 'Cikarang Barat' },
-      { type: 'CUSTOMER' as const, name: 'Toko Elektronik Makmur', email: 'tem@example.com', address: 'Glodok Plaza' },
-      
+      {
+        type: 'CUSTOMER' as const,
+        name: 'Adi Santoso',
+        email: 'adi@example.com',
+        address: 'Jl. Merdeka No. 1',
+      },
+      {
+        type: 'CUSTOMER' as const,
+        name: 'Budi Hartono',
+        email: 'budi@example.com',
+        address: 'Jl. Sudirman No. 45',
+      },
+      {
+        type: 'CUSTOMER' as const,
+        name: 'PT. Maju Jaya',
+        email: 'procurement@majujaya.com',
+        address: 'Kawasan Industri Pulogadung',
+      },
+      {
+        type: 'CUSTOMER' as const,
+        name: 'CV. Sejahtera',
+        email: 'admin@sejahtera.id',
+        address: 'Cikarang Barat',
+      },
+      {
+        type: 'CUSTOMER' as const,
+        name: 'Toko Elektronik Makmur',
+        email: 'tem@example.com',
+        address: 'Glodok Plaza',
+      },
+
       // Suppliers
-      { type: 'SUPPLIER' as const, name: 'PT. Component Ind', email: 'sales@comp-ind.com', address: 'Bekasi Timur' },
-      { type: 'SUPPLIER' as const, name: 'Global Tech Supply', email: 'sales@globaltech.com', address: 'Jakarta Pusat' },
-      { type: 'SUPPLIER' as const, name: 'CV. Packaging Solusi', email: 'order@packaging.com', address: 'Tangerang' },
-      { type: 'SUPPLIER' as const, name: 'Distributor A1', email: 'sales@dist-a1.com', address: 'Mangga Dua' },
-      { type: 'SUPPLIER' as const, name: 'Logistics Partner', email: 'ops@logistics.com', address: 'Bandara Soetta' },
+      {
+        type: 'SUPPLIER' as const,
+        name: 'PT. Component Ind',
+        email: 'sales@comp-ind.com',
+        address: 'Bekasi Timur',
+      },
+      {
+        type: 'SUPPLIER' as const,
+        name: 'Global Tech Supply',
+        email: 'sales@globaltech.com',
+        address: 'Jakarta Pusat',
+      },
+      {
+        type: 'SUPPLIER' as const,
+        name: 'CV. Packaging Solusi',
+        email: 'order@packaging.com',
+        address: 'Tangerang',
+      },
+      {
+        type: 'SUPPLIER' as const,
+        name: 'Distributor A1',
+        email: 'sales@dist-a1.com',
+        address: 'Mangga Dua',
+      },
+      {
+        type: 'SUPPLIER' as const,
+        name: 'Logistics Partner',
+        email: 'ops@logistics.com',
+        address: 'Bandara Soetta',
+      },
     ];
 
     for (const p of PARTNERS) {
@@ -269,16 +386,76 @@ async function main() {
     // ==========================================
     console.warn('📦 Seeding Products...');
     const PRODUCTS = [
-      { sku: 'LAP-001', name: 'Laptop Pro X1', price: 15000000, cost: 12000000, stock: 10 },
-      { sku: 'MON-001', name: 'Monitor 24 Inch', price: 2500000, cost: 1800000, stock: 25 },
-      { sku: 'KEY-001', name: 'Mechanical Keyboard', price: 850000, cost: 500000, stock: 50 },
-      { sku: 'MOU-001', name: 'Wireless Mouse', price: 350000, cost: 150000, stock: 100 },
-      { sku: 'DSK-001', name: 'Standing Desk', price: 4500000, cost: 2500000, stock: 5 },
-      { sku: 'CHA-001', name: 'Ergo Chair', price: 3200000, cost: 1800000, stock: 8 },
-      { sku: 'HDP-001', name: 'Noise Cancel Headphone', price: 1200000, cost: 750000, stock: 30 },
-      { sku: 'CAB-001', name: 'USB-C Cable 2m', price: 150000, cost: 50000, stock: 200 },
-      { sku: 'HUB-001', name: 'USB-C Hub Multi', price: 750000, cost: 400000, stock: 40 },
-      { sku: 'CAM-001', name: 'Webcam 1080p', price: 950000, cost: 600000, stock: 15 },
+      {
+        sku: 'LAP-001',
+        name: 'Laptop Pro X1',
+        price: 15000000,
+        cost: 12000000,
+        stock: 10,
+      },
+      {
+        sku: 'MON-001',
+        name: 'Monitor 24 Inch',
+        price: 2500000,
+        cost: 1800000,
+        stock: 25,
+      },
+      {
+        sku: 'KEY-001',
+        name: 'Mechanical Keyboard',
+        price: 850000,
+        cost: 500000,
+        stock: 50,
+      },
+      {
+        sku: 'MOU-001',
+        name: 'Wireless Mouse',
+        price: 350000,
+        cost: 150000,
+        stock: 100,
+      },
+      {
+        sku: 'DSK-001',
+        name: 'Standing Desk',
+        price: 4500000,
+        cost: 2500000,
+        stock: 5,
+      },
+      {
+        sku: 'CHA-001',
+        name: 'Ergo Chair',
+        price: 3200000,
+        cost: 1800000,
+        stock: 8,
+      },
+      {
+        sku: 'HDP-001',
+        name: 'Noise Cancel Headphone',
+        price: 1200000,
+        cost: 750000,
+        stock: 30,
+      },
+      {
+        sku: 'CAB-001',
+        name: 'USB-C Cable 2m',
+        price: 150000,
+        cost: 50000,
+        stock: 200,
+      },
+      {
+        sku: 'HUB-001',
+        name: 'USB-C Hub Multi',
+        price: 750000,
+        cost: 400000,
+        stock: 40,
+      },
+      {
+        sku: 'CAM-001',
+        name: 'Webcam 1080p',
+        price: 950000,
+        cost: 600000,
+        stock: 15,
+      },
     ];
 
     for (const prod of PRODUCTS) {
@@ -320,7 +497,10 @@ async function main() {
     // Helper to find partner by name
     const findPartner = async (name: string) => {
       return prisma.partner.findFirst({
-        where: { companyId: demoCompany.id, name: { contains: name } },
+        where: {
+          companyId: demoCompany.id,
+          name: { contains: name },
+        },
       });
     };
 
@@ -349,7 +529,11 @@ async function main() {
           totalAmount: 15350000,
           items: {
             create: [
-              { productId: product1.id, quantity: 1, price: 15000000 },
+              {
+                productId: product1.id,
+                quantity: 1,
+                price: 15000000,
+              },
               { productId: product2.id, quantity: 1, price: 350000 },
             ],
           },
@@ -368,7 +552,11 @@ async function main() {
           totalAmount: 120000000, // 10 Laptops cost
           items: {
             create: [
-              { productId: product1.id, quantity: 10, price: 12000000 },
+              {
+                productId: product1.id,
+                quantity: 10,
+                price: 12000000,
+              },
             ],
           },
         },
@@ -383,7 +571,9 @@ async function main() {
           type: 'BILL',
           status: 'POSTED',
           invoiceNumber: 'BILL-PO-001',
-          dueDate: new Date(new Date().setDate(new Date().getDate() + 30)), // +30 days
+          dueDate: new Date(
+            new Date().setDate(new Date().getDate() + 30)
+          ), // +30 days
           amount: 120000000,
           subtotal: 120000000,
           balance: 120000000,
@@ -402,7 +592,11 @@ async function main() {
           totalAmount: 30000000,
           items: {
             create: [
-              { productId: product1.id, quantity: 2, price: 15000000 },
+              {
+                productId: product1.id,
+                quantity: 2,
+                price: 15000000,
+              },
             ],
           },
         },
@@ -417,7 +611,9 @@ async function main() {
           type: 'INVOICE',
           status: 'DRAFT',
           invoiceNumber: 'INV-SO-002',
-          dueDate: new Date(new Date().setDate(new Date().getDate() + 14)), // +14 days
+          dueDate: new Date(
+            new Date().setDate(new Date().getDate() + 14)
+          ), // +14 days
           amount: 30000000,
           subtotal: 30000000,
           balance: 30000000,

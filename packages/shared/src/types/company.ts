@@ -51,6 +51,8 @@ export interface JoinCompanyDto {
  * DTO for selecting business shape. Used by POST /company/select-shape.
  */
 export interface SelectShapeDto {
-  shape: BusinessShape.RETAIL | BusinessShape.MANUFACTURING | BusinessShape.SERVICE;
+  shape:
+    | BusinessShape.RETAIL
+    | BusinessShape.MANUFACTURING
+    | BusinessShape.SERVICE;
 }
-

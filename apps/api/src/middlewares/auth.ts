@@ -85,6 +85,9 @@ export async function authMiddleware(
           id: true,
           name: true,
           businessShape: true,
+          configs: {
+            select: { key: true, value: true },
+          },
         },
       });
 

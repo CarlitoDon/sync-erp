@@ -1,4 +1,9 @@
-import { User, Session, BusinessShape } from '@sync-erp/database';
+import {
+  User,
+  Session,
+  BusinessShape,
+  Prisma,
+} from '@sync-erp/database';
 
 /**
  * Company context loaded by authMiddleware.
@@ -8,6 +13,7 @@ interface CompanyContext {
   id: string;
   name: string;
   businessShape: BusinessShape;
+  configs?: { key: string; value: Prisma.JsonValue }[];
 }
 
 declare global {
@@ -29,4 +35,3 @@ declare global {
 }
 
 export {};
-
