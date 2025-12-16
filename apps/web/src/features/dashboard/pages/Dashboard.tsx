@@ -45,7 +45,9 @@ export default function Dashboard() {
     return (
       <div className="space-y-8">
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-          <p className="text-red-600">Failed to load dashboard data</p>
+          <p className="text-red-600">
+            Failed to load dashboard data
+          </p>
           <p className="text-red-400 text-sm mt-1">{error.message}</p>
         </div>
       </div>
@@ -56,7 +58,9 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl">
-        <h1 className="text-3xl font-bold mb-2">Welcome to Sync ERP</h1>
+        <h1 className="text-3xl font-bold mb-2">
+          Welcome to Sync ERP
+        </h1>
         <p className="text-primary-100 text-lg">
           {currentCompany
             ? `Managing ${currentCompany.name}`
@@ -134,7 +138,9 @@ function StatCard({ title, value, icon, color }: StatCardProps) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500 font-medium">{title}</p>
-          <p className="text-2xl font-bold text-gray-800 mt-1">{value}</p>
+          <p className="text-2xl font-bold text-gray-800 mt-1">
+            {value}
+          </p>
         </div>
         <div
           className={`w-12 h-12 bg-gradient-to-br ${color} rounded-xl flex items-center justify-center text-2xl`}
@@ -150,10 +156,14 @@ interface RecentActivityListProps {
   transactions: RecentTransaction[];
 }
 
-function RecentActivityList({ transactions }: RecentActivityListProps) {
+function RecentActivityList({
+  transactions,
+}: RecentActivityListProps) {
   if (transactions.length === 0) {
     return (
-      <p className="text-gray-500 text-center py-8">No recent activity</p>
+      <p className="text-gray-500 text-center py-8">
+        No recent activity
+      </p>
     );
   }
 

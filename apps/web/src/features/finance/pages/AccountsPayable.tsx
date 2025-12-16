@@ -16,9 +16,7 @@ export default function AccountsPayable() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Bills
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">Bills</h1>
           <p className="text-gray-500">
             Accounts Payable - Supplier bills for{' '}
             {currentCompany.name}

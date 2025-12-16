@@ -15,27 +15,24 @@ interface SalesOrderListProps {
   filter?: { partnerId?: string; status?: string };
 }
 
-export default function SalesOrderList({ filter }: SalesOrderListProps) {
+export default function SalesOrderList({
+  filter,
+}: SalesOrderListProps) {
   const confirm = useConfirm();
 
   const {
     data: orders,
     loading,
     refresh: loadData,
-  } = useCompanyData<SalesOrder[]>(
-    async () => {
-      return await salesOrderService.list(filter);
-    },
-    []
-  );
+  } = useCompanyData<SalesOrder[]>(async () => {
+    return await salesOrderService.list(filter);
+  }, []);
 
   // Reload when filter changes
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filter)]);
-
-
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -54,7 +51,8 @@ export default function SalesOrderList({ filter }: SalesOrderListProps) {
 
   const getInvoiceStatusBadge = (status: string, balance: number) => {
     const formatCompact = (val: number) => {
-      if (val >= 1000000000) return `${(val / 1000000000).toFixed(1)}B`;
+      if (val >= 1000000000)
+        return `${(val / 1000000000).toFixed(1)}B`;
       if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
       if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
       return val.toFixed(0);
@@ -62,16 +60,25 @@ export default function SalesOrderList({ filter }: SalesOrderListProps) {
 
     switch (status) {
       case 'PAID':
-        return { color: 'bg-green-100 text-green-800', label: '✓ Paid' };
+        return {
+          color: 'bg-green-100 text-green-800',
+          label: '✓ Paid',
+        };
       case 'POSTED':
-        return { 
-          color: 'bg-yellow-100 text-yellow-800', 
-          label: balance > 0 ? `○ Rp ${formatCompact(balance)}` : '○ Posted'
+        return {
+          color: 'bg-yellow-100 text-yellow-800',
+          label:
+            balance > 0
+              ? `○ Rp ${formatCompact(balance)}`
+              : '○ Posted',
         };
       case 'VOID':
         return { color: 'bg-red-100 text-red-800', label: '✕ Void' };
       default:
-        return { color: 'bg-gray-100 text-gray-600', label: '◌ Draft' };
+        return {
+          color: 'bg-gray-100 text-gray-600',
+          label: '◌ Draft',
+        };
     }
   };
 
@@ -173,11 +180,11 @@ export default function SalesOrderList({ filter }: SalesOrderListProps) {
                 </td>
                 <td className="px-6 py-4">
                   <Link
-                     to={`/customers/${order.partnerId}`}
-                     className="text-gray-900 hover:text-blue-600 hover:underline"
-                   >
-                     {order.partner?.name || '-'}
-                   </Link>
+                    to={`/customers/${order.partnerId}`}
+                    className="text-gray-900 hover:text-blue-600 hover:underline"
+                  >
+                    {order.partner?.name || '-'}
+                  </Link>
                 </td>
                 <td className="px-6 py-4 text-right">
                   {formatCurrency(Number(order.totalAmount))}
@@ -195,48 +202,59 @@ export default function SalesOrderList({ filter }: SalesOrderListProps) {
                       <ActionButton
                         onClick={() => handleConfirm(order.id)}
                         variant="primary"
-
                       >
                         Confirm
                       </ActionButton>
                       <ActionButton
                         onClick={() => handleCancel(order.id)}
                         variant="danger"
-
                       >
                         Cancel
                       </ActionButton>
                     </>
                   )}
                   {order.status === 'CONFIRMED' && (
-                      <ActionButton
-                        onClick={() => handleShip(order.id)}
-                        variant="success"
-                      >
-                        Ship
-                      </ActionButton>
-                  )}
-                  {order.status === 'COMPLETED' && (!order.invoices || order.invoices.length === 0) && (
                     <ActionButton
-                      onClick={() => handleCreateInvoice(order.id)}
-                      variant="warning"
+                      onClick={() => handleShip(order.id)}
+                      variant="success"
                     >
-                      Inv (+Tax)
+                      Ship
                     </ActionButton>
                   )}
-                  {order.status === 'COMPLETED' && order.invoices && order.invoices.length > 0 && (
-                    <div className="flex flex-col items-end gap-1">
+                  {order.status === 'COMPLETED' &&
+                    (!order.invoices ||
+                      order.invoices.length === 0) && (
                       <ActionButton
-                        onClick={() => handleViewInvoice(order.invoices![0].id)}
-                        variant="secondary"
+                        onClick={() => handleCreateInvoice(order.id)}
+                        variant="warning"
                       >
-                        View Invoice
+                        Inv (+Tax)
                       </ActionButton>
-                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${getInvoiceStatusBadge(order.invoices![0].status, Number(order.invoices![0].balance)).color}`}>
-                        {getInvoiceStatusBadge(order.invoices![0].status, Number(order.invoices![0].balance)).label}
-                      </span>
-                    </div>
-                  )}
+                    )}
+                  {order.status === 'COMPLETED' &&
+                    order.invoices &&
+                    order.invoices.length > 0 && (
+                      <div className="flex flex-col items-end gap-1">
+                        <ActionButton
+                          onClick={() =>
+                            handleViewInvoice(order.invoices![0].id)
+                          }
+                          variant="secondary"
+                        >
+                          View Invoice
+                        </ActionButton>
+                        <span
+                          className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${getInvoiceStatusBadge(order.invoices![0].status, Number(order.invoices![0].balance)).color}`}
+                        >
+                          {
+                            getInvoiceStatusBadge(
+                              order.invoices![0].status,
+                              Number(order.invoices![0].balance)
+                            ).label
+                          }
+                        </span>
+                      </div>
+                    )}
                 </td>
               </tr>
             ))

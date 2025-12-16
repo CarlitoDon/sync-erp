@@ -26,7 +26,12 @@ export interface RecentTransaction {
 
 export type InvoiceData = Pick<
   Invoice,
-  'id' | 'balance' | 'status' | 'invoiceNumber' | 'amount' | 'createdAt'
+  | 'id'
+  | 'balance'
+  | 'status'
+  | 'invoiceNumber'
+  | 'amount'
+  | 'createdAt'
 >;
 
 // Onboarding types (Feature 017)

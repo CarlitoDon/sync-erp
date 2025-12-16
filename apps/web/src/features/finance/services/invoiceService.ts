@@ -23,7 +23,13 @@ export interface CreatePaymentInput {
 }
 
 export const invoiceService = {
-  async list(filters: { status?: string; partnerId?: string; orderId?: string } = {}): Promise<Invoice[]> {
+  async list(
+    filters: {
+      status?: string;
+      partnerId?: string;
+      orderId?: string;
+    } = {}
+  ): Promise<Invoice[]> {
     const params = { ...filters };
     const res = await api.get('/invoices', { params });
     return ensureArray(res.data?.data);

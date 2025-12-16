@@ -24,17 +24,22 @@ interface ProductResponse {
 export const dashboardService = {
   async getMetrics(): Promise<DashboardMetrics> {
     // Parallel fetch from existing endpoints
-    const [invoicesRes, billsRes, ordersRes, productsRes] = await Promise.all([
-      api.get('/invoices?status=POSTED'),
-      api.get('/bills?status=POSTED'),
-      api.get('/sales-orders'),
-      api.get('/products'),
-    ]);
+    const [invoicesRes, billsRes, ordersRes, productsRes] =
+      await Promise.all([
+        api.get('/invoices?status=POSTED'),
+        api.get('/bills?status=POSTED'),
+        api.get('/sales-orders'),
+        api.get('/products'),
+      ]);
 
-    const invoices: InvoiceResponse[] = ensureArray(invoicesRes.data?.data);
+    const invoices: InvoiceResponse[] = ensureArray(
+      invoicesRes.data?.data
+    );
     const bills: InvoiceResponse[] = ensureArray(billsRes.data?.data);
     const orders: OrderResponse[] = ensureArray(ordersRes.data?.data);
-    const products: ProductResponse[] = ensureArray(productsRes.data?.data);
+    const products: ProductResponse[] = ensureArray(
+      productsRes.data?.data
+    );
 
     // Calculate aggregates
     const totalReceivables = invoices.reduce(
@@ -71,7 +76,9 @@ async function getRecentTransactions(): Promise<RecentTransaction[]> {
     api.get('/bills'),
   ]);
 
-  const invoices: InvoiceResponse[] = ensureArray(invoicesRes.data?.data);
+  const invoices: InvoiceResponse[] = ensureArray(
+    invoicesRes.data?.data
+  );
   const bills: InvoiceResponse[] = ensureArray(billsRes.data?.data);
 
   // Combine and sort by date
@@ -95,7 +102,8 @@ async function getRecentTransactions(): Promise<RecentTransaction[]> {
   // Sort by date descending and take top 5
   return transactions
     .sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
     )
     .slice(0, 5);
 }

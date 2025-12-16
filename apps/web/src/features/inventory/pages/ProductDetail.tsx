@@ -2,13 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { useCompanyData } from '../../../hooks/useCompanyData';
-import {
-  productService,
-  Product,
-} from '../services/productService';
-import {
-  getMovements,
-} from '../services/inventoryService';
+import { productService, Product } from '../services/productService';
+import { getMovements } from '../services/inventoryService';
 import type { InventoryMovement } from '@sync-erp/shared';
 import ActionButton from '../../../components/ui/ActionButton';
 import { formatCurrency, formatDate } from '../../../utils/format';
@@ -67,7 +62,9 @@ export default function ProductDetail() {
   if (error || (!loading && !product)) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Product not found</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Product not found
+        </h2>
         <ActionButton
           onClick={() => window.history.back()}
           variant="secondary"
@@ -91,9 +88,13 @@ export default function ProductDetail() {
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {product.name}
+          </h1>
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span className="font-mono text-gray-600">{product.sku}</span>
+            <span className="font-mono text-gray-600">
+              {product.sku}
+            </span>
           </div>
         </div>
       </div>
@@ -124,13 +125,15 @@ export default function ProductDetail() {
                 </div>
               </div> */}
             </div>
-            
+
             <div className="mt-6 pt-6 border-t border-gray-100">
               <ActionButton
-                 onClick={() => { /* Edit Layout Placeholder */ }}
-                 variant="secondary"
-                 className="w-full justify-center"
-                 disabled
+                onClick={() => {
+                  /* Edit Layout Placeholder */
+                }}
+                variant="secondary"
+                className="w-full justify-center"
+                disabled
               >
                 Edit Product
               </ActionButton>
@@ -141,7 +144,7 @@ export default function ProductDetail() {
         {/* Main Content Areas */}
         <div className="md:col-span-2">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[500px]">
-             <div className="border-b border-gray-200">
+            <div className="border-b border-gray-200">
               <nav className="flex -mb-px">
                 <button
                   onClick={() => setActiveTab('history')}
@@ -160,9 +163,9 @@ export default function ProductDetail() {
               {activeTab === 'history' && (
                 <div className="overflow-x-auto">
                   {loadingMovements ? (
-                     <div className="flex justify-center p-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                     </div>
+                    <div className="flex justify-center p-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                    </div>
                   ) : movements.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       No stock movements recorded.
@@ -171,10 +174,18 @@ export default function ProductDetail() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Date
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Type
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Reference
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                            Qty
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -184,19 +195,28 @@ export default function ProductDetail() {
                               {formatDate(movement.date)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                movement.type === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                              }`}>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  movement.type === 'IN'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}
+                              >
                                 {movement.type}
                               </span>
                             </td>
-                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {movement.reference || '-'}
                             </td>
-                            <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
-                              movement.type === 'IN' ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {movement.type === 'IN' ? '+' : '-'}{movement.quantity}
+                            <td
+                              className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
+                                movement.type === 'IN'
+                                  ? 'text-green-600'
+                                  : 'text-red-600'
+                              }`}
+                            >
+                              {movement.type === 'IN' ? '+' : '-'}
+                              {movement.quantity}
                             </td>
                           </tr>
                         ))}

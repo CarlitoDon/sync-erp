@@ -43,7 +43,8 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
   >('ALL');
 
   // Payment Modal State
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedInvoice, setSelectedInvoice] =
+    useState<Invoice | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] =
     useState<CreatePaymentInput['method']>('BANK_TRANSFER');
@@ -143,24 +144,48 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
             {/* Invoice Info Header */}
             <div className="bg-gray-50 rounded-lg p-4 space-y-2">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Invoice Number</span>
-                <span className="font-mono font-medium">{selectedInvoice.invoiceNumber}</span>
+                <span className="text-sm text-gray-500">
+                  Invoice Number
+                </span>
+                <span className="font-mono font-medium">
+                  {selectedInvoice.invoiceNumber}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Customer</span>
-                <span className="font-medium">{selectedInvoice.partner?.name || '-'}</span>
+                <span className="text-sm text-gray-500">
+                  Customer
+                </span>
+                <span className="font-medium">
+                  {selectedInvoice.partner?.name || '-'}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Total Amount</span>
-                <span className="font-medium">{formatCurrency(Number(selectedInvoice.amount))}</span>
+                <span className="text-sm text-gray-500">
+                  Total Amount
+                </span>
+                <span className="font-medium">
+                  {formatCurrency(Number(selectedInvoice.amount))}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Outstanding Balance</span>
-                <span className="font-bold text-red-600">{formatCurrency(Number(selectedInvoice.balance))}</span>
+                <span className="text-sm text-gray-500">
+                  Outstanding Balance
+                </span>
+                <span className="font-bold text-red-600">
+                  {formatCurrency(Number(selectedInvoice.balance))}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Due Date</span>
-                <span className={new Date(selectedInvoice.dueDate) < new Date() ? 'text-red-600 font-bold' : ''}>
+                <span className="text-sm text-gray-500">
+                  Due Date
+                </span>
+                <span
+                  className={
+                    new Date(selectedInvoice.dueDate) < new Date()
+                      ? 'text-red-600 font-bold'
+                      : ''
+                  }
+                >
                   {formatDate(selectedInvoice.dueDate)}
                 </span>
               </div>
@@ -177,7 +202,9 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
                 max={Number(selectedInvoice.balance)}
                 step={0.01}
                 value={paymentAmount}
-                onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                onChange={(e) =>
+                  setPaymentAmount(parseFloat(e.target.value) || 0)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -191,7 +218,11 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
               </label>
               <select
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as CreatePaymentInput['method'])}
+                onChange={(e) =>
+                  setPaymentMethod(
+                    e.target.value as CreatePaymentInput['method']
+                  )
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="BANK_TRANSFER">Bank Transfer</option>
@@ -214,7 +245,10 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
               <button
                 type="button"
                 onClick={handlePayment}
-                disabled={paymentAmount <= 0 || paymentAmount > Number(selectedInvoice.balance)}
+                disabled={
+                  paymentAmount <= 0 ||
+                  paymentAmount > Number(selectedInvoice.balance)
+                }
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Confirm Payment
@@ -227,11 +261,17 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Total Invoices</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{invoices.length}</p>
+          <p className="text-sm text-gray-500 uppercase">
+            Total Invoices
+          </p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">
+            {invoices.length}
+          </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Outstanding</p>
+          <p className="text-sm text-gray-500 uppercase">
+            Outstanding
+          </p>
           <p className="text-3xl font-bold text-blue-600 mt-2">
             {invoices.filter((i) => i.status === 'POSTED').length}
           </p>
@@ -243,27 +283,42 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Outstanding Amount</p>
-          <p className="text-2xl font-bold text-primary-600 mt-2">{formatCurrency(outstandingAmount)}</p>
+          <p className="text-sm text-gray-500 uppercase">
+            Outstanding Amount
+          </p>
+          <p className="text-2xl font-bold text-primary-600 mt-2">
+            {formatCurrency(outstandingAmount)}
+          </p>
         </div>
       </div>
 
       {/* Filters */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
-          {['ALL', 'DRAFT', 'POSTED', 'PAID', 'VOID'].map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilterStatus(status as 'ALL' | 'DRAFT' | 'POSTED' | 'PAID' | 'VOID')}
-              className={`${
-                filterStatus === status
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-            >
-              {status === 'ALL' ? 'All Invoices' : status}
-            </button>
-          ))}
+          {['ALL', 'DRAFT', 'POSTED', 'PAID', 'VOID'].map(
+            (status) => (
+              <button
+                key={status}
+                onClick={() =>
+                  setFilterStatus(
+                    status as
+                      | 'ALL'
+                      | 'DRAFT'
+                      | 'POSTED'
+                      | 'PAID'
+                      | 'VOID'
+                  )
+                }
+                className={`${
+                  filterStatus === status
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              >
+                {status === 'ALL' ? 'All Invoices' : status}
+              </button>
+            )
+          )}
         </nav>
       </div>
 
@@ -272,20 +327,39 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice #</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source SO</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Balance</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Due Date</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Invoice #
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Customer
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Source SO
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                Amount
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                Balance
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                Due Date
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                Status
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {filteredInvoices.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                <td
+                  colSpan={8}
+                  className="px-6 py-12 text-center text-gray-500"
+                >
                   No invoices found.
                 </td>
               </tr>
@@ -294,22 +368,35 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
                 <Fragment key={invoice.id}>
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-mono text-sm">
-                      <Link to={`/invoices/${invoice.id}`} className="text-blue-600 hover:underline">
+                      <Link
+                        to={`/invoices/${invoice.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
                         {invoice.invoiceNumber}
                       </Link>
                     </td>
-                    <td className="px-6 py-4">{invoice.partner?.name || '-'}</td>
+                    <td className="px-6 py-4">
+                      {invoice.partner?.name || '-'}
+                    </td>
                     <td className="px-6 py-4 font-mono text-sm text-gray-500">
-                      {(invoice as InvoiceWithOrder).order?.orderNumber || (
-                        <span className="text-gray-400 italic">Manual</span>
+                      {(invoice as InvoiceWithOrder).order
+                        ?.orderNumber || (
+                        <span className="text-gray-400 italic">
+                          Manual
+                        </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">{formatCurrency(Number(invoice.amount))}</td>
-                    <td className="px-6 py-4 text-right font-semibold">{formatCurrency(Number(invoice.balance))}</td>
+                    <td className="px-6 py-4 text-right">
+                      {formatCurrency(Number(invoice.amount))}
+                    </td>
+                    <td className="px-6 py-4 text-right font-semibold">
+                      {formatCurrency(Number(invoice.balance))}
+                    </td>
                     <td className="px-6 py-4 text-center">
                       <span
                         className={
-                          new Date(invoice.dueDate) < new Date() && invoice.status === 'POSTED'
+                          new Date(invoice.dueDate) < new Date() &&
+                          invoice.status === 'POSTED'
                             ? 'text-red-600 font-bold'
                             : ''
                         }
@@ -318,34 +405,60 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}
+                      >
                         {invoice.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
                       {invoice.status === 'DRAFT' && (
                         <>
-                          <ActionButton onClick={() => handlePost(invoice.id)} variant="primary">Post</ActionButton>
-                          <ActionButton onClick={() => handleVoid(invoice.id)} variant="danger">Void</ActionButton>
+                          <ActionButton
+                            onClick={() => handlePost(invoice.id)}
+                            variant="primary"
+                          >
+                            Post
+                          </ActionButton>
+                          <ActionButton
+                            onClick={() => handleVoid(invoice.id)}
+                            variant="danger"
+                          >
+                            Void
+                          </ActionButton>
                         </>
                       )}
                       {invoice.status === 'POSTED' && (
-                        <ActionButton onClick={() => openPaymentModal(invoice)} variant="success">
+                        <ActionButton
+                          onClick={() => openPaymentModal(invoice)}
+                          variant="success"
+                        >
                           Record Payment
                         </ActionButton>
                       )}
                       <ActionButton
                         variant="secondary"
-                        onClick={() => setShowHistory(showHistory === invoice.id ? null : invoice.id)}
+                        onClick={() =>
+                          setShowHistory(
+                            showHistory === invoice.id
+                              ? null
+                              : invoice.id
+                          )
+                        }
                       >
-                        {showHistory === invoice.id ? 'Hide History' : 'History'}
+                        {showHistory === invoice.id
+                          ? 'Hide History'
+                          : 'History'}
                       </ActionButton>
                     </td>
                   </tr>
                   {showHistory === invoice.id && (
                     <tr className="bg-gray-50">
                       <td colSpan={8} className="px-6 py-4">
-                        <PaymentHistoryList invoiceId={invoice.id} totalAmount={invoice.amount} />
+                        <PaymentHistoryList
+                          invoiceId={invoice.id}
+                          totalAmount={invoice.amount}
+                        />
                       </td>
                     </tr>
                   )}

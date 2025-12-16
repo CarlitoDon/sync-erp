@@ -43,7 +43,9 @@ export default function CustomerDetail() {
   if (error || (!loading && !customer)) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Customer not found</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Customer not found
+        </h2>
         <ActionButton
           onClick={() => window.history.back()}
           variant="secondary"
@@ -67,7 +69,9 @@ export default function CustomerDetail() {
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{customer.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {customer.name}
+          </h1>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-medium text-xs">
               Customer
@@ -120,13 +124,15 @@ export default function CustomerDetail() {
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 pt-6 border-t border-gray-100">
               <ActionButton
-                 onClick={() => { /* Edit Layout Placeholder */ }}
-                 variant="secondary"
-                 className="w-full justify-center"
-                 disabled
+                onClick={() => {
+                  /* Edit Layout Placeholder */
+                }}
+                variant="secondary"
+                className="w-full justify-center"
+                disabled
               >
                 Edit Customer
               </ActionButton>

@@ -20,7 +20,9 @@ export default function PurchaseOrderDetail() {
 
   const [order, setOrder] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
-  const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(null);
+  const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(
+    null
+  );
 
   const loadOrder = async () => {
     if (!id || !currentCompany) return;
@@ -92,10 +94,19 @@ export default function PurchaseOrderDetail() {
   };
 
   const getReceiptStatus = (status: string) => {
-      if (status === 'COMPLETED') return { label: 'Received', color: 'text-green-600 bg-green-50' };
-      if (status === 'CONFIRMED') return { label: 'Pending', color: 'text-amber-600 bg-amber-50' };
-      if (status === 'CANCELLED') return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
-      return { label: 'N/A', color: 'text-gray-400 bg-gray-50' };
+    if (status === 'COMPLETED')
+      return {
+        label: 'Received',
+        color: 'text-green-600 bg-green-50',
+      };
+    if (status === 'CONFIRMED')
+      return {
+        label: 'Pending',
+        color: 'text-amber-600 bg-amber-50',
+      };
+    if (status === 'CANCELLED')
+      return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
+    return { label: 'N/A', color: 'text-gray-400 bg-gray-50' };
   };
 
   if (loading) {
@@ -149,20 +160,24 @@ export default function PurchaseOrderDetail() {
           </div>
           <div className="flex gap-2">
             <span
-                className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
+              className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
             >
-                {order.status}
+              {order.status}
             </span>
           </div>
         </div>
 
         {/* Details Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Order Details</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            Order Details
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
               <p className="text-sm text-gray-500">Order Number</p>
-              <p className="font-mono font-medium">{order.orderNumber}</p>
+              <p className="font-mono font-medium">
+                {order.orderNumber}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Supplier</p>
@@ -179,11 +194,15 @@ export default function PurchaseOrderDetail() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Created</p>
-              <p className="font-medium">{formatDate(order.createdAt)}</p>
+              <p className="font-medium">
+                {formatDate(order.createdAt)}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Receipt Status</p>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${receiptStatus.color}`}>
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${receiptStatus.color}`}
+              >
                 {receiptStatus.label}
               </span>
             </div>
@@ -223,23 +242,27 @@ export default function PurchaseOrderDetail() {
               {order.items.map((item) => (
                 <tr key={item.id}>
                   <td className="px-4 py-3">
-                  {item.product ? (
-                    <Link
-                      to={`/products/${item.productId}`}
-                      className="text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      {item.product.name}
-                    </Link>
-                  ) : (
-                    item.productId
-                  )}
+                    {item.product ? (
+                      <Link
+                        to={`/products/${item.productId}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {item.product.name}
+                      </Link>
+                    ) : (
+                      item.productId
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-right">{item.quantity}</td>
+                  <td className="px-4 py-3 text-right">
+                    {item.quantity}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     {formatCurrency(Number(item.price))}
                   </td>
                   <td className="px-4 py-3 text-right font-medium">
-                    {formatCurrency(item.quantity * Number(item.price))}
+                    {formatCurrency(
+                      item.quantity * Number(item.price)
+                    )}
                   </td>
                 </tr>
               ))}
@@ -247,44 +270,52 @@ export default function PurchaseOrderDetail() {
           </table>
         </div>
 
-      {/* Actions */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Actions</h2>
-        <div className="flex flex-wrap gap-3">
-          {order.status === 'DRAFT' && (
-            <>
-              <ActionButton variant="primary" onClick={handleConfirm}>
-                Confirm Order
-              </ActionButton>
-              <ActionButton variant="danger" onClick={handleCancel}>
-                Cancel Order
-              </ActionButton>
-            </>
-          )}
-          {order.status === 'CONFIRMED' && (
-            <ActionButton
-              variant="success"
-              onClick={() => setGoodsReceiptId(order.id)}
-            >
-              Receive Goods
-            </ActionButton>
-          )}
-          {order.status === 'COMPLETED' &&
-            (!order.invoices || order.invoices.length === 0) && (
-              <ActionButton variant="primary" onClick={handleCreateBill}>
-                Create Bill
+        {/* Actions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">Actions</h2>
+          <div className="flex flex-wrap gap-3">
+            {order.status === 'DRAFT' && (
+              <>
+                <ActionButton
+                  variant="primary"
+                  onClick={handleConfirm}
+                >
+                  Confirm Order
+                </ActionButton>
+                <ActionButton variant="danger" onClick={handleCancel}>
+                  Cancel Order
+                </ActionButton>
+              </>
+            )}
+            {order.status === 'CONFIRMED' && (
+              <ActionButton
+                variant="success"
+                onClick={() => setGoodsReceiptId(order.id)}
+              >
+                Receive Goods
               </ActionButton>
             )}
-          {order.invoices && order.invoices.length > 0 && (
-            <ActionButton
-              variant="secondary"
-              onClick={() => navigate(`/bills/${order.invoices![0].id}`)}
-            >
-              View Bill
-            </ActionButton>
-          )}
+            {order.status === 'COMPLETED' &&
+              (!order.invoices || order.invoices.length === 0) && (
+                <ActionButton
+                  variant="primary"
+                  onClick={handleCreateBill}
+                >
+                  Create Bill
+                </ActionButton>
+              )}
+            {order.invoices && order.invoices.length > 0 && (
+              <ActionButton
+                variant="secondary"
+                onClick={() =>
+                  navigate(`/bills/${order.invoices![0].id}`)
+                }
+              >
+                View Bill
+              </ActionButton>
+            )}
+          </div>
         </div>
-      </div>
       </div>
     </>
   );

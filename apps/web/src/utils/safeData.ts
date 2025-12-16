@@ -5,7 +5,11 @@
 export function ensureArray<T>(data: unknown): T[] {
   if (!Array.isArray(data)) {
     if (data !== null && data !== undefined) {
-      console.warn('[ensureArray] Expected array but got:', typeof data, data);
+      console.warn(
+        '[ensureArray] Expected array but got:',
+        typeof data,
+        data
+      );
     }
     return [];
   }
@@ -17,7 +21,11 @@ export function ensureArray<T>(data: unknown): T[] {
  * Supports: { data: T } or T directly
  */
 export function extractData<T>(response: unknown): T | undefined {
-  if (response && typeof response === 'object' && 'data' in response) {
+  if (
+    response &&
+    typeof response === 'object' &&
+    'data' in response
+  ) {
     return (response as { data: T }).data;
   }
   return response as T | undefined;

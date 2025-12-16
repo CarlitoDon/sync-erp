@@ -39,7 +39,9 @@ export default function JournalDetail() {
   if (error || (!loading && !journal)) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Journal Entry not found</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Journal Entry not found
+        </h2>
         <ActionButton
           onClick={() => window.history.back()}
           variant="secondary"
@@ -53,8 +55,14 @@ export default function JournalDetail() {
 
   if (!journal) return null;
 
-  const totalDebit = journal.lines.reduce((sum, line) => sum + Number(line.debit), 0);
-  const totalCredit = journal.lines.reduce((sum, line) => sum + Number(line.credit), 0);
+  const totalDebit = journal.lines.reduce(
+    (sum, line) => sum + Number(line.debit),
+    0
+  );
+  const totalCredit = journal.lines.reduce(
+    (sum, line) => sum + Number(line.credit),
+    0
+  );
 
   return (
     <div className="space-y-6">
@@ -67,7 +75,8 @@ export default function JournalDetail() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Journal Entry {journal.reference ? `#${journal.reference}` : ''}
+            Journal Entry{' '}
+            {journal.reference ? `#${journal.reference}` : ''}
           </h1>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span>{formatDate(journal.date)}</span>
@@ -85,9 +94,15 @@ export default function JournalDetail() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Debit</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Credit</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Account
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                Debit
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                Credit
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -99,17 +114,23 @@ export default function JournalDetail() {
                   </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-right text-gray-900 font-mono">
-                  {Number(line.debit) > 0 ? formatCurrency(Number(line.debit)) : '-'}
+                  {Number(line.debit) > 0
+                    ? formatCurrency(Number(line.debit))
+                    : '-'}
                 </td>
                 <td className="px-6 py-4 text-sm text-right text-gray-900 font-mono">
-                  {Number(line.credit) > 0 ? formatCurrency(Number(line.credit)) : '-'}
+                  {Number(line.credit) > 0
+                    ? formatCurrency(Number(line.credit))
+                    : '-'}
                 </td>
               </tr>
             ))}
           </tbody>
           <tfoot className="bg-gray-50 font-bold">
             <tr>
-              <td className="px-6 py-3 text-sm text-gray-900 text-right">Total</td>
+              <td className="px-6 py-3 text-sm text-gray-900 text-right">
+                Total
+              </td>
               <td className="px-6 py-3 text-sm text-right text-gray-900 font-mono">
                 {formatCurrency(totalDebit)}
               </td>

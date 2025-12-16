@@ -5,6 +5,7 @@
 Sync ERP is a **multi-tenant ERP system** built as a **Turborepo monorepo** with TypeScript. The MVP covers Sales, Finance/Accounting, Purchasing, and Inventory with strict company-level data isolation.
 
 **Tech Stack:**
+
 - **Backend**: Express.js + Prisma (PostgreSQL) + Vitest
 - **Frontend**: React 18 + React Router + Tailwind CSS 4 + Vite
 - **Shared**: Zod validation schemas and TypeScript types
@@ -14,6 +15,7 @@ Sync ERP is a **multi-tenant ERP system** built as a **Turborepo monorepo** with
 ### 1. Multi-Tenant Isolation (CRITICAL)
 
 **ALL backend queries MUST be scoped by `companyId`:**
+
 ```typescript
 // Request headers contain: X-Company-Id
 const companyId = req.context.companyId; // Set by authMiddleware
@@ -21,6 +23,7 @@ prisma.product.findMany({ where: { companyId } }); // ALWAYS filter
 ```
 
 **Auth flow:**
+
 - Session cookie (`sessionId`) validates user identity
 - `X-Company-Id` header (set by frontend) validates company membership
 - `authMiddleware` populates `req.context.userId` and `req.context.companyId`
@@ -38,6 +41,7 @@ apps/api/src/modules/{domain}/
 ```
 
 **Controller pattern:**
+
 ```typescript
 create = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -52,6 +56,7 @@ create = async (req: Request, res: Response, next: NextFunction) => {
 ```
 
 **Service pattern** (business logic, NO HTTP):
+
 ```typescript
 async create(companyId: string, data: CreatePartnerDto): Promise<Partner> {
   // Validate business rules
@@ -62,6 +67,7 @@ async create(companyId: string, data: CreatePartnerDto): Promise<Partner> {
 ```
 
 **Repository pattern** (ONLY Prisma calls):
+
 ```typescript
 async findByName(companyId: string, name: string): Promise<Partner | null> {
   return prisma.partner.findFirst({ where: { companyId, name } });
@@ -83,6 +89,7 @@ apps/web/src/
 ```
 
 **Data fetching pattern** (auto-refreshes on company change):
+
 ```typescript
 const { data, loading, refresh } = useCompanyData(
   (companyId) => partnerService.list(companyId),
@@ -91,27 +98,29 @@ const { data, loading, refresh } = useCompanyData(
 ```
 
 **API action with toast** (global error handling via Axios interceptor):
+
 ```typescript
-const result = await apiAction(
-  () => partnerService.create(data),
-  { successMessage: 'Partner created!' }
-);
+const result = await apiAction(() => partnerService.create(data), {
+  successMessage: 'Partner created!',
+});
 if (result) refresh();
 ```
 
 **Confirmation dialogs** (never use `window.confirm`):
+
 ```typescript
 const confirm = useConfirm();
 const proceed = await confirm.show({
   title: 'Delete Partner?',
   message: 'This cannot be undone.',
-  danger: true
+  danger: true,
 });
 ```
 
 ## Developer Workflows
 
 ### Database Commands
+
 ```bash
 # From repo root (delegates to @sync-erp/database)
 npm run db:generate   # Prisma client generation (after schema changes)
@@ -122,6 +131,7 @@ npm run db:studio     # Open Prisma Studio GUI
 ```
 
 ### Development
+
 ```bash
 npm run dev           # Starts both api (3001) and web (5173)
 npm run dev:api       # API only
@@ -132,11 +142,13 @@ npm run typecheck     # Validate TypeScript across monorepo
 ### Testing Strategy
 
 **Backend tests:**
+
 - **Unit tests** (`test/unit/**`): Mock repository layer, test services
 - **Integration tests** (`test/integration/**`): Real DB, test full flows
 - Run with separate configs: `npm run test:unit` / `npm run test:integration`
 
 **Frontend tests:**
+
 - **Component tests**: `@testing-library/react` with `renderWithContext` helper
 - **Hook tests**: `renderHook` from `@testing-library/react`
 - Mock contexts (AuthContext, CompanyContext) via `test/mocks/hooks.mock.ts`
@@ -151,53 +163,62 @@ npm run test:coverage                     # With coverage report
 ### Test Mocking Patterns
 
 **Backend service tests** (mock repositories):
+
 ```typescript
 vi.mock('../../../src/modules/product/product.repository', () => ({
-  ProductRepository: vi.fn().mockImplementation(() => mockProductRepository)
+  ProductRepository: vi
+    .fn()
+    .mockImplementation(() => mockProductRepository),
 }));
 ```
 
 **Frontend page tests** (mock contexts):
+
 ```typescript
 vi.mock('../../../src/contexts/AuthContext', () => ({
-  useAuth: mockUseAuth
+  useAuth: mockUseAuth,
 }));
 ```
 
 ## Project-Specific Conventions
 
 ### Validation
+
 - Backend: Use **Zod schemas** in controllers (from `@sync-erp/shared`)
 - Frontend: Use **React Hook Form** + Zod resolver
 - Share schemas via `packages/shared/src/validators/`
 
 ### Error Handling
+
 - Backend: Throw custom errors (`ConflictError`, `NotFoundError`) → caught by `errorHandler` middleware
 - Frontend: Axios interceptor shows toast for all errors → use `apiAction()` helper
 
 ### Routing
+
 - Backend: Routes in `apps/api/src/routes/` bind controllers
 - Frontend: Centralized in `apps/web/src/app/AppRouter.tsx` with `ProtectedRoute` wrapper
 
 ### State Management
+
 - **No Redux/Zustand**: Use React Context (`AuthContext`, `CompanyContext`)
 - **Company context** persists to `localStorage` (auto-restore on reload)
 
 ### Styling
+
 - **Tailwind CSS 4** with `@tailwindcss/vite` plugin
 - No inline styles, use utility classes
 - Consistent spacing (`space-y-4`, `gap-4`) and colors (`primary-600`, `gray-500`)
 
 ## Key Files Reference
 
-| Purpose | File |
-|---------|------|
-| Auth middleware | [apps/api/src/middlewares/auth.ts](apps/api/src/middlewares/auth.ts) |
-| API entry point | [apps/api/src/index.ts](apps/api/src/index.ts) |
-| Prisma schema | [packages/database/prisma/schema.prisma](packages/database/prisma/schema.prisma) |
-| Frontend router | [apps/web/src/app/AppRouter.tsx](apps/web/src/app/AppRouter.tsx) |
-| Data fetching hook | [apps/web/src/hooks/useCompanyData.ts](apps/web/src/hooks/useCompanyData.ts) |
-| Shared types | [packages/shared/src/types/](packages/shared/src/types/) |
+| Purpose            | File                                                                             |
+| ------------------ | -------------------------------------------------------------------------------- |
+| Auth middleware    | [apps/api/src/middlewares/auth.ts](apps/api/src/middlewares/auth.ts)             |
+| API entry point    | [apps/api/src/index.ts](apps/api/src/index.ts)                                   |
+| Prisma schema      | [packages/database/prisma/schema.prisma](packages/database/prisma/schema.prisma) |
+| Frontend router    | [apps/web/src/app/AppRouter.tsx](apps/web/src/app/AppRouter.tsx)                 |
+| Data fetching hook | [apps/web/src/hooks/useCompanyData.ts](apps/web/src/hooks/useCompanyData.ts)     |
+| Shared types       | [packages/shared/src/types/](packages/shared/src/types/)                         |
 
 ## Common Pitfalls
 
@@ -210,6 +231,7 @@ vi.mock('../../../src/contexts/AuthContext', () => ({
 ## Feature Development Checklist
 
 **Backend:**
+
 - [ ] Repository methods filter by `companyId`
 - [ ] Service contains only business logic (no HTTP, no Prisma)
 - [ ] Controller validates with Zod schemas
@@ -217,6 +239,7 @@ vi.mock('../../../src/contexts/AuthContext', () => ({
 - [ ] Integration tests use real DB
 
 **Frontend:**
+
 - [ ] Use `useCompanyData` for fetching
 - [ ] Use `apiAction()` for mutations
 - [ ] Use `useConfirm()` for destructive actions
@@ -226,6 +249,7 @@ vi.mock('../../../src/contexts/AuthContext', () => ({
 ## Spec-Driven Development
 
 Feature specs are in `specs/###-feature-name/`:
+
 - **spec.md**: User stories, requirements, edge cases
 - **data-model.md**: Prisma schema changes
 - **tasks.md**: Breakdown with parallel opportunities marked `[P]`

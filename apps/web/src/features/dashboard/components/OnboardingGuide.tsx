@@ -7,7 +7,9 @@ interface OnboardingGuideProps {
   metrics: DashboardMetrics | null;
 }
 
-export default function OnboardingGuide({ metrics }: OnboardingGuideProps) {
+export default function OnboardingGuide({
+  metrics,
+}: OnboardingGuideProps) {
   const [isDismissed, setIsDismissed] = useState(() => {
     const key = 'onboarding-dismissed';
     return localStorage.getItem(key) === 'true';
@@ -59,13 +61,17 @@ export default function OnboardingGuide({ metrics }: OnboardingGuideProps) {
   return (
     <div
       className={`bg-white rounded-xl shadow-sm border p-6 ${
-        progress.isAllComplete ? 'border-green-300 bg-green-50' : 'border-gray-100'
+        progress.isAllComplete
+          ? 'border-green-300 bg-green-50'
+          : 'border-gray-100'
       }`}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-800">
-          {progress.isAllComplete ? '🎉 Setup Complete!' : 'Getting Started'}
+          {progress.isAllComplete
+            ? '🎉 Setup Complete!'
+            : 'Getting Started'}
         </h2>
         <span className="text-sm text-gray-500">
           {progress.completedCount} of {progress.totalCount} completed
@@ -88,7 +94,8 @@ export default function OnboardingGuide({ metrics }: OnboardingGuideProps) {
       {progress.isAllComplete && (
         <div className="mb-4 p-3 bg-green-100 rounded-lg">
           <p className="text-green-800 text-sm">
-            Congratulations! You've completed all the setup steps. Your company is ready to go!
+            Congratulations! You've completed all the setup steps.
+            Your company is ready to go!
           </p>
         </div>
       )}

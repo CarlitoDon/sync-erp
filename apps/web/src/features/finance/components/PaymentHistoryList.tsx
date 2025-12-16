@@ -60,8 +60,6 @@ export function PaymentHistoryList({
 
   return (
     <div className="space-y-4">
-
-
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">

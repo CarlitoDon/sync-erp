@@ -99,10 +99,19 @@ export default function SalesOrderDetail() {
   };
 
   const getShipmentStatus = (status: string) => {
-      if (status === 'COMPLETED') return { label: 'Shipped', color: 'text-green-600 bg-green-50' };
-      if (status === 'CONFIRMED') return { label: 'Pending', color: 'text-amber-600 bg-amber-50' };
-      if (status === 'CANCELLED') return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
-      return { label: 'N/A', color: 'text-gray-400 bg-gray-50' };
+    if (status === 'COMPLETED')
+      return {
+        label: 'Shipped',
+        color: 'text-green-600 bg-green-50',
+      };
+    if (status === 'CONFIRMED')
+      return {
+        label: 'Pending',
+        color: 'text-amber-600 bg-amber-50',
+      };
+    if (status === 'CANCELLED')
+      return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
+    return { label: 'N/A', color: 'text-gray-400 bg-gray-50' };
   };
 
   if (loading) {
@@ -142,11 +151,11 @@ export default function SalesOrderDetail() {
           </p>
         </div>
         <div className="flex gap-2">
-            <span
-              className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
-            >
-              {order.status}
-            </span>
+          <span
+            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
+          >
+            {order.status}
+          </span>
         </div>
       </div>
 
@@ -156,7 +165,9 @@ export default function SalesOrderDetail() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div>
             <p className="text-sm text-gray-500">Order Number</p>
-            <p className="font-mono font-medium">{order.orderNumber}</p>
+            <p className="font-mono font-medium">
+              {order.orderNumber}
+            </p>
           </div>
           <div>
             <p className="text-sm text-gray-500">Customer</p>
@@ -175,12 +186,16 @@ export default function SalesOrderDetail() {
           </div>
           <div>
             <p className="text-sm text-gray-500">Created</p>
-            <p className="font-medium">{formatDate(order.createdAt)}</p>
+            <p className="font-medium">
+              {formatDate(order.createdAt)}
+            </p>
           </div>
           <div>
             <p className="text-sm text-gray-500">Shipment Status</p>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${shipmentStatus.color}`}>
-                {shipmentStatus.label}
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${shipmentStatus.color}`}
+            >
+              {shipmentStatus.label}
             </span>
           </div>
         </div>
@@ -230,7 +245,9 @@ export default function SalesOrderDetail() {
                     item.productId
                   )}
                 </td>
-                <td className="px-4 py-3 text-right">{item.quantity}</td>
+                <td className="px-4 py-3 text-right">
+                  {item.quantity}
+                </td>
                 <td className="px-4 py-3 text-right">
                   {formatCurrency(Number(item.price))}
                 </td>
@@ -264,14 +281,19 @@ export default function SalesOrderDetail() {
           )}
           {order.status === 'COMPLETED' &&
             (!order.invoices || order.invoices.length === 0) && (
-              <ActionButton variant="warning" onClick={handleCreateInvoice}>
+              <ActionButton
+                variant="warning"
+                onClick={handleCreateInvoice}
+              >
                 Create Invoice
               </ActionButton>
             )}
           {order.invoices && order.invoices.length > 0 && (
             <ActionButton
               variant="secondary"
-              onClick={() => navigate(`/invoices/${order.invoices![0].id}`)}
+              onClick={() =>
+                navigate(`/invoices/${order.invoices![0].id}`)
+              }
             >
               View Invoice
             </ActionButton>

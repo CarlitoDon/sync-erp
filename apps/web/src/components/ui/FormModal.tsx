@@ -64,7 +64,9 @@ export default function FormModal({
             </h3>
 
             {/* Scrollable content area */}
-            <div className="max-h-[60vh] overflow-y-auto">{children}</div>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {children}
+            </div>
           </div>
         </div>
       </div>

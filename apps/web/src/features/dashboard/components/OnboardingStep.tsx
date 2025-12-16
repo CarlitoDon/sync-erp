@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRightIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import {
+  ChevronRightIcon,
+  ChevronDownIcon,
+} from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleSolidIcon } from '@heroicons/react/24/solid';
 import type { OnboardingStep as OnboardingStepType } from '../types';
 
@@ -8,7 +11,9 @@ interface OnboardingStepProps {
   step: OnboardingStepType;
 }
 
-export default function OnboardingStep({ step }: OnboardingStepProps) {
+export default function OnboardingStep({
+  step,
+}: OnboardingStepProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleToggle = (e: React.MouseEvent) => {
@@ -55,7 +60,9 @@ export default function OnboardingStep({ step }: OnboardingStepProps) {
           <button
             onClick={handleToggle}
             className="p-1 rounded-full hover:bg-gray-200 transition-colors"
-            aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
+            aria-label={
+              isExpanded ? 'Collapse details' : 'Expand details'
+            }
           >
             <ChevronDownIcon
               className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
@@ -78,7 +85,9 @@ export default function OnboardingStep({ step }: OnboardingStepProps) {
       {/* Expandable Description */}
       {isExpanded && step.description && (
         <div className="px-3 py-2 bg-gray-100 border-t border-gray-200">
-          <p className="text-xs text-gray-600 pl-9">{step.description}</p>
+          <p className="text-xs text-gray-600 pl-9">
+            {step.description}
+          </p>
         </div>
       )}
     </div>

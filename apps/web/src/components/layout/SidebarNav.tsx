@@ -15,7 +15,7 @@ import {
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: <HomeIcon /> },
-  
+
   // Sales
   { path: '/customers', label: 'Customers', icon: <UserGroupIcon /> },
   {

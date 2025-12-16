@@ -12,7 +12,9 @@ export type AssignUserPayload = z.infer<typeof AssignRoleSchema>;
 
 export const userService = {
   // Backend uses X-Company-Id header (set by axios interceptor), not path param
-  listByCompany: async (): Promise<(User & { roles: CompanyMember[] })[]> => {
+  listByCompany: async (): Promise<
+    (User & { roles: CompanyMember[] })[]
+  > => {
     const response = await api.get(`/users`);
     // API returns { success, data } wrapper
     const data = response.data?.data ?? response.data;
@@ -25,9 +27,12 @@ export const userService = {
   },
 
   assign: async (payload: AssignUserPayload) => {
-    const response = await api.post(`/users/${payload.userId}/assign`, {
-      roleId: payload.roleId,
-    });
+    const response = await api.post(
+      `/users/${payload.userId}/assign`,
+      {
+        roleId: payload.roleId,
+      }
+    );
     return response.data?.data ?? response.data;
   },
 };

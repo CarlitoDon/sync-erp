@@ -306,7 +306,10 @@ export default function Finance() {
             title="New Account"
             maxWidth="md"
           >
-            <form onSubmit={handleCreateAccount} className="space-y-4">
+            <form
+              onSubmit={handleCreateAccount}
+              className="space-y-4"
+            >
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -389,7 +392,6 @@ export default function Finance() {
               </div>
             </form>
           </FormModal>
-
 
           {/* CoA List by Type */}
           <div className="grid gap-6">

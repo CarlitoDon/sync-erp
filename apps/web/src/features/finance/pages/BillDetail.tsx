@@ -151,24 +151,44 @@ export default function BillDetail() {
           {/* Bill Info Header */}
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Bill Number</span>
-              <span className="font-mono font-medium">{bill.invoiceNumber}</span>
+              <span className="text-sm text-gray-500">
+                Bill Number
+              </span>
+              <span className="font-mono font-medium">
+                {bill.invoiceNumber}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Supplier</span>
-              <span className="font-medium">{bill.partner?.name || '-'}</span>
+              <span className="font-medium">
+                {bill.partner?.name || '-'}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Total Amount</span>
-              <span className="font-medium">{formatCurrency(Number(bill.amount))}</span>
+              <span className="text-sm text-gray-500">
+                Total Amount
+              </span>
+              <span className="font-medium">
+                {formatCurrency(Number(bill.amount))}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Outstanding Balance</span>
-              <span className="font-bold text-red-600">{formatCurrency(Number(bill.balance))}</span>
+              <span className="text-sm text-gray-500">
+                Outstanding Balance
+              </span>
+              <span className="font-bold text-red-600">
+                {formatCurrency(Number(bill.balance))}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Due Date</span>
-              <span className={new Date(bill.dueDate) < new Date() ? 'text-red-600 font-bold' : ''}>
+              <span
+                className={
+                  new Date(bill.dueDate) < new Date()
+                    ? 'text-red-600 font-bold'
+                    : ''
+                }
+              >
                 {formatDate(bill.dueDate)}
               </span>
             </div>
@@ -182,7 +202,9 @@ export default function BillDetail() {
             <input
               type="number"
               value={paymentAmount}
-              onChange={(e) => setPaymentAmount(Number(e.target.value))}
+              onChange={(e) =>
+                setPaymentAmount(Number(e.target.value))
+              }
               max={Number(bill.balance)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
@@ -198,7 +220,9 @@ export default function BillDetail() {
             <select
               value={paymentMethod}
               onChange={(e) =>
-                setPaymentMethod(e.target.value as CreatePaymentInput['method'])
+                setPaymentMethod(
+                  e.target.value as CreatePaymentInput['method']
+                )
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
@@ -222,7 +246,10 @@ export default function BillDetail() {
             <button
               type="button"
               onClick={handleRecordPayment}
-              disabled={paymentAmount <= 0 || paymentAmount > Number(bill.balance)}
+              disabled={
+                paymentAmount <= 0 ||
+                paymentAmount > Number(bill.balance)
+              }
               className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               Confirm Payment
@@ -238,9 +265,9 @@ export default function BillDetail() {
         title="Payment History"
         maxWidth="2xl"
       >
-        <PaymentHistoryList 
-          invoiceId={bill.id} 
-          totalAmount={Number(bill.amount)} 
+        <PaymentHistoryList
+          invoiceId={bill.id}
+          totalAmount={Number(bill.amount)}
         />
       </FormModal>
 
@@ -284,7 +311,9 @@ export default function BillDetail() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
               <p className="text-sm text-gray-500">Bill Number</p>
-              <p className="font-mono font-medium">{bill.invoiceNumber}</p>
+              <p className="font-mono font-medium">
+                {bill.invoiceNumber}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Source PO</p>
@@ -296,14 +325,17 @@ export default function BillDetail() {
                   {bill.order.orderNumber}
                 </Link>
               ) : (
-                <span className="text-gray-400 italic">Manual Entry</span>
+                <span className="text-gray-400 italic">
+                  Manual Entry
+                </span>
               )}
             </div>
             <div>
               <p className="text-sm text-gray-500">Due Date</p>
               <p
                 className={`font-medium ${
-                  new Date(bill.dueDate) < new Date() && bill.status === 'POSTED'
+                  new Date(bill.dueDate) < new Date() &&
+                  bill.status === 'POSTED'
                     ? 'text-red-600'
                     : ''
                 }`}
@@ -313,7 +345,9 @@ export default function BillDetail() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Created</p>
-              <p className="font-medium">{formatDate(bill.createdAt)}</p>
+              <p className="font-medium">
+                {formatDate(bill.createdAt)}
+              </p>
             </div>
           </div>
 
@@ -322,11 +356,17 @@ export default function BillDetail() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
               <p className="text-sm text-gray-500">Subtotal</p>
-              <p className="font-medium">{formatCurrency(Number(bill.subtotal))}</p>
+              <p className="font-medium">
+                {formatCurrency(Number(bill.subtotal))}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Tax ({bill.taxRate}%)</p>
-              <p className="font-medium">{formatCurrency(Number(bill.taxAmount))}</p>
+              <p className="text-sm text-gray-500">
+                Tax ({bill.taxRate}%)
+              </p>
+              <p className="font-medium">
+                {formatCurrency(Number(bill.taxAmount))}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Total Amount</p>
@@ -338,7 +378,9 @@ export default function BillDetail() {
               <p className="text-sm text-gray-500">Balance Due</p>
               <p
                 className={`text-xl font-bold ${
-                  Number(bill.balance) > 0 ? 'text-red-600' : 'text-green-600'
+                  Number(bill.balance) > 0
+                    ? 'text-red-600'
+                    : 'text-green-600'
                 }`}
               >
                 {formatCurrency(Number(bill.balance))}

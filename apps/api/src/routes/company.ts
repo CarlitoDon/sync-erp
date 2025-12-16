@@ -49,5 +49,3 @@ companyRouter.post('/select-shape', controller.selectShape);
 
 // GET /api/companies/:id - Get company by ID (MUST be last due to param matching)
 companyRouter.get('/:id', controller.getById);
-
-

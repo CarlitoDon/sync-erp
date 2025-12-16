@@ -31,7 +31,10 @@ export interface CreateSalesOrderInput {
 }
 
 export const salesOrderService = {
-  async list(filters?: { status?: string; partnerId?: string }): Promise<SalesOrder[]> {
+  async list(filters?: {
+    status?: string;
+    partnerId?: string;
+  }): Promise<SalesOrder[]> {
     const params = filters || {};
     const res = await api.get('/sales-orders', { params });
     return ensureArray(res.data?.data);

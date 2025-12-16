@@ -51,11 +51,20 @@ export function AppRouter() {
           <Route path="customers/:id" element={<CustomerDetail />} />
           <Route path="products" element={<Products />} />
           <Route path="products/:id" element={<ProductDetail />} />
-          <Route path="purchase-orders" element={<PurchaseOrders />} />
-          <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
+          <Route
+            path="purchase-orders"
+            element={<PurchaseOrders />}
+          />
+          <Route
+            path="purchase-orders/:id"
+            element={<PurchaseOrderDetail />}
+          />
           <Route path="inventory" element={<Inventory />} />
           <Route path="sales-orders" element={<SalesOrders />} />
-          <Route path="sales-orders/:id" element={<SalesOrderDetail />} />
+          <Route
+            path="sales-orders/:id"
+            element={<SalesOrderDetail />}
+          />
           <Route path="invoices" element={<Invoices />} />
           <Route path="invoices/:id" element={<InvoiceDetail />} />
           <Route path="bills" element={<AccountsPayable />} />

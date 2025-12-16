@@ -95,10 +95,9 @@ const { data, loading, refresh } = useCompanyData(
 import { apiAction } from '../../../utils/apiAction';
 
 const handleSubmit = async (data: CreatePartnerInput) => {
-  const result = await apiAction(
-    () => partnerService.create(data),
-    { successMessage: 'Partner created!' }
-  );
+  const result = await apiAction(() => partnerService.create(data), {
+    successMessage: 'Partner created!',
+  });
   if (result) refresh();
 };
 ```
@@ -124,32 +123,32 @@ export type CreatePartnerInput = z.infer<typeof CreatePartnerSchema>;
 
 ## Essential Commands
 
-| Action | Command |
-| :--- | :--- |
-| **Start Dev** | `npm run dev` (starts both apps) |
-| **Type Check** | `npx tsc --noEmit` (Crucial!) |
-| **Run Tests** | `npm run test` (Vitest) |
-| **Build** | `npm run build` |
-| **Lint** | `npm run lint` |
-| **DB Studio** | `npm run db:studio` |
-| **DB Migrate** | `npm run db:migrate` |
+| Action         | Command                          |
+| :------------- | :------------------------------- |
+| **Start Dev**  | `npm run dev` (starts both apps) |
+| **Type Check** | `npx tsc --noEmit` (Crucial!)    |
+| **Run Tests**  | `npm run test` (Vitest)          |
+| **Build**      | `npm run build`                  |
+| **Lint**       | `npm run lint`                   |
+| **DB Studio**  | `npm run db:studio`              |
+| **DB Migrate** | `npm run db:migrate`             |
 
 ## Don'ts
 
--   ❌ **No `any`**: Use precise types or Zod schemas.
--   ❌ **No `window.confirm`**: Use `useConfirm()` hook.
--   ❌ **No direct `toast`**: Use `apiAction()` helper.
--   ❌ **No `this` in services**: Use standalone functions to ensure safety in hooks.
--   ❌ **No Client-Side Joins**: valid: `prisma.order.findMany({ include: { items: true } })`.
--   ❌ **No Manual API Types**: Use `z.infer<typeof Schema>` for shared DTOs.
+- ❌ **No `any`**: Use precise types or Zod schemas.
+- ❌ **No `window.confirm`**: Use `useConfirm()` hook.
+- ❌ **No direct `toast`**: Use `apiAction()` helper.
+- ❌ **No `this` in services**: Use standalone functions to ensure safety in hooks.
+- ❌ **No Client-Side Joins**: valid: `prisma.order.findMany({ include: { items: true } })`.
+- ❌ **No Manual API Types**: Use `z.infer<typeof Schema>` for shared DTOs.
 
 ## Key Files Reference
 
-| Purpose | File |
-| :--- | :--- |
-| **Constitution** | `.agent/rules/constitution.md` |
-| **API Entry** | `apps/api/src/index.ts` |
+| Purpose               | File                                      |
+| :-------------------- | :---------------------------------------- |
+| **Constitution**      | `.agent/rules/constitution.md`            |
+| **API Entry**         | `apps/api/src/index.ts`                   |
 | **Shared Validators** | `packages/shared/src/validators/index.ts` |
-| **Shared Types** | `packages/shared/src/types/index.ts` |
-| **Prisma Schema** | `packages/database/prisma/schema.prisma` |
-| **API Action Util** | `apps/web/src/utils/apiAction.ts` |
+| **Shared Types**      | `packages/shared/src/types/index.ts`      |
+| **Prisma Schema**     | `packages/database/prisma/schema.prisma`  |
+| **API Action Util**   | `apps/web/src/utils/apiAction.ts`         |

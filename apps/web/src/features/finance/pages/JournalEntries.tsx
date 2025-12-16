@@ -253,179 +253,168 @@ export default function JournalEntries() {
         maxWidth="4xl"
       >
         <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Date
+              </label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    date: e.target.value,
+                  })
+                }
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Reference
+              </label>
+              <input
+                type="text"
+                value={formData.reference}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    reference: e.target.value,
+                  })
+                }
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
+                placeholder="e.g. ADJ-001"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Memo
+              </label>
+              <input
+                type="text"
+                value={formData.memo}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    memo: e.target.value,
+                  })
+                }
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
+                placeholder="Optional description"
+              />
+            </div>
+          </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.date}
+          <div className="space-y-2">
+            <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              <div className="col-span-6">Account</div>
+              <div className="col-span-2 text-right">Debit</div>
+              <div className="col-span-2 text-right">Credit</div>
+              <div className="col-span-2 text-center">Action</div>
+            </div>
+
+            {formData.lines?.map(
+              (line: CreateJournalLineInput, idx: number) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-12 gap-2 items-center"
+                >
+                  <div className="col-span-6">
+                    <select
+                      value={line.accountId}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          date: e.target.value,
-                        })
+                        handleLineChange(
+                          idx,
+                          'accountId',
+                          e.target.value
+                        )
                       }
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Reference
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.reference}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          reference: e.target.value,
-                        })
-                      }
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
-                      placeholder="e.g. ADJ-001"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Memo
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.memo}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          memo: e.target.value,
-                        })
-                      }
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
-                      placeholder="Optional description"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    <div className="col-span-6">Account</div>
-                    <div className="col-span-2 text-right">Debit</div>
-                    <div className="col-span-2 text-right">
-                      Credit
-                    </div>
-                    <div className="col-span-2 text-center">
-                      Action
-                    </div>
-                  </div>
-
-                  {formData.lines?.map(
-                    (line: CreateJournalLineInput, idx: number) => (
-                      <div
-                        key={idx}
-                        className="grid grid-cols-12 gap-2 items-center"
-                      >
-                        <div className="col-span-6">
-                          <select
-                            value={line.accountId}
-                            onChange={(e) =>
-                              handleLineChange(
-                                idx,
-                                'accountId',
-                                e.target.value
-                              )
-                            }
-                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
-                          >
-                            <option value="">
-                              Select Account...
-                            </option>
-                            {accounts.map((acc) => (
-                              <option key={acc.id} value={acc.id}>
-                                {acc.code} - {acc.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="col-span-2">
-                          <input
-                            type="number"
-                            min="0"
-                            value={line.debit}
-                            onChange={(e) =>
-                              handleLineChange(
-                                idx,
-                                'debit',
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2 text-right"
-                            disabled={line.credit > 0} // Standard practice: cannot be both
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <input
-                            type="number"
-                            min="0"
-                            value={line.credit}
-                            onChange={(e) =>
-                              handleLineChange(
-                                idx,
-                                'credit',
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2 text-right"
-                            disabled={line.debit > 0}
-                          />
-                        </div>
-                        <div className="col-span-2 text-center">
-                          <button
-                            onClick={() => removeLine(idx)}
-                            className="text-red-500 hover:text-red-700 disabled:opacity-50"
-                            disabled={formData.lines!.length <= 2}
-                          >
-                            <TrashIcon className="w-5 h-5 mx-auto" />
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  )}
-
-                  <div className="mt-2">
-                    <button
-                      type="button"
-                      onClick={addLine}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
                     >
-                      <PlusIcon className="w-4 h-4 mr-1" /> Add Line
+                      <option value="">Select Account...</option>
+                      {accounts.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.code} - {acc.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={line.debit}
+                      onChange={(e) =>
+                        handleLineChange(
+                          idx,
+                          'debit',
+                          parseFloat(e.target.value) || 0
+                        )
+                      }
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2 text-right"
+                      disabled={line.credit > 0} // Standard practice: cannot be both
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={line.credit}
+                      onChange={(e) =>
+                        handleLineChange(
+                          idx,
+                          'credit',
+                          parseFloat(e.target.value) || 0
+                        )
+                      }
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2 text-right"
+                      disabled={line.debit > 0}
+                    />
+                  </div>
+                  <div className="col-span-2 text-center">
+                    <button
+                      onClick={() => removeLine(idx)}
+                      className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                      disabled={formData.lines!.length <= 2}
+                    >
+                      <TrashIcon className="w-5 h-5 mx-auto" />
                     </button>
                   </div>
-
-                  {/* Totals */}
-                  <div className="grid grid-cols-12 gap-2 pt-4 mt-4 border-t border-gray-100 font-bold">
-                    <div className="col-span-6 text-right pr-4">
-                      Total
-                    </div>
-                    <div className="col-span-2 text-right">
-                      {formatCurrency(totalDebit)}
-                    </div>
-                    <div className="col-span-2 text-right">
-                      {formatCurrency(totalCredit)}
-                    </div>
-                    <div className="col-span-2"></div>
-                  </div>
-
-                  {!isBalanced && (
-                    <div className="text-red-600 text-sm font-medium text-right mt-2">
-                      Unbalanced:{' '}
-                      {formatCurrency(
-                        Math.abs(totalDebit - totalCredit)
-                      )}{' '}
-                      difference
-                    </div>
-                  )}
                 </div>
+              )
+            )}
+
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={addLine}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+              >
+                <PlusIcon className="w-4 h-4 mr-1" /> Add Line
+              </button>
+            </div>
+
+            {/* Totals */}
+            <div className="grid grid-cols-12 gap-2 pt-4 mt-4 border-t border-gray-100 font-bold">
+              <div className="col-span-6 text-right pr-4">Total</div>
+              <div className="col-span-2 text-right">
+                {formatCurrency(totalDebit)}
+              </div>
+              <div className="col-span-2 text-right">
+                {formatCurrency(totalCredit)}
+              </div>
+              <div className="col-span-2"></div>
+            </div>
+
+            {!isBalanced && (
+              <div className="text-red-600 text-sm font-medium text-right mt-2">
+                Unbalanced:{' '}
+                {formatCurrency(Math.abs(totalDebit - totalCredit))}{' '}
+                difference
+              </div>
+            )}
+          </div>
 
           {/* Actions */}
           <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">

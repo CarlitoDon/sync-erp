@@ -44,7 +44,9 @@ export default function SupplierDetail() {
   if (error || (!loading && !supplier)) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Supplier not found</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Supplier not found
+        </h2>
         <ActionButton
           onClick={() => window.history.back()}
           variant="secondary"
@@ -68,7 +70,9 @@ export default function SupplierDetail() {
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{supplier.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {supplier.name}
+          </h1>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-medium text-xs">
               Supplier
@@ -121,13 +125,15 @@ export default function SupplierDetail() {
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 pt-6 border-t border-gray-100">
               <ActionButton
-                 onClick={() => { /* Edit Layout Placeholder */ }}
-                 variant="secondary"
-                 className="w-full justify-center"
-                 disabled
+                onClick={() => {
+                  /* Edit Layout Placeholder */
+                }}
+                variant="secondary"
+                className="w-full justify-center"
+                disabled
               >
                 Edit Supplier
               </ActionButton>
@@ -151,7 +157,7 @@ export default function SupplierDetail() {
                   Purchase Orders
                 </button>
                 <button
-                   onClick={() => setActiveTab('bills')}
+                  onClick={() => setActiveTab('bills')}
                   className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'bills'
                       ? 'border-primary-500 text-primary-600'

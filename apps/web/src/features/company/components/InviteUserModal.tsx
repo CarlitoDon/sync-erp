@@ -43,18 +43,15 @@ export function InviteUserModal({
   const onSubmit = async (data: InviteUserInput) => {
     if (!currentCompany) return;
     setLoading(true);
-    await apiAction(
-      () => userService.invite(data),
-      {
-        onSuccess: () => {
-          onSuccess?.();
-          onClose();
-          reset();
-        },
-        successMessage: 'User invited successfully!',
-        onError: () => setLoading(false),
-      }
-    );
+    await apiAction(() => userService.invite(data), {
+      onSuccess: () => {
+        onSuccess?.();
+        onClose();
+        reset();
+      },
+      successMessage: 'User invited successfully!',
+      onError: () => setLoading(false),
+    });
     setLoading(false);
   };
 

@@ -11,7 +11,13 @@ export interface CreateBillInput {
 }
 
 export const billService = {
-  async list(filters: { status?: string; partnerId?: string; orderId?: string } = {}): Promise<Bill[]> {
+  async list(
+    filters: {
+      status?: string;
+      partnerId?: string;
+      orderId?: string;
+    } = {}
+  ): Promise<Bill[]> {
     const params = { ...filters };
     const res = await api.get('/bills', { params });
     return ensureArray(res.data?.data);
