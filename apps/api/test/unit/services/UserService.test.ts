@@ -6,9 +6,9 @@ import {
 
 // Mock the UserRepository module
 vi.mock('../../../src/modules/user/user.repository', () => ({
-  UserRepository: vi
-    .fn()
-    .mockImplementation(() => mockUserRepository),
+  UserRepository: function () {
+    return mockUserRepository;
+  },
 }));
 
 // Import after mocking

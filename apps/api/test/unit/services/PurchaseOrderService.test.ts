@@ -8,9 +8,9 @@ import {
 vi.mock(
   '../../../src/modules/procurement/procurement.repository',
   () => ({
-    ProcurementRepository: vi
-      .fn()
-      .mockImplementation(() => mockProcurementRepository),
+    ProcurementRepository: function () {
+      return mockProcurementRepository;
+    },
   })
 );
 
@@ -41,9 +41,7 @@ describe('PurchaseOrderService (ProcurementService)', () => {
 
       const result = await service.create(companyId, {
         partnerId: 'partner-1',
-        items: [
-          { productId: 'prod-1', quantity: 10, unitPrice: 100 },
-        ],
+        items: [{ productId: 'prod-1', quantity: 10, price: 100 }],
       });
 
       expect(result).toEqual(mockOrder);

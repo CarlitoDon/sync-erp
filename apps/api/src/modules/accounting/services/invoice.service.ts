@@ -10,7 +10,6 @@ import {
 import { DomainError } from '@sync-erp/shared';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { JournalService } from './journal.service';
-import { InventoryService } from '../../inventory/inventory.service';
 import { ReversalPolicy } from '../policies/reversal.policy';
 
 export interface CreateInvoiceInput {
@@ -22,13 +21,14 @@ export interface CreateInvoiceInput {
 
 import { DocumentNumberService } from '../../common/services/document-number.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
+import { InvoicePostingSaga } from '../sagas/invoice-posting.saga';
 
 export class InvoiceService {
   private repository = new InvoiceRepository();
   private journalService = new JournalService();
   private documentNumberService = new DocumentNumberService();
-  private inventoryService = new InventoryService();
   private idempotencyService = new IdempotencyService();
+  private invoicePostingSaga = new InvoicePostingSaga();
 
   async createFromSalesOrder(
     companyId: string,
@@ -179,6 +179,12 @@ export class InvoiceService {
     return creditNote;
   }
 
+  /**
+   * Post invoice using saga pattern for atomic execution with compensation.
+   * If posting fails mid-way, compensation will automatically reverse changes.
+   * @throws SagaCompensatedError if posting fails but was compensated
+   * @throws SagaCompensationFailedError if compensation also fails
+   */
   async post(
     id: string,
     companyId: string,
@@ -186,7 +192,7 @@ export class InvoiceService {
     configs?: { key: string; value: Prisma.JsonValue }[],
     idempotencyKey?: string
   ): Promise<Invoice> {
-    // 1. Idempotency Check
+    // Idempotency Check (if provided)
     if (idempotencyKey) {
       const lock = await this.idempotencyService.lock<Invoice>(
         idempotencyKey,
@@ -199,65 +205,26 @@ export class InvoiceService {
     }
 
     try {
-      const invoice = await this.repository.findById(
+      // Execute via saga for atomic operation with compensation
+      const result = await this.invoicePostingSaga.execute(
+        { invoiceId: id, companyId, shape, configs },
         id,
-        companyId,
-        InvoiceType.INVOICE
-      );
-      if (!invoice) {
-        throw new Error('Invoice not found');
-      }
-
-      if (invoice.status !== InvoiceStatus.DRAFT) {
-        throw new Error(
-          `Cannot post invoice with status: ${invoice.status}`
-        );
-      }
-
-      // Trigger Stock Movement (FR-008)
-      // Only if it's a Sales Invoice (which post handles specifically)
-      // And assuming Order needs shipment.
-      // We try to ship. If already shipped, logic in Logic Layer handle it?
-      // InventoryService.processShipment creates movement.
-      // If we call it multiple times, we decrement stock multiple times.
-      // Ideally we check Order Status. But Post Invoice implies "Goods Left + Debt Created".
-      if (invoice.orderId) {
-        // If shipment fails (e.g. no stock), we blocking posting!
-        // This satisfies requirement "System MUST NOT allow negative stock".
-        await this.inventoryService.processShipment(
-          companyId,
-          invoice.orderId,
-          `Shipment for Invoice ${invoice.invoiceNumber}`,
-          shape,
-          configs
-        );
-      }
-
-      const updatedInvoice = await this.repository.update(id, {
-        status: InvoiceStatus.POSTED,
-      });
-
-      if (!updatedInvoice.invoiceNumber) {
-        throw new Error(`Invoice ${id} has no invoice number`);
-      }
-
-      await this.journalService.postInvoice(
-        companyId,
-        updatedInvoice.invoiceNumber,
-        Number(updatedInvoice.amount),
-        Number(updatedInvoice.subtotal),
-        Number(updatedInvoice.taxAmount)
+        companyId
       );
 
-      // 2. Idempotency Complete
+      if (!result.success || !result.data) {
+        throw result.error || new Error('Invoice posting failed');
+      }
+
+      // Idempotency Complete
       if (idempotencyKey) {
         await this.idempotencyService.complete(
           idempotencyKey,
-          updatedInvoice
+          result.data
         );
       }
 
-      return updatedInvoice;
+      return result.data;
     } catch (error) {
       if (idempotencyKey) {
         await this.idempotencyService.fail(idempotencyKey);

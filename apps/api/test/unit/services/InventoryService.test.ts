@@ -12,11 +12,12 @@ const mockProductService = {
   updateStock: vi.fn().mockResolvedValue({}),
   checkStock: vi.fn().mockResolvedValue(true),
   getById: vi.fn(),
+  list: vi.fn(),
 };
 vi.mock('../../../src/modules/product/product.service', () => ({
-  ProductService: vi
-    .fn()
-    .mockImplementation(() => mockProductService),
+  ProductService: function () {
+    return mockProductService;
+  },
 }));
 
 // Mock ProcurementService
@@ -28,9 +29,9 @@ const mockProcurementService = {
 vi.mock(
   '../../../src/modules/procurement/procurement.service',
   () => ({
-    ProcurementService: vi
-      .fn()
-      .mockImplementation(() => mockProcurementService),
+    ProcurementService: function () {
+      return mockProcurementService;
+    },
   })
 );
 
@@ -44,9 +45,9 @@ const mockJournalService = {
 vi.mock(
   '../../../src/modules/accounting/services/journal.service',
   () => ({
-    JournalService: vi
-      .fn()
-      .mockImplementation(() => mockJournalService),
+    JournalService: function () {
+      return mockJournalService;
+    },
   })
 );
 
@@ -54,9 +55,9 @@ vi.mock(
 vi.mock(
   '../../../src/modules/inventory/inventory.repository',
   () => ({
-    InventoryRepository: vi
-      .fn()
-      .mockImplementation(() => mockInventoryRepository),
+    InventoryRepository: function () {
+      return mockInventoryRepository;
+    },
   })
 );
 

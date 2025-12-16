@@ -8,7 +8,6 @@ import {
 import { SalesRepository } from './sales.repository';
 import { SalesPolicy } from './sales.policy';
 import { ProductService } from '../product/product.service';
-import { InventoryService } from '../inventory/inventory.service';
 
 // We define input interface if shared doesn't export strict DTO for internal use yet
 // Shared exports CreateSalesOrderInput (inferred from schema)
@@ -16,12 +15,13 @@ import { InventoryService } from '../inventory/inventory.service';
 // CreateSalesOrderInput has { type: 'SALES', items: ... }
 
 import { DocumentNumberService } from '../common/services/document-number.service';
+import { ShipmentSaga } from './sagas/shipment.saga';
 
 export class SalesService {
   private repository = new SalesRepository();
   private productService = new ProductService();
-  private inventoryService = new InventoryService();
   private documentNumberService = new DocumentNumberService();
+  private shipmentSaga = new ShipmentSaga();
 
   /**
    * Create a new sales order.
@@ -117,32 +117,29 @@ export class SalesService {
   }
 
   /**
-   * Ship/Deliver Order (Merged Fulfillment Logic)
+   * Ship/Deliver Order using saga pattern for atomic execution with compensation.
+   * If shipment fails mid-way, compensation will automatically reverse changes.
+   * @throws SagaCompensatedError if shipping fails but was compensated
+   * @throws SagaCompensationFailedError if compensation also fails
    */
-  async ship(companyId: string, orderId: string, reference?: string) {
-    const order = await this.repository.findById(orderId, companyId);
-    if (!order) {
-      throw new Error('Sales order not found');
-    }
-
-    if (order.status !== OrderStatus.CONFIRMED) {
-      throw new Error('Order must be confirmed before shipping');
-    }
-
-    // Delegate to Inventory (Process Shipment)
-    const movements = await this.inventoryService.processShipment(
-      companyId,
+  async ship(
+    companyId: string,
+    orderId: string,
+    reference?: string,
+    shape?: BusinessShape,
+    configs?: { key: string; value: Prisma.JsonValue }[]
+  ) {
+    const result = await this.shipmentSaga.execute(
+      { orderId, companyId, reference, shape, configs },
       orderId,
-      reference || `Shipment for Order ${order.orderNumber}`
+      companyId
     );
 
-    // Mark order as completed
-    await this.repository.updateStatus(
-      orderId,
-      OrderStatus.COMPLETED
-    );
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Shipment failed');
+    }
 
-    return movements;
+    return result.data.movements;
   }
 
   async complete(id: string) {

@@ -6,9 +6,9 @@ import {
 
 // Mock the PartnerRepository module
 vi.mock('../../../src/modules/partner/partner.repository', () => ({
-  PartnerRepository: vi
-    .fn()
-    .mockImplementation(() => mockPartnerRepository),
+  PartnerRepository: function () {
+    return mockPartnerRepository;
+  },
 }));
 
 // Import after mocking

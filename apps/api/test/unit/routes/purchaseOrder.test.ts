@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-const express = require('express');
-const request = require('supertest');
+import express from 'express';
+import request from 'supertest';
 
 import {
   mockProcurementService,
@@ -11,9 +11,9 @@ import {
 vi.mock(
   '../../../src/modules/procurement/procurement.service',
   () => ({
-    ProcurementService: vi
-      .fn()
-      .mockReturnValue(mockProcurementService),
+    ProcurementService: function () {
+      return mockProcurementService;
+    },
   })
 );
 
@@ -24,7 +24,16 @@ import { errorHandler } from '../../../src/middlewares/errorHandler';
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
+  // Mock middleware implementations
+  // The original middleware setting req.context is replaced by this mock setup.
+  // Assuming `mockAuthMiddleware` is defined elsewhere and intended to be used here.
+  // This snippet is syntactically corrected based on the user's intent to set req.context
+  // within a mocked middleware, replacing the previous anonymous middleware.
+  // Note: `mockAuthMiddleware` is not defined in the provided context,
+  // so this assumes it would be imported or defined similarly to `mockProcurementService`.
+  // For the purpose of making the provided change syntactically correct,
+  // we'll integrate the context setting logic into the existing middleware structure.
+  app.use((req: any, _res: any, next: any) => {
     req.context = { userId: 'test-user', companyId: 'test-company' };
     next();
   });

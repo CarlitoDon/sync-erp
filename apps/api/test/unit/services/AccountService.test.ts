@@ -8,9 +8,9 @@ import {
 vi.mock(
   '../../../src/modules/accounting/repositories/account.repository',
   () => ({
-    AccountRepository: vi
-      .fn()
-      .mockImplementation(() => mockAccountRepository),
+    AccountRepository: function () {
+      return mockAccountRepository;
+    },
   })
 );
 

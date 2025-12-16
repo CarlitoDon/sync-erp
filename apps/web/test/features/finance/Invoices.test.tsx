@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 import Invoices from '../../../src/features/finance/pages/Invoices';
 import * as CompanyContext from '../../../src/contexts/CompanyContext';
@@ -72,9 +73,11 @@ describe('Invoices', () => {
 
   const renderComponent = () => {
     return render(
-      <ConfirmProvider>
-        <Invoices />
-      </ConfirmProvider>
+      <MemoryRouter>
+        <ConfirmProvider>
+          <Invoices />
+        </ConfirmProvider>
+      </MemoryRouter>
     );
   };
 
@@ -82,9 +85,7 @@ describe('Invoices', () => {
     it('shows loading spinner when data is loading', () => {
       setupMocks({ loading: true });
       renderComponent();
-      expect(
-        document.querySelector('.animate-spin')
-      ).toBeInTheDocument();
+      expect(document.querySelector('.animate-spin')).toBeInTheDocument();
     });
   });
 
@@ -125,7 +126,9 @@ describe('Invoices', () => {
 
       expect(screen.getByText('INV-001')).toBeInTheDocument();
       expect(screen.getByText('Customer A')).toBeInTheDocument();
-      expect(screen.getByText('DRAFT')).toBeInTheDocument();
+      const statusBadges = screen.getAllByText('DRAFT');
+      expect(statusBadges.length).toBeGreaterThan(0);
+      expect(statusBadges[0]).toBeInTheDocument();
     });
   });
 });

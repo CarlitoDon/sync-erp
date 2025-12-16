@@ -20,6 +20,7 @@ export type {
   RolePermission,
   Session,
   Account,
+  SagaLog,
 } from './generated/client/client.js';
 
 // Re-export enums as values (not just types)
@@ -35,6 +36,8 @@ export {
   CostingMethod,
   IdempotencyScope,
   IdempotencyStatus,
+  SagaType,
+  SagaStep,
 } from './generated/client/client.js';
 
 export { Prisma } from './generated/client/client.js';

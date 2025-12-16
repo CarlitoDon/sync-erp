@@ -3,12 +3,25 @@ import api from '../../../../src/services/api';
 import { CreateCompanyDto, JoinCompanyDto } from '@sync-erp/shared';
 
 // Mock api
-vi.mock('../../../../src/services/api', async () => {
-  const { mockApi } = await vi.importActual<any>(
-    '../mocks/services.mock'
-  );
-  return { default: mockApi };
+const { mockApi } = vi.hoisted(() => {
+  return {
+    mockApi: {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      defaults: { headers: { common: {} } },
+      interceptors: {
+        request: { use: vi.fn() },
+        response: { use: vi.fn() },
+      },
+    },
+  };
 });
+
+vi.mock('../../../../src/services/api', () => ({
+  default: mockApi,
+}));
 
 describe('companyService', () => {
   beforeEach(() => {

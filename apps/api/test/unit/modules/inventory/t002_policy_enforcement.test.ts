@@ -31,6 +31,9 @@ describe('T002: Enforce Rules & Policies (FR-005)', () => {
     service = new InventoryService();
     mockProductService = (service as any).productService;
     mockRepo = (service as any).repository;
+    // Ensure decreaseStock is a mock
+    mockProductService.decreaseStock = vi.fn();
+    mockProductService.getById = vi.fn();
   });
 
   describe('processShipment', () => {
@@ -47,8 +50,19 @@ describe('T002: Enforce Rules & Policies (FR-005)', () => {
         items: [{ productId: 'prod-A', quantity: 10 }],
       } as any);
 
-      // Mock ProductService.checkStock returning FALSE (Insufficient)
-      mockProductService.checkStock.mockResolvedValue(false);
+      // Mock Product found
+      mockProductService.getById.mockResolvedValue({
+        id: 'prod-A',
+        stockQty: 0,
+      });
+
+      // Mock ProductService.decreaseStock throwing DomainError
+      const err = new DomainError(
+        'Insufficient Stock',
+        400,
+        DomainErrorCodes.INSUFFICIENT_STOCK
+      );
+      mockProductService.decreaseStock.mockRejectedValue(err);
 
       await expect(
         service.processShipment(companyId, orderId, undefined, shape)

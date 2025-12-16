@@ -1,24 +1,33 @@
-import { vi } from 'vitest';
-const express = require('express');
+import {
+  vi,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from 'vitest';
+import express from 'express';
 import request from 'supertest';
 
 // Mock CompanyService
+const mockCompanyService = vi.hoisted(() => ({
+  create: vi.fn(),
+  update: vi.fn(),
+  getById: vi.fn(),
+  list: vi.fn(),
+  listForUser: vi.fn(),
+  join: vi.fn(),
+}));
+
+// Mock AuthMiddleware
+const mockAuthMiddleware = vi.fn();
+// Mock RBAC Middleware
+const mockRbacMiddleware = vi.fn();
+
 vi.mock('../../../src/modules/company/company.service', () => ({
-  CompanyService: vi.fn().mockImplementation(() => ({
-    listForUser: vi
-      .fn()
-      .mockResolvedValue([{ id: 'comp-1', name: 'Test Company' }]),
-    create: vi
-      .fn()
-      .mockResolvedValue({ id: 'comp-new', name: 'New Company' }),
-    join: vi
-      .fn()
-      .mockResolvedValue({ id: 'comp-1', name: 'Test Company' }),
-    getById: vi.fn().mockImplementation((id: string) => {
-      if (id === 'not-found') return Promise.resolve(null);
-      return Promise.resolve({ id: 'comp-1', name: 'Test Company' });
-    }),
-  })),
+  CompanyService: function () {
+    return mockCompanyService;
+  },
 }));
 
 // Import after mocking
@@ -109,6 +118,10 @@ describe('Company Routes', () => {
 
   describe('GET /api/companies/:id', () => {
     it('should get company by ID', async () => {
+      mockCompanyService.getById.mockResolvedValue({
+        id: 'comp-1',
+        name: 'Test Company',
+      });
       const response = await request(app).get(
         '/api/companies/comp-1'
       );
@@ -116,6 +129,7 @@ describe('Company Routes', () => {
     });
 
     it('should return 404 for non-existent company', async () => {
+      mockCompanyService.getById.mockResolvedValue(null);
       const response = await request(app).get(
         '/api/companies/not-found'
       );

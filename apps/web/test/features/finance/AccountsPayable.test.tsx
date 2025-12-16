@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 import AccountsPayable from '../../../src/features/finance/pages/AccountsPayable';
 import * as CompanyContext from '../../../src/contexts/CompanyContext';
@@ -75,9 +76,11 @@ describe('AccountsPayable', () => {
 
   const renderComponent = () => {
     return render(
-      <ConfirmProvider>
-        <AccountsPayable />
-      </ConfirmProvider>
+      <MemoryRouter>
+        <ConfirmProvider>
+          <AccountsPayable />
+        </ConfirmProvider>
+      </MemoryRouter>
     );
   };
 
@@ -85,7 +88,7 @@ describe('AccountsPayable', () => {
     it('shows loading spinner when data is loading', () => {
       setupMocks({ loading: true });
       renderComponent();
-      expect(screen.getByText(/loading bills/i)).toBeInTheDocument();
+      expect(document.querySelector('.animate-spin')).toBeInTheDocument();
     });
   });
 
@@ -94,7 +97,7 @@ describe('AccountsPayable', () => {
       setupMocks({});
       renderComponent();
       expect(
-        screen.getByRole('heading', { name: /accounts payable/i })
+        screen.getByRole('heading', { name: /bills/i })
       ).toBeInTheDocument();
     });
 

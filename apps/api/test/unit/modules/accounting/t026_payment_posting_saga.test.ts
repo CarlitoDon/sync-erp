@@ -1,0 +1,188 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  prisma,
+  SagaType,
+  SagaStep,
+  InvoiceStatus,
+} from '@sync-erp/database';
+import { PaymentPostingSaga } from '../../../../src/modules/accounting/sagas/payment-posting.saga';
+import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-errors';
+
+// Mock all dependencies
+vi.mock('@sync-erp/database', async () => {
+  const actual = await vi.importActual('@sync-erp/database');
+  return {
+    ...actual,
+    prisma: {
+      sagaLog: {
+        create: vi.fn(),
+        update: vi.fn(),
+        findUnique: vi.fn(),
+        findFirst: vi.fn(),
+      },
+      invoice: {
+        findFirst: vi.fn(),
+        update: vi.fn(),
+      },
+      payment: {
+        create: vi.fn(),
+      },
+      account: {
+        findFirst: vi.fn(),
+      },
+      journalEntry: {
+        create: vi.fn(),
+        update: vi.fn(),
+      },
+    },
+  };
+});
+
+describe('T026: Payment Posting Saga', () => {
+  let saga: PaymentPostingSaga;
+
+  const mockInvoice = {
+    id: 'inv-1',
+    companyId: 'co-1',
+    invoiceNumber: 'INV-001',
+    status: InvoiceStatus.POSTED,
+    amount: 1000,
+    balance: 1000,
+  };
+
+  const mockSagaLog = {
+    id: 'saga-1',
+    sagaType: SagaType.PAYMENT_POST,
+    entityId: 'inv-1',
+    companyId: 'co-1',
+    step: SagaStep.PENDING,
+    stepData: {},
+    error: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    saga = new PaymentPostingSaga();
+
+    vi.mocked(prisma.sagaLog.create).mockResolvedValue(mockSagaLog);
+    vi.mocked(prisma.sagaLog.update).mockResolvedValue({} as any);
+  });
+
+  describe('Successful Execution', () => {
+    it('should create payment with balance decrease and journal', async () => {
+      vi.mocked(prisma.invoice.findFirst).mockResolvedValue(
+        mockInvoice as any
+      );
+      vi.mocked(prisma.invoice.update).mockResolvedValue({
+        ...mockInvoice,
+        balance: 500,
+      } as any);
+
+      vi.mocked(prisma.payment.create).mockResolvedValue({
+        id: 'pay-1',
+        invoiceId: 'inv-1',
+        amount: 500,
+        method: 'bank_transfer',
+      } as any);
+
+      vi.mocked(prisma.account.findFirst).mockResolvedValue({
+        id: 'acc-1',
+      } as any);
+      vi.mocked(prisma.journalEntry.create).mockResolvedValue({
+        id: 'jnl-1',
+      } as any);
+
+      const result = await saga.execute(
+        {
+          invoiceId: 'inv-1',
+          companyId: 'co-1',
+          amount: 500,
+          method: 'bank_transfer',
+        },
+        'inv-1',
+        'co-1'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.amount).toBe(500);
+      expect(result.sagaLogId).toBe('saga-1');
+    });
+  });
+
+  describe('Validation', () => {
+    it('should fail on non-existent invoice', async () => {
+      vi.mocked(prisma.invoice.findFirst).mockResolvedValue(null);
+
+      await expect(
+        saga.execute(
+          {
+            invoiceId: 'inv-999',
+            companyId: 'co-1',
+            amount: 100,
+            method: 'cash',
+          },
+          'inv-999',
+          'co-1'
+        )
+      ).rejects.toThrow(SagaCompensatedError);
+    });
+
+    it('should fail when payment exceeds balance', async () => {
+      vi.mocked(prisma.invoice.findFirst).mockResolvedValue(
+        mockInvoice as any
+      );
+
+      await expect(
+        saga.execute(
+          {
+            invoiceId: 'inv-1',
+            companyId: 'co-1',
+            amount: 1500,
+            method: 'cash',
+          },
+          'inv-1',
+          'co-1'
+        )
+      ).rejects.toThrow(SagaCompensatedError);
+    });
+  });
+
+  describe('Compensation', () => {
+    it('should restore balance on journal failure', async () => {
+      vi.mocked(prisma.invoice.findFirst).mockResolvedValue(
+        mockInvoice as any
+      );
+      vi.mocked(prisma.invoice.update).mockResolvedValue({
+        ...mockInvoice,
+        balance: 500,
+      } as any);
+
+      vi.mocked(prisma.payment.create).mockResolvedValue({
+        id: 'pay-1',
+        amount: 500,
+      } as any);
+
+      vi.mocked(prisma.account.findFirst).mockResolvedValue({
+        id: 'acc-1',
+      } as any);
+      vi.mocked(prisma.journalEntry.create).mockRejectedValue(
+        new Error('Journal creation failed')
+      );
+
+      await expect(
+        saga.execute(
+          {
+            invoiceId: 'inv-1',
+            companyId: 'co-1',
+            amount: 500,
+            method: 'cash',
+          },
+          'inv-1',
+          'co-1'
+        )
+      ).rejects.toThrow(SagaCompensatedError);
+    });
+  });
+});

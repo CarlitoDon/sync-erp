@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Finance from '../../../src/features/finance/pages/Finance';
 import * as CompanyContext from '../../../src/contexts/CompanyContext';
 import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
@@ -50,7 +51,7 @@ vi.mock('../../../src/pages/JournalEntries', () => ({
 }));
 
 // Mock FinancialReport component
-vi.mock('../../../src/components/FinancialReport', () => ({
+vi.mock('../../../src/features/finance/components/FinancialReport', () => ({
   FinancialReport: ({ title }: { title: string }) => (
     <div data-testid="financial-report">{title}</div>
   ),
@@ -107,7 +108,11 @@ describe('Finance', () => {
   };
 
   const renderComponent = () => {
-    return render(<Finance />);
+    return render(
+      <MemoryRouter>
+        <Finance />
+      </MemoryRouter>
+    );
   };
 
   describe('Loading State', () => {
@@ -170,14 +175,16 @@ describe('Finance', () => {
   });
 
   describe('Reports', () => {
-    it('renders report components', () => {
+    it('renders report components', async () => {
       setupMocks({});
       renderComponent();
 
       fireEvent.click(screen.getByText('Financial Reports'));
-      expect(
-        screen.getByTestId('financial-report')
-      ).toHaveTextContent('Balance Sheet');
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('financial-report')
+        ).toHaveTextContent('Balance Sheet');
+      });
     });
   });
 });

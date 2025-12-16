@@ -26,6 +26,18 @@ vi.mock(
 vi.mock(
   '../../../../src/modules/accounting/services/journal.service'
 );
+
+// Mock Saga
+const mockSaga = { execute: vi.fn() };
+vi.mock(
+  '../../../../src/modules/accounting/sagas/invoice-posting.saga',
+  () => ({
+    InvoicePostingSaga: function () {
+      return mockSaga;
+    },
+  })
+);
+
 vi.mock(
   '../../../../src/modules/common/services/document-number.service'
 );
@@ -34,14 +46,13 @@ vi.mock('../../../../src/modules/inventory/inventory.service');
 describe('T014: Invoice Idempotency (FR-Safety)', () => {
   let service: InvoiceService;
   let mockIdempotency: any;
-  let mockRepo: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSaga.execute.mockClear(); // Clear saga mock
     service = new InvoiceService();
     // Access privates via any
     mockIdempotency = (service as any).idempotencyService;
-    mockRepo = (service as any).repository;
   });
 
   const companyId = 'co-1';
@@ -51,20 +62,14 @@ describe('T014: Invoice Idempotency (FR-Safety)', () => {
     // 1. Lock returns saved=false
     mockIdempotency.lock.mockResolvedValue({ saved: false });
 
-    // 2. Repo finds invoice
-    mockRepo.findById.mockResolvedValue({
-      id: invoiceId,
-      status: InvoiceStatus.DRAFT,
-      invoiceNumber: 'INV-001',
-      orderId: null,
-    });
-
-    // 3. Repo updates
-    mockRepo.update.mockResolvedValue({
-      id: invoiceId,
-      status: InvoiceStatus.POSTED,
-      invoiceNumber: 'INV-001',
-      amount: 100,
+    // 2. Saga returns success
+    mockSaga.execute.mockResolvedValue({
+      success: true,
+      data: {
+        id: invoiceId,
+        status: InvoiceStatus.POSTED,
+        invoiceNumber: 'INV-001',
+      },
     });
 
     const result = await service.post(
@@ -82,8 +87,12 @@ describe('T014: Invoice Idempotency (FR-Safety)', () => {
       IdempotencyScope.INVOICE_POST
     );
 
-    // Verify Update called
-    expect(mockRepo.update).toHaveBeenCalled();
+    // Verify Saga Called
+    expect(mockSaga.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ invoiceId, companyId }),
+      invoiceId,
+      companyId
+    );
 
     // Verify Complete called
     expect(mockIdempotency.complete).toHaveBeenCalledWith(
@@ -114,9 +123,8 @@ describe('T014: Invoice Idempotency (FR-Safety)', () => {
       'key-123'
     );
 
-    // Verify Repo/Logic NOT called
-    expect(mockRepo.findById).not.toHaveBeenCalled();
-    expect(mockRepo.update).not.toHaveBeenCalled();
+    // Verify Saga NOT called
+    expect(mockSaga.execute).not.toHaveBeenCalled();
 
     expect(result).toEqual(cachedInvoice);
   });
@@ -125,8 +133,11 @@ describe('T014: Invoice Idempotency (FR-Safety)', () => {
     // 1. Lock returns saved=false
     mockIdempotency.lock.mockResolvedValue({ saved: false });
 
-    // 2. Logic throws (e.g. Invoice not found)
-    mockRepo.findById.mockResolvedValue(null);
+    // 2. Logic throws (e.g. Saga fails)
+    mockSaga.execute.mockResolvedValue({
+      success: false,
+      error: new Error('Saga failed'),
+    });
 
     await expect(
       service.post(
@@ -136,7 +147,7 @@ describe('T014: Invoice Idempotency (FR-Safety)', () => {
         undefined,
         'key-123'
       )
-    ).rejects.toThrow('Invoice not found');
+    ).rejects.toThrow('Saga failed');
 
     // Verify Fail called
     expect(mockIdempotency.fail).toHaveBeenCalledWith('key-123');

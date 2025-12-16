@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Suppliers from '../../../src/features/procurement/pages/Suppliers';
 import * as CompanyContext from '../../../src/contexts/CompanyContext';
@@ -77,9 +78,11 @@ describe('Suppliers', () => {
 
   const renderComponent = () => {
     return render(
-      <ConfirmProvider>
-        <Suppliers />
-      </ConfirmProvider>
+      <MemoryRouter>
+        <ConfirmProvider>
+          <Suppliers />
+        </ConfirmProvider>
+      </MemoryRouter>
     );
   };
 

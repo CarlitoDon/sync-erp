@@ -9,9 +9,9 @@ import {
 vi.mock(
   '../../../src/modules/accounting/repositories/account.repository',
   () => ({
-    AccountRepository: vi
-      .fn()
-      .mockImplementation(() => mockAccountRepository),
+    AccountRepository: function () {
+      return mockAccountRepository;
+    },
   })
 );
 
@@ -19,9 +19,9 @@ vi.mock(
 vi.mock(
   '../../../src/modules/accounting/repositories/journal.repository',
   () => ({
-    JournalRepository: vi
-      .fn()
-      .mockImplementation(() => mockJournalRepository),
+    JournalRepository: function () {
+      return mockJournalRepository;
+    },
   })
 );
 

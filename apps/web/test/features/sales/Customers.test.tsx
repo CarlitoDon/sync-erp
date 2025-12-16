@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Customers from '../../../src/features/sales/pages/Customers';
 import * as CompanyContext from '../../../src/contexts/CompanyContext';
@@ -77,9 +78,11 @@ describe('Customers', () => {
 
   const renderComponent = () => {
     return render(
-      <ConfirmProvider>
-        <Customers />
-      </ConfirmProvider>
+      <MemoryRouter>
+        <ConfirmProvider>
+          <Customers />
+        </ConfirmProvider>
+      </MemoryRouter>
     );
   };
 

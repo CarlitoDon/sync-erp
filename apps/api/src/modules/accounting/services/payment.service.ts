@@ -1,28 +1,26 @@
-import {
-  Payment,
-  InvoiceStatus,
-  InvoiceType,
-  Prisma,
-  IdempotencyScope,
-} from '@sync-erp/database';
+import { Payment, IdempotencyScope } from '@sync-erp/database';
 import { PaymentRepository } from '../repositories/payment.repository';
-import { InvoiceRepository } from '../repositories/invoice.repository';
-import { JournalService } from './journal.service';
 import { CreatePaymentDto } from '@sync-erp/shared';
 import { IdempotencyService } from '../../common/services/idempotency.service';
+import { PaymentPostingSaga } from '../sagas/payment-posting.saga';
 
 export class PaymentService {
   private repository = new PaymentRepository();
-  private invoiceRepository = new InvoiceRepository();
-  private journalService = new JournalService();
   private idempotencyService = new IdempotencyService();
+  private paymentPostingSaga = new PaymentPostingSaga();
 
+  /**
+   * Create payment using saga pattern for atomic execution with compensation.
+   * If payment fails mid-way, compensation will automatically reverse changes.
+   * @throws SagaCompensatedError if payment fails but was compensated
+   * @throws SagaCompensationFailedError if compensation also fails
+   */
   async create(
     companyId: string,
     data: CreatePaymentDto,
     idempotencyKey?: string
   ): Promise<Payment> {
-    // 1. Idempotency Check
+    // Idempotency Check
     if (idempotencyKey) {
       const lock = await this.idempotencyService.lock<Payment>(
         idempotencyKey,
@@ -35,90 +33,31 @@ export class PaymentService {
     }
 
     try {
-      // Get the invoice
-      const invoice = await this.invoiceRepository.findById(
+      // Execute via saga for atomic operation with compensation
+      const result = await this.paymentPostingSaga.execute(
+        {
+          invoiceId: data.invoiceId,
+          amount: data.amount,
+          method: data.method,
+          companyId,
+        },
         data.invoiceId,
         companyId
       );
 
-      if (!invoice) {
-        throw new Error('Invoice not found');
+      if (!result.success || !result.data) {
+        throw result.error || new Error('Payment creation failed');
       }
 
-      if (invoice.status === InvoiceStatus.VOID) {
-        throw new Error('Cannot pay a voided invoice');
-      }
-
-      if (invoice.status === InvoiceStatus.DRAFT) {
-        throw new Error('Invoice must be posted before payment');
-      }
-
-      // Attempt Atomic Payment (T020 Guard)
-      let updatedInvoice;
-      try {
-        updatedInvoice =
-          await this.invoiceRepository.decreaseBalanceWithGuard(
-            invoice.id,
-            data.amount
-          );
-      } catch (error) {
-        if (
-          (error as Prisma.PrismaClientKnownRequestError).code ===
-          'P2025'
-        ) {
-          throw new Error(
-            `Payment amount (${data.amount}) exceeds remaining balance`
-          );
-        }
-        throw error;
-      }
-
-      // Create the payment
-      const payment = await this.repository.create({
-        companyId,
-        invoiceId: data.invoiceId,
-        amount: data.amount,
-        method: data.method,
-      });
-
-      // Update Status if paid in full
-      // Note: Balance is already decremented safely
-      if (Number(updatedInvoice.balance) <= 0) {
-        await this.invoiceRepository.update(invoice.id, {
-          status: InvoiceStatus.PAID,
-        });
-      }
-
-      // Auto-post journal entry
-      if (!invoice.invoiceNumber) {
-        throw new Error(`Invoice/Bill ${invoice.id} has no number`);
-      }
-
-      if (invoice.type === InvoiceType.INVOICE) {
-        await this.journalService.postPaymentReceived(
-          companyId,
-          invoice.invoiceNumber,
-          data.amount,
-          data.method
-        );
-      } else if (invoice.type === InvoiceType.BILL) {
-        await this.journalService.postPaymentMade(
-          companyId,
-          invoice.invoiceNumber,
-          data.amount,
-          data.method
-        );
-      }
-
-      // 2. Idempotency Complete
+      // Idempotency Complete
       if (idempotencyKey) {
         await this.idempotencyService.complete(
           idempotencyKey,
-          payment
+          result.data
         );
       }
 
-      return payment;
+      return result.data;
     } catch (error) {
       if (idempotencyKey) {
         await this.idempotencyService.fail(idempotencyKey);

@@ -13,9 +13,9 @@ const mockJournalService = {
 vi.mock(
   '../../../src/modules/accounting/services/journal.service',
   () => ({
-    JournalService: vi
-      .fn()
-      .mockImplementation(() => mockJournalService),
+    JournalService: function () {
+      return mockJournalService;
+    },
   })
 );
 
@@ -23,9 +23,22 @@ vi.mock(
 vi.mock(
   '../../../src/modules/accounting/repositories/payment.repository',
   () => ({
-    PaymentRepository: vi
-      .fn()
-      .mockImplementation(() => mockPaymentRepository),
+    PaymentRepository: function () {
+      return mockPaymentRepository;
+    },
+  })
+);
+
+// Mock PaymentPostingSaga
+const mockPaymentPostingSaga = {
+  execute: vi.fn(),
+};
+vi.mock(
+  '../../../src/modules/accounting/sagas/payment-posting.saga',
+  () => ({
+    PaymentPostingSaga: function () {
+      return mockPaymentPostingSaga;
+    },
   })
 );
 
@@ -33,9 +46,9 @@ vi.mock(
 vi.mock(
   '../../../src/modules/accounting/repositories/invoice.repository',
   () => ({
-    InvoiceRepository: vi
-      .fn()
-      .mockImplementation(() => mockInvoiceRepository),
+    InvoiceRepository: function () {
+      return mockInvoiceRepository;
+    },
   })
 );
 
@@ -53,17 +66,7 @@ describe('PaymentService', () => {
   });
 
   describe('create', () => {
-    it('should create a payment for a posted invoice', async () => {
-      const mockInvoice = {
-        id: 'invoice-1',
-        companyId,
-        status: 'POSTED',
-        type: 'INVOICE',
-        amount: 1000,
-        balance: 1000,
-        invoiceNumber: 'INV-001',
-      };
-
+    it('should delegate to PaymentPostingSaga', async () => {
       const mockPayment = {
         id: 'payment-1',
         companyId,
@@ -72,11 +75,9 @@ describe('PaymentService', () => {
         method: 'TRANSFER',
       };
 
-      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
-      mockPaymentRepository.create.mockResolvedValue(mockPayment);
-      mockInvoiceRepository.update.mockResolvedValue({
-        ...mockInvoice,
-        balance: 500,
+      mockPaymentPostingSaga.execute.mockResolvedValue({
+        success: true,
+        data: mockPayment,
       });
 
       const result = await service.create(companyId, {
@@ -86,62 +87,22 @@ describe('PaymentService', () => {
       });
 
       expect(result).toEqual(mockPayment);
-    });
-
-    it('should throw error for non-existent invoice', async () => {
-      mockInvoiceRepository.findById.mockResolvedValue(null);
-
-      await expect(
-        service.create(companyId, {
-          invoiceId: 'nonexistent',
-          amount: 100,
-          method: 'CASH',
-        })
-      ).rejects.toThrow('Invoice not found');
-    });
-
-    it('should throw error for voided invoice', async () => {
-      const mockInvoice = {
-        id: 'invoice-1',
-        status: 'VOID',
-        balance: 1000,
-      };
-      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
-
-      await expect(
-        service.create(companyId, {
+      expect(mockPaymentPostingSaga.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
           invoiceId: 'invoice-1',
-          amount: 100,
-          method: 'CASH',
-        })
-      ).rejects.toThrow('Cannot pay a voided invoice');
+          amount: 500,
+          companyId,
+        }),
+        'invoice-1',
+        companyId
+      );
     });
 
-    it('should throw error for draft invoice', async () => {
-      const mockInvoice = {
-        id: 'invoice-1',
-        status: 'DRAFT',
-        balance: 1000,
-      };
-      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
-
-      await expect(
-        service.create(companyId, {
-          invoiceId: 'invoice-1',
-          amount: 100,
-          method: 'CASH',
-        })
-      ).rejects.toThrow('Invoice must be posted before payment');
-    });
-
-    it('should throw error if payment exceeds remaining balance', async () => {
-      const mockInvoice = {
-        id: 'invoice-1',
-        status: 'POSTED',
-        amount: 1000,
-        balance: 200,
-      };
-      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
+    it('should throw error if saga fails', async () => {
+      mockPaymentPostingSaga.execute.mockResolvedValue({
+        success: false,
+        error: new Error('Saga failed'),
+      });
 
       await expect(
         service.create(companyId, {
@@ -149,9 +110,7 @@ describe('PaymentService', () => {
           amount: 500,
           method: 'CASH',
         })
-      ).rejects.toThrow(
-        'Payment amount (500) exceeds remaining balance (200)'
-      );
+      ).rejects.toThrow('Saga failed');
     });
   });
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { prisma } from '@sync-erp/database';
 import { Request, Response, NextFunction } from 'express';
-import { mockPrisma } from '../mocks/prisma.mock';
+// import { mockPrisma } from '../mocks/prisma.mock';
 import {
   mockSessionService,
   resetServiceMocks,
@@ -12,9 +13,11 @@ const { mockGetSession } = vi.hoisted(() => {
 });
 
 vi.mock('../../../src/modules/auth/auth.repository', () => ({
-  AuthRepository: vi.fn().mockImplementation(() => ({
-    getSession: mockGetSession,
-  })),
+  AuthRepository: function () {
+    return {
+      getSession: mockGetSession,
+    };
+  },
 }));
 
 // Mock session service is not used by middleware directly anymore?
@@ -144,7 +147,9 @@ describe('auth middleware', () => {
         expiresAt: new Date(Date.now() + 100000),
         user: { id: 'user-1' },
       });
-      mockPrisma.companyMember.findUnique.mockResolvedValue(null);
+      vi.mocked(prisma.companyMember.findUnique).mockResolvedValue(
+        null
+      );
 
       await authMiddleware(req, res, mockNext);
 
@@ -173,10 +178,19 @@ describe('auth middleware', () => {
 
       mockGetSession.mockResolvedValue(mockSession);
 
-      mockPrisma.companyMember.findUnique.mockResolvedValue({
+      vi.mocked(prisma.companyMember.findUnique).mockResolvedValue({
         userId: 'user-1',
         companyId: 'company-1',
+        role: 'USER',
+        joinedAt: new Date(),
       });
+
+      vi.mocked(prisma.company.findUnique).mockResolvedValue({
+        id: 'company-1',
+        name: 'Test Company',
+        businessShape: 'RETAIL',
+        configs: [],
+      } as any);
 
       await authMiddleware(req, res, mockNext);
 

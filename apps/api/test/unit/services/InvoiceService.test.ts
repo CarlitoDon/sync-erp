@@ -11,9 +11,9 @@ const mockJournalService = {
 vi.mock(
   '../../../src/modules/accounting/services/journal.service',
   () => ({
-    JournalService: vi
-      .fn()
-      .mockImplementation(() => mockJournalService),
+    JournalService: function () {
+      return mockJournalService;
+    },
   })
 );
 
@@ -24,19 +24,32 @@ const mockDocumentNumberService = {
 vi.mock(
   '../../../src/modules/common/services/document-number.service',
   () => ({
-    DocumentNumberService: vi
-      .fn()
-      .mockImplementation(() => mockDocumentNumberService),
+    DocumentNumberService: function () {
+      return mockDocumentNumberService;
+    },
   })
 );
 
-// Mock the InvoiceRepository module
+// Mock InvoicePostingSaga
+const mockInvoicePostingSaga = {
+  execute: vi.fn(),
+};
+vi.mock(
+  '../../../src/modules/accounting/sagas/invoice-posting.saga',
+  () => ({
+    InvoicePostingSaga: function () {
+      return mockInvoicePostingSaga;
+    },
+  })
+);
+
+// Mock InvoiceRepository
 vi.mock(
   '../../../src/modules/accounting/repositories/invoice.repository',
   () => ({
-    InvoiceRepository: vi
-      .fn()
-      .mockImplementation(() => mockInvoiceRepository),
+    InvoiceRepository: function () {
+      return mockInvoiceRepository;
+    },
   })
 );
 
@@ -141,48 +154,40 @@ describe('InvoiceService', () => {
   });
 
   describe('post', () => {
-    it('should post a draft invoice', async () => {
+    it('should delegate to InvoicePostingSaga', async () => {
       const mockInvoice = {
-        id: 'inv-1',
+        id: 'invoice-1',
         companyId,
-        status: 'DRAFT',
-        invoiceNumber: 'INV-001',
-        amount: 1000,
-        subtotal: 909,
-        taxAmount: 91,
+        status: 'POSTED',
       };
-      const postedInvoice = { ...mockInvoice, status: 'POSTED' };
 
-      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
-      mockInvoiceRepository.update.mockResolvedValue(postedInvoice);
+      mockInvoicePostingSaga.execute.mockResolvedValue({
+        success: true,
+        data: mockInvoice,
+      });
 
-      const result = await service.post('inv-1', companyId);
+      const result = await service.post('invoice-1', companyId);
 
-      expect(result.status).toBe('POSTED');
-      expect(mockJournalService.postInvoice).toHaveBeenCalledWith(
-        companyId,
-        'INV-001',
-        1000,
-        909,
-        91
+      expect(result).toEqual(mockInvoice);
+      expect(mockInvoicePostingSaga.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          invoiceId: 'invoice-1',
+          companyId,
+        }),
+        'invoice-1',
+        companyId
       );
     });
 
-    it('should throw error if invoice not found', async () => {
-      mockInvoiceRepository.findById.mockResolvedValue(null);
+    it('should throw error if saga fails', async () => {
+      mockInvoicePostingSaga.execute.mockResolvedValue({
+        success: false,
+        error: new Error('Saga failed'),
+      });
 
       await expect(
-        service.post('nonexistent', companyId)
-      ).rejects.toThrow('Invoice not found');
-    });
-
-    it('should throw error if invoice is not in draft status', async () => {
-      const mockInvoice = { id: 'inv-1', status: 'POSTED' };
-      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
-
-      await expect(service.post('inv-1', companyId)).rejects.toThrow(
-        'Cannot post invoice with status: POSTED'
-      );
+        service.post('invoice-1', companyId)
+      ).rejects.toThrow('Saga failed');
     });
   });
 

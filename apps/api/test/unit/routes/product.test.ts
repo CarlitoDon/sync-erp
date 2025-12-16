@@ -1,44 +1,36 @@
-import { vi } from 'vitest';
-const express = require('express');
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import express from 'express';
 import request from 'supertest';
 
-// Mock ProductService
+// Use vi.hoisted to ensure mocks are available during hoisting
+const { mockProductService, mockAuthMiddleware, mockRbacMiddleware } =
+  vi.hoisted(() => {
+    return {
+      mockProductService: {
+        create: vi.fn(),
+        update: vi.fn(),
+        getById: vi.fn(),
+        list: vi.fn(),
+        updateStock: vi.fn(),
+        delete: vi.fn(),
+      },
+      mockAuthMiddleware: vi.fn(),
+      mockRbacMiddleware: vi.fn(),
+    };
+  });
+
 vi.mock('../../../src/modules/product/product.service', () => ({
-  ProductService: vi.fn().mockImplementation(() => ({
-    list: vi.fn().mockResolvedValue([
-      {
-        id: 'prod-1',
-        sku: 'SKU1',
-        name: 'Product 1',
-        price: 100,
-        stockQty: 10,
-      },
-      {
-        id: 'prod-2',
-        sku: 'SKU2',
-        name: 'Product 2',
-        price: 200,
-        stockQty: 5,
-      },
-    ]),
-    getById: vi.fn().mockResolvedValue({
-      id: 'prod-1',
-      sku: 'SKU1',
-      name: 'Product 1',
-      price: 100,
-      stockQty: 10,
-      averageCost: 80,
-    }),
-    create: vi.fn().mockResolvedValue({
-      id: 'prod-new',
-      sku: 'NEW',
-      name: 'New Product',
-    }),
-    update: vi
-      .fn()
-      .mockResolvedValue({ id: 'prod-1', name: 'Updated Product' }),
-    delete: vi.fn().mockResolvedValue(undefined),
-  })),
+  ProductService: function () {
+    return mockProductService;
+  },
+}));
+
+vi.mock('../../../src/middlewares/auth', () => ({
+  authMiddleware: mockAuthMiddleware,
+}));
+
+vi.mock('../../../src/middlewares/rbac', () => ({
+  checkPermissions: () => mockRbacMiddleware,
 }));
 
 // Import after mocking
@@ -62,11 +54,70 @@ describe('Product Routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Configure default mock return values
+    mockProductService.list.mockResolvedValue([
+      {
+        id: 'prod-1',
+        sku: 'SKU1',
+        name: 'Product 1',
+        price: 100,
+        stockQty: 10,
+      },
+      {
+        id: 'prod-2',
+        sku: 'SKU2',
+        name: 'Product 2',
+        price: 200,
+        stockQty: 5,
+      },
+    ]);
+    mockProductService.getById.mockResolvedValue({
+      id: 'prod-1',
+      sku: 'SKU1',
+      name: 'Product 1',
+      price: 100,
+      stockQty: 10,
+      averageCost: 80,
+    });
+    mockProductService.create.mockResolvedValue({
+      id: 'prod-new',
+      sku: 'NEW',
+      name: 'New Product',
+    });
+    mockProductService.update.mockResolvedValue({
+      id: 'prod-1',
+      name: 'Updated Product',
+    });
+    mockProductService.delete.mockResolvedValue(undefined);
+
     app = createTestApp();
   });
 
   describe('GET /api/products', () => {
     it('should list all products', async () => {
+      (mockAuthMiddleware as any).mockImplementation(
+        (req: any, res: any, next: any) => next()
+      );
+      (mockRbacMiddleware as any).mockImplementation(
+        (req: any, res: any, next: any) => next()
+      );
+      mockProductService.list.mockResolvedValue([
+        {
+          id: 'prod-1',
+          sku: 'SKU1',
+          name: 'Product 1',
+          price: 100,
+          stockQty: 10,
+        },
+        {
+          id: 'prod-2',
+          sku: 'SKU2',
+          name: 'Product 2',
+          price: 200,
+          stockQty: 5,
+        },
+      ]);
       const response = await request(app).get('/api/products');
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);

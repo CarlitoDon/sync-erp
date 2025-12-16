@@ -4,9 +4,10 @@ trigger: always_on
 
 <!--
 MEMORY SYNC REPORT
-Version: 1.0.5 -> 1.0.6 (Patch - Added Phase 0 Gate Review)
+Version: 1.0.6 -> 1.1.0 (Minor - Saga Implementation Complete)
 Added Sections:
-- Phase 0 Gate Review - Approved with Risks
+- Saga Integration Test Standard
+- Vitest 4.x Mock Hoisting
 Modified Sections:
 - None
 Removed Sections:
@@ -16,7 +17,7 @@ Last Updated: 2025-12-16
 
 # Project Memory
 
-**Version**: 1.0.6 | **Last Updated**: 2025-12-16
+**Version**: 1.1.0 | **Last Updated**: 2025-12-16
 
 ## Overview
 
@@ -32,6 +33,18 @@ Last Updated: 2025-12-16
 ## Key Decisions Log
 
 > Decisions that affect future development. Add new entries at top.
+
+### [2025-12-16] Saga Integration Test Standard
+
+**Decision**: Integration tests for Saga-driven flows MUST mock the Saga orchestrator, NOT the underlying repositories.
+**Rationale**: Simulating repository calls duplicates the Saga's internal logic and creates brittle tests. We test Sagas in isolation (unit/infras) and trust them in flows.
+**Reference**: Phase 2 Saga Implementation
+
+### [2025-12-16] Vitest 4.x Mock Hoisting
+
+**Decision**: Use `function() { return mockInstance }` pattern for `vi.mock()` factory functions.
+**Rationale**: Vitest 4.x is strict about hoisting. Accessing outer-scope variables directly in factory fails.
+**Reference**: Test Infrastructure Failure Analysis
 
 ### [2025-12-16] Phase 0 Gate Review - Approved with Risks
 
@@ -145,6 +158,16 @@ if (proceed) {
 # After creating any new file, verify it's imported somewhere
 grep -r "import.*filename" apps/
 # If no results, the file is orphaned and needs integration
+```
+
+### Vitest 4.x Saga Mocking
+
+```typescript
+vi.mock('../services/InvoicePostingSaga', () => ({
+  InvoicePostingSaga: function () {
+    return mockInvoicePostingSaga;
+  },
+}));
 ```
 
 ---

@@ -8,10 +8,12 @@ import {
 import { ProcurementRepository } from './procurement.repository';
 import { ProcurementPolicy } from './procurement.policy';
 import { DocumentNumberService } from '../common/services/document-number.service';
+import { GoodsReceiptSaga } from './sagas/goods-receipt.saga';
 
 export class ProcurementService {
   private repository = new ProcurementRepository();
   private documentNumberService = new DocumentNumberService();
+  private goodsReceiptSaga = new GoodsReceiptSaga();
 
   /**
    * Create a new purchase order.
@@ -123,5 +125,30 @@ export class ProcurementService {
 
   async getItems(orderId: string) {
     return this.repository.findItems(orderId);
+  }
+
+  /**
+   * Receive goods using saga pattern for atomic execution with compensation.
+   * If goods receipt fails mid-way, compensation will automatically reverse changes.
+   * @throws SagaCompensatedError if goods receipt fails but was compensated
+   * @throws SagaCompensationFailedError if compensation also fails
+   */
+  async receive(
+    orderId: string,
+    companyId: string,
+    reference?: string,
+    shape?: BusinessShape
+  ) {
+    const result = await this.goodsReceiptSaga.execute(
+      { orderId, companyId, reference, shape },
+      orderId,
+      companyId
+    );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Goods receipt failed');
+    }
+
+    return result.data.movements;
   }
 }

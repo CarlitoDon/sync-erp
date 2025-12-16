@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import SalesOrders from '../../../src/features/sales/pages/SalesOrders';
 import * as CompanyContext from '../../../src/contexts/CompanyContext';
@@ -73,24 +74,42 @@ describe('SalesOrders', () => {
       isLoading: false,
     });
 
-    vi.mocked(useCompanyDataHook.useCompanyData).mockReturnValue({
-      data: {
-        orders: options.orders ?? [],
-        customers: options.customers ?? [],
-        products: options.products ?? [],
-      },
-      loading: options.loading ?? false,
-      error: null,
-      refresh: vi.fn(),
-      setData: vi.fn(),
+    // Mock useCompanyData to return different values based on initialData type
+    // If initialData is array -> List component call (returns orders array)
+    // If initialData is object -> Page component call (returns {customers, products})
+    vi.mocked(useCompanyDataHook.useCompanyData).mockImplementation((_fetcher, initialData) => {
+      if (Array.isArray(initialData)) {
+         // Component level hook - returns orders array directly
+        return {
+          data: options.orders ?? [],
+          loading: options.loading ?? false,
+          error: null,
+          refresh: vi.fn(),
+          setData: vi.fn(),
+        };
+      } else {
+        // Page level hook - returns object with customers and products
+        return {
+          data: {
+            customers: options.customers ?? [],
+            products: options.products ?? [],
+          },
+          loading: options.loading ?? false,
+          error: null,
+          refresh: vi.fn(),
+          setData: vi.fn(),
+        };
+      }
     });
   };
 
   const renderComponent = () => {
     return render(
-      <ConfirmProvider>
-        <SalesOrders />
-      </ConfirmProvider>
+      <MemoryRouter>
+        <ConfirmProvider>
+          <SalesOrders />
+        </ConfirmProvider>
+      </MemoryRouter>
     );
   };
 

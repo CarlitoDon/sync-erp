@@ -1,36 +1,38 @@
-import { vi } from 'vitest';
-const express = require('express');
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import express, { Response, NextFunction } from 'express';
 import request from 'supertest';
 
 // Mock BillService
 vi.mock(
   '../../../src/modules/accounting/services/bill.service',
   () => ({
-    BillService: vi.fn().mockImplementation(() => ({
-      list: vi
-        .fn()
-        .mockResolvedValue([
-          { id: 'bill-1', billNumber: 'BILL-001' },
-        ]),
-      getById: vi.fn().mockImplementation((id: string) => {
-        if (id === 'not-found') return Promise.resolve(null);
-        return Promise.resolve({
-          id: 'bill-1',
-          billNumber: 'BILL-001',
-        });
-      }),
-      getOutstanding: vi.fn().mockResolvedValue([]),
-      createFromPurchaseOrder: vi
-        .fn()
-        .mockResolvedValue({ id: 'bill-new' }),
-      post: vi
-        .fn()
-        .mockResolvedValue({ id: 'bill-1', status: 'POSTED' }),
-      void: vi
-        .fn()
-        .mockResolvedValue({ id: 'bill-1', status: 'VOID' }),
-      getRemainingAmount: vi.fn().mockResolvedValue(300),
-    })),
+    BillService: function () {
+      return {
+        list: vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'bill-1', billNumber: 'BILL-001' },
+          ]),
+        getById: vi.fn().mockImplementation((id: string) => {
+          if (id === 'not-found') return Promise.resolve(null);
+          return Promise.resolve({
+            id: 'bill-1',
+            billNumber: 'BILL-001',
+          });
+        }),
+        getOutstanding: vi.fn().mockResolvedValue([]),
+        createFromPurchaseOrder: vi
+          .fn()
+          .mockResolvedValue({ id: 'bill-new' }),
+        post: vi
+          .fn()
+          .mockResolvedValue({ id: 'bill-1', status: 'POSTED' }),
+        void: vi
+          .fn()
+          .mockResolvedValue({ id: 'bill-1', status: 'VOID' }),
+        getRemainingAmount: vi.fn().mockResolvedValue(300),
+      };
+    },
   })
 );
 
@@ -41,8 +43,12 @@ import { errorHandler } from '../../../src/middlewares/errorHandler';
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
+  app.use((req: any, _res: Response, next: NextFunction) => {
     req.context = { userId: 'test-user', companyId: 'test-company' };
+    req.company = {
+      businessShape: 'RETAIL',
+      configs: [],
+    };
     next();
   });
   app.use('/api/bills', billRouter);

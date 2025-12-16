@@ -1,62 +1,72 @@
-import { vi } from 'vitest';
-const express = require('express');
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import express from 'express';
 import request from 'supertest';
 
-// Mock services
+// Mock Services
+const mockAccountService = vi.hoisted(() => ({
+  create: vi.fn(),
+  update: vi.fn(),
+  getById: vi.fn(),
+  list: vi.fn(),
+  seedDefaultAccounts: vi.fn(),
+}));
+
+const mockJournalService = vi.hoisted(() => ({
+  create: vi.fn(),
+  getById: vi.fn(),
+  list: vi.fn(),
+  createEntry: vi.fn(),
+  getEntryById: vi.fn(),
+  listEntries: vi.fn(),
+  reverseEntry: vi.fn(),
+}));
+
+const mockReportService = vi.hoisted(() => ({
+  getBalanceSheet: vi.fn(),
+  getIncomeStatement: vi.fn(),
+  getTrialBalance: vi.fn(),
+  getGeneralLedger: vi.fn(),
+}));
+
+// Mock AuthMiddleware
+const mockAuthMiddleware = vi.fn();
+// Mock RBAC Middleware
+const mockRbacMiddleware = vi.fn();
+
 vi.mock(
   '../../../src/modules/accounting/services/account.service',
   () => ({
-    AccountService: vi.fn().mockImplementation(() => ({
-      list: vi
-        .fn()
-        .mockResolvedValue([
-          { id: 'acc-1', code: '1000', name: 'Cash' },
-        ]),
-      create: vi
-        .fn()
-        .mockResolvedValue({ id: 'acc-new', code: '1001' }),
-      seedDefaultAccounts: vi
-        .fn()
-        .mockResolvedValue([{ id: 'acc-1' }, { id: 'acc-2' }]),
-    })),
+    AccountService: function () {
+      return mockAccountService;
+    },
   })
 );
 
 vi.mock(
   '../../../src/modules/accounting/services/journal.service',
   () => ({
-    JournalService: vi.fn().mockImplementation(() => ({
-      list: vi
-        .fn()
-        .mockResolvedValue([{ id: 'je-1', entryNumber: 'JE-001' }]),
-      getById: vi.fn().mockImplementation((id: string) => {
-        if (id === 'not-found') return Promise.resolve(null);
-        return Promise.resolve({ id: 'je-1', entryNumber: 'JE-001' });
-      }),
-      create: vi.fn().mockResolvedValue({ id: 'je-new' }),
-    })),
+    JournalService: function () {
+      return mockJournalService;
+    },
   })
 );
 
 vi.mock(
   '../../../src/modules/accounting/services/report.service',
   () => ({
-    ReportService: vi.fn().mockImplementation(() => ({
-      getTrialBalance: vi.fn().mockResolvedValue({
-        accounts: [],
-        totals: { debit: 0, credit: 0 },
-      }),
-      getGeneralLedger: vi
-        .fn()
-        .mockResolvedValue({ entries: [], balance: 0 }),
-      getIncomeStatement: vi.fn().mockResolvedValue({
-        revenue: [],
-        expenses: [],
-        netIncome: 0,
-      }),
-    })),
+    ReportService: function () {
+      return mockReportService;
+    },
   })
 );
+
+vi.mock('../../../src/middlewares/auth', () => ({
+  authMiddleware: mockAuthMiddleware,
+}));
+
+vi.mock('../../../src/middlewares/rbac', () => ({
+  checkPermissions: () => mockRbacMiddleware,
+}));
 
 // Import after mocking
 import { financeRouter } from '../../../src/routes/finance';
@@ -65,7 +75,7 @@ import { errorHandler } from '../../../src/middlewares/errorHandler';
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
+  app.use((req: any, _res: any, next: any) => {
     req.context = { userId: 'test-user', companyId: 'test-company' };
     next();
   });
@@ -79,6 +89,49 @@ describe('Finance Routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Configure mock return values
+    mockAccountService.list.mockResolvedValue([]);
+    mockAccountService.seedDefaultAccounts.mockResolvedValue([
+      { id: 'acc-1', code: '1000', name: 'Cash', type: 'ASSET' },
+      {
+        id: 'acc-2',
+        code: '2000',
+        name: 'Accounts Payable',
+        type: 'LIABILITY',
+      },
+    ]);
+
+    mockJournalService.list.mockResolvedValue([]);
+    mockJournalService.getById.mockResolvedValue({
+      id: 'je-1',
+      date: new Date(),
+      reference: 'JE-001',
+      description: 'Test Journal',
+      entries: [],
+    });
+    mockJournalService.create.mockResolvedValue({
+      id: 'je-new',
+      reference: 'JE-NEW',
+    });
+
+    mockReportService.getTrialBalance.mockResolvedValue({
+      asOfDate: new Date(),
+      accounts: [],
+      totalDebits: 0,
+      totalCredits: 0,
+    });
+    mockReportService.getGeneralLedger.mockResolvedValue({
+      account: { id: 'acc-1', code: '1000', name: 'Cash' },
+      entries: [],
+      balance: 0,
+    });
+    mockReportService.getIncomeStatement.mockResolvedValue({
+      revenues: [],
+      expenses: [],
+      netIncome: 0,
+    });
+
     app = createTestApp();
   });
 
@@ -144,6 +197,7 @@ describe('Finance Routes', () => {
     });
 
     it('GET /api/finance/journals/:id should return 404 for non-existent', async () => {
+      mockJournalService.getById.mockResolvedValue(null);
       const response = await request(app).get(
         '/api/finance/journals/not-found'
       );

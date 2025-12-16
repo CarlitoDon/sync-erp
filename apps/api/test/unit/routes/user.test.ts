@@ -1,5 +1,5 @@
 import { vi, describe, beforeEach, it, expect } from 'vitest';
-const express = require('express');
+import express from 'express';
 import request from 'supertest';
 import {
   mockUserService,
@@ -8,7 +8,9 @@ import {
 
 // Mock UserService
 vi.mock('../../../src/modules/user/user.service', () => ({
-  UserService: vi.fn().mockReturnValue(mockUserService),
+  UserService: function () {
+    return mockUserService;
+  },
 }));
 
 // Import after mocking
@@ -103,7 +105,11 @@ describe('User Routes', () => {
       const validUuid = '123e4567-e89b-12d3-a456-426614174000';
       const response = await request(app)
         .post(`/api/users/${validUuid}/assign`)
-        .send({ userId: validUuid });
+        .send({
+          userId: validUuid,
+          companyId: 'company-1',
+          roleId: validUuid,
+        });
 
       // Controller assign returns 200
       expect(response.status).toBe(200);

@@ -9,9 +9,9 @@ const mockProductService = {
   checkStock: vi.fn().mockResolvedValue(true),
 };
 vi.mock('../../../src/modules/product/product.service', () => ({
-  ProductService: vi
-    .fn()
-    .mockImplementation(() => mockProductService),
+  ProductService: function () {
+    return mockProductService;
+  },
 }));
 
 // Mock InventoryService
@@ -19,9 +19,9 @@ const mockInventoryService = {
   processShipment: vi.fn().mockResolvedValue([]),
 };
 vi.mock('../../../src/modules/inventory/inventory.service', () => ({
-  InventoryService: vi
-    .fn()
-    .mockImplementation(() => mockInventoryService),
+  InventoryService: function () {
+    return mockInventoryService;
+  },
 }));
 
 // Mock DocumentNumberService
@@ -31,17 +31,27 @@ const mockDocumentNumberService = {
 vi.mock(
   '../../../src/modules/common/services/document-number.service',
   () => ({
-    DocumentNumberService: vi
-      .fn()
-      .mockImplementation(() => mockDocumentNumberService),
+    DocumentNumberService: function () {
+      return mockDocumentNumberService;
+    },
   })
 );
 
+// Mock ShipmentSaga
+const mockShipmentSaga = {
+  execute: vi.fn(),
+};
+vi.mock('../../../src/modules/sales/sagas/shipment.saga', () => ({
+  ShipmentSaga: function () {
+    return mockShipmentSaga;
+  },
+}));
+
 // Mock SalesRepository
 vi.mock('../../../src/modules/sales/sales.repository', () => ({
-  SalesRepository: vi
-    .fn()
-    .mockImplementation(() => mockSalesRepository),
+  SalesRepository: function () {
+    return mockSalesRepository;
+  },
 }));
 
 // Import after mocking
@@ -203,37 +213,38 @@ describe('SalesOrderService (SalesService)', () => {
   });
 
   describe('ship', () => {
-    it('should ship a confirmed order', async () => {
-      const mockOrder = {
-        id: 'order-1',
-        status: 'CONFIRMED',
-        orderNumber: 'SO-001',
-      };
+    it('should delegate to ShipmentSaga', async () => {
       const mockMovements = [
         { id: 'mov-1', type: 'OUT', quantity: 5 },
       ];
 
-      mockSalesRepository.findById.mockResolvedValue(mockOrder);
-      mockInventoryService.processShipment.mockResolvedValue(
-        mockMovements
-      );
-      mockSalesRepository.updateStatus.mockResolvedValue({
-        ...mockOrder,
-        status: 'COMPLETED',
+      mockShipmentSaga.execute.mockResolvedValue({
+        success: true,
+        data: { movements: mockMovements },
       });
 
       const result = await service.ship(companyId, 'order-1');
 
       expect(result).toEqual(mockMovements);
+      expect(mockShipmentSaga.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderId: 'order-1',
+          companyId,
+        }),
+        'order-1',
+        companyId
+      );
     });
 
-    it('should throw error if order not confirmed', async () => {
-      const mockOrder = { id: 'order-1', status: 'DRAFT' };
-      mockSalesRepository.findById.mockResolvedValue(mockOrder);
+    it('should throw error if saga fails', async () => {
+      mockShipmentSaga.execute.mockResolvedValue({
+        success: false,
+        error: new Error('Shipment failed'),
+      });
 
       await expect(
         service.ship(companyId, 'order-1')
-      ).rejects.toThrow('Order must be confirmed before shipping');
+      ).rejects.toThrow('Shipment failed');
     });
   });
 });

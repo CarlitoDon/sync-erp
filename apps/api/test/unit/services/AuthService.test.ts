@@ -11,7 +11,9 @@ const mockUserService = {
   create: vi.fn(),
 };
 vi.mock('../../../src/modules/user/user.service', () => ({
-  UserService: vi.fn().mockImplementation(() => mockUserService),
+  UserService: function () {
+    return mockUserService;
+  },
 }));
 
 // Mock auth.utils
@@ -22,9 +24,9 @@ vi.mock('../../../src/modules/auth/auth.utils', () => ({
 
 // Mock AuthRepository
 vi.mock('../../../src/modules/auth/auth.repository', () => ({
-  AuthRepository: vi
-    .fn()
-    .mockImplementation(() => mockAuthRepository),
+  AuthRepository: function () {
+    return mockAuthRepository;
+  },
 }));
 
 // Import after mocking

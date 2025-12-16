@@ -1,21 +1,31 @@
-import { vi } from 'vitest';
-const express = require('express');
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import express, { Response, NextFunction } from 'express';
 import request from 'supertest';
+
+// Mock auth middleware
+vi.mock('../../../src/middlewares/auth', () => ({
+  authMiddleware: (req: any, _res: any, next: any) => next(),
+  optionalAuthMiddleware: (req: any, _res: any, next: any) => next(),
+}));
 
 // Mock InventoryService
 vi.mock('../../../src/modules/inventory/inventory.service', () => ({
-  InventoryService: vi.fn().mockImplementation(() => ({
-    getStockLevels: vi
-      .fn()
-      .mockResolvedValue([{ productId: 'prod-1', quantity: 100 }]),
-    getMovements: vi
-      .fn()
-      .mockResolvedValue([{ id: 'mov-1', type: 'IN' }]),
-    processGoodsReceipt: vi.fn().mockResolvedValue([{ id: 'mov-2' }]),
-    adjustStock: vi
-      .fn()
-      .mockResolvedValue({ id: 'mov-3', type: 'ADJUSTMENT' }),
-  })),
+  InventoryService: function () {
+    return {
+      getStockLevels: vi
+        .fn()
+        .mockResolvedValue([{ productId: 'prod-1', quantity: 100 }]),
+      getMovements: vi
+        .fn()
+        .mockResolvedValue([{ id: 'mov-1', type: 'IN' }]),
+      processGoodsReceipt: vi
+        .fn()
+        .mockResolvedValue([{ id: 'mov-2' }]),
+      adjustStock: vi
+        .fn()
+        .mockResolvedValue({ id: 'mov-3', type: 'ADJUSTMENT' }),
+    };
+  },
 }));
 
 // Import after mocking
@@ -25,8 +35,15 @@ import { errorHandler } from '../../../src/middlewares/errorHandler';
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
-    req.context = { userId: 'test-user', companyId: 'test-company' };
+  app.use((req: any, _res: Response, next: NextFunction) => {
+    req.context = {
+      userId: 'test-user',
+      companyId: 'test-company',
+    };
+    req.company = {
+      businessShape: 'RETAIL',
+      configs: [],
+    };
     next();
   });
   app.use('/api/inventory', inventoryRouter);

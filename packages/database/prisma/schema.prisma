@@ -36,6 +36,7 @@ model Company {
   warehouses      Warehouse[]
   categories      ProductCategory[]
   idempotencyKeys IdempotencyKey[]
+  sagaLogs        SagaLog[]
 }
 
 model User {
@@ -496,4 +497,46 @@ enum IdempotencyStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+// ============================================
+// SAGA Transaction Tracking
+// ============================================
+
+model SagaLog {
+  id        String   @id @default(uuid())
+  sagaType  SagaType
+  entityId  String
+  companyId String
+  step      SagaStep
+  stepData  Json?
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([entityId])
+  @@index([companyId, sagaType, step])
+}
+
+enum SagaType {
+  INVOICE_POST
+  SHIPMENT
+  GOODS_RECEIPT
+  BILL_POST
+  PAYMENT_POST
+  CREDIT_NOTE
+  STOCK_TRANSFER
+  STOCK_RETURN
+}
+
+enum SagaStep {
+  PENDING
+  STOCK_DONE
+  BALANCE_DONE
+  JOURNAL_DONE
+  COMPLETED
+  FAILED
+  COMPENSATION_FAILED
 }

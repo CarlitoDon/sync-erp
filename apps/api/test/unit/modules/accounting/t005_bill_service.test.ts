@@ -17,17 +17,29 @@ vi.mock(
   '../../../../src/modules/common/services/document-number.service'
 );
 
+// Mock Saga
+const mockBillPostingSaga = { execute: vi.fn() };
+vi.mock(
+  '../../../../src/modules/accounting/sagas/bill-posting.saga',
+  () => ({
+    BillPostingSaga: function () {
+      return mockBillPostingSaga;
+    },
+  })
+);
+
 describe('T005: Implement/Verify Bill Service (FR-011)', () => {
   let service: BillService;
   let mockRepo: any;
-  let mockJournalService: any;
   let mockDocService: any;
+  let mockJournalService: any; // Restore this
 
   const companyId = 'co-1';
   const orderId = 'po-1';
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockBillPostingSaga.execute.mockClear();
     service = new BillService();
     mockRepo = (service as any).repository;
     mockJournalService = (service as any).journalService;
@@ -82,37 +94,31 @@ describe('T005: Implement/Verify Bill Service (FR-011)', () => {
   });
 
   describe('post', () => {
-    it('should post bill and create journal entry (AP + Accrual)', async () => {
+    it('should post bill via Saga', async () => {
       const billId = 'bill-1';
       const mockBill = {
         id: billId,
-        status: InvoiceStatus.DRAFT,
+        status: InvoiceStatus.POSTED,
         invoiceNumber: 'BILL-001',
         amount: 110,
-        subtotal: 100,
-        taxAmount: 10,
       };
 
-      mockRepo.findById.mockResolvedValue(mockBill);
-      mockRepo.update.mockResolvedValue({
-        ...mockBill,
-        status: InvoiceStatus.POSTED,
+      // Saga success
+      mockBillPostingSaga.execute.mockResolvedValue({
+        success: true,
+        data: mockBill,
       });
 
-      await service.post(billId, companyId);
+      const result = await service.post(billId, companyId);
 
-      expect(mockRepo.update).toHaveBeenCalledWith(billId, {
-        status: InvoiceStatus.POSTED,
-      });
-
-      // Verify Journal Posting
-      expect(mockJournalService.postBill).toHaveBeenCalledWith(
-        companyId,
-        'BILL-001',
-        110,
-        100,
-        10
+      // Verify Saga called
+      expect(mockBillPostingSaga.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ billId, companyId }),
+        billId,
+        companyId
       );
+
+      expect(result.status).toBe(InvoiceStatus.POSTED);
     });
   });
 });

@@ -4,29 +4,42 @@ import {
   resetRepositoryMocks,
 } from '../mocks/repositories.mock';
 
-// Mock JournalService
+// Mock JournalService with function() syntax for Vitest 4.x
 const mockJournalService = {
   postBill: vi.fn().mockResolvedValue({}),
 };
 vi.mock(
   '../../../src/modules/accounting/services/journal.service',
   () => ({
-    JournalService: vi
-      .fn()
-      .mockImplementation(() => mockJournalService),
+    JournalService: function () {
+      return mockJournalService;
+    },
   })
 );
 
-// Mock DocumentNumberService
+// Mock DocumentNumberService with function() syntax for Vitest 4.x
 const mockDocumentNumberService = {
   generate: vi.fn().mockResolvedValue('BILL-00001'),
 };
 vi.mock(
   '../../../src/modules/common/services/document-number.service',
   () => ({
-    DocumentNumberService: vi
-      .fn()
-      .mockImplementation(() => mockDocumentNumberService),
+    DocumentNumberService: function () {
+      return mockDocumentNumberService;
+    },
+  })
+);
+
+// Mock BillPostingSaga
+const mockBillPostingSaga = {
+  execute: vi.fn(),
+};
+vi.mock(
+  '../../../src/modules/accounting/sagas/bill-posting.saga',
+  () => ({
+    BillPostingSaga: function () {
+      return mockBillPostingSaga;
+    },
   })
 );
 
@@ -34,9 +47,9 @@ vi.mock(
 vi.mock(
   '../../../src/modules/accounting/repositories/invoice.repository',
   () => ({
-    InvoiceRepository: vi
-      .fn()
-      .mockImplementation(() => mockInvoiceRepository),
+    InvoiceRepository: function () {
+      return mockInvoiceRepository;
+    },
   })
 );
 
@@ -144,47 +157,39 @@ describe('BillService', () => {
   });
 
   describe('post', () => {
-    it('should post a draft bill', async () => {
+    it('should delegate to BillPostingSaga', async () => {
       const mockBill = {
         id: 'bill-1',
         companyId,
-        status: 'DRAFT',
-        invoiceNumber: 'BILL-001',
-        amount: 1000,
-        subtotal: 909,
-        taxAmount: 91,
+        status: 'POSTED',
       };
-      const postedBill = { ...mockBill, status: 'POSTED' };
 
-      mockInvoiceRepository.findById.mockResolvedValue(mockBill);
-      mockInvoiceRepository.update.mockResolvedValue(postedBill);
+      mockBillPostingSaga.execute.mockResolvedValue({
+        success: true,
+        data: mockBill,
+      });
 
       const result = await service.post('bill-1', companyId);
 
-      expect(result.status).toBe('POSTED');
-      expect(mockJournalService.postBill).toHaveBeenCalledWith(
-        companyId,
-        'BILL-001',
-        1000,
-        909,
-        91
+      expect(result).toEqual(mockBill);
+      expect(mockBillPostingSaga.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          billId: 'bill-1',
+          companyId,
+        }),
+        'bill-1',
+        companyId
       );
     });
 
-    it('should throw error if bill not found', async () => {
-      mockInvoiceRepository.findById.mockResolvedValue(null);
-
-      await expect(
-        service.post('nonexistent', companyId)
-      ).rejects.toThrow('Bill not found');
-    });
-
-    it('should throw error if bill is not in draft status', async () => {
-      const mockBill = { id: 'bill-1', status: 'POSTED' };
-      mockInvoiceRepository.findById.mockResolvedValue(mockBill);
+    it('should throw error if saga fails', async () => {
+      mockBillPostingSaga.execute.mockResolvedValue({
+        success: false,
+        error: new Error('Saga failed'),
+      });
 
       await expect(service.post('bill-1', companyId)).rejects.toThrow(
-        'Cannot post bill with status: POSTED'
+        'Saga failed'
       );
     });
   });

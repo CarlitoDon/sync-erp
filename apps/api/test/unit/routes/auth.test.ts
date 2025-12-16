@@ -1,9 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import express from 'express';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const cookieParser = require('cookie-parser');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const request = require('supertest');
+import express, { Response, NextFunction } from 'express';
+import cookieParser from 'cookie-parser';
+import request from 'supertest';
 import {
   mockAuthService,
   resetServiceMocks,
@@ -11,7 +9,7 @@ import {
 
 // Mock auth middleware to bypass validation or set context
 vi.mock('../../../src/middlewares/auth', () => ({
-  authMiddleware: (req: any, res: any, next: any) => {
+  authMiddleware: (req: any, res: Response, next: NextFunction) => {
     // Determine if we want to simulate failure, maybe based on header?
     // For now, simulate success if session cookie present
     const cookies = req.cookies || {};
@@ -30,7 +28,11 @@ vi.mock('../../../src/middlewares/auth', () => ({
     req.session = { userId: 'user-1', user: { id: 'user-1' } };
     next();
   },
-  optionalAuthMiddleware: (req: any, res: any, next: any) => {
+  optionalAuthMiddleware: (
+    req: any,
+    res: Response,
+    next: NextFunction
+  ) => {
     req.context = {};
     next();
   },
@@ -38,7 +40,9 @@ vi.mock('../../../src/middlewares/auth', () => ({
 
 // Mock AuthService
 vi.mock('../../../src/modules/auth/auth.service', () => ({
-  AuthService: vi.fn().mockReturnValue(mockAuthService),
+  AuthService: function () {
+    return mockAuthService;
+  },
 }));
 
 // Import after mocking

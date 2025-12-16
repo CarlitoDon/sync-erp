@@ -1,24 +1,40 @@
-import { vi } from 'vitest';
-const express = require('express');
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import express from 'express';
 import request from 'supertest';
 
-// Mock PaymentService
+// Use vi.hoisted to ensure mocks are available during hoisting
+const { mockPaymentService, mockAuthMiddleware, mockRbacMiddleware } =
+  vi.hoisted(() => {
+    return {
+      mockPaymentService: {
+        create: vi.fn(),
+        update: vi.fn(),
+        getById: vi.fn(),
+        list: vi.fn(),
+        recordPayment: vi.fn(),
+        getPaymentHistory: vi.fn(),
+      },
+      mockAuthMiddleware: vi.fn(),
+      mockRbacMiddleware: vi.fn(),
+    };
+  });
+
 vi.mock(
   '../../../src/modules/accounting/services/payment.service',
   () => ({
-    PaymentService: vi.fn().mockImplementation(() => ({
-      list: vi.fn().mockResolvedValue([{ id: 'pay-1', amount: 500 }]),
-      getById: vi.fn().mockImplementation((id: string) => {
-        if (id === 'not-found') return Promise.resolve(null);
-        return Promise.resolve({ id: 'pay-1', amount: 500 });
-      }),
-      create: vi
-        .fn()
-        .mockResolvedValue({ id: 'pay-new', amount: 100 }),
-      getPaymentHistory: vi.fn().mockResolvedValue([]),
-    })),
+    PaymentService: function () {
+      return mockPaymentService;
+    },
   })
 );
+
+vi.mock('../../../src/middlewares/auth', () => ({
+  authMiddleware: mockAuthMiddleware,
+}));
+
+vi.mock('../../../src/middlewares/rbac', () => ({
+  checkPermissions: () => mockRbacMiddleware,
+}));
 
 // Import after mocking
 import { paymentRouter } from '../../../src/routes/payment';
@@ -27,7 +43,7 @@ import { errorHandler } from '../../../src/middlewares/errorHandler';
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
+  app.use((req: any, _res: any, next: any) => {
     req.context = { userId: 'test-user', companyId: 'test-company' };
     next();
   });
@@ -41,6 +57,23 @@ describe('Payment Routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Configure default mock return values
+    mockPaymentService.list.mockResolvedValue([
+      { id: 'pay-1', amount: 500, method: 'BANK_TRANSFER' },
+    ]);
+    mockPaymentService.getById.mockResolvedValue({
+      id: 'pay-1',
+      amount: 500,
+      method: 'BANK_TRANSFER',
+    });
+    mockPaymentService.create.mockResolvedValue({
+      id: 'pay-new',
+      amount: 100,
+      method: 'CASH',
+    });
+    mockPaymentService.getPaymentHistory.mockResolvedValue([]);
+
     app = createTestApp();
   });
 
@@ -65,6 +98,7 @@ describe('Payment Routes', () => {
     });
 
     it('should return 404 for non-existent payment', async () => {
+      mockPaymentService.getById.mockResolvedValueOnce(null);
       const response = await request(app).get(
         '/api/payments/not-found'
       );

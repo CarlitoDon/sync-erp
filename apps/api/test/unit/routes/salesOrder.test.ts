@@ -1,5 +1,5 @@
 import { vi, describe, beforeEach, it, expect } from 'vitest';
-const express = require('express');
+import express from 'express';
 import request from 'supertest';
 import {
   mockSalesService,
@@ -8,7 +8,9 @@ import {
 
 // Mock dependencies
 vi.mock('../../../src/modules/sales/sales.service', () => ({
-  SalesService: vi.fn().mockReturnValue(mockSalesService),
+  SalesService: function () {
+    return mockSalesService;
+  },
 }));
 
 // FulfillmentService is now merged into SalesService (ship method)

@@ -6,9 +6,9 @@ import {
 
 // Mock the ProductRepository module
 vi.mock('../../../src/modules/product/product.repository', () => ({
-  ProductRepository: vi
-    .fn()
-    .mockImplementation(() => mockProductRepository),
+  ProductRepository: function () {
+    return mockProductRepository;
+  },
 }));
 
 // Import after mocking

@@ -13,9 +13,9 @@ const mockAccountService = {
 vi.mock(
   '../../../src/modules/accounting/services/account.service',
   () => ({
-    AccountService: vi
-      .fn()
-      .mockImplementation(() => mockAccountService),
+    AccountService: function () {
+      return mockAccountService;
+    },
   })
 );
 
@@ -23,9 +23,9 @@ vi.mock(
 vi.mock(
   '../../../src/modules/accounting/repositories/journal.repository',
   () => ({
-    JournalRepository: vi
-      .fn()
-      .mockImplementation(() => mockJournalRepository),
+    JournalRepository: function () {
+      return mockJournalRepository;
+    },
   })
 );
 

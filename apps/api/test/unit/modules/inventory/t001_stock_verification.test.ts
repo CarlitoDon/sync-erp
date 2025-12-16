@@ -19,6 +19,9 @@ vi.mock('@sync-erp/database', async () => {
       order: {
         findFirst: vi.fn(),
       },
+      orderItem: {
+        update: vi.fn(),
+      },
     },
   };
 });
@@ -121,14 +124,16 @@ describe('T001: Verify Stock Movements', () => {
       await service.processShipment(companyId, orderId);
 
       // Verify Stock Decrease
-      expect(mockProductService.updateStock).toHaveBeenCalledTimes(2);
-      expect(mockProductService.updateStock).toHaveBeenCalledWith(
-        'prod-A',
-        -2
+      expect(mockProductService.decreaseStock).toHaveBeenCalledTimes(
+        2
       );
-      expect(mockProductService.updateStock).toHaveBeenCalledWith(
+      expect(mockProductService.decreaseStock).toHaveBeenCalledWith(
+        'prod-A',
+        2
+      );
+      expect(mockProductService.decreaseStock).toHaveBeenCalledWith(
         'prod-B',
-        -1
+        1
       );
 
       // Verify Movement Creation

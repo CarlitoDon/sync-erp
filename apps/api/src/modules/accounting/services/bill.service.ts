@@ -6,7 +6,6 @@ import {
   Prisma,
 } from '@sync-erp/database';
 import { InvoiceRepository } from '../repositories/invoice.repository';
-import { JournalService } from './journal.service';
 
 export interface CreateBillInput {
   orderId: string;
@@ -16,11 +15,12 @@ export interface CreateBillInput {
 }
 
 import { DocumentNumberService } from '../../common/services/document-number.service';
+import { BillPostingSaga } from '../sagas/bill-posting.saga';
 
 export class BillService {
   private repository = new InvoiceRepository();
-  private journalService = new JournalService();
   private documentNumberService = new DocumentNumberService();
+  private billPostingSaga = new BillPostingSaga();
 
   async createFromPurchaseOrder(
     companyId: string,
@@ -101,37 +101,24 @@ export class BillService {
     );
   }
 
+  /**
+   * Post bill using saga pattern for atomic execution with compensation.
+   * If posting fails mid-way, compensation will automatically reverse changes.
+   * @throws SagaCompensatedError if posting fails but was compensated
+   * @throws SagaCompensationFailedError if compensation also fails
+   */
   async post(id: string, companyId: string): Promise<Invoice> {
-    const bill = await this.repository.findById(
+    const result = await this.billPostingSaga.execute(
+      { billId: id, companyId },
       id,
-      companyId,
-      InvoiceType.BILL
-    );
-    if (!bill) {
-      throw new Error('Bill not found');
-    }
-
-    if (bill.status !== InvoiceStatus.DRAFT) {
-      throw new Error(`Cannot post bill with status: ${bill.status}`);
-    }
-
-    const updatedBill = await this.repository.update(id, {
-      status: InvoiceStatus.POSTED,
-    });
-
-    if (!updatedBill.invoiceNumber) {
-      throw new Error(`Bill ${id} has no invoice number`);
-    }
-
-    await this.journalService.postBill(
-      companyId,
-      updatedBill.invoiceNumber,
-      Number(updatedBill.amount),
-      Number(updatedBill.subtotal),
-      Number(updatedBill.taxAmount)
+      companyId
     );
 
-    return updatedBill;
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Bill posting failed');
+    }
+
+    return result.data;
   }
 
   async void(id: string, companyId: string): Promise<Invoice> {

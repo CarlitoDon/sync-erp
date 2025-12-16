@@ -144,3 +144,42 @@ export const resetRepositoryMocks = () => {
     });
   });
 };
+
+// ==================== Class Constructors for Vitest 4.x ====================
+// Vitest 4.x requires 'function' or 'class' syntax for mocks
+export function MockProductRepository() {
+  return mockProductRepository;
+}
+export function MockPartnerRepository() {
+  return mockPartnerRepository;
+}
+export function MockAccountRepository() {
+  return mockAccountRepository;
+}
+export function MockInvoiceRepository() {
+  return mockInvoiceRepository;
+}
+export function MockJournalRepository() {
+  return mockJournalRepository;
+}
+export function MockPaymentRepository() {
+  return mockPaymentRepository;
+}
+export function MockInventoryRepository() {
+  return mockInventoryRepository;
+}
+export function MockSalesRepository() {
+  return mockSalesRepository;
+}
+export function MockProcurementRepository() {
+  return mockProcurementRepository;
+}
+export function MockUserRepository() {
+  return mockUserRepository;
+}
+export function MockAuthRepository() {
+  return mockAuthRepository;
+}
+export function MockCompanyRepository() {
+  return mockCompanyRepository;
+}

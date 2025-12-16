@@ -1,36 +1,38 @@
-import { vi } from 'vitest';
-const express = require('express');
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import express from 'express';
 import request from 'supertest';
 
-// Use vi.hoisted to create mocks that are available before vi.mock is hoisted
-const {
-  mockList,
-  mockListSuppliers,
-  mockListCustomers,
-  mockGetById,
-  mockCreate,
-  mockUpdate,
-  mockDelete,
-} = vi.hoisted(() => ({
-  mockList: vi.fn(),
-  mockListSuppliers: vi.fn(),
-  mockListCustomers: vi.fn(),
-  mockGetById: vi.fn(),
-  mockCreate: vi.fn(),
-  mockUpdate: vi.fn(),
-  mockDelete: vi.fn(),
+// Use vi.hoisted to ensure mocks are available during hoisting
+const { mockPartnerService, mockAuthMiddleware, mockRbacMiddleware } =
+  vi.hoisted(() => {
+    return {
+      mockPartnerService: {
+        create: vi.fn(),
+        update: vi.fn(),
+        getById: vi.fn(),
+        list: vi.fn(),
+        listSuppliers: vi.fn(),
+        listCustomers: vi.fn(),
+        delete: vi.fn(),
+      },
+      mockAuthMiddleware: vi.fn(),
+      mockRbacMiddleware: vi.fn(),
+    };
+  });
+
+// Mock dependencies
+vi.mock('../../../src/modules/partner/partner.service', () => ({
+  PartnerService: function () {
+    return mockPartnerService;
+  },
 }));
 
-vi.mock('../../../src/modules/partner/partner.service', () => ({
-  PartnerService: vi.fn().mockImplementation(() => ({
-    list: mockList,
-    listSuppliers: mockListSuppliers,
-    listCustomers: mockListCustomers,
-    getById: mockGetById,
-    create: mockCreate,
-    update: mockUpdate,
-    delete: mockDelete,
-  })),
+vi.mock('../../../src/middlewares/auth', () => ({
+  authMiddleware: mockAuthMiddleware,
+}));
+
+vi.mock('../../../src/middlewares/rbac', () => ({
+  checkPermissions: () => mockRbacMiddleware,
 }));
 
 // Mock database PartnerType enum
@@ -39,13 +41,20 @@ vi.mock('../../../src/modules/partner/partner.service', () => ({
 import { partnerRouter } from '../../../src/routes/partner';
 import { errorHandler } from '../../../src/middlewares/errorHandler';
 
+// Setup Express App
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
-    req.context = { userId: 'test-user', companyId: 'test-company' };
+
+  // Set req.context for tests (router doesn't have auth middleware)
+  app.use((req: any, _res: any, next: any) => {
+    req.context = {
+      userId: 'test-user',
+      companyId: 'test-company',
+    };
     next();
   });
+
   app.use('/api/partners', partnerRouter);
   app.use(errorHandler);
   return app;
@@ -56,30 +65,34 @@ describe('Partner Routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Set default mock implementations
-    mockList.mockResolvedValue([
+
+    // Configure default mock return values
+    mockPartnerService.list.mockResolvedValue([
       { id: 'partner-1', name: 'Supplier 1', type: 'SUPPLIER' },
       { id: 'partner-2', name: 'Customer 1', type: 'CUSTOMER' },
     ]);
-    mockListSuppliers.mockResolvedValue([
-      { id: 'partner-1', name: 'Supplier 1' },
+    mockPartnerService.listSuppliers.mockResolvedValue([
+      { id: 'partner-1', name: 'Supplier 1', type: 'SUPPLIER' },
     ]);
-    mockListCustomers.mockResolvedValue([
-      { id: 'partner-2', name: 'Customer 1' },
+    mockPartnerService.listCustomers.mockResolvedValue([
+      { id: 'partner-2', name: 'Customer 1', type: 'CUSTOMER' },
     ]);
-    mockGetById.mockResolvedValue({
+    mockPartnerService.getById.mockResolvedValue({
       id: 'partner-1',
       name: 'Test Partner',
+      type: 'SUPPLIER',
     });
-    mockCreate.mockResolvedValue({
+    mockPartnerService.create.mockResolvedValue({
       id: 'partner-new',
       name: 'New Partner',
+      type: 'SUPPLIER',
     });
-    mockUpdate.mockResolvedValue({
+    mockPartnerService.update.mockResolvedValue({
       id: 'partner-1',
       name: 'Updated Partner',
     });
-    mockDelete.mockResolvedValue(undefined);
+    mockPartnerService.delete.mockResolvedValue(undefined);
+
     app = createTestApp();
   });
 
@@ -96,7 +109,7 @@ describe('Partner Routes', () => {
         '/api/partners?type=SUPPLIER'
       );
       expect(response.status).toBe(200);
-      expect(mockList).toHaveBeenCalledWith(
+      expect(mockPartnerService.list).toHaveBeenCalledWith(
         'test-company',
         'SUPPLIER'
       );
@@ -107,7 +120,7 @@ describe('Partner Routes', () => {
         '/api/partners?type=CUSTOMER'
       );
       expect(response.status).toBe(200);
-      expect(mockList).toHaveBeenCalledWith(
+      expect(mockPartnerService.list).toHaveBeenCalledWith(
         'test-company',
         'CUSTOMER'
       );
@@ -144,7 +157,7 @@ describe('Partner Routes', () => {
     });
 
     it('should return 404 for non-existent partner', async () => {
-      mockGetById.mockResolvedValue(null);
+      mockPartnerService.getById.mockResolvedValue(null);
       const response = await request(app).get(
         '/api/partners/nonexistent'
       );
@@ -159,7 +172,7 @@ describe('Partner Routes', () => {
         .send({ name: 'New Supplier', type: 'SUPPLIER' });
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
-      expect(mockCreate).toHaveBeenCalledWith(
+      expect(mockPartnerService.create).toHaveBeenCalledWith(
         'test-company',
         expect.objectContaining({
           name: 'New Supplier',
@@ -173,7 +186,7 @@ describe('Partner Routes', () => {
         .post('/api/partners')
         .send({ name: 'New Customer', type: 'CUSTOMER' });
       expect(response.status).toBe(201);
-      expect(mockCreate).toHaveBeenCalledWith(
+      expect(mockPartnerService.create).toHaveBeenCalledWith(
         'test-company',
         expect.objectContaining({
           name: 'New Customer',

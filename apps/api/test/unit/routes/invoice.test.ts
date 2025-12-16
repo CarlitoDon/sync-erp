@@ -1,37 +1,39 @@
-import { vi } from 'vitest';
-const express = require('express');
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import express, { Response, NextFunction } from 'express';
 import request from 'supertest';
 
 // Mock InvoiceService
 vi.mock(
   '../../../src/modules/accounting/services/invoice.service',
   () => ({
-    InvoiceService: vi.fn().mockImplementation(() => ({
-      list: vi
-        .fn()
-        .mockResolvedValue([
-          { id: 'inv-1', invoiceNumber: 'INV-001' },
-        ]),
-      getById: vi.fn().mockImplementation((id: string) => {
-        if (id === 'not-found') return Promise.resolve(null);
-        return Promise.resolve({
-          id: 'inv-1',
-          invoiceNumber: 'INV-001',
-        });
-      }),
-      getOutstanding: vi.fn().mockResolvedValue([]),
-      createFromSalesOrder: vi.fn().mockResolvedValue({
-        id: 'inv-new',
-        invoiceNumber: 'INV-002',
-      }),
-      post: vi
-        .fn()
-        .mockResolvedValue({ id: 'inv-1', status: 'POSTED' }),
-      void: vi
-        .fn()
-        .mockResolvedValue({ id: 'inv-1', status: 'VOID' }),
-      getRemainingAmount: vi.fn().mockResolvedValue(500),
-    })),
+    InvoiceService: function () {
+      return {
+        list: vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'inv-1', invoiceNumber: 'INV-001' },
+          ]),
+        getById: vi.fn().mockImplementation((id: string) => {
+          if (id === 'not-found') return Promise.resolve(null);
+          return Promise.resolve({
+            id: 'inv-1',
+            invoiceNumber: 'INV-001',
+          });
+        }),
+        getOutstanding: vi.fn().mockResolvedValue([]),
+        createFromSalesOrder: vi.fn().mockResolvedValue({
+          id: 'inv-new',
+          invoiceNumber: 'INV-002',
+        }),
+        post: vi
+          .fn()
+          .mockResolvedValue({ id: 'inv-1', status: 'POSTED' }),
+        void: vi
+          .fn()
+          .mockResolvedValue({ id: 'inv-1', status: 'VOID' }),
+        getRemainingAmount: vi.fn().mockResolvedValue(500),
+      };
+    },
   })
 );
 
@@ -42,8 +44,12 @@ import { errorHandler } from '../../../src/middlewares/errorHandler';
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
+  app.use((req: any, _res: Response, next: NextFunction) => {
     req.context = { userId: 'test-user', companyId: 'test-company' };
+    req.company = {
+      businessShape: 'RETAIL', // Mock shape
+      configs: [],
+    };
     next();
   });
   app.use('/api/invoices', invoiceRouter);

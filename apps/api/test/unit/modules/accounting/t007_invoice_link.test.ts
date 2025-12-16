@@ -16,91 +16,62 @@ vi.mock(
 vi.mock(
   '../../../../src/modules/common/services/document-number.service'
 );
-vi.mock('../../../../src/modules/inventory/inventory.service');
+// vi.mock('../../../../src/modules/inventory/inventory.service');
+
+// Mock Saga
+const mockSaga = { execute: vi.fn() };
+vi.mock(
+  '../../../../src/modules/accounting/sagas/invoice-posting.saga',
+  () => ({
+    InvoicePostingSaga: function () {
+      return mockSaga;
+    },
+  })
+);
 
 describe('T007: Implement Invoice-Stock Link (FR-008)', () => {
   let service: InvoiceService;
   let mockRepo: any;
-  let mockJournalService: any;
-  let mockInventoryService: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSaga.execute.mockClear();
+    service = new InvoiceService();
+    mockRepo = (service as any).repository;
+  });
 
   const companyId = 'co-1';
   const invoiceId = 'inv-1';
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    service = new InvoiceService();
-    mockRepo = (service as any).repository;
-    mockInventoryService = (service as any).inventoryService;
-    mockJournalService = (service as any).journalService;
-  });
-
   describe('post', () => {
-    it('should trigger processShipment when posting Sales Invoice', async () => {
-      const mockInvoice = {
-        id: invoiceId,
-        status: InvoiceStatus.DRAFT,
-        type: InvoiceType.INVOICE,
-        invoiceNumber: 'INV-001',
-        orderId: 'so-1', // Linked Sales Order
-        amount: 100,
-        subtotal: 100,
-        taxAmount: 0,
-      };
-
-      mockRepo.findById.mockResolvedValue(mockInvoice);
-      mockRepo.update.mockResolvedValue({
-        ...mockInvoice,
-        status: InvoiceStatus.POSTED,
+    it('should trigger Saga for stock/journal processing', async () => {
+      mockSaga.execute.mockResolvedValue({
+        success: true,
+        data: { status: InvoiceStatus.POSTED },
       });
-
-      // Mock processShipment success
-      mockInventoryService.processShipment.mockResolvedValue([]);
 
       await service.post(invoiceId, companyId, BusinessShape.RETAIL);
 
-      // Verify processShipment called
-      expect(
-        mockInventoryService.processShipment
-      ).toHaveBeenCalledWith(
-        companyId,
-        'so-1',
-        expect.stringContaining('Shipment for Invoice'),
-        BusinessShape.RETAIL,
-        undefined
+      expect(mockSaga.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          invoiceId,
+          companyId,
+          // businessShape: BusinessShape.RETAIL -- Might not be passed to execute payload, but implementation detail
+        }),
+        invoiceId,
+        companyId
       );
-
-      // Verify Update Status
-      expect(mockRepo.update).toHaveBeenCalledWith(invoiceId, {
-        status: InvoiceStatus.POSTED,
-      });
-
-      // Verify Journal
-      expect(mockJournalService.postInvoice).toHaveBeenCalled();
     });
 
-    it('should fail to post if shipment fails (e.g. insufficient stock)', async () => {
-      const mockInvoice = {
-        id: invoiceId,
-        status: InvoiceStatus.DRAFT,
-        type: InvoiceType.INVOICE,
-        invoiceNumber: 'INV-001',
-        orderId: 'so-1',
-      };
-      mockRepo.findById.mockResolvedValue(mockInvoice);
-
-      // Mock processShipment failure due to Policy/Stock
-      mockInventoryService.processShipment.mockRejectedValue(
-        new Error('Insufficient Stock')
-      );
+    it('should propagate Saga error (e.g. Insufficient Stock)', async () => {
+      mockSaga.execute.mockResolvedValue({
+        success: false,
+        error: new Error('Insufficient Stock'),
+      });
 
       await expect(
         service.post(invoiceId, companyId)
       ).rejects.toThrow('Insufficient Stock');
-
-      // Verify NO update and NO journal
-      expect(mockRepo.update).not.toHaveBeenCalled();
-      expect(mockJournalService.postInvoice).not.toHaveBeenCalled();
     });
   });
 });
