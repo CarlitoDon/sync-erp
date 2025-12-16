@@ -7,181 +7,149 @@
 ```text
 sync-erp/
 ├── apps/
-│   ├── web/              # Vite + React frontend (:5173)
-│   └── api/              # Express + TS backend (:3001)
+│   ├── web/              # Vite + React + Tailwind + React Query-like hooks
+│   │   └── src/features/ # Domain-driven feature folders (components, services, pages)
+│   └── api/              # Express + TS backend
+│       └── src/modules/  # Domain-driven modules (controller, service, repository)
 ├── packages/
-│   ├── shared/           # Zod schemas, shared types
-│   └── database/         # Prisma client, migrations
+│   ├── shared/           # Zod schemas (validators), shared types
+│   └── database/         # Prisma client, migrations, seeds
 └── turbo.json            # Build orchestration
 ```
 
-**Data Flow**: `web → HTTP → api → repository → database`  
+**Data Flow**: `web → HTTP → api → repository → database`
 **Dependency Rule**: Apps import from packages, never the reverse.
 
 ## Critical Rules (From Constitution)
 
-1. **Schema-First**: Add fields to `packages/shared/src/validators/*.ts` BEFORE implementing frontend/backend
-2. **Multi-Tenant**: ALL queries MUST scope by `companyId` (from `X-Company-Id` header)
-3. **Three Layers**: Controller → Service → Repository (never skip layers)
-4. **DRY Principle**: Extract common logic into shared utilities/hooks
-5. **Build Check**: Run `npx tsc --noEmit` before marking tasks complete
+1.  **Schema-First**: Add fields to `packages/shared/src/validators/*.ts` BEFORE implementing frontend/backend.
+2.  **Multi-Tenant**: ALL queries MUST scope by `companyId` (from `X-Company-Id` header).
+3.  **Three Layers**: Controller → Service → Repository (never skip layers).
+4.  **Module Parity**: Related domains (Sales/Procurement) must mirror implementation logic.
+5.  **Performance**: Use backend joins (`include`) over frontend loops to avoid N+1 issues.
+6.  **Build Check**: Run `npx tsc --noEmit` before marking tasks complete.
 
-## Backend Patterns
+## Backend Patterns (apps/api)
 
 ### Three-Layer Module Structure
 
 ```text
 apps/api/src/modules/[domain]/
-├── [domain].controller.ts  # HTTP handling, Zod validation
-├── [domain].service.ts     # Business logic
-└── [domain].repository.ts  # Prisma data access
+├── [domain].controller.ts  # HTTP handling, Zod validation, Response formatting
+├── [domain].service.ts     # Business logic, Transaction management
+└── [domain].repository.ts  # Prisma data access (Scoped by companyId)
 ```
 
-### Controller Pattern (validation + response)
+### Controller Pattern
 
 ```typescript
 // apps/api/src/modules/partner/partner.controller.ts
 create = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const companyId = req.context.companyId!;  // Always extract
-    const validated = CreatePartnerSchema.parse(req.body);  // Zod validation
+    const companyId = req.context.companyId!; // Always extract
+    const validated = CreatePartnerSchema.parse(req.body); // Zod validation
     const result = await this.service.create(companyId, validated);
     res.status(201).json({ success: true, data: result });
   } catch (error) {
-    next(error);  // Let error middleware handle
+    next(error); // Global error handler
   }
 };
-```
-
-### Service Pattern (business logic)
-
-```typescript
-// apps/api/src/modules/partner/partner.service.ts
-async create(companyId: string, data: CreatePartnerInput): Promise<Partner> {
-  return this.repository.create({ companyId, ...data });
-}
 ```
 
 ### Repository Pattern (Prisma)
 
 ```typescript
 // apps/api/src/modules/partner/partner.repository.ts
-import { prisma, type Partner, Prisma } from '@sync-erp/database';
-
 async findAll(companyId: string): Promise<Partner[]> {
+  // ALWAYS scope by companyId
   return prisma.partner.findMany({ where: { companyId } });
 }
 ```
 
-## Frontend Patterns
+## Frontend Patterns (apps/web)
 
-### Data Fetching Hook
+### Feature Structure
+
+```text
+apps/web/src/features/[domain]/
+├── components/   # Domain-specific UI components
+├── pages/        # Route page components
+└── services/     # API service definitions
+```
+
+### Data Fetching (Hooks)
 
 ```typescript
-// Fetcher receives companyId from hook context
-const { data, loading, refresh, setData } = useCompanyData(
+// apps/web/src/hooks/useCompanyData.ts
+// Fetcher automatically re-runs when company context changes
+const { data, loading, refresh } = useCompanyData(
   (companyId) => partnerService.list(companyId),
-  []  // initial value
+  [] // initial value
 );
 ```
 
-### API Action (Two Options)
+### API Action (Mutations)
 
 ```typescript
-// Option A: Utility function (one-off actions)
-import { apiAction } from '../utils/apiAction';
+// apps/web/src/utils/apiAction.ts
+import { apiAction } from '../../../utils/apiAction';
 
-const result = await apiAction(
-  () => partnerService.create(data),
-  { successMessage: 'Partner created!' }
-);
-if (result) { refresh(); }
-
-// Option B: Hook pattern (reusable with loading state)
-const { execute, loading } = useApiAction(
-  (id: string) => partnerService.delete(id),
-  { successMessage: 'Deleted!', onSuccess: refresh }
-);
-// Then call: execute(partnerId)
-```
-
-### Confirmation Dialog
-
-```typescript
-const confirm = useConfirm();
-const proceed = await confirm.show({
-  title: 'Delete Partner?',
-  message: 'This cannot be undone.',
-  danger: true,
-});
-if (proceed) { await partnerService.delete(id); }
-```
-
-### Service Pattern (Callback-Safe)
-
-```typescript
-// ✅ Use standalone functions
-export const partnerService = { list, create };
-async function list(companyId: string) { ... }
-
-// ❌ NEVER use 'this' (breaks when passed to hooks)
-export const partnerService = {
-  async list() { this.x; }  // 'this' context lost!
+const handleSubmit = async (data: CreatePartnerInput) => {
+  const result = await apiAction(
+    () => partnerService.create(data),
+    { successMessage: 'Partner created!' }
+  );
+  if (result) refresh();
 };
 ```
 
-## Shared Validators
+## Shared Library Patterns (packages/shared)
 
-Location: `packages/shared/src/validators/index.ts`
+### Schema Definition (Target)
+
+**Location**: `packages/shared/src/validators/index.ts`
 
 ```typescript
-// Define schema first
+// 1. Define Zod Schema
 export const CreatePartnerSchema = z.object({
   name: z.string().min(2),
   type: z.enum(['CUSTOMER', 'SUPPLIER']),
-  email: z.string().email().optional(),
 });
 
-// Export inferred type (NEVER manual interfaces)
+// 2. Export Inferred Type (preferred over manual interface)
 export type CreatePartnerInput = z.infer<typeof CreatePartnerSchema>;
 ```
 
-After modifying validators:
-```bash
-cd packages/shared && npm run build
-```
+> **Note**: Legacy manual interfaces exist in `packages/shared/src/types`. For NEW DTOs, strictly use Zod inference.
 
 ## Essential Commands
 
 | Action | Command |
-|--------|---------|
-| Dev (both apps) | `npm run dev` |
-| TypeScript check | `npx tsc --noEmit` |
-| Build all | `npm run build` |
-| Run tests | `npm run test` |
-| Prisma studio | `npm run db:studio` |
-| Generate Prisma | `npm run db:generate` |
-| Migrate DB | `npm run db:migrate` |
+| :--- | :--- |
+| **Start Dev** | `npm run dev` (starts both apps) |
+| **Type Check** | `npx tsc --noEmit` (Crucial!) |
+| **Run Tests** | `npm run test` (Vitest) |
+| **Build** | `npm run build` |
+| **Lint** | `npm run lint` |
+| **DB Studio** | `npm run db:studio` |
+| **DB Migrate** | `npm run db:migrate` |
 
 ## Don'ts
 
-- ❌ Import Prisma directly in `apps/` (use repository layer)
-- ❌ Define manual TypeScript interfaces for API types (use `z.infer<>`)
-- ❌ Call `toast()` directly (use `apiAction()` helper)
-- ❌ Use `window.confirm()` (use `useConfirm()` hook)
-- ❌ Skip `companyId` in queries (multi-tenant violation)
-- ❌ Use `this` in frontend services (context lost in hooks)
-- ❌ Duplicate logic across components (extract to shared utilities)
+-   ❌ **No `any`**: Use precise types or Zod schemas.
+-   ❌ **No `window.confirm`**: Use `useConfirm()` hook.
+-   ❌ **No direct `toast`**: Use `apiAction()` helper.
+-   ❌ **No `this` in services**: Use standalone functions to ensure safety in hooks.
+-   ❌ **No Client-Side Joins**: valid: `prisma.order.findMany({ include: { items: true } })`.
+-   ❌ **No Manual API Types**: Use `z.infer<typeof Schema>` for shared DTOs.
 
 ## Key Files Reference
 
 | Purpose | File |
-|---------|------|
-| Constitution | `.agent/rules/constitution.md` |
-| Project Memory | `.agent/rules/memory.md` |
-| Zod Validators | `packages/shared/src/validators/index.ts` |
-| API Entry | `apps/api/src/index.ts` |
-| Three-Layer Example | `apps/api/src/modules/partner/` |
-| Data Fetching Hook | `apps/web/src/hooks/useCompanyData.ts` |
-| API Action Hook | `apps/web/src/hooks/useApiAction.ts` |
-| API Action Utility | `apps/web/src/utils/apiAction.ts` |
+| :--- | :--- |
+| **Constitution** | `.agent/rules/constitution.md` |
+| **API Entry** | `apps/api/src/index.ts` |
+| **Shared Validators** | `packages/shared/src/validators/index.ts` |
+| **Shared Types** | `packages/shared/src/types/index.ts` |
+| **Prisma Schema** | `packages/database/prisma/schema.prisma` |
+| **API Action Util** | `apps/web/src/utils/apiAction.ts` |
