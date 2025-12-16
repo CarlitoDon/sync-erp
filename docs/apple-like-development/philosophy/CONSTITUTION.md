@@ -2,7 +2,7 @@
 
 > **Status**: ✅ INTEGRATED
 >
-> This document's principles have been **merged into the main project constitution** at `.specify/memory/constitution.md` (v2.2.0) as Principles XIV-XVII.
+> This document's principles have been **merged into the main project constitution** at `.agent/rules/constitution.md` (v2.2.1) as Principles XIV-XVII.
 >
 > This file is retained for **reference and historical context** only. The authoritative source is the main constitution.
 

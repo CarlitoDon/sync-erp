@@ -2,65 +2,59 @@
 
 This directory contains the foundational documents for the "Apple-Like" pivot of Sync ERP. These documents define the philosophy, architecture, and operational rules for building an opinionated, user-centric ERP.
 
+## Directory Structure
+
+```
+docs/apple-like-development/
+├── README.md              # This index
+├── ROADMAP.md             # Master phase plan (0→1→2→3)
+├── philosophy/            # Core principles (archived)
+│   └── CONSTITUTION.md    # Human-Centered Design philosophy
+├── onboarding/            # Onboarding flow design
+│   ├── BLUEPRINT.md       # Progressive onboarding experience
+│   ├── FLOW-DIAGRAM.md    # Screen-by-screen UI specification
+│   └── STATE-MACHINE.md   # States, gates, and transitions
+├── implementation/        # Technical implementation guides
+│   ├── ADAPTATION.md      # Business shape decision tree
+│   ├── ARCHITECTURE-MAP.md# Monorepo structure mapping
+│   └── MODULE-EXAMPLE.md  # Gold standard module reference
+├── reviews/               # Phase gate reviews
+│   ├── PHASE_0_REVIEW.md  # Foundation review
+│   └── PHASE_1_REVIEW.md  # MVP review
+└── archive/               # Completed/superseded docs
+    ├── IMPLEMENTATION-PLAN.md
+    ├── IMPLEMENTATION-CHECKLIST.md
+    └── REFACTOR-PLAN.md
+```
+
 ## Reading Order
 
-1.  **[CONSTITUTION.md](./CONSTITUTION.md)**
-    - _The "Why" and "What"._
-    - Defines the core philosophy: Simplicity, Privacy, and Human-Centered Design.
-    - Establishes the "Zero-Lag" and "Essentialism" rules.
+### 1. Philosophy & Vision
 
-2.  **[BLUEPRINT.md](./BLUEPRINT.md)**
-    - _The "How" (Experience)._
-    - Describes the Progressive Onboarding flow.
-    - Explains how we move users from an empty state to a "System Alive" state.
+- **[ROADMAP.md](./ROADMAP.md)** — Phase plan: MVP → v1 → v2
+- **[philosophy/CONSTITUTION.md](./philosophy/CONSTITUTION.md)** — Core principles (now merged to `.agent/rules/constitution.md`)
 
-3.  **[FLOW-DIAGRAM.md](./FLOW-DIAGRAM.md)**
-    - _The UI Specification._
-    - Screen-by-screen breakdown of the onboarding interface.
-    - Defines actions, system effects, and implicit progress.
+### 2. Onboarding Design
 
-4.  **[STATE-MACHINE.md](./STATE-MACHINE.md)**
-    - _The Logic Core._
-    - Formal definition of states, gates (Hard/Soft), and transitions.
-    - Ready for implementation in XState or Backend workflows.
+- **[onboarding/BLUEPRINT.md](./onboarding/BLUEPRINT.md)** — Progressive onboarding flow
+- **[onboarding/FLOW-DIAGRAM.md](./onboarding/FLOW-DIAGRAM.md)** — Screen-by-screen UI spec
+- **[onboarding/STATE-MACHINE.md](./onboarding/STATE-MACHINE.md)** — State machine for XState/Backend
 
-5.  **[ADAPTATION.md](./ADAPTATION.md)**
-    - _The Architectural Decision Tree._
-    - Details how the system structurally adapts for **Retail**, **Manufacturing**, or **Service**.
-    - Lists active/hidden modules and accounting defaults per shape.
+### 3. Implementation
 
-6.  **[ARCHITECTURE-MAP.md](./ARCHITECTURE-MAP.md)**
-    - _The Implementation Guide._
-    * Maps these concepts into the actual Turbo Monorepo structure.
-    * Defines folder paths (`apps/api/src/onboarding/`), database schemas, and code boundaries.
+- **[implementation/ADAPTATION.md](./implementation/ADAPTATION.md)** — Retail/Manufacturing/Service decision tree
+- **[implementation/ARCHITECTURE-MAP.md](./implementation/ARCHITECTURE-MAP.md)** — Turbo monorepo structure
+- **[implementation/MODULE-EXAMPLE.md](./implementation/MODULE-EXAMPLE.md)** — Gold standard: Inventory module
 
-7.  **[IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md)**
-    - _The Execution Strategy._
-    - Proposes "Onboarding-Driven Development" (ODD).
-    - Argues for building Onboarding _first_ to act as the system factory.
+### 4. Phase Reviews
 
-8.  **[REFACTOR-PLAN.md](./REFACTOR-PLAN.md)**
-    - _The Backend Hardening Strategy._
-    * Prioritizes strengthening the Core Backend _before_ Onboarding.
-    * Introduces the "Policy Layer" concept to enforce Business Shape constraints.
+- **[reviews/PHASE_0_REVIEW.md](./reviews/PHASE_0_REVIEW.md)** — Foundation gate review ✅
+- **[reviews/PHASE_1_REVIEW.md](./reviews/PHASE_1_REVIEW.md)** — MVP gate review ✅
 
-9.  **[MODULE-EXAMPLE.md](./MODULE-EXAMPLE.md)**
-    - _The "Gold Standard" Usage._
-    * A deep-dive into the **Inventory Module** as a reference implementation.
-    * Shows exact folder structure, file roles, and event flow.
-
-10. **[IMPLEMENTATION-CHECKLIST.md](./IMPLEMENTATION-CHECKLIST.md)**
-    - _The Tracker._
-    - A step-by-step checklist to execute the "Core-First" strategy.
-    - Covers Database, Shared Types, Inventory Refactor, and Onboarding groundwork.
-
-11. **[ROADMAP.md](./ROADMAP.md)**
-    - _The Phase Plan._
-    - Defines MVP → v1 → v2 progression with clear exit criteria.
-    - Phase 0: Foundation, Phase 1: MVP, Phase 2: Professional, Phase 3: Depth.
+---
 
 ## Core Mandates
 
-- **Decision Lives Once**: The Business Shape selection controls 100+ downstream system behaviors.
-- **UI is Consequence**: Frontend only projects backend state; it contains no business logic.
-- **Invisible Complexity**: The system handles complex accounting setup (CoA, Tax, Costing) automatically based on the Business Shape.
+- **Decision Lives Once**: Business Shape selection controls 100+ downstream behaviors
+- **UI is Consequence**: Frontend only projects backend state; no business logic
+- **Invisible Complexity**: System handles CoA, Tax, Costing automatically

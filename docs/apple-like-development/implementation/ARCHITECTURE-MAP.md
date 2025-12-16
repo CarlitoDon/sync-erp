@@ -68,7 +68,7 @@ _Reasoning_: UI must not "remember" state; API must verify it against DB truth.
 
 ### 4.1 Domain Structure
 
-**Location**: `apps/api/src/onboarding/`
+**Location**: `apps/api/src/modules/onboarding/`
 
 - `onboarding.machine.ts` (The "Law")
 - `onboarding.service.ts` (The Executor)

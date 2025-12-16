@@ -82,48 +82,67 @@ export interface Warehouse {
 
 ---
 
-## 3. DTO (API Contract)
+## 3. Input Types (Schema-First API Contract)
 
-### 3.1 `createWarehouse.dto.ts`
+> **Note**: We use **Zod schemas** in `packages/shared/src/validators/` instead of traditional DTO folders. This follows Constitution Principle IX: Schema-First Development.
+
+### Why Schema-First?
+
+1. **Single Source of Truth** — Zod schema defines both validation AND TypeScript type
+2. **Runtime Validation** — Automatic validation in controllers
+3. **No Duplication** — Frontend and backend share the same types
+
+### Location: `packages/shared/src/validators/index.ts`
 
 ```ts
-// modules/inventory/dto/createWarehouse.dto.ts
+// packages/shared/src/validators/index.ts
 
-export interface CreateWarehouseDTO {
-  code: string;
-  name: string;
-  address?: string;
+import { z } from 'zod';
+
+// 1. Define Zod Schema (validation + type in one)
+export const CreateWarehouseSchema = z.object({
+  code: z.string().min(1),
+  name: z.string().min(2),
+  address: z.string().optional(),
+});
+
+export const AdjustStockSchema = z.object({
+  productId: z.string().uuid(),
+  warehouseId: z.string().uuid(),
+  quantity: z.number(),
+  note: z.string().optional(),
+});
+
+export const MoveStockSchema = z.object({
+  productId: z.string().uuid(),
+  fromWarehouseId: z.string().uuid(),
+  toWarehouseId: z.string().uuid(),
+  quantity: z.number().positive(),
+  note: z.string().optional(),
+});
+
+// 2. Export inferred types (replaces manual DTO interfaces)
+export type CreateWarehouseInput = z.infer<
+  typeof CreateWarehouseSchema
+>;
+export type AdjustStockInput = z.infer<typeof AdjustStockSchema>;
+export type MoveStockInput = z.infer<typeof MoveStockSchema>;
+```
+
+### Usage in Controller
+
+```ts
+// modules/inventory/inventory.controller.ts
+import { AdjustStockSchema } from '@sync-erp/shared';
+
+async adjustStock(req: Request, res: Response) {
+  const validated = AdjustStockSchema.parse(req.body); // Runtime validation!
+  await this.service.adjustStock(validated);
+  res.json({ success: true });
 }
 ```
 
-### 3.2 `adjustStock.dto.ts`
-
-```ts
-// modules/inventory/dto/adjustStock.dto.ts
-
-export interface AdjustStockDTO {
-  productId: string;
-  warehouseId: string;
-  quantity: number;
-  note?: string;
-}
-```
-
-### 3.3 `moveStock.dto.ts`
-
-```ts
-// modules/inventory/dto/moveStock.dto.ts
-
-export interface MoveStockDTO {
-  productId: string;
-  fromWarehouseId: string;
-  toWarehouseId: string;
-  quantity: number;
-  note?: string;
-}
-```
-
----
+> ⚠️ **Forbidden**: Do NOT create manual `interface` for API request/response types. Always use `z.infer<typeof Schema>`.
 
 ## 4. Rules (Pure Business Logic)
 
@@ -220,7 +239,7 @@ export class InventoryRepository {
 
 ## 6. Service (Orchestrator)
 
-Service **combines Rules + Repository**.
+Service **combines Policy + Rules + Repository**.
 
 ### `inventory.service.ts`
 
@@ -228,45 +247,55 @@ Service **combines Rules + Repository**.
 // modules/inventory/inventory.service.ts
 
 import { InventoryRepository } from './inventory.repository';
+import { InventoryPolicy } from './inventory.policy';
 import { STOCK_MOVEMENT_TYPE } from './inventory.constants';
 import { StockRule } from './rules/stockRule';
 import { ReservationRule } from './rules/reservationRule';
-import { AdjustStockDTO } from './dto/adjustStock.dto';
-import { MoveStockDTO } from './dto/moveStock.dto';
-import { CreateWarehouseDTO } from './dto/createWarehouse.dto';
+import {
+  AdjustStockInput,
+  MoveStockInput,
+  CreateWarehouseInput,
+  BusinessShape,
+} from '@sync-erp/shared';
 
 export class InventoryService {
   constructor(
-    private readonly inventoryRepo = new InventoryRepository()
+    private readonly inventoryRepo = new InventoryRepository(),
+    private readonly policy = new InventoryPolicy()
   ) {}
 
-  async createWarehouse(dto: CreateWarehouseDTO) {
-    return this.inventoryRepo.createWarehouse(dto);
+  async createWarehouse(
+    input: CreateWarehouseInput,
+    shape: BusinessShape
+  ) {
+    // Policy check FIRST
+    this.policy.ensureCanManageWarehouse(shape);
+    return this.inventoryRepo.createWarehouse(input);
   }
 
-  async adjustStock(dto: AdjustStockDTO) {
+  async adjustStock(input: AdjustStockInput) {
     const stock = await this.inventoryRepo.findStock(
-      dto.productId,
-      dto.warehouseId
+      input.productId,
+      input.warehouseId
     );
 
     const currentQty = stock?.quantity ?? 0;
-    const newQty = currentQty + dto.quantity;
+    const newQty = currentQty + input.quantity;
 
     if (newQty < 0) {
       StockRule.ensureAvailableStock(
         currentQty,
-        Math.abs(dto.quantity)
+        Math.abs(input.quantity)
       );
     }
 
     await this.inventoryRepo.createStockMovement({
-      productId: dto.productId,
-      warehouseId: dto.warehouseId,
-      quantity: dto.quantity,
+      productId: input.productId,
+      warehouseId: input.warehouseId,
+      quantity: input.quantity,
       type: STOCK_MOVEMENT_TYPE.ADJUSTMENT,
       source: 'MANUAL_ADJUSTMENT',
-      note: dto.note,
+      note: input.note,
     });
 
     if (stock) {
@@ -274,26 +303,29 @@ export class InventoryService {
     }
   }
 
-  async moveStock(dto: MoveStockDTO) {
+  async moveStock(input: MoveStockInput) {
     const fromStock = await this.inventoryRepo.findStock(
-      dto.productId,
-      dto.fromWarehouseId
+      input.productId,
+      input.fromWarehouseId
     );
 
-    StockRule.ensureAvailableStock(fromStock.quantity, dto.quantity);
+    StockRule.ensureAvailableStock(
+      fromStock.quantity,
+      input.quantity
+    );
 
     await this.adjustStock({
-      productId: dto.productId,
-      warehouseId: dto.fromWarehouseId,
-      quantity: -dto.quantity,
-      note: dto.note,
+      productId: input.productId,
+      warehouseId: input.fromWarehouseId,
+      quantity: -input.quantity,
+      note: input.note,
     });
 
     await this.adjustStock({
-      productId: dto.productId,
-      warehouseId: dto.toWarehouseId,
-      quantity: dto.quantity,
-      note: dto.note,
+      productId: input.productId,
+      warehouseId: input.toWarehouseId,
+      quantity: input.quantity,
+      note: input.note,
     });
   }
 
