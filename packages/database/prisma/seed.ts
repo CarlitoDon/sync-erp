@@ -101,8 +101,11 @@ async function main() {
       create: {
         id: 'demo-company-001',
         name: 'Demo Company',
+        businessShape: 'RETAIL',
       },
     });
+
+    // ... (rest of permission/role logic unchanged) ...
 
     // Get all permissions for admin role
     const allPermissions = await prisma.permission.findMany();
@@ -155,12 +158,36 @@ async function main() {
       },
     });
 
-  // ... (previous demo company creation)
-
     console.warn('✅ Demo data created');
     console.warn(`   - User: ${demoUser.email}`);
     console.warn(`   - Company: ${demoCompany.name}`);
     console.warn(`   - Role: ${adminRole.name}`);
+    console.warn(`   - Shape: RETAIL`);
+
+    // ==========================================
+    // 1a. Seed System Config
+    // ==========================================
+    console.warn('⚙️ Seeding System Config...');
+    const CONFIGS = [
+      { key: 'inventory.enabled', value: true },
+      { key: 'inventory.costing_method', value: 'AVG' },
+      { key: 'inventory.multi_warehouse', value: false },
+      { key: 'inventory.wip_enabled', value: false },
+    ];
+
+    for (const config of CONFIGS) {
+      await prisma.systemConfig.upsert({
+        where: {
+          companyId_key: { companyId: demoCompany.id, key: config.key },
+        },
+        update: { value: config.value },
+        create: {
+          companyId: demoCompany.id,
+          key: config.key,
+          value: config.value,
+        },
+      });
+    }
 
     // ==========================================
     // 1. Seed Chart of Accounts
@@ -172,6 +199,7 @@ async function main() {
       { code: '1200', name: 'Bank Account', type: 'ASSET' as const },
       { code: '1300', name: 'Accounts Receivable', type: 'ASSET' as const },
       { code: '1400', name: 'Inventory Asset', type: 'ASSET' as const },
+      { code: '1210', name: 'Goods in Transit', type: 'ASSET' as const }, // Added
       { code: '1500', name: 'Office Equipment', type: 'ASSET' as const },
       
       // Liabilities
@@ -188,6 +216,7 @@ async function main() {
       
       // Expenses
       { code: '5100', name: 'Cost of Goods Sold', type: 'EXPENSE' as const },
+      { code: '5200', name: 'Inventory Adjustment', type: 'EXPENSE' as const }, // Added
       { code: '6100', name: 'Rent Expense', type: 'EXPENSE' as const },
       { code: '6200', name: 'Utilities Expense', type: 'EXPENSE' as const },
       { code: '6300', name: 'Salaries Expense', type: 'EXPENSE' as const },
