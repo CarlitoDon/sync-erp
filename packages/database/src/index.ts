@@ -31,6 +31,8 @@ export {
   InvoiceType,
   InvoiceStatus,
   AccountType,
+  BusinessShape,
+  CostingMethod,
 } from './generated/client/client.js';
 
 export { Prisma } from './generated/client/client.js';
