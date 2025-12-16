@@ -4,19 +4,19 @@ trigger: always_on
 
 <!--
 MEMORY SYNC REPORT
-Version: 1.0.2 -> 1.0.3 (Patch - Added UI Consistency Decision)
+Version: 1.0.4 -> 1.0.5 (Patch - Added Case A1 Issue)
 Added Sections:
 - None
 Modified Sections:
-- Key Decisions Log (added UI Consistency / Shared Components entry)
+- Known Issues & Workarounds (added Case A1)
 Removed Sections:
 - None
-Last Updated: 2025-12-15
+Last Updated: 2025-12-16
 -->
 
 # Project Memory
 
-**Version**: 1.0.3 | **Last Updated**: 2025-12-15
+**Version**: 1.0.5 | **Last Updated**: 2025-12-16
 
 ## Overview
 
@@ -32,6 +32,12 @@ Last Updated: 2025-12-15
 ## Key Decisions Log
 
 > Decisions that affect future development. Add new entries at top.
+
+### [2025-12-16] Case A1 Prevention - Complete Integration Check
+
+**Decision**: When creating new files (especially Policy, Rules, Services), ALWAYS verify they are actually imported and used somewhere. Never create "orphan" files.
+**Rationale**: Case A1 discovered where `sales.policy.ts` and `procurement.policy.ts` were created with tests but never imported in any service. Files exist but provide no value until integrated.
+**Reference**: Implementation Completeness
 
 ### [2025-12-15] UI Consistency via Shared Components
 
@@ -79,6 +85,8 @@ Last Updated: 2025-12-15
 |-------|--------|------------|
 | Old orders have subtotal-only `totalAmount` | KNOWN | Only new orders include tax |
 | IDE lint may be stale | KNOWN | Use `npx tsc --noEmit` as source of truth |
+| **Dev server always running during development** | NOTE | User runs `Dev: Start All` and `TypeScript: Watch` in separate terminals. Do NOT try to start dev server yourself. |
+| **Case A1: Orphan files created but not integrated** | KNOWN | After creating any new file, grep for imports to verify it's actually used. Check `grep -r "import.*filename" apps/` |
 
 ---
 
@@ -113,6 +121,14 @@ const proceed = await confirm.show({
   danger: true,
 });
 if (proceed) { /* delete */ }
+```
+
+### Case A1 Prevention Check
+
+```bash
+# After creating any new file, verify it's imported somewhere
+grep -r "import.*filename" apps/
+# If no results, the file is orphaned and needs integration
 ```
 
 ---
