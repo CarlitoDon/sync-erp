@@ -157,10 +157,19 @@ export const CreateInvoiceSchema = z.object({
   type: InvoiceTypeSchema,
   dueDate: z.coerce.date(),
   amount: z.number().positive('Amount must be positive'),
+  businessDate: z.coerce.date().optional(), // G5: Explicit business date
 });
 
 export const CreateBillSchema = CreateInvoiceSchema.extend({
   type: z.literal('BILL'),
+});
+
+export const InvoicePostSchema = z.object({
+  businessDate: z.coerce.date().optional(), // G5
+});
+
+export const BillPostSchema = z.object({
+  businessDate: z.coerce.date().optional(), // G5
 });
 
 // Manual Bill Creation (without Purchase Order)
@@ -170,6 +179,7 @@ export const CreateManualBillSchema = z.object({
   taxRate: z.number().min(0).max(100).default(0),
   dueDate: z.coerce.date().optional(),
   notes: z.string().optional(),
+  businessDate: z.coerce.date().optional(), // G5: Explicit business date
 });
 
 // Bill Creation from Purchase Order (only requires orderId)
@@ -178,6 +188,7 @@ export const CreateBillFromPOSchema = z.object({
   dueDate: z.coerce.date().optional(),
   taxRate: z.number().min(0).max(100).optional(),
   invoiceNumber: z.string().optional(),
+  businessDate: z.coerce.date().optional(), // G5: Explicit business date
 });
 
 // Invoice Creation from Sales Order (only requires orderId)
@@ -186,6 +197,7 @@ export const CreateInvoiceFromSOSchema = z.object({
   dueDate: z.coerce.date().optional(),
   taxRate: z.number().min(0).max(100).optional(),
   invoiceNumber: z.string().optional(),
+  businessDate: z.coerce.date().optional(), // G5: Explicit business date
 });
 
 // ============================================
@@ -196,6 +208,7 @@ export const CreatePaymentSchema = z.object({
   invoiceId: z.string().uuid(),
   amount: z.number().positive('Payment amount must be positive'),
   method: z.string().min(1, 'Payment method is required'),
+  businessDate: z.coerce.date().optional(), // G5: Explicit business date
 });
 
 // ============================================
@@ -234,6 +247,8 @@ export type CreateManualBillInput = z.infer<
 export type CreateBillFromPOInput = z.infer<
   typeof CreateBillFromPOSchema
 >;
+export type InvoicePostInput = z.infer<typeof InvoicePostSchema>;
+export type BillPostInput = z.infer<typeof BillPostSchema>;
 export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
 export type GoodsReceiptInput = z.infer<typeof GoodsReceiptSchema>;
 export type StockAdjustmentInput = z.infer<
