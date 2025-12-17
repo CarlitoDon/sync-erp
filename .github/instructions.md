@@ -77,6 +77,14 @@ Required when an operation spans multiple aggregates/modules (e.g., Invoice → 
 - **Mandatory Compensation**: Every step must have a rollback action.
 - **Fail-Safe**: Do NOT delete data on rollback; use compensating entries.
 - **Testing**: Mock the Saga orchestrator in integration tests.
+- **Vitest 4.x Mocking**: Use factory function to avoid hoisting issues.
+  ```typescript
+  vi.mock('../services/MySaga', () => ({
+    MySaga: function () {
+      return mockInstance;
+    }, // factory allows accessing mockInstance
+  }));
+  ```
 
 ### Idempotency
 
@@ -131,14 +139,16 @@ export type UserInput = z.infer<typeof UserSchema>;
 
 ## Essential Commands
 
-| Command               | Description                  |
-| :-------------------- | :--------------------------- |
-| `npm run dev`         | Start API + Web (Hot Reload) |
-| `npx tsc --noEmit`    | **Type Check** (Run often!)  |
-| `npm run test`        | Run all Vitest tests         |
-| `npm run lint`        | Check linting rules          |
-| `npm run db:migrate`  | Apply Prisma migrations      |
-| `npm run db:generate` | Regenerate Prisma Client     |
+| Command                    | Description                  |
+| :------------------------- | :--------------------------- |
+| `npm run dev`              | Start API + Web (Hot Reload) |
+| `npx tsc --noEmit`         | **Type Check** (Run often!)  |
+| `npm run test`             | Run all Vitest tests         |
+| `npm run test:integration` | Run integration tests        |
+| `npm run lint`             | Check linting rules          |
+| `npm run db:migrate`       | Apply Prisma migrations      |
+| `npm run db:generate`      | Regenerate Prisma Client     |
+| `npm run db:studio`        | Open Prisma Studio           |
 
 ## Don'ts & Anti-Patterns
 
