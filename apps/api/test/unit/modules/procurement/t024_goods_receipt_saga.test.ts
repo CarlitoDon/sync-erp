@@ -89,6 +89,7 @@ describe('T024: Goods Receipt Saga', () => {
     // Default saga log mock
     vi.mocked(prisma.sagaLog.create).mockResolvedValue(mockSagaLog);
     vi.mocked(prisma.sagaLog.update).mockResolvedValue({} as any);
+    vi.mocked(prisma.sagaLog.findFirst).mockResolvedValue(null);
   });
 
   describe('Successful Execution', () => {
@@ -152,6 +153,32 @@ describe('T024: Goods Receipt Saga', () => {
       expect(result.success).toBe(true);
       expect(result.data?.movements).toBeDefined();
       expect(result.sagaLogId).toBe('saga-1');
+    });
+  });
+
+  describe('Idempotency', () => {
+    it('should return cached result if saga already completed', async () => {
+      // Mock existing completed saga log
+      vi.mocked(prisma.sagaLog.findFirst).mockResolvedValue({
+        ...mockSagaLog,
+        status: SagaStep.COMPLETED,
+        step: SagaStep.COMPLETED,
+        result: { success: true, sagaLogId: 'saga-1' },
+      } as any);
+
+      // Execute again
+      const result = await saga.execute(
+        { orderId: 'po-1', companyId: 'co-1' },
+        'po-1',
+        'co-1'
+      );
+
+      // Should succeed but NOT call business logic
+      expect(result.success).toBe(true);
+      expect(result.sagaLogId).toBe('saga-1');
+      // Ensure business logic was NOT called
+      expect(prisma.order.update).not.toHaveBeenCalled();
+      expect(prisma.journalEntry.create).not.toHaveBeenCalled();
     });
   });
 

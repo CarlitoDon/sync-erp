@@ -5,7 +5,7 @@ import {
   prisma,
   Prisma,
 } from '@sync-erp/database';
-import { PostingContext } from './posting-context.js';
+import { PostingContext, StepData } from './posting-context.js';
 import * as sagaLogRepo from './saga-log.repository.js';
 import {
   SagaCompensatedError,
@@ -67,6 +67,20 @@ export abstract class SagaOrchestrator<TInput, TOutput> {
     entityId: string,
     companyId: string
   ): Promise<SagaResult<TOutput>> {
+    // 0. Idempotency Check
+    // If saga is already completed, return cached result immediately
+    const existingLog = await this.getStatus(entityId, companyId);
+    if (existingLog && existingLog.step === 'COMPLETED') {
+      const stepData = existingLog.stepData as unknown as StepData;
+      // Ideally we should cast to StepData but it's not exported from database package
+      const resultData = stepData?.result;
+      return {
+        success: true,
+        data: resultData as TOutput,
+        sagaLogId: existingLog.id,
+      };
+    }
+
     // Create posting context (starts saga) - OUTSIDE transaction
     // This ensures the generic "PENDING" log exists even if the transaction fails immediately
     const context = await PostingContext.create(
@@ -92,7 +106,7 @@ export abstract class SagaOrchestrator<TInput, TOutput> {
 
       // Mark completed (Outside transaction)
       // Since transaction committed, the business work is done.
-      await context.markCompleted();
+      await context.markCompleted(result);
 
       return {
         success: true,

@@ -5,10 +5,16 @@ import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-e
 
 vi.mock('@sync-erp/database', async () => {
   const actual = await vi.importActual('@sync-erp/database');
+  const mockSagaLog = {
+    create: vi.fn(),
+    update: vi.fn(),
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+  };
   return {
     ...actual,
     prisma: {
-      sagaLog: { create: vi.fn(), update: vi.fn() },
+      sagaLog: mockSagaLog,
       product: {
         findUnique: vi.fn(),
         findFirst: vi.fn(),
@@ -54,10 +60,12 @@ describe('T029: Stock Return Saga', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     saga = new StockReturnSaga();
+    // Default saga log mock
     vi.mocked(prisma.sagaLog.create).mockResolvedValue(
       mockSagaLog as any
     );
     vi.mocked(prisma.sagaLog.update).mockResolvedValue({} as any);
+    vi.mocked(prisma.sagaLog.findFirst).mockResolvedValue(null);
   });
 
   describe('Successful Execution', () => {

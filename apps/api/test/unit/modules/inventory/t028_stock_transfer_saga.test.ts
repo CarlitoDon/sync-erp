@@ -8,7 +8,12 @@ vi.mock('@sync-erp/database', async () => {
   return {
     ...actual,
     prisma: {
-      sagaLog: { create: vi.fn(), update: vi.fn() },
+      sagaLog: {
+        create: vi.fn(),
+        update: vi.fn(),
+        findUnique: vi.fn(),
+        findFirst: vi.fn(),
+      },
       product: {
         findUnique: vi.fn(),
         findFirst: vi.fn(),

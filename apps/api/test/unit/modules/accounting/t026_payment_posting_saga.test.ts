@@ -75,6 +75,7 @@ describe('T026: Payment Posting Saga', () => {
 
     vi.mocked(prisma.sagaLog.create).mockResolvedValue(mockSagaLog);
     vi.mocked(prisma.sagaLog.update).mockResolvedValue({} as any);
+    vi.mocked(prisma.sagaLog.findFirst).mockResolvedValue(null);
   });
 
   describe('Successful Execution', () => {
@@ -115,6 +116,36 @@ describe('T026: Payment Posting Saga', () => {
       expect(result.success).toBe(true);
       expect(result.data?.amount).toBe(500);
       expect(result.sagaLogId).toBe('saga-1');
+    });
+  });
+
+  describe('Idempotency', () => {
+    it('should return cached result if saga already completed', async () => {
+      vi.mocked(prisma.sagaLog.findFirst).mockResolvedValue({
+        ...mockSagaLog,
+        status: SagaStep.COMPLETED,
+        step: SagaStep.COMPLETED,
+        result: {
+          success: true,
+          sagaLogId: 'saga-1',
+          data: { amount: 500 },
+        },
+      } as any);
+
+      const result = await saga.execute(
+        {
+          invoiceId: 'inv-1',
+          companyId: 'co-1',
+          amount: 500,
+          method: 'bank_transfer',
+        },
+        'inv-1',
+        'co-1'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sagaLogId).toBe('saga-1');
+      expect(prisma.payment.create).not.toHaveBeenCalled();
     });
   });
 

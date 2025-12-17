@@ -6,13 +6,16 @@ import * as sagaLogRepo from './saga-log.repository.js';
  * StepData holds IDs created during saga execution for compensation
  */
 export interface StepData {
-  [key: string]: string | number | undefined;
+  [key: string]: unknown;
   stockMovementId?: string;
   stockMovementId2?: string; // For transfers (source + destination)
   journalId?: string;
   paymentId?: string;
   previousBalance?: number;
+  result?: unknown;
 }
+
+// ... inside class ...
 
 /**
  * PostingContext - Manages saga step tracking and persistence
@@ -144,9 +147,12 @@ export class PostingContext {
     await this.save();
   }
 
-  async markCompleted(): Promise<void> {
+  async markCompleted(result?: unknown): Promise<void> {
     this._step = SagaStep.COMPLETED;
     this._error = null;
+    if (result !== undefined) {
+      this._stepData.result = result;
+    }
     await this.save();
   }
 

@@ -11,7 +11,12 @@ import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-e
 vi.mock('@sync-erp/database', async () => {
   const actual = await vi.importActual('@sync-erp/database');
 
-  const mockSagaLog = { create: vi.fn(), update: vi.fn() };
+  const mockSagaLog = {
+    create: vi.fn(),
+    update: vi.fn(),
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+  };
   const mockInvoice = { findFirst: vi.fn(), update: vi.fn() };
   const mockAccount = { findFirst: vi.fn() };
   const mockJournalEntry = { create: vi.fn(), update: vi.fn() };
@@ -64,6 +69,7 @@ describe('T027: Credit Note Saga', () => {
       mockSagaLog as any
     );
     vi.mocked(prisma.sagaLog.update).mockResolvedValue({} as any);
+    vi.mocked(prisma.sagaLog.findFirst).mockResolvedValue(null);
   });
 
   describe('Successful Execution', () => {
@@ -95,6 +101,36 @@ describe('T027: Credit Note Saga', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.balance).toBe(800);
+    });
+  });
+
+  describe('Idempotency', () => {
+    it('should return cached result if saga already completed', async () => {
+      vi.mocked(prisma.sagaLog.findFirst).mockResolvedValue({
+        ...mockSagaLog,
+        status: SagaStep.COMPLETED,
+        step: SagaStep.COMPLETED,
+        result: {
+          success: true,
+          sagaLogId: 'saga-1',
+          data: { balance: 800 },
+        },
+      } as any);
+
+      const result = await saga.execute(
+        {
+          invoiceId: 'inv-1',
+          companyId: 'co-1',
+          amount: 200,
+          reason: 'Discount',
+        },
+        'inv-1',
+        'co-1'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sagaLogId).toBe('saga-1');
+      expect(prisma.journalEntry.create).not.toHaveBeenCalled();
     });
   });
 

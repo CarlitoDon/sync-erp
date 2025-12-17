@@ -28,6 +28,21 @@ vi.mock('../../../src/modules/inventory/inventory.service', () => ({
   },
 }));
 
+// Mock ProcurementService
+vi.mock(
+  '../../../src/modules/procurement/procurement.service',
+  () => ({
+    ProcurementService: function () {
+      return {
+        receive: vi.fn().mockResolvedValue({
+          movements: [{ id: 'mov-2' }],
+          sagaLogId: 'saga-1',
+        }),
+      };
+    },
+  })
+);
+
 // Import after mocking
 import { inventoryRouter } from '../../../src/routes/inventory';
 import { errorHandler } from '../../../src/middlewares/errorHandler';
