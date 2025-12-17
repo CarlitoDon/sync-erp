@@ -17,6 +17,8 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "test:all": "turbo run test:all",
     "db:generate": "npm run db:generate --workspace=@sync-erp/database",
     "db:push": "npm run db:push --workspace=@sync-erp/database",
     "db:migrate": "npm run db:migrate --workspace=@sync-erp/database",
