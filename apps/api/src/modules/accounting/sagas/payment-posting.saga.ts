@@ -13,6 +13,7 @@ export interface PaymentPostingInput {
   companyId: string;
   amount: number;
   method: string;
+  businessDate?: Date; // G5
 }
 
 /**
@@ -113,7 +114,8 @@ export class PaymentPostingSaga extends SagaOrchestrator<
       invoice.invoiceNumber || input.invoiceId,
       input.amount,
       input.method,
-      tx
+      tx,
+      input.businessDate // G5
     );
 
     await context.markJournalDone(journal.id);

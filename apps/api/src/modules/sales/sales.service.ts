@@ -8,6 +8,7 @@ import {
 import { SalesRepository } from './sales.repository';
 import { SalesPolicy } from './sales.policy';
 import { ProductService } from '../product/product.service';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 // We define input interface if shared doesn't export strict DTO for internal use yet
 // Shared exports CreateSalesOrderInput (inferred from schema)
@@ -88,6 +89,29 @@ export class SalesService {
     return this.repository.findAll(companyId, status as OrderStatus);
   }
 
+  async update(
+    id: string,
+    companyId: string,
+    data: Prisma.OrderUpdateInput
+  ): Promise<Order> {
+    const order = await this.repository.findById(id, companyId);
+    if (!order) {
+      throw new DomainError(
+        'Sales order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+
+    SalesPolicy.validateUpdate(
+      order.status,
+      { orderNumber: data.orderNumber as string | undefined },
+      order.orderNumber || ''
+    );
+
+    return this.repository.update(id, data);
+  }
+
   async confirm(id: string, companyId: string): Promise<Order> {
     const order = await this.repository.findById(id, companyId);
     if (!order) {
@@ -95,8 +119,10 @@ export class SalesService {
     }
 
     if (order.status !== OrderStatus.DRAFT) {
-      throw new Error(
-        `Cannot confirm order with status: ${order.status}`
+      throw new DomainError(
+        `Cannot confirm order with status: ${order.status}`,
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
       );
     }
 
@@ -107,8 +133,10 @@ export class SalesService {
         item.quantity
       );
       if (!hasStock) {
-        throw new Error(
-          `Insufficient stock for product: ${item.product.name}`
+        throw new DomainError(
+          `Insufficient stock for product: ${item.product.name}`,
+          422,
+          DomainErrorCodes.INSUFFICIENT_STOCK
         );
       }
     }
@@ -142,7 +170,20 @@ export class SalesService {
     return result.data.movements;
   }
 
-  async complete(id: string) {
+  async complete(id: string, companyId: string) {
+    const order = await this.repository.findById(id, companyId);
+    if (!order) {
+      throw new Error('Sales order not found');
+    }
+
+    if (order.status !== OrderStatus.CONFIRMED) {
+      throw new DomainError(
+        `Cannot complete order with status: ${order.status}`,
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
     return this.repository.updateStatus(id, OrderStatus.COMPLETED);
   }
 
@@ -151,7 +192,11 @@ export class SalesService {
     if (!order) throw new Error('Sales order not found');
 
     if (order.status === OrderStatus.COMPLETED) {
-      throw new Error('Cannot cancel a completed order');
+      throw new DomainError(
+        'Cannot cancel a completed order',
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
     }
 
     return this.repository.updateStatus(id, OrderStatus.CANCELLED);

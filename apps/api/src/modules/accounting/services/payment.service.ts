@@ -1,6 +1,6 @@
 import { Payment, IdempotencyScope } from '@sync-erp/database';
 import { PaymentRepository } from '../repositories/payment.repository';
-import { CreatePaymentDto } from '@sync-erp/shared';
+import { CreatePaymentInput, BusinessDate } from '@sync-erp/shared';
 import { IdempotencyService } from '../../common/services/idempotency.service';
 import { PaymentPostingSaga } from '../sagas/payment-posting.saga';
 
@@ -17,7 +17,7 @@ export class PaymentService {
    */
   async create(
     companyId: string,
-    data: CreatePaymentDto,
+    data: CreatePaymentInput,
     idempotencyKey?: string
   ): Promise<Payment> {
     // Idempotency Check
@@ -33,6 +33,10 @@ export class PaymentService {
       }
     }
 
+    if (data.businessDate) {
+      BusinessDate.from(data.businessDate).ensureValid();
+    }
+
     try {
       // Execute via saga for atomic operation with compensation
       const result = await this.paymentPostingSaga.execute(
@@ -40,6 +44,7 @@ export class PaymentService {
           invoiceId: data.invoiceId,
           amount: data.amount,
           method: data.method,
+          businessDate: data.businessDate, // G5: Pass explicitly
           companyId,
         },
         data.invoiceId,

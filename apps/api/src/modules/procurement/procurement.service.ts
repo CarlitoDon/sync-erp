@@ -9,6 +9,7 @@ import { ProcurementRepository } from './procurement.repository';
 import { ProcurementPolicy } from './procurement.policy';
 import { DocumentNumberService } from '../common/services/document-number.service';
 import { GoodsReceiptSaga } from './sagas/goods-receipt.saga';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export class ProcurementService {
   private repository = new ProcurementRepository();
@@ -83,12 +84,18 @@ export class ProcurementService {
   async confirm(id: string, companyId: string): Promise<Order> {
     const order = await this.repository.findById(id, companyId);
     if (!order) {
-      throw new Error('Purchase order not found');
+      throw new DomainError(
+        'Purchase order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
     }
 
     if (order.status !== OrderStatus.DRAFT) {
-      throw new Error(
-        `Cannot confirm order with status: ${order.status}`
+      throw new DomainError(
+        `Cannot confirm order with status: ${order.status}`,
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
       );
     }
 
@@ -98,12 +105,18 @@ export class ProcurementService {
   async complete(id: string, companyId: string): Promise<Order> {
     const order = await this.repository.findById(id, companyId);
     if (!order) {
-      throw new Error('Purchase order not found');
+      throw new DomainError(
+        'Purchase order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
     }
 
     if (order.status !== OrderStatus.CONFIRMED) {
-      throw new Error(
-        `Cannot complete order with status: ${order.status}`
+      throw new DomainError(
+        `Cannot complete order with status: ${order.status}`,
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
       );
     }
 
@@ -113,11 +126,19 @@ export class ProcurementService {
   async cancel(id: string, companyId: string): Promise<Order> {
     const order = await this.repository.findById(id, companyId);
     if (!order) {
-      throw new Error('Purchase order not found');
+      throw new DomainError(
+        'Purchase order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
     }
 
     if (order.status === OrderStatus.COMPLETED) {
-      throw new Error('Cannot cancel a completed order');
+      throw new DomainError(
+        'Cannot cancel a completed order',
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
     }
 
     return this.repository.updateStatus(id, OrderStatus.CANCELLED);

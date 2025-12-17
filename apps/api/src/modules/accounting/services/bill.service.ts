@@ -6,16 +6,23 @@ import {
   Prisma,
 } from '@sync-erp/database';
 import { InvoiceRepository } from '../repositories/invoice.repository';
+import {
+  BusinessDate,
+  DomainError,
+  DomainErrorCodes,
+} from '@sync-erp/shared';
 
 export interface CreateBillInput {
   orderId: string;
   invoiceNumber?: string;
   dueDate?: Date;
   taxRate?: number;
+  businessDate?: Date; // G5
 }
 
 import { DocumentNumberService } from '../../common/services/document-number.service';
 import { BillPostingSaga } from '../sagas/bill-posting.saga';
+import { BillPolicy } from '../policies/bill.policy';
 
 export class BillService {
   private repository = new InvoiceRepository();
@@ -32,8 +39,14 @@ export class BillService {
       OrderType.PURCHASE
     );
 
+    BillPolicy.validateCreate(data);
+
     if (!order) {
-      throw new Error('Purchase order not found');
+      throw new DomainError(
+        'Purchase order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
     }
 
     let invoiceNumber = data.invoiceNumber;
@@ -107,9 +120,38 @@ export class BillService {
    * @throws SagaCompensatedError if posting fails but was compensated
    * @throws SagaCompensationFailedError if compensation also fails
    */
-  async post(id: string, companyId: string): Promise<Invoice> {
+  async post(
+    id: string,
+    companyId: string,
+    businessDate?: Date
+  ): Promise<Invoice> {
+    if (businessDate) {
+      BusinessDate.from(businessDate).ensureValid();
+    }
+
+    const bill = await this.repository.findById(
+      id,
+      companyId,
+      InvoiceType.BILL
+    );
+    if (!bill) {
+      throw new DomainError(
+        'Bill not found',
+        404,
+        DomainErrorCodes.BILL_NOT_FOUND
+      );
+    }
+
+    if (bill.status !== InvoiceStatus.DRAFT) {
+      throw new DomainError(
+        `Cannot post bill with status ${bill.status}`,
+        422,
+        DomainErrorCodes.BILL_INVALID_STATE
+      );
+    }
+
     const result = await this.billPostingSaga.execute(
-      { billId: id, companyId },
+      { billId: id, companyId, businessDate },
       id,
       companyId
     );
@@ -132,7 +174,11 @@ export class BillService {
     }
 
     if (bill.status === InvoiceStatus.PAID) {
-      throw new Error('Cannot void a paid bill');
+      throw new DomainError(
+        'Cannot void a paid bill',
+        422,
+        DomainErrorCodes.BILL_INVALID_STATE
+      );
     }
 
     return this.repository.update(id, {

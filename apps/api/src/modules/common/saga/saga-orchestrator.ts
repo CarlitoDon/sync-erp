@@ -86,7 +86,7 @@ export abstract class SagaOrchestrator<TInput, TOutput> {
           return this.executeSteps(input, context, tx);
         },
         {
-          timeout: 10000, // Wait up to 10s for lock
+          timeout: 60000, // Wait up to 60s for transaction (Prisma Postgres)
         }
       );
 
@@ -168,7 +168,7 @@ export abstract class SagaOrchestrator<TInput, TOutput> {
           await this.lockEntity(tx, context.entityId, input);
           return this.executeSteps(input, context, tx);
         },
-        { timeout: 10000 }
+        { timeout: 60000 }
       );
 
       await context.markCompleted();

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { PaymentService } from '../services/payment.service';
-import { CreatePaymentDto } from '@sync-erp/shared';
+import { CreatePaymentInput } from '@sync-erp/shared';
 
 export class PaymentController {
   private service = new PaymentService();
@@ -27,10 +27,17 @@ export class PaymentController {
         | string
         | undefined;
 
-      // Validate generic input for now, assume FE sends CreatePaymentDto shape
+      // Validate generic input for now, assume FE sends CreatePaymentInput shape
+      const validated = req.body as CreatePaymentInput;
+      // Inject default businessDate if missing (G5)
+      // Controller responsibility: Ensure payload is complete for domain
+      const payload: CreatePaymentInput = {
+        ...validated,
+        businessDate: validated.businessDate || new Date(),
+      };
       const payment = await this.service.create(
         companyId,
-        req.body as CreatePaymentDto,
+        payload,
         idempotencyKey
       );
       res.status(201).json({ success: true, data: payment });

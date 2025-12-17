@@ -58,12 +58,14 @@ export class ShipmentSaga extends SagaOrchestrator<
    */
   protected async executeSteps(
     input: ShipmentInput,
-    context: PostingContext
+    context: PostingContext,
+    tx?: Prisma.TransactionClient
   ): Promise<ShipmentResult> {
     // 1. Validate order
     const order = await this.salesRepository.findById(
       input.orderId,
-      input.companyId
+      input.companyId,
+      tx
     );
     if (!order) {
       throw new Error('Sales order not found');
@@ -77,7 +79,8 @@ export class ShipmentSaga extends SagaOrchestrator<
     for (const item of order.items) {
       const hasStock = await this.productService.checkStock(
         item.productId,
-        item.quantity
+        item.quantity,
+        tx
       );
       if (!hasStock) {
         throw new Error(
@@ -92,7 +95,8 @@ export class ShipmentSaga extends SagaOrchestrator<
       input.orderId,
       input.reference || `Shipment for Order ${order.orderNumber}`,
       input.shape,
-      input.configs
+      input.configs,
+      tx
     );
 
     // Track first movement for compensation tracking
@@ -103,7 +107,8 @@ export class ShipmentSaga extends SagaOrchestrator<
     // 4. Update order status to COMPLETED
     await this.salesRepository.updateStatus(
       input.orderId,
-      OrderStatus.COMPLETED
+      OrderStatus.COMPLETED,
+      tx
     );
 
     return { movements };

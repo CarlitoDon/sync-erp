@@ -66,4 +66,26 @@ export class SalesPolicy {
       );
     }
   }
+
+  /**
+   * Validate update rules
+   * - State Guard: Must be DRAFT
+   * - Immutable: orderNumber
+   */
+  static validateUpdate(
+    existingStatus: string,
+    data: { orderNumber?: string },
+    existingOrderNumber: string
+  ): void {
+    if (existingStatus !== 'DRAFT') {
+      throw new Error('Cannot update order that is not DRAFT');
+    }
+
+    if (
+      data.orderNumber &&
+      data.orderNumber !== existingOrderNumber
+    ) {
+      throw new Error('Order number cannot be changed');
+    }
+  }
 }

@@ -15,6 +15,7 @@ import { JournalService } from '../services/journal.service.js';
 export interface BillPostingInput {
   billId: string;
   companyId: string;
+  businessDate?: Date; // G5
 }
 
 /**
@@ -86,7 +87,8 @@ export class BillPostingSaga extends SagaOrchestrator<
       Number(updatedBill.amount),
       Number(updatedBill.subtotal),
       Number(updatedBill.taxAmount),
-      tx
+      tx,
+      input.businessDate // G5
     );
 
     await context.markJournalDone(journal.id);

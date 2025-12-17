@@ -32,6 +32,7 @@ export class InvoiceController {
           dueDate: validated.dueDate,
           taxRate: validated.taxRate,
           invoiceNumber: validated.invoiceNumber,
+          businessDate: validated.businessDate || new Date(), // G5: Default to today
         }
       );
       res.status(201).json({ success: true, data: invoice });

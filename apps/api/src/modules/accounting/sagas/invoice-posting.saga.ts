@@ -19,6 +19,7 @@ export interface InvoicePostingInput {
   companyId: string;
   shape?: BusinessShape;
   configs?: { key: string; value: Prisma.JsonValue }[];
+  businessDate?: Date; // G5
 }
 
 /**
@@ -110,7 +111,8 @@ export class InvoicePostingSaga extends SagaOrchestrator<
       Number(updatedInvoice.amount),
       Number(updatedInvoice.subtotal),
       Number(updatedInvoice.taxAmount),
-      tx
+      tx,
+      input.businessDate // G5
     );
 
     await context.markJournalDone(journal.id);

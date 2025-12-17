@@ -192,7 +192,8 @@ export class JournalService {
     amount: number,
     subtotal?: number,
     taxAmount?: number,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
     const lines: {
       accountCode: string;
@@ -220,6 +221,7 @@ export class JournalService {
         sourceType: JournalSourceType.INVOICE,
         sourceId: invoiceId,
         lines,
+        date: businessDate,
       },
       tx
     );
@@ -232,7 +234,8 @@ export class JournalService {
     amount: number,
     subtotal?: number,
     taxAmount?: number,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
     const lines: {
       accountCode: string;
@@ -260,6 +263,7 @@ export class JournalService {
         sourceType: JournalSourceType.CREDIT_NOTE,
         sourceId: creditNoteId,
         lines,
+        date: businessDate,
       },
       tx
     );
@@ -292,7 +296,8 @@ export class JournalService {
     amount: number,
     subtotal?: number,
     taxAmount?: number,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
     const lines: {
       accountCode: string;
@@ -320,6 +325,7 @@ export class JournalService {
         sourceType: JournalSourceType.BILL,
         sourceId: billId,
         lines,
+        date: businessDate,
       },
       tx
     );
@@ -331,7 +337,8 @@ export class JournalService {
     invoiceNumber: string,
     amount: number,
     method: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
     const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100'; // Bank or Cash
     return this.resolveAndCreate(
@@ -345,6 +352,7 @@ export class JournalService {
           { accountCode: cashAccount, debit: amount },
           { accountCode: '1300', credit: amount },
         ],
+        date: businessDate,
       },
       tx
     );

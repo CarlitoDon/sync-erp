@@ -24,7 +24,8 @@ export class SalesRepository {
 
   async findById(
     id: string,
-    companyId: string
+    companyId: string,
+    tx?: Prisma.TransactionClient
   ): Promise<
     | (Order & {
         items: (OrderItem & { product: Product })[];
@@ -32,7 +33,8 @@ export class SalesRepository {
       })
     | null
   > {
-    return prisma.order.findFirst({
+    const db = tx || prisma;
+    return db.order.findFirst({
       where: { id, companyId, type: OrderType.SALES },
       include: {
         items: { include: { product: true } },
@@ -63,11 +65,27 @@ export class SalesRepository {
 
   async updateStatus(
     id: string,
-    status: OrderStatus
+    status: OrderStatus,
+    tx?: Prisma.TransactionClient
+  ): Promise<Order> {
+    const db = tx || prisma;
+    return db.order.update({
+      where: { id },
+      data: { status },
+      include: {
+        items: { include: { product: true } },
+        partner: true,
+      },
+    });
+  }
+
+  async update(
+    id: string,
+    data: Prisma.OrderUpdateInput
   ): Promise<Order> {
     return prisma.order.update({
       where: { id },
-      data: { status },
+      data,
       include: {
         items: { include: { product: true } },
         partner: true,

@@ -7,16 +7,23 @@ import {
   BusinessShape,
   IdempotencyScope,
 } from '@sync-erp/database';
-import { DomainError } from '@sync-erp/shared';
+import {
+  DomainError,
+  DomainErrorCodes,
+  BusinessDate,
+} from '@sync-erp/shared';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { JournalService } from './journal.service';
 import { ReversalPolicy } from '../policies/reversal.policy';
+import { InvoicePolicy } from '../policies/invoice.policy';
 
+// Update Interface
 export interface CreateInvoiceInput {
   orderId: string;
   invoiceNumber?: string;
   dueDate?: Date;
   taxRate?: number;
+  businessDate?: Date; // G5
 }
 
 import { DocumentNumberService } from '../../common/services/document-number.service';
@@ -40,8 +47,14 @@ export class InvoiceService {
       OrderType.SALES
     );
 
+    InvoicePolicy.validateCreate(data);
+
     if (!order) {
-      throw new Error('Sales order not found');
+      throw new DomainError(
+        'Sales order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
     }
 
     // Generate invoice number if not provided
@@ -191,9 +204,31 @@ export class InvoiceService {
     companyId: string,
     shape?: BusinessShape,
     configs?: { key: string; value: Prisma.JsonValue }[],
-    idempotencyKey?: string
+    idempotencyKey?: string,
+    businessDate?: Date // G5: Accepted here
   ): Promise<Invoice> {
     // Idempotency Check (if provided)
+    const invoice = await this.repository.findById(
+      id,
+      companyId,
+      InvoiceType.INVOICE
+    );
+    if (!invoice) {
+      throw new DomainError(
+        'Invoice not found',
+        404,
+        DomainErrorCodes.INVOICE_NOT_FOUND
+      );
+    }
+
+    if (invoice.status !== InvoiceStatus.DRAFT) {
+      throw new DomainError(
+        `Cannot post invoice with status ${invoice.status}`,
+        422,
+        DomainErrorCodes.INVOICE_INVALID_STATE
+      );
+    }
+
     if (idempotencyKey) {
       const lock = await this.idempotencyService.lock<Invoice>(
         idempotencyKey,
@@ -206,10 +241,14 @@ export class InvoiceService {
       }
     }
 
+    if (businessDate) {
+      BusinessDate.from(businessDate).ensureValid();
+    }
+
     try {
       // Execute via saga for atomic operation with compensation
       const result = await this.invoicePostingSaga.execute(
-        { invoiceId: id, companyId, shape, configs },
+        { invoiceId: id, companyId, shape, configs, businessDate },
         id,
         companyId
       );
