@@ -8,6 +8,7 @@ export * from './partner.js';
 export interface Company {
   id: string;
   name: string;
+  businessShape?: 'PENDING' | 'RETAIL' | 'MANUFACTURING' | 'SERVICE';
   createdAt: Date;
 }
 

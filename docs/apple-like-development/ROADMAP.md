@@ -18,6 +18,8 @@ Jika satu fitur melanggar ini, tunda.
 
 ## Phase 0 — Foundation (SELESAI ✅)
 
+> 📁 See [phases/phase-0/](./phases/phase-0/) for detailed docs
+
 **Ini bukan MVP, ini landasan. Jangan lompat.**
 
 ### Target
@@ -36,6 +38,10 @@ ERP kokoh secara struktur, meskipun fitur masih minim.
 ---
 
 ## Phase 1 — MVP (ERP YANG "BERFUNGSI")
+
+> 📁 See [phases/phase-1/](./phases/phase-1/) for detailed docs
+> 📜 [CONSTITUTION.md](./phases/phase-1/CONSTITUTION.md) — 7 core principles
+> 🛡️ [GUARDRAILS.md](./phases/phase-1/GUARDRAILS.md) — 10 operational rules (G1-G10)
 
 **Fokus Utama**: Barang masuk → Barang keluar → Uang tercatat
 
@@ -97,6 +103,8 @@ Purchase Order → Goods Receipt → Supplier Invoice
 ---
 
 ## Phase 2 — v1 (ERP YANG TERASA "PROFESSIONAL")
+
+> 📁 See [phases/phase-2/](./phases/phase-2/) for detailed docs
 
 **User mulai percaya sistem.**
 

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { ProcurementController } from '../modules/procurement/procurement.controller';
+import { requireActiveShape } from '../middlewares/shapeGuard';
 
 export const purchaseOrderRouter = Router();
 const controller = new ProcurementController();
@@ -11,10 +12,22 @@ purchaseOrderRouter.get('/', controller.list);
 purchaseOrderRouter.get('/:id', controller.getById);
 
 // POST /api/purchase-orders - Create new PO
-purchaseOrderRouter.post('/', controller.create);
+purchaseOrderRouter.post(
+  '/',
+  requireActiveShape(),
+  controller.create
+);
 
 // POST /api/purchase-orders/:id/confirm - Confirm PO
-purchaseOrderRouter.post('/:id/confirm', controller.confirm);
+purchaseOrderRouter.post(
+  '/:id/confirm',
+  requireActiveShape(),
+  controller.confirm
+);
 
 // POST /api/purchase-orders/:id/cancel - Cancel PO
-purchaseOrderRouter.post('/:id/cancel', controller.cancel);
+purchaseOrderRouter.post(
+  '/:id/cancel',
+  requireActiveShape(),
+  controller.cancel
+);

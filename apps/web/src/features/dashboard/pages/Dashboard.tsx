@@ -3,6 +3,7 @@ import { useCompanyData } from '../../../hooks/useCompanyData';
 import { dashboardService } from '../services/dashboardService';
 import { formatCurrency, formatDate } from '../../../utils/format';
 import OnboardingGuide from '../components/OnboardingGuide';
+import PendingShapeBanner from '../components/PendingShapeBanner';
 import type { DashboardMetrics, RecentTransaction } from '../types';
 
 export default function Dashboard() {
@@ -56,6 +57,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* PENDING Shape Banner - shows when setup incomplete */}
+      <PendingShapeBanner businessShape={currentCompany?.businessShape} />
+
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl">
         <h1 className="text-3xl font-bold mb-2">

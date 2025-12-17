@@ -2,60 +2,69 @@
 
 This directory contains the foundational documents for the "Apple-Like" pivot of Sync ERP. These documents define the philosophy, architecture, and operational rules for building an opinionated, user-centric ERP.
 
+## Core Documents (All Phases)
+
+| Document                               | Purpose                                    |
+| :------------------------------------- | :----------------------------------------- |
+| [GOALS.md](./GOALS.md)                 | What we're building — per phase objectives |
+| [GUARDRAILS.md](./GUARDRAILS.md)       | Non-negotiable engineering rules           |
+| [SCOPE_OF_WORK.md](./SCOPE_OF_WORK.md) | In-scope vs out-of-scope per phase         |
+| [ROADMAP.md](./ROADMAP.md)             | Master phase plan (0→1→2→3)                |
+
 ## Directory Structure
 
-```
+```text
 docs/apple-like-development/
-├── README.md              # This index
-├── ROADMAP.md             # Master phase plan (0→1→2→3)
-├── philosophy/            # Core principles (archived)
-│   └── CONSTITUTION.md    # Human-Centered Design philosophy
-├── onboarding/            # Onboarding flow design
-│   ├── BLUEPRINT.md       # Progressive onboarding experience
-│   ├── FLOW-DIAGRAM.md    # Screen-by-screen UI specification
-│   └── STATE-MACHINE.md   # States, gates, and transitions
-├── implementation/        # Technical implementation guides
-│   ├── ADAPTATION.md      # Business shape decision tree
-│   ├── ARCHITECTURE-MAP.md# Monorepo structure mapping
-│   └── MODULE-EXAMPLE.md  # Gold standard module reference
-├── reviews/               # Phase gate reviews
-│   ├── PHASE_0_REVIEW.md  # Foundation review
-│   └── PHASE_1_REVIEW.md  # MVP review
-└── archive/               # Completed/superseded docs
-    ├── IMPLEMENTATION-PLAN.md
-    ├── IMPLEMENTATION-CHECKLIST.md
-    └── REFACTOR-PLAN.md
+├── GOALS.md              # Phase 0-3 objectives
+├── GUARDRAILS.md         # Non-negotiable rules
+├── SCOPE_OF_WORK.md      # In/out of scope
+├── ROADMAP.md            # Master plan
+├── README.md             # This index
+│
+├── phases/               # Phase-specific documentation
+│   ├── phase-0/          # ✅ Foundation (complete)
+│   ├── phase-1/          # 🚧 MVP (in progress)
+│   ├── phase-2/          # ⏳ Hardening (planned)
+│   └── phase-3/          # ⏳ Accounting (planned)
+│
+├── guides/               # Evergreen implementation guides
+│   ├── ARCHITECTURE-MAP.md
+│   ├── MODULE-EXAMPLE.md
+│   └── ADAPTATION.md
+│
+├── features/             # Feature-specific designs
+│   └── onboarding/
+│
+└── archive/              # Completed/superseded docs
 ```
+
+## Phase Navigation
+
+| Phase | Status         | Theme                        | Folder                        |
+| :---- | :------------- | :--------------------------- | :---------------------------- |
+| 0     | ✅ Complete    | System Correctness           | [phase-0/](./phases/phase-0/) |
+| 1     | 🚧 In Progress | Usability Without Compromise | [phase-1/](./phases/phase-1/) |
+| 2     | ⏳ Planned     | Operational Resilience       | [phase-2/](./phases/phase-2/) |
+| 3     | ⏳ Planned     | Accounting & Compliance      | [phase-3/](./phases/phase-3/) |
 
 ## Reading Order
 
-### 1. Philosophy & Vision
+1. **[GOALS.md](./GOALS.md)** — Understand the "why" per phase
+2. **[GUARDRAILS.md](./GUARDRAILS.md)** — Understand the hard rules
+3. **[SCOPE_OF_WORK.md](./SCOPE_OF_WORK.md)** — Understand what's in/out
+4. **[phases/phase-1/](./phases/phase-1/)** — Current phase details
 
-- **[ROADMAP.md](./ROADMAP.md)** — Phase plan: MVP → v1 → v2
-- **[philosophy/CONSTITUTION.md](./philosophy/CONSTITUTION.md)** — Core principles (now merged to `.agent/rules/constitution.md`)
+## Anti-Goals (Seluruh Phase)
 
-### 2. Onboarding Design
-
-- **[onboarding/BLUEPRINT.md](./onboarding/BLUEPRINT.md)** — Progressive onboarding flow
-- **[onboarding/FLOW-DIAGRAM.md](./onboarding/FLOW-DIAGRAM.md)** — Screen-by-screen UI spec
-- **[onboarding/STATE-MACHINE.md](./onboarding/STATE-MACHINE.md)** — State machine for XState/Backend
-
-### 3. Implementation
-
-- **[implementation/ADAPTATION.md](./implementation/ADAPTATION.md)** — Retail/Manufacturing/Service decision tree
-- **[implementation/ARCHITECTURE-MAP.md](./implementation/ARCHITECTURE-MAP.md)** — Turbo monorepo structure
-- **[implementation/MODULE-EXAMPLE.md](./implementation/MODULE-EXAMPLE.md)** — Gold standard: Inventory module
-
-### 4. Phase Reviews
-
-- **[reviews/PHASE_0_REVIEW.md](./reviews/PHASE_0_REVIEW.md)** — Foundation gate review ✅
-- **[reviews/PHASE_0_CRITICAL_AUDIT.md](./reviews/PHASE_0_CRITICAL_AUDIT.md)** — 🔴 Gap analysis & hard gate checklist
-- **[reviews/PHASE_1_REVIEW.md](./reviews/PHASE_1_REVIEW.md)** — MVP gate review ✅
+- Kecepatan development > kebenaran data
+- UX convenience > domain integrity
+- "Nanti juga bisa dibenerin di DB"
 
 ---
 
-## Core Mandates
+## Adding a New Phase
 
-- **Decision Lives Once**: Business Shape selection controls 100+ downstream behaviors
-- **UI is Consequence**: Frontend only projects backend state; no business logic
-- **Invisible Complexity**: System handles CoA, Tax, Costing automatically
+1. Create folder: `phases/phase-{n}/`
+2. Add `README.md` with status and phase-specific docs
+3. Update consolidated docs (GOALS, GUARDRAILS, SCOPE_OF_WORK)
+4. Update `ROADMAP.md` with phase details

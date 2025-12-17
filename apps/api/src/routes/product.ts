@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { ProductController } from '../modules/product/product.controller';
+import { requireActiveShape } from '../middlewares/shapeGuard';
 
 export const productRouter = Router();
 const controller = new ProductController();
@@ -14,10 +15,10 @@ productRouter.get('/:id/stock', controller.getStock);
 productRouter.get('/:id', controller.getById);
 
 // POST /api/products - Create new product
-productRouter.post('/', controller.create);
+productRouter.post('/', requireActiveShape(), controller.create);
 
 // PUT /api/products/:id - Update product
-productRouter.put('/:id', controller.update);
+productRouter.put('/:id', requireActiveShape(), controller.update);
 
 // DELETE /api/products/:id - Delete product
-productRouter.delete('/:id', controller.delete);
+productRouter.delete('/:id', requireActiveShape(), controller.delete);

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { InvoiceController } from '../modules/accounting/controllers/invoice.controller';
 import { z } from 'zod';
+import { requireActiveShape } from '../middlewares/shapeGuard';
 
 export const invoiceRouter = Router();
 const controller = new InvoiceController();
@@ -46,23 +47,35 @@ invoiceRouter.get('/by-order/:orderId', controller.getByOrderId);
 invoiceRouter.get('/:id', controller.getById);
 
 // POST /api/invoices - Create invoice from SO
-invoiceRouter.post('/', async (req, res, next) => {
-  try {
-    CreateInvoiceSchema.parse(req.body);
-    await controller.create(req, res, next);
-  } catch (e) {
-    next(e);
+invoiceRouter.post(
+  '/',
+  requireActiveShape(),
+  async (req, res, next) => {
+    try {
+      CreateInvoiceSchema.parse(req.body);
+      await controller.create(req, res, next);
+    } catch (e) {
+      next(e);
+    }
   }
-});
+);
 
 // GET /api/invoices/:id/remaining - Get remaining amount
 invoiceRouter.get('/:id/remaining', controller.getRemainingAmount);
 
 // POST /api/invoices/:id/post - Post/approve invoice
-invoiceRouter.post('/:id/post', controller.post);
+invoiceRouter.post(
+  '/:id/post',
+  requireActiveShape(),
+  controller.post
+);
 
 // POST /api/invoices/:id/void - Void invoice
-invoiceRouter.post('/:id/void', controller.void);
+invoiceRouter.post(
+  '/:id/void',
+  requireActiveShape(),
+  controller.void
+);
 
 // GET /api/invoices/:id/remaining - Get remaining amount
 // Controller missing `getRemainingAmount`.

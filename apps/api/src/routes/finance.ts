@@ -10,6 +10,7 @@ import { z } from 'zod'; // Keep zod schemas for validation if controller doesn'
 // `accountService.create` expects `{ code: string; name: string... }`.
 // If I remove Zod from route, I rely on TS or Runtime check in Service? Service doesn't validate strictly (Prisma throws).
 // Better to keep Zod in routes for now.
+import { requireActiveShape } from '../middlewares/shapeGuard';
 
 export const financeRouter = Router();
 const controller = new AccountingController();
@@ -32,17 +33,25 @@ const CreateAccountSchema = z.object({
 financeRouter.get('/accounts', controller.listAccounts);
 
 // POST /api/finance/accounts - Create account
-financeRouter.post('/accounts', async (req, res, next) => {
-  try {
-    CreateAccountSchema.parse(req.body);
-    await controller.createAccount(req, res, next);
-  } catch (error) {
-    next(error);
+financeRouter.post(
+  '/accounts',
+  requireActiveShape(),
+  async (req, res, next) => {
+    try {
+      CreateAccountSchema.parse(req.body);
+      await controller.createAccount(req, res, next);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 // POST /api/finance/accounts/seed - Seed default chart of accounts
-financeRouter.post('/accounts/seed', controller.seedAccounts);
+financeRouter.post(
+  '/accounts/seed',
+  requireActiveShape(),
+  controller.seedAccounts
+);
 
 // ========== JOURNALS ==========
 
@@ -53,7 +62,11 @@ financeRouter.get('/journals', controller.listJournals);
 financeRouter.get('/journals/:id', controller.getJournalById);
 
 // POST /api/finance/journals - Create journal entry
-financeRouter.post('/journals', controller.createJournal);
+financeRouter.post(
+  '/journals',
+  requireActiveShape(),
+  controller.createJournal
+);
 
 // ========== REPORTS ==========
 

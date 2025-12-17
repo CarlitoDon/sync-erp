@@ -10,7 +10,7 @@ sync-erp/
 │   ├── web/              # Vite + React + Tailwind + React Query-like hooks
 │   │   └── src/features/ # Domain-driven feature folders (components, services, pages)
 │   └── api/              # Express + TS backend
-│       └── src/modules/  # Domain-driven modules (controller, service, repository)
+│       └── src/modules/  # Domain-driven modules (5-layer architecture)
 ├── packages/
 │   ├── shared/           # Zod schemas (validators), shared types
 │   └── database/         # Prisma client, migrations, seeds
@@ -24,21 +24,33 @@ sync-erp/
 
 1.  **Schema-First**: Add fields to `packages/shared/src/validators/*.ts` BEFORE implementing frontend/backend.
 2.  **Multi-Tenant**: ALL queries MUST scope by `companyId` (from `X-Company-Id` header).
-3.  **Three Layers**: Controller → Service → Repository (never skip layers).
+3.  **Five Layers**: Route → Controller → Service → Policy/Rules → Repository (never skip layers).
 4.  **Module Parity**: Related domains (Sales/Procurement) must mirror implementation logic.
 5.  **Performance**: Use backend joins (`include`) over frontend loops to avoid N+1 issues.
 6.  **Build Check**: Run `npx tsc --noEmit` before marking tasks complete.
 
 ## Backend Patterns (apps/api)
 
-### Three-Layer Module Structure
+### Five-Layer Module Structure
 
 ```text
 apps/api/src/modules/[domain]/
-├── [domain].controller.ts  # HTTP handling, Zod validation, Response formatting
-├── [domain].service.ts     # Business logic, Transaction management
-└── [domain].repository.ts  # Prisma data access (Scoped by companyId)
+├── [domain].controller.ts  # HTTP Boundary: Req/Res, Validation. No Business Logic.
+├── [domain].service.ts     # Orchestrator: The "Why". Combines Rules + Policy + Repo.
+├── [domain].policy.ts      # Shape Constraints: "Can this run?" Based on BusinessShape.
+├── [domain].repository.ts  # Data Access: Prisma queries. Scoped by companyId.
+└── rules/
+    └── *.ts                # Pure Business Logic: Stateless, unit testable. No I/O.
 ```
+
+| Layer      | Responsibility                                  | Can Import              |
+|:-----------|:------------------------------------------------|:------------------------|
+| Route      | URL → Controller mapping. No logic.             | Controller, Middleware  |
+| Controller | HTTP boundary, Zod validation, response format. | Service                 |
+| Service    | Orchestrator. Combines Rules + Policy + Repo.   | Policy, Rules, Repository |
+| Policy     | Shape constraints ("Can this shape do X?")      | Shared Constants        |
+| Rules      | Pure business logic. Stateless. Unit testable.  | None (Pure)             |
+| Repository | Data access. Query, Transaction.                | `packages/database`     |
 
 ### Controller Pattern
 
@@ -66,6 +78,16 @@ async findAll(companyId: string): Promise<Partner[]> {
 }
 ```
 
+### Saga Pattern (Multi-Module Transactions)
+
+For operations that span multiple modules with permanent side effects (e.g., Invoice Posting → Stock + Accounting):
+
+```typescript
+// apps/api/src/services/InvoicePostingSaga.ts
+// Use compensating actions for rollback, NOT deletion
+// Mock the Saga in integration tests, NOT underlying repositories
+```
+
 ## Frontend Patterns (apps/web)
 
 ### Feature Structure
@@ -80,7 +102,6 @@ apps/web/src/features/[domain]/
 ### Data Fetching (Hooks)
 
 ```typescript
-// apps/web/src/hooks/useCompanyData.ts
 // Fetcher automatically re-runs when company context changes
 const { data, loading, refresh } = useCompanyData(
   (companyId) => partnerService.list(companyId),
@@ -91,7 +112,6 @@ const { data, loading, refresh } = useCompanyData(
 ### API Action (Mutations)
 
 ```typescript
-// apps/web/src/utils/apiAction.ts
 import { apiAction } from '../../../utils/apiAction';
 
 const handleSubmit = async (data: CreatePartnerInput) => {
@@ -121,10 +141,28 @@ export type CreatePartnerInput = z.infer<typeof CreatePartnerSchema>;
 
 > **Note**: Legacy manual interfaces exist in `packages/shared/src/types`. For NEW DTOs, strictly use Zod inference.
 
+## Testing Patterns
+
+### Vitest 4.x Mock Hoisting
+
+```typescript
+// Use function() pattern for vi.mock() factories - Vitest 4.x strict hoisting
+vi.mock('../services/InvoicePostingSaga', () => ({
+  InvoicePostingSaga: function() { return mockSagaInstance; }
+}));
+```
+
+### Integration Tests for Sagas
+
+```typescript
+// Mock the Saga orchestrator, NOT the underlying repositories
+// Sagas are tested in isolation; integration tests trust them
+```
+
 ## Essential Commands
 
 | Action         | Command                          |
-| :------------- | :------------------------------- |
+|:---------------|:---------------------------------|
 | **Start Dev**  | `npm run dev` (starts both apps) |
 | **Type Check** | `npx tsc --noEmit` (Crucial!)    |
 | **Run Tests**  | `npm run test` (Vitest)          |
@@ -139,16 +177,19 @@ export type CreatePartnerInput = z.infer<typeof CreatePartnerSchema>;
 - ❌ **No `window.confirm`**: Use `useConfirm()` hook.
 - ❌ **No direct `toast`**: Use `apiAction()` helper.
 - ❌ **No `this` in services**: Use standalone functions to ensure safety in hooks.
-- ❌ **No Client-Side Joins**: valid: `prisma.order.findMany({ include: { items: true } })`.
+- ❌ **No Client-Side Joins**: Use `prisma.order.findMany({ include: { items: true } })`.
 - ❌ **No Manual API Types**: Use `z.infer<typeof Schema>` for shared DTOs.
+- ❌ **No Logic in Controller**: Controllers only validate + delegate to Service.
+- ❌ **No I/O in Rules**: Rules are pure functions, no database/API calls.
 
 ## Key Files Reference
 
 | Purpose               | File                                      |
-| :-------------------- | :---------------------------------------- |
+|:----------------------|:------------------------------------------|
 | **Constitution**      | `.agent/rules/constitution.md`            |
 | **API Entry**         | `apps/api/src/index.ts`                   |
 | **Shared Validators** | `packages/shared/src/validators/index.ts` |
 | **Shared Types**      | `packages/shared/src/types/index.ts`      |
 | **Prisma Schema**     | `packages/database/prisma/schema.prisma`  |
 | **API Action Util**   | `apps/web/src/utils/apiAction.ts`         |
+| **Shape Guard**       | `apps/api/src/middlewares/shapeGuard.ts`  |
