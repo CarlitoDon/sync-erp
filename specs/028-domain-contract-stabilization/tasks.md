@@ -8,9 +8,10 @@
 
 _Goal: Prepare environment and verify test infrastructure_
 
-- [ ] T001 Verify test runner works for accounting module `apps/api/src/modules/accounting`
-- [ ] T002 Verify test runner works for sales module `apps/api/src/modules/sales`
-- [ ] T003 Verify test runner works for procurement module `apps/api/src/modules/procurement`
+- [ ] T001 Check 'TypeScript: Watch' terminal for existing errors (Constitution VIII)
+- [ ] T002 Verify test runner works for accounting module `apps/api/src/modules/accounting`
+- [ ] T003 Verify test runner works for sales module `apps/api/src/modules/sales`
+- [ ] T004 Verify test runner works for procurement module `apps/api/src/modules/procurement`
 
 ## Phase 2: Foundational (G5 & G7 Compliance)
 
