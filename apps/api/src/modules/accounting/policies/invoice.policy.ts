@@ -1,5 +1,9 @@
 import { Invoice, InvoiceStatus } from '@sync-erp/database';
-import { BusinessDate } from '@sync-erp/shared';
+import {
+  BusinessDate,
+  DomainError,
+  DomainErrorCodes,
+} from '@sync-erp/shared';
 
 export class InvoicePolicy {
   /**
@@ -24,14 +28,22 @@ export class InvoicePolicy {
     data: { invoiceNumber?: string; [key: string]: unknown }
   ) {
     if (existing.status !== InvoiceStatus.DRAFT) {
-      throw new Error('Cannot update invoice that is not DRAFT');
+      throw new DomainError(
+        'Invoice is not in the correct state for this action',
+        422,
+        DomainErrorCodes.INVOICE_INVALID_STATE
+      );
     }
 
     if (
       data.invoiceNumber &&
       data.invoiceNumber !== existing.invoiceNumber
     ) {
-      throw new Error('Invoice number cannot be changed');
+      throw new DomainError(
+        'Invoice number cannot be changed',
+        400,
+        DomainErrorCodes.MUTATION_BLOCKED
+      );
     }
   }
 }

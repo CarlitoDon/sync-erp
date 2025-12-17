@@ -118,5 +118,25 @@ describe('T027: Credit Note Saga', () => {
         )
       ).rejects.toThrow(SagaCompensatedError);
     });
+
+    it('should fail on non-Base currency (Phase 1 Restriction)', async () => {
+      vi.mocked(prisma.invoice.findFirst).mockResolvedValue({
+        ...mockInvoice,
+        currency: 'USD',
+      } as any);
+
+      await expect(
+        saga.execute(
+          {
+            invoiceId: 'inv-1',
+            companyId: 'co-1',
+            amount: 100,
+            reason: 'Test',
+          },
+          'inv-1',
+          'co-1'
+        )
+      ).rejects.toThrow(/Multi-currency .* is disabled in Phase 1/);
+    });
   });
 });

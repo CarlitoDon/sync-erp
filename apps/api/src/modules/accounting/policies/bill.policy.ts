@@ -1,5 +1,9 @@
 import { Invoice, InvoiceStatus } from '@sync-erp/database';
-import { BusinessDate } from '@sync-erp/shared';
+import {
+  BusinessDate,
+  DomainError,
+  DomainErrorCodes,
+} from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
 
 export class BillPolicy {
@@ -8,7 +12,15 @@ export class BillPolicy {
    */
   static validateCreate(data: { businessDate?: Date }) {
     if (data.businessDate) {
-      BusinessDate.from(data.businessDate).ensureValid();
+      try {
+        BusinessDate.from(data.businessDate).ensureValid();
+      } catch (error) {
+        throw new DomainError(
+          'Invalid business date provided',
+          400,
+          DomainErrorCodes.INVALID_DATE
+        );
+      }
     }
   }
 
@@ -25,7 +37,11 @@ export class BillPolicy {
     }
   ) {
     if (existing.status !== InvoiceStatus.DRAFT) {
-      throw new Error('Cannot update bill that is not DRAFT');
+      throw new DomainError(
+        'Bill is not in the correct state for this action',
+        422,
+        DomainErrorCodes.BILL_INVALID_STATE
+      );
     }
 
     // If linked to PO (orderId exists), amount is locked
@@ -34,8 +50,10 @@ export class BillPolicy {
       const currentAmount = new Decimal(existing.amount);
 
       if (!newAmount.equals(currentAmount)) {
-        throw new Error(
-          'Cannot change amount of bill linked to Purchase Order'
+        throw new DomainError(
+          'Cannot change amount of bill linked to Purchase Order',
+          400,
+          DomainErrorCodes.MUTATION_BLOCKED
         );
       }
     }

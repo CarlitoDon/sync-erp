@@ -3,6 +3,7 @@ import {
   JournalSourceType,
   Prisma,
 } from '@sync-erp/database';
+import { BusinessDate } from '@sync-erp/shared';
 import { JournalRepository } from '../repositories/journal.repository';
 import { AccountService } from './account.service';
 
@@ -101,10 +102,15 @@ export class JournalService {
       });
     }
 
+    const journalDate = data.date ? new Date(data.date) : new Date();
+
+    // Phase 1 Guard: Backdated check
+    BusinessDate.from(journalDate).ensureNotBackdated();
+
     const createData: Prisma.JournalEntryUncheckedCreateInput = {
       companyId,
       reference: data.reference,
-      date: data.date ? new Date(data.date) : new Date(),
+      date: journalDate,
       memo: data.memo,
       sourceType: data.sourceType,
       sourceId: data.sourceId,

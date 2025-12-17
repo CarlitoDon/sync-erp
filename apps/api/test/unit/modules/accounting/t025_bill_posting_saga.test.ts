@@ -133,6 +133,21 @@ describe('T025: Bill Posting Saga', () => {
         )
       ).rejects.toThrow(SagaCompensatedError);
     });
+
+    it('should fail on non-Base currency (Phase 1 Restriction)', async () => {
+      vi.mocked(prisma.invoice.findFirst).mockResolvedValue({
+        ...mockBill,
+        currency: 'USD', // Not IDR
+      } as any);
+
+      await expect(
+        saga.execute(
+          { billId: 'bill-1', companyId: 'co-1' },
+          'bill-1',
+          'co-1'
+        )
+      ).rejects.toThrow(/Multi-currency .* is disabled in Phase 1/);
+    });
   });
 
   describe('Compensation', () => {

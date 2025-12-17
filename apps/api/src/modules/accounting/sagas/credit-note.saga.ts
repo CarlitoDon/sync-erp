@@ -5,6 +5,7 @@ import {
   type Invoice,
   Prisma,
 } from '@sync-erp/database';
+import { Money } from '@sync-erp/shared';
 import {
   SagaOrchestrator,
   PostingContext,
@@ -64,6 +65,11 @@ export class CreditNoteSaga extends SagaOrchestrator<
     if (invoice.status === InvoiceStatus.VOID) {
       throw new Error('Cannot create credit note for voided invoice');
     }
+
+    // Phase 1 Guard: Block Multi-Currency
+    const currency =
+      (invoice as Invoice & { currency?: string }).currency || 'IDR';
+    Money.from(0, currency).ensureBase();
 
     // Store original balance for compensation
     await context.markBalanceDone(Number(invoice.balance));

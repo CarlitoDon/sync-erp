@@ -1,5 +1,10 @@
 // Payment Posting Saga - Atomic payment with compensation
-import { SagaType, type Payment, Prisma } from '@sync-erp/database';
+import {
+  SagaType,
+  type Payment,
+  type Invoice,
+  Prisma,
+} from '@sync-erp/database';
 import {
   SagaOrchestrator,
   PostingContext,
@@ -7,6 +12,7 @@ import {
 import { PaymentRepository } from '../repositories/payment.repository.js';
 import { InvoiceRepository } from '../repositories/invoice.repository.js';
 import { JournalService } from '../services/journal.service.js';
+import { BusinessDate, Money } from '@sync-erp/shared';
 
 export interface PaymentPostingInput {
   invoiceId: string;
@@ -63,6 +69,11 @@ export class PaymentPostingSaga extends SagaOrchestrator<
     context: PostingContext,
     tx?: Prisma.TransactionClient
   ): Promise<Payment> {
+    // 0. Phase 1 Guards
+    if (input.businessDate) {
+      BusinessDate.from(input.businessDate).ensureNotBackdated();
+    }
+
     // 1. Validate invoice
     const invoice = await this.invoiceRepository.findById(
       input.invoiceId,
@@ -73,6 +84,11 @@ export class PaymentPostingSaga extends SagaOrchestrator<
     if (!invoice) {
       throw new Error('Invoice not found');
     }
+
+    // Phase 1 Guard: Block Multi-Currency
+    const currency =
+      (invoice as Invoice & { currency?: string }).currency || 'IDR';
+    Money.from(0, currency).ensureBase();
 
     const currentBalance = Number(invoice.balance);
     if (input.amount > currentBalance) {

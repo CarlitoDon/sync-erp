@@ -5,6 +5,7 @@ import {
   type Invoice,
   Prisma,
 } from '@sync-erp/database';
+import { Money, BusinessDate } from '@sync-erp/shared';
 import {
   SagaOrchestrator,
   PostingContext,
@@ -51,6 +52,11 @@ export class BillPostingSaga extends SagaOrchestrator<
     context: PostingContext,
     tx?: Prisma.TransactionClient
   ): Promise<Invoice> {
+    // Phase 1 Guard: Backdated
+    if (input.businessDate) {
+      BusinessDate.from(input.businessDate).ensureNotBackdated();
+    }
+
     // 1. Validate bill
     const bill = await this.invoiceRepository.findById(
       input.billId,
@@ -65,6 +71,13 @@ export class BillPostingSaga extends SagaOrchestrator<
     if (bill.status !== InvoiceStatus.DRAFT) {
       throw new Error(`Cannot post bill with status: ${bill.status}`);
     }
+
+    // Phase 1 Guard: Block Multi-Currency
+    // Note: Schema might default to IDR implies no currency column yet,
+    // but we guard against runtime/future columns.
+    const currency =
+      (bill as Invoice & { currency?: string }).currency || 'IDR';
+    Money.from(0, currency).ensureBase();
 
     // 2. Update status to POSTED
     const updatedBill = await this.invoiceRepository.update(

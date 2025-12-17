@@ -154,6 +154,51 @@ describe('T026: Payment Posting Saga', () => {
         )
       ).rejects.toThrow(SagaCompensatedError);
     });
+
+    it('should fail on backdated payment (Phase 1 Restriction)', async () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 2); // 2 days ago
+
+      vi.mocked(prisma.invoice.findFirst).mockResolvedValue(
+        mockInvoice as any
+      );
+
+      await expect(
+        saga.execute(
+          {
+            invoiceId: 'inv-1',
+            companyId: 'co-1',
+            amount: 100,
+            method: 'cash',
+            businessDate: pastDate,
+          },
+          'inv-1',
+          'co-1'
+        )
+      ).rejects.toThrow(
+        /Backdated transactions are disabled in Phase 1/
+      );
+    });
+
+    it('should fail on non-Base currency (Phase 1 Restriction)', async () => {
+      vi.mocked(prisma.invoice.findFirst).mockResolvedValue({
+        ...mockInvoice,
+        currency: 'USD',
+      } as any);
+
+      await expect(
+        saga.execute(
+          {
+            invoiceId: 'inv-1',
+            companyId: 'co-1',
+            amount: 100,
+            method: 'cash',
+          },
+          'inv-1',
+          'co-1'
+        )
+      ).rejects.toThrow(/Multi-currency .* is disabled in Phase 1/);
+    });
   });
 
   describe('Compensation', () => {
