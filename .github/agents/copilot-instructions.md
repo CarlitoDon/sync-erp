@@ -4,6 +4,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 
 ## Active Technologies
 - TypeScript 5.9, Node.js 20+ + Express, Prisma, Vitest (023-fix-idempotency-scope)
+- TypeScript 5.x (Node.js) + Prisma ORM, Postgres (026-parallel-saga-safety)
 
 - TypeScript 5.x, React 18, Node.js 20 + `react-router-dom`, `@sync-erp/shared`, `axios` (019-optimize-details)
 - Postgres (Prisma ORM) (019-optimize-details)
@@ -48,10 +49,10 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 026-parallel-saga-safety: Added TypeScript 5.x (Node.js) + Prisma ORM, Postgres
 - 024-fix-journal-double-post: Added TypeScript 5.9, Node.js 20+ + Express, Prisma, Vitest
 - 023-fix-idempotency-scope: Added TypeScript 5.9, Node.js 20+ + Express, Prisma, Vitest
 
-- 020-apple-backend-refactor: Added TypeScript 5.x (Node.js 20.x) + Express, Prisma ORM, Zod, Vitest
 
 
 <!-- MANUAL ADDITIONS START -->

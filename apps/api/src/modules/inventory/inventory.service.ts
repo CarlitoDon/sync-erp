@@ -31,13 +31,16 @@ export class InventoryService {
   async processGoodsReceipt(
     companyId: string,
     data: GoodsReceiptInput,
-    shape?: BusinessShape
+    shape?: BusinessShape,
+    tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement[]> {
     // Policy check FIRST (if shape provided)
     if (shape) {
       InventoryPolicy.ensureCanAdjustStock(shape);
     }
 
+    // Note: ProcurementService not yet updated for tx injection.
+    // Assuming read ops are safe or updated later.
     const order = await this.procurementService.getById(
       data.orderId,
       companyId
@@ -54,21 +57,26 @@ export class InventoryService {
     // Create inventory movements for each order item
     for (const item of orderItems) {
       // Create inventory movement
-      const movement = await this.repository.createMovement({
-        companyId,
-        productId: item.productId,
-        type: MovementType.IN,
-        quantity: item.quantity,
-        reference:
-          data.reference || `Goods receipt from ${order.orderNumber}`,
-      });
+      const movement = await this.repository.createMovement(
+        {
+          companyId,
+          productId: item.productId,
+          type: MovementType.IN,
+          quantity: item.quantity,
+          reference:
+            data.reference ||
+            `Goods receipt from ${order.orderNumber}`,
+        },
+        tx
+      );
       movements.push(movement);
 
       // Update product stock and average cost
       await this.productService.updateAverageCost(
         item.productId,
         item.quantity,
-        Number(item.price)
+        Number(item.price),
+        tx
       );
     }
 
@@ -83,7 +91,8 @@ export class InventoryService {
       await this.journalService.postGoodsReceipt(
         companyId,
         data.reference || `Goods receipt from ${order.orderNumber}`,
-        totalReceiptValue
+        totalReceiptValue,
+        tx
       );
     }
 
@@ -106,8 +115,10 @@ export class InventoryService {
     orderId: string,
     reference?: string,
     shape?: BusinessShape,
-    configs?: { key: string; value: Prisma.JsonValue }[]
+    configs?: { key: string; value: Prisma.JsonValue }[],
+    tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement[]> {
+    const db = tx || prisma;
     // Policy checks
     if (configs) {
       InventoryPolicy.ensureInventoryEnabled(configs);
@@ -127,7 +138,7 @@ export class InventoryService {
     // I'll stick to Prisma direct access for now as per "Type B" service refactoring,
     // waiting for Sales Module refactor to abstract it properly.
 
-    const order = await prisma.order.findFirst({
+    const order = await db.order.findFirst({
       where: { id: orderId, companyId },
       include: { items: true },
     });
@@ -147,7 +158,8 @@ export class InventoryService {
         // Replaces simple checkStock + updateStock
         await this.productService.decreaseStock(
           item.productId,
-          item.quantity
+          item.quantity,
+          tx
         );
         successfulItems.push({
           productId: item.productId,
@@ -157,24 +169,28 @@ export class InventoryService {
         // Get product for cost calculation
         const product = await this.productService.getById(
           item.productId,
-          companyId
+          companyId,
+          tx
         );
         if (!product)
           throw new Error(`Product ${item.productId} not found`);
 
         // Create inventory movement (OUT)
-        const movement = await this.repository.createMovement({
-          companyId,
-          productId: item.productId,
-          type: MovementType.OUT,
-          quantity: item.quantity,
-          reference:
-            reference || `Shipment for order ${order.orderNumber}`,
-        });
+        const movement = await this.repository.createMovement(
+          {
+            companyId,
+            productId: item.productId,
+            type: MovementType.OUT,
+            quantity: item.quantity,
+            reference:
+              reference || `Shipment for order ${order.orderNumber}`,
+          },
+          tx
+        );
         movements.push(movement);
 
         // Snapshot COGS on OrderItem (T017 Accuracy)
-        await prisma.orderItem.update({
+        await db.orderItem.update({
           where: { id: item.id },
           data: { cost: product.averageCost },
         });
@@ -184,11 +200,26 @@ export class InventoryService {
       }
     } catch (error) {
       // Manual Rollback on failure (SAGA-like)
-      for (const s of successfulItems) {
-        await this.productService.updateStock(
-          s.productId,
-          s.quantity
-        ); // Re-increment
+      // IF we are in a transaction (tx provided), this manual rollback is superfluous but harmless?
+      // Actually, if we use `tx`, rolling back `tx` undoes the decreaseStock.
+      // If `tx` is NOT provided (legacy), we need manual rollback.
+      // BUT `productService.updateStock` uses `tx` if passed.
+      // If `tx` is passed, `updateStock` runs in `tx`.
+      // If `tx` fails, `updateStock` also rolls back.
+      // So manual compensation inside `tx` is redundant but we keep it for non-tx calls.
+
+      // However, if we throw error, and `tx` rolls back, then `updateStock` logic runs?
+      // If `tx` rolls back, calling `updateStock` (in same `tx`?) will fail or be rolled back too.
+      // If we call `updateStock` independent of `tx`? No, if we started with `tx`, we must stay in `tx`.
+
+      // Simplified: If `tx` is present, let `tx` handle rollback.
+      if (!tx) {
+        for (const s of successfulItems) {
+          await this.productService.updateStock(
+            s.productId,
+            s.quantity
+          ); // Re-increment
+        }
       }
       throw error;
     }
@@ -198,7 +229,8 @@ export class InventoryService {
       await this.journalService.postShipment(
         companyId,
         reference || `Shipment for order ${order.orderNumber}`,
-        totalCogs
+        totalCogs,
+        tx
       );
     }
 
@@ -212,9 +244,11 @@ export class InventoryService {
     companyId: string,
     orderId: string,
     items: { productId: string; quantity: number }[],
-    reference?: string
+    reference?: string,
+    tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement[]> {
-    const order = await prisma.order.findFirst({
+    const db = tx || prisma;
+    const order = await db.order.findFirst({
       where: { id: orderId, companyId },
       include: { items: true },
     });
@@ -235,7 +269,8 @@ export class InventoryService {
       // Get product for fallback cost
       const product = await this.productService.getById(
         item.productId,
-        companyId
+        companyId,
+        tx
       );
       if (!product)
         throw new Error(`Product ${item.productId} not found`);
@@ -246,20 +281,24 @@ export class InventoryService {
         : Number(product.averageCost);
 
       // Create inventory movement (IN) - Restocking
-      const movement = await this.repository.createMovement({
-        companyId,
-        productId: item.productId,
-        type: MovementType.IN,
-        quantity: item.quantity,
-        reference:
-          reference || `Return for order ${order.orderNumber}`,
-      });
+      const movement = await this.repository.createMovement(
+        {
+          companyId,
+          productId: item.productId,
+          type: MovementType.IN,
+          quantity: item.quantity,
+          reference:
+            reference || `Return for order ${order.orderNumber}`,
+        },
+        tx
+      );
       movements.push(movement);
 
       // Increase Stock
       await this.productService.updateStock(
         item.productId,
-        item.quantity
+        item.quantity,
+        tx
       );
 
       // Accumulate COGS Reversal value
@@ -271,7 +310,8 @@ export class InventoryService {
       await this.journalService.postSalesReturn(
         companyId,
         reference || `Return for order ${order.orderNumber}`,
-        totalCogsReversal
+        totalCogsReversal,
+        tx
       );
     }
 
@@ -288,7 +328,8 @@ export class InventoryService {
     companyId: string,
     data: StockAdjustmentInput,
     shape?: BusinessShape,
-    configs?: { key: string; value: Prisma.JsonValue }[]
+    configs?: { key: string; value: Prisma.JsonValue }[],
+    tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement> {
     // Policy check FIRST
     if (shape) {
@@ -305,7 +346,8 @@ export class InventoryService {
     // Get current product state
     const product = await this.productService.getById(
       data.productId,
-      companyId
+      companyId,
+      tx
     );
     if (!product) throw new Error('Product not found');
 
@@ -318,13 +360,16 @@ export class InventoryService {
       }
     }
 
-    const movement = await this.repository.createMovement({
-      companyId,
-      productId: data.productId,
-      type: data.quantity > 0 ? MovementType.IN : MovementType.OUT,
-      quantity: absQty,
-      reference: data.reference || 'Manual adjustment',
-    });
+    const movement = await this.repository.createMovement(
+      {
+        companyId,
+        productId: data.productId,
+        type: data.quantity > 0 ? MovementType.IN : MovementType.OUT,
+        quantity: absQty,
+        reference: data.reference || 'Manual adjustment',
+      },
+      tx
+    );
 
     let journalAmount = 0;
 
@@ -333,14 +378,16 @@ export class InventoryService {
       await this.productService.updateAverageCost(
         data.productId,
         data.quantity,
-        data.costPerUnit
+        data.costPerUnit,
+        tx
       );
       journalAmount = absQty * data.costPerUnit;
     } else {
       // Loss: Use current Average Cost (Book Value)
       await this.productService.updateStock(
         data.productId,
-        data.quantity
+        data.quantity,
+        tx
       );
       journalAmount = absQty * Number(product.averageCost);
     }
@@ -351,7 +398,8 @@ export class InventoryService {
         companyId,
         data.reference || `Adjustment ${movement.id}`,
         journalAmount,
-        isLoss
+        isLoss,
+        tx
       );
     }
 
@@ -360,12 +408,16 @@ export class InventoryService {
 
   async getMovements(
     companyId: string,
-    productId?: string
+    productId?: string,
+    tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement[]> {
-    return this.repository.findMovements(companyId, productId);
+    return this.repository.findMovements(companyId, productId, tx);
   }
 
-  async getStockLevels(companyId: string) {
-    return this.productService.list(companyId);
+  async getStockLevels(
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.productService.list(companyId, tx);
   }
 }

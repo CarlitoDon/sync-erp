@@ -78,6 +78,7 @@ describe('T016: Credit Note (Reversal)', () => {
     // Verify Journal Post
     expect(mockJournal.postCreditNote).toHaveBeenCalledWith(
       companyId,
+      'cn-1',
       'CN-001',
       100,
       90,

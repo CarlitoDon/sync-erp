@@ -39,6 +39,10 @@ export class StockReturnSaga extends SagaOrchestrator<
 > {
   protected readonly sagaType = SagaType.STOCK_RETURN;
 
+  protected getLockTable(): string {
+    return 'Product';
+  }
+
   private repository = new InventoryRepository();
   private productService = new ProductService();
   private journalService = new JournalService();

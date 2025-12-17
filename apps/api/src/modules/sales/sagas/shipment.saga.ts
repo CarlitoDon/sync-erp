@@ -45,6 +45,10 @@ export class ShipmentSaga extends SagaOrchestrator<
 > {
   protected readonly sagaType = SagaType.SHIPMENT;
 
+  protected getLockTable(): string {
+    return 'Order';
+  }
+
   private salesRepository = new SalesRepository();
   private inventoryService = new InventoryService();
   private productService = new ProductService();

@@ -92,7 +92,8 @@ describe('T017: Stock Return (Cost Accuracy)', () => {
     expect(mockJournal.postSalesReturn).toHaveBeenCalledWith(
       companyId,
       expect.stringContaining('SO-1'),
-      50 // Cost Reversal
+      50, // Cost Reversal
+      undefined
     );
   });
 
@@ -127,7 +128,8 @@ describe('T017: Stock Return (Cost Accuracy)', () => {
     expect(mockJournal.postSalesReturn).toHaveBeenCalledWith(
       companyId,
       expect.stringContaining('SO-1'),
-      80
+      80,
+      undefined
     );
   });
 });

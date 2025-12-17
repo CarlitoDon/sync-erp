@@ -1,9 +1,13 @@
 import { prisma, Prisma, AccountType } from '@sync-erp/database';
 
 export class JournalRepository {
-  async create(data: Prisma.JournalEntryUncheckedCreateInput) {
+  async create(
+    data: Prisma.JournalEntryUncheckedCreateInput,
+    tx?: Prisma.TransactionClient
+  ) {
+    const db = tx || prisma;
     try {
-      return await prisma.journalEntry.create({
+      return await db.journalEntry.create({
         data,
         include: {
           lines: { include: { account: true } },
@@ -27,8 +31,13 @@ export class JournalRepository {
     }
   }
 
-  async findById(id: string, companyId: string) {
-    return prisma.journalEntry.findFirst({
+  async findById(
+    id: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const db = tx || prisma;
+    return db.journalEntry.findFirst({
       where: { id, companyId },
       include: {
         lines: { include: { account: true } },
@@ -36,8 +45,14 @@ export class JournalRepository {
     });
   }
 
-  async findAll(companyId: string, startDate?: Date, endDate?: Date) {
-    return prisma.journalEntry.findMany({
+  async findAll(
+    companyId: string,
+    startDate?: Date,
+    endDate?: Date,
+    tx?: Prisma.TransactionClient
+  ) {
+    const db = tx || prisma;
+    return db.journalEntry.findMany({
       where: {
         companyId,
         ...(startDate && { date: { gte: startDate } }),
@@ -50,8 +65,13 @@ export class JournalRepository {
     });
   }
 
-  async aggregateAccountSum(accountId: string, dateLimit?: Date) {
-    return prisma.journalLine.aggregate({
+  async aggregateAccountSum(
+    accountId: string,
+    dateLimit?: Date,
+    tx?: Prisma.TransactionClient
+  ) {
+    const db = tx || prisma;
+    return db.journalLine.aggregate({
       where: {
         accountId,
         ...(dateLimit && { journal: { date: { lte: dateLimit } } }),
@@ -65,15 +85,15 @@ export class JournalRepository {
 
   async aggregateAccountSumRange(
     accountId: string,
-    startDate?: Date
+    startDate?: Date,
+    tx?: Prisma.TransactionClient
   ) {
-    return prisma.journalLine.aggregate({
+    const db = tx || prisma;
+    return db.journalLine.aggregate({
       where: {
         accountId,
         journal: {
-          ...(startDate && { date: { gte: startDate } }), // wait, if startDate only?
-          // Logic: if start and end provided.
-          // actually this is for opening balance (lt startDate)
+          ...(startDate && { date: { gte: startDate } }),
         },
       },
       _sum: { debit: true, credit: true },
@@ -81,8 +101,13 @@ export class JournalRepository {
   }
 
   // Specific method for Opening Balance (before startDate)
-  async getOpeningBalanceSum(accountId: string, startDate: Date) {
-    return prisma.journalLine.aggregate({
+  async getOpeningBalanceSum(
+    accountId: string,
+    startDate: Date,
+    tx?: Prisma.TransactionClient
+  ) {
+    const db = tx || prisma;
+    return db.journalLine.aggregate({
       where: {
         accountId,
         journal: { date: { lt: startDate } },
@@ -95,9 +120,11 @@ export class JournalRepository {
     companyId: string,
     accountId: string,
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
+    tx?: Prisma.TransactionClient
   ) {
-    return prisma.journalLine.findMany({
+    const db = tx || prisma;
+    return db.journalLine.findMany({
       where: {
         accountId,
         journal: {
@@ -115,9 +142,11 @@ export class JournalRepository {
     companyId: string,
     type: AccountType,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    tx?: Prisma.TransactionClient
   ) {
-    return prisma.journalLine.aggregate({
+    const db = tx || prisma;
+    return db.journalLine.aggregate({
       where: {
         account: { companyId, type },
         journal: { date: { gte: startDate, lte: endDate } },

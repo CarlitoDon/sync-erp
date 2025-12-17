@@ -1,5 +1,10 @@
 // Saga Orchestrator - Abstract base class for saga implementations
-import { SagaType, type SagaLog } from '@sync-erp/database';
+import {
+  SagaType,
+  type SagaLog,
+  prisma,
+  Prisma,
+} from '@sync-erp/database';
 import { PostingContext } from './posting-context.js';
 import * as sagaLogRepo from './saga-log.repository.js';
 import {
@@ -22,11 +27,37 @@ export interface SagaResult<T> {
  *
  * Subclasses must implement:
  * - sagaType: The type of saga
+ * - getLockTable(): The DB table to lock (for concurrency safety)
  * - executeSteps(): The forward execution logic
  * - compensate(): The rollback logic
  */
 export abstract class SagaOrchestrator<TInput, TOutput> {
   protected abstract readonly sagaType: SagaType;
+
+  /**
+   * The database table name to lock for concurrency safety.
+   * e.g. "Invoice", "Payment"
+   */
+  protected abstract getLockTable(): string;
+
+  /**
+   * Acquire a strict database row lock on the entity.
+   * MUST be called within a transaction.
+   * @param input - The input data, useful if locking a related entity (e.g. Payment locking Invoice)
+   */
+  protected async lockEntity(
+    tx: Prisma.TransactionClient,
+    entityId: string,
+    _input: TInput
+  ): Promise<void> {
+    const table = this.getLockTable();
+    // Use executeRawUnsafe because table name is dynamic (but trusted from subclass)
+    // SELECT 1 ... FOR UPDATE ensures we wait for any other transaction on this ID
+    await tx.$executeRawUnsafe(
+      `SELECT 1 FROM "${table}" WHERE id = $1 FOR UPDATE`,
+      entityId
+    );
+  }
 
   /**
    * Execute the saga with automatic compensation on failure
@@ -36,7 +67,8 @@ export abstract class SagaOrchestrator<TInput, TOutput> {
     entityId: string,
     companyId: string
   ): Promise<SagaResult<TOutput>> {
-    // Create posting context (starts saga)
+    // Create posting context (starts saga) - OUTSIDE transaction
+    // This ensures the generic "PENDING" log exists even if the transaction fails immediately
     const context = await PostingContext.create(
       this.sagaType,
       entityId,
@@ -44,10 +76,22 @@ export abstract class SagaOrchestrator<TInput, TOutput> {
     );
 
     try {
-      // Execute forward steps
-      const result = await this.executeSteps(input, context);
+      // Execute forward steps within a single ACID transaction
+      const result = await prisma.$transaction(
+        async (tx) => {
+          // 1. Acquire Lock
+          await this.lockEntity(tx, entityId, input);
 
-      // Mark completed
+          // 2. Execute Steps
+          return this.executeSteps(input, context, tx);
+        },
+        {
+          timeout: 10000, // Wait up to 10s for lock
+        }
+      );
+
+      // Mark completed (Outside transaction)
+      // Since transaction committed, the business work is done.
       await context.markCompleted();
 
       return {
@@ -56,11 +100,14 @@ export abstract class SagaOrchestrator<TInput, TOutput> {
         sagaLogId: context.id,
       };
     } catch (error) {
-      // Forward execution failed, attempt compensation
+      // Forward execution failed (Transaction Rolled Back)
+      // Any DB changes in executeSteps are gone.
       const originalError =
         error instanceof Error ? error : new Error(String(error));
 
       try {
+        // Attempt compensation (clean up side effects or explicitly needed logic)
+        // Note: DB changes from executeSteps are already rolled back interactively.
         await this.compensate(context);
         await context.markFailed(originalError);
 
@@ -110,7 +157,20 @@ export abstract class SagaOrchestrator<TInput, TOutput> {
 
     // Re-execute from current state
     try {
-      const result = await this.executeSteps(input, context);
+      // For retry, we also ideally want locking, but 'execute' is the main entry.
+      // 'retry' logic here bypasses 'execute' and calls 'executeSteps' directly.
+      // To satisfy D2, Retry MUST also lock.
+
+      // We wrap retry logic in transaction too.
+      const result = await prisma.$transaction(
+        async (tx) => {
+          // We need entityId. context.entityId should exist.
+          await this.lockEntity(tx, context.entityId, input);
+          return this.executeSteps(input, context, tx);
+        },
+        { timeout: 10000 }
+      );
+
       await context.markCompleted();
 
       return {
@@ -148,10 +208,12 @@ export abstract class SagaOrchestrator<TInput, TOutput> {
   /**
    * Execute the forward steps of the saga
    * Must update context.step as each step completes
+   * @param tx Optional transaction client (should be used for all DB ops)
    */
   protected abstract executeSteps(
     input: TInput,
-    context: PostingContext
+    context: PostingContext,
+    tx?: Prisma.TransactionClient
   ): Promise<TOutput>;
 
   /**

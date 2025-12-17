@@ -22,6 +22,18 @@ vi.mock('@sync-erp/database', async () => {
         findFirst: vi.fn(),
         findMany: vi.fn(),
       },
+      // Mock $transaction to execute the callback immediately
+      $transaction: vi
+        .fn()
+        .mockImplementation(
+          async (callback: (tx: any) => Promise<any>) => {
+            // Create a mock tx that passes through to regular prisma mocks
+            const mockTx = {
+              $executeRawUnsafe: vi.fn().mockResolvedValue(1),
+            };
+            return callback(mockTx);
+          }
+        ),
     },
   };
 });
@@ -245,6 +257,10 @@ describe('T021: SAGA Infrastructure', () => {
       protected readonly sagaType = SagaType.INVOICE_POST;
       public shouldFail = false;
       public shouldFailCompensation = false;
+
+      protected getLockTable(): string {
+        return 'Invoice';
+      }
 
       protected async executeSteps(
         input: { value: number },

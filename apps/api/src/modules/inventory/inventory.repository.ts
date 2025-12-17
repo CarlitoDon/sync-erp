@@ -6,18 +6,22 @@ import {
 
 export class InventoryRepository {
   async createMovement(
-    data: Prisma.InventoryMovementUncheckedCreateInput
+    data: Prisma.InventoryMovementUncheckedCreateInput,
+    tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement> {
-    return prisma.inventoryMovement.create({
+    const db = tx || prisma;
+    return db.inventoryMovement.create({
       data,
     });
   }
 
   async findMovements(
     companyId: string,
-    productId?: string
+    productId?: string,
+    tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement[]> {
-    return prisma.inventoryMovement.findMany({
+    const db = tx || prisma;
+    return db.inventoryMovement.findMany({
       where: {
         companyId,
         ...(productId && { productId }),
@@ -30,8 +34,12 @@ export class InventoryRepository {
   }
 
   // Helper to find one movement if needed
-  async findById(id: string): Promise<InventoryMovement | null> {
-    return prisma.inventoryMovement.findUnique({
+  async findById(
+    id: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<InventoryMovement | null> {
+    const db = tx || prisma;
+    return db.inventoryMovement.findUnique({
       where: { id },
     });
   }

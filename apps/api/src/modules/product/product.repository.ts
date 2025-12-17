@@ -2,33 +2,43 @@ import { prisma, type Product, Prisma } from '@sync-erp/database';
 
 export class ProductRepository {
   async create(
-    data: Prisma.ProductCreateManyInput
+    data: Prisma.ProductCreateManyInput,
+    tx?: Prisma.TransactionClient
   ): Promise<Product> {
-    return prisma.product.create({ data });
+    const db = tx || prisma;
+    return db.product.create({ data });
   }
 
   async findById(
     id: string,
-    companyId?: string
+    companyId?: string,
+    tx?: Prisma.TransactionClient
   ): Promise<Product | null> {
+    const db = tx || prisma;
     const where: Prisma.ProductWhereInput = { id };
     if (companyId) {
       where.companyId = companyId;
     }
-    return prisma.product.findFirst({ where });
+    return db.product.findFirst({ where });
   }
 
   async findBySku(
     sku: string,
-    companyId: string
+    companyId: string,
+    tx?: Prisma.TransactionClient
   ): Promise<Product | null> {
-    return prisma.product.findFirst({
+    const db = tx || prisma;
+    return db.product.findFirst({
       where: { sku, companyId },
     });
   }
 
-  async findAll(companyId: string): Promise<Product[]> {
-    return prisma.product.findMany({
+  async findAll(
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<Product[]> {
+    const db = tx || prisma;
+    return db.product.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
     });
@@ -36,16 +46,22 @@ export class ProductRepository {
 
   async update(
     id: string,
-    data: Prisma.ProductUpdateInput
+    data: Prisma.ProductUpdateInput,
+    tx?: Prisma.TransactionClient
   ): Promise<Product> {
-    return prisma.product.update({
+    const db = tx || prisma;
+    return db.product.update({
       where: { id },
       data,
     });
   }
 
-  async delete(id: string): Promise<Product> {
-    return prisma.product.delete({
+  async delete(
+    id: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<Product> {
+    const db = tx || prisma;
+    return db.product.delete({
       where: { id },
     });
   }
@@ -53,9 +69,11 @@ export class ProductRepository {
   // Specialized atomic update
   async incrementStock(
     id: string,
-    quantity: number
+    quantity: number,
+    tx?: Prisma.TransactionClient
   ): Promise<Product> {
-    return prisma.product.update({
+    const db = tx || prisma;
+    return db.product.update({
       where: { id },
       data: {
         stockQty: { increment: quantity },
@@ -65,9 +83,11 @@ export class ProductRepository {
 
   async decreaseStockWithGuard(
     id: string,
-    quantity: number
+    quantity: number,
+    tx?: Prisma.TransactionClient
   ): Promise<Product> {
-    return prisma.product.update({
+    const db = tx || prisma;
+    return db.product.update({
       where: {
         id,
         stockQty: { gte: quantity }, // Concurrency Guard

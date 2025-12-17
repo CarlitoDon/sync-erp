@@ -8,9 +8,11 @@ import {
 
 export class InvoiceRepository {
   async create(
-    data: Prisma.InvoiceUncheckedCreateInput
+    data: Prisma.InvoiceUncheckedCreateInput,
+    tx?: Prisma.TransactionClient
   ): Promise<Invoice> {
-    return prisma.invoice.create({
+    const db = tx || prisma;
+    return db.invoice.create({
       data,
       include: {
         order: { include: { items: { include: { product: true } } } },
@@ -22,9 +24,11 @@ export class InvoiceRepository {
   async findById(
     id: string,
     companyId: string,
-    type?: InvoiceType
+    type?: InvoiceType,
+    tx?: Prisma.TransactionClient
   ): Promise<Invoice | null> {
-    return prisma.invoice.findFirst({
+    const db = tx || prisma;
+    return db.invoice.findFirst({
       where: {
         id,
         companyId,
@@ -41,9 +45,11 @@ export class InvoiceRepository {
   async findAll(
     companyId: string,
     type?: InvoiceType,
-    status?: InvoiceStatus
+    status?: InvoiceStatus,
+    tx?: Prisma.TransactionClient
   ): Promise<Invoice[]> {
-    return prisma.invoice.findMany({
+    const db = tx || prisma;
+    return db.invoice.findMany({
       where: {
         companyId,
         ...(type && { type }),
@@ -60,9 +66,11 @@ export class InvoiceRepository {
 
   async update(
     id: string,
-    data: Prisma.InvoiceUncheckedUpdateInput
+    data: Prisma.InvoiceUncheckedUpdateInput,
+    tx?: Prisma.TransactionClient
   ): Promise<Invoice> {
-    return prisma.invoice.update({
+    const db = tx || prisma;
+    return db.invoice.update({
       where: { id },
       data,
       include: {
@@ -72,8 +80,13 @@ export class InvoiceRepository {
     });
   }
 
-  async count(companyId: string, type: InvoiceType): Promise<number> {
-    return prisma.invoice.count({
+  async count(
+    companyId: string,
+    type: InvoiceType,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const db = tx || prisma;
+    return db.invoice.count({
       where: { companyId, type },
     });
   }
@@ -82,9 +95,11 @@ export class InvoiceRepository {
   async findOrder(
     id: string,
     companyId: string,
-    type: import('@sync-erp/database').OrderType
+    type: import('@sync-erp/database').OrderType,
+    tx?: Prisma.TransactionClient
   ) {
-    return prisma.order.findFirst({
+    const db = tx || prisma;
+    return db.order.findFirst({
       where: { id, companyId, type },
       include: { items: true, partner: true },
     });
@@ -94,9 +109,11 @@ export class InvoiceRepository {
   async findByOrderId(
     orderId: string,
     companyId: string,
-    type?: InvoiceType
+    type?: InvoiceType,
+    tx?: Prisma.TransactionClient
   ): Promise<Invoice | null> {
-    return prisma.invoice.findFirst({
+    const db = tx || prisma;
+    return db.invoice.findFirst({
       where: {
         orderId,
         companyId,
@@ -111,9 +128,11 @@ export class InvoiceRepository {
 
   async decreaseBalanceWithGuard(
     id: string,
-    amount: number
+    amount: number,
+    tx?: Prisma.TransactionClient
   ): Promise<Invoice> {
-    return prisma.invoice.update({
+    const db = tx || prisma;
+    return db.invoice.update({
       where: {
         id,
         balance: { gte: amount }, // Concurrency Guard

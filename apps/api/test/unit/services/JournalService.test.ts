@@ -5,6 +5,14 @@ import {
   resetRepositoryMocks,
 } from '../mocks/repositories.mock';
 
+// Mock @sync-erp/database to provide actual enums
+vi.mock('@sync-erp/database', async () => {
+  const actual = await vi.importActual('@sync-erp/database');
+  return {
+    ...actual,
+  };
+});
+
 // Mock AccountService
 const mockAccountService = {
   getById: vi.fn(),

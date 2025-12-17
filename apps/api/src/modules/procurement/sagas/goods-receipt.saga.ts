@@ -42,6 +42,10 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
 > {
   protected readonly sagaType = SagaType.GOODS_RECEIPT;
 
+  protected getLockTable(): string {
+    return 'Order';
+  }
+
   private procurementRepository = new ProcurementRepository();
   private _inventoryService: InventoryService | null = null;
 

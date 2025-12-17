@@ -80,10 +80,10 @@ describe('T001: Verify Stock Movements', () => {
       expect(mockRepo.createMovement).toHaveBeenCalledWith(
         expect.objectContaining({
           productId: 'prod-A',
-          type: 'IN', // 'IN' string or enum if mocked correctly. Checking string 'IN' usually used in automock if enum value is just string.
-          // actually MovementType.IN is enum
+          type: 'IN',
           quantity: 10,
-        })
+        }),
+        undefined
       );
 
       // Verify AVG Cost Recalculation (FR-003)
@@ -92,10 +92,10 @@ describe('T001: Verify Stock Movements', () => {
       ).toHaveBeenCalledTimes(2);
       expect(
         mockProductService.updateAverageCost
-      ).toHaveBeenCalledWith('prod-A', 10, 1000);
+      ).toHaveBeenCalledWith('prod-A', 10, 1000, undefined);
       expect(
         mockProductService.updateAverageCost
-      ).toHaveBeenCalledWith('prod-B', 5, 2000);
+      ).toHaveBeenCalledWith('prod-B', 5, 2000, undefined);
     });
   });
 
@@ -129,11 +129,13 @@ describe('T001: Verify Stock Movements', () => {
       );
       expect(mockProductService.decreaseStock).toHaveBeenCalledWith(
         'prod-A',
-        2
+        2,
+        undefined
       );
       expect(mockProductService.decreaseStock).toHaveBeenCalledWith(
         'prod-B',
-        1
+        1,
+        undefined
       );
 
       // Verify Movement Creation
@@ -142,7 +144,8 @@ describe('T001: Verify Stock Movements', () => {
           type: 'OUT',
           productId: 'prod-A',
           quantity: 2,
-        })
+        }),
+        undefined
       );
     });
   });

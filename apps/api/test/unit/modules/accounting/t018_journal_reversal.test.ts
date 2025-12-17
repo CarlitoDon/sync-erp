@@ -66,7 +66,8 @@ describe('T018: Journal Reversal', () => {
             }), // Was Cr 100 -> Dr 100
           ]),
         },
-      })
+      }),
+      undefined
     );
 
     expect(result.id).toBe('je-2');

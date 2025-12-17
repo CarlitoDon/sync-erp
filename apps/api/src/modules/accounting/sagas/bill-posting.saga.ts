@@ -3,6 +3,7 @@ import {
   SagaType,
   InvoiceStatus,
   type Invoice,
+  Prisma,
 } from '@sync-erp/database';
 import {
   SagaOrchestrator,
@@ -34,6 +35,10 @@ export class BillPostingSaga extends SagaOrchestrator<
 > {
   protected readonly sagaType = SagaType.BILL_POST;
 
+  protected getLockTable(): string {
+    return 'Invoice';
+  }
+
   private invoiceRepository = new InvoiceRepository();
   private journalService = new JournalService();
 
@@ -42,12 +47,15 @@ export class BillPostingSaga extends SagaOrchestrator<
    */
   protected async executeSteps(
     input: BillPostingInput,
-    context: PostingContext
+    context: PostingContext,
+    tx?: Prisma.TransactionClient
   ): Promise<Invoice> {
     // 1. Validate bill
     const bill = await this.invoiceRepository.findById(
       input.billId,
-      input.companyId
+      input.companyId,
+      undefined,
+      tx
     );
     if (!bill) {
       throw new Error('Bill not found');
@@ -62,7 +70,8 @@ export class BillPostingSaga extends SagaOrchestrator<
       input.billId,
       {
         status: InvoiceStatus.POSTED,
-      }
+      },
+      tx
     );
 
     if (!updatedBill.invoiceNumber) {
@@ -76,7 +85,8 @@ export class BillPostingSaga extends SagaOrchestrator<
       updatedBill.invoiceNumber,
       Number(updatedBill.amount),
       Number(updatedBill.subtotal),
-      Number(updatedBill.taxAmount)
+      Number(updatedBill.taxAmount),
+      tx
     );
 
     await context.markJournalDone(journal.id);

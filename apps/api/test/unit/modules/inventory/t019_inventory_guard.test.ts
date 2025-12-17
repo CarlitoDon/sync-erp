@@ -53,7 +53,8 @@ describe('T019: Inventory Concurrency Guard', () => {
 
     expect(mockProductService.decreaseStock).toHaveBeenCalledWith(
       'p1',
-      5
+      5,
+      undefined
     );
     expect(prisma.orderItem.update).toHaveBeenCalled();
   });

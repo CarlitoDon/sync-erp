@@ -28,11 +28,13 @@ export class JournalService {
   async reverse(
     companyId: string,
     journalId: string,
-    reason?: string
+    reason?: string,
+    tx?: Prisma.TransactionClient
   ): Promise<JournalEntry> {
     const original = await this.repository.findById(
       journalId,
-      companyId
+      companyId,
+      tx
     );
     if (!original) {
       throw new Error('Journal entry not found');
@@ -45,17 +47,22 @@ export class JournalService {
         credit: Number(line.debit), // Swap
       }));
 
-    return this.create(companyId, {
-      date: new Date(),
-      reference: `Reversal: ${original.reference || journalId}`,
-      memo: reason || `Reversal of journal ${journalId}`,
-      lines: reversalLines,
-    });
+    return this.create(
+      companyId,
+      {
+        date: new Date(),
+        reference: `Reversal: ${original.reference || journalId}`,
+        memo: reason || `Reversal of journal ${journalId}`,
+        lines: reversalLines,
+      },
+      tx
+    );
   }
 
   async create(
     companyId: string,
-    data: CreateJournalEntryInput
+    data: CreateJournalEntryInput,
+    tx?: Prisma.TransactionClient
   ): Promise<JournalEntry> {
     // Validate: debits must equal credits
     const totalDebit = data.lines.reduce(
@@ -78,6 +85,8 @@ export class JournalService {
     const lineData: Prisma.JournalLineUncheckedCreateWithoutJournalInput[] =
       [];
     for (const line of data.lines) {
+      // Logic: Account reading *could* be transactional, but for now we assume accounts are stable.
+      // If AccountService is not updated, we call it without tx.
       const account = await this.accountService.getById(
         line.accountId,
         companyId
@@ -104,15 +113,24 @@ export class JournalService {
       },
     };
 
-    return this.repository.create(createData);
+    return this.repository.create(createData, tx);
   }
 
-  async getById(id: string, companyId: string) {
-    return this.repository.findById(id, companyId);
+  async getById(
+    id: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.repository.findById(id, companyId, tx);
   }
 
-  async list(companyId: string, startDate?: Date, endDate?: Date) {
-    return this.repository.findAll(companyId, startDate, endDate);
+  async list(
+    companyId: string,
+    startDate?: Date,
+    endDate?: Date,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.repository.findAll(companyId, startDate, endDate, tx);
   }
 
   // ============================================
@@ -132,7 +150,8 @@ export class JournalService {
         debit?: number;
         credit?: number;
       }[];
-    }
+    },
+    tx?: Prisma.TransactionClient
   ) {
     const resolvedLines: CreateJournalLineInput[] = [];
     for (const line of data.lines) {
@@ -152,14 +171,18 @@ export class JournalService {
       });
     }
 
-    return this.create(companyId, {
-      date: data.date,
-      reference: data.reference,
-      memo: data.memo,
-      sourceType: data.sourceType,
-      sourceId: data.sourceId,
-      lines: resolvedLines,
-    });
+    return this.create(
+      companyId,
+      {
+        date: data.date,
+        reference: data.reference,
+        memo: data.memo,
+        sourceType: data.sourceType,
+        sourceId: data.sourceId,
+        lines: resolvedLines,
+      },
+      tx
+    );
   }
 
   async postInvoice(
@@ -168,7 +191,8 @@ export class JournalService {
     invoiceNumber: string,
     amount: number,
     subtotal?: number,
-    taxAmount?: number
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient
   ) {
     const lines: {
       accountCode: string;
@@ -188,13 +212,17 @@ export class JournalService {
       lines.push({ accountCode: '4100', credit: amount });
     }
 
-    return this.resolveAndCreate(companyId, {
-      reference: `Invoice: ${invoiceNumber}`,
-      memo: `Auto-generated from invoice ${invoiceNumber}`,
-      sourceType: JournalSourceType.INVOICE,
-      sourceId: invoiceId,
-      lines,
-    });
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Invoice: ${invoiceNumber}`,
+        memo: `Auto-generated from invoice ${invoiceNumber}`,
+        sourceType: JournalSourceType.INVOICE,
+        sourceId: invoiceId,
+        lines,
+      },
+      tx
+    );
   }
 
   async postCreditNote(
@@ -203,7 +231,8 @@ export class JournalService {
     invoiceNumber: string,
     amount: number,
     subtotal?: number,
-    taxAmount?: number
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient
   ) {
     const lines: {
       accountCode: string;
@@ -223,28 +252,37 @@ export class JournalService {
       lines.push({ accountCode: '4100', debit: amount });
     }
 
-    return this.resolveAndCreate(companyId, {
-      reference: `Credit Note: ${invoiceNumber}`,
-      memo: `Reversal for invoice ${invoiceNumber}`,
-      sourceType: JournalSourceType.CREDIT_NOTE,
-      sourceId: creditNoteId,
-      lines,
-    });
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Credit Note: ${invoiceNumber}`,
+        memo: `Reversal for invoice ${invoiceNumber}`,
+        sourceType: JournalSourceType.CREDIT_NOTE,
+        sourceId: creditNoteId,
+        lines,
+      },
+      tx
+    );
   }
 
   async postGoodsReceipt(
     companyId: string,
     reference: string,
-    amount: number
+    amount: number,
+    tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(companyId, {
-      reference,
-      memo: 'Auto-generated Accrual from Goods Receipt',
-      lines: [
-        { accountCode: '1400', debit: amount }, // Asset
-        { accountCode: '2105', credit: amount }, // Liability Suspense
-      ],
-    });
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference,
+        memo: 'Auto-generated Accrual from Goods Receipt',
+        lines: [
+          { accountCode: '1400', debit: amount }, // Asset
+          { accountCode: '2105', credit: amount }, // Liability Suspense
+        ],
+      },
+      tx
+    );
   }
 
   async postBill(
@@ -253,7 +291,8 @@ export class JournalService {
     billNumber: string,
     amount: number,
     subtotal?: number,
-    taxAmount?: number
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient
   ) {
     const lines: {
       accountCode: string;
@@ -273,13 +312,17 @@ export class JournalService {
       lines.push({ accountCode: '2105', debit: amount }); // Clear Accrual
     }
 
-    return this.resolveAndCreate(companyId, {
-      reference: `Bill: ${billNumber}`,
-      memo: `Auto-generated from bill ${billNumber}`,
-      sourceType: JournalSourceType.BILL,
-      sourceId: billId,
-      lines,
-    });
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Bill: ${billNumber}`,
+        memo: `Auto-generated from bill ${billNumber}`,
+        sourceType: JournalSourceType.BILL,
+        sourceId: billId,
+        lines,
+      },
+      tx
+    );
   }
 
   async postPaymentReceived(
@@ -287,19 +330,24 @@ export class JournalService {
     paymentId: string,
     invoiceNumber: string,
     amount: number,
-    method: string
+    method: string,
+    tx?: Prisma.TransactionClient
   ) {
     const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100'; // Bank or Cash
-    return this.resolveAndCreate(companyId, {
-      reference: `Payment received: ${invoiceNumber}`,
-      memo: `Payment via ${method}`,
-      sourceType: JournalSourceType.PAYMENT,
-      sourceId: paymentId,
-      lines: [
-        { accountCode: cashAccount, debit: amount },
-        { accountCode: '1300', credit: amount },
-      ],
-    });
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Payment received: ${invoiceNumber}`,
+        memo: `Payment via ${method}`,
+        sourceType: JournalSourceType.PAYMENT,
+        sourceId: paymentId,
+        lines: [
+          { accountCode: cashAccount, debit: amount },
+          { accountCode: '1300', credit: amount },
+        ],
+      },
+      tx
+    );
   }
 
   async postPaymentMade(
@@ -307,56 +355,72 @@ export class JournalService {
     paymentId: string,
     billNumber: string,
     amount: number,
-    method: string
+    method: string,
+    tx?: Prisma.TransactionClient
   ) {
     const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
-    return this.resolveAndCreate(companyId, {
-      reference: `Payment made: ${billNumber}`,
-      memo: `Payment via ${method}`,
-      sourceType: JournalSourceType.PAYMENT,
-      sourceId: paymentId,
-      lines: [
-        { accountCode: '2100', debit: amount },
-        { accountCode: cashAccount, credit: amount },
-      ],
-    });
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Payment made: ${billNumber}`,
+        memo: `Payment via ${method}`,
+        sourceType: JournalSourceType.PAYMENT,
+        sourceId: paymentId,
+        lines: [
+          { accountCode: '2100', debit: amount },
+          { accountCode: cashAccount, credit: amount },
+        ],
+      },
+      tx
+    );
   }
 
   async postShipment(
     companyId: string,
     reference: string,
-    amount: number
+    amount: number,
+    tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(companyId, {
-      reference,
-      memo: 'Auto-generated COGS from Shipment',
-      lines: [
-        { accountCode: '5000', debit: amount },
-        { accountCode: '1400', credit: amount },
-      ],
-    });
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference,
+        memo: 'Auto-generated COGS from Shipment',
+        lines: [
+          { accountCode: '5000', debit: amount },
+          { accountCode: '1400', credit: amount },
+        ],
+      },
+      tx
+    );
   }
 
   async postSalesReturn(
     companyId: string,
     reference: string,
-    amount: number
+    amount: number,
+    tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(companyId, {
-      reference,
-      memo: 'Auto-generated reversal from Sales Return',
-      lines: [
-        { accountCode: '1400', debit: amount },
-        { accountCode: '5000', credit: amount },
-      ],
-    });
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference,
+        memo: 'Auto-generated reversal from Sales Return',
+        lines: [
+          { accountCode: '1400', debit: amount },
+          { accountCode: '5000', credit: amount },
+        ],
+      },
+      tx
+    );
   }
 
   async postAdjustment(
     companyId: string,
     reference: string,
     amount: number,
-    isLoss: boolean
+    isLoss: boolean,
+    tx?: Prisma.TransactionClient
   ) {
     const memo = isLoss ? 'Stock Loss/Shrinkage' : 'Stock Gain/Found';
     // If Loss: Dr Expense (5200), Cr Asset (1400)
@@ -372,10 +436,14 @@ export class JournalService {
           { accountCode: '5200', credit: amount },
         ];
 
-    return this.resolveAndCreate(companyId, {
-      reference,
-      memo,
-      lines,
-    });
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference,
+        memo,
+        lines,
+      },
+      tx
+    );
   }
 }

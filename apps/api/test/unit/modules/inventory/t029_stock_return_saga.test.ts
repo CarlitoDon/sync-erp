@@ -17,6 +17,16 @@ vi.mock('@sync-erp/database', async () => {
       inventoryMovement: { create: vi.fn() },
       account: { findFirst: vi.fn() },
       journalEntry: { create: vi.fn(), update: vi.fn() },
+      $transaction: vi
+        .fn()
+        .mockImplementation(
+          async (callback: (tx: any) => Promise<any>) => {
+            const mockTx = {
+              $executeRawUnsafe: vi.fn().mockResolvedValue(1),
+            };
+            return callback(mockTx);
+          }
+        ),
     },
   };
 });

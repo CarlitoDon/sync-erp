@@ -2,9 +2,11 @@ import { prisma, Payment, Prisma } from '@sync-erp/database';
 
 export class PaymentRepository {
   async create(
-    data: Prisma.PaymentUncheckedCreateInput
+    data: Prisma.PaymentUncheckedCreateInput,
+    tx?: Prisma.TransactionClient
   ): Promise<Payment> {
-    return prisma.payment.create({ data });
+    const db = tx || prisma;
+    return db.payment.create({ data });
   }
 
   async findById(

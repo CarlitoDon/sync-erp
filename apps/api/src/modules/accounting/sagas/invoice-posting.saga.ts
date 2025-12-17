@@ -39,22 +39,28 @@ export class InvoicePostingSaga extends SagaOrchestrator<
 > {
   protected readonly sagaType = SagaType.INVOICE_POST;
 
+  protected getLockTable(): string {
+    return 'Invoice';
+  }
+
   private invoiceRepository = new InvoiceRepository();
-  private inventoryService = new InventoryService();
   private journalService = new JournalService();
+  private inventoryService = new InventoryService();
 
   /**
    * Execute the forward flow
    */
   protected async executeSteps(
     input: InvoicePostingInput,
-    context: PostingContext
+    context: PostingContext,
+    tx?: Prisma.TransactionClient
   ): Promise<Invoice> {
     // 1. Validate invoice
     const invoice = await this.invoiceRepository.findById(
       input.invoiceId,
       input.companyId,
-      'INVOICE'
+      'INVOICE',
+      tx
     );
     if (!invoice) {
       throw new Error('Invoice not found');
@@ -72,8 +78,9 @@ export class InvoicePostingSaga extends SagaOrchestrator<
         input.companyId,
         invoice.orderId,
         `Shipment for Invoice ${invoice.invoiceNumber}`,
-        input.shape,
-        input.configs
+        undefined, // Shape
+        undefined, // Configs
+        tx
       );
 
       // Track first movement ID for compensation
@@ -85,7 +92,8 @@ export class InvoicePostingSaga extends SagaOrchestrator<
     // 3. Update invoice status to POSTED
     const updatedInvoice = await this.invoiceRepository.update(
       input.invoiceId,
-      { status: InvoiceStatus.POSTED }
+      { status: InvoiceStatus.POSTED },
+      tx
     );
 
     if (!updatedInvoice.invoiceNumber) {
@@ -101,7 +109,8 @@ export class InvoicePostingSaga extends SagaOrchestrator<
       updatedInvoice.invoiceNumber,
       Number(updatedInvoice.amount),
       Number(updatedInvoice.subtotal),
-      Number(updatedInvoice.taxAmount)
+      Number(updatedInvoice.taxAmount),
+      tx
     );
 
     await context.markJournalDone(journal.id);

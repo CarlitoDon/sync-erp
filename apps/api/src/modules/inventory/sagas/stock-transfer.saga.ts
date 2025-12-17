@@ -39,6 +39,10 @@ export class StockTransferSaga extends SagaOrchestrator<
 > {
   protected readonly sagaType = SagaType.STOCK_TRANSFER;
 
+  protected getLockTable(): string {
+    return 'Product';
+  }
+
   private repository = new InventoryRepository();
   private productService = new ProductService();
 

@@ -1,5 +1,5 @@
 // Payment Posting Saga - Atomic payment with compensation
-import { SagaType, type Payment } from '@sync-erp/database';
+import { SagaType, type Payment, Prisma } from '@sync-erp/database';
 import {
   SagaOrchestrator,
   PostingContext,
@@ -35,6 +35,21 @@ export class PaymentPostingSaga extends SagaOrchestrator<
 > {
   protected readonly sagaType = SagaType.PAYMENT_POST;
 
+  protected getLockTable(): string {
+    return 'Invoice';
+  }
+
+  // Override lockEntity to lock the INVOICE, not the potentially new payment
+  protected async lockEntity(
+    tx: Prisma.TransactionClient,
+    _entityId: string,
+    input: PaymentPostingInput
+  ): Promise<void> {
+    // We ignore entityId (which is the Payment ID to be created)
+    // and lock the Invoice instead to serialize payments for the same invoice.
+    return super.lockEntity(tx, input.invoiceId, input);
+  }
+
   private paymentRepository = new PaymentRepository();
   private invoiceRepository = new InvoiceRepository();
   private journalService = new JournalService();
@@ -44,12 +59,15 @@ export class PaymentPostingSaga extends SagaOrchestrator<
    */
   protected async executeSteps(
     input: PaymentPostingInput,
-    context: PostingContext
+    context: PostingContext,
+    tx?: Prisma.TransactionClient
   ): Promise<Payment> {
     // 1. Validate invoice
     const invoice = await this.invoiceRepository.findById(
       input.invoiceId,
-      input.companyId
+      input.companyId,
+      undefined,
+      tx
     );
     if (!invoice) {
       throw new Error('Invoice not found');
@@ -66,20 +84,27 @@ export class PaymentPostingSaga extends SagaOrchestrator<
     await context.markBalanceDone(currentBalance);
 
     // 2. Create payment record
-    const payment = await this.paymentRepository.create({
-      companyId: input.companyId,
-      invoiceId: input.invoiceId,
-      amount: input.amount,
-      method: input.method,
-    });
+    const payment = await this.paymentRepository.create(
+      {
+        companyId: input.companyId,
+        invoiceId: input.invoiceId,
+        amount: input.amount,
+        method: input.method,
+      },
+      tx
+    );
 
     // 3. Decrease invoice balance
     const newBalance = currentBalance - input.amount;
-    await this.invoiceRepository.update(input.invoiceId, {
-      balance: newBalance,
-      // Mark as PAID if fully paid
-      ...(newBalance <= 0 ? { status: 'PAID' } : {}),
-    });
+    await this.invoiceRepository.update(
+      input.invoiceId,
+      {
+        balance: newBalance,
+        // Mark as PAID if fully paid
+        ...(newBalance <= 0 ? { status: 'PAID' } : {}),
+      },
+      tx
+    );
 
     // 4. Create cash journal
     const journal = await this.journalService.postPaymentReceived(
@@ -87,7 +112,8 @@ export class PaymentPostingSaga extends SagaOrchestrator<
       payment.id,
       invoice.invoiceNumber || input.invoiceId,
       input.amount,
-      input.method
+      input.method,
+      tx
     );
 
     await context.markJournalDone(journal.id);

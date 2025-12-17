@@ -14,45 +14,72 @@ import {
 // Mock all dependencies
 vi.mock('@sync-erp/database', async () => {
   const actual = await vi.importActual('@sync-erp/database');
+
+  // Create mock methods
+  const mockSagaLog = {
+    create: vi.fn(),
+    update: vi.fn(),
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+  };
+  const mockInvoice = {
+    findFirst: vi.fn(),
+    update: vi.fn(),
+  };
+  const mockOrder = {
+    findFirst: vi.fn(),
+    update: vi.fn(),
+  };
+  const mockOrderItem = {
+    update: vi.fn(),
+  };
+  const mockProduct = {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    update: vi.fn(),
+  };
+  const mockInventoryMovement = {
+    create: vi.fn(),
+    findMany: vi.fn(),
+  };
+  const mockAccount = {
+    findFirst: vi.fn(),
+  };
+  const mockJournalEntry = {
+    create: vi.fn(),
+  };
+  const mockJournalLine = {
+    create: vi.fn(),
+  };
+
+  // Build prisma object with $transaction that passes all models to tx
+  const prismaMock = {
+    sagaLog: mockSagaLog,
+    invoice: mockInvoice,
+    order: mockOrder,
+    orderItem: mockOrderItem,
+    product: mockProduct,
+    inventoryMovement: mockInventoryMovement,
+    account: mockAccount,
+    journalEntry: mockJournalEntry,
+    journalLine: mockJournalLine,
+    $transaction: vi
+      .fn()
+      .mockImplementation(
+        async (callback: (tx: any) => Promise<any>) => {
+          // Pass a tx that includes all model mocks plus $executeRawUnsafe
+          const mockTx = {
+            ...prismaMock,
+            $executeRawUnsafe: vi.fn().mockResolvedValue(1),
+          };
+          return callback(mockTx);
+        }
+      ),
+  };
+
   return {
     ...actual,
-    prisma: {
-      sagaLog: {
-        create: vi.fn(),
-        update: vi.fn(),
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-      },
-      invoice: {
-        findFirst: vi.fn(),
-        update: vi.fn(),
-      },
-      order: {
-        findFirst: vi.fn(),
-        update: vi.fn(),
-      },
-      orderItem: {
-        update: vi.fn(),
-      },
-      product: {
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-        update: vi.fn(),
-      },
-      inventoryMovement: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-      },
-      account: {
-        findFirst: vi.fn(),
-      },
-      journalEntry: {
-        create: vi.fn(),
-      },
-      journalLine: {
-        create: vi.fn(),
-      },
-    },
+    prisma: prismaMock,
   };
 });
 

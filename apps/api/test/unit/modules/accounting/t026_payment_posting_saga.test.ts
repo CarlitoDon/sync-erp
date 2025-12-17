@@ -11,31 +11,38 @@ import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-e
 // Mock all dependencies
 vi.mock('@sync-erp/database', async () => {
   const actual = await vi.importActual('@sync-erp/database');
-  return {
-    ...actual,
-    prisma: {
-      sagaLog: {
-        create: vi.fn(),
-        update: vi.fn(),
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-      },
-      invoice: {
-        findFirst: vi.fn(),
-        update: vi.fn(),
-      },
-      payment: {
-        create: vi.fn(),
-      },
-      account: {
-        findFirst: vi.fn(),
-      },
-      journalEntry: {
-        create: vi.fn(),
-        update: vi.fn(),
-      },
-    },
+
+  const mockSagaLog = {
+    create: vi.fn(),
+    update: vi.fn(),
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
   };
+  const mockInvoice = { findFirst: vi.fn(), update: vi.fn() };
+  const mockPayment = { create: vi.fn() };
+  const mockAccount = { findFirst: vi.fn() };
+  const mockJournalEntry = { create: vi.fn(), update: vi.fn() };
+
+  const prismaMock = {
+    sagaLog: mockSagaLog,
+    invoice: mockInvoice,
+    payment: mockPayment,
+    account: mockAccount,
+    journalEntry: mockJournalEntry,
+    $transaction: vi
+      .fn()
+      .mockImplementation(
+        async (callback: (tx: any) => Promise<any>) => {
+          const mockTx = {
+            ...prismaMock,
+            $executeRawUnsafe: vi.fn().mockResolvedValue(1),
+          };
+          return callback(mockTx);
+        }
+      ),
+  };
+
+  return { ...actual, prisma: prismaMock };
 });
 
 describe('T026: Payment Posting Saga', () => {

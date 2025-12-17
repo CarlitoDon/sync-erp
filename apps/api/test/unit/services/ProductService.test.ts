@@ -44,14 +44,17 @@ describe('ProductService', () => {
       });
 
       expect(result).toEqual(mockProduct);
-      expect(mockProductRepository.create).toHaveBeenCalledWith({
-        companyId,
-        sku: 'SKU001',
-        name: 'Test Product',
-        price: 100,
-        averageCost: 0,
-        stockQty: 0,
-      });
+      expect(mockProductRepository.create).toHaveBeenCalledWith(
+        {
+          companyId,
+          sku: 'SKU001',
+          name: 'Test Product',
+          price: 100,
+          averageCost: 0,
+          stockQty: 0,
+        },
+        undefined
+      );
     });
   });
 
@@ -65,7 +68,8 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProduct);
       expect(mockProductRepository.findById).toHaveBeenCalledWith(
         'prod-1',
-        companyId
+        companyId,
+        undefined
       );
     });
 
@@ -148,7 +152,8 @@ describe('ProductService', () => {
       await service.delete('prod-1', companyId);
 
       expect(mockProductRepository.delete).toHaveBeenCalledWith(
-        'prod-1'
+        'prod-1',
+        undefined
       );
     });
 
@@ -173,7 +178,7 @@ describe('ProductService', () => {
       expect(result.stockQty).toBe(15);
       expect(
         mockProductRepository.incrementStock
-      ).toHaveBeenCalledWith('prod-1', 5);
+      ).toHaveBeenCalledWith('prod-1', 5, undefined);
     });
 
     it('should decrement stock quantity with negative value', async () => {
@@ -215,7 +220,8 @@ describe('ProductService', () => {
         expect.objectContaining({
           averageCost: 125,
           stockQty: { increment: 10 },
-        })
+        }),
+        undefined
       );
     });
 
@@ -247,7 +253,8 @@ describe('ProductService', () => {
         'prod-1',
         expect.objectContaining({
           averageCost: 50,
-        })
+        }),
+        undefined
       );
     });
   });

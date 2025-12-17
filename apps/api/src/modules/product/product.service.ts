@@ -11,71 +11,88 @@ export class ProductService {
 
   async create(
     companyId: string,
-    data: CreateProductInput
+    data: CreateProductInput,
+    tx?: Prisma.TransactionClient
   ): Promise<Product> {
-    return this.repository.create({
-      companyId,
-      sku: data.sku,
-      name: data.name,
-      price: data.price,
-      averageCost: 0,
-      stockQty: 0,
-    });
+    return this.repository.create(
+      {
+        companyId,
+        sku: data.sku,
+        name: data.name,
+        price: data.price,
+        averageCost: 0,
+        stockQty: 0,
+      },
+      tx
+    );
   }
 
   async getById(
     id: string,
-    companyId: string
+    companyId: string,
+    tx?: Prisma.TransactionClient
   ): Promise<Product | null> {
-    return this.repository.findById(id, companyId);
+    return this.repository.findById(id, companyId, tx);
   }
 
   async getBySku(
     sku: string,
-    companyId: string
+    companyId: string,
+    tx?: Prisma.TransactionClient
   ): Promise<Product | null> {
-    return this.repository.findBySku(sku, companyId);
+    return this.repository.findBySku(sku, companyId, tx);
   }
 
-  async list(companyId: string): Promise<Product[]> {
-    return this.repository.findAll(companyId);
+  async list(
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<Product[]> {
+    return this.repository.findAll(companyId, tx);
   }
 
   async update(
     id: string,
     companyId: string,
-    data: UpdateProductInput
+    data: UpdateProductInput,
+    tx?: Prisma.TransactionClient
   ): Promise<Product> {
-    const existing = await this.getById(id, companyId);
+    const existing = await this.getById(id, companyId, tx);
     if (!existing) {
       throw new Error('Product not found');
     }
-    return this.repository.update(id, data);
+    return this.repository.update(id, data, tx);
   }
 
-  async delete(id: string, companyId: string): Promise<void> {
-    const existing = await this.getById(id, companyId);
+  async delete(
+    id: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<void> {
+    const existing = await this.getById(id, companyId, tx);
     if (!existing) {
       throw new Error('Product not found');
     }
-    await this.repository.delete(id);
+    await this.repository.delete(id, tx);
   }
 
   async updateStock(
     id: string,
-    quantityChange: number
+    quantityChange: number,
+    tx?: Prisma.TransactionClient
   ): Promise<Product> {
-    return this.repository.incrementStock(id, quantityChange);
+    return this.repository.incrementStock(id, quantityChange, tx);
   }
 
   async decreaseStock(
     id: string,
-    quantity: number
+    quantity: number,
+    tx?: Prisma.TransactionClient
   ): Promise<Product> {
     try {
       return await this.repository.decreaseStockWithGuard(
         id,
-        quantity
+        quantity,
+        tx
       );
     } catch (error) {
       if (
@@ -95,9 +112,10 @@ export class ProductService {
   async updateAverageCost(
     id: string,
     newQuantity: number,
-    newCostPerUnit: number
+    newCostPerUnit: number,
+    tx?: Prisma.TransactionClient
   ): Promise<Product> {
-    const product = await this.repository.findById(id);
+    const product = await this.repository.findById(id, undefined, tx);
     if (!product) {
       throw new Error('Product not found');
     }
@@ -110,17 +128,22 @@ export class ProductService {
       newCostPerUnit
     );
 
-    return this.repository.update(id, {
-      averageCost: newAvgCost,
-      stockQty: { increment: newQuantity },
-    });
+    return this.repository.update(
+      id,
+      {
+        averageCost: newAvgCost,
+        stockQty: { increment: newQuantity },
+      },
+      tx
+    );
   }
 
   async checkStock(
     id: string,
-    requiredQty: number
+    requiredQty: number,
+    tx?: Prisma.TransactionClient
   ): Promise<boolean> {
-    const product = await this.repository.findById(id);
+    const product = await this.repository.findById(id, undefined, tx);
     if (!product) {
       return false;
     }

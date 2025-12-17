@@ -180,7 +180,7 @@ describe('InventoryService', () => {
       expect(result).toEqual(mockMovement);
       expect(
         mockProductService.updateAverageCost
-      ).toHaveBeenCalledWith('prod-1', 10, 55);
+      ).toHaveBeenCalledWith('prod-1', 10, 55, undefined);
       expect(mockJournalService.postAdjustment).toHaveBeenCalled();
     });
 
@@ -207,13 +207,15 @@ describe('InventoryService', () => {
       expect(result).toEqual(mockMovement);
       expect(mockProductService.updateStock).toHaveBeenCalledWith(
         'prod-1',
-        -5
+        -5,
+        undefined
       );
       expect(mockJournalService.postAdjustment).toHaveBeenCalledWith(
         companyId,
         'ADJ-002',
         250, // 5 * 50 averageCost
-        true // isLoss
+        true, // isLoss
+        undefined
       );
     });
 
