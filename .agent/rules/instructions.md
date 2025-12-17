@@ -43,14 +43,14 @@ apps/api/src/modules/[domain]/
     └── *.ts                # Pure Business Logic: Stateless, unit testable. No I/O.
 ```
 
-| Layer      | Responsibility                                  | Can Import              |
-|:-----------|:------------------------------------------------|:------------------------|
-| Route      | URL → Controller mapping. No logic.             | Controller, Middleware  |
-| Controller | HTTP boundary, Zod validation, response format. | Service                 |
+| Layer      | Responsibility                                  | Can Import                |
+| :--------- | :---------------------------------------------- | :------------------------ |
+| Route      | URL → Controller mapping. No logic.             | Controller, Middleware    |
+| Controller | HTTP boundary, Zod validation, response format. | Service                   |
 | Service    | Orchestrator. Combines Rules + Policy + Repo.   | Policy, Rules, Repository |
-| Policy     | Shape constraints ("Can this shape do X?")      | Shared Constants        |
-| Rules      | Pure business logic. Stateless. Unit testable.  | None (Pure)             |
-| Repository | Data access. Query, Transaction.                | `packages/database`     |
+| Policy     | Shape constraints ("Can this shape do X?")      | Shared Constants          |
+| Rules      | Pure business logic. Stateless. Unit testable.  | None (Pure)               |
+| Repository | Data access. Query, Transaction.                | `packages/database`       |
 
 ### Controller Pattern
 
@@ -148,7 +148,9 @@ export type CreatePartnerInput = z.infer<typeof CreatePartnerSchema>;
 ```typescript
 // Use function() pattern for vi.mock() factories - Vitest 4.x strict hoisting
 vi.mock('../services/InvoicePostingSaga', () => ({
-  InvoicePostingSaga: function() { return mockSagaInstance; }
+  InvoicePostingSaga: function () {
+    return mockSagaInstance;
+  },
 }));
 ```
 
@@ -162,7 +164,7 @@ vi.mock('../services/InvoicePostingSaga', () => ({
 ## Essential Commands
 
 | Action         | Command                          |
-|:---------------|:---------------------------------|
+| :------------- | :------------------------------- |
 | **Start Dev**  | `npm run dev` (starts both apps) |
 | **Type Check** | `npx tsc --noEmit` (Crucial!)    |
 | **Run Tests**  | `npm run test` (Vitest)          |
@@ -185,7 +187,7 @@ vi.mock('../services/InvoicePostingSaga', () => ({
 ## Key Files Reference
 
 | Purpose               | File                                      |
-|:----------------------|:------------------------------------------|
+| :-------------------- | :---------------------------------------- |
 | **Constitution**      | `.agent/rules/constitution.md`            |
 | **API Entry**         | `apps/api/src/index.ts`                   |
 | **Shared Validators** | `packages/shared/src/validators/index.ts` |

@@ -58,7 +58,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* PENDING Shape Banner - shows when setup incomplete */}
-      <PendingShapeBanner businessShape={currentCompany?.businessShape} />
+      <PendingShapeBanner
+        businessShape={currentCompany?.businessShape}
+      />
 
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl">

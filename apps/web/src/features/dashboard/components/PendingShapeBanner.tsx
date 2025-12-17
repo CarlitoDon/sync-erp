@@ -24,9 +24,10 @@ export default function PendingShapeBanner({
             Complete Your Company Setup
           </h2>
           <p className="text-amber-100 mb-4">
-            Your company profile is incomplete. Please select a business type to
-            unlock all features. Until then, you can only view data but cannot
-            create new orders, invoices, or products.
+            Your company profile is incomplete. Please select a
+            business type to unlock all features. Until then, you can
+            only view data but cannot create new orders, invoices, or
+            products.
           </p>
           <Link
             to="/settings/company"

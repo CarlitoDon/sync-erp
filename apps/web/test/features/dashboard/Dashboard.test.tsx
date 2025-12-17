@@ -18,21 +18,40 @@ vi.mock('../../../src/hooks/useCompanyData', () => ({
   useCompanyData: vi.fn(),
 }));
 
-vi.mock('../../../src/features/dashboard/hooks/useOnboardingProgress', () => ({
-  useOnboardingProgress: vi.fn(() => ({
-    loading: false,
-    steps: [
-      { id: '1', title: 'Create your first company', isCompleted: false },
-      { id: '2', title: 'Add products and services', isCompleted: false },
-      { id: '3', title: 'Set up customers and suppliers', isCompleted: false },
-      { id: '4', title: 'Create your first order', isCompleted: false },
-    ],
-    completedCount: 0,
-    totalCount: 4,
-    isAllComplete: false,
-    percentComplete: 0,
-  })),
-}));
+vi.mock(
+  '../../../src/features/dashboard/hooks/useOnboardingProgress',
+  () => ({
+    useOnboardingProgress: vi.fn(() => ({
+      loading: false,
+      steps: [
+        {
+          id: '1',
+          title: 'Create your first company',
+          isCompleted: false,
+        },
+        {
+          id: '2',
+          title: 'Add products and services',
+          isCompleted: false,
+        },
+        {
+          id: '3',
+          title: 'Set up customers and suppliers',
+          isCompleted: false,
+        },
+        {
+          id: '4',
+          title: 'Create your first order',
+          isCompleted: false,
+        },
+      ],
+      completedCount: 0,
+      totalCount: 4,
+      isAllComplete: false,
+      percentComplete: 0,
+    })),
+  })
+);
 
 describe('Dashboard', () => {
   beforeEach(() => {
@@ -117,14 +136,18 @@ describe('Dashboard', () => {
       setupMock(null);
       renderComponent();
 
-      expect(screen.getByText('Accounts Receivable')).toBeInTheDocument();
+      expect(
+        screen.getByText('Accounts Receivable')
+      ).toBeInTheDocument();
     });
 
     it('renders Accounts Payable card', () => {
       setupMock(null);
       renderComponent();
 
-      expect(screen.getByText('Accounts Payable')).toBeInTheDocument();
+      expect(
+        screen.getByText('Accounts Payable')
+      ).toBeInTheDocument();
     });
 
     it('renders Unpaid Invoices card', () => {
