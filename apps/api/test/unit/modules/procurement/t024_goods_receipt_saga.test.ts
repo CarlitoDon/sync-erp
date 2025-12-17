@@ -182,6 +182,34 @@ describe('T024: Goods Receipt Saga', () => {
         )
       ).rejects.toThrow(SagaCompensatedError);
     });
+
+    it('should fail on partial receipt (Phase 1 Restriction)', async () => {
+      vi.mocked(prisma.order.findFirst).mockResolvedValue(
+        mockPO as any
+      );
+      // Mock order items - PO has 10 items
+      vi.mocked(prisma.orderItem.findMany).mockResolvedValue([
+        {
+          id: 'item-1',
+          productId: 'prod-1',
+          quantity: 10,
+          price: 50,
+        },
+      ] as any);
+
+      // Attempt to receive only 5
+      await expect(
+        saga.execute(
+          {
+            orderId: 'po-1',
+            companyId: 'co-1',
+            items: [{ id: 'item-1', quantity: 5 }],
+          },
+          'po-1',
+          'co-1'
+        )
+      ).rejects.toThrow(/Partial receipt is disabled in Phase 1/);
+    });
   });
 
   describe('Compensation', () => {

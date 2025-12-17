@@ -66,4 +66,34 @@ export class ProcurementPolicy {
       );
     }
   }
+  /**
+   * Validate update rules
+   * - State Guard: Must be DRAFT
+   * - Immutable: orderNumber
+   */
+  static validateUpdate(
+    existingStatus: string,
+    data: { orderNumber?: string },
+    existingOrderNumber: string | null
+  ): void {
+    if (existingStatus !== 'DRAFT') {
+      throw new DomainError(
+        'Order is not in the correct state for this action',
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    if (
+      data.orderNumber &&
+      existingOrderNumber &&
+      data.orderNumber !== existingOrderNumber
+    ) {
+      throw new DomainError(
+        'Order number cannot be changed',
+        400,
+        DomainErrorCodes.MUTATION_BLOCKED
+      );
+    }
+  }
 }

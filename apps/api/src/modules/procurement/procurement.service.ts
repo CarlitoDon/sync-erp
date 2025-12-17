@@ -158,10 +158,11 @@ export class ProcurementService {
     orderId: string,
     companyId: string,
     reference?: string,
-    shape?: BusinessShape
+    shape?: BusinessShape,
+    items?: { id: string; quantity: number }[]
   ) {
     const result = await this.goodsReceiptSaga.execute(
-      { orderId, companyId, reference, shape },
+      { orderId, companyId, reference, shape, items },
       orderId,
       companyId
     );

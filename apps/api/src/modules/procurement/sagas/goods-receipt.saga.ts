@@ -11,12 +11,14 @@ import {
 } from '../../common/saga/index.js';
 import { ProcurementRepository } from '../procurement.repository.js';
 import { InventoryService } from '../../inventory/inventory.service.js';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export interface GoodsReceiptSagaInput {
   orderId: string;
   companyId: string;
   reference?: string;
   shape?: BusinessShape;
+  items?: { id: string; quantity: number }[];
 }
 
 export interface GoodsReceiptResult {
@@ -75,6 +77,43 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
 
     if (order.status === OrderStatus.CANCELLED) {
       throw new Error('Cannot receive goods for a cancelled order');
+    }
+
+    // Phase 1 Guard: Reject Partial Receipt
+    // If items are provided, they must match the PO exactly.
+    if (input.items && input.items.length > 0) {
+      // Fetch PO items to compare
+      const poItems = await this.procurementRepository.findItems(
+        order.id
+      );
+
+      // 1. Check item count
+      if (input.items.length !== poItems.length) {
+        throw new DomainError(
+          'Partial receipt is disabled in Phase 1 (Item count mismatch)',
+          400,
+          DomainErrorCodes.FEATURE_DISABLED_PHASE_1
+        );
+      }
+
+      // 2. Check quantities
+      for (const inputItem of input.items) {
+        const poItem = poItems.find((i) => i.id === inputItem.id);
+        if (!poItem) {
+          throw new DomainError(
+            `Item ${inputItem.id} not found in PO`,
+            400,
+            DomainErrorCodes.FEATURE_DISABLED_PHASE_1
+          );
+        }
+        if (inputItem.quantity !== poItem.quantity) {
+          throw new DomainError(
+            `Partial receipt is disabled in Phase 1 (Quantity mismatch for ${poItem.productId})`,
+            400,
+            DomainErrorCodes.FEATURE_DISABLED_PHASE_1
+          );
+        }
+      }
     }
 
     // 2. Process goods receipt (stock IN + accrual journal)

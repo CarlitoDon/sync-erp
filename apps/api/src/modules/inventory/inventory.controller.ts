@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { InventoryService } from './inventory.service';
+import { ProcurementService } from '../procurement/procurement.service';
 import {
   GoodsReceiptSchema,
   StockAdjustmentSchema,
@@ -73,11 +74,21 @@ export class InventoryController {
       const company = req.company!; // Company context with businessShape
       const validated = GoodsReceiptSchema.parse(req.body);
 
-      const movements = await this.service.processGoodsReceipt(
+      // Critical: Validated items must be passed to Saga for "Partial Receipt" check
+      // We delegate to ProcurementService.receive which runs the GoodsReceiptSaga
+
+      // We need to instantiate ProcurementService (or inject it)
+      // Since this is a simple controller, new instance is fine (stateless)
+      const procurementService = new ProcurementService();
+
+      const movements = await procurementService.receive(
+        validated.orderId,
         companyId,
-        validated,
-        company.businessShape
+        validated.reference,
+        company.businessShape,
+        validated.items
       );
+
       res.status(201).json({ success: true, data: movements });
     } catch (error) {
       if (error instanceof DomainError) {

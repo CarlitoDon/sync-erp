@@ -50,8 +50,18 @@ describe('T001: Verify Stock Movements', () => {
       reference: 'GR-001',
       date: new Date(),
       items: [
-        { productId: 'prod-A', quantity: 10, cost: 1000 },
-        { productId: 'prod-B', quantity: 5, cost: 2000 },
+        {
+          id: 'item-A',
+          productId: 'prod-A',
+          quantity: 10,
+          cost: 1000,
+        },
+        {
+          id: 'item-B',
+          productId: 'prod-B',
+          quantity: 5,
+          cost: 2000,
+        },
       ],
     };
 

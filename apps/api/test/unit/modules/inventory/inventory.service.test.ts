@@ -24,7 +24,7 @@ describe('InventoryService', () => {
   describe('processGoodsReceipt with Policy check', () => {
     const mockData = {
       orderId: 'order-123',
-      items: [{ productId: 'prod-1', quantity: 10 }],
+      items: [{ id: 'item-1', productId: 'prod-1', quantity: 10 }],
     };
 
     it('throws DomainError for SERVICE company shape', async () => {
