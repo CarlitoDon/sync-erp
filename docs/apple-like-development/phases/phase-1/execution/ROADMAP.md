@@ -33,14 +33,14 @@ Tujuan: **membekukan "cara kerja" domain sebelum UI masuk**
 
 ### 1.1 Finalize Domain States (No UI Yet)
 
-- [ ] Invoice states final:
+- [x] Invoice states final:
   - DRAFT → POSTED → PAID → VOID
-- [ ] Bill states final:
+- [x] Bill states final:
   - DRAFT → POSTED → PAID → VOID
-- [ ] Sales Order states:
-  - DRAFT → CONFIRMED → FULFILLED → CLOSED
-- [ ] Purchase Order states:
-  - DRAFT → CONFIRMED → RECEIVED → CLOSED
+- [x] Sales Order states:
+  - DRAFT → CONFIRMED → COMPLETED → CANCELLED
+- [x] Purchase Order states:
+  - DRAFT → CONFIRMED → COMPLETED → CANCELLED
 
 > ❗ Tidak boleh ada "status tambahan dadakan" di Phase 1.
 
@@ -50,9 +50,9 @@ Tujuan: **membekukan "cara kerja" domain sebelum UI masuk**
 
 Untuk **setiap entity**, checklist ini harus ada:
 
-- [ ] WRITE allowed only in specific states
-- [ ] Mutations after POSTED explicitly blocked
-- [ ] Error codes konsisten (ERROR_CATALOG)
+- [x] WRITE allowed only in specific states
+- [x] Mutations after POSTED explicitly blocked
+- [x] Error codes konsisten (ERROR_CATALOG)
 
 Contoh:
 
@@ -66,16 +66,16 @@ Contoh:
 
 ### 1.3 Policy Layer Coverage Check
 
-- [ ] InventoryPolicy covers all shapes (Retail, Manufacturing, Service)
-- [ ] ProcurementPolicy covers P2P
-- [ ] SalesPolicy covers O2C
-- [ ] AccountingPolicy prevents invalid posting
+- [x] InventoryPolicy covers all shapes (Retail, Manufacturing, Service)
+- [x] ProcurementPolicy covers P2P
+- [x] SalesPolicy covers O2C
+- [x] AccountingPolicy prevents invalid posting
 
 Checklist per policy:
 
-- [ ] Shape aware
-- [ ] Config driven
-- [ ] No DB access inside policy
+- [x] Shape aware
+- [x] Config driven
+- [x] No DB access inside policy
 
 ---
 
@@ -88,26 +88,26 @@ Tujuan: **end-to-end flow works perfectly**, edge cases later.
 Untuk setiap flow ini, buat **FLOW.md + tests**:
 
 - [x] Post Sales Invoice (DONE, baseline)
-- [ ] Receive Goods (GRN)
-- [ ] Post Vendor Bill
-- [ ] Create Payment
-- [ ] Create Credit Note
+- [x] Receive Goods (GRN)
+- [x] Post Vendor Bill
+- [x] Create Payment
+- [x] Create Credit Note
 
 Checklist per flow:
 
-- [ ] Preconditions explicit
-- [ ] Saga steps enumerated
-- [ ] Compensation matrix complete
-- [ ] Idempotency scope defined
-- [ ] Tests: success + 1 failure
+- [x] Preconditions explicit
+- [x] Saga steps enumerated
+- [x] Compensation matrix complete
+- [x] Idempotency scope defined
+- [x] Tests: success + 1 failure
 
 ---
 
 ### 2.2 Disable Non-Golden Paths
 
-- [ ] Disable partial shipment (if not ready)
-- [ ] Disable multi-currency (if not ready)
-- [ ] Disable backdated posting (if not ready)
+- [x] Disable partial shipment (if not ready)
+- [x] Disable multi-currency (if not ready)
+- [x] Disable backdated posting (if not ready)
 
 Apple rule:
 
