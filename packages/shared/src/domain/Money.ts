@@ -1,4 +1,8 @@
 import { Decimal } from 'decimal.js';
+import {
+  DomainError,
+  DomainErrorCodes,
+} from '../errors/domain-error';
 
 export class Money {
   private readonly _amount: Decimal;
@@ -118,6 +122,16 @@ export class Money {
     if (this._currency !== other._currency) {
       throw new Error(
         `Currency mismatch: cannot operate ${this._currency} with ${other._currency}`
+      );
+    }
+  }
+
+  ensureBase(baseCurrency = 'IDR'): void {
+    if (this._currency !== baseCurrency) {
+      throw new DomainError(
+        `Multi-currency (${this._currency}) is disabled in Phase 1`,
+        400,
+        DomainErrorCodes.FEATURE_DISABLED_PHASE_1
       );
     }
   }

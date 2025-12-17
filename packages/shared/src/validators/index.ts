@@ -130,6 +130,14 @@ export const InventoryResponseSchema = z.object({
 export const GoodsReceiptSchema = z.object({
   orderId: z.string().uuid(),
   reference: z.string().optional(),
+  items: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        quantity: z.number().int().positive(),
+      })
+    )
+    .optional(),
 });
 
 export const StockAdjustmentSchema = z.object({

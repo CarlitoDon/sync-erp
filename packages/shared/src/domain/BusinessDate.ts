@@ -1,3 +1,8 @@
+import {
+  DomainError,
+  DomainErrorCodes,
+} from '../errors/domain-error';
+
 export class BusinessDate {
   private readonly _date: Date;
   // Standard timezone? For now assuming UTC or Server Local as per legacy.
@@ -36,6 +41,18 @@ export class BusinessDate {
   ensureValid(): void {
     if (this.isFuture()) {
       throw new Error('Business date cannot be in the future');
+    }
+  }
+
+  ensureNotBackdated(): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (this._date < today) {
+      throw new DomainError(
+        'Backdated transactions are disabled in Phase 1',
+        400,
+        DomainErrorCodes.FEATURE_DISABLED_PHASE_1
+      );
     }
   }
 
