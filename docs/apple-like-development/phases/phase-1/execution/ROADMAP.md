@@ -16,14 +16,14 @@ Target akhir Phase 1:
 
 Checklist ini **HARUS 100% dicentang sebelum Phase 1 work dimulai**.
 
-- [ ] Phase 0 audit CLOSED
-- [ ] Saga lock per entity
-- [ ] Idempotency entity-scoped
-- [ ] Journal unique constraint (sourceType + sourceId)
-- [ ] PENDING shape guard middleware
-- [ ] No known silent data corruption paths
+- [x] Phase 0 audit CLOSED _(Verified: 2025-12-16)_
+- [x] Saga lock per entity _(SagaOrchestrator.getLockTable())_
+- [x] Idempotency entity-scoped _(@@unique([companyId, scope, entityId]))_
+- [x] Journal unique constraint (sourceType + sourceId) _(@@unique in schema)_
+- [x] PENDING shape guard middleware _(shapeGuard.ts on 8 routes)_
+- [x] No known silent data corruption paths _(Per Phase 0 review)_
 
-Jika satu ❌ → **stop Phase 1**
+✅ **GATE PASSED — 2025-12-17**
 
 ---
 

@@ -6,6 +6,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 - TypeScript 5.9, Node.js 20+ + Express, Prisma, Vitest (023-fix-idempotency-scope)
 - TypeScript 5.x (Node.js) + Prisma ORM, Postgres (026-parallel-saga-safety)
 - TypeScript 5.x (Node.js backend) + Express.js, Prisma (027-pending-shape-guard)
+- TypeScript 5.x + Express, Zod, Prisma (028-domain-contract-stabilization)
 
 - TypeScript 5.x, React 18, Node.js 20 + `react-router-dom`, `@sync-erp/shared`, `axios` (019-optimize-details)
 - Postgres (Prisma ORM) (019-optimize-details)
@@ -50,9 +51,9 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 028-domain-contract-stabilization: Added TypeScript 5.x + Express, Zod, Prisma
 - 027-pending-shape-guard: Added TypeScript 5.x (Node.js backend) + Express.js, Prisma
 - 026-parallel-saga-safety: Added TypeScript 5.x (Node.js) + Prisma ORM, Postgres
-- 024-fix-journal-double-post: Added TypeScript 5.9, Node.js 20+ + Express, Prisma, Vitest
 
 
 
