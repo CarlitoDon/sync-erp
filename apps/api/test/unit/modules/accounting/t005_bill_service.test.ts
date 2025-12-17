@@ -32,7 +32,6 @@ describe('T005: Implement/Verify Bill Service (FR-011)', () => {
   let service: BillService;
   let mockRepo: any;
   let mockDocService: any;
-  let mockJournalService: any; // Restore this
 
   const companyId = 'co-1';
   const orderId = 'po-1';
@@ -42,7 +41,7 @@ describe('T005: Implement/Verify Bill Service (FR-011)', () => {
     mockBillPostingSaga.execute.mockClear();
     service = new BillService();
     mockRepo = (service as any).repository;
-    mockJournalService = (service as any).journalService;
+
     mockDocService = (service as any).documentNumberService;
   });
 
@@ -102,6 +101,15 @@ describe('T005: Implement/Verify Bill Service (FR-011)', () => {
         invoiceNumber: 'BILL-001',
         amount: 110,
       };
+
+      // Mock findById for State Guard
+      mockRepo.findById.mockResolvedValue({
+        id: billId,
+        status: InvoiceStatus.DRAFT,
+        invoiceNumber: 'BILL-001',
+        amount: 110,
+        companyId,
+      });
 
       // Saga success
       mockBillPostingSaga.execute.mockResolvedValue({

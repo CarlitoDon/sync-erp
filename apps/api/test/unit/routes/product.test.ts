@@ -97,10 +97,10 @@ describe('Product Routes', () => {
   describe('GET /api/products', () => {
     it('should list all products', async () => {
       (mockAuthMiddleware as any).mockImplementation(
-        (req: any, res: any, next: any) => next()
+        (_req: any, _res: any, next: any) => next()
       );
       (mockRbacMiddleware as any).mockImplementation(
-        (req: any, res: any, next: any) => next()
+        (_req: any, _res: any, next: any) => next()
       );
       mockProductService.list.mockResolvedValue([
         {

@@ -24,13 +24,12 @@ vi.mock('@sync-erp/database', async () => {
 describe('T002: Enforce Rules & Policies (FR-005)', () => {
   let service: InventoryService;
   let mockProductService: any;
-  let mockRepo: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
     service = new InventoryService();
     mockProductService = (service as any).productService;
-    mockRepo = (service as any).repository;
+
     // Ensure decreaseStock is a mock
     mockProductService.decreaseStock = vi.fn();
     mockProductService.getById = vi.fn();

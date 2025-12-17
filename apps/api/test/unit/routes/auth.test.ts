@@ -30,7 +30,7 @@ vi.mock('../../../src/middlewares/auth', () => ({
   },
   optionalAuthMiddleware: (
     req: any,
-    res: Response,
+    _res: Response,
     next: NextFunction
   ) => {
     req.context = {};

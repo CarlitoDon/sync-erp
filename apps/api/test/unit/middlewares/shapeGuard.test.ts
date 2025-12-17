@@ -14,7 +14,7 @@ describe('shapeGuard middleware', () => {
     jsonSpy = vi.fn();
     statusSpy = vi.fn().mockReturnValue({ json: jsonSpy });
     mockRes = {
-      status: statusSpy,
+      status: statusSpy as unknown as Response['status'],
     };
     mockNext = vi.fn();
   });

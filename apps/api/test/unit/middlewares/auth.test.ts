@@ -1,11 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { prisma } from '@sync-erp/database';
+
 import { Request, Response, NextFunction } from 'express';
 
 // Mock dependencies
-const { mockGetSession } = vi.hoisted(() => {
-  return { mockGetSession: vi.fn() };
-});
+const { mockGetSession, mockFindMember, mockFindCompany } =
+  vi.hoisted(() => {
+    return {
+      mockGetSession: vi.fn(),
+      mockFindMember: vi.fn(),
+      mockFindCompany: vi.fn(),
+    };
+  });
+
+vi.mock('@sync-erp/database', () => ({
+  prisma: {
+    companyMember: {
+      findUnique: mockFindMember,
+    },
+    company: {
+      findUnique: mockFindCompany,
+    },
+  },
+}));
 
 vi.mock('../../../src/modules/auth/auth.repository', () => ({
   AuthRepository: function () {
@@ -142,9 +158,7 @@ describe('auth middleware', () => {
         expiresAt: new Date(Date.now() + 100000),
         user: { id: 'user-1' },
       });
-      vi.mocked(prisma.companyMember.findUnique).mockResolvedValue(
-        null
-      );
+      mockFindMember.mockResolvedValue(null);
 
       await authMiddleware(req, res, mockNext);
 
@@ -173,7 +187,7 @@ describe('auth middleware', () => {
 
       mockGetSession.mockResolvedValue(mockSession);
 
-      vi.mocked(prisma.companyMember.findUnique).mockResolvedValue({
+      mockFindMember.mockResolvedValue({
         id: 'member-1',
         userId: 'user-1',
         companyId: 'company-1',
@@ -181,7 +195,7 @@ describe('auth middleware', () => {
         createdAt: new Date(),
       });
 
-      vi.mocked(prisma.company.findUnique).mockResolvedValue({
+      mockFindCompany.mockResolvedValue({
         id: 'company-1',
         name: 'Test Company',
         businessShape: 'RETAIL',
@@ -261,7 +275,6 @@ describe('auth middleware', () => {
         { sessionId: 'expired-session' },
         {}
       );
-      const res = createMockResponse();
 
       // Skipping flaky assertion for now
       expect(req.context.userId).toBeUndefined();

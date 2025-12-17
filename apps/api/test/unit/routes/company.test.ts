@@ -1,11 +1,4 @@
-import {
-  vi,
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-} from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
@@ -19,15 +12,18 @@ const mockCompanyService = vi.hoisted(() => ({
   join: vi.fn(),
 }));
 
-// Mock AuthMiddleware
-const mockAuthMiddleware = vi.fn();
-// Mock RBAC Middleware
-const mockRbacMiddleware = vi.fn();
-
 vi.mock('../../../src/modules/company/company.service', () => ({
   CompanyService: function () {
     return mockCompanyService;
   },
+}));
+
+vi.mock('../../../src/middlewares/auth', () => ({
+  authMiddleware: vi.fn((_req, _res, next) => next()),
+}));
+
+vi.mock('../../../src/middlewares/rbac', () => ({
+  checkPermissions: () => vi.fn((_req, _res, next) => next()),
 }));
 
 // Import after mocking

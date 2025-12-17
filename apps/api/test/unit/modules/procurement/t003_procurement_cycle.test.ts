@@ -4,9 +4,7 @@ import {
   BusinessShape,
   OrderStatus,
   OrderType,
-  prisma,
 } from '@sync-erp/database';
-import { DomainError } from '@sync-erp/shared';
 
 // Automock
 vi.mock('../../../../src/modules/procurement/procurement.repository');

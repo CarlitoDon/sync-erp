@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InvoiceService } from '../../../../src/modules/accounting/services/invoice.service';
-import {
-  InvoiceType,
-  InvoiceStatus,
-  BusinessShape,
-} from '@sync-erp/database';
+import { InvoiceStatus, BusinessShape } from '@sync-erp/database';
 
 // Automock deps
 vi.mock(
@@ -45,6 +41,13 @@ describe('T007: Implement Invoice-Stock Link (FR-008)', () => {
 
   describe('post', () => {
     it('should trigger Saga for stock/journal processing', async () => {
+      // Mock findById for State Guard
+      mockRepo.findById.mockResolvedValue({
+        id: invoiceId,
+        status: InvoiceStatus.DRAFT,
+        companyId,
+      });
+
       mockSaga.execute.mockResolvedValue({
         success: true,
         data: { status: InvoiceStatus.POSTED },
@@ -64,6 +67,13 @@ describe('T007: Implement Invoice-Stock Link (FR-008)', () => {
     });
 
     it('should propagate Saga error (e.g. Insufficient Stock)', async () => {
+      // Mock findById for State Guard
+      mockRepo.findById.mockResolvedValue({
+        id: invoiceId,
+        status: InvoiceStatus.DRAFT,
+        companyId,
+      });
+
       mockSaga.execute.mockResolvedValue({
         success: false,
         error: new Error('Insufficient Stock'),

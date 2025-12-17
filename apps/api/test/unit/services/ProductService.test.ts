@@ -204,7 +204,7 @@ describe('ProductService', () => {
       mockProductRepository.findById.mockResolvedValue(
         existingProduct
       );
-      mockProductRepository.update.mockImplementation((id, data) =>
+      mockProductRepository.update.mockImplementation((_id, data) =>
         Promise.resolve({
           id: 'prod-1',
           ...data,

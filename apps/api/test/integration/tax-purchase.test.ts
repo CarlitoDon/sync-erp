@@ -1,11 +1,12 @@
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
-import { BillService } from '../../src/services/BillService';
-import { JournalService } from '../../src/services/JournalService';
-import { PurchaseOrderService } from '../../src/services/PurchaseOrderService';
+import { BillService } from '@modules/accounting/services/bill.service';
+import { JournalService } from '@modules/accounting/services/journal.service';
+import { ProcurementService } from '@modules/procurement/procurement.service';
 
 const billService = new BillService();
 const journalService = new JournalService();
-const purchaseOrderService = new PurchaseOrderService();
+const purchaseOrderService = new ProcurementService();
 
 const COMPANY_ID = 'test-tax-purchase-001';
 
@@ -103,15 +104,11 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     // 1. Create Purchase Order with 11% Tax
     // Amount: 100,000 * 2 = 200,000.
     // Tax: 11%.
-    const order = await purchaseOrderService.create(
-      COMPANY_ID,
-      'user-1',
-      {
-        partnerId,
-        items: [{ productId, quantity: 2, price: 100000 }],
-        taxRate: 11,
-      }
-    );
+    const order = await purchaseOrderService.create(COMPANY_ID, {
+      partnerId,
+      items: [{ productId, quantity: 2, price: 100000 }],
+      taxRate: 11,
+    });
 
     const confirmedOrder = await purchaseOrderService.confirm(
       order.id,
@@ -121,7 +118,6 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     // 2. Create Bill
     const bill = await billService.createFromPurchaseOrder(
       COMPANY_ID,
-      'user-1',
       {
         orderId: confirmedOrder.id,
         invoiceNumber: `BILL-${Date.now()}`,
@@ -163,15 +159,11 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
 
   it('should NOT record VAT Receivable if Tax Rate is 0', async () => {
     // 1. Create Purchase Order with 0% Tax
-    const order = await purchaseOrderService.create(
-      COMPANY_ID,
-      'user-1',
-      {
-        partnerId,
-        items: [{ productId, quantity: 1, price: 100000 }],
-        taxRate: 0,
-      }
-    );
+    const order = await purchaseOrderService.create(COMPANY_ID, {
+      partnerId,
+      items: [{ productId, quantity: 1, price: 100000 }],
+      taxRate: 0,
+    });
     const confirmedOrder = await purchaseOrderService.confirm(
       order.id,
       COMPANY_ID
@@ -180,7 +172,6 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     // 2. Create Bill
     const bill = await billService.createFromPurchaseOrder(
       COMPANY_ID,
-      'user-1',
       {
         orderId: confirmedOrder.id,
       }
@@ -201,7 +192,7 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     expect(billJournal.lines).toHaveLength(2); // GRNI + AP only (no VAT)
 
     const vatLine = billJournal!.lines.find(
-      (l) => l.account.code === '1500'
+      (l: any) => l.account.code === '1500'
     );
     expect(vatLine).toBeUndefined();
   });

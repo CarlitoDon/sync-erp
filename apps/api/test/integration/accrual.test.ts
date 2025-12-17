@@ -1,8 +1,9 @@
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
-import { BillService } from '../../src/modules/accounting/services/bill.service';
-import { JournalService } from '../../src/modules/accounting/services/journal.service';
-import { ProcurementService } from '../../src/modules/procurement/procurement.service';
-import { InventoryService } from '../../src/modules/inventory/inventory.service';
+import { BillService } from '@modules/accounting/services/bill.service';
+import { JournalService } from '@modules/accounting/services/journal.service';
+import { ProcurementService } from '@modules/procurement/procurement.service';
+import { InventoryService } from '@modules/inventory/inventory.service';
 
 const billService = new BillService();
 const journalService = new JournalService();

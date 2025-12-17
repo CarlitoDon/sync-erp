@@ -158,17 +158,20 @@ describe('InvoiceService', () => {
       const mockInvoice = {
         id: 'invoice-1',
         companyId,
-        status: 'POSTED',
+        status: 'DRAFT', // Must be draft for guard
       };
+
+      // Mock findById for state guard
+      mockInvoiceRepository.findById.mockResolvedValue(mockInvoice);
 
       mockInvoicePostingSaga.execute.mockResolvedValue({
         success: true,
-        data: mockInvoice,
+        data: { ...mockInvoice, status: 'POSTED' },
       });
 
       const result = await service.post('invoice-1', companyId);
 
-      expect(result).toEqual(mockInvoice);
+      expect(result).toEqual({ ...mockInvoice, status: 'POSTED' });
       expect(mockInvoicePostingSaga.execute).toHaveBeenCalledWith(
         expect.objectContaining({
           invoiceId: 'invoice-1',
@@ -180,6 +183,13 @@ describe('InvoiceService', () => {
     });
 
     it('should throw error if saga fails', async () => {
+      // Mock findById for state guard
+      mockInvoiceRepository.findById.mockResolvedValue({
+        id: 'invoice-1',
+        companyId,
+        status: 'DRAFT',
+      });
+
       mockInvoicePostingSaga.execute.mockResolvedValue({
         success: false,
         error: new Error('Saga failed'),

@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PaymentService } from '../../../../src/modules/accounting/services/payment.service';
-import {
-  InvoiceStatus,
-  InvoiceType,
-  IdempotencyScope,
-} from '@sync-erp/database';
+import { IdempotencyScope } from '@sync-erp/database';
 
 // Mock dependencies
 vi.mock('@sync-erp/database', async () => {

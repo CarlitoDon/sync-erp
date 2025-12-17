@@ -53,6 +53,13 @@ describe('T014: Invoice Idempotency (FR-Safety)', () => {
     service = new InvoiceService();
     // Access privates via any
     mockIdempotency = (service as any).idempotencyService;
+    // Mock Repository Access
+    const mockRepo = (service as any).repository;
+    mockRepo.findById = vi.fn().mockResolvedValue({
+      id: invoiceId,
+      status: InvoiceStatus.DRAFT,
+      companyId,
+    });
   });
 
   const companyId = 'co-1';

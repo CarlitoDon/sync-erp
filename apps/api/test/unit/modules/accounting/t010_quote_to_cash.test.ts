@@ -85,7 +85,7 @@ vi.mock(
 import { SalesRepository } from '../../../../src/modules/sales/sales.repository';
 import { InvoiceRepository } from '../../../../src/modules/accounting/repositories/invoice.repository';
 import { PaymentRepository } from '../../../../src/modules/accounting/repositories/payment.repository';
-import { JournalRepository } from '../../../../src/modules/accounting/repositories/journal.repository';
+
 import { InventoryRepository } from '../../../../src/modules/inventory/inventory.repository';
 import { ProductRepository } from '../../../../src/modules/product/product.repository';
 import { DocumentNumberService } from '../../../../src/modules/common/services/document-number.service';

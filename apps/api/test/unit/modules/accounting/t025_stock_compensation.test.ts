@@ -3,8 +3,7 @@ import { InvoicePostingSaga } from '../../../../src/modules/accounting/sagas/inv
 import { InvoiceRepository } from '../../../../src/modules/accounting/repositories/invoice.repository';
 import { InventoryService } from '../../../../src/modules/inventory/inventory.service';
 import { JournalService } from '../../../../src/modules/accounting/services/journal.service';
-import { InvoiceStatus, SagaType } from '@sync-erp/database';
-import { PostingContext } from '../../../../src/modules/common/saga';
+import { InvoiceStatus } from '@sync-erp/database';
 
 // Mocks
 vi.mock(
@@ -22,7 +21,7 @@ vi.mock('../../../../src/modules/common/saga', () => {
     ...actual,
     SagaOrchestrator: class MockOrchestrator {
       sagaType = 'INVOICE_POST';
-      async execute(input: any, entityId: any, companyId: any) {
+      async execute(_input: any, _entityId: any, _companyId: any) {
         // We'll reimplement basic flow or just test compensate directly
         // But since we want to test the REAL saga logic, we shouldn't mock the orchestrator base class
         // unless we want to bypass DB calls.

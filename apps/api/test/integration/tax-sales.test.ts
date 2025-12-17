@@ -1,6 +1,7 @@
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
-import { InvoiceService } from '../../src/services/InvoiceService';
-import { JournalService } from '../../src/services/JournalService';
+import { InvoiceService } from '@modules/accounting/services/invoice.service';
+import { JournalService } from '@modules/accounting/services/journal.service';
 
 const invoiceService = new InvoiceService();
 const journalService = new JournalService();
@@ -82,6 +83,9 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
     await prisma.order.deleteMany({
       where: { companyId: COMPANY_ID },
     });
+    await prisma.inventoryMovement.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     await prisma.product.deleteMany({
       where: { companyId: COMPANY_ID },
     });
@@ -116,7 +120,6 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
     // 2. Create Invoice
     const invoice = await invoiceService.createFromSalesOrder(
       COMPANY_ID,
-      'user-1',
       {
         orderId: order.id,
       }
@@ -175,7 +178,6 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
     // 2. Create Invoice
     const invoice = await invoiceService.createFromSalesOrder(
       COMPANY_ID,
-      'user-1',
       {
         orderId: order.id,
       }

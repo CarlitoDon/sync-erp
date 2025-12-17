@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PaymentService } from '../../../../src/modules/accounting/services/payment.service';
-import { InvoiceStatus, InvoiceType } from '@sync-erp/database';
 
 // Mock dependencies
 vi.mock(
@@ -26,13 +25,11 @@ vi.mock(
 
 describe('T020: Payment Concurrency Guard', () => {
   let service: PaymentService;
-  let mockInvoiceRepo: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockSaga.execute.mockClear();
     service = new PaymentService();
-    mockInvoiceRepo = (service as any).invoiceRepository;
   });
 
   const companyId = 'co-1';

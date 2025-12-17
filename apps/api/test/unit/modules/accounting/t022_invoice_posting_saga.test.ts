@@ -6,10 +6,7 @@ import {
   InvoiceStatus,
 } from '@sync-erp/database';
 import { InvoicePostingSaga } from '../../../../src/modules/accounting/sagas/invoice-posting.saga';
-import {
-  SagaCompensatedError,
-  SagaCompensationFailedError,
-} from '../../../../src/modules/common/saga/saga-errors';
+import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-errors';
 
 // Mock all dependencies
 vi.mock('@sync-erp/database', async () => {

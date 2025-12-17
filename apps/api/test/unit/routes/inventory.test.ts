@@ -4,8 +4,8 @@ import request from 'supertest';
 
 // Mock auth middleware
 vi.mock('../../../src/middlewares/auth', () => ({
-  authMiddleware: (req: any, _res: any, next: any) => next(),
-  optionalAuthMiddleware: (req: any, _res: any, next: any) => next(),
+  authMiddleware: (_req: any, _res: any, next: any) => next(),
+  optionalAuthMiddleware: (_req: any, _res: any, next: any) => next(),
 }));
 
 // Mock InventoryService

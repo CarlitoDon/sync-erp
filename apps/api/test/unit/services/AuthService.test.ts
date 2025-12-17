@@ -1,7 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import {
   mockAuthRepository,
-  mockUserRepository,
   resetRepositoryMocks,
 } from '../mocks/repositories.mock';
 

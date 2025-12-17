@@ -46,8 +46,15 @@ vi.mock('@sync-erp/database', async () => {
         .fn()
         .mockImplementation(
           async (callback: (tx: any) => Promise<any>) => {
+            // The mockTx must include all models that ShipmentSaga uses
             const mockTx = {
               $executeRawUnsafe: vi.fn().mockResolvedValue(1),
+              order: prisma.order,
+              orderItem: prisma.orderItem,
+              product: prisma.product,
+              inventoryMovement: prisma.inventoryMovement,
+              account: prisma.account,
+              journalEntry: prisma.journalEntry,
             };
             return callback(mockTx);
           }
