@@ -1,10 +1,23 @@
 import { defineConfig } from 'vitest/config';
+// import tsconfigPaths from 'vite-tsconfig-paths'; // Removed unused import to fix lint
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  root: __dirname,
+  resolve: {
+    alias: {
+      '@modules': path.resolve(__dirname, 'src/modules'),
+    },
+  },
+  plugins: [],
   test: {
+    name: '@sync-erp/api',
     globals: true,
     environment: 'node',
-    // Only run unit tests with mocks
+    // Run unit tests only (integration/e2e need real server + DB)
     include: ['test/unit/**/*.test.ts'],
     setupFiles: ['./test/setup.ts'],
     coverage: {

@@ -14,20 +14,8 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
     },
   },
-  server: {
-    port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-      '/health': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-    },
-  },
   test: {
+    name: '@sync-erp/web',
     globals: true,
     environment: 'jsdom',
     setupFiles: [resolve(__dirname, './test/setup.ts')],
