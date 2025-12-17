@@ -31,7 +31,10 @@ export interface SagaResult<T> {
  * - executeSteps(): The forward execution logic
  * - compensate(): The rollback logic
  */
-export abstract class SagaOrchestrator<TInput, TOutput> {
+export abstract class SagaOrchestrator<
+  TInput,
+  TOutput extends object,
+> {
   protected abstract readonly sagaType: SagaType;
 
   /**
@@ -71,8 +74,7 @@ export abstract class SagaOrchestrator<TInput, TOutput> {
     // If saga is already completed, return cached result immediately
     const existingLog = await this.getStatus(entityId, companyId);
     if (existingLog && existingLog.step === 'COMPLETED') {
-      const stepData = existingLog.stepData as unknown as StepData;
-      // Ideally we should cast to StepData but it's not exported from database package
+      const stepData = existingLog.stepData as StepData;
       const resultData = stepData?.result;
       return {
         success: true,

@@ -1,4 +1,5 @@
 import { prisma, Prisma, AccountType } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export class JournalRepository {
   async create(
@@ -18,13 +19,17 @@ export class JournalRepository {
       if (
         (err as Prisma.PrismaClientKnownRequestError).code === 'P2002'
       ) {
-        const sourceType = data.sourceType || 'UNKNOWN';
-        const sourceId = data.sourceId || 'UNKNOWN';
+        const sourceInfo =
+          data.sourceType && data.sourceId
+            ? `${data.sourceType}:${data.sourceId}`
+            : 'unknown source';
         console.warn(
-          `[JOURNAL] Duplicate journal entry blocked: ${sourceType}:${sourceId}`
+          `[JOURNAL] Duplicate journal entry blocked: ${sourceInfo}`
         );
-        throw new Error(
-          `Journal entry already exists for ${sourceType} ${sourceId}`
+        throw new DomainError(
+          `Journal entry already exists for ${sourceInfo}`,
+          409,
+          DomainErrorCodes.DUPLICATE_JOURNAL
         );
       }
       throw err;

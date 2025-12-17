@@ -25,7 +25,7 @@ export class InvoicePolicy {
    */
   static validateUpdate(
     existing: Invoice,
-    data: { invoiceNumber?: string; [key: string]: unknown }
+    data: { invoiceNumber?: string; memo?: string }
   ) {
     if (existing.status !== InvoiceStatus.DRAFT) {
       throw new DomainError(

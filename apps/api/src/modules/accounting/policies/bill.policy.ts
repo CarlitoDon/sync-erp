@@ -33,7 +33,7 @@ export class BillPolicy {
     existing: Invoice,
     data: {
       amount?: Decimal | number | string;
-      [key: string]: unknown;
+      memo?: string;
     }
   ) {
     if (existing.status !== InvoiceStatus.DRAFT) {

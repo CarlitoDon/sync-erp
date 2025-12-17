@@ -121,11 +121,11 @@ Tujuan: **confidence, not coverage porn**
 
 ### 3.1 Mandatory Test Types
 
-- [ ] Unit tests for rules/policy (pure)
-- [ ] Saga success test
-- [ ] Saga fail + compensation test
-- [ ] Idempotency retry test
-- [ ] Concurrent request test (same entity)
+- [x] Unit tests for rules/policy (pure)
+- [x] Saga success test
+- [x] Saga fail + compensation test
+- [x] Idempotency retry test
+- [x] Concurrent request test (same entity)
 
 Minimal rule:
 
@@ -137,9 +137,9 @@ Minimal rule:
 
 Add tests that assert:
 
-- [ ] invoice.balance ≥ 0
-- [ ] product.stockQty ≥ 0
-- [ ] sum(journal.debit) == sum(journal.credit)
+- [x] invoice.balance ≥ 0
+- [x] product.stockQty ≥ 0
+- [x] sum(journal.debit) == sum(journal.credit)
 
 These tests should **fail loudly** if broken.
 

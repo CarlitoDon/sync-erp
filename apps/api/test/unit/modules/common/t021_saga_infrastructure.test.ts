@@ -252,7 +252,7 @@ describe('T021: SAGA Infrastructure', () => {
     // Concrete implementation for testing
     class TestSaga extends SagaOrchestrator<
       { value: number },
-      string
+      { result: string }
     > {
       protected readonly sagaType = SagaType.INVOICE_POST;
       public shouldFail = false;
@@ -265,12 +265,12 @@ describe('T021: SAGA Infrastructure', () => {
       protected async executeSteps(
         input: { value: number },
         context: PostingContext
-      ): Promise<string> {
+      ): Promise<{ result: string }> {
         if (this.shouldFail) {
           throw new Error('Execution failed');
         }
         await context.markStockDone('mov-test');
-        return `Result: ${input.value}`;
+        return { result: `Result: ${input.value}` };
       }
 
       protected async compensate(
@@ -305,7 +305,7 @@ describe('T021: SAGA Infrastructure', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data).toBe('Result: 42');
+      expect(result.data).toEqual({ result: 'Result: 42' });
       expect(result.sagaLogId).toBe('saga-1');
     });
 
