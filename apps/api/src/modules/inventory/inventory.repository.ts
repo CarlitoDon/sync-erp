@@ -43,4 +43,24 @@ export class InventoryRepository {
       where: { id },
     });
   }
+
+  /**
+   * Count GRN (IN) movements for a specific order.
+   * Used to verify goods have been received before creating Bill.
+   */
+  async countByOrderReference(
+    companyId: string,
+    orderId: string,
+    type: 'IN' | 'OUT' = 'IN',
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const db = tx || prisma;
+    return db.inventoryMovement.count({
+      where: {
+        companyId,
+        reference: { contains: orderId },
+        type,
+      },
+    });
+  }
 }

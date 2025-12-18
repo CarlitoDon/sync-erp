@@ -81,12 +81,20 @@ export class ProductRepository {
     });
   }
 
+  /**
+   * Decrease stock with concurrency guard.
+   * NOTE: Caller (Service) must validate stock sufficiency via Policy BEFORE calling this.
+   * This is a low-level atomic operation.
+   */
   async decreaseStockWithGuard(
     id: string,
     quantity: number,
     tx?: Prisma.TransactionClient
   ): Promise<Product> {
     const db = tx || prisma;
+
+    // Atomic decrement with concurrency guard
+    // Guard ensures no race condition even if multiple requests hit simultaneously
     return db.product.update({
       where: {
         id,

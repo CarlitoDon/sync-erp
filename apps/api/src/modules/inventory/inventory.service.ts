@@ -154,8 +154,27 @@ export class InventoryService {
 
     try {
       for (const item of order.items) {
+        // Get product for validation and cost calculation
+        const product = await this.productService.getById(
+          item.productId,
+          companyId,
+          tx
+        );
+        if (!product) {
+          throw new DomainError(
+            `Product ${item.productId} not found`,
+            404
+          );
+        }
+
+        // Policy validation - throws DomainError if insufficient stock
+        InventoryPolicy.ensureSufficientStock(
+          product.name,
+          Number(product.stockQty),
+          item.quantity
+        );
+
         // Atomic Decrease with Guard (T019)
-        // Replaces simple checkStock + updateStock
         await this.productService.decreaseStock(
           item.productId,
           item.quantity,
@@ -165,15 +184,6 @@ export class InventoryService {
           productId: item.productId,
           quantity: item.quantity,
         });
-
-        // Get product for cost calculation
-        const product = await this.productService.getById(
-          item.productId,
-          companyId,
-          tx
-        );
-        if (!product)
-          throw new Error(`Product ${item.productId} not found`);
 
         // Create inventory movement (OUT)
         const movement = await this.repository.createMovement(

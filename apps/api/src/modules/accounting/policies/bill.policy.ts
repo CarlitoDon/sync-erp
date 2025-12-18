@@ -58,4 +58,33 @@ export class BillPolicy {
       }
     }
   }
+
+  /**
+   * Ensure the Purchase Order is in a valid state for Bill creation.
+   * PO must be CONFIRMED, RECEIVED, or COMPLETED.
+   */
+  static ensureOrderReadyForBill(order: { status: string }): void {
+    const validStatuses = ['CONFIRMED', 'RECEIVED', 'COMPLETED'];
+    if (!validStatuses.includes(order.status)) {
+      throw new DomainError(
+        `Cannot create bill: PO status is ${order.status}, must be CONFIRMED or later`,
+        400,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+  }
+
+  /**
+   * Ensure goods have been received (GRN exists) before creating Bill.
+   * This enforces the flow: PO → GRN → Bill
+   */
+  static ensureGoodsReceived(grnCount: number): void {
+    if (grnCount === 0) {
+      throw new DomainError(
+        'Cannot create bill: Goods have not been received (no GRN found)',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+  }
 }

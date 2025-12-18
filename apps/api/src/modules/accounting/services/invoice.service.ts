@@ -57,6 +57,9 @@ export class InvoiceService {
       );
     }
 
+    // FR-002: Validate SO status - must be CONFIRMED or later
+    InvoicePolicy.ensureOrderReadyForInvoice(order);
+
     // Generate invoice number if not provided
     let invoiceNumber = data.invoiceNumber;
     if (!invoiceNumber) {

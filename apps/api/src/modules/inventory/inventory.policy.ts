@@ -129,4 +129,27 @@ export class InventoryPolicy {
       );
     }
   }
+
+  /**
+   * Ensure sufficient stock is available for shipment.
+   * Throws DomainError if stock is insufficient.
+   *
+   * @param productName - Product name for error message
+   * @param availableStock - Current stock quantity
+   * @param requiredQuantity - Quantity needed
+   */
+  static ensureSufficientStock(
+    productName: string,
+    availableStock: number,
+    requiredQuantity: number
+  ): void {
+    if (availableStock < requiredQuantity) {
+      throw new DomainError(
+        `Insufficient stock for "${productName}": ` +
+          `required ${requiredQuantity}, available ${availableStock}`,
+        400,
+        DomainErrorCodes.INSUFFICIENT_STOCK
+      );
+    }
+  }
 }

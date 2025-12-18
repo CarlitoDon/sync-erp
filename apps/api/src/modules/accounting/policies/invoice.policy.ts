@@ -46,4 +46,19 @@ export class InvoicePolicy {
       );
     }
   }
+
+  /**
+   * Ensure the Sales Order is in a valid state for Invoice creation.
+   * SO must be CONFIRMED, SHIPPED, or COMPLETED.
+   */
+  static ensureOrderReadyForInvoice(order: { status: string }): void {
+    const validStatuses = ['CONFIRMED', 'SHIPPED', 'COMPLETED'];
+    if (!validStatuses.includes(order.status)) {
+      throw new DomainError(
+        `Cannot create invoice: SO status is ${order.status}, must be CONFIRMED or later`,
+        400,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+  }
 }

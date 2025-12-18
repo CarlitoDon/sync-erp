@@ -23,9 +23,11 @@ export interface CreateBillInput {
 import { DocumentNumberService } from '../../common/services/document-number.service';
 import { BillPostingSaga } from '../sagas/bill-posting.saga';
 import { BillPolicy } from '../policies/bill.policy';
+import { InventoryRepository } from '../../inventory/inventory.repository.js';
 
 export class BillService {
   private repository = new InvoiceRepository();
+  private inventoryRepository = new InventoryRepository();
   private documentNumberService = new DocumentNumberService();
   private billPostingSaga = new BillPostingSaga();
 
@@ -48,6 +50,18 @@ export class BillService {
         DomainErrorCodes.ORDER_NOT_FOUND
       );
     }
+
+    // FR-001: Validate PO status - must be CONFIRMED or later
+    BillPolicy.ensureOrderReadyForBill(order);
+
+    // FR-001: Validate GRN exists - goods must be received first
+    const grnCount =
+      await this.inventoryRepository.countByOrderReference(
+        companyId,
+        data.orderId,
+        'IN'
+      );
+    BillPolicy.ensureGoodsReceived(grnCount);
 
     let invoiceNumber = data.invoiceNumber;
     if (!invoiceNumber) {
