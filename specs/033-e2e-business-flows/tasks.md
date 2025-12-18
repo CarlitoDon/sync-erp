@@ -16,11 +16,11 @@
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T004 Implement `AuditLogRepository` in `apps/api/src/modules/common/audit/audit-log.repository.ts`
-- [ ] T004.1 Update `SagaLogRepository` in `apps/api/src/modules/common/saga/saga-log.repository.ts` to support `correlationId`
-- [ ] T005 Update `PostingContext` and `SagaOrchestrator` to manage/propagate `correlationId`
-- [ ] T006 [P] Implement `AuditLogService` in `apps/api/src/modules/common/audit/audit-log.service.ts` for recording business intent
-- [ ] T007 Implement correlation ID middleware in `apps/api/src/middlewares/correlation.ts`
+- [x] T004 Implement `AuditLogRepository` in `apps/api/src/modules/common/audit/audit-log.repository.ts`
+- [x] T004.1 Update `SagaLogRepository` in `apps/api/src/modules/common/saga/saga-log.repository.ts` to support `correlationId`
+- [x] T005 Update `PostingContext` and `SagaOrchestrator` to manage/propagate `correlationId`
+- [x] T006 [P] Implement `AuditLogService` in `apps/api/src/modules/common/audit/audit-log.service.ts` for recording business intent
+- [x] T007 Implement correlation ID middleware in `apps/api/src/middlewares/correlation.ts`
 
 **Checkpoint**: Foundation ready - Saga infrastructure now supports full auditability and correlation.
 
@@ -34,14 +34,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Create integration test `apps/api/test/integration/o2c-full-cycle.test.ts` (expecting failure)
+- [x] T008 [P] [US1] Create integration test `apps/api/test/integration/o2c-full-cycle.test.ts` (expecting failure)
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Refactor `InvoicePostingSaga` to include compensation (FR-007) and correlationId propagation
-- [ ] T010 [US1] Refactor `PaymentPostingSaga` in `apps/api/src/modules/accounting/sagas/payment-posting.saga.ts` to include compensation and audit fields
-- [ ] T011 [US1] Update `InvoiceService` to record `AuditLog: INVOICE_POSTED` BEFORE triggering Saga
-- [ ] T012 [US1] Enforce Idempotency in `/api/accounting/invoices/:id/post` using `correlationId` (scoped to AuditLog presence)
+- [x] T009 [US1] Refactor `InvoicePostingSaga` to include compensation (FR-007) and correlationId propagation
+- [x] T010 [US1] Refactor `PaymentPostingSaga` in `apps/api/src/modules/accounting/sagas/payment-posting.saga.ts` to include compensation and audit fields
+- [x] T011 [US1] Update `InvoiceService` to record `AuditLog: INVOICE_POSTED` BEFORE triggering Saga
+- [x] T012 [US1] Enforce Idempotency in `/api/accounting/invoices/:id/post` using `correlationId` (scoped to AuditLog presence)
 
 **Checkpoint**: User Story 1 (O2C) fully functional and verified via integration test.
 
@@ -55,14 +55,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Create integration test `apps/api/test/integration/p2p-full-cycle.test.ts` (expecting failure)
+- [x] T013 [P] [US2] Create integration test `apps/api/test/integration/p2p-full-cycle.test.ts` (expecting failure)
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Refactor `BillPostingSaga` to include compensation (FR-007) and correlationId propagation
-- [ ] T015 [US2] Refactor `PaymentPostingSaga` (Disbursement) to support Supplier payments with correct ledger logic
-- [ ] T016 [US2] Update `BillService` to record `AuditLog: BILL_POSTED` BEFORE triggering Saga
-- [ ] T017 [US2] Enforce Idempotency in `/api/accounting/bills/:id/post` using `correlationId`
+- [x] T014 [US2] Refactor `BillPostingSaga` to include compensation (FR-007) and correlationId propagation
+- [x] T015 [US2] Refactor `PaymentPostingSaga` (Disbursement) to support Supplier payments with correct ledger logic
+- [x] T016 [US2] Update `BillService` to record `AuditLog: BILL_POSTED` BEFORE triggering Saga
+- [x] T017 [US2] Enforce Idempotency in `/api/accounting/bills/:id/post` using `correlationId`
 
 **Checkpoint**: User Story 2 (P2P) fully functional and verified via integration test.
 
@@ -70,9 +70,9 @@
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T018 [P] Update `QUERIES.md` in `apps/api/src/modules/accounting/` with SQL for auditing Saga execution records
-- [ ] T019 Final verification of cross-module invariants: StockQty >= 0, Invoice.balance >= 0, Journal.debit == Journal.credit (FR-011, FR-012)
-- [ ] T020 Run full build verification: `npx tsc --noEmit` and `npm run build`
+- [x] T018 [P] Update `QUERIES.md` in `apps/api/src/modules/accounting/` with SQL for auditing Saga execution records
+- [x] T019 Final verification of cross-module invariants: StockQty >= 0, Invoice.balance >= 0, Journal.debit == Journal.credit (FR-011, FR-012)
+- [x] T020 Run full build verification: `npx tsc --noEmit` and `npm run build`
 
 ---
 

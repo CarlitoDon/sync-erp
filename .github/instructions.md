@@ -46,17 +46,39 @@ apps/api/src/modules/[domain]/
     └── *.ts                # Pure Logic: Stateless calculations. Unit testable. NO I/O.
 ```
 
-### Controller Pattern
+### Layer Responsibility Principle
+
+| Layer      | Knows about                         | Must NOT know about                          |
+| ---------- | ----------------------------------- | -------------------------------------------- |
+| Controller | HTTP, auth, DTO                     | Business rules                               |
+| Service    | Use case, state rules, policy, saga | SQL, table shape                             |
+| Repository | Persistence, queries, locks         | State machine, policy, saga, business intent |
+| Policy     | Business constraints                | DB, transactions                             |
+
+**Key Rule**: Repository knows _how_ to talk to the database, not _why_ a write is allowed.
+
+- **Repository MAY**: Atomic guards (`balance: { gte: amount }`), row locking, optimistic concurrency
+- **Repository MUST NOT**: State checks, policy checks, intent branching, saga orchestration
+
+**Mental Test**: "If I move from Prisma to raw SQL, would this logic still make sense here?" Yes → repository. No → service/policy.
+
+### Controller Pattern (Dumb Controller)
 
 ```typescript
-create = async (req: Request, res: Response, next: NextFunction) => {
+post = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const companyId = req.context.companyId!;
-    const validated = CreateSchema.parse(req.body); // Zod parse
-    const result = await this.service.create(companyId, validated);
-    res.status(201).json({ success: true, data: result });
+    const correlationId = req.correlationId; // From correlation middleware
+    const actorId = req.context.userId; // For audit trail
+    const result = await this.service.post(
+      id,
+      companyId,
+      actorId,
+      correlationId
+    );
+    res.json({ success: true, data: result });
   } catch (error) {
-    next(error); // Error middleware handles response
+    next(error);
   }
 };
 ```
@@ -79,12 +101,12 @@ async findAll(companyId: string): Promise<Entity[]> {
 async createFromPurchaseOrder(companyId: string, data: CreateBillInput) {
   const order = await this.repository.findOrder(data.orderId, companyId);
   if (!order) throw new DomainError('PO not found', 404);
-  
+
   // Policy validations - Business prerequisites
   BillPolicy.ensureOrderReadyForBill(order);       // Check PO status = CONFIRMED+
   const grnCount = await this.inventoryRepository.countByOrderReference(companyId, data.orderId, 'IN');
   BillPolicy.ensureGoodsReceived(grnCount);        // Check GRN exists
-  
+
   // Proceed with creation...
 }
 ```
@@ -95,15 +117,21 @@ Required when an operation spans multiple aggregates/modules (e.g., Invoice → 
 
 - **Mandatory Compensation**: Every step must have a rollback action.
 - **Fail-Safe**: Do NOT delete data on rollback; use compensating entries.
-- **Testing**: Mock the Saga orchestrator in integration tests.
-- **Vitest 4.x Mocking**: Use factory function to avoid hoisting issues.
-  ```typescript
-  vi.mock('../services/MySaga', () => ({
-    MySaga: function () {
-      return mockInstance;
-    }, // factory allows accessing mockInstance
-  }));
-  ```
+- **correlationId Propagation**: Pass from Controller → Service → Saga → SagaLog.
+- **AuditLog BEFORE Saga**: Record business intent before saga execution (FR-010.1).
+
+```typescript
+// Service: Record audit BEFORE saga execution
+async post(id: string, companyId: string, actorId?: string, correlationId?: string) {
+  if (actorId) {
+    await auditLogService.recordAudit({
+      companyId, actorId, action: AuditLogAction.INVOICE_POSTED,
+      entityType: EntityType.INVOICE, entityId: id, correlationId
+    });
+  }
+  return await this.saga.execute(input, id, companyId, correlationId);
+}
+```
 
 ### Idempotency
 
@@ -164,17 +192,17 @@ export type UserInput = z.infer<typeof UserSchema>;
 
 ## Essential Commands
 
-| Command                    | Description                  |
-| :------------------------- | :--------------------------- |
-| `npm run dev`              | Start API + Web (Hot Reload) |
-| `npx tsc --noEmit`         | **Type Check** (Run often!)  |
-| `npm run test`             | Run all Vitest tests         |
-| `npm run test:integration` | Run integration tests        |
-| `npm run lint`             | Check linting rules          |
-| `npm run db:migrate`       | Apply Prisma migrations      |
-| `npm run db:generate`      | Regenerate Prisma Client     |
-| `npm run db:studio`        | Open Prisma Studio           |
-| `./scripts/seed-via-api.sh`| Seed transactions via API    |
+| Command                     | Description                  |
+| :-------------------------- | :--------------------------- |
+| `npm run dev`               | Start API + Web (Hot Reload) |
+| `npx tsc --noEmit`          | **Type Check** (Run often!)  |
+| `npm run test`              | Run all Vitest tests         |
+| `npm run test:integration`  | Run integration tests        |
+| `npm run lint`              | Check linting rules          |
+| `npm run db:migrate`        | Apply Prisma migrations      |
+| `npm run db:generate`       | Regenerate Prisma Client     |
+| `npm run db:studio`         | Open Prisma Studio           |
+| `./scripts/seed-via-api.sh` | Seed transactions via API    |
 
 ## Don'ts & Anti-Patterns
 

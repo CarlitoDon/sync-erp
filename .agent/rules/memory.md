@@ -4,12 +4,11 @@ trigger: always_on
 
 <!--
 MEMORY SYNC REPORT
-Version: 1.2.1 -> 1.3.0 (Minor - Memory Compression & Consolidation)
+Version: 1.3.0 -> 1.4.0 (Minor - Layer Responsibility Principles)
 Added Sections:
-- None
+- Key Decision: Layer Responsibility (Dumb Controller/Repository)
 Modified Sections:
-- Key Decisions Log: Consolidated 15+ individual entries into 4 thematic blocks.
-- Frequently Used Patterns: Condensed into a single-block reference.
+- None
 Removed Sections:
 - None
 Last Updated: 2025-12-18
@@ -17,7 +16,7 @@ Last Updated: 2025-12-18
 
 # Project Memory
 
-**Version**: 1.3.0 | **Last Updated**: 2025-12-18
+**Version**: 1.4.0 | **Last Updated**: 2025-12-18
 
 ## Overview
 
@@ -29,6 +28,28 @@ Last Updated: 2025-12-18
 | Constitution | v1.9.0 (see `.agent/rules/constitution.md`)                   |
 
 ---
+
+### [2025-12-18] Layer Responsibility Principles (Dumb Controller/Repository)
+
+**Decision**: Established clear boundaries for layer responsibilities:
+
+| Layer      | Knows about                         | Must NOT know about                          |
+| ---------- | ----------------------------------- | -------------------------------------------- |
+| Controller | HTTP, auth, DTO                     | Business rules                               |
+| Service    | Use case, state rules, policy, saga | SQL, table shape                             |
+| Repository | Persistence, queries, locks         | State machine, policy, saga, business intent |
+| Policy     | Business constraints                | DB, transactions                             |
+
+**Key Rule**: Repository knows _how_ to talk to the database, not _why_ a write is allowed.
+
+**Repository MAY do**: SQL shape, atomic guards (`balance: { gte: amount }`), optimistic concurrency, row locking, aggregate-safe updates.
+
+**Repository MUST NOT do**: State logic, policy checks, intent branching, saga orchestration.
+
+**Mental Test**: "If I move from Prisma to raw SQL, would this logic still make sense here?" Yes → repository. No → service/policy.
+
+**Rationale**: Prevents business logic leakage and maintains testability.
+**Reference**: Constitution Principle VIII (Service Purity)
 
 ### [2025-12-18] Business Flow & Integrity Standards (Phase 1 Ready)
 
