@@ -15,7 +15,7 @@
   Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
   Think of each story as a standalone slice of functionality that can be:
   - Developed independently
-  - Tested independently
+  - Verified via Integration Testing
   - Deployed independently
   - Demonstrated to users independently
 -->
@@ -26,7 +26,7 @@
 
 **Why this priority**: [Explain the value and why it has this priority level]
 
-**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
+**Integration Scenario**: [Describe how this can be verified via integration test - e.g., "Full flow from [trigger] to [DB record] and [UI update]"]
 
 **Acceptance Scenarios**:
 

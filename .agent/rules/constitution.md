@@ -1,16 +1,20 @@
 <!--
 SYNC IMPACT REPORT
-Version: 2.2.0 -> 2.2.1 (PATCH - Restored Schema-First Example)
+Version: 2.2.1 -> 2.3.0 (MINOR - Prioritized Integration Testing)
 Modified Principles:
-- IX. Schema-First Development (Restored Example and Rationale)
+- III. Layered Backend (Emphasized Integration Testing over Unit Testing for Business Rules)
+- XVII. Development Standards (Mandated Integration Tests for every feature)
+- Part C: Human Experience Philosophy (Updated GUARDRAILS.md reference logic)
 Added Sections:
 - None
 Removed Sections:
 - None
 Templates requiring updates:
-- None
+- plan-template.md (Testing context)
+- spec-template.md (Testing guidance)
+- tasks-template.md (Sample tasks)
 Follow-up TODOs:
-- None
+- Ensure all ongoing features adopt the integration-first approach.
 -->
 
 # Sync ERP Constitution
@@ -45,14 +49,14 @@ packages/shared ←── packages/shared ←── (Prisma types)
 
 ### III. Layered Backend (Route → Controller → Service → Policy → Repository)
 
-| Layer          | Location                      | Responsibility                                             | Can Import                |
-| :------------- | :---------------------------- | :--------------------------------------------------------- | :------------------------ |
-| **Route**      | `src/routes/*.ts`             | **Dump Adapter**: Maps URL → Controller. No Logic.         | Controller, Middleware    |
-| **Controller** | `src/modules/*/controller.ts` | **HTTP Boundary**: Req/Res, Validation. No Business Logic. | Service                   |
-| **Service**    | `src/modules/*/service.ts`    | **Orchestrator**: The "Why". Combines Rules + Repo.        | Policy, Rules, Repository |
-| **Rules**      | `src/modules/*/rules/*.ts`    | **Pure Business Logic**: Stateless, Unit Testable.         | None (Pure)               |
-| **Policy**     | `src/modules/*/policy.ts`     | **Shape Constraints**: "Can this run?"                     | Shared Constants          |
-| **Repository** | `src/modules/*/repository.ts` | **Data Access**: Query, Transaction. No Rules.             | `packages/database`       |
+| Layer          | Location                      | Responsibility                                                            | Can Import                |
+| :------------- | :---------------------------- | :------------------------------------------------------------------------ | :------------------------ |
+| **Route**      | `src/routes/*.ts`             | **Dump Adapter**: Maps URL → Controller. No Logic.                        | Controller, Middleware    |
+| **Controller** | `src/modules/*/controller.ts` | **HTTP Boundary**: Req/Res, Validation. No Business Logic.                | Service                   |
+| **Service**    | `src/modules/*/service.ts`    | **Orchestrator**: The "Why". Combines Rules + Repo.                       | Policy, Rules, Repository |
+| **Rules**      | `src/modules/*/rules/*.ts`    | **Pure Business Logic**: Stateless, Integration Testable (Unit optional). | None (Pure)               |
+| **Policy**     | `src/modules/*/policy.ts`     | **Shape Constraints**: "Can this run?"                                    | Shared Constants          |
+| **Repository** | `src/modules/*/repository.ts` | **Data Access**: Query, Transaction. No Rules.                            | `packages/database`       |
 
 ### IV. Multi-Tenant Isolation
 
@@ -237,7 +241,7 @@ Apple-like software is not just about looks; it is about how it runs.
 1.  **Zero-Lag Rule**: No interaction MUST freeze the UI.
 2.  **Pixel Perfection**: Alignment, spacing, and typography MUST be consistent.
 3.  **Battery/Resource Minded**: Avoid unnecessary polling or heavy background scripts.
-4.  **Tests as Spec**: Every feature MUST have accompanying tests.
+4.  **Tests as Spec**: Every feature MUST have accompanying tests. **Integration Tests are MANDATORY** for business flows and cross-layer logic. Unit tests are encouraged only for isolated pure logic in `rules/` if beneficial.
 
 ---
 
@@ -264,4 +268,4 @@ sync-erp/
 - **Compliance**: Code reviews MUST verify principle adherence.
 - **Tooling**: `npm` + `turbo` + `vite` (frontend) + `tsc` (backend).
 
-**Version**: 2.2.1 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-16
+**Version**: 2.3.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-18
