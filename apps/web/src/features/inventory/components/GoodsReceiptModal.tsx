@@ -18,6 +18,7 @@ import {
 } from '../../../components/ui/dialog';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
+import { DatePicker } from '../../../components/ui/DatePicker';
 
 interface GoodsReceiptModalProps {
   isOpen: boolean;
@@ -34,6 +35,9 @@ export function GoodsReceiptModal({
 }: GoodsReceiptModalProps) {
   const { currentCompany } = useCompany();
   const [loading, setLoading] = useState(false);
+  const [businessDate, setBusinessDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
 
   const { register, handleSubmit, reset } =
     useForm<GoodsReceiptInput>({
@@ -103,14 +107,27 @@ export function GoodsReceiptModal({
               This will receive all pending items on the Purchase
               Order.
             </p>
+
+            {/* Business Date (FR-008a) */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="businessDate" className="text-right">
+                Business Date *
+              </Label>
+              <div className="col-span-3">
+                <DatePicker
+                  value={businessDate}
+                  onChange={setBusinessDate}
+                />
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Receiving...' : 'Confirm Receive'}
+            <Button type="submit" isLoading={loading}>
+              Confirm Receive
             </Button>
           </DialogFooter>
         </form>

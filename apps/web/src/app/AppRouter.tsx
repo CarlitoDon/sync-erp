@@ -26,6 +26,7 @@ import SupplierDetail from '../features/procurement/pages/SupplierDetail';
 import ProductDetail from '../features/inventory/pages/ProductDetail';
 import JournalDetail from '../features/finance/pages/JournalDetail';
 import JournalEntries from '../features/finance/pages/JournalEntries';
+import Observability from '../features/admin/pages/Observability';
 
 export function AppRouter() {
   return (
@@ -73,6 +74,8 @@ export function AppRouter() {
           <Route path="journals" element={<JournalEntries />} />
           <Route path="journals/:id" element={<JournalDetail />} />
           <Route path="team" element={<TeamManagement />} />
+          {/* Admin Observability (US5 - FR-014, FR-015, FR-016) */}
+          <Route path="admin/observability" element={<Observability />} />
         </Route>
       </Route>
     </Routes>

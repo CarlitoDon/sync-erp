@@ -20,6 +20,7 @@ export interface CreatePaymentInput {
     | 'CHECK'
     | 'CREDIT_CARD'
     | 'OTHER';
+  date?: string; // Business date (FR-005a)
 }
 
 export const invoiceService = {

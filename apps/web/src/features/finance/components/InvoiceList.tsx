@@ -13,6 +13,8 @@ import ActionButton from '../../../components/ui/ActionButton';
 import { formatCurrency, formatDate } from '../../../utils/format';
 import { PaymentHistoryList } from './PaymentHistoryList';
 import FormModal from '../../../components/ui/FormModal';
+import { DatePicker } from '../../../components/ui/DatePicker';
+import { Button } from '../../../components/ui/button';
 
 // Extend Invoice type with order
 interface InvoiceWithOrder extends Invoice {
@@ -48,6 +50,10 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] =
     useState<CreatePaymentInput['method']>('BANK_TRANSFER');
+  const [businessDate, setBusinessDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHistory, setShowHistory] = useState<string | null>(null);
 
   useEffect(() => {
@@ -75,24 +81,29 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
     setSelectedInvoice(invoice);
     setPaymentAmount(Number(invoice.balance));
     setPaymentMethod('BANK_TRANSFER');
+    setBusinessDate(new Date().toISOString().split('T')[0]);
   };
 
   const closePaymentModal = () => {
     setSelectedInvoice(null);
     setPaymentAmount(0);
+    setIsSubmitting(false);
   };
 
   const handlePayment = async () => {
-    if (!selectedInvoice || paymentAmount <= 0) return;
+    if (!selectedInvoice || paymentAmount <= 0 || isSubmitting) return;
+    setIsSubmitting(true);
     const result = await apiAction(
       () =>
         paymentService.create({
           invoiceId: selectedInvoice.id,
           amount: paymentAmount,
           method: paymentMethod,
+          date: businessDate,
         }),
       'Payment recorded!'
     );
+    setIsSubmitting(false);
     if (result) {
       closePaymentModal();
       loadInvoices();
@@ -233,26 +244,35 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
               </select>
             </div>
 
+            {/* Business Date (FR-005a) */}
+            <DatePicker
+              label="Business Date *"
+              value={businessDate}
+              onChange={setBusinessDate}
+            />
+
             {/* Actions */}
             <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
               <button
                 type="button"
                 onClick={closePaymentModal}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={isSubmitting}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
-              <button
-                type="button"
+              <Button
+                variant="primary"
                 onClick={handlePayment}
+                isLoading={isSubmitting}
                 disabled={
                   paymentAmount <= 0 ||
                   paymentAmount > Number(selectedInvoice.balance)
                 }
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="bg-green-600 hover:bg-green-700"
               >
                 Confirm Payment
-              </button>
+              </Button>
             </div>
           </div>
         )}

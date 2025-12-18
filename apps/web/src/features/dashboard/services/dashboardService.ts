@@ -2,6 +2,15 @@ import api from '../../../services/api';
 import { ensureArray } from '../../../utils/safeData';
 import type { DashboardMetrics, RecentTransaction } from '../types';
 
+// Backend KPI response type (from /api/dashboard/kpis)
+export interface DashboardKPIs {
+  totalSales: number;
+  outstandingAR: number;
+  outstandingAP: number;
+  inventoryValue: number;
+  currency: string;
+}
+
 interface InvoiceResponse {
   id: string;
   balance: string | number;
@@ -66,6 +75,19 @@ export const dashboardService = {
       unpaidBills: bills.length,
       recentTransactions: await getRecentTransactions(),
     };
+  },
+
+  /**
+   * Fetch KPIs from backend (Phase 1 implementation).
+   * Per FR-001: Total Sales, Outstanding AR/AP, Inventory Value
+   * Per FR-002: Data refreshed on page load (no auto-refresh)
+   */
+  async getKPIs(): Promise<DashboardKPIs> {
+    const response = await api.get<{
+      success: boolean;
+      data: DashboardKPIs;
+    }>('/dashboard/kpis');
+    return response.data.data;
   },
 };
 

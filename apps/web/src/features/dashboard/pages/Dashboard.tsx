@@ -4,6 +4,7 @@ import { dashboardService } from '../services/dashboardService';
 import { formatCurrency, formatDate } from '../../../utils/format';
 import OnboardingGuide from '../components/OnboardingGuide';
 import PendingShapeBanner from '../components/PendingShapeBanner';
+import { DashboardKPIs } from '../components/DashboardKPIs';
 import type { DashboardMetrics, RecentTransaction } from '../types';
 
 export default function Dashboard() {
@@ -61,6 +62,9 @@ export default function Dashboard() {
       <PendingShapeBanner
         businessShape={currentCompany?.businessShape}
       />
+
+      {/* Phase 1: Backend-sourced KPIs (FR-001, FR-002) */}
+      <DashboardKPIs />
 
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl">
