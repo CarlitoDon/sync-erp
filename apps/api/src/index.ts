@@ -19,6 +19,8 @@ import { invoiceRouter } from './routes/invoice';
 import { paymentRouter } from './routes/payment';
 import { financeRouter } from './routes/finance';
 import { authRouter } from './routes/auth';
+import { dashboardRouter } from './routes/dashboard';
+import { adminRouter } from './routes/admin';
 
 import cookieParser from 'cookie-parser';
 
@@ -56,6 +58,8 @@ app.use('/api/sales-orders', salesOrderRouter);
 app.use('/api/invoices', invoiceRouter);
 app.use('/api/payments', paymentRouter);
 app.use('/api/finance', financeRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/admin', adminRouter);
 
 // Global Error Handler
 app.use(errorHandler);
