@@ -17,7 +17,7 @@ sync-erp/
 └── turbo.json            # Build orchestration
 ```
 
-**Data Flow**: `web → HTTP → api → repository → database`
+**Data Flow**: `web → HTTP → api → controller → service → policy → repository → database`
 **Dependency Rule**: Apps import from `packages/*`, never the reverse.
 
 ## Critical Rules (Non-Negotiable)
@@ -29,6 +29,8 @@ sync-erp/
 5.  **Module Parity**: Sales & Procurement (and other pairs) must mirror implementation logic and naming.
 6.  **Performance**: Use backend `include`/joins. NO N+1 queries in frontend or backend loops.
 7.  **Build Check**: Run `npx tsc --noEmit` to verify type safety before completing tasks.
+8.  **Service Layer Purity**: Service MUST NOT import `prisma`. All DB access via Repository.
+9.  **Business Flow Prerequisites**: Validate document prerequisites in Policy before creation (e.g., GRN before Bill).
 
 ## Backend Patterns (apps/api)
 
@@ -37,8 +39,8 @@ sync-erp/
 ```text
 apps/api/src/modules/[domain]/
 ├── [domain].controller.ts  # HTTP Boundary: Zod validation, Response. NO business logic.
-├── [domain].service.ts     # Orchestrator: Combines Rules + Policy + Repo.
-├── [domain].policy.ts      # Constraints: "Can this action run?" (Shape/Config checks).
+├── [domain].service.ts     # Orchestrator: Combines Rules + Policy + Repo. NO prisma import.
+├── [domain].policy.ts      # Constraints: "Can this action run?" (Shape/Config/Prerequisite checks).
 ├── [domain].repository.ts  # Data Access: Prisma queries ONLY. Scoped by companyId.
 └── rules/
     └── *.ts                # Pure Logic: Stateless calculations. Unit testable. NO I/O.
@@ -67,6 +69,23 @@ async findAll(companyId: string): Promise<Entity[]> {
     where: { companyId }, // ALWAYS scope
     include: { related: true } // Eager load
   });
+}
+```
+
+### Business Flow Prerequisite Pattern
+
+```typescript
+// In Service layer, validate prerequisites via Policy before creating document
+async createFromPurchaseOrder(companyId: string, data: CreateBillInput) {
+  const order = await this.repository.findOrder(data.orderId, companyId);
+  if (!order) throw new DomainError('PO not found', 404);
+  
+  // Policy validations - Business prerequisites
+  BillPolicy.ensureOrderReadyForBill(order);       // Check PO status = CONFIRMED+
+  const grnCount = await this.inventoryRepository.countByOrderReference(companyId, data.orderId, 'IN');
+  BillPolicy.ensureGoodsReceived(grnCount);        // Check GRN exists
+  
+  // Proceed with creation...
 }
 ```
 
@@ -124,6 +143,12 @@ const handleSubmit = async () => {
 };
 ```
 
+## Database Seeding
+
+- **Base Seed**: `npm run db:seed` - Only static data (accounts, products, partners)
+- **Transaction Seed**: `./scripts/seed-via-api.sh` - Uses API for PO/SO/Invoice/Bill flows
+- **Why**: Direct DB inserts bypass Sagas, Journals, Inventory. API seeding ensures correct business logic.
+
 ## Shared Library Patterns (packages/shared)
 
 **Schema Definition**: `packages/shared/src/validators/index.ts`
@@ -149,6 +174,7 @@ export type UserInput = z.infer<typeof UserSchema>;
 | `npm run db:migrate`       | Apply Prisma migrations      |
 | `npm run db:generate`      | Regenerate Prisma Client     |
 | `npm run db:studio`        | Open Prisma Studio           |
+| `./scripts/seed-via-api.sh`| Seed transactions via API    |
 
 ## Don'ts & Anti-Patterns
 
@@ -159,6 +185,10 @@ export type UserInput = z.infer<typeof UserSchema>;
 - ❌ **No Frontend Logic**: Don't calculate stock/balance on client. Trust backend.
 - ❌ **No Orphan Files**: Verify imports after creating new files.
 - ❌ **No Broken Types**: Fix `tsc` errors immediately, don't ignore them.
+- ❌ **No Prisma in Service**: Service calls Repository, never `prisma` directly.
+- ❌ **No Direct DB Seeding for Transactions**: Use API seeder for PO/SO/Invoice/Bill.
+- ❌ **No Skipping Prerequisites**: Bill requires GRN, Invoice requires SO CONFIRMED.
+- ❌ **No Missing Accounts**: Verify Chart of Accounts before journal-creating features.
 
 ## Key Files Reference
 
@@ -167,3 +197,6 @@ export type UserInput = z.infer<typeof UserSchema>;
 - **Memory**: `.agent/rules/memory.md`
 - **Routes**: `apps/web/src/app/AppRouter.tsx`
 - **Prisma**: `packages/database/prisma/schema.prisma`
+- **API Seeder**: `scripts/seed-via-api.sh`
+- **BillPolicy**: `apps/api/src/modules/accounting/policies/bill.policy.ts`
+- **InvoicePolicy**: `apps/api/src/modules/accounting/policies/invoice.policy.ts`

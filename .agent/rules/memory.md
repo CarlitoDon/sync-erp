@@ -4,20 +4,22 @@ trigger: always_on
 
 <!--
 MEMORY SYNC REPORT
-Version: 1.0.6 -> 1.1.0 (Minor - Saga Implementation Complete)
+Version: 1.1.0 -> 1.2.0 (Minor - Business Flow Enforcement)
 Added Sections:
-- Saga Integration Test Standard
-- Vitest 4.x Mock Hoisting
+- API-Based Seeding Pattern
+- Business Flow Prerequisites
+- Service Layer Purity
+- Chart of Accounts Completeness
 Modified Sections:
 - None
 Removed Sections:
 - None
-Last Updated: 2025-12-16
+Last Updated: 2025-12-18
 -->
 
 # Project Memory
 
-**Version**: 1.1.0 | **Last Updated**: 2025-12-16
+**Version**: 1.2.0 | **Last Updated**: 2025-12-18
 
 ## Overview
 
@@ -33,6 +35,40 @@ Last Updated: 2025-12-16
 ## Key Decisions Log
 
 > Decisions that affect future development. Add new entries at top.
+
+### [2025-12-18] API-Based Seeding for Finance Data
+
+**Decision**: Do NOT seed transactions (PO, SO, Invoice, Bill, Payment) directly to DB. Use `./scripts/seed-via-api.sh` instead.
+**Rationale**: Direct DB inserts bypass business logic (Sagas, Journal entries, Balance updates, Inventory movements). API seeding ensures all side effects execute correctly.
+**Reference**: Feature 032 Implementation
+
+### [2025-12-18] Business Flow Prerequisites (FR-001, FR-002)
+
+**Decision**: Documents MUST validate prerequisites before creation:
+- **Bill**: PO status must be CONFIRMED+ AND GRN must exist
+- **Invoice**: SO status must be CONFIRMED+
+- **Invoice Post**: Sufficient stock required
+
+**Implementation**: Use Policy layer for validation (e.g., `BillPolicy.ensureOrderReadyForBill`, `BillPolicy.ensureGoodsReceived`, `InvoicePolicy.ensureOrderReadyForInvoice`).
+**Reference**: `specs/032-business-flow-enforcement/spec.md`
+
+### [2025-12-18] Service Layer Purity - No Prisma Access
+
+**Decision**: Service layer MUST NOT import or use `prisma` directly. All DB access goes through Repository layer.
+**Rationale**: Maintains clean separation: Controller → Service → Policy → Repository. Easier testing and consistent data access patterns.
+**Reference**: BillService refactor
+
+### [2025-12-18] Chart of Accounts Completeness
+
+**Decision**: Before implementing features that create journal entries, verify ALL required accounts exist in seed.
+**Rationale**: GRN failed with "Account code 2105 not found". Account 2105 (Accrued Liability) was missing from seed but required for GRN journal entries.
+**Reference**: `packages/database/prisma/seed.ts`
+
+### [2025-12-18] Stock Validation in InventoryPolicy
+
+**Decision**: Stock validation is business logic, belongs in `InventoryPolicy.ensureSufficientStock()`, NOT in Repository.
+**Rationale**: Repository = data access only. Policy = business rules. Service calls Policy for validation, then Repository for data.
+**Reference**: `apps/api/src/modules/inventory/inventory.policy.ts`
 
 ### [2025-12-16] Saga Integration Test Standard
 
@@ -106,12 +142,13 @@ Last Updated: 2025-12-16
 
 > Persistent issues that need workarounds. Mark RESOLVED when fixed.
 
-| Issue                                                | Status | Workaround                                                                                                           |
-| ---------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
-| Old orders have subtotal-only `totalAmount`          | KNOWN  | Only new orders include tax                                                                                          |
-| IDE lint may be stale                                | KNOWN  | Use `npx tsc --noEmit` as source of truth                                                                            |
-| **Dev server always running during development**     | NOTE   | User runs `Dev: Start All` and `TypeScript: Watch` in separate terminals. Do NOT try to start dev server yourself.   |
-| **Case A1: Orphan files created but not integrated** | KNOWN  | After creating any new file, grep for imports to verify it's actually used. Check `grep -r "import.*filename" apps/` |
+| Issue                                                | Status   | Workaround                                                                                                           |
+| ---------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
+| Old orders have subtotal-only `totalAmount`          | KNOWN    | Only new orders include tax                                                                                          |
+| IDE lint may be stale                                | KNOWN    | Use `npx tsc --noEmit` as source of truth                                                                            |
+| **Dev server always running during development**     | NOTE     | User runs `Dev: Start All` and `TypeScript: Watch` in separate terminals. Do NOT try to start dev server yourself.  |
+| **Case A1: Orphan files created but not integrated** | KNOWN    | After creating any new file, grep for imports to verify it's actually used. Check `grep -r "import.*filename" apps/` |
+| **Account 2105 was missing from seed**               | RESOLVED | Added to `packages/database/prisma/seed.ts` - always verify accounts exist before creating journal entries          |
 
 ---
 
@@ -168,6 +205,23 @@ vi.mock('../services/InvoicePostingSaga', () => ({
     return mockInvoicePostingSaga;
   },
 }));
+```
+
+### Business Flow Prerequisite Pattern
+
+```typescript
+// In Service layer, validate prerequisites via Policy before creating document
+async createFromPurchaseOrder(companyId: string, data: CreateBillInput) {
+  const order = await this.repository.findOrder(data.orderId, companyId, OrderType.PURCHASE);
+  if (!order) throw new DomainError('PO not found', 404);
+  
+  // Policy validations
+  BillPolicy.ensureOrderReadyForBill(order);  // Check PO status
+  const grnCount = await this.inventoryRepository.countByOrderReference(companyId, data.orderId, 'IN');
+  BillPolicy.ensureGoodsReceived(grnCount);   // Check GRN exists
+  
+  // Proceed with creation...
+}
 ```
 
 ---
