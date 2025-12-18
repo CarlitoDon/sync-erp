@@ -229,6 +229,11 @@ async function main() {
         type: 'LIABILITY' as const,
       },
       {
+        code: '2105',
+        name: 'Accrued Liability (GRN)',
+        type: 'LIABILITY' as const,
+      },
+      {
         code: '2200',
         name: 'Sales Tax Payable',
         type: 'LIABILITY' as const,
@@ -459,8 +464,8 @@ async function main() {
     ];
 
     for (const prod of PRODUCTS) {
-      // Create Product
-      const product = await prisma.product.upsert({
+      // Create Product (no initial stock - will be added via GRN through API)
+      await prisma.product.upsert({
         where: {
           companyId_sku: { companyId: demoCompany.id, sku: prod.sku },
         },
@@ -471,158 +476,27 @@ async function main() {
           name: prod.name,
           price: prod.price,
           averageCost: prod.cost,
-          stockQty: prod.stock, // Set initial cache
-        },
-      });
-
-      // Create Initial Movement
-      if (prod.stock > 0) {
-        await prisma.inventoryMovement.create({
-          data: {
-            companyId: demoCompany.id,
-            productId: product.id,
-            type: 'IN',
-            quantity: prod.stock,
-            reference: 'INITIAL_SEED',
-            date: new Date(),
-          },
-        });
-      }
-    }
-    // ==========================================
-    // 4. Seed Transactions (SO, PO, Invoices, Bills)
-    // ==========================================
-    console.warn('💰 Seeding Transactions...');
-
-    // Helper to find partner by name
-    const findPartner = async (name: string) => {
-      return prisma.partner.findFirst({
-        where: {
-          companyId: demoCompany.id,
-          name: { contains: name },
-        },
-      });
-    };
-
-    // Helper to find product by SKU
-    const findProduct = async (sku: string) => {
-      return prisma.product.findUnique({
-        where: { companyId_sku: { companyId: demoCompany.id, sku } },
-      });
-    };
-
-    const customer = await findPartner('Adi Santoso');
-    const supplier = await findPartner('Component Ind');
-    const product1 = await findProduct('LAP-001'); // Laptop
-    const product2 = await findProduct('MOU-001'); // Mouse
-
-    if (customer && supplier && product1 && product2) {
-      // --- 4a. Sales Order (Draft) ---
-      await prisma.order.create({
-        data: {
-          companyId: demoCompany.id,
-          partnerId: customer.id,
-          type: 'SALES',
-          status: 'DRAFT',
-          orderNumber: 'SO-001',
-          date: new Date(),
-          totalAmount: 15350000,
-          items: {
-            create: [
-              {
-                productId: product1.id,
-                quantity: 1,
-                price: 15000000,
-              },
-              { productId: product2.id, quantity: 1, price: 350000 },
-            ],
-          },
-        },
-      });
-
-      // --- 4b. Purchase Order (Confirmed) -> Bill ---
-      const po = await prisma.order.create({
-        data: {
-          companyId: demoCompany.id,
-          partnerId: supplier.id,
-          type: 'PURCHASE',
-          status: 'CONFIRMED',
-          orderNumber: 'PO-001',
-          date: new Date(),
-          totalAmount: 120000000, // 10 Laptops cost
-          items: {
-            create: [
-              {
-                productId: product1.id,
-                quantity: 10,
-                price: 12000000,
-              },
-            ],
-          },
-        },
-      });
-
-      // Create Bill for PO
-      await prisma.invoice.create({
-        data: {
-          companyId: demoCompany.id,
-          partnerId: supplier.id,
-          orderId: po.id,
-          type: 'BILL',
-          status: 'POSTED',
-          invoiceNumber: 'BILL-PO-001',
-          dueDate: new Date(
-            new Date().setDate(new Date().getDate() + 30)
-          ), // +30 days
-          amount: 120000000,
-          subtotal: 120000000,
-          balance: 120000000,
-        },
-      });
-
-      // --- 4c. Sales Order (Completed) -> Invoice ---
-      const so = await prisma.order.create({
-        data: {
-          companyId: demoCompany.id,
-          partnerId: customer.id,
-          type: 'SALES',
-          status: 'COMPLETED',
-          orderNumber: 'SO-002',
-          date: new Date(),
-          totalAmount: 30000000,
-          items: {
-            create: [
-              {
-                productId: product1.id,
-                quantity: 2,
-                price: 15000000,
-              },
-            ],
-          },
-        },
-      });
-
-      // Create Invoice for SO
-      await prisma.invoice.create({
-        data: {
-          companyId: demoCompany.id,
-          partnerId: customer.id,
-          orderId: so.id,
-          type: 'INVOICE',
-          status: 'DRAFT',
-          invoiceNumber: 'INV-SO-002',
-          dueDate: new Date(
-            new Date().setDate(new Date().getDate() + 14)
-          ), // +14 days
-          amount: 30000000,
-          subtotal: 30000000,
-          balance: 30000000,
+          stockQty: 0, // No initial stock - will come from GRN via API
         },
       });
     }
+    // ==========================================
+    // NOTE: Transactions (SO, PO, Invoices, Bills, Payments)
+    // are NOT seeded here to ensure proper business logic.
+    // Use ./scripts/seed-via-api.sh after base seed to create
+    // transactions through the API with proper:
+    // - Journal entries
+    // - Balance updates
+    // - Saga logs
+    // - Inventory movements
+    // ==========================================
   }
 
   console.warn('🎉 Database seed completed!');
+  console.warn('');
+  console.warn(
+    '📌 Next step: Run ./scripts/seed-via-api.sh to create transactions'
+  );
 }
 
 main()
