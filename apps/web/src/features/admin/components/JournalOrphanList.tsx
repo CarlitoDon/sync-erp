@@ -1,11 +1,5 @@
-import { useCompanyData } from '@/hooks/useCompanyData';
-import {
-  adminService,
-  type OrphanJournal,
-} from '@/features/admin/services/admin.service';
+import { trpc } from '@/lib/trpc';
 import { formatCurrency } from '@/utils/format';
-
-const defaultOrphans: OrphanJournal[] = [];
 
 /**
  * JournalOrphanList component - displays orphan journal entries.
@@ -15,13 +9,12 @@ const defaultOrphans: OrphanJournal[] = [];
  */
 export function JournalOrphanList() {
   const {
-    data: result,
-    loading,
+    data,
+    isLoading: loading,
     error,
-  } = useCompanyData(async () => {
-    const response = await adminService.getOrphanJournals();
-    return response.data;
-  }, defaultOrphans);
+  } = trpc.admin.getOrphanJournals.useQuery({});
+
+  const result = data?.data || [];
 
   if (loading) {
     return (

@@ -97,6 +97,27 @@ export const inventoryRouter = router({
     .mutation(async ({ ctx, input }) => {
       return inventoryService.postShipment(ctx.companyId!, input.id);
     }),
+
+  /**
+   * Adjust stock (manual correction)
+   */
+  adjustStock: protectedProcedure
+    .input(
+      z.object({
+        productId: z.string().uuid(),
+        quantity: z.number(),
+        costPerUnit: z.number().optional(),
+        reference: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return inventoryService.adjustStock(ctx.companyId!, {
+        productId: input.productId,
+        quantity: input.quantity,
+        costPerUnit: input.costPerUnit ?? 0,
+        reference: input.reference,
+      });
+    }),
 });
 
 export type InventoryRouter = typeof inventoryRouter;

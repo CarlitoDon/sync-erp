@@ -1,32 +1,22 @@
-import { useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import {
-  financeService,
-  JournalEntry,
-} from '@/features/finance/services/financeService';
+import { trpc } from '@/lib/trpc';
+import { useCompany } from '@/contexts/CompanyContext';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 
 export default function JournalDetail() {
   const { id } = useParams<{ id: string }>();
-
-  const fetchJournal = useCallback(async () => {
-    if (!id) return null;
-    return await financeService.getJournal(id);
-  }, [id]);
+  const { currentCompany } = useCompany();
 
   const {
     data: journal,
-    loading,
+    isLoading: loading,
     error,
-    refresh,
-  } = useCompanyData<JournalEntry | null>(fetchJournal, null);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  } = trpc.finance.getJournalById.useQuery(
+    { id: id! },
+    { enabled: !!id && !!currentCompany?.id }
+  );
 
   if (loading && !journal) {
     return (

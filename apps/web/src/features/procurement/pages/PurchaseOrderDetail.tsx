@@ -1,10 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import {
-  purchaseOrderService,
-  PurchaseOrder,
-} from '@/features/procurement/services/purchaseOrderService';
-import { billService } from '@/features/finance/services/billService';
+import { useState } from 'react';
+import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
@@ -17,38 +13,40 @@ export default function PurchaseOrderDetail() {
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
-
-  const [order, setOrder] = useState<PurchaseOrder | null>(null);
-  const [loading, setLoading] = useState(true);
+  const utils = trpc.useUtils();
   const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(
     null
   );
 
-  const loadOrder = async () => {
-    if (!id || !currentCompany) return;
-    setLoading(true);
-    try {
-      const data = await purchaseOrderService.getById(id);
-      setOrder(data);
-    } catch (error) {
-      console.error('Failed to load order:', error);
-      navigate('/purchase-orders');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: order, isLoading: loading } =
+    trpc.purchaseOrder.getById.useQuery(
+      { id: id! },
+      { enabled: !!id && !!currentCompany?.id }
+    );
 
-  useEffect(() => {
-    loadOrder();
-  }, [id, currentCompany]);
+  const confirmMutation = trpc.purchaseOrder.confirm.useMutation({
+    onSuccess: () =>
+      utils.purchaseOrder.getById.invalidate({ id: id! }),
+  });
+
+  const cancelMutation = trpc.purchaseOrder.cancel.useMutation({
+    onSuccess: () =>
+      utils.purchaseOrder.getById.invalidate({ id: id! }),
+  });
+
+  const createBillMutation = trpc.bill.createFromPO.useMutation({
+    onSuccess: () => {
+      utils.purchaseOrder.getById.invalidate({ id: id! });
+      utils.bill.list.invalidate();
+    },
+  });
 
   const handleConfirm = async () => {
     if (!order) return;
     await apiAction(
-      () => purchaseOrderService.confirm(order.id),
+      () => confirmMutation.mutateAsync({ id: order.id }),
       'Order confirmed!'
     );
-    loadOrder();
   };
 
   const handleCancel = async () => {
@@ -61,21 +59,17 @@ export default function PurchaseOrderDetail() {
     });
     if (!confirmed) return;
     await apiAction(
-      () => purchaseOrderService.cancel(order.id),
+      () => cancelMutation.mutateAsync({ id: order.id }),
       'Order cancelled'
     );
-    loadOrder();
   };
 
   const handleCreateBill = async () => {
     if (!order) return;
-    const result = await apiAction(
-      () => billService.createFromPO(order.id),
+    await apiAction(
+      () => createBillMutation.mutateAsync({ orderId: order.id }),
       'Bill created from Purchase Order!'
     );
-    if (result) {
-      loadOrder();
-    }
   };
 
   const getStatusColor = (status: string) => {
@@ -143,7 +137,7 @@ export default function PurchaseOrderDetail() {
         onClose={() => setGoodsReceiptId(null)}
         onSuccess={() => {
           setGoodsReceiptId(null);
-          loadOrder();
+          utils.purchaseOrder.getById.invalidate({ id: id! });
         }}
       />
 

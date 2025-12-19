@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useCompany } from '@/contexts/CompanyContext';
-import {
-  createShipment,
-  postShipment,
-  CreateShipmentInput,
-} from '@/features/inventory/services/inventoryService';
+import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -48,10 +44,18 @@ export function ShipmentModal({
   onSuccess,
 }: ShipmentModalProps) {
   const { currentCompany } = useCompany();
-  const [loading, setLoading] = useState(false);
+  const utils = trpc.useUtils();
   const [step, setStep] = useState<
     'confirm' | 'processing' | 'shipped'
   >('confirm');
+
+  const createMutation = trpc.inventory.createShipment.useMutation({
+    onSuccess: () => utils.inventory.listShipments.invalidate(),
+  });
+
+  const postMutation = trpc.inventory.postShipment.useMutation({
+    onSuccess: () => utils.inventory.listShipments.invalidate(),
+  });
 
   // Pre-fill items from SO
   const defaultItems = orderItems.map((item) => ({
@@ -73,27 +77,23 @@ export function ShipmentModal({
     },
   });
 
+  const loading = createMutation.isPending || postMutation.isPending;
+
   const onSubmit = async (data: FormData) => {
     if (!currentCompany) return;
-    setLoading(true);
     setStep('processing');
 
     try {
       // Step 1: Create Shipment
-      const shipmentInput: CreateShipmentInput = {
+      const shipment = await createMutation.mutateAsync({
         salesOrderId,
         notes: data.notes,
         date: data.date?.toISOString(),
         items: data.items.filter((item) => item.quantity > 0),
-      };
-
-      const shipment = await createShipment(
-        currentCompany.id,
-        shipmentInput
-      );
+      });
 
       // Step 2: Post Shipment (Stock OUT)
-      await postShipment(currentCompany.id, shipment.id);
+      await postMutation.mutateAsync({ id: shipment.id });
 
       setStep('shipped');
 
@@ -105,9 +105,6 @@ export function ShipmentModal({
       }, 500);
     } catch {
       setStep('confirm');
-      // Error toast handled by service
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -237,10 +234,9 @@ export function ShipmentModal({
             </Button>
             <Button
               type="submit"
-              isLoading={loading}
-              disabled={step !== 'confirm'}
+              disabled={step !== 'confirm' || loading}
             >
-              {step === 'confirm' ? 'Ship All' : 'Processing...'}
+              {loading ? 'Processing...' : 'Ship All'}
             </Button>
           </DialogFooter>
         </form>

@@ -1,11 +1,10 @@
-import { useCompanyData } from '@/hooks/useCompanyData';
-import {
-  dashboardService,
-  type DashboardKPIs,
-} from '@/features/dashboard/services/dashboardService';
+import { useCompany } from '@/contexts/CompanyContext';
+import { trpc, RouterOutputs } from '@/lib/trpc';
 import { StatCard } from '@/features/dashboard/components/StatCard';
 
-const defaultKPIs: DashboardKPIs = {
+type DashboardKPIsType = RouterOutputs['dashboard']['getKPIs'];
+
+const defaultKPIs: DashboardKPIsType = {
   totalSales: 0,
   outstandingAR: 0,
   outstandingAP: 0,
@@ -21,10 +20,12 @@ const defaultKPIs: DashboardKPIs = {
  * Per FR-002: Data refreshed on page load (no auto-refresh)
  */
 export function DashboardKPIs() {
-  const { data: kpis, loading } = useCompanyData(
-    () => dashboardService.getKPIs(),
-    defaultKPIs
-  );
+  const { currentCompany } = useCompany();
+
+  const { data: kpis = defaultKPIs, isLoading: loading } =
+    trpc.dashboard.getKPIs.useQuery(undefined, {
+      enabled: !!currentCompany?.id,
+    });
 
   return (
     <div className="mb-8">
@@ -34,25 +35,25 @@ export function DashboardKPIs() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Sales"
-          value={kpis.totalSales}
+          value={Number(kpis.totalSales)}
           currency={kpis.currency}
           isLoading={loading}
         />
         <StatCard
           title="Outstanding Receivables"
-          value={kpis.outstandingAR}
+          value={Number(kpis.outstandingAR)}
           currency={kpis.currency}
           isLoading={loading}
         />
         <StatCard
           title="Outstanding Payables"
-          value={kpis.outstandingAP}
+          value={Number(kpis.outstandingAP)}
           currency={kpis.currency}
           isLoading={loading}
         />
         <StatCard
           title="Inventory Value"
-          value={kpis.inventoryValue}
+          value={Number(kpis.inventoryValue)}
           currency={kpis.currency}
           isLoading={loading}
         />

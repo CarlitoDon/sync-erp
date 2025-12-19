@@ -1,24 +1,12 @@
 import { useState } from 'react';
 import ActionButton from '@/components/ui/ActionButton';
 import Select from '@/components/ui/Select';
-import {
-  purchaseOrderService,
-  CreatePurchaseOrderInput,
-} from '@/features/procurement/services/purchaseOrderService';
-import {
-  partnerService,
-  Partner,
-} from '@/features/partners/services/partnerService';
-import {
-  productService,
-  Product,
-} from '@/features/inventory/services/productService';
 import { useCompany } from '@/contexts/CompanyContext';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import { apiAction } from '@/hooks/useApiAction';
 import FormModal from '@/components/ui/FormModal';
 import PurchaseOrderList from '@/features/procurement/components/PurchaseOrderList';
 import { formatCurrency } from '@/utils/format';
+import { trpc } from '@/lib/trpc';
+import usePurchaseOrder from '@/features/procurement/hooks/usePurchaseOrder';
 
 interface OrderItemForm {
   productId: string;
@@ -26,41 +14,29 @@ interface OrderItemForm {
   price: number;
 }
 
-interface PurchaseOrdersData {
-  suppliers: Partner[];
-  products: Product[];
-}
-
 export default function PurchaseOrders() {
   const { currentCompany } = useCompany();
+  const { createOrder, refresh } = usePurchaseOrder();
 
-  const {
-    data: { suppliers, products },
-    loading,
-    refresh: loadData,
-  } = useCompanyData<PurchaseOrdersData>(
-    async () => {
-      const [suppliersData, productsData] = await Promise.all([
-        partnerService.listSuppliers(),
-        productService.list(),
-      ]);
-      return {
-        suppliers: suppliersData,
-        products: productsData,
-      };
-    },
-    {
-      suppliers: [],
-      products: [],
-    }
+  const { data: suppliers } = trpc.partner.list.useQuery(
+    { type: 'SUPPLIER' },
+    { enabled: !!currentCompany?.id, initialData: [] }
   );
+
+  const { data: products } = trpc.product.list.useQuery(undefined, {
+    enabled: !!currentCompany?.id,
+    initialData: [],
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [formData, setFormData] = useState<CreatePurchaseOrderInput>({
+  // We can use a simpler state or infer from tRPC router inputs
+  const [formData, setFormData] = useState({
     partnerId: '',
-    items: [],
+    items: [] as OrderItemForm[],
+    taxRate: 0,
   });
+
   const [currentItem, setCurrentItem] = useState<OrderItemForm>({
     productId: '',
     quantity: 1,
@@ -87,19 +63,19 @@ export default function PurchaseOrders() {
     e.preventDefault();
     if (!formData.partnerId || formData.items.length === 0) return;
 
-    const result = await apiAction(
-      () => purchaseOrderService.create(formData),
-      'Purchase Order created!'
-    );
-    if (result) {
-      handleClose();
-      loadData();
-    }
+    await createOrder({
+      partnerId: formData.partnerId,
+      items: formData.items,
+      taxRate: formData.taxRate,
+    });
+
+    handleClose();
+    refresh();
   };
 
   const handleClose = () => {
     setIsModalOpen(false);
-    setFormData({ partnerId: '', items: [] });
+    setFormData({ partnerId: '', items: [], taxRate: 0 });
     setCurrentItem({ productId: '', quantity: 1, price: 0 });
   };
 
@@ -119,14 +95,7 @@ export default function PurchaseOrders() {
     return { subtotal, taxAmount, grandTotal, taxRate };
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
+  // Loading is handled by individual components or suspense, for page structure we render content
   if (!currentCompany) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">

@@ -1,13 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import {
-  productService,
-  Product,
-} from '@/features/inventory/services/productService';
-import { getMovements } from '@/features/inventory/services/inventoryService';
-import type { InventoryMovement } from '@sync-erp/shared';
+import { trpc } from '@/lib/trpc';
+import { useCompany } from '@/contexts/CompanyContext';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 
@@ -15,44 +10,26 @@ type Tab = 'history';
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
+  const { currentCompany } = useCompany();
   const [activeTab, setActiveTab] = useState<Tab>('history');
-  const [movements, setMovements] = useState<InventoryMovement[]>([]);
-  const [loadingMovements, setLoadingMovements] = useState(false);
-
-  const fetchProduct = useCallback(async () => {
-    if (!id) return null;
-    return await productService.getById(id);
-  }, [id]);
 
   const {
     data: product,
-    loading,
+    isLoading: loading,
     error,
-    refresh,
-  } = useCompanyData<Product | null>(fetchProduct, null);
+  } = trpc.product.getById.useQuery(
+    { id: id! },
+    { enabled: !!id && !!currentCompany?.id }
+  );
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  useEffect(() => {
-    const loadMovements = async () => {
-      if (!id) return;
-      setLoadingMovements(true);
-      try {
-        const data = await getMovements(id);
-        setMovements(data);
-      } catch (err) {
-        console.error('Failed to load movements', err);
-      } finally {
-        setLoadingMovements(false);
+  const { data: movements = [], isLoading: loadingMovements } =
+    trpc.inventory.getMovements.useQuery(
+      { productId: id },
+      {
+        enabled:
+          !!id && !!currentCompany?.id && activeTab === 'history',
       }
-    };
-
-    if (activeTab === 'history') {
-      loadMovements();
-    }
-  }, [id, activeTab]);
+    );
 
   if (loading && !product) {
     return (
@@ -118,15 +95,22 @@ export default function ProductDetail() {
                   {formatCurrency(Number(product.price))}
                 </div>
               </div>
-              {/* Description removed as not in Product type yet */}
-              {/* <div>
+              <div>
                 <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Description
+                  Average Cost
                 </label>
-                <div className="mt-1 text-sm text-gray-900">
-                  -
+                <div className="mt-1 text-lg font-medium text-gray-900">
+                  {formatCurrency(Number(product.averageCost))}
                 </div>
-              </div> */}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Stock Quantity
+                </label>
+                <div className="mt-1 text-lg font-medium text-gray-900">
+                  {product.stockQty}
+                </div>
+              </div>
             </div>
 
             <div className="mt-6 pt-6 border-t border-gray-100">

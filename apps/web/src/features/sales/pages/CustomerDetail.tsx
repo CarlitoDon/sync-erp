@@ -1,11 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import {
-  partnerService,
-  Partner,
-} from '@/features/partners/services/partnerService';
+import { trpc } from '@/lib/trpc';
+// import { useCompany } from '@/contexts/CompanyContext';
 import ActionButton from '@/components/ui/ActionButton';
 import SalesOrderList from '@/features/sales/components/SalesOrderList';
 import { InvoiceList } from '@/features/finance/components/InvoiceList';
@@ -16,21 +13,13 @@ type Tab = 'orders' | 'invoices' | 'payments';
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<Tab>('orders');
-  const fetchCustomer = useCallback(async () => {
-    if (!id) return null;
-    return await partnerService.getById(id);
-  }, [id]);
+  // const { currentCompany } = useCompany();
 
   const {
     data: customer,
-    loading,
+    isLoading: loading,
     error,
-    refresh,
-  } = useCompanyData<Partner | null>(fetchCustomer, null);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  } = trpc.partner.getById.useQuery({ id: id! }, { enabled: !!id });
 
   if (loading && !customer) {
     return (

@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoginPayload } from '@/features/auth/services/authService';
-import { AxiosError } from 'axios';
+import { LoginPayload } from '@sync-erp/shared';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -23,11 +22,8 @@ export const LoginPage: React.FC = () => {
       await login(formData);
       // Success
       navigate('/select-company');
-    } catch (err) {
-      setError(
-        (err as AxiosError<{ error: { message: string } }>)?.response
-          ?.data?.error?.message || 'Login failed'
-      );
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }

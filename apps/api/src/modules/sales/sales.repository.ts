@@ -7,6 +7,7 @@ import {
   Prisma,
   Product,
   Partner,
+  Invoice,
 } from '@sync-erp/database';
 
 export class SalesRepository {
@@ -30,6 +31,7 @@ export class SalesRepository {
     | (Order & {
         items: (OrderItem & { product: Product })[];
         partner: Partner | null;
+        invoices: Invoice[];
       })
     | null
   > {

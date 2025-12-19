@@ -10,6 +10,13 @@ export const dashboardRouter = router({
   getKPIs: protectedProcedure.query(async ({ ctx }) => {
     return dashboardService.getKPIs(ctx.companyId!);
   }),
+
+  /**
+   * Get dashboard metrics (detailed)
+   */
+  getMetrics: protectedProcedure.query(async ({ ctx }) => {
+    return dashboardService.getMetrics(ctx.companyId!);
+  }),
 });
 
 export type DashboardRouter = typeof dashboardRouter;

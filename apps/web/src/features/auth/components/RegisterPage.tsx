@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { RegisterPayload } from '@/features/auth/services/authService';
-import { AxiosError } from 'axios';
+import { RegisterPayload } from '@sync-erp/shared';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,11 +23,8 @@ export const RegisterPage: React.FC = () => {
       await register(formData);
       // Success
       navigate('/');
-    } catch (err) {
-      setError(
-        (err as AxiosError<{ error: { message: string } }>)?.response
-          ?.data?.error?.message || 'Registration failed'
-      );
+    } catch (err: any) {
+      setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }

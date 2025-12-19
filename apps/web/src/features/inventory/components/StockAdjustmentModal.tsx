@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { StockAdjustmentInput } from '@sync-erp/shared';
 import { useCompany } from '@/contexts/CompanyContext';
-import { adjustStock } from '@/features/inventory/services/inventoryService';
-import { apiAction } from '@/utils/apiAction';
+import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -37,15 +35,23 @@ export function StockAdjustmentModal({
   initialProductId,
 }: StockAdjustmentModalProps) {
   const { currentCompany } = useCompany();
-  const [loading, setLoading] = useState(false);
+  const utils = trpc.useUtils();
   const [adjustmentType, setAdjustmentType] = useState<
     'INCREMENT' | 'DECREMENT'
   >('INCREMENT');
 
+  const adjustMutation = trpc.inventory.adjustStock.useMutation({
+    onSuccess: () => {
+      utils.inventory.getStockLevels.invalidate();
+      utils.inventory.getMovements.invalidate();
+      onSuccess?.();
+      onClose();
+      reset();
+    },
+  });
+
   const { register, handleSubmit, reset } =
     useForm<StockAdjustmentFormData>({
-      // Use any for form, map to StockAdjustmentInput on submit
-      resolver: undefined, // Manual validation or simple Zod schema local
       defaultValues: {
         productId: initialProductId,
         quantity: 0,
@@ -57,27 +63,15 @@ export function StockAdjustmentModal({
   const onSubmit = async (data: StockAdjustmentFormData) => {
     if (!currentCompany) return;
 
-    // Transform data to StockAdjustmentInput
-    const payload: StockAdjustmentInput = {
+    await adjustMutation.mutateAsync({
       productId: data.productId,
       quantity:
         adjustmentType === 'DECREMENT'
           ? -Math.abs(data.quantity)
           : Math.abs(data.quantity),
       costPerUnit: Number(data.costPerUnit),
-      reference: data.reason,
-    };
-
-    setLoading(true);
-    await apiAction(() => adjustStock(currentCompany.id, payload), {
-      onSuccess: () => {
-        onSuccess?.();
-        onClose();
-        reset();
-      },
-      onError: () => setLoading(false),
+      reference: data.reason || undefined,
     });
-    setLoading(false);
   };
 
   return (
@@ -167,8 +161,10 @@ export function StockAdjustmentModal({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Adjusting...' : 'Confirm Adjustment'}
+            <Button type="submit" disabled={adjustMutation.isPending}>
+              {adjustMutation.isPending
+                ? 'Adjusting...'
+                : 'Confirm Adjustment'}
             </Button>
           </DialogFooter>
         </form>

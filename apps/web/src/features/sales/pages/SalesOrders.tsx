@@ -1,19 +1,7 @@
 import { useState } from 'react';
 import { formatCurrency } from '@/utils/format';
-import {
-  salesOrderService,
-  CreateSalesOrderInput,
-} from '@/features/sales/services/salesOrderService';
-import {
-  partnerService,
-  Partner,
-} from '@/features/partners/services/partnerService';
-import {
-  productService,
-  Product,
-} from '@/features/inventory/services/productService';
+import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { useCompanyData } from '@/hooks/useCompanyData';
 import { apiAction } from '@/hooks/useApiAction';
 import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
@@ -26,41 +14,32 @@ interface OrderItemForm {
   price: number;
 }
 
-interface SalesOrdersData {
-  customers: Partner[];
-  products: Product[];
-}
-
 export default function SalesOrders() {
   const { currentCompany } = useCompany();
-  // const confirm = useConfirm();
+  const utils = trpc.useUtils();
 
-  const {
-    data: { customers, products },
-    loading,
-    refresh: loadData,
-  } = useCompanyData<SalesOrdersData>(
-    async () => {
-      const [customersData, productsData] = await Promise.all([
-        partnerService.listCustomers(),
-        productService.list(),
-      ]);
-      return {
-        customers: customersData,
-        products: productsData,
-      };
-    },
-    {
-      customers: [],
-      products: [],
-    }
+  const { data: customers } = trpc.partner.list.useQuery(
+    { type: 'CUSTOMER' },
+    { enabled: !!currentCompany?.id, initialData: [] }
   );
+
+  const { data: products } = trpc.product.list.useQuery(undefined, {
+    enabled: !!currentCompany?.id,
+    initialData: [],
+  });
+
+  const createMutation = trpc.salesOrder.create.useMutation({
+    onSuccess: () => {
+      utils.salesOrder.list.invalidate();
+    },
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [formData, setFormData] = useState<CreateSalesOrderInput>({
+  const [formData, setFormData] = useState({
     partnerId: '',
-    items: [],
+    items: [] as OrderItemForm[],
+    taxRate: 0,
   });
   const [currentItem, setCurrentItem] = useState<OrderItemForm>({
     productId: '',
@@ -88,24 +67,25 @@ export default function SalesOrders() {
     e.preventDefault();
     if (!formData.partnerId || formData.items.length === 0) return;
 
-    const result = await apiAction(
-      () => salesOrderService.create(formData),
+    await apiAction(
+      () =>
+        createMutation.mutateAsync({
+          ...formData,
+          type: 'SALES',
+        }),
       'Sales Order created!'
     );
-    if (result) {
-      handleClose();
-      loadData();
-    }
+    handleClose();
   };
 
   const handleClose = () => {
     setIsModalOpen(false);
-    setFormData({ partnerId: '', items: [] });
+    setFormData({ partnerId: '', items: [], taxRate: 0 });
     setCurrentItem({ productId: '', quantity: 1, price: 0 });
   };
 
   const getProductName = (productId: string) => {
-    const product = products.find((p) => p.id === productId);
+    const product = products?.find((p) => p.id === productId);
     return product?.name || productId;
   };
 
@@ -119,14 +99,6 @@ export default function SalesOrders() {
     const grandTotal = subtotal + taxAmount;
     return { subtotal, taxAmount, grandTotal, taxRate };
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
 
   if (!currentCompany) {
     return (
@@ -177,10 +149,12 @@ export default function SalesOrders() {
                   partnerId: val,
                 })
               }
-              options={customers.map((c) => ({
-                value: c.id,
-                label: c.name,
-              }))}
+              options={
+                customers?.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                })) || []
+              }
               placeholder="Select a customer"
             />
           </div>
@@ -212,7 +186,7 @@ export default function SalesOrders() {
                 <Select
                   value={currentItem.productId}
                   onChange={(val) => {
-                    const product = products.find(
+                    const product = products?.find(
                       (p) => p.id === val
                     );
                     setCurrentItem({
@@ -221,10 +195,12 @@ export default function SalesOrders() {
                       price: product ? Number(product.price) : 0,
                     });
                   }}
-                  options={products.map((p) => ({
-                    value: p.id,
-                    label: `${p.sku} - ${p.name} (Stock: ${p.stockQty})`,
-                  }))}
+                  options={
+                    products?.map((p) => ({
+                      value: p.id,
+                      label: `${p.sku} - ${p.name} (Stock: ${p.stockQty})`,
+                    })) || []
+                  }
                   placeholder="Select product"
                 />
               </div>

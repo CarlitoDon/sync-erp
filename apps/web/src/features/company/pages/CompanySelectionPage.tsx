@@ -2,12 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  createCompany,
-  joinCompany,
-} from '@/features/company/services/companyService';
+import { trpc } from '@/lib/trpc';
 import type { Company } from '@sync-erp/shared';
-import { AxiosError } from 'axios';
 
 export function CompanySelectionPage() {
   const navigate = useNavigate();
@@ -23,11 +19,17 @@ export function CompanySelectionPage() {
     'list'
   );
 
-  // Form states and loading
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // tRPC Mutations
+  const createMutation = trpc.company.create.useMutation();
+  const joinMutation = trpc.company.join.useMutation();
+
+  // Form states
   const [error, setError] = useState<string | null>(null);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+
+  const isSubmitting =
+    createMutation.isPending || joinMutation.isPending;
 
   const handleSelectCompany = (company: Company) => {
     setCurrentCompany(company);
@@ -42,40 +44,30 @@ export function CompanySelectionPage() {
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsSubmitting(true);
     try {
-      const newCompany = await createCompany({
+      const newCompany = await createMutation.mutateAsync({
         name: newCompanyName,
       });
       await refreshCompanies(); // Reload list
-      setCurrentCompany(newCompany); // Auto-select? Or go to list? User story says "Onboard". Let's auto-select.
+      setCurrentCompany(newCompany); // Auto-select
       navigate('/');
-    } catch (err) {
-      setError(
-        (err as AxiosError<{ error: { message: string } }>)?.response
-          ?.data?.error?.message || 'Failed to create company'
-      );
-    } finally {
-      setIsSubmitting(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create company');
     }
   };
 
   const handleJoinCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsSubmitting(true);
     try {
-      const joinedCompany = await joinCompany({ inviteCode });
+      const joinedCompany = await joinMutation.mutateAsync({
+        inviteCode,
+      });
       await refreshCompanies(); // Reload list
       setCurrentCompany(joinedCompany); // Auto-select
       navigate('/');
-    } catch (err) {
-      setError(
-        (err as AxiosError<{ error: { message: string } }>)?.response
-          ?.data?.error?.message || 'Failed to join company'
-      );
-    } finally {
-      setIsSubmitting(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to join company');
     }
   };
 

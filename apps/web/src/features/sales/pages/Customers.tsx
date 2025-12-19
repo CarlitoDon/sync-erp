@@ -1,25 +1,42 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  partnerService,
-  Partner,
-  CreatePartnerInput,
-} from '@/features/partners/services/partnerService';
+import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { useCompanyData } from '@/hooks/useCompanyData';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
 
+interface CreatePartnerInput {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  type: 'SUPPLIER' | 'CUSTOMER';
+}
+
 export default function Customers() {
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
-  const {
-    data: customers,
-    loading,
-    refresh: loadCustomers,
-  } = useCompanyData<Partner[]>(partnerService.listCustomers, []);
+  const utils = trpc.useUtils();
+
+  const { data: customers, isLoading: loading } =
+    trpc.partner.list.useQuery(
+      { type: 'CUSTOMER' },
+      { enabled: !!currentCompany?.id, initialData: [] }
+    );
+
+  const createMutation = trpc.partner.create.useMutation({
+    onSuccess: () => {
+      utils.partner.list.invalidate();
+    },
+  });
+
+  const deleteMutation = trpc.partner.delete.useMutation({
+    onSuccess: () => {
+      utils.partner.list.invalidate();
+    },
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<CreatePartnerInput>({
@@ -47,14 +64,11 @@ export default function Customers() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await apiAction(
-      () => partnerService.create(formData),
+    await apiAction(
+      () => createMutation.mutateAsync(formData),
       'Customer created!'
     );
-    if (result) {
-      handleClose();
-      loadCustomers();
-    }
+    handleClose();
   };
 
   const handleDelete = async (id: string) => {
@@ -66,10 +80,9 @@ export default function Customers() {
     });
     if (!confirmed) return;
     await apiAction(
-      () => partnerService.delete(id),
+      () => deleteMutation.mutateAsync({ id }),
       'Customer deleted'
     );
-    loadCustomers();
   };
 
   if (loading) {

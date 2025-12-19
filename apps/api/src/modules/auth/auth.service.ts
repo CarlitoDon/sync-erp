@@ -94,4 +94,7 @@ export class AuthService {
   async getSession(sessionId: string) {
     return this.repository.getSession(sessionId);
   }
+  async getProfile(userId: string): Promise<User | null> {
+    return this.userService.getById(userId);
+  }
 }

@@ -1,10 +1,4 @@
-import { useCompanyData } from '@/hooks/useCompanyData';
-import {
-  adminService,
-  type SagaLog,
-} from '@/features/admin/services/admin.service';
-
-const defaultSagaLogs: SagaLog[] = [];
+import { trpc } from '@/lib/trpc';
 
 /**
  * SagaFailureList component - displays failed/compensated sagas.
@@ -15,13 +9,12 @@ const defaultSagaLogs: SagaLog[] = [];
  */
 export function SagaFailureList() {
   const {
-    data: result,
-    loading,
+    data,
+    isLoading: loading,
     error,
-  } = useCompanyData(async () => {
-    const response = await adminService.getSagaLogs();
-    return response.data;
-  }, defaultSagaLogs);
+  } = trpc.admin.getSagaLogs.useQuery({});
+
+  const result = data?.data || [];
 
   const getStepBadge = (step: string) => {
     switch (step) {

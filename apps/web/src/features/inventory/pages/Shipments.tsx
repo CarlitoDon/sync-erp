@@ -1,15 +1,14 @@
 import { Link } from 'react-router-dom';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import {
-  listShipments,
-  ShipmentResponse,
-} from '@/features/inventory/services/inventoryService';
 import { formatDate } from '@/utils/format';
+import { trpc } from '@/lib/trpc';
+import { useCompany } from '@/contexts/CompanyContext';
 
 export default function Shipments() {
-  const { data: shipments, loading } = useCompanyData<
-    ShipmentResponse[]
-  >((companyId) => listShipments(companyId), []);
+  const { currentCompany } = useCompany();
+  const { data: shipments = [], isLoading: loading } =
+    trpc.inventory.listShipments.useQuery(undefined, {
+      enabled: !!currentCompany?.id,
+    });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -57,9 +56,6 @@ export default function Shipments() {
                 Date
               </th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                Items
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                 Status
               </th>
             </tr>
@@ -99,9 +95,6 @@ export default function Shipments() {
                   </td>
                   <td className="px-6 py-4 text-gray-500">
                     {formatDate(shipment.date)}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    {shipment.items?.length || 0}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span

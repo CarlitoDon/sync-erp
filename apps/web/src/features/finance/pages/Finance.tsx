@@ -1,11 +1,6 @@
 import { useState, useMemo } from 'react';
-import {
-  financeService,
-  Account,
-  TrialBalance,
-} from '@/features/finance/services/financeService';
+import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { useCompanyData } from '@/hooks/useCompanyData';
 import { apiAction } from '@/hooks/useApiAction';
 import {
   FinancialReport,
@@ -20,31 +15,37 @@ import Select from '@/components/ui/Select';
 const isDebitNormal = (type: string) =>
   ['ASSET', 'EXPENSE'].includes(type);
 
-interface FinanceData {
-  accounts: Account[];
-  trialBalance: TrialBalance | null;
-}
-
 export default function Finance() {
   const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
 
-  const {
-    data: { accounts, trialBalance },
-    loading,
-    refresh: loadData,
-  } = useCompanyData<FinanceData>(
-    async () => {
-      const [accountsData, tbData] = await Promise.all([
-        financeService.listAccounts(),
-        financeService.getTrialBalance(),
-      ]);
-      return {
-        accounts: accountsData,
-        trialBalance: tbData,
-      };
+  const { data: accounts, isLoading: accountsLoading } =
+    trpc.finance.listAccounts.useQuery(undefined, {
+      enabled: !!currentCompany?.id,
+      initialData: [],
+    });
+
+  const { data: trialBalance, isLoading: tbLoading } =
+    trpc.finance.getTrialBalance.useQuery(undefined, {
+      enabled: !!currentCompany?.id,
+    });
+
+  const loading = accountsLoading || tbLoading;
+
+  const seedMutation = trpc.finance.seedAccounts.useMutation({
+    onSuccess: () => {
+      utils.finance.listAccounts.invalidate();
+      utils.finance.getTrialBalance.invalidate();
     },
-    { accounts: [], trialBalance: null }
-  );
+  });
+
+  const createAccountMutation =
+    trpc.finance.createAccount.useMutation({
+      onSuccess: () => {
+        utils.finance.listAccounts.invalidate();
+        utils.finance.getTrialBalance.invalidate();
+      },
+    });
 
   const [activeTab, setActiveTab] = useState<
     'overview' | 'reports' | 'journals'
@@ -56,28 +57,29 @@ export default function Finance() {
   const [newAccount, setNewAccount] = useState({
     code: '',
     name: '',
-    type: 'ASSET' as Account['type'],
+    type: 'ASSET' as
+      | 'ASSET'
+      | 'LIABILITY'
+      | 'EQUITY'
+      | 'REVENUE'
+      | 'EXPENSE',
   });
 
   const handleSeedAccounts = async () => {
     await apiAction(
-      () => financeService.seedDefaultAccounts(),
+      () => seedMutation.mutateAsync(),
       'Default accounts seeded!'
     );
-    loadData();
   };
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await apiAction(
-      () => financeService.createAccount(newAccount),
+    await apiAction(
+      () => createAccountMutation.mutateAsync(newAccount),
       'Account created!'
     );
-    if (result) {
-      setIsAccountModalOpen(false);
-      setNewAccount({ code: '', name: '', type: 'ASSET' });
-      loadData();
-    }
+    setIsAccountModalOpen(false);
+    setNewAccount({ code: '', name: '', type: 'ASSET' });
   };
 
   const handleCloseAccountModal = () => {
@@ -357,7 +359,12 @@ export default function Finance() {
                     onChange={(val) =>
                       setNewAccount({
                         ...newAccount,
-                        type: val as Account['type'],
+                        type: val as
+                          | 'ASSET'
+                          | 'LIABILITY'
+                          | 'EQUITY'
+                          | 'REVENUE'
+                          | 'EXPENSE',
                       })
                     }
                     options={[

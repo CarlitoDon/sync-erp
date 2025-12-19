@@ -1,10 +1,6 @@
 import { Link } from 'react-router-dom';
-import {
-  productService,
-  StockLevel,
-} from '@/features/inventory/services/productService';
+import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { useCompanyData } from '@/hooks/useCompanyData';
 import { StockAdjustmentModal } from '@/features/inventory/components/StockAdjustmentModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { useState } from 'react';
@@ -12,10 +8,12 @@ import { useState } from 'react';
 export default function Inventory() {
   const { currentCompany } = useCompany();
   const {
-    data: stockLevels,
-    loading,
-    refresh: loadStockLevels,
-  } = useCompanyData<StockLevel[]>(productService.getStockLevels, []);
+    data: stockLevels = [],
+    isLoading: loading,
+    refetch: loadStockLevels,
+  } = trpc.inventory.getStockLevels.useQuery(undefined, {
+    enabled: !!currentCompany?.id,
+  });
 
   const [adjustingProductId, setAdjustingProductId] = useState<
     string | null
@@ -63,7 +61,7 @@ export default function Inventory() {
           </p>
         </div>
         <button
-          onClick={loadStockLevels}
+          onClick={() => loadStockLevels()}
           className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
         >
           ↻ Refresh

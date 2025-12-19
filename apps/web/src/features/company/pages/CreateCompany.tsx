@@ -1,39 +1,39 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreateCompanySchema } from '@sync-erp/shared';
-import { createCompany } from '@/features/company/services/companyService';
+import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 
 export default function CreateCompany() {
   const navigate = useNavigate();
-  const { setCompanies, companies, setCurrentCompany } = useCompany();
+  const utils = trpc.useUtils();
+  const { setCurrentCompany } = useCompany();
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const createMutation = trpc.company.create.useMutation({
+    onSuccess: (company) => {
+      utils.company.list.invalidate();
+      setCurrentCompany(company);
+      localStorage.setItem('currentCompanyId', company.id);
+      navigate('/');
+    },
+    onError: (err) => {
+      setError(
+        err.message || 'Failed to create company. Please try again.'
+      );
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Validate input
-    const validation = CreateCompanySchema.safeParse({ name });
-    if (!validation.success) {
-      setError(validation.error.errors[0].message);
+    if (!name || name.length < 2) {
+      setError('Company name must be at least 2 characters');
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const company = await createCompany({ name });
-      setCompanies([...companies, company]);
-      setCurrentCompany(company);
-      localStorage.setItem('currentCompanyId', company.id);
-      navigate('/');
-    } catch {
-      setError('Failed to create company. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    createMutation.mutate({ name });
   };
 
   return (
@@ -61,7 +61,7 @@ export default function CreateCompany() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter company name"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-              disabled={isLoading}
+              disabled={createMutation.isPending}
             />
           </div>
 
@@ -76,16 +76,18 @@ export default function CreateCompany() {
               type="button"
               onClick={() => navigate('/companies')}
               className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              disabled={isLoading}
+              disabled={createMutation.isPending}
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={createMutation.isPending}
               className="flex-1 px-4 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transition-all disabled:opacity-50"
             >
-              {isLoading ? 'Creating...' : 'Create Company'}
+              {createMutation.isPending
+                ? 'Creating...'
+                : 'Create Company'}
             </button>
           </div>
         </form>

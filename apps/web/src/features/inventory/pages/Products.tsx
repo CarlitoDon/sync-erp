@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  productService,
-  Product,
-  CreateProductInput,
-} from '@/features/inventory/services/productService';
+import { CreateProductInput } from '@sync-erp/shared';
+import { trpc } from '@/lib/trpc';
+
 import { useCompany } from '@/contexts/CompanyContext';
-import { useCompanyData } from '@/hooks/useCompanyData';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
@@ -15,11 +12,20 @@ import FormModal from '@/components/ui/FormModal';
 export default function Products() {
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
-  const {
-    data: products,
-    loading,
-    refresh: loadProducts,
-  } = useCompanyData<Product[]>(productService.list, []);
+  const utils = trpc.useUtils();
+
+  const { data: products = [], isLoading: loading } =
+    trpc.product.list.useQuery(undefined, {
+      enabled: !!currentCompany?.id,
+    });
+
+  const createMutation = trpc.product.create.useMutation({
+    onSuccess: () => utils.product.list.invalidate(),
+  });
+
+  const deleteMutation = trpc.product.delete.useMutation({
+    onSuccess: () => utils.product.list.invalidate(),
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<CreateProductInput>({
@@ -40,12 +46,11 @@ export default function Products() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = await apiAction(
-      () => productService.create(formData),
+      () => createMutation.mutateAsync(formData),
       'Product created!'
     );
     if (result) {
       handleClose();
-      loadProducts();
     }
   };
 
@@ -58,10 +63,9 @@ export default function Products() {
     });
     if (!confirmed) return;
     await apiAction(
-      () => productService.delete(id),
+      () => deleteMutation.mutateAsync({ id }),
       'Product deleted'
     );
-    loadProducts();
   };
 
   const formatCurrency = (value: number) => {

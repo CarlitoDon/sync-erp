@@ -1,91 +1,79 @@
 import { useCallback } from 'react';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import { apiAction } from '@/hooks/useApiAction';
 import { useCompany } from '@/contexts/CompanyContext';
-import {
-  createGoodsReceipt,
-  listGoodsReceipts,
-  getGoodsReceipt,
-  postGoodsReceipt,
-  CreateGoodsReceiptInput,
-  GoodsReceiptResponse,
-} from '@/features/inventory/services/inventoryService';
+import { trpc, RouterInputs } from '@/lib/trpc';
+import { apiAction } from '@/hooks/useApiAction';
 
-export interface UseGoodsReceiptOptions {
-  // Add filters if needed in future
-}
+type CreateGRNInput = RouterInputs['inventory']['createGRN'];
 
-export interface UseGoodsReceiptReturn {
-  receipts: GoodsReceiptResponse[];
-  loading: boolean;
-  refresh: () => Promise<void>;
-  createReceipt: (
-    data: CreateGoodsReceiptInput
-  ) => Promise<GoodsReceiptResponse | undefined>;
-  postReceipt: (
-    id: string
-  ) => Promise<GoodsReceiptResponse | undefined>;
-  getReceipt: (id: string) => Promise<GoodsReceiptResponse | null>;
-}
+// We'll trust tRPC types mostly, but for return interface we might need some adaptation
+export interface UseGoodsReceiptOptions {}
 
-/**
- * Hook for managing Goods Receipt operations.
- * bridges Procurement flow (PO) with Inventory module (GRN).
- */
 export function useGoodsReceipt(
   _options: UseGoodsReceiptOptions = {}
-): UseGoodsReceiptReturn {
+) {
   const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
 
   const {
-    data: receipts,
-    loading,
-    refresh,
-  } = useCompanyData<GoodsReceiptResponse[]>(
-    useCallback(async (companyId) => {
-      return await listGoodsReceipts(companyId);
-    }, []),
-    []
-  );
+    data: receipts = [],
+    isLoading: loading,
+    refetch: refresh,
+  } = trpc.inventory.listGRN.useQuery(undefined, {
+    enabled: !!currentCompany?.id,
+  });
+
+  const createMutation = trpc.inventory.createGRN.useMutation({
+    onSuccess: () => {
+      utils.inventory.listGRN.invalidate();
+      utils.purchaseOrder.list.invalidate(); // Update PO list status
+    },
+  });
+
+  const postMutation = trpc.inventory.postGRN.useMutation({
+    onSuccess: () => {
+      utils.inventory.listGRN.invalidate();
+      utils.purchaseOrder.list.invalidate();
+    },
+  });
 
   const createReceipt = useCallback(
-    async (data: CreateGoodsReceiptInput) => {
+    async (data: CreateGRNInput) => {
       if (!currentCompany?.id) return undefined;
-
-      const result = await apiAction(
-        () => createGoodsReceipt(currentCompany.id, data),
+      return await apiAction(
+        () =>
+          createMutation.mutateAsync({
+            ...data,
+          }),
         'Goods Receipt created!'
       );
-      if (result) {
-        refresh();
-      }
-      return result;
     },
-    [currentCompany?.id, refresh]
+    [currentCompany, createMutation]
   );
 
   const postReceipt = useCallback(
     async (id: string) => {
       if (!currentCompany?.id) return undefined;
-
-      const result = await apiAction(
-        () => postGoodsReceipt(currentCompany.id, id),
+      return await apiAction(
+        () =>
+          postMutation.mutateAsync({
+            id,
+          }),
         'Goods Receipt posted to inventory!'
       );
-      if (result) {
-        refresh();
-      }
-      return result;
     },
-    [currentCompany?.id, refresh]
+    [currentCompany, postMutation]
   );
 
   const getReceipt = useCallback(
     async (id: string) => {
-      if (!currentCompany?.id) return null;
-      return getGoodsReceipt(currentCompany.id, id);
+      // For now, we don't have a direct async getter other than query,
+      // but usually this is used for details page which uses useQuery.
+      // If imperative fetch is needed, we can use utils.client
+      return await utils.client.inventory.getGRN.query({
+        id,
+      });
     },
-    [currentCompany?.id]
+    [currentCompany, utils]
   );
 
   return {

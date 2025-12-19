@@ -1,25 +1,24 @@
 import { useState } from 'react';
-import { userService } from '@/features/company/services/userService';
 import { useCompany } from '@/contexts/CompanyContext';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import { User, CompanyMember } from '@sync-erp/shared';
+import { trpc, RouterOutputs } from '@/lib/trpc';
 import ActionButton from '@/components/ui/ActionButton';
 import { AssignCompanyModal } from '@/features/company/components/AssignCompanyModal';
 
+type UserWithRoles = RouterOutputs['user']['listByCompany'][number];
+
 export function UserList() {
   const { currentCompany } = useCompany();
-  const {
-    data: users,
-    loading,
-    refresh: loadUsers,
-  } = useCompanyData<(User & { roles: CompanyMember[] })[]>(
-    userService.listByCompany,
-    []
-  );
 
-  const [assigningUser, setAssigningUser] = useState<User | null>(
-    null
-  );
+  const {
+    data: users = [],
+    isLoading: loading,
+    refetch: loadUsers,
+  } = trpc.user.listByCompany.useQuery(undefined, {
+    enabled: !!currentCompany?.id,
+  });
+
+  const [assigningUser, setAssigningUser] =
+    useState<UserWithRoles | null>(null);
 
   if (loading) {
     return (
@@ -77,12 +76,8 @@ export function UserList() {
                     {user.email}
                   </td>
                   <td className="px-6 py-4 text-gray-600">
-                    {/* Find role for current company */}
-                    {(user.roles &&
-                      user.roles.find(
-                        (r) => r.companyId === currentCompany.id
-                      )?.roleId) ||
-                      '-'}
+                    {/* User's role for current company */}
+                    {user.role?.name || '-'}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <ActionButton
@@ -103,7 +98,7 @@ export function UserList() {
         <AssignCompanyModal
           isOpen={!!assigningUser}
           onClose={() => setAssigningUser(null)}
-          onSuccess={loadUsers}
+          onSuccess={() => loadUsers()}
           userId={assigningUser.id}
           userName={assigningUser.name}
         />

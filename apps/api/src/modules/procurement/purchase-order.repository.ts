@@ -7,6 +7,7 @@ import {
   Prisma,
   Product,
   Partner,
+  Invoice,
 } from '@sync-erp/database';
 
 export class PurchaseOrderRepository {
@@ -30,6 +31,7 @@ export class PurchaseOrderRepository {
     | (Order & {
         items: (OrderItem & { product: Product })[];
         partner: Partner | null;
+        invoices: Invoice[];
       })
     | null
   > {
@@ -47,7 +49,16 @@ export class PurchaseOrderRepository {
   async findAll(
     companyId: string,
     status?: OrderStatus
-  ): Promise<Order[]> {
+  ): Promise<
+    (Order & {
+      items: (OrderItem & { product: Product })[];
+      partner: Partner | null;
+      invoices: Invoice[];
+      _count: {
+        goodsReceipts: number;
+      };
+    })[]
+  > {
     return prisma.order.findMany({
       where: {
         companyId,

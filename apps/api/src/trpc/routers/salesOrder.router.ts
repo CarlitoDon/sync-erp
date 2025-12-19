@@ -50,6 +50,14 @@ export const salesOrderRouter = router({
     .mutation(async ({ ctx, input }) => {
       return salesService.cancel(input.id, ctx.companyId);
     }),
+  /**
+   * Ship/Deliver Order
+   */
+  ship: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return salesService.ship(ctx.companyId, input.id);
+    }),
 });
 
 export type SalesOrderRouter = typeof salesOrderRouter;

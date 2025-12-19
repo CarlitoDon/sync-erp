@@ -1,10 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import {
-  salesOrderService,
-  SalesOrder,
-} from '@/features/sales/services/salesOrderService';
-import { invoiceService } from '@/features/finance/services/invoiceService';
+import { useState } from 'react';
+import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
@@ -16,37 +12,44 @@ export default function SalesOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
   const confirm = useConfirm();
-
-  const [order, setOrder] = useState<SalesOrder | null>(null);
-  const [loading, setLoading] = useState(true);
   const [shipmentModalOpen, setShipmentModalOpen] = useState(false);
 
-  const loadOrder = async () => {
-    if (!id || !currentCompany) return;
-    setLoading(true);
-    try {
-      const data = await salesOrderService.getById(id);
-      setOrder(data);
-    } catch (error) {
-      console.error('Failed to load order:', error);
-      navigate('/sales-orders');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: order, isLoading: loading } =
+    trpc.salesOrder.getById.useQuery(
+      { id: id! },
+      { enabled: !!id && !!currentCompany?.id }
+    );
 
-  useEffect(() => {
-    loadOrder();
-  }, [id, currentCompany]);
+  const confirmMutation = trpc.salesOrder.confirm.useMutation({
+    onSuccess: () => utils.salesOrder.getById.invalidate({ id: id! }),
+  });
+
+  const cancelMutation = trpc.salesOrder.cancel.useMutation({
+    onSuccess: () => utils.salesOrder.getById.invalidate({ id: id! }),
+  });
+
+  // TODO: Add ship mutation when available in router
+  const shipMutation = trpc.salesOrder.ship.useMutation({
+    onSuccess: () => utils.salesOrder.getById.invalidate({ id: id! }),
+  });
+
+  const createInvoiceMutation = trpc.invoice.createFromSO.useMutation(
+    {
+      onSuccess: () => {
+        utils.salesOrder.getById.invalidate({ id: id! });
+        utils.invoice.list.invalidate();
+      },
+    }
+  );
 
   const handleConfirm = async () => {
     if (!order) return;
     await apiAction(
-      () => salesOrderService.confirm(order.id),
+      () => confirmMutation.mutateAsync({ id: order.id }),
       'Order confirmed!'
     );
-    loadOrder();
   };
 
   const handleCancel = async () => {
@@ -59,25 +62,28 @@ export default function SalesOrderDetail() {
     });
     if (!confirmed) return;
     await apiAction(
-      () => salesOrderService.cancel(order.id),
+      () => cancelMutation.mutateAsync({ id: order.id }),
       'Order cancelled'
     );
-    loadOrder();
   };
 
-  const handleShip = () => {
-    setShipmentModalOpen(true);
+  const handleShip = async () => {
+    if (!order) return;
+    // For simple shipping action:
+    await apiAction(
+      () => shipMutation.mutateAsync({ id: order.id }),
+      'Order shipped'
+    );
+    // If complex shipment modal is needed, keep setShipmentModalOpen(true)
+    // setShipmentModalOpen(true);
   };
 
   const handleCreateInvoice = async () => {
     if (!order) return;
-    const result = await apiAction(
-      () => invoiceService.createFromSO(order.id),
+    await apiAction(
+      () => createInvoiceMutation.mutateAsync({ orderId: order.id }),
       'Invoice created from Sales Order!'
     );
-    if (result) {
-      loadOrder();
-    }
   };
 
   const getStatusColor = (status: string) => {
@@ -145,7 +151,7 @@ export default function SalesOrderDetail() {
         onClose={() => setShipmentModalOpen(false)}
         onSuccess={() => {
           setShipmentModalOpen(false);
-          loadOrder();
+          utils.salesOrder.getById.invalidate({ id: id! });
         }}
       />
 

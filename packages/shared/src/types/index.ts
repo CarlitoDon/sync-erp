@@ -164,3 +164,4 @@ export interface CreateOrderItemDto {
 export * from './p2p';
 export * from './report.js';
 export * from './dashboard.js';
+export * from './admin.js';

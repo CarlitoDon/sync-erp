@@ -1,26 +1,24 @@
 import { useCompany } from '@/contexts/CompanyContext';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import { dashboardService } from '@/features/dashboard/services/dashboardService';
+import { trpc, RouterOutputs } from '@/lib/trpc';
 import { formatCurrency, formatDate } from '@/utils/format';
 import OnboardingGuide from '@/features/dashboard/components/OnboardingGuide';
 import PendingShapeBanner from '@/features/dashboard/components/PendingShapeBanner';
 import { DashboardKPIs } from '@/features/dashboard/components/DashboardKPIs';
-import type {
-  DashboardMetrics,
-  RecentTransaction,
-} from '@/features/dashboard/types';
+
+type DashboardMetrics = RouterOutputs['dashboard']['getMetrics'];
+type RecentTransaction =
+  DashboardMetrics['recentTransactions'][number];
 
 export default function Dashboard() {
   const { currentCompany } = useCompany();
 
   const {
     data: metrics,
-    loading,
+    isLoading: loading,
     error,
-  } = useCompanyData<DashboardMetrics | null>(
-    dashboardService.getMetrics,
-    null
-  );
+  } = trpc.dashboard.getMetrics.useQuery(undefined, {
+    enabled: !!currentCompany?.id,
+  });
 
   // Loading state
   if (loading) {
@@ -85,14 +83,16 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Accounts Receivable"
-          value={formatCurrency(metrics?.totalReceivables || 0)}
-          icon="�"
+          value={formatCurrency(
+            Number(metrics?.totalReceivables || 0)
+          )}
+          icon="💰"
           color="from-blue-400 to-blue-600"
         />
         <StatCard
           title="Accounts Payable"
-          value={formatCurrency(metrics?.totalPayables || 0)}
-          icon="�"
+          value={formatCurrency(Number(metrics?.totalPayables || 0))}
+          icon="💳"
           color="from-rose-400 to-rose-600"
         />
         <StatCard
@@ -123,7 +123,7 @@ export default function Dashboard() {
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <OnboardingGuide metrics={metrics} />
+        <OnboardingGuide metrics={metrics ?? null} />
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card-hover">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
@@ -232,7 +232,7 @@ function RecentActivityList({
             className={`text-sm font-semibold ${tx.type === 'BILL' ? 'text-red-600' : 'text-gray-800'}`}
           >
             {tx.type === 'BILL' ? '-' : '+'}
-            {formatCurrency(tx.amount)}
+            {formatCurrency(Number(tx.amount))}
           </p>
         </li>
       ))}

@@ -1,14 +1,9 @@
-import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import { apiAction } from '@/hooks/useApiAction';
+import { trpc } from '@/lib/trpc';
+import { useCompany } from '@/contexts/CompanyContext';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import { apiAction } from '@/hooks/useApiAction';
 import ActionButton from '@/components/ui/ActionButton';
-import {
-  salesOrderService,
-  SalesOrder,
-} from '@/features/sales/services/salesOrderService';
-import { invoiceService } from '@/features/finance/services/invoiceService';
 import { formatCurrency } from '@/utils/format';
 
 interface SalesOrderListProps {
@@ -18,20 +13,32 @@ interface SalesOrderListProps {
 export default function SalesOrderList({
   filter,
 }: SalesOrderListProps) {
+  const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
   const confirm = useConfirm();
 
-  const {
-    data: orders,
-    loading,
-    refresh: loadData,
-  } = useCompanyData<SalesOrder[]>(async () => {
-    return await salesOrderService.list(filter);
-  }, []);
+  const { data: orders, isLoading: loading } =
+    trpc.salesOrder.list.useQuery(filter, {
+      enabled: !!currentCompany?.id,
+      initialData: [],
+    });
 
-  // Reload when filter changes
-  useEffect(() => {
-    loadData();
-  }, [JSON.stringify(filter)]);
+  const confirmMutation = trpc.salesOrder.confirm.useMutation({
+    onSuccess: () => utils.salesOrder.list.invalidate(),
+  });
+
+  const cancelMutation = trpc.salesOrder.cancel.useMutation({
+    onSuccess: () => utils.salesOrder.list.invalidate(),
+  });
+
+  const createInvoiceMutation = trpc.invoice.createFromSO.useMutation(
+    {
+      onSuccess: () => {
+        utils.salesOrder.list.invalidate(); // Updates status/invoices link
+        utils.invoice.list.invalidate();
+      },
+    }
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -83,28 +90,27 @@ export default function SalesOrderList({
 
   const handleConfirm = async (id: string) => {
     await apiAction(
-      () => salesOrderService.confirm(id),
+      () => confirmMutation.mutateAsync({ id }),
       'Order confirmed!'
     );
-    loadData();
   };
+
+  const shipMutation = trpc.salesOrder.ship.useMutation({
+    onSuccess: () => utils.salesOrder.list.invalidate(),
+  });
 
   const handleShip = async (id: string) => {
     await apiAction(
-      () => salesOrderService.ship(id),
+      () => shipMutation.mutateAsync({ id }),
       'Order shipped!'
     );
-    loadData();
   };
 
   const handleCreateInvoice = async (orderId: string) => {
-    const result = await apiAction(
-      () => invoiceService.createFromSO(orderId),
+    await apiAction(
+      () => createInvoiceMutation.mutateAsync({ orderId }),
       'Invoice created!'
     );
-    if (result) {
-      loadData();
-    }
   };
 
   const handleViewInvoice = (invoiceId: string) => {
@@ -119,11 +125,11 @@ export default function SalesOrderList({
       variant: 'danger',
     });
     if (!confirmed) return;
+
     await apiAction(
-      () => salesOrderService.cancel(id),
+      () => cancelMutation.mutateAsync({ id }),
       'Order cancelled'
     );
-    loadData();
   };
 
   if (loading && orders.length === 0) {
@@ -167,7 +173,7 @@ export default function SalesOrderList({
               </td>
             </tr>
           ) : (
-            orders.map((order) => (
+            orders.map((order: any) => (
               <tr key={order.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 font-mono text-sm">
                   <Link

@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import {
-  financeService,
-  JournalEntry,
-  Account,
-} from '@/features/finance/services/financeService';
-// import { CreateJournalEntryInput, CreateJournalLineInput } from '@sync-erp/shared';
+import { trpc } from '@/lib/trpc';
+import { useCompany } from '@/contexts/CompanyContext';
+import { apiAction } from '@/hooks/useApiAction';
+import { formatCurrency, formatDate } from '@/utils/format';
+import ActionButton from '@/components/ui/ActionButton';
+import FormModal from '@/components/ui/FormModal';
+import { toast } from 'react-hot-toast';
+import Select from '@/components/ui/Select';
+
 // Defining locally to avoid build issues
 interface CreateJournalLineInput {
   accountId: string;
@@ -19,16 +22,33 @@ interface CreateJournalEntryInput {
   memo?: string;
   lines: CreateJournalLineInput[];
 }
-import ActionButton from '@/components/ui/ActionButton';
-import FormModal from '@/components/ui/FormModal';
-import { useApiAction } from '@/hooks/useApiAction';
-import { formatCurrency, formatDate } from '@/utils/format';
-import { toast } from 'react-hot-toast';
-import Select from '@/components/ui/Select';
 
 export default function JournalEntries() {
-  const [journals, setJournals] = useState<JournalEntry[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
+
+  const { data: journals, isLoading: loadingJournals } =
+    trpc.finance.listJournals.useQuery(undefined, {
+      enabled: !!currentCompany?.id,
+      initialData: [],
+    });
+
+  const { data: accounts } = trpc.finance.listAccounts.useQuery(
+    undefined,
+    {
+      enabled: !!currentCompany?.id,
+      initialData: [],
+    }
+  );
+
+  const createMutation = trpc.finance.createJournal.useMutation({
+    onSuccess: () => {
+      utils.finance.listJournals.invalidate();
+      utils.finance.getTrialBalance.invalidate(); // Impacts reports
+      utils.finance.getGeneralLedger.invalidate();
+    },
+  });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State
@@ -44,73 +64,61 @@ export default function JournalEntries() {
     ],
   });
 
-  const { execute: loadData, loading: loadingData } = useApiAction(
-    async () => {
-      const [jParams, aParams] = await Promise.all([
-        financeService.listJournals(),
-        financeService.listAccounts(),
-      ]);
-      setJournals(jParams);
-      setAccounts(aParams);
+  const handleSubmitJournal = async () => {
+    if (
+      !formData.date ||
+      !formData.lines ||
+      formData.lines.length < 2
+    )
+      return;
+
+    // Validate balance
+    const totalDebit = formData.lines.reduce(
+      (sum: number, l: CreateJournalLineInput) =>
+        sum + (Number(l.debit) || 0),
+      0
+    );
+    const totalCredit = formData.lines.reduce(
+      (sum: number, l: CreateJournalLineInput) =>
+        sum + (Number(l.credit) || 0),
+      0
+    );
+
+    if (Math.abs(totalDebit - totalCredit) > 1) {
+      // 1 unit tolerance
+      toast.error(
+        `Entry is unbalanced. Debit: ${totalDebit}, Credit: ${totalCredit}`
+      );
+      return;
     }
-  );
 
-  const { execute: submitJournal, loading: submitting } =
-    useApiAction(async () => {
-      if (
-        !formData.date ||
-        !formData.lines ||
-        formData.lines.length < 2
-      )
-        return;
+    if (formData.lines.some((l: any) => !l.accountId)) {
+      toast.error('All lines must have an account selected.');
+      return;
+    }
 
-      // Validate balance
-      const totalDebit = formData.lines.reduce(
-        (sum: number, l: CreateJournalLineInput) =>
-          sum + (Number(l.debit) || 0),
-        0
-      );
-      const totalCredit = formData.lines.reduce(
-        (sum: number, l: CreateJournalLineInput) =>
-          sum + (Number(l.credit) || 0),
-        0
-      );
+    await apiAction(
+      () =>
+        createMutation.mutateAsync({
+          date: new Date(formData.date!),
+          reference: formData.reference,
+          memo: formData.memo,
+          lines: formData.lines as CreateJournalLineInput[],
+        }),
+      'Journal entry posted successfully'
+    );
 
-      if (Math.abs(totalDebit - totalCredit) > 1) {
-        // 1 unit tolerance
-        throw new Error(
-          `Entry is unbalanced. Debit: ${totalDebit}, Credit: ${totalCredit}`
-        );
-      }
-
-      if (formData.lines.some((l) => !l.accountId)) {
-        throw new Error('All lines must have an account selected.');
-      }
-
-      await financeService.createJournal({
-        date: new Date(formData.date).toISOString().split('T')[0], // Ensure YYYY-MM-DD
-        reference: formData.reference,
-        memo: formData.memo,
-        lines: formData.lines as CreateJournalLineInput[],
-      });
-
-      setIsModalOpen(false);
-      setFormData({
-        date: new Date().toISOString().split('T')[0],
-        reference: '',
-        memo: '',
-        lines: [
-          { accountId: '', debit: 0, credit: 0 },
-          { accountId: '', debit: 0, credit: 0 },
-        ],
-      });
-      toast.success('Journal entry posted successfully');
-      loadData();
+    setIsModalOpen(false);
+    setFormData({
+      date: new Date().toISOString().split('T')[0],
+      reference: '',
+      memo: '',
+      lines: [
+        { accountId: '', debit: 0, credit: 0 },
+        { accountId: '', debit: 0, credit: 0 },
+      ],
     });
-
-  useEffect(() => {
-    loadData();
-  }, []);
+  };
 
   const handleLineChange = (
     index: number,
@@ -154,7 +162,7 @@ export default function JournalEntries() {
     ) || 0;
   const isBalanced = Math.abs(totalDebit - totalCredit) < 1;
 
-  if (loadingData && journals.length === 0) {
+  if (loadingJournals && journals.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500">
         Loading finance data...
@@ -214,9 +222,8 @@ export default function JournalEntries() {
             ) : (
               journals.map((journal) => {
                 // Calculate total amount (sum of debits)
-                const total = journal.lines.reduce(
-                  (sum: number, l: { debit: number }) =>
-                    sum + Number(l.debit),
+                const total = journal.lines.reduce<number>(
+                  (sum, l) => sum + Number(l.debit),
                   0
                 );
                 return (
@@ -421,15 +428,15 @@ export default function JournalEntries() {
             </button>
             <button
               type="button"
-              onClick={submitJournal}
+              onClick={handleSubmitJournal}
               disabled={
                 !isBalanced ||
-                submitting ||
+                createMutation.isPending ||
                 (formData.lines?.some((l) => !l.accountId) ?? true)
               }
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              {submitting ? 'Posting...' : 'Post Entry'}
+              {createMutation.isPending ? 'Posting...' : 'Post Entry'}
             </button>
           </div>
         </div>

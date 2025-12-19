@@ -1,15 +1,14 @@
 import { Link } from 'react-router-dom';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import {
-  listGoodsReceipts,
-  GoodsReceiptResponse,
-} from '@/features/inventory/services/inventoryService';
+import { trpc } from '@/lib/trpc';
+import { useCompany } from '@/contexts/CompanyContext';
 import { formatDate } from '@/utils/format';
 
 export default function GoodsReceipts() {
-  const { data: receipts, loading } = useCompanyData<
-    GoodsReceiptResponse[]
-  >((companyId) => listGoodsReceipts(companyId), []);
+  const { currentCompany } = useCompany();
+  const { data: receipts = [], isLoading: loading } =
+    trpc.inventory.listGRN.useQuery(undefined, {
+      enabled: !!currentCompany?.id,
+    });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -57,9 +56,6 @@ export default function GoodsReceipts() {
                 Date
               </th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                Items
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                 Status
               </th>
             </tr>
@@ -68,7 +64,7 @@ export default function GoodsReceipts() {
             {receipts.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={4}
                   className="px-6 py-12 text-center text-gray-500"
                 >
                   No goods receipts found.
@@ -99,9 +95,6 @@ export default function GoodsReceipts() {
                   </td>
                   <td className="px-6 py-4 text-gray-500">
                     {formatDate(receipt.date)}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    {receipt.items?.length || 0}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span

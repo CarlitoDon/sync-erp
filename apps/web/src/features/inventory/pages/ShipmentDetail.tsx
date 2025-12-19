@@ -1,10 +1,6 @@
-import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
-import {
-  getShipment,
-  ShipmentResponse,
-} from '@/features/inventory/services/inventoryService';
+import { trpc } from '@/lib/trpc';
 import { formatCurrency, formatDate } from '@/utils/format';
 
 export default function ShipmentDetail() {
@@ -12,27 +8,14 @@ export default function ShipmentDetail() {
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
 
-  const [shipment, setShipment] = useState<ShipmentResponse | null>(
-    null
+  const {
+    data: shipment,
+    isLoading: loading,
+    error,
+  } = trpc.inventory.getShipment.useQuery(
+    { id: id! },
+    { enabled: !!id && !!currentCompany?.id }
   );
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadShipment = async () => {
-      if (!id || !currentCompany) return;
-      setLoading(true);
-      try {
-        const data = await getShipment(currentCompany.id, id);
-        setShipment(data);
-      } catch (error) {
-        console.error('Failed to load shipment:', error);
-        navigate('/shipments');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadShipment();
-  }, [id, currentCompany, navigate]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -44,6 +27,12 @@ export default function ShipmentDetail() {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  if (error) {
+    console.error('Failed to load shipment:', error);
+    navigate('/shipments');
+    return null;
+  }
 
   if (loading) {
     return (
@@ -62,7 +51,8 @@ export default function ShipmentDetail() {
   }
 
   const totalCOGS = shipment.items.reduce(
-    (sum, item) => sum + item.quantity * (item.costSnapshot || 0),
+    (sum, item) =>
+      sum + Number(item.quantity) * Number(item.costSnapshot || 0),
     0
   );
 
@@ -169,14 +159,15 @@ export default function ShipmentDetail() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {item.quantity}
+                  {Number(item.quantity)}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {formatCurrency(item.costSnapshot || 0)}
+                  {formatCurrency(Number(item.costSnapshot || 0))}
                 </td>
                 <td className="px-4 py-3 text-right font-medium">
                   {formatCurrency(
-                    item.quantity * (item.costSnapshot || 0)
+                    Number(item.quantity) *
+                      Number(item.costSnapshot || 0)
                   )}
                 </td>
               </tr>

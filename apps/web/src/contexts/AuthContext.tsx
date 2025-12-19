@@ -1,16 +1,10 @@
+import { createContext, useContext, ReactNode } from 'react';
 import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from 'react';
-import { User } from '@sync-erp/shared'; // Ensure User is exported from shared/types
-import {
-  authService,
+  User,
   LoginPayload,
   RegisterPayload,
-} from '@/features/auth/services/authService';
+} from '@sync-erp/shared';
+import { trpc } from '@/lib/trpc';
 
 interface AuthContextType {
   user: User | null;
@@ -27,49 +21,61 @@ const AuthContext = createContext<AuthContextType | undefined>(
 );
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const utils = trpc.useUtils();
 
-  const checkAuth = async () => {
-    try {
-      const user = await authService.getMe();
-      setUser(user);
-    } catch (error) {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    data: user,
+    isLoading,
+    refetch: checkAuth,
+  } = trpc.auth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  const loginMutation = trpc.auth.login.useMutation({
+    onSuccess: () => {
+      utils.auth.me.invalidate();
+    },
+  });
+
+  const registerMutation = trpc.auth.register.useMutation({
+    onSuccess: () => {
+      utils.auth.me.invalidate();
+    },
+  });
+
+  const logoutMutation = trpc.auth.logout.useMutation({
+    onSuccess: () => {
+      utils.auth.me.invalidate();
+      localStorage.removeItem('currentCompanyId');
+    },
+  });
 
   const login = async (payload: LoginPayload) => {
-    const response = await authService.login(payload);
-    setUser(response.data!); // assuming data is present on success
+    await loginMutation.mutateAsync(payload);
   };
 
   const register = async (payload: RegisterPayload) => {
-    const response = await authService.register(payload);
-    setUser(response.data!);
+    await registerMutation.mutateAsync(payload);
   };
 
   const logout = async () => {
-    await authService.logout();
-    setUser(null);
+    // Backend uses protected procedure context for session
+    await logoutMutation.mutateAsync({ sessionId: '' });
   };
 
   return (
     <AuthContext.Provider
       value={{
-        user,
+        user: user ?? null,
         isAuthenticated: !!user,
         isLoading,
         login,
         register,
         logout,
-        checkAuth,
+        checkAuth: async () => {
+          await checkAuth();
+        },
       }}
     >
       {children}

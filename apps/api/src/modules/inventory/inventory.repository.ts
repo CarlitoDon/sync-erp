@@ -265,7 +265,9 @@ export class InventoryRepository {
     return db.goodsReceipt.findFirst({
       where: { id, companyId },
       include: {
-        items: { include: { product: true } },
+        items: {
+          include: { product: true, purchaseOrderItem: true },
+        },
         purchaseOrder: true,
       },
     });

@@ -1,16 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { trpc } from '@/lib/trpc';
+import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import { formatCurrency } from '@/utils/format';
-import {
-  purchaseOrderService,
-  PurchaseOrder,
-} from '@/features/procurement/services/purchaseOrderService';
-import { billService } from '@/features/finance/services/billService';
 
 interface PurchaseOrderListProps {
   filter?: { partnerId?: string; status?: string };
@@ -21,21 +17,31 @@ export default function PurchaseOrderList({
 }: PurchaseOrderListProps) {
   const confirm = useConfirm();
   const navigate = useNavigate();
+  const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
   const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(
     null
   );
 
-  const {
-    data: orders,
-    loading,
-    refresh: loadData,
-  } = useCompanyData<PurchaseOrder[]>(async () => {
-    return await purchaseOrderService.list(filter);
-  }, []);
+  const { data: orders = [], isLoading: loading } =
+    trpc.purchaseOrder.list.useQuery(filter, {
+      enabled: !!currentCompany?.id,
+    });
 
-  useEffect(() => {
-    loadData();
-  }, [JSON.stringify(filter)]);
+  const confirmMutation = trpc.purchaseOrder.confirm.useMutation({
+    onSuccess: () => utils.purchaseOrder.list.invalidate(),
+  });
+
+  const cancelMutation = trpc.purchaseOrder.cancel.useMutation({
+    onSuccess: () => utils.purchaseOrder.list.invalidate(),
+  });
+
+  const createBillMutation = trpc.bill.createFromPO.useMutation({
+    onSuccess: () => {
+      utils.purchaseOrder.list.invalidate();
+      utils.bill.list.invalidate();
+    },
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -87,10 +93,9 @@ export default function PurchaseOrderList({
 
   const handleConfirm = async (id: string) => {
     await apiAction(
-      () => purchaseOrderService.confirm(id),
+      () => confirmMutation.mutateAsync({ id }),
       'Order confirmed!'
     );
-    loadData();
   };
 
   const handleGoodsReceipt = (id: string) => {
@@ -106,20 +111,16 @@ export default function PurchaseOrderList({
     });
     if (!confirmed) return;
     await apiAction(
-      () => purchaseOrderService.cancel(id),
+      () => cancelMutation.mutateAsync({ id }),
       'Order cancelled'
     );
-    loadData();
   };
 
   const handleCreateBill = async (orderId: string) => {
-    const result = await apiAction(
-      () => billService.createFromPO(orderId),
+    await apiAction(
+      () => createBillMutation.mutateAsync({ orderId }),
       'Bill created from Purchase Order!'
     );
-    if (result) {
-      loadData();
-    }
   };
 
   const handleViewBill = (billId: string) => {
@@ -213,14 +214,15 @@ export default function PurchaseOrderList({
                     </>
                   )}
                   {order.status === 'CONFIRMED' &&
-                    (!order._count || order._count.goodsReceipts === 0) && (
-                    <ActionButton
-                      onClick={() => handleGoodsReceipt(order.id)}
-                      variant="success"
-                    >
-                      Receive Goods
-                    </ActionButton>
-                  )}
+                    (!order._count ||
+                      order._count.goodsReceipts === 0) && (
+                      <ActionButton
+                        onClick={() => handleGoodsReceipt(order.id)}
+                        variant="success"
+                      >
+                        Receive Goods
+                      </ActionButton>
+                    )}
                   {order.status === 'COMPLETED' &&
                     (!order.invoices ||
                       order.invoices.length === 0) && (
@@ -276,7 +278,7 @@ export default function PurchaseOrderList({
             price: Number(item.price),
             product: item.product,
           }))}
-          onSuccess={loadData}
+          onSuccess={() => utils.purchaseOrder.list.invalidate()}
         />
       )}
     </div>

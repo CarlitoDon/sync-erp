@@ -1,4 +1,5 @@
 import { AdminRepository } from './repository';
+import { SagaLog, OrphanJournal } from '@sync-erp/shared';
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -38,7 +39,7 @@ export class AdminService {
    */
   async getSagaLogs(
     params: GetSagaLogsParams
-  ): Promise<PaginatedResult<unknown>> {
+  ): Promise<PaginatedResult<SagaLog>> {
     const { companyId, step, limit, offset } = params;
 
     const [data, total] = await Promise.all([
@@ -52,7 +53,7 @@ export class AdminService {
     ]);
 
     return {
-      data,
+      data: data as SagaLog[], // Cast repository result
       pagination: { total, limit, offset },
     };
   }
@@ -63,7 +64,7 @@ export class AdminService {
    */
   async getOrphanJournals(
     params: GetOrphanJournalsParams
-  ): Promise<PaginatedResult<unknown>> {
+  ): Promise<PaginatedResult<OrphanJournal>> {
     const { companyId, limit, offset } = params;
 
     const [data, total] = await Promise.all([
@@ -75,8 +76,17 @@ export class AdminService {
       this.repository.countOrphanJournals({ companyId }),
     ]);
 
+    const mappedData = data.map((journal: any) => ({
+      ...journal,
+      lines: journal.lines.map((line: any) => ({
+        ...line,
+        debit: line.debit.toNumber(),
+        credit: line.credit.toNumber(),
+      })),
+    }));
+
     return {
-      data,
+      data: mappedData,
       pagination: { total, limit, offset },
     };
   }

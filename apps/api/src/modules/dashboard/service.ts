@@ -1,5 +1,5 @@
 import { prisma, InvoiceStatus } from '@sync-erp/database';
-import { DashboardKPIs } from '@sync-erp/shared';
+import { DashboardKPIs, DashboardMetrics } from '@sync-erp/shared';
 
 /**
  * Dashboard Service - Business logic for dashboard KPI aggregation.
@@ -130,5 +130,88 @@ export class DashboardService {
     }
 
     return totalValue;
+  }
+  async getMetrics(companyId: string): Promise<DashboardMetrics> {
+    const [
+      outstandingAR,
+      outstandingAP,
+      productsCount,
+      pendingOrders,
+      totalOrders,
+      unpaidInvoices,
+      unpaidBills,
+      recentInvoices,
+      recentBills,
+    ] = await Promise.all([
+      this.getOutstandingAR(companyId),
+      this.getOutstandingAP(companyId),
+      prisma.product.count({
+        where: { companyId, isService: false },
+      }),
+      prisma.order.count({
+        where: {
+          companyId,
+          type: 'SALES',
+          status: { notIn: ['COMPLETED', 'CANCELLED'] },
+        },
+      }),
+      prisma.order.count({ where: { companyId, type: 'SALES' } }),
+      prisma.invoice.count({
+        where: {
+          companyId,
+          type: 'INVOICE',
+          status: InvoiceStatus.POSTED,
+          balance: { gt: 0 },
+        },
+      }),
+      prisma.invoice.count({
+        where: {
+          companyId,
+          type: 'BILL',
+          status: InvoiceStatus.POSTED,
+          balance: { gt: 0 },
+        },
+      }),
+      prisma.invoice.findMany({
+        where: { companyId, type: 'INVOICE' },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      prisma.invoice.findMany({
+        where: { companyId, type: 'BILL' },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
+
+    const recentTransactions = [
+      ...recentInvoices.map((inv: any) => ({
+        id: inv.id,
+        type: 'INVOICE' as const,
+        description: inv.invoiceNumber || 'Invoice',
+        amount: Number(inv.amount),
+        date: inv.createdAt,
+      })),
+      ...recentBills.map((bill: any) => ({
+        id: bill.id,
+        type: 'BILL' as const,
+        description: bill.invoiceNumber || 'Bill',
+        amount: Number(bill.amount),
+        date: bill.createdAt,
+      })),
+    ]
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 5);
+
+    return {
+      totalReceivables: outstandingAR,
+      totalPayables: outstandingAP,
+      productsCount,
+      pendingOrders,
+      totalOrders,
+      unpaidInvoices,
+      unpaidBills,
+      recentTransactions,
+    };
   }
 }

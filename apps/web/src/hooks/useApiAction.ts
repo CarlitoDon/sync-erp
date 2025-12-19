@@ -35,8 +35,8 @@ export function useApiAction<TArgs extends unknown[], TResult>(
           toast.success(successMessage);
         }
         onSuccess?.();
-      } catch {
-        // Error toast handled by API interceptor
+      } catch (error: any) {
+        toast.error(error.message || 'An unexpected error occurred');
       } finally {
         setLoading(false);
       }
@@ -63,8 +63,8 @@ export async function apiAction<T>(
       toast.success(successMessage);
     }
     return result;
-  } catch {
-    // Error toast handled by API interceptor
+  } catch (error: any) {
+    toast.error(error.message || 'An unexpected error occurred');
     return undefined;
   }
 }

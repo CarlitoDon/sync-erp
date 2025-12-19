@@ -7,7 +7,7 @@ import {
   useEffect,
 } from 'react';
 import type { Company } from '@sync-erp/shared';
-import { getCompanies } from '@/features/company/services/companyService';
+import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface CompanyContextType {
@@ -28,11 +28,19 @@ export function CompanyProvider({
 }: {
   children: ReactNode;
 }) {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
+
+  // Use tRPC to fetch companies
+  const {
+    data: companies = [],
+    isLoading,
+    refetch,
+  } = trpc.company.list.useQuery(undefined, {
+    enabled: !!isAuthenticated,
+  });
+
   const [currentCompany, _setCurrentCompanyState] =
     useState<Company | null>(null);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Wrapper to sync with localStorage
   const setCurrentCompany = useCallback((company: Company | null) => {
@@ -44,49 +52,22 @@ export function CompanyProvider({
     }
   }, []);
 
-  const refreshCompanies = useCallback(async () => {
-    if (!isAuthenticated) return;
-    try {
-      setIsLoading(true);
-      const data = await getCompanies();
-      setCompanies(data);
-
-      // Restore selection from localStorage if possible
-      const savedId = localStorage.getItem('currentCompanyId');
-      if (savedId) {
-        const found = data.find((c) => c.id === savedId);
-        if (found) {
-          _setCurrentCompanyState(found); // Don't trigger effect loop, just set state
-        }
-      } else if (data.length > 0 && !currentCompany) {
-        // Optional: Select first company if none selected?
-        // Let's stick to explicit selection or restoration for now.
-        // But if user has only one company, might be nice.
-      }
-    } catch (error) {
-      console.error('Failed to fetch companies:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isAuthenticated]);
-
-  // Initial load
+  // Effect to restore selection or update when companies load
   useEffect(() => {
-    if (authLoading) return;
+    if (!isAuthenticated || isLoading) return;
 
-    if (isAuthenticated) {
-      refreshCompanies();
-    } else {
-      setCompanies([]);
-      setCurrentCompany(null);
-      setIsLoading(false);
+    const savedId = localStorage.getItem('currentCompanyId');
+    if (savedId) {
+      const found = companies.find((c) => c.id === savedId);
+      if (found) {
+        _setCurrentCompanyState(found);
+      } else if (companies.length > 0 && !currentCompany) {
+        // Saved ID not found in list (maybe removed), or list reloaded.
+        // Could select first one, or just clear.
+        // localStorage.removeItem('currentCompanyId');
+      }
     }
-  }, [
-    isAuthenticated,
-    authLoading,
-    refreshCompanies,
-    setCurrentCompany,
-  ]);
+  }, [companies, isAuthenticated, isLoading]);
 
   return (
     <CompanyContext.Provider
@@ -94,8 +75,10 @@ export function CompanyProvider({
         currentCompany,
         companies,
         setCurrentCompany,
-        setCompanies,
-        refreshCompanies,
+        setCompanies: () => {}, // No-op as query manages state now
+        refreshCompanies: async () => {
+          await refetch();
+        },
         isLoading,
       }}
     >
