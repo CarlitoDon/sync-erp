@@ -3,7 +3,6 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { apiAction } from '@/hooks/useApiAction';
 import { trpc } from '@/lib/trpc';
-import type { Invoice } from '@sync-erp/shared';
 
 // Export CreateBillInput for BillForm
 export interface CreateBillInput {
