@@ -1,27 +1,17 @@
 import { router, publicProcedure } from '../trpc';
 import { AuthService } from '../../modules/auth/auth.service';
+import { registerSchema, loginSchema } from '@sync-erp/shared';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 
 const authService = new AuthService();
-
-const RegisterSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  name: z.string().min(1),
-});
-
-const LoginSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-});
 
 export const authRouter = router({
   /**
    * Register new user
    */
   register: publicProcedure
-    .input(RegisterSchema)
+    .input(registerSchema)
     .mutation(async ({ input }) => {
       const result = await authService.register(input);
 
@@ -45,7 +35,7 @@ export const authRouter = router({
    * Login user
    */
   login: publicProcedure
-    .input(LoginSchema)
+    .input(loginSchema)
     .mutation(async ({ input }) => {
       const result = await authService.login(input);
 
