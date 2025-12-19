@@ -6,6 +6,8 @@ import {
   Prisma,
   BusinessShape,
   IdempotencyScope,
+  AuditLogAction,
+  EntityType,
 } from '@sync-erp/database';
 import {
   DomainError,
@@ -29,6 +31,7 @@ export interface CreateInvoiceInput {
 import { DocumentNumberService } from '../../common/services/document-number.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
 import { InvoicePostingSaga } from '../sagas/invoice-posting.saga';
+import * as auditLogService from '../../common/audit/audit-log.service';
 
 export class InvoiceService {
   private repository = new InvoiceRepository();
@@ -208,7 +211,9 @@ export class InvoiceService {
     shape?: BusinessShape,
     configs?: { key: string; value: Prisma.JsonValue }[],
     idempotencyKey?: string,
-    businessDate?: Date // G5: Accepted here
+    businessDate?: Date, // G5: Accepted here
+    actorId?: string, // FR-010.1: Actor for audit log
+    correlationId?: string // FR-010.1: Request tracing
   ): Promise<Invoice> {
     // Idempotency Check (if provided)
     const invoice = await this.repository.findById(
@@ -249,11 +254,27 @@ export class InvoiceService {
     }
 
     try {
+      // FR-010.1: Record Audit Log BEFORE triggering Saga
+      // This ensures business intent is captured regardless of saga outcome
+      if (actorId) {
+        await auditLogService.recordAudit({
+          companyId,
+          actorId,
+          action: AuditLogAction.INVOICE_POSTED,
+          entityType: EntityType.INVOICE,
+          entityId: id,
+          businessDate: businessDate || new Date(),
+          payloadSnapshot: { shape, idempotencyKey },
+          correlationId,
+        });
+      }
+
       // Execute via saga for atomic operation with compensation
       const result = await this.invoicePostingSaga.execute(
         { invoiceId: id, companyId, shape, configs, businessDate },
         id,
-        companyId
+        companyId,
+        correlationId // FR-010: Pass correlationId to saga for tracing
       );
 
       if (!result.success || !result.data) {

@@ -68,7 +68,17 @@ export class BillController {
   post = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const companyId = req.context.companyId!;
-      const bill = await this.service.post(req.params.id, companyId);
+      // FR-010.1: Extract correlationId and actorId for audit trail
+      const correlationId = req.correlationId;
+      const actorId = req.context.userId;
+
+      const bill = await this.service.post(
+        req.params.id,
+        companyId,
+        undefined, // businessDate
+        actorId,
+        correlationId
+      );
       res.json({ success: true, data: bill });
     } catch (error) {
       next(error);

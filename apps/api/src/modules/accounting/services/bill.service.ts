@@ -4,6 +4,8 @@ import {
   InvoiceType,
   OrderType,
   Prisma,
+  AuditLogAction,
+  EntityType,
 } from '@sync-erp/database';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import {
@@ -24,6 +26,7 @@ import { DocumentNumberService } from '../../common/services/document-number.ser
 import { BillPostingSaga } from '../sagas/bill-posting.saga';
 import { BillPolicy } from '../policies/bill.policy';
 import { InventoryRepository } from '../../inventory/inventory.repository.js';
+import * as auditLogService from '../../common/audit/audit-log.service';
 
 export class BillService {
   private repository = new InvoiceRepository();
@@ -56,11 +59,14 @@ export class BillService {
 
     // FR-001: Validate GRN exists - goods must be received first
     const grnCount =
-      await this.inventoryRepository.countByOrderReference(
+      await this.inventoryRepository.countByReferencePatterns(
         companyId,
-        data.orderId,
+        [data.orderId, order.orderNumber].filter(
+          (p): p is string => !!p
+        ),
         'IN'
       );
+    // Note: passing undefined for tx implicitly as it's optional last arg
     BillPolicy.ensureGoodsReceived(grnCount);
 
     let invoiceNumber = data.invoiceNumber;
@@ -137,7 +143,9 @@ export class BillService {
   async post(
     id: string,
     companyId: string,
-    businessDate?: Date
+    businessDate?: Date,
+    actorId?: string, // FR-010.1: Actor for audit log
+    correlationId?: string // FR-010.1: Request tracing
   ): Promise<Invoice> {
     if (businessDate) {
       BusinessDate.from(businessDate).ensureValid();
@@ -164,10 +172,24 @@ export class BillService {
       );
     }
 
+    // FR-010.1: Record Audit Log BEFORE triggering Saga
+    if (actorId) {
+      await auditLogService.recordAudit({
+        companyId,
+        actorId,
+        action: AuditLogAction.BILL_POSTED,
+        entityType: EntityType.BILL,
+        entityId: id,
+        businessDate: businessDate || new Date(),
+        correlationId,
+      });
+    }
+
     const result = await this.billPostingSaga.execute(
       { billId: id, companyId, businessDate },
       id,
-      companyId
+      companyId,
+      correlationId // FR-010: Pass correlationId to saga
     );
 
     if (!result.success || !result.data) {

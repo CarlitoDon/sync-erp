@@ -4,6 +4,7 @@ import {
   type Payment,
   type Invoice,
   Prisma,
+  PaymentMethod,
 } from '@sync-erp/database';
 import {
   SagaOrchestrator,
@@ -18,7 +19,7 @@ export interface PaymentPostingInput {
   invoiceId: string;
   companyId: string;
   amount: number;
-  method: string;
+  method: PaymentMethod;
   businessDate?: Date; // G5
 }
 

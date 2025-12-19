@@ -24,7 +24,8 @@ export class ProcurementRepository {
 
   async findById(
     id: string,
-    companyId: string
+    companyId: string,
+    tx?: Prisma.TransactionClient
   ): Promise<
     | (Order & {
         items: (OrderItem & { product: Product })[];
@@ -32,7 +33,8 @@ export class ProcurementRepository {
       })
     | null
   > {
-    return prisma.order.findFirst({
+    const db = tx || prisma;
+    return db.order.findFirst({
       where: { id, companyId, type: OrderType.PURCHASE },
       include: {
         items: { include: { product: true } },
@@ -63,9 +65,11 @@ export class ProcurementRepository {
 
   async updateStatus(
     id: string,
-    status: OrderStatus
+    status: OrderStatus,
+    tx?: Prisma.TransactionClient
   ): Promise<Order> {
-    return prisma.order.update({
+    const db = tx || prisma;
+    return db.order.update({
       where: { id },
       data: { status },
       include: {
@@ -82,9 +86,11 @@ export class ProcurementRepository {
   }
 
   async findItems(
-    orderId: string
+    orderId: string,
+    tx?: Prisma.TransactionClient
   ): Promise<(OrderItem & { product: Product })[]> {
-    return prisma.orderItem.findMany({
+    const db = tx || prisma;
+    return db.orderItem.findMany({
       where: { orderId },
       include: { product: true },
     });

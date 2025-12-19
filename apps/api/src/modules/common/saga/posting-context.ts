@@ -30,6 +30,7 @@ export class PostingContext {
   private readonly _sagaType: SagaType;
   private readonly _entityId: string;
   private readonly _companyId: string;
+  private readonly _correlationId: string | null;
   private _step: SagaStep;
   private _stepData: StepData;
   private _error: string | null;
@@ -39,6 +40,7 @@ export class PostingContext {
     sagaType: SagaType,
     entityId: string,
     companyId: string,
+    correlationId: string | null,
     step: SagaStep,
     stepData: StepData,
     error: string | null
@@ -47,6 +49,7 @@ export class PostingContext {
     this._sagaType = sagaType;
     this._entityId = entityId;
     this._companyId = companyId;
+    this._correlationId = correlationId;
     this._step = step;
     this._stepData = stepData;
     this._error = error;
@@ -65,6 +68,9 @@ export class PostingContext {
   get companyId(): string {
     return this._companyId;
   }
+  get correlationId(): string | null {
+    return this._correlationId;
+  }
   get step(): SagaStep {
     return this._step;
   }
@@ -81,7 +87,8 @@ export class PostingContext {
   static async create(
     sagaType: SagaType,
     entityId: string,
-    companyId: string
+    companyId: string,
+    correlationId?: string
   ): Promise<PostingContext> {
     const sagaLog = await sagaLogRepo.createSagaLog({
       sagaType,
@@ -89,6 +96,7 @@ export class PostingContext {
       companyId,
       step: SagaStep.PENDING,
       stepData: {},
+      correlationId,
     });
 
     return new PostingContext(
@@ -96,6 +104,7 @@ export class PostingContext {
       sagaType,
       entityId,
       companyId,
+      sagaLog.correlationId,
       SagaStep.PENDING,
       {},
       null
@@ -116,6 +125,7 @@ export class PostingContext {
       sagaLog.sagaType,
       sagaLog.entityId,
       sagaLog.companyId,
+      sagaLog.correlationId,
       sagaLog.step,
       (sagaLog.stepData as StepData) ?? {},
       sagaLog.error

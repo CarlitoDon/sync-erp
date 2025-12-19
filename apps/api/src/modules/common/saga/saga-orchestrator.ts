@@ -68,7 +68,8 @@ export abstract class SagaOrchestrator<
   async execute(
     input: TInput,
     entityId: string,
-    companyId: string
+    companyId: string,
+    correlationId?: string
   ): Promise<SagaResult<TOutput>> {
     // 0. Idempotency Check
     // If saga is already completed, return cached result immediately
@@ -88,7 +89,8 @@ export abstract class SagaOrchestrator<
     const context = await PostingContext.create(
       this.sagaType,
       entityId,
-      companyId
+      companyId,
+      correlationId
     );
 
     try {

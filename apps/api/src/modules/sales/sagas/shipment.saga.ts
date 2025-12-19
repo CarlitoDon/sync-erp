@@ -89,29 +89,41 @@ export class ShipmentSaga extends SagaOrchestrator<
       }
     }
 
-    // 3. Process shipment (stock OUT for all items)
-    const movements = await this.inventoryService.processShipment(
+    // 3. Create Shipment document (DRAFT state)
+    const shipment = await this.inventoryService.createShipment(
       input.companyId,
-      input.orderId,
-      input.reference || `Shipment for Order ${order.orderNumber}`,
-      input.shape,
-      input.configs,
+      {
+        salesOrderId: input.orderId,
+        notes:
+          input.reference ||
+          `Shipment for Order ${order.orderNumber}`,
+        items: order.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      },
       tx
     );
 
-    // Track first movement for compensation tracking
-    if (movements.length > 0) {
-      await context.markStockDone(movements[0].id);
-    }
+    // 4. Post Shipment (Stock OUT + COGS Snapshot)
+    await this.inventoryService.postShipment(
+      input.companyId,
+      shipment.id,
+      tx
+    );
 
-    // 4. Update order status to COMPLETED
+    // Track Shipment for compensation
+    await context.markStockDone(shipment.id);
+
+    // 5. Update order status to COMPLETED
     await this.salesRepository.updateStatus(
       input.orderId,
       OrderStatus.COMPLETED,
       tx
     );
 
-    return { movements };
+    // Return empty movements array for backward compatibility
+    return { movements: [] };
   }
 
   /**

@@ -75,18 +75,37 @@ export class InvoicePostingSaga extends SagaOrchestrator<
 
     // 2. Stock OUT (if order-linked)
     if (invoice.orderId) {
-      const movements = await this.inventoryService.processShipment(
-        input.companyId,
+      // Fetch order with items for shipment
+      const order = await this.invoiceRepository.findOrderWithItems(
         invoice.orderId,
-        `Shipment for Invoice ${invoice.invoiceNumber}`,
-        undefined, // Shape
-        undefined, // Configs
+        input.companyId,
         tx
       );
 
-      // Track first movement ID for compensation
-      if (movements.length > 0) {
-        await context.markStockDone(movements[0].id);
+      if (order) {
+        // Create Shipment document
+        const shipment = await this.inventoryService.createShipment(
+          input.companyId,
+          {
+            salesOrderId: invoice.orderId,
+            notes: `Shipment for Invoice ${invoice.invoiceNumber}`,
+            items: order.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+            })),
+          },
+          tx
+        );
+
+        // Post Shipment (Stock OUT + COGS Snapshot)
+        await this.inventoryService.postShipment(
+          input.companyId,
+          shipment.id,
+          tx
+        );
+
+        // Track Shipment ID for compensation
+        await context.markStockDone(shipment.id);
       }
     }
 

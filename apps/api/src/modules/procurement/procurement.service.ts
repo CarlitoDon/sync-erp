@@ -73,8 +73,12 @@ export class ProcurementService {
     return this.repository.create(createData);
   }
 
-  async getById(id: string, companyId: string) {
-    return this.repository.findById(id, companyId);
+  async getById(
+    id: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.repository.findById(id, companyId, tx);
   }
 
   async list(companyId: string, status?: string) {
@@ -102,8 +106,12 @@ export class ProcurementService {
     return this.repository.updateStatus(id, OrderStatus.CONFIRMED);
   }
 
-  async complete(id: string, companyId: string): Promise<Order> {
-    const order = await this.repository.findById(id, companyId);
+  async complete(
+    id: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<Order> {
+    const order = await this.repository.findById(id, companyId, tx);
     if (!order) {
       throw new DomainError(
         'Purchase order not found',
@@ -120,7 +128,11 @@ export class ProcurementService {
       );
     }
 
-    return this.repository.updateStatus(id, OrderStatus.COMPLETED);
+    return this.repository.updateStatus(
+      id,
+      OrderStatus.COMPLETED,
+      tx
+    );
   }
 
   async cancel(id: string, companyId: string): Promise<Order> {
@@ -144,8 +156,8 @@ export class ProcurementService {
     return this.repository.updateStatus(id, OrderStatus.CANCELLED);
   }
 
-  async getItems(orderId: string) {
-    return this.repository.findItems(orderId);
+  async getItems(orderId: string, tx?: Prisma.TransactionClient) {
+    return this.repository.findItems(orderId, tx);
   }
 
   /**

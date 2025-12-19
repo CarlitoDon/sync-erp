@@ -13,6 +13,7 @@ export interface CreateSagaLogInput {
   companyId: string;
   step?: SagaStep;
   stepData?: Prisma.InputJsonValue;
+  correlationId?: string;
 }
 
 export interface UpdateSagaLogInput {
@@ -34,6 +35,7 @@ export async function createSagaLog(
       companyId: input.companyId,
       step: input.step ?? SagaStep.PENDING,
       stepData: input.stepData ?? Prisma.JsonNull,
+      correlationId: input.correlationId ?? null,
     },
   });
 }

@@ -4,13 +4,14 @@ import {
   OrderStatus,
   BusinessShape,
   type InventoryMovement,
+  Prisma,
 } from '@sync-erp/database';
 import {
   SagaOrchestrator,
   PostingContext,
 } from '../../common/saga/index.js';
-import { ProcurementRepository } from '../procurement.repository.js';
-import { InventoryService } from '../../inventory/inventory.service.js';
+import { ProcurementRepository } from '../procurement.repository';
+import { InventoryService } from '../../inventory/inventory.service';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export interface GoodsReceiptSagaInput {
@@ -64,12 +65,14 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
    */
   protected async executeSteps(
     input: GoodsReceiptSagaInput,
-    context: PostingContext
+    context: PostingContext,
+    tx?: Prisma.TransactionClient
   ): Promise<GoodsReceiptResult> {
     // 1. Validate PO
     const order = await this.procurementRepository.findById(
       input.orderId,
-      input.companyId
+      input.companyId,
+      tx
     );
     if (!order) {
       throw new Error('Purchase order not found');
@@ -84,7 +87,8 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
     if (input.items && input.items.length > 0) {
       // Fetch PO items to compare
       const poItems = await this.procurementRepository.findItems(
-        order.id
+        order.id,
+        tx
       );
 
       // 1. Check item count
@@ -116,32 +120,43 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
       }
     }
 
-    // 2. Process goods receipt (stock IN + accrual journal)
-    const movements = await this.inventoryService.processGoodsReceipt(
+    // 2. Create GRN document (DRAFT state)
+    // Fetch PO items again if not already loaded
+    const poItems = await this.procurementRepository.findItems(
+      order.id,
+      tx
+    );
+    const grn = await this.inventoryService.createGRN(
       input.companyId,
       {
-        orderId: input.orderId,
-        reference:
+        purchaseOrderId: input.orderId,
+        notes:
           input.reference ||
           `Goods receipt for PO ${order.orderNumber}`,
+        items: poItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
       },
-      input.shape
+      tx
     );
 
-    // Track first movement for compensation
-    if (movements.length > 0) {
-      await context.markStockDone(movements[0].id);
-    }
+    // 3. Post GRN (Stock IN + Cost Update)
+    await this.inventoryService.postGRN(input.companyId, grn.id, tx);
 
-    // 3. Update PO status to COMPLETED if fully received
-    // Note: Full receipt logic should compare received vs ordered quantities
-    // For now, we mark as COMPLETED on any receipt
+    // Track GRN for compensation
+    await context.markStockDone(grn.id);
+
+    // 4. Update PO status to COMPLETED if fully received
     await this.procurementRepository.updateStatus(
       input.orderId,
-      OrderStatus.COMPLETED
+      OrderStatus.COMPLETED,
+      tx
     );
 
-    return { movements };
+    // Return empty movements array for backward compatibility
+    // (New flow uses GRN document, not raw movements)
+    return { movements: [] };
   }
 
   /**

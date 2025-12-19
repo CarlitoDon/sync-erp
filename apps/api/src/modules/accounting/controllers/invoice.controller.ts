@@ -71,13 +71,19 @@ export class InvoiceController {
       const idempotencyKey = req.headers['x-idempotency-key'] as
         | string
         | undefined;
+      // FR-010.1: Extract correlationId and actorId for audit trail
+      const correlationId = req.correlationId;
+      const actorId = req.context.userId;
 
       const invoice = await this.service.post(
         req.params.id,
         companyId,
         company.businessShape,
         company.configs,
-        idempotencyKey
+        idempotencyKey,
+        undefined, // businessDate - could be from body
+        actorId,
+        correlationId
       );
       res.json({ success: true, data: invoice });
     } catch (error) {

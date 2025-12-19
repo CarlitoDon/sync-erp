@@ -143,4 +143,17 @@ export class InvoiceRepository {
       include: { partner: true, payments: true }, // Ensure consistent return type
     });
   }
+
+  // Helper for Shipment creation in Invoice Posting Saga
+  async findOrderWithItems(
+    orderId: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const db = tx || prisma;
+    return db.order.findFirst({
+      where: { id: orderId, companyId },
+      include: { items: true },
+    });
+  }
 }

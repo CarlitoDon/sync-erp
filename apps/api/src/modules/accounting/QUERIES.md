@@ -1,5 +1,49 @@
 # Accounting Module SQL Queries
 
+## Saga Execution Audit (T018)
+
+### View All Saga Logs by Correlation ID
+
+```sql
+SELECT sl.*, al.action, al."actorId"
+FROM "SagaLog" sl
+LEFT JOIN "AuditLog" al ON sl."correlationId" = al."correlationId"
+WHERE sl."correlationId" = $1
+ORDER BY sl."createdAt" ASC;
+```
+
+### Find Failed Sagas Requiring Manual Intervention
+
+```sql
+SELECT * FROM "SagaLog"
+WHERE step = 'COMPENSATION_FAILED'
+  AND "companyId" = $1
+ORDER BY "createdAt" DESC;
+```
+
+### Get Saga Execution Timeline for an Entity
+
+```sql
+SELECT id, "sagaType", step, error, "correlationId", "createdAt"
+FROM "SagaLog"
+WHERE "entityId" = $1
+  AND "companyId" = $2
+ORDER BY "createdAt" ASC;
+```
+
+### Get Full Audit Trail for Invoice/Bill
+
+```sql
+SELECT al.*, sl.step as "sagaStep", sl.error as "sagaError"
+FROM "AuditLog" al
+LEFT JOIN "SagaLog" sl ON al."correlationId" = sl."correlationId"
+WHERE al."entityId" = $1
+  AND al."entityType" IN ('INVOICE', 'BILL')
+ORDER BY al."createdAt" DESC;
+```
+
+---
+
 ## Invariant Checks (G7)
 
 ### 1. Journal Entry Balance
