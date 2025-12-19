@@ -24,6 +24,11 @@ import { adminRouter } from './routes/admin';
 
 import cookieParser from 'cookie-parser';
 
+// tRPC
+import * as trpcExpress from '@trpc/server/adapters/express';
+import { appRouter } from './trpc/router';
+import { createContext } from './trpc/context';
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -41,6 +46,16 @@ app.use(express.json());
 // Public Routes
 app.use('/health', healthRouter);
 app.use('/api/auth', authRouter);
+
+// tRPC (mounted with auth middleware)
+app.use(
+  '/api/trpc',
+  authMiddleware,
+  trpcExpress.createExpressMiddleware({
+    router: appRouter,
+    createContext,
+  })
+);
 
 // Protected Routes (require auth context)
 // Companies route uses optional auth (doesn't require companyId)

@@ -4,37 +4,40 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { CompanyProvider } from '@/contexts/CompanyContext';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 import { ConfirmProvider } from '@/components/ui/ConfirmModal';
+import { TRPCProvider } from '@/lib/trpcProvider';
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <AuthProvider>
-      <CompanyProvider>
-        <SidebarProvider>
-          <ConfirmProvider>
-            {children}
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 3000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
-                success: {
+    <TRPCProvider>
+      <AuthProvider>
+        <CompanyProvider>
+          <SidebarProvider>
+            <ConfirmProvider>
+              {children}
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 3000,
                   style: {
-                    background: '#10b981',
+                    background: '#363636',
+                    color: '#fff',
                   },
-                },
-                error: {
-                  style: {
-                    background: '#ef4444',
+                  success: {
+                    style: {
+                      background: '#10b981',
+                    },
                   },
-                },
-              }}
-            />
-          </ConfirmProvider>
-        </SidebarProvider>
-      </CompanyProvider>
-    </AuthProvider>
+                  error: {
+                    style: {
+                      background: '#ef4444',
+                    },
+                  },
+                }}
+              />
+            </ConfirmProvider>
+          </SidebarProvider>
+        </CompanyProvider>
+      </AuthProvider>
+    </TRPCProvider>
   );
 }
