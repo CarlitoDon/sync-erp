@@ -114,30 +114,33 @@ _Example of marking unclear requirements:_
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
 
-## Constitution Compliance _(mandatory for frontend features)_
+## Constitution & Architecture Compliance _(mandatory)_
 
 <!--
-  ACTION REQUIRED: For any feature involving frontend UI, verify compliance with:
-  - Constitution Part A: Principles V, VI, VII (Frontend Patterns)
-  - Constitution Part B: Principles XIV-XVII (Human Experience)
+  ACTION REQUIRED: Verify compliance with Constitution v3.1.0.
+  See `.agent/rules/constitution.md` for full details.
 -->
 
-### Technical Architecture Checklist (Part A)
+### Backend Architecture (Apps/API) - Principles I, II, III
 
-- [ ] **Feature Isolation**: Logic in `src/features` (not global pages/components)
-- [ ] **Component Abstraction**: Any repeated UI pattern extracted to reusable `ui` component
-- [ ] **Hook Abstraction**: Any repeated logic extracted to custom hook
-- [ ] **No Copy-Paste**: No duplicate button styles, error handling, or API patterns
-- [ ] **Global Error Handling**: Errors handled via Axios interceptor, not per-page try-catch
-- [ ] **Success Toasts**: Using `apiAction()` helper, not direct toast imports
-- [ ] **Confirmation Dialogs**: Using `useConfirm()` hook, not native `window.confirm()`
-- [ ] **Systematic Updates**: All instances updated when changing patterns (grep verified)
+- [ ] **5-Layer Architecture**: Logic strictly follows Route → Controller → Service → Policy → Repository.
+- [ ] **Schema-First**: All new fields defined in `packages/shared` Zod schemas first.
+- [ ] **Multi-Tenant**: All DB queries scoped by `companyId`.
+- [ ] **Service Purity**: Service layer DOES NOT import `prisma` (uses Repository only).
+- [ ] **Policy & Rules**: Business constraints in Policy, pure logic in `rules/`.
+- [ ] **Repository Purity**: No business logic in Repository (Data access only).
 
-### Human Experience Checklist (Part B - Principles XIV-XVII)
+### Frontend Architecture (Apps/Web) - Principles IV, XI
 
-- [ ] **Simplicity & Clarity**: Ruthlessly cut non-essential features/fields. Only show what matters NOW.
-- [ ] **Clear Navigation**: User never wonders "where am I?" or "what do I do next?".
-- [ ] **Simplified Workflows**: Complex tasks broken into linear, bite-sized steps (Wizards).
-- [ ] **Assistance**: Smart suggestions provided where possible (e.g., "Reorder based on history?").
-- [ ] **Zero-Lag**: No interaction freezes the UI. Heavy work is backgrounded.
-- [ ] **Pixel Perfection**: Alignment, spacing, typography are consistent.
+- [ ] **Feature Isolation**: Logic in `src/features/[domain]` (not global).
+- [ ] **No Business Logic**: Components do not calculate state (render `backendState` only).
+- [ ] **API Patterns**: Using `apiAction()` helper (never direct toast/try-catch).
+- [ ] **User Safety**: Using `useConfirm()` hook (never `window.confirm`).
+- [ ] **State Projection**: UI reflects exact backend state without optimistic guessing (unless specific policy).
+
+### Testing & Quality - Principles XV, XVII
+
+- [ ] **Integration Tests**: Full business flow covered in single `it()` block.
+- [ ] **Mock Compliance**: Mocks satisfy all Policy/Service contract expectations.
+- [ ] **Financial Precision**: All assertions use `Number()` or `Decimal` aware checks.
+- [ ] **Zero-Lag**: No interaction freezes the main thread.

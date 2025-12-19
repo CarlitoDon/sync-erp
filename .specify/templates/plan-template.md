@@ -31,24 +31,25 @@
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-- [ ] **I. Architecture**: Frontend ↔ Backend via HTTP only? Dependencies uni-directional?
-- [ ] **II. Contracts**: Shared types in `packages/shared`? Validators exported?
+- [ ] **I. Dependency**: Frontend ↔ Backend via HTTP only? Apps → Packages?
+- [ ] **I. Multi-Tenant**: ALL data isolated by `companyId`?
+- [ ] **II. Type System**: Shared types in `packages/shared`? Types use `z.infer`?
 - [ ] **III. Backend Layers**: Service checks `Policy` before Action? (Service → Policy → Repository)
 - [ ] **III-A. Dumb Layers**: Controller only calls service? Repository has no business logic?
-- [ ] **IV. Multi-Tenant**: ALL data isolated by `companyId`?
-- [ ] **V. Frontend**: UI is State Projection? No complex conditionals?
-- [ ] **VIII. Verification**: `npx tsc --noEmit` and `npm run build` will pass?
-- [ ] **IX. Schema-First**: New API fields added to Zod schema FIRST? Types use `z.infer`?
-- [ ] **X. Parity**: If Feature A exists in Sales, does it exist in Procurement? (and vice versa)
-- [ ] **XI. Performance**: No N+1 Client loops? Lists use Backend `include` for relations?
-- [ ] **XII. Apple-Standard**: Does logic derive from `BusinessShape`? No technical questions to user?
-- [ ] **XIII. Data Flow**: Is Frontend pure reflection? No local business state calculation?
-- [ ] **XIV-XVII. Human Experience**: Clear Navigation? Simplified Workflows? Performance-First? Pixel Perfect?
-- [ ] **XVIII. Test Contracts**: Mocks satisfy all Policy/Service layer expectations?
-- [ ] **XIX. Financial Precision**: Decimal for money? `Number()` in test assertions?
-- [ ] **XX. Integration State**: Sequential flows in single `it()` block?
-- [ ] **XXI. Schema for Raw SQL**: `$executeRaw` column names match Prisma schema?
-- [ ] **XXII. Seed Completeness**: All expected accounts/configs in seed files?
+- [ ] **IV. Frontend**: Logic in `src/features`? UI is State Projection?
+- [ ] **V. Callback-Safe**: Services export standalone functions?
+- [ ] **VI. Build Verification**: `npx tsc --noEmit` and `npm run build` will pass?
+- [ ] **VII. Parity**: If Feature A exists in Sales, does it exist in Procurement?
+- [ ] **VIII. Performance**: No N+1 Client loops? Lists use Backend `include` for relations?
+- [ ] **IX. Apple-Standard**: Derived from `BusinessShape`? No technical questions to user?
+- [ ] **X. Data Flow**: Frontend → API → Controller → Service → Rules/Policy → Repository → DB?
+- [ ] **XI. Human Interface**: Clear Navigation? Simplified Workflows?
+- [ ] **XIII. Engineering**: Zero-Lag UI? Optimistic Updates?
+- [ ] **XV. Test Contracts**: Mocks satisfy all Policy/Service layer expectations?
+- [ ] **XVI. Financial Precision**: `Decimal` for money? `Number()` in test assertions?
+- [ ] **XVII. Integration State**: Sequential flows in single `it()` block?
+- [ ] **XVIII. Schema for Raw SQL**: `$executeRaw` column names match Prisma schema?
+- [ ] **XIX. Seed Completeness**: All expected accounts/configs in seed files?
 
 ## Project Structure
 
@@ -79,7 +80,7 @@ apps/
 │   ├── src/
 │   │   ├── app/            # Setup
 │   │   ├── components/     # UI Atoms
-│   │   ├── features/       # Business Domains
+│   │   ├── features/       # Business Domains ([domain] folders)
 │   │   ├── hooks/          # Global Hooks
 │   │   └── services/       # Global Services
 │   └── vite.config.ts
@@ -87,8 +88,9 @@ apps/
 └── api/                    # Backend (Express)
     ├── src/
     │   ├── routes/         # Entry points
-    │   ├── services/       # Business logic
-    │   └── middlewares/
+    │   └── modules/        # Domain Modules
+    │       └── [domain]/   # (Controller, Service, Policy, Repository)
+    ├── scripts/            # Seeds & Tools
     └── tsconfig.json
 
 packages/
@@ -99,7 +101,7 @@ packages/
 ├── shared/                 # Types & Utils
 │   ├── src/
 │   │   ├── types/
-│   │   └── validators/     # Zod schemas
+│   │   └── validators/     # Zod schemas (Single Source of Truth)
 │   └── package.json
 │
 └── ui/                     # Shared Components

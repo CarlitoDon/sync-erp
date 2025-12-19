@@ -111,10 +111,10 @@ Examples of foundational tasks (adjust based on your project):
 
 - [ ] T012 [P] [US1] Define DTOs in `packages/shared/src/types/[entity].ts`
 - [ ] T013 [P] [US1] Add Prisma model in `packages/database/prisma/schema.prisma`
-- [ ] T014 [US1] Create Repository in `apps/api/src/repositories/[repository].ts`
+- [ ] T014 [US1] Create Repository in `apps/api/src/modules/[domain]/[domain].repository.ts`
 - [ ] T015 [US1] Create Policy in `apps/api/src/modules/[domain]/[domain].policy.ts` (Business Shape Rules)
-- [ ] T016 [US1] Implement Service in `apps/api/src/services/[service].ts` (Checks Policy + Uses Repository)
-- [ ] T017 [US1] Implement Controller in `apps/api/src/controllers/[controller].ts` (Dumb HTTP Adapter)
+- [ ] T016 [US1] Implement Service in `apps/api/src/modules/[domain]/[domain].service.ts` (Checks Policy + Uses Repository)
+- [ ] T017 [US1] Implement Controller in `apps/api/src/modules/[domain]/[domain].controller.ts` (Dumb HTTP Adapter)
 - [ ] T018 [US1] Create UI in `apps/web/src/features/[domain]/components/[component].tsx` (State Projection)
 - [ ] T019 [US1] Integration in `apps/web/src/features/[domain]/services/[api].ts`
 
@@ -134,9 +134,9 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
-- [ ] T027 [US3] Implement [Service] in src/services/[service].py
-- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T026 [P] [US3] Create [Entity] model in packages/database/prisma/schema.prisma
+- [ ] T027 [US3] Implement Service in `apps/api/src/modules/[domain]/[domain].service.ts`
+- [ ] T028 [US3] Implement Feature in `apps/web/src/features/[domain]/`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -150,7 +150,7 @@ Examples of foundational tasks (adjust based on your project):
 
 **Purpose**: Shared UI infrastructure that enables consistent frontend development
 
-**⚠️ Constitution Compliance**: This phase implements Principles VI, VII, VIII
+**⚠️ Constitution Compliance**: This phase implements Principles **IV (Architecture)** & **XI (Human Interface)**
 
 - Adopts Feature-Based Architecture (`src/features/`)
 
@@ -188,15 +188,15 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 
-### Task Completion Verification (Constitution Principles VIII & IX) ⚠️
+### Task Completion Verification (Constitution Principles VI & II) ⚠️
 
 > **CRITICAL**: These verification steps MUST pass before marking feature complete
 
-- [ ] TXXX TypeScript check: `npx tsc --noEmit` (verify zero errors)
-- [ ] TXXX Check `typecheck:watch` terminal (if running) for errors
-- [ ] TXXX Full build: `npm run build` (verify all packages build)
-- [ ] TXXX If `packages/shared` modified: rebuild before checking dependents
-- [ ] TXXX Schema-first: New API fields exist in Zod schema, types use `z.infer`
+- [ ] TXXX TypeScript check: `npx tsc --noEmit` (verify zero errors) [Principle VI]
+- [ ] TXXX Check `typecheck:watch` terminal (if running) for errors [Principle VI]
+- [ ] TXXX Full build: `npm run build` (verify all packages build) [Principle VI]
+- [ ] TXXX If `packages/shared` modified: rebuild before checking dependents [Principle VI]
+- [ ] TXXX Schema-first: New API fields exist in Zod schema, types use `z.infer` [Principle II]
 
 ---
 
