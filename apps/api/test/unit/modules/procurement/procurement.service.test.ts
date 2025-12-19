@@ -1,23 +1,23 @@
 /**
  * Procurement Service Integration Tests
  *
- * Tests that ProcurementService correctly enforces Policy checks.
+ * Tests that PurchaseOrderService correctly enforces Policy checks.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BusinessShape } from '@sync-erp/database';
 import { DomainError } from '@sync-erp/shared';
-import { ProcurementService } from '@modules/procurement/procurement.service';
+import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 
 // Mock dependencies
 vi.mock('@modules/procurement/procurement.repository');
 vi.mock('@modules/common/services/document-number.service');
 
-describe('ProcurementService', () => {
-  let service: ProcurementService;
+describe('PurchaseOrderService', () => {
+  let service: PurchaseOrderService;
 
   beforeEach(() => {
-    service = new ProcurementService();
+    service = new PurchaseOrderService();
     vi.clearAllMocks();
   });
 

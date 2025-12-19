@@ -2,12 +2,12 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
-import { ProcurementService } from '@modules/procurement/procurement.service';
+import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
 const billService = new BillService();
 const journalService = new JournalService();
-const purchaseOrderService = new ProcurementService();
+const purchaseOrderService = new PurchaseOrderService();
 const inventoryService = new InventoryService();
 
 const COMPANY_ID = 'test-tax-purchase-001';
@@ -124,7 +124,8 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
 
     const confirmedOrder = await purchaseOrderService.confirm(
       order.id,
-      COMPANY_ID
+      COMPANY_ID,
+      'test-user-id'
     );
 
     // 2. Create and Post GRN (required before Bill creation)
@@ -186,7 +187,8 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     });
     const confirmedOrder = await purchaseOrderService.confirm(
       order.id,
-      COMPANY_ID
+      COMPANY_ID,
+      'test-user-id'
     );
 
     // 2. Create and Post GRN (required before Bill creation)

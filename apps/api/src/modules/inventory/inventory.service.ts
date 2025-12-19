@@ -7,7 +7,7 @@ import {
 } from '@sync-erp/database';
 import { InventoryRepository } from './inventory.repository';
 import { ProductService } from '../product/product.service';
-import { ProcurementService } from '../procurement/procurement.service';
+import { PurchaseOrderService } from '../procurement/purchase-order.service';
 import { JournalService } from '../accounting/services/journal.service';
 import { InventoryPolicy } from './inventory.policy';
 import {
@@ -19,7 +19,7 @@ import {
 export class InventoryService {
   private repository = new InventoryRepository();
   private productService = new ProductService();
-  private procurementService = new ProcurementService();
+  private purchaseOrderService = new PurchaseOrderService();
   private journalService = new JournalService();
 
   /**
@@ -41,7 +41,7 @@ export class InventoryService {
 
     // Note: ProcurementService not yet updated for tx injection.
     // Assuming read ops are safe or updated later.
-    const order = await this.procurementService.getById(
+    const order = await this.purchaseOrderService.getById(
       data.orderId,
       companyId,
       tx
@@ -50,7 +50,7 @@ export class InventoryService {
       throw new Error('Purchase order not found');
     }
 
-    const orderItems = await this.procurementService.getItems(
+    const orderItems = await this.purchaseOrderService.getItems(
       data.orderId,
       tx
     );
@@ -99,7 +99,7 @@ export class InventoryService {
     }
 
     // Mark order as completed
-    await this.procurementService.complete(
+    await this.purchaseOrderService.complete(
       data.orderId,
       companyId,
       tx

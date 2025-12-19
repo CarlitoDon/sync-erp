@@ -9,7 +9,7 @@ import {
   Partner,
 } from '@sync-erp/database';
 
-export class ProcurementRepository {
+export class PurchaseOrderRepository {
   async create(
     data: Prisma.OrderUncheckedCreateInput
   ): Promise<Order> {
@@ -63,15 +63,53 @@ export class ProcurementRepository {
     });
   }
 
+  /**
+   * Update status with Optimistic Locking
+   */
   async updateStatus(
     id: string,
     status: OrderStatus,
+    expectedVersion?: number,
     tx?: Prisma.TransactionClient
   ): Promise<Order> {
     const db = tx || prisma;
+
+    // If expectedVersion is provided, ensuring concurrency safety
+    if (expectedVersion !== undefined) {
+      const result = await db.order.updateMany({
+        where: {
+          id,
+          version: expectedVersion,
+        },
+        data: {
+          status,
+          version: { increment: 1 },
+        },
+      });
+
+      if (result.count === 0) {
+        throw new Error(
+          'Concurrency Error: Order has been modified by another process'
+        );
+      }
+
+      // Return the updated record
+      return db.order.findUniqueOrThrow({
+        where: { id },
+        include: {
+          items: { include: { product: true } },
+          partner: true,
+        },
+      });
+    }
+
+    // Standard update (if no version check needed, though not recommended for critical flows)
     return db.order.update({
       where: { id },
-      data: { status },
+      data: {
+        status,
+        version: { increment: 1 },
+      },
       include: {
         items: { include: { product: true } },
         partner: true,

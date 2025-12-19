@@ -121,7 +121,7 @@ export const mockProductService = {
   updateAverageCost: vi.fn(),
 };
 
-export const mockProcurementService = {
+export const mockPurchaseOrderService = {
   create: vi.fn(),
   getById: vi.fn(),
   list: vi.fn(),
@@ -148,7 +148,7 @@ const allMocks = [
   mockPartnerService,
   mockPaymentService,
   mockProductService,
-  mockProcurementService,
+  mockPurchaseOrderService,
 ];
 
 export const resetServiceMocks = () => {

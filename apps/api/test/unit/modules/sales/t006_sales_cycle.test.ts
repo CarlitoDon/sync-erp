@@ -99,7 +99,7 @@ describe('T006: Verify Sales Order Cycle (FR-006)', () => {
   // Sales Flow usually leads to Shipment (tested T001) and Invoice (tested T007).
   // "Complete" might happen after shipment?
   // SalesService might not have "complete" if it's event driven?
-  // I checked ProcurementService has confirm/complete. SalesService likely same.
+  // I checked PurchaseOrderService has confirm/complete. SalesService likely same.
   // Checking typical sync-erp pattern: Sales Cycle ends with Payment/Fullfillment.
   // I will assume confirmed is the key state for now.
 });

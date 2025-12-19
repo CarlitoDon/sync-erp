@@ -18,15 +18,15 @@ vi.mock('@modules/product/product.service', () => ({
   },
 }));
 
-// Mock ProcurementService
-const mockProcurementService = {
+// Mock PurchaseOrderService
+const mockPurchaseOrderService = {
   getById: vi.fn(),
   getItems: vi.fn(),
   complete: vi.fn(),
 };
-vi.mock('@modules/procurement/procurement.service', () => ({
-  ProcurementService: function () {
-    return mockProcurementService;
+vi.mock('@modules/procurement/purchase-order.service', () => ({
+  PurchaseOrderService: function () {
+    return mockPurchaseOrderService;
   },
 }));
 
@@ -72,9 +72,9 @@ describe('InventoryService', () => {
       ];
       const mockMovement = { id: 'mov-1', type: 'IN', quantity: 10 };
 
-      mockProcurementService.getById.mockResolvedValue(mockOrder);
-      mockProcurementService.getItems.mockResolvedValue(mockItems);
-      mockProcurementService.complete.mockResolvedValue(mockOrder);
+      mockPurchaseOrderService.getById.mockResolvedValue(mockOrder);
+      mockPurchaseOrderService.getItems.mockResolvedValue(mockItems);
+      mockPurchaseOrderService.complete.mockResolvedValue(mockOrder);
       mockInventoryRepository.createMovement.mockResolvedValue(
         mockMovement
       );
@@ -84,11 +84,11 @@ describe('InventoryService', () => {
       });
 
       expect(result).toHaveLength(2);
-      expect(mockProcurementService.complete).toHaveBeenCalled();
+      expect(mockPurchaseOrderService.complete).toHaveBeenCalled();
     });
 
     it('should throw error if order not found', async () => {
-      mockProcurementService.getById.mockResolvedValue(null);
+      mockPurchaseOrderService.getById.mockResolvedValue(null);
 
       await expect(
         service.processGoodsReceipt(companyId, {

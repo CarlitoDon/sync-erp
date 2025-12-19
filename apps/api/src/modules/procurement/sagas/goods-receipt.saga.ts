@@ -10,7 +10,7 @@ import {
   SagaOrchestrator,
   PostingContext,
 } from '../../common/saga/index.js';
-import { ProcurementRepository } from '../procurement.repository';
+import { PurchaseOrderRepository } from '../purchase-order.repository';
 import { InventoryService } from '../../inventory/inventory.service';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
@@ -49,7 +49,7 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
     return 'Order';
   }
 
-  private procurementRepository = new ProcurementRepository();
+  private purchaseOrderRepository = new PurchaseOrderRepository();
   private _inventoryService: InventoryService | null = null;
 
   // Lazy load to break circular dependency
@@ -69,7 +69,7 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
     tx?: Prisma.TransactionClient
   ): Promise<GoodsReceiptResult> {
     // 1. Validate PO
-    const order = await this.procurementRepository.findById(
+    const order = await this.purchaseOrderRepository.findById(
       input.orderId,
       input.companyId,
       tx
@@ -86,7 +86,7 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
     // If items are provided, they must match the PO exactly.
     if (input.items && input.items.length > 0) {
       // Fetch PO items to compare
-      const poItems = await this.procurementRepository.findItems(
+      const poItems = await this.purchaseOrderRepository.findItems(
         order.id,
         tx
       );
@@ -122,7 +122,7 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
 
     // 2. Create GRN document (DRAFT state)
     // Fetch PO items again if not already loaded
-    const poItems = await this.procurementRepository.findItems(
+    const poItems = await this.purchaseOrderRepository.findItems(
       order.id,
       tx
     );
@@ -148,9 +148,10 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
     await context.markStockDone(grn.id);
 
     // 4. Update PO status to COMPLETED if fully received
-    await this.procurementRepository.updateStatus(
+    await this.purchaseOrderRepository.updateStatus(
       input.orderId,
       OrderStatus.COMPLETED,
+      undefined, // No optimistic lock in Saga context (Orchestrator has lock)
       tx
     );
 
@@ -174,9 +175,10 @@ export class GoodsReceiptSaga extends SagaOrchestrator<
     }
 
     // 2. Revert PO status
-    await this.procurementRepository.updateStatus(
+    await this.purchaseOrderRepository.updateStatus(
       context.entityId,
-      OrderStatus.CONFIRMED
+      OrderStatus.CONFIRMED,
+      undefined
     );
   }
 }

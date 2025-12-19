@@ -118,17 +118,27 @@ export class CompanyService {
     ];
 
     for (const config of configs) {
-      await prisma.systemConfig.upsert({
+      const existing = await prisma.systemConfig.findFirst({
         where: {
-          companyId_key: { companyId, key: config.key },
-        },
-        update: { value: config.value },
-        create: {
           companyId,
           key: config.key,
-          value: config.value,
         },
       });
+
+      if (existing) {
+        await prisma.systemConfig.update({
+          where: { id: existing.id },
+          data: { value: config.value },
+        });
+      } else {
+        await prisma.systemConfig.create({
+          data: {
+            companyId,
+            key: config.key,
+            value: config.value,
+          },
+        });
+      }
     }
   }
 

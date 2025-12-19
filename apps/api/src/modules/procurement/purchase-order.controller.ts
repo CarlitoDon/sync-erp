@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { ProcurementService } from './procurement.service';
+import { PurchaseOrderService } from './purchase-order.service';
 import { CreatePurchaseOrderSchema } from '@sync-erp/shared';
 
-export class ProcurementController {
-  private service = new ProcurementService();
+export class PurchaseOrderController {
+  private service = new PurchaseOrderService();
 
   list = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -49,13 +49,20 @@ export class ProcurementController {
   ) => {
     try {
       const companyId = req.context.companyId!;
+      const userId = req.context.userId!;
+
       // We assume Schema matches API input. Using 'PURCHASE' type injection if needed,
       // but PO logic is simpler. Schema in Step 1009 CreatePurchaseOrderSchema has type literal 'PURCHASE'.
       // If FE doesn't send it, we inject it.
       const body = { ...req.body, type: 'PURCHASE' };
       const validated = CreatePurchaseOrderSchema.parse(body);
 
-      const order = await this.service.create(companyId, validated);
+      const order = await this.service.create(
+        companyId,
+        validated,
+        undefined,
+        userId
+      );
       res.status(201).json({ success: true, data: order });
     } catch (error) {
       next(error);
@@ -69,9 +76,12 @@ export class ProcurementController {
   ) => {
     try {
       const companyId = req.context.companyId!;
+      const userId = req.context.userId!;
+
       const order = await this.service.confirm(
         req.params.id,
-        companyId
+        companyId,
+        userId
       );
       res.json({ success: true, data: order });
     } catch (error) {
@@ -86,9 +96,12 @@ export class ProcurementController {
   ) => {
     try {
       const companyId = req.context.companyId!;
+      const userId = req.context.userId!;
+
       const order = await this.service.cancel(
         req.params.id,
-        companyId
+        companyId,
+        userId
       );
       res.json({ success: true, data: order });
     } catch (error) {

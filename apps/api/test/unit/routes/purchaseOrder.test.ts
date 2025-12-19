@@ -3,14 +3,14 @@ import express from 'express';
 import request from 'supertest';
 
 import {
-  mockProcurementService,
+  mockPurchaseOrderService,
   resetServiceMocks,
 } from '../mocks/services.mock';
 
 // Mock dependencies
-vi.mock('@modules/procurement/procurement.service', () => ({
-  ProcurementService: function () {
-    return mockProcurementService;
+vi.mock('@modules/procurement/purchase-order.service', () => ({
+  PurchaseOrderService: function () {
+    return mockPurchaseOrderService;
   },
 }));
 
@@ -27,7 +27,7 @@ const createTestApp = () => {
   // This snippet is syntactically corrected based on the user's intent to set req.context
   // within a mocked middleware, replacing the previous anonymous middleware.
   // Note: `mockAuthMiddleware` is not defined in the provided context,
-  // so this assumes it would be imported or defined similarly to `mockProcurementService`.
+  // so this assumes it would be imported or defined similarly to `mockPurchaseOrderService`.
   // For the purpose of making the provided change syntactically correct,
   // we'll integrate the context setting logic into the existing middleware structure.
   app.use((req: any, _res: any, next: any) => {
@@ -47,10 +47,10 @@ describe('Purchase Order Routes', () => {
     resetServiceMocks();
     app = createTestApp();
 
-    mockProcurementService.list.mockResolvedValue([
+    mockPurchaseOrderService.list.mockResolvedValue([
       { id: 'order-1', orderNumber: 'PO-001' },
     ]);
-    mockProcurementService.getById.mockImplementation(
+    mockPurchaseOrderService.getById.mockImplementation(
       (id: string) => {
         if (id === 'not-found') return Promise.resolve(null);
         return Promise.resolve({
@@ -59,15 +59,15 @@ describe('Purchase Order Routes', () => {
         });
       }
     );
-    mockProcurementService.create.mockResolvedValue({
+    mockPurchaseOrderService.create.mockResolvedValue({
       id: 'order-new',
       orderNumber: 'PO-002',
     });
-    mockProcurementService.confirm.mockResolvedValue({
+    mockPurchaseOrderService.confirm.mockResolvedValue({
       id: 'order-1',
       status: 'CONFIRMED',
     });
-    mockProcurementService.cancel.mockResolvedValue({
+    mockPurchaseOrderService.cancel.mockResolvedValue({
       id: 'order-1',
       status: 'CANCELLED',
     });

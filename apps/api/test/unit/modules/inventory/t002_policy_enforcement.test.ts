@@ -6,7 +6,7 @@ import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 // Automock dependencies
 vi.mock('@modules/inventory/inventory.repository');
 vi.mock('@modules/product/product.service');
-vi.mock('@modules/procurement/procurement.service');
+vi.mock('@modules/procurement/purchase-order.service');
 
 // Mock Prisma
 vi.mock('@sync-erp/database', async () => {

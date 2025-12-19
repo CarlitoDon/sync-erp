@@ -7,19 +7,19 @@
 
 **Goal**: Initialize database schema, shared types, and project structure.
 
-- [ ] T001 Define `PurchaseOrder` and `PurchaseOrderLine` in `packages/database/prisma/schema.prisma` (Add `@version` for optimistic locking)
-- [ ] T002 Define `GoodsReceipt` and `GoodsReceiptLine` in `packages/database/prisma/schema.prisma` (Add `@version`)
-- [ ] T003 Define `Bill` and `BillLine` in `packages/database/prisma/schema.prisma` (Add `@version`)
-- [ ] T004 Define `Payment` in `packages/database/prisma/schema.prisma` (Add `@version`)
-- [ ] T005 Define `DocumentSequence` model in `packages/database/prisma/schema.prisma`
-- [ ] T006 Define `AuditLog` model in `packages/database/prisma/schema.prisma`
-- [ ] T007 Run `npm run db:migrate` to apply P2P schema changes
-- [ ] T008 Define shared types in `packages/shared/src/types/p2p.ts`
-- [ ] T009 [P] Define Zod schemas in `packages/shared/src/validators/p2p.ts` (PO, GRN, Bill, Payment inputs)
-- [ ] T010 Create shared utilities: `apps/api/src/modules/common/sequence.service.ts` and `audit.service.ts`
+- [x] T001 Define `PurchaseOrder` and `PurchaseOrderLine` in `packages/database/prisma/schema.prisma` (Add `@version` for optimistic locking)
+- [x] T002 Define `GoodsReceipt` and `GoodsReceiptLine` in `packages/database/prisma/schema.prisma` (Add `@version`)
+- [x] T003 Define `Bill` and `BillLine` in `packages/database/prisma/schema.prisma` (Add `@version`)
+- [x] T004 Define `Payment` in `packages/database/prisma/schema.prisma` (Add `@version`)
+- [x] T005 Define `DocumentSequence` model in `packages/database/prisma/schema.prisma`
+- [x] T006 Define `AuditLog` model in `packages/database/prisma/schema.prisma`
+- [x] T007 Run `npm run db:migrate` to apply P2P schema changes
+- [x] T008 Define shared types in `packages/shared/src/types/p2p.ts`
+- [x] T009 [P] Define Zod schemas in `packages/shared/src/validators/p2p.ts` (PO, GRN, Bill, Payment inputs)
+- [x] T010 Create shared utilities: `apps/api/src/modules/common/sequence.service.ts` and `audit.service.ts`
 - [ ] T011 [P] Audit Codebase: Ensure all new numeric models use `Decimal` type in Prisma and `Decimal.js` in business logic (Constitution XVI)
-- [ ] T012 Create module directories: `apps/api/src/modules/procurement` and `apps/api/src/modules/accounting`
-- [ ] T013 Create feature directories: `apps/web/src/features/procurement` and `apps/web/src/features/accounting`
+- [x] T012 Create module directories: `apps/api/src/modules/procurement` and `apps/api/src/modules/accounting`
+- [x] T013 Create feature directories: `apps/web/src/features/procurement` and `apps/web/src/features/accounting`
 
 ## Phase 2: User Story 1 - Create & Confirm PO (Priority: P1)
 
@@ -29,11 +29,11 @@
 
 ### Implementation [US1]
 
-- [ ] T014 [US1] Create Repository in `apps/api/src/modules/procurement/purchase-order.repository.ts` (Implement version-check logic. Audit for existing methods - XXI)
-- [ ] T015 [US1] Create Policy in `apps/api/src/modules/procurement/purchase-order.policy.ts` (Check status transitions)
-- [ ] T016 [US1] Implement Service in `apps/api/src/modules/procurement/purchase-order.service.ts` (**Refine** `create` and `confirm` methods. Audit for duplicates - XXI)
-- [ ] T017 [US1] Implement Controller in `apps/api/src/modules/procurement/purchase-order.controller.ts`
-- [ ] T018 [US1] Register routes in `apps/api/src/routes/v1/procurement.routes.ts`
+- [x] T014 [US1] Create Repository in `apps/api/src/modules/procurement/purchase-order.repository.ts` (Implement version-check logic. Audit for existing methods - XXI)
+- [x] T015 [US1] Create Policy in `apps/api/src/modules/procurement/purchase-order.policy.ts` (Check status transitions)
+- [x] T016 [US1] Implement Service in `apps/api/src/modules/procurement/purchase-order.service.ts` (**Refine** `create` and `confirm` methods. Audit for duplicates - XXI)
+- [x] T017 [US1] Implement Controller in `apps/api/src/modules/procurement/purchase-order.controller.ts`
+- [x] T018 [US1] Register routes in `apps/api/src/routes/purchaseOrder.ts`
 - [ ] T019 [US1] Create `usePurchaseOrder` hook in `apps/web/src/features/procurement/hooks/usePurchaseOrder.ts`
 - [ ] T020 [US1] Refine PO List UI in `apps/web/src/features/procurement/components/PurchaseOrderList.tsx` (Integrate new Service, preserve existing Actions)
 - [ ] T021 [US1] Implement PO Create Form in `apps/web/src/features/procurement/components/PurchaseOrderForm.tsx`

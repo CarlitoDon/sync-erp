@@ -6,12 +6,12 @@ import {
 } from '@sync-erp/database';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
-import { ProcurementService } from '@modules/procurement/procurement.service';
+import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
 const billService = new BillService();
 const journalService = new JournalService();
-const procurementService = new ProcurementService();
+const procurementService = new PurchaseOrderService();
 const inventoryService = new InventoryService();
 
 const COMPANY_ID = 'test-p2p-integration-001';
@@ -139,7 +139,8 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
 
       const confirmedOrder = await procurementService.confirm(
         orderId,
-        COMPANY_ID
+        COMPANY_ID,
+        ACTOR_ID
       );
       expect(confirmedOrder.status).toBe(OrderStatus.CONFIRMED);
 
@@ -229,7 +230,11 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
         partnerId,
         items: [{ productId, quantity: 5, price: 80000 }],
       });
-      await procurementService.confirm(order2.id, COMPANY_ID);
+      await procurementService.confirm(
+        order2.id,
+        COMPANY_ID,
+        'test-user-id'
+      );
 
       // Try to create bill without GRN - should fail
       await expect(

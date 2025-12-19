@@ -11,7 +11,7 @@ import { InventoryService } from '@modules/inventory/inventory.service';
 
 // Mock the dependent services and repository
 vi.mock('@modules/inventory/inventory.repository');
-vi.mock('@modules/procurement/procurement.service');
+vi.mock('@modules/procurement/purchase-order.service');
 
 describe('InventoryService', () => {
   let service: InventoryService;

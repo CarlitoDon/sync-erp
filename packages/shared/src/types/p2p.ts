@@ -1,0 +1,80 @@
+import { PaymentMethod } from '@sync-erp/database';
+import type { OrderItem } from './index';
+
+// Re-export OrderStatus for convenience
+export type { OrderStatus, OrderType } from './index';
+export type { InvoiceStatus, InvoiceType } from './finance';
+
+// ==========================================
+// Purchase Order
+// ==========================================
+
+export interface CreatePurchaseOrderInput {
+  partnerId: string;
+  date?: Date | string;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    price: number;
+  }>;
+  paymentTerms?: string;
+  notes?: string;
+  taxRate?: number;
+}
+
+export interface PurchaseOrderLine extends OrderItem {
+  // Add specific PO line fields if any
+}
+
+// ==========================================
+// Goods Receipt (GRN)
+// ==========================================
+
+export interface CreateP2PGoodsReceiptInput {
+  purchaseOrderId: string;
+  date?: Date | string;
+  receivedBy: string;
+  notes?: string;
+  items: Array<{
+    purchaseOrderItemId: string;
+    quantity: number;
+    productId: string; // Redundant but useful for validation
+  }>;
+}
+
+// ==========================================
+// Bill (Supplier Invoice)
+// ==========================================
+
+export interface CreateP2PBillInput {
+  orderId?: string;
+  partnerId: string;
+  date: Date | string;
+  dueDate: Date | string;
+  invoiceNumber?: string; // Auto-generated internal
+  supplierInvoiceNumber: string; // Required external ref
+  paymentTerms?: string;
+  notes?: string;
+  items: Array<{
+    productId: string; // If direct bill
+    grnLineId?: string; // If from GRN
+    description?: string;
+    quantity: number;
+    price: number;
+  }>;
+  taxRate?: number;
+}
+
+// ==========================================
+// Payment
+// ==========================================
+
+export interface CreateP2PPaymentInput {
+  invoiceId: string;
+  amount: number;
+  method: PaymentMethod;
+  accountId: string; // Bank/Cash Account ID
+  reference?: string;
+  date: Date | string;
+  notes?: string;
+}

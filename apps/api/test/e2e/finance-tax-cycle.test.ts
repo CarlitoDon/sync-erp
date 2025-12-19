@@ -1,14 +1,14 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { SalesService } from '@modules/sales/sales.service';
-import { ProcurementService } from '@modules/procurement/procurement.service';
+import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InvoiceService } from '@modules/accounting/services/invoice.service';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
 const salesOrderService = new SalesService();
-const purchaseOrderService = new ProcurementService();
+const purchaseOrderService = new PurchaseOrderService();
 const invoiceService = new InvoiceService();
 const billService = new BillService();
 const journalService = new JournalService();
@@ -159,7 +159,8 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     });
     const confirmedPO = await purchaseOrderService.confirm(
       po.id,
-      COMPANY_ID
+      COMPANY_ID,
+      'test-user-id'
     );
 
     // 2. Goods Receipt -> Accrual

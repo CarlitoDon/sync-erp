@@ -9,11 +9,12 @@
 
 import { BusinessShape } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import { OrderStatus } from '@sync-erp/database';
 
 /**
- * ProcurementPolicy - Shape-based constraints for procurement operations.
+ * PurchaseOrderPolicy - Shape-based constraints and Status Guards.
  */
-export class ProcurementPolicy {
+export class PurchaseOrderPolicy {
   /**
    * Check if purchasing physical goods is allowed.
    * SERVICE companies can only purchase services, not physical goods.
@@ -66,6 +67,7 @@ export class ProcurementPolicy {
       );
     }
   }
+
   /**
    * Validate update rules
    * - State Guard: Must be DRAFT
@@ -76,7 +78,7 @@ export class ProcurementPolicy {
     data: { orderNumber?: string },
     existingOrderNumber: string | null
   ): void {
-    if (existingStatus !== 'DRAFT') {
+    if (existingStatus !== OrderStatus.DRAFT) {
       throw new DomainError(
         'Order is not in the correct state for this action',
         422,
@@ -93,6 +95,26 @@ export class ProcurementPolicy {
         'Order number cannot be changed',
         400,
         DomainErrorCodes.MUTATION_BLOCKED
+      );
+    }
+  }
+
+  static validateConfirm(status: string): void {
+    if (status !== OrderStatus.DRAFT) {
+      throw new DomainError(
+        `Cannot confirm order with status: ${status}`,
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+  }
+
+  static validateCancel(status: string): void {
+    if (status === OrderStatus.COMPLETED) {
+      throw new DomainError(
+        'Cannot cancel a completed order',
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
       );
     }
   }

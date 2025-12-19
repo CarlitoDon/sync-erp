@@ -43,6 +43,7 @@ export {
   AuditLogAction,
   EntityType,
   PaymentMethod,
+  SequenceType,
 } from './generated/client/client.js';
 
 export { Prisma } from './generated/client/client.js';

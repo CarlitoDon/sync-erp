@@ -1,6 +1,14 @@
-import { prisma } from '@sync-erp/database';
+import { prisma, SequenceType } from '@sync-erp/database';
 
-export type DocumentType = 'PO' | 'SO' | 'INV' | 'BILL' | 'JE' | 'CN';
+export type DocumentType =
+  | 'PO'
+  | 'SO'
+  | 'INV'
+  | 'BILL'
+  | 'JE'
+  | 'CN'
+  | 'GRN'
+  | 'PAY';
 
 interface DocumentNumberConfig {
   prefix: string;
@@ -13,6 +21,13 @@ interface DocumentNumberConfig {
 const DEFAULT_CONFIGS: Record<DocumentType, DocumentNumberConfig> = {
   PO: {
     prefix: 'PO',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
+  GRN: {
+    prefix: 'GRN',
     separator: '-',
     includeYear: true,
     yearFormat: '4',
@@ -34,6 +49,13 @@ const DEFAULT_CONFIGS: Record<DocumentType, DocumentNumberConfig> = {
   },
   BILL: {
     prefix: 'BILL',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
+  PAY: {
+    prefix: 'PAY',
     separator: '-',
     includeYear: true,
     yearFormat: '4',
@@ -65,29 +87,67 @@ export class DocumentNumberService {
     docType: DocumentType
   ): Promise<string> {
     const config = DEFAULT_CONFIGS[docType];
-    const year = new Date().getFullYear();
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1; // 1-12
+
     // YY or YYYY string
     const yearStr =
       config.yearFormat === '4'
         ? year.toString()
         : year.toString().slice(-2);
 
-    // Get current sequence count for this company/type/year
-    const count = await this.getSequenceCount(
-      companyId,
-      docType,
-      year
-    );
-    const sequence = String(count + 1).padStart(
+    let sequence = 0;
+
+    // Supported types for atomic increment: PO, GRN, BILL, PAY
+    // We strictly check against the SequenceType values to ensure type safety
+    if (
+      docType === SequenceType.PO ||
+      docType === SequenceType.GRN ||
+      docType === SequenceType.BILL ||
+      docType === SequenceType.PAY
+    ) {
+      // Safe to cast because we verified it matches one of the SequenceType enum values
+      const type = docType as SequenceType;
+
+      const seq = await prisma.documentSequence.upsert({
+        where: {
+          companyId_type_year_month: {
+            companyId,
+            type,
+            year,
+            month,
+          },
+        },
+        create: {
+          companyId,
+          type,
+          year,
+          month,
+          lastSequence: 1,
+        },
+        update: {
+          lastSequence: { increment: 1 },
+        },
+      });
+      sequence = seq.lastSequence;
+    } else {
+      // Fallback for types not yet in SequenceType enum (SO, INV, etc.)
+      // This maintains backward compatibility until we migrate Sales/Finance to new sequence
+      sequence =
+        (await this.getSequenceCount(companyId, docType, year)) + 1;
+    }
+
+    const sequenceStr = String(sequence).padStart(
       config.sequenceLength,
       '0'
     );
 
     // Build the document number
     if (config.includeYear) {
-      return `${config.prefix}${config.separator}${yearStr}${config.separator}${sequence}`;
+      return `${config.prefix}${config.separator}${yearStr}${config.separator}${sequenceStr}`;
     }
-    return `${config.prefix}${config.separator}${sequence}`;
+    return `${config.prefix}${config.separator}${sequenceStr}`;
   }
 
   /**
@@ -102,12 +162,11 @@ export class DocumentNumberService {
     const yearEnd = new Date(year + 1, 0, 1);
 
     switch (docType) {
-      case 'PO':
       case 'SO':
         return prisma.order.count({
           where: {
             companyId,
-            type: docType === 'PO' ? 'PURCHASE' : 'SALES',
+            type: 'SALES',
             createdAt: { gte: yearStart, lt: yearEnd },
           },
         });
@@ -116,16 +175,7 @@ export class DocumentNumberService {
         return prisma.invoice.count({
           where: {
             companyId,
-            type: 'INVOICE',
-            createdAt: { gte: yearStart, lt: yearEnd },
-          },
-        });
-
-      case 'BILL':
-        return prisma.invoice.count({
-          where: {
-            companyId,
-            type: 'BILL',
+            type: 'INVOICE', // Sales Invoice
             createdAt: { gte: yearStart, lt: yearEnd },
           },
         });
@@ -134,7 +184,7 @@ export class DocumentNumberService {
         return prisma.invoice.count({
           where: {
             companyId,
-            type: 'CREDIT_NOTE',
+            type: { in: ['CREDIT_NOTE'] }, // Ensure correct enum usage
             createdAt: { gte: yearStart, lt: yearEnd },
           },
         });

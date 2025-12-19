@@ -12,15 +12,15 @@ vi.mock('@modules/procurement/procurement.repository', () => ({
 }));
 
 // Import after mocking
-import { ProcurementService } from '@modules/procurement/procurement.service';
+import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 
-describe('PurchaseOrderService (ProcurementService)', () => {
-  let service: ProcurementService;
+describe('PurchaseOrderService (PurchaseOrderService)', () => {
+  let service: PurchaseOrderService;
   const companyId = 'company-1';
 
   beforeEach(() => {
     resetRepositoryMocks();
-    service = new ProcurementService();
+    service = new PurchaseOrderService();
   });
 
   describe('create', () => {
@@ -104,7 +104,7 @@ describe('PurchaseOrderService (ProcurementService)', () => {
         confirmedOrder
       );
 
-      const result = await service.confirm('order-1', companyId);
+      const result = await service.confirm('order-1', companyId, 'test-user-id');
 
       expect(result.status).toBe('CONFIRMED');
     });
@@ -113,7 +113,7 @@ describe('PurchaseOrderService (ProcurementService)', () => {
       mockProcurementRepository.findById.mockResolvedValue(null);
 
       await expect(
-        service.confirm('nonexistent', companyId)
+        service.confirm('nonexistent', companyId, 'test-user-id')
       ).rejects.toThrow('Purchase order not found');
     });
   });
@@ -128,7 +128,7 @@ describe('PurchaseOrderService (ProcurementService)', () => {
         cancelledOrder
       );
 
-      const result = await service.cancel('order-1', companyId);
+      const result = await service.cancel('order-1', companyId, 'test-user-id');
 
       expect(result.status).toBe('CANCELLED');
     });
@@ -138,7 +138,7 @@ describe('PurchaseOrderService (ProcurementService)', () => {
       mockProcurementRepository.findById.mockResolvedValue(mockOrder);
 
       await expect(
-        service.cancel('order-1', companyId)
+        service.cancel('order-1', companyId, 'test-user-id')
       ).rejects.toThrow('Cannot cancel a completed order');
     });
   });

@@ -5,7 +5,7 @@ import { JournalService } from '@modules/accounting/services/journal.service';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { InvoiceService } from '@modules/accounting/services/invoice.service';
 import { PaymentService } from '@modules/accounting/services/payment.service';
-import { ProcurementService } from '@modules/procurement/procurement.service';
+import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { SalesService } from '@modules/sales/sales.service';
 
 // Initialize Services
@@ -14,7 +14,7 @@ const journalService = new JournalService();
 const billService = new BillService();
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
-const purchaseOrderService = new ProcurementService();
+const purchaseOrderService = new PurchaseOrderService();
 const salesOrderService = new SalesService();
 
 const COMPANY_ID = 'test-e2e-finance-cycle-001';
@@ -180,7 +180,11 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       expect(order.status).toBe('DRAFT');
 
       // Confirm PO
-      await purchaseOrderService.confirm(order.id, COMPANY_ID);
+      await purchaseOrderService.confirm(
+        order.id,
+        COMPANY_ID,
+        'test-user-id'
+      );
     });
 
     it('2. Should Receive Goods (Updates Stock, Creates GRNI Accrual Journal)', async () => {

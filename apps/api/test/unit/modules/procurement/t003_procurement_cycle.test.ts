@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ProcurementService } from '@modules/procurement/procurement.service';
+import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import {
   BusinessShape,
   OrderStatus,
@@ -24,13 +24,13 @@ vi.mock('@sync-erp/database', async () => {
 });
 
 describe('T003: Verify Purchase Order Cycle (FR-009)', () => {
-  let service: ProcurementService;
+  let service: PurchaseOrderService;
   let mockRepo: any;
   let mockDocService: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new ProcurementService();
+    service = new PurchaseOrderService();
     mockRepo = (service as any).repository;
     mockDocService = (service as any).documentNumberService;
   });
@@ -67,7 +67,7 @@ describe('T003: Verify Purchase Order Cycle (FR-009)', () => {
         status: OrderStatus.DRAFT,
       });
 
-      await service.confirm(orderId, companyId);
+      await service.confirm(orderId, companyId, 'test-user-id');
 
       expect(mockRepo.updateStatus).toHaveBeenCalledWith(
         orderId,
@@ -78,7 +78,7 @@ describe('T003: Verify Purchase Order Cycle (FR-009)', () => {
     it('should fail if order not found', async () => {
       mockRepo.findById.mockResolvedValue(null);
       await expect(
-        service.confirm(orderId, companyId)
+        service.confirm(orderId, companyId, 'test-user-id')
       ).rejects.toThrow();
     });
 
@@ -88,7 +88,7 @@ describe('T003: Verify Purchase Order Cycle (FR-009)', () => {
         status: OrderStatus.CONFIRMED,
       });
       await expect(
-        service.confirm(orderId, companyId)
+        service.confirm(orderId, companyId, 'test-user-id')
       ).rejects.toThrow();
     });
   });

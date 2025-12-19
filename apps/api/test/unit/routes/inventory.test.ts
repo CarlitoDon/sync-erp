@@ -39,9 +39,9 @@ vi.mock('@modules/inventory/inventory.service', () => ({
   },
 }));
 
-// Mock ProcurementService
-vi.mock('@modules/procurement/procurement.service', () => ({
-  ProcurementService: function () {
+// Mock PurchaseOrderService
+vi.mock('@modules/procurement/purchase-order.service', () => ({
+  PurchaseOrderService: function () {
     return {
       receive: vi.fn().mockResolvedValue({
         movements: [{ id: 'mov-2' }],

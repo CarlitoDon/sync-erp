@@ -4,15 +4,18 @@ import {
   OrderType,
   Prisma,
   BusinessShape,
+  AuditLogAction,
+  EntityType,
 } from '@sync-erp/database';
-import { ProcurementRepository } from './procurement.repository';
-import { ProcurementPolicy } from './procurement.policy';
+import { PurchaseOrderRepository } from './purchase-order.repository';
+import { PurchaseOrderPolicy } from './purchase-order.policy';
 import { DocumentNumberService } from '../common/services/document-number.service';
+import { recordAudit } from '../common/audit/audit-log.service';
 import { GoodsReceiptSaga } from './sagas/goods-receipt.saga';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
-export class ProcurementService {
-  private repository = new ProcurementRepository();
+export class PurchaseOrderService {
+  private repository = new PurchaseOrderRepository();
   private documentNumberService = new DocumentNumberService();
   private goodsReceiptSaga = new GoodsReceiptSaga();
 
@@ -29,12 +32,13 @@ export class ProcurementService {
       items: { productId: string; quantity: number; price: number }[];
       taxRate?: number;
     },
-    shape?: BusinessShape
+    shape?: BusinessShape,
+    userId?: string
   ): Promise<Order> {
     // Policy check: SERVICE companies cannot purchase physical goods
     // Only enforce if shape is provided and items contain physical products
     if (shape && data.items.length > 0) {
-      ProcurementPolicy.ensureCanPurchasePhysicalGoods(shape);
+      PurchaseOrderPolicy.ensureCanPurchasePhysicalGoods(shape);
     }
 
     // Generate order number
@@ -70,7 +74,22 @@ export class ProcurementService {
       },
     };
 
-    return this.repository.create(createData);
+    const order = await this.repository.create(createData);
+
+    // Audit Log (Optional for creation, but good practice)
+    if (userId) {
+      await recordAudit({
+        companyId,
+        actorId: userId,
+        action: AuditLogAction.ORDER_CREATED,
+        entityType: EntityType.ORDER,
+        entityId: order.id,
+        businessDate: new Date(),
+        payloadSnapshot: createData as Prisma.InputJsonValue,
+      });
+    }
+
+    return order;
   }
 
   async getById(
@@ -85,7 +104,11 @@ export class ProcurementService {
     return this.repository.findAll(companyId, status as OrderStatus);
   }
 
-  async confirm(id: string, companyId: string): Promise<Order> {
+  async confirm(
+    id: string,
+    companyId: string,
+    userId: string
+  ): Promise<Order> {
     const order = await this.repository.findById(id, companyId);
     if (!order) {
       throw new DomainError(
@@ -95,15 +118,28 @@ export class ProcurementService {
       );
     }
 
-    if (order.status !== OrderStatus.DRAFT) {
-      throw new DomainError(
-        `Cannot confirm order with status: ${order.status}`,
-        422,
-        DomainErrorCodes.ORDER_INVALID_STATE
-      );
-    }
+    PurchaseOrderPolicy.validateConfirm(order.status);
 
-    return this.repository.updateStatus(id, OrderStatus.CONFIRMED);
+    const updated = await this.repository.updateStatus(
+      id,
+      OrderStatus.CONFIRMED,
+      order.version
+    );
+
+    await recordAudit({
+      companyId,
+      actorId: userId,
+      action: AuditLogAction.ORDER_CONFIRMED, // Ensure this enum exists or map to UPDATE
+      entityType: EntityType.ORDER,
+      entityId: id,
+      businessDate: new Date(),
+      payloadSnapshot: {
+        prevStatus: order.status,
+        newStatus: OrderStatus.CONFIRMED,
+      },
+    });
+
+    return updated;
   }
 
   async complete(
@@ -131,11 +167,16 @@ export class ProcurementService {
     return this.repository.updateStatus(
       id,
       OrderStatus.COMPLETED,
+      undefined, // No optimistic lock in Saga (locked by Saga Orchestrator usually) or pass version if needed
       tx
     );
   }
 
-  async cancel(id: string, companyId: string): Promise<Order> {
+  async cancel(
+    id: string,
+    companyId: string,
+    userId: string
+  ): Promise<Order> {
     const order = await this.repository.findById(id, companyId);
     if (!order) {
       throw new DomainError(
@@ -145,15 +186,28 @@ export class ProcurementService {
       );
     }
 
-    if (order.status === OrderStatus.COMPLETED) {
-      throw new DomainError(
-        'Cannot cancel a completed order',
-        422,
-        DomainErrorCodes.ORDER_INVALID_STATE
-      );
-    }
+    PurchaseOrderPolicy.validateCancel(order.status);
 
-    return this.repository.updateStatus(id, OrderStatus.CANCELLED);
+    const updated = await this.repository.updateStatus(
+      id,
+      OrderStatus.CANCELLED,
+      order.version
+    );
+
+    await recordAudit({
+      companyId,
+      actorId: userId,
+      action: AuditLogAction.ORDER_CANCELLED,
+      entityType: EntityType.ORDER,
+      entityId: id,
+      businessDate: new Date(),
+      payloadSnapshot: {
+        prevStatus: order.status,
+        newStatus: OrderStatus.CANCELLED,
+      },
+    });
+
+    return updated;
   }
 
   async getItems(orderId: string, tx?: Prisma.TransactionClient) {

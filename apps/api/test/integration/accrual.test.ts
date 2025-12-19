@@ -2,12 +2,12 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
-import { ProcurementService } from '@modules/procurement/procurement.service';
+import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
 const billService = new BillService();
 const journalService = new JournalService();
-const procurementService = new ProcurementService();
+const procurementService = new PurchaseOrderService();
 const inventoryService = new InventoryService();
 
 const COMPANY_ID = 'test-accrual-001';
@@ -116,7 +116,7 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
 
   it('should post GRNI journal on receipt and reverse it on Bill', async () => {
     // 1. Create Purchase Order
-    // ProcurementService.create(companyId, data)
+    // PurchaseOrderService.create(companyId, data)
     const order = await procurementService.create(COMPANY_ID, {
       partnerId,
       items: [{ productId, quantity: 5, price: 100000 }],
@@ -124,7 +124,8 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     });
     const confirmedOrder = await procurementService.confirm(
       order.id,
-      COMPANY_ID
+      COMPANY_ID,
+      'test-user-id'
     );
 
     // 2. Create and Post GRN (Should trigger Accrual)

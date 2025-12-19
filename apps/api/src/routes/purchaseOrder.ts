@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { ProcurementController } from '../modules/procurement/procurement.controller';
+import { PurchaseOrderController } from '../modules/procurement/purchase-order.controller';
 import { requireActiveShape } from '../middlewares/shapeGuard';
 
 export const purchaseOrderRouter = Router();
-const controller = new ProcurementController();
+const controller = new PurchaseOrderController();
 
 // GET /api/purchase-orders - List all POs
 purchaseOrderRouter.get('/', controller.list);

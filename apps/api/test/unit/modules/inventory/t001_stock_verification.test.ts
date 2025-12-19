@@ -5,7 +5,7 @@ import { BusinessShape } from '@sync-erp/database';
 // Automock dependencies
 vi.mock('@modules/inventory/inventory.repository');
 vi.mock('@modules/product/product.service');
-vi.mock('@modules/procurement/procurement.service');
+vi.mock('@modules/procurement/purchase-order.service');
 vi.mock('@modules/accounting/services/journal.service');
 
 // Mock Prisma module fully
@@ -29,7 +29,7 @@ describe('T001: Verify Stock Movements', () => {
   // Access mocked dependencies
   let mockRepo: any;
   let mockProductService: any;
-  let mockProcurementService: any;
+  let mockPurchaseOrderService: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,7 +37,7 @@ describe('T001: Verify Stock Movements', () => {
     // Access the automocked instances that the service constructor received
     mockRepo = (service as any).repository;
     mockProductService = (service as any).productService;
-    mockProcurementService = (service as any).procurementService;
+    mockPurchaseOrderService = (service as any).procurementService;
   });
 
   describe('FR-001 & FR-003: Goods Receipt (Stock IN + AVG Cost)', () => {
@@ -65,11 +65,11 @@ describe('T001: Verify Stock Movements', () => {
 
     it('should increase stock and recalculate average cost for each item', async () => {
       // Setup scenarios
-      mockProcurementService.getById.mockResolvedValue({
+      mockPurchaseOrderService.getById.mockResolvedValue({
         id: orderId,
         status: 'CONFIRMED',
       });
-      mockProcurementService.getItems.mockResolvedValue([
+      mockPurchaseOrderService.getItems.mockResolvedValue([
         { productId: 'prod-A', quantity: 10, price: 1000 },
         { productId: 'prod-B', quantity: 5, price: 2000 },
       ]);
