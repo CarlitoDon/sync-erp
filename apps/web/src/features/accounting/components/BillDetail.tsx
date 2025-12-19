@@ -8,8 +8,6 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { PaymentForm } from '@/features/accounting/components/PaymentForm';
 import { getPaymentTermLabel } from '@sync-erp/shared';
 
-import { Invoice } from '@sync-erp/shared';
-
 export default function BillDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -17,7 +15,10 @@ export default function BillDetail() {
   const confirm = useConfirm();
   const { getBill, postBill, voidBill } = useBill();
 
-  const [bill, setBill] = useState<Invoice | null>(null);
+  const [bill, setBill] =
+    useState<
+      Awaited<ReturnType<ReturnType<typeof useBill>['getBill']>>
+    >(null);
   const [loading, setLoading] = useState(true);
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
 
@@ -71,83 +72,111 @@ export default function BillDetail() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'POSTED': return 'bg-green-100 text-green-800';
-      case 'DRAFT': return 'bg-gray-100 text-gray-800';
-      case 'PAID': return 'bg-blue-100 text-blue-800';
-      case 'VOID': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'POSTED':
+        return 'bg-green-100 text-green-800';
+      case 'DRAFT':
+        return 'bg-gray-100 text-gray-800';
+      case 'PAID':
+        return 'bg-blue-100 text-blue-800';
+      case 'VOID':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   if (loading || !currentCompany) {
-     return <div>Loading...</div>;
+    return <div>Loading...</div>;
   }
 
   if (!bill) return <div>Bill not found</div>;
 
   return (
     <div className="space-y-6">
-       <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <button onClick={() => navigate('/bills')} className="text-blue-600 mb-2">← Back to Bills</button>
+          <button
+            onClick={() => navigate('/bills')}
+            className="text-blue-600 mb-2"
+          >
+            ← Back to Bills
+          </button>
           <div className="flex items-center gap-3">
-             <h1 className="text-2xl font-bold">{bill.invoiceNumber}</h1>
-             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(bill.status)}`}>
-               {bill.status}
-             </span>
+            <h1 className="text-2xl font-bold">
+              {bill.invoiceNumber}
+            </h1>
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(bill.status)}`}
+            >
+              {bill.status}
+            </span>
           </div>
         </div>
         <div className="space-x-2">
-            {bill.status === 'DRAFT' && (
-                <Button onClick={handlePost}>Post Bill</Button>
-            )}
-            {bill.status === 'POSTED' && Number(bill.balance) > 0 && (
-                <Button onClick={() => setIsPaymentFormOpen(true)}>Record Payment</Button>
-            )}
-            {bill.status !== 'VOID' && bill.status !== 'PAID' && (
-                 <Button variant="outline" onClick={handleVoid} className="text-red-600 border-red-200 hover:bg-red-50">Void</Button>
-            )}
-        </div>
-       </div>
-
-       <div className="bg-white rounded-xl shadow p-6 border">
-          <div className="grid grid-cols-4 gap-6">
-             <div>
-               <p className="text-sm text-gray-500">Supplier</p>
-               <p className="font-medium">{bill.partner?.name}</p>
-             </div>
-             <div>
-               <p className="text-sm text-gray-500">Date</p>
-               <p className="font-medium">{formatDate(bill.createdAt)}</p>
-             </div>
-             <div>
-               <p className="text-sm text-gray-500">Due Date</p>
-               <p className="font-medium">{formatDate(bill.dueDate)}</p>
-             </div>
-             <div>
-               <p className="text-sm text-gray-500">Amount</p>
-               <p className="font-medium text-lg">{formatCurrency(bill.amount)}</p>
-             </div>
-          </div>
-          
-          {bill.paymentTermsString && (
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-500">Payment Terms</p>
-              <p className="font-medium">{getPaymentTermLabel(bill.paymentTermsString)}</p>
-            </div>
+          {bill.status === 'DRAFT' && (
+            <Button onClick={handlePost}>Post Bill</Button>
           )}
-       </div>
+          {bill.status === 'POSTED' && Number(bill.balance) > 0 && (
+            <Button onClick={() => setIsPaymentFormOpen(true)}>
+              Record Payment
+            </Button>
+          )}
+          {bill.status !== 'VOID' && bill.status !== 'PAID' && (
+            <Button
+              variant="outline"
+              onClick={handleVoid}
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              Void
+            </Button>
+          )}
+        </div>
+      </div>
 
-       {/* Payment Form Modal */}
-       {isPaymentFormOpen && (
-         <PaymentForm
-           isOpen={isPaymentFormOpen}
-           onClose={() => setIsPaymentFormOpen(false)}
-           invoiceId={bill.id}
-           outstandingAmount={Number(bill.balance)}
-           onSuccess={loadData}
-         />
-       )}
+      <div className="bg-white rounded-xl shadow p-6 border">
+        <div className="grid grid-cols-4 gap-6">
+          <div>
+            <p className="text-sm text-gray-500">Supplier</p>
+            <p className="font-medium">{bill.partnerId}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Date</p>
+            <p className="font-medium">
+              {formatDate(bill.createdAt)}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Due Date</p>
+            <p className="font-medium">{formatDate(bill.dueDate)}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Amount</p>
+            <p className="font-medium text-lg">
+              {formatCurrency(bill.amount.toNumber())}
+            </p>
+          </div>
+        </div>
+
+        {bill.paymentTermsString && (
+          <div className="mt-4 pt-4 border-t">
+            <p className="text-sm text-gray-500">Payment Terms</p>
+            <p className="font-medium">
+              {getPaymentTermLabel(bill.paymentTermsString)}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Payment Form Modal */}
+      {isPaymentFormOpen && (
+        <PaymentForm
+          isOpen={isPaymentFormOpen}
+          onClose={() => setIsPaymentFormOpen(false)}
+          invoiceId={bill.id}
+          outstandingAmount={Number(bill.balance)}
+          onSuccess={loadData}
+        />
+      )}
     </div>
   );
 }
