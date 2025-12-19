@@ -25,17 +25,17 @@ vi.mock('@modules/product/product.service', () => ({
   },
 }));
 
-vi.mock('../../../src/middlewares/auth', () => ({
+vi.mock('@middlewares/auth', () => ({
   authMiddleware: mockAuthMiddleware,
 }));
 
-vi.mock('../../../src/middlewares/rbac', () => ({
+vi.mock('@middlewares/rbac', () => ({
   checkPermissions: () => mockRbacMiddleware,
 }));
 
 // Import after mocking
-import { productRouter } from '../../../src/routes/product';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { productRouter } from '@routes/product';
+import { errorHandler } from '@middlewares/errorHandler';
 
 const createTestApp = () => {
   const app = express();

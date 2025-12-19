@@ -21,9 +21,7 @@ vi.mock('react-router-dom', async () => {
 
 // Mock the CompanyContext
 vi.mock('@/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/CompanyContext'
-  );
+  const actual = await vi.importActual('@/contexts/CompanyContext');
   return {
     ...actual,
     useCompany: vi.fn(),

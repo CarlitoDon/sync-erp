@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { useCompanyData } from '@/hooks/useCompanyData';
-import { productService, Product } from '@/features/inventory/services/productService';
+import {
+  productService,
+  Product,
+} from '@/features/inventory/services/productService';
 import { getMovements } from '@/features/inventory/services/inventoryService';
 import type { InventoryMovement } from '@sync-erp/shared';
 import ActionButton from '@/components/ui/ActionButton';

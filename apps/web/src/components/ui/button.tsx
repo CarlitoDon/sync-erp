@@ -35,7 +35,15 @@ export const Button = React.forwardRef<
   ButtonProps
 >(
   (
-    { className = '', variant = 'primary', size = 'md', isLoading = false, children, disabled, ...props },
+    {
+      className = '',
+      variant = 'primary',
+      size = 'md',
+      isLoading = false,
+      children,
+      disabled,
+      ...props
+    },
     ref
   ) => {
     const baseStyles =

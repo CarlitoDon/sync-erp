@@ -53,7 +53,8 @@ export default function Select({
     <div className={`relative ${className}`} ref={containerRef}>
       {label && (
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {label} {required && <span className="text-red-500">*</span>}
+          {label}{' '}
+          {required && <span className="text-red-500">*</span>}
         </label>
       )}
       <button
@@ -62,10 +63,14 @@ export default function Select({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={`w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-left cursor-default focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm flex items-center justify-between ${
-          disabled ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'
+          disabled
+            ? 'bg-gray-100 cursor-not-allowed'
+            : 'hover:border-gray-400'
         }`}
       >
-        <span className={`block truncate ${!selectedOption ? 'text-gray-400' : 'text-gray-900'}`}>
+        <span
+          className={`block truncate ${!selectedOption ? 'text-gray-400' : 'text-gray-900'}`}
+        >
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <span className="pointer-events-none flex items-center pr-2">

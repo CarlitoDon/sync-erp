@@ -1,7 +1,9 @@
 import * as React from 'react';
 
-export interface DatePickerProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'value' | 'onChange'> {
+export interface DatePickerProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'value' | 'onChange'
+> {
   value: string; // ISO date string (YYYY-MM-DD)
   onChange: (value: string) => void;
   label?: string;
@@ -11,7 +13,7 @@ export interface DatePickerProps
 /**
  * Simple DatePicker component using native date input.
  * Per Guardrails G5: businessDate is required for financial operations.
- * 
+ *
  * @example
  * <DatePicker
  *   label="Business Date"
@@ -19,8 +21,14 @@ export interface DatePickerProps
  *   onChange={(date) => setForm({ ...form, businessDate: date })}
  * />
  */
-export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
-  ({ value, onChange, label, error, className = '', id, ...props }, ref) => {
+export const DatePicker = React.forwardRef<
+  HTMLInputElement,
+  DatePickerProps
+>(
+  (
+    { value, onChange, label, error, className = '', id, ...props },
+    ref
+  ) => {
     const inputId = id || `date-picker-${React.useId()}`;
 
     return (

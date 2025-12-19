@@ -7,13 +7,9 @@ import {
 import { formatDate } from '@/utils/format';
 
 export default function Shipments() {
-  const {
-    data: shipments,
-    loading,
-  } = useCompanyData<ShipmentResponse[]>(
-    (companyId) => listShipments(companyId),
-    []
-  );
+  const { data: shipments, loading } = useCompanyData<
+    ShipmentResponse[]
+  >((companyId) => listShipments(companyId), []);
 
   const getStatusColor = (status: string) => {
     switch (status) {

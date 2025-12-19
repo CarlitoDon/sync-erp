@@ -5,9 +5,7 @@ import * as CompanyContext from '@/contexts/CompanyContext';
 import * as useCompanyDataHook from '@/hooks/useCompanyData';
 
 vi.mock('@/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/CompanyContext'
-  );
+  const actual = await vi.importActual('@/contexts/CompanyContext');
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -18,40 +16,37 @@ vi.mock('@/hooks/useCompanyData', () => ({
   useCompanyData: vi.fn(),
 }));
 
-vi.mock(
-  '@/features/dashboard/hooks/useOnboardingProgress',
-  () => ({
-    useOnboardingProgress: vi.fn(() => ({
-      loading: false,
-      steps: [
-        {
-          id: '1',
-          title: 'Create your first company',
-          isCompleted: false,
-        },
-        {
-          id: '2',
-          title: 'Add products and services',
-          isCompleted: false,
-        },
-        {
-          id: '3',
-          title: 'Set up customers and suppliers',
-          isCompleted: false,
-        },
-        {
-          id: '4',
-          title: 'Create your first order',
-          isCompleted: false,
-        },
-      ],
-      completedCount: 0,
-      totalCount: 4,
-      isAllComplete: false,
-      percentComplete: 0,
-    })),
-  })
-);
+vi.mock('@/features/dashboard/hooks/useOnboardingProgress', () => ({
+  useOnboardingProgress: vi.fn(() => ({
+    loading: false,
+    steps: [
+      {
+        id: '1',
+        title: 'Create your first company',
+        isCompleted: false,
+      },
+      {
+        id: '2',
+        title: 'Add products and services',
+        isCompleted: false,
+      },
+      {
+        id: '3',
+        title: 'Set up customers and suppliers',
+        isCompleted: false,
+      },
+      {
+        id: '4',
+        title: 'Create your first order',
+        isCompleted: false,
+      },
+    ],
+    completedCount: 0,
+    totalCount: 4,
+    isAllComplete: false,
+    percentComplete: 0,
+  })),
+}));
 
 describe('Dashboard', () => {
   beforeEach(() => {

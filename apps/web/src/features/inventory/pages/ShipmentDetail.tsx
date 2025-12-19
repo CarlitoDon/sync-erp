@@ -12,7 +12,9 @@ export default function ShipmentDetail() {
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
 
-  const [shipment, setShipment] = useState<ShipmentResponse | null>(null);
+  const [shipment, setShipment] = useState<ShipmentResponse | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -89,7 +91,9 @@ export default function ShipmentDetail() {
 
       {/* Details Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Shipment Details</h2>
+        <h2 className="text-lg font-semibold mb-4">
+          Shipment Details
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div>
             <p className="text-sm text-gray-500">Shipment Number</p>
@@ -164,12 +168,16 @@ export default function ShipmentDetail() {
                     item.productId
                   )}
                 </td>
-                <td className="px-4 py-3 text-right">{item.quantity}</td>
+                <td className="px-4 py-3 text-right">
+                  {item.quantity}
+                </td>
                 <td className="px-4 py-3 text-right">
                   {formatCurrency(item.costSnapshot || 0)}
                 </td>
                 <td className="px-4 py-3 text-right font-medium">
-                  {formatCurrency(item.quantity * (item.costSnapshot || 0))}
+                  {formatCurrency(
+                    item.quantity * (item.costSnapshot || 0)
+                  )}
                 </td>
               </tr>
             ))}

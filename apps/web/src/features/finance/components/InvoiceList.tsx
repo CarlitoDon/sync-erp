@@ -92,7 +92,8 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
   };
 
   const handlePayment = async () => {
-    if (!selectedInvoice || paymentAmount <= 0 || isSubmitting) return;
+    if (!selectedInvoice || paymentAmount <= 0 || isSubmitting)
+      return;
     setIsSubmitting(true);
     const result = await apiAction(
       () =>
@@ -231,7 +232,9 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
               <Select
                 value={paymentMethod}
                 onChange={(val) =>
-                  setPaymentMethod(val as CreatePaymentInput['method'])
+                  setPaymentMethod(
+                    val as CreatePaymentInput['method']
+                  )
                 }
                 options={[
                   { value: 'BANK_TRANSFER', label: 'Bank Transfer' },

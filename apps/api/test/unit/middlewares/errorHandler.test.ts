@@ -9,7 +9,7 @@ import {
   UnauthorizedError,
   ForbiddenError,
   ConflictError,
-} from '../../../src/middlewares/errorHandler';
+} from '@middlewares/errorHandler';
 
 // Mock request, response, and next
 const mockRequest = {} as Request;

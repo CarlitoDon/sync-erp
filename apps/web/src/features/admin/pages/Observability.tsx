@@ -4,7 +4,7 @@ import { JournalOrphanList } from '@/features/admin/components/JournalOrphanList
 /**
  * Observability page for admin users.
  * Part of Phase 1 Admin Observability (US5).
- * 
+ *
  * Per FR-014: Displays list of failed sagas with error details.
  * Per FR-015: Distinguishes compensated vs compensation-failed sagas.
  * Per FR-016: Displays journal entries with missing/invalid source references.

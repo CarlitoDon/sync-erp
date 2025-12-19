@@ -25,17 +25,17 @@ vi.mock('@modules/accounting/services/payment.service', () => ({
   },
 }));
 
-vi.mock('../../../src/middlewares/auth', () => ({
+vi.mock('@middlewares/auth', () => ({
   authMiddleware: mockAuthMiddleware,
 }));
 
-vi.mock('../../../src/middlewares/rbac', () => ({
+vi.mock('@middlewares/rbac', () => ({
   checkPermissions: () => mockRbacMiddleware,
 }));
 
 // Import after mocking
-import { paymentRouter } from '../../../src/routes/payment';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { paymentRouter } from '@routes/payment';
+import { errorHandler } from '@middlewares/errorHandler';
 
 const createTestApp = () => {
   const app = express();

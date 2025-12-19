@@ -1,23 +1,27 @@
 import { useCompanyData } from '@/hooks/useCompanyData';
-import { adminService, type SagaLog } from '@/features/admin/services/admin.service';
+import {
+  adminService,
+  type SagaLog,
+} from '@/features/admin/services/admin.service';
 
 const defaultSagaLogs: SagaLog[] = [];
 
 /**
  * SagaFailureList component - displays failed/compensated sagas.
  * Part of Phase 1 Admin Observability (US5).
- * 
+ *
  * Per FR-014: Displays list of failed sagas with error details.
  * Per FR-015: Distinguishes compensated vs compensation-failed sagas.
  */
 export function SagaFailureList() {
-  const { data: result, loading, error } = useCompanyData(
-    async () => {
-      const response = await adminService.getSagaLogs();
-      return response.data;
-    },
-    defaultSagaLogs
-  );
+  const {
+    data: result,
+    loading,
+    error,
+  } = useCompanyData(async () => {
+    const response = await adminService.getSagaLogs();
+    return response.data;
+  }, defaultSagaLogs);
 
   const getStepBadge = (step: string) => {
     switch (step) {
@@ -56,8 +60,12 @@ export function SagaFailureList() {
   if (result.length === 0) {
     return (
       <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-        <p className="text-green-700 font-medium">No saga failures found</p>
-        <p className="text-green-600 text-sm mt-1">All sagas completed successfully</p>
+        <p className="text-green-700 font-medium">
+          No saga failures found
+        </p>
+        <p className="text-green-600 text-sm mt-1">
+          All sagas completed successfully
+        </p>
       </div>
     );
   }

@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
 import { Link } from 'react-router-dom';
-import { billService, Bill } from '@/features/finance/services/billService';
+import {
+  billService,
+  Bill,
+} from '@/features/finance/services/billService';
 import {
   paymentService,
   CreatePaymentInput,
@@ -217,7 +220,9 @@ export const BillList = ({ filter }: BillListProps) => {
               <Select
                 value={paymentMethod}
                 onChange={(val) =>
-                  setPaymentMethod(val as CreatePaymentInput['method'])
+                  setPaymentMethod(
+                    val as CreatePaymentInput['method']
+                  )
                 }
                 options={[
                   { value: 'BANK_TRANSFER', label: 'Bank Transfer' },

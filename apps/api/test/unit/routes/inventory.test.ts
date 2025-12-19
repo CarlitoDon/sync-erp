@@ -3,7 +3,7 @@ import express, { Response, NextFunction } from 'express';
 import request from 'supertest';
 
 // Mock auth middleware
-vi.mock('../../../src/middlewares/auth', () => ({
+vi.mock('@middlewares/auth', () => ({
   authMiddleware: (_req: any, _res: any, next: any) => next(),
   optionalAuthMiddleware: (_req: any, _res: any, next: any) => next(),
 }));
@@ -52,8 +52,8 @@ vi.mock('@modules/procurement/procurement.service', () => ({
 }));
 
 // Import after mocking
-import { inventoryRouter } from '../../../src/routes/inventory';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { inventoryRouter } from '@routes/inventory';
+import { errorHandler } from '@middlewares/errorHandler';
 
 const createTestApp = () => {
   const app = express();

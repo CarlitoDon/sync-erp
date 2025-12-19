@@ -27,19 +27,19 @@ vi.mock('@modules/partner/partner.service', () => ({
   },
 }));
 
-vi.mock('../../../src/middlewares/auth', () => ({
+vi.mock('@middlewares/auth', () => ({
   authMiddleware: mockAuthMiddleware,
 }));
 
-vi.mock('../../../src/middlewares/rbac', () => ({
+vi.mock('@middlewares/rbac', () => ({
   checkPermissions: () => mockRbacMiddleware,
 }));
 
 // Mock database PartnerType enum
 
 // Import AFTER mocking
-import { partnerRouter } from '../../../src/routes/partner';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { partnerRouter } from '@routes/partner';
+import { errorHandler } from '@middlewares/errorHandler';
 
 // Setup Express App
 const createTestApp = () => {

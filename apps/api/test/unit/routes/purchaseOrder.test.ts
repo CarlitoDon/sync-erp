@@ -15,8 +15,8 @@ vi.mock('@modules/procurement/procurement.service', () => ({
 }));
 
 // Import after mocking
-import { purchaseOrderRouter } from '../../../src/routes/purchaseOrder';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { purchaseOrderRouter } from '@routes/purchaseOrder';
+import { errorHandler } from '@middlewares/errorHandler';
 
 const createTestApp = () => {
   const app = express();

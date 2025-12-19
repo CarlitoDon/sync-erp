@@ -1,5 +1,8 @@
 import { useCompanyData } from '@/hooks/useCompanyData';
-import { dashboardService, type DashboardKPIs } from '@/features/dashboard/services/dashboardService';
+import {
+  dashboardService,
+  type DashboardKPIs,
+} from '@/features/dashboard/services/dashboardService';
 import { StatCard } from '@/features/dashboard/components/StatCard';
 
 const defaultKPIs: DashboardKPIs = {
@@ -13,7 +16,7 @@ const defaultKPIs: DashboardKPIs = {
 /**
  * DashboardKPIs component - displays read-only KPI cards.
  * Part of Phase 1 Dashboard KPIs (US1).
- * 
+ *
  * Per FR-001: Total Sales, Outstanding AR, Outstanding AP, Inventory Value
  * Per FR-002: Data refreshed on page load (no auto-refresh)
  */

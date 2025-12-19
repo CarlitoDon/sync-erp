@@ -34,8 +34,8 @@ vi.mock('@modules/accounting/services/bill.service', () => ({
 }));
 
 // Import after mocking
-import { billRouter } from '../../../src/routes/bill';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { billRouter } from '@routes/bill';
+import { errorHandler } from '@middlewares/errorHandler';
 
 const createTestApp = () => {
   const app = express();

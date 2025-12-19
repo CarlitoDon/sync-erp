@@ -6,9 +6,7 @@ import * as CompanyContext from '@/contexts/CompanyContext';
 
 // Mock the contexts
 vi.mock('@/contexts/AuthContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/AuthContext'
-  );
+  const actual = await vi.importActual('@/contexts/AuthContext');
   return {
     ...actual,
     useAuth: vi.fn(),
@@ -16,9 +14,7 @@ vi.mock('@/contexts/AuthContext', async () => {
 });
 
 vi.mock('@/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/CompanyContext'
-  );
+  const actual = await vi.importActual('@/contexts/CompanyContext');
   return {
     ...actual,
     useCompany: vi.fn(),

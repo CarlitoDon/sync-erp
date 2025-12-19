@@ -6,9 +6,7 @@ import * as useCompanyDataHook from '@/hooks/useCompanyData';
 import { ConfirmProvider } from '@/components/ui/ConfirmModal';
 
 vi.mock('@/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/CompanyContext'
-  );
+  const actual = await vi.importActual('@/contexts/CompanyContext');
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -16,27 +14,22 @@ vi.mock('@/contexts/CompanyContext', async () => {
 });
 
 vi.mock('@/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual(
-    '@/hooks/useCompanyData'
-  );
+  const actual = await vi.importActual('@/hooks/useCompanyData');
   return {
     ...actual,
     useCompanyData: vi.fn(),
   };
 });
 
-vi.mock(
-  '@/features/inventory/services/productService',
-  () => ({
-    productService: {
-      list: vi.fn(),
-      create: vi.fn(),
-      delete: vi.fn(),
-    },
-    Product: {},
-    CreateProductInput: {},
-  })
-);
+vi.mock('@/features/inventory/services/productService', () => ({
+  productService: {
+    list: vi.fn(),
+    create: vi.fn(),
+    delete: vi.fn(),
+  },
+  Product: {},
+  CreateProductInput: {},
+}));
 
 describe('Products', () => {
   beforeEach(() => {

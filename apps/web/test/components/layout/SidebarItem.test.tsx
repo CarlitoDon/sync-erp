@@ -5,9 +5,7 @@ import * as SidebarContext from '@/contexts/SidebarContext';
 
 // Mock the SidebarContext
 vi.mock('@/contexts/SidebarContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/SidebarContext'
-  );
+  const actual = await vi.importActual('@/contexts/SidebarContext');
   return {
     ...actual,
     useSidebar: vi.fn(),

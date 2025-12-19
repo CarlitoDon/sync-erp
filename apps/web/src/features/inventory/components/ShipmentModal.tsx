@@ -49,7 +49,9 @@ export function ShipmentModal({
 }: ShipmentModalProps) {
   const { currentCompany } = useCompany();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'confirm' | 'processing' | 'shipped'>('confirm');
+  const [step, setStep] = useState<
+    'confirm' | 'processing' | 'shipped'
+  >('confirm');
 
   // Pre-fill items from SO
   const defaultItems = orderItems.map((item) => ({
@@ -85,7 +87,10 @@ export function ShipmentModal({
         items: data.items.filter((item) => item.quantity > 0),
       };
 
-      const shipment = await createShipment(currentCompany.id, shipmentInput);
+      const shipment = await createShipment(
+        currentCompany.id,
+        shipmentInput
+      );
 
       // Step 2: Post Shipment (Stock OUT)
       await postShipment(currentCompany.id, shipment.id);
@@ -190,7 +195,9 @@ export function ShipmentModal({
                     <DatePicker
                       value={
                         field.value
-                          ? new Date(field.value).toISOString().split('T')[0]
+                          ? new Date(field.value)
+                              .toISOString()
+                              .split('T')[0]
                           : ''
                       }
                       onChange={(date) => field.onChange(date)}
@@ -228,7 +235,11 @@ export function ShipmentModal({
             >
               Cancel
             </Button>
-            <Button type="submit" isLoading={loading} disabled={step !== 'confirm'}>
+            <Button
+              type="submit"
+              isLoading={loading}
+              disabled={step !== 'confirm'}
+            >
               {step === 'confirm' ? 'Ship All' : 'Processing...'}
             </Button>
           </DialogFooter>

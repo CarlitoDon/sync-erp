@@ -14,8 +14,8 @@ vi.mock('@modules/user/user.service', () => ({
 }));
 
 // Import after mocking
-import { userRouter } from '../../../src/routes/user';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { userRouter } from '@routes/user';
+import { errorHandler } from '@middlewares/errorHandler';
 
 // Helper to create test app with mocked context
 const createTestApp = () => {

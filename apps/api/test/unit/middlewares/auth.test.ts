@@ -31,13 +31,10 @@ vi.mock('@modules/auth/auth.repository', () => ({
   },
 }));
 
-// Mock session service is not used by middleware directly anymore?
-// vi.mock('../../../src/services/sessionService', ...);
-
 import {
   authMiddleware,
   optionalAuthMiddleware,
-} from '../../../src/middlewares/auth';
+} from '@middlewares/auth';
 
 // Mock request, response, next
 const createMockRequest = (

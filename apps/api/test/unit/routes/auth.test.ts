@@ -8,7 +8,7 @@ import {
 } from '../mocks/services.mock';
 
 // Mock auth middleware to bypass validation or set context
-vi.mock('../../../src/middlewares/auth', () => ({
+vi.mock('@middlewares/auth', () => ({
   authMiddleware: (req: any, res: Response, next: NextFunction) => {
     // Determine if we want to simulate failure, maybe based on header?
     // For now, simulate success if session cookie present
@@ -46,8 +46,8 @@ vi.mock('@modules/auth/auth.service', () => ({
 }));
 
 // Import after mocking
-import { authRouter } from '../../../src/routes/auth';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { authRouter } from '@routes/auth';
+import { errorHandler } from '@middlewares/errorHandler';
 
 const createTestApp = () => {
   const app = express();

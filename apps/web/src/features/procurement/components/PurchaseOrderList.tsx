@@ -265,7 +265,9 @@ export default function PurchaseOrderList({
           isOpen={!!goodsReceiptId}
           onClose={() => setGoodsReceiptId(null)}
           purchaseOrderId={goodsReceiptId}
-          orderItems={(orders.find((o) => o.id === goodsReceiptId)?.items || []).map((item) => ({
+          orderItems={(
+            orders.find((o) => o.id === goodsReceiptId)?.items || []
+          ).map((item) => ({
             id: item.id,
             productId: item.productId,
             quantity: item.quantity,

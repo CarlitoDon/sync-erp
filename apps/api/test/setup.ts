@@ -105,35 +105,26 @@ vi.mock('@modules/accounting/sagas/invoice-posting.saga', () => ({
     return mockInvoicePostingSaga;
   },
 }));
-vi.mock(
-  '@modules/accounting/sagas/bill-posting.saga',
-  () => ({
-    BillPostingSaga: function () {
-      return mockBillPostingSaga;
-    },
-  })
-);
-vi.mock(
-  '@modules/accounting/sagas/payment-posting.saga',
-  () => ({
-    PaymentPostingSaga: function () {
-      return mockPaymentPostingSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/bill-posting.saga', () => ({
+  BillPostingSaga: function () {
+    return mockBillPostingSaga;
+  },
+}));
+vi.mock('@modules/accounting/sagas/payment-posting.saga', () => ({
+  PaymentPostingSaga: function () {
+    return mockPaymentPostingSaga;
+  },
+}));
 vi.mock('@modules/sales/sagas/shipment.saga', () => ({
   ShipmentSaga: function () {
     return mockShipmentSaga;
   },
 }));
-vi.mock(
-  '@modules/procurement/sagas/goods-receipt.saga',
-  () => ({
-    GoodsReceiptSaga: function () {
-      return mockGoodsReceiptSaga;
-    },
-  })
-);
+vi.mock('@modules/procurement/sagas/goods-receipt.saga', () => ({
+  GoodsReceiptSaga: function () {
+    return mockGoodsReceiptSaga;
+  },
+}));
 
 // Re-export for test files
 export { mockPrisma, resetMocks };

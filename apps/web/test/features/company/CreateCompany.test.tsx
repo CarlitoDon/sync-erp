@@ -19,23 +19,18 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('@/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/CompanyContext'
-  );
+  const actual = await vi.importActual('@/contexts/CompanyContext');
   return {
     ...actual,
     useCompany: vi.fn(),
   };
 });
 
-vi.mock(
-  '@/features/company/services/companyService',
-  () => ({
-    createCompany: vi.fn(),
-    getCompanies: vi.fn(),
-    joinCompany: vi.fn(),
-  })
-);
+vi.mock('@/features/company/services/companyService', () => ({
+  createCompany: vi.fn(),
+  getCompanies: vi.fn(),
+  joinCompany: vi.fn(),
+}));
 
 describe('CreateCompany', () => {
   const mockSetCompanies = vi.fn();

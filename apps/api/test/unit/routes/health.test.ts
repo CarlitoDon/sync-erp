@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { healthRouter } from '../../../src/routes/health';
+import { healthRouter } from '@routes/health';
 
 describe('Health Routes', () => {
   const app = express();

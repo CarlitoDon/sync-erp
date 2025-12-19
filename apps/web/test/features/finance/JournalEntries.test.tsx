@@ -10,9 +10,7 @@ import * as useCompanyDataHook from '@/hooks/useCompanyData';
 import * as financeService from '@/features/finance/services/financeService';
 
 vi.mock('@/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual(
-    '@/hooks/useCompanyData'
-  );
+  const actual = await vi.importActual('@/hooks/useCompanyData');
   return {
     ...actual,
     useCompanyData: vi.fn(),
@@ -20,25 +18,20 @@ vi.mock('@/hooks/useCompanyData', async () => {
 });
 
 vi.mock('@/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/CompanyContext'
-  );
+  const actual = await vi.importActual('@/contexts/CompanyContext');
   return {
     ...actual,
     useCompany: vi.fn(),
   };
 });
 
-vi.mock(
-  '@/features/finance/services/financeService',
-  () => ({
-    financeService: {
-      listJournals: vi.fn(),
-      createJournal: vi.fn(),
-      listAccounts: vi.fn(),
-    },
-  })
-);
+vi.mock('@/features/finance/services/financeService', () => ({
+  financeService: {
+    listJournals: vi.fn(),
+    createJournal: vi.fn(),
+    listAccounts: vi.fn(),
+  },
+}));
 
 vi.mock('@/hooks/useApiAction', () => ({
   useApiAction: (fn: () => Promise<void>) => ({
@@ -144,7 +137,8 @@ describe('JournalEntries', () => {
       renderComponent();
 
       fireEvent.click(screen.getByText('New Entry'));
-      const initialLines = screen.getAllByTestId('select-trigger').length;
+      const initialLines =
+        screen.getAllByTestId('select-trigger').length;
 
       fireEvent.click(screen.getByText('Add Line'));
       const newLines = screen.getAllByTestId('select-trigger').length;

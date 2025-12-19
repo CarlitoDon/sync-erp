@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import { BusinessShape } from '@sync-erp/database';
-import { requireActiveShape } from '../../../src/middlewares/shapeGuard';
+import { requireActiveShape } from '@middlewares/shapeGuard';
 
 describe('shapeGuard middleware', () => {
   let mockReq: Partial<Request>;

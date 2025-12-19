@@ -11,9 +11,7 @@ import * as useCompanyDataHook from '@/hooks/useCompanyData';
 import { AccountType } from '@sync-erp/shared';
 
 vi.mock('@/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/CompanyContext'
-  );
+  const actual = await vi.importActual('@/contexts/CompanyContext');
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -21,9 +19,7 @@ vi.mock('@/contexts/CompanyContext', async () => {
 });
 
 vi.mock('@/hooks/useCompanyData', async () => {
-  const actual = await vi.importActual(
-    '@/hooks/useCompanyData'
-  );
+  const actual = await vi.importActual('@/hooks/useCompanyData');
   return {
     ...actual,
     useCompanyData: vi.fn(),
@@ -56,14 +52,11 @@ vi.mock('@/pages/JournalEntries', () => ({
 }));
 
 // Mock FinancialReport component
-vi.mock(
-  '@/features/finance/components/FinancialReport',
-  () => ({
-    FinancialReport: ({ title }: { title: string }) => (
-      <div data-testid="financial-report">{title}</div>
-    ),
-  })
-);
+vi.mock('@/features/finance/components/FinancialReport', () => ({
+  FinancialReport: ({ title }: { title: string }) => (
+    <div data-testid="financial-report">{title}</div>
+  ),
+}));
 
 describe('Finance', () => {
   beforeEach(() => {

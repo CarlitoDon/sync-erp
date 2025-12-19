@@ -177,7 +177,9 @@ export default function SalesOrderDetail() {
 
         {/* Details Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Order Details</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            Order Details
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
               <p className="text-sm text-gray-500">Order Number</p>
@@ -268,7 +270,9 @@ export default function SalesOrderDetail() {
                     {formatCurrency(Number(item.price))}
                   </td>
                   <td className="px-4 py-3 text-right font-medium">
-                    {formatCurrency(item.quantity * Number(item.price))}
+                    {formatCurrency(
+                      item.quantity * Number(item.price)
+                    )}
                   </td>
                 </tr>
               ))}
@@ -282,7 +286,10 @@ export default function SalesOrderDetail() {
           <div className="flex flex-wrap gap-3">
             {order.status === 'DRAFT' && (
               <>
-                <ActionButton variant="primary" onClick={handleConfirm}>
+                <ActionButton
+                  variant="primary"
+                  onClick={handleConfirm}
+                >
                   Confirm Order
                 </ActionButton>
                 <ActionButton variant="danger" onClick={handleCancel}>

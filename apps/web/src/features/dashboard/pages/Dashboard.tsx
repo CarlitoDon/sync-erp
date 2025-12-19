@@ -5,7 +5,10 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import OnboardingGuide from '@/features/dashboard/components/OnboardingGuide';
 import PendingShapeBanner from '@/features/dashboard/components/PendingShapeBanner';
 import { DashboardKPIs } from '@/features/dashboard/components/DashboardKPIs';
-import type { DashboardMetrics, RecentTransaction } from '@/features/dashboard/types';
+import type {
+  DashboardMetrics,
+  RecentTransaction,
+} from '@/features/dashboard/types';
 
 export default function Dashboard() {
   const { currentCompany } = useCompany();

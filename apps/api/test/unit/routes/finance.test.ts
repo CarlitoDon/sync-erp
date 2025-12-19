@@ -51,17 +51,17 @@ vi.mock('@modules/accounting/services/report.service', () => ({
   },
 }));
 
-vi.mock('../../../src/middlewares/auth', () => ({
+vi.mock('@middlewares/auth', () => ({
   authMiddleware: mockAuthMiddleware,
 }));
 
-vi.mock('../../../src/middlewares/rbac', () => ({
+vi.mock('@middlewares/rbac', () => ({
   checkPermissions: () => mockRbacMiddleware,
 }));
 
 // Import after mocking
-import { financeRouter } from '../../../src/routes/finance';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { financeRouter } from '@routes/finance';
+import { errorHandler } from '@middlewares/errorHandler';
 
 const createTestApp = () => {
   const app = express();

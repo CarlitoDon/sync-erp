@@ -24,7 +24,7 @@ import {
   requirePermission,
   requireAnyPermission,
   RBACService,
-} from '../../../src/middlewares/rbac';
+} from '@middlewares/rbac';
 
 // Mock request, response, next
 const createMockRequest = (context: {

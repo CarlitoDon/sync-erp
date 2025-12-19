@@ -9,7 +9,10 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@modules/*": ["./src/modules/*"]
+      "@modules/*": ["./src/modules/*"],
+      "@src/*": ["./src/*"],
+      "@middlewares/*": ["./src/middlewares/*"],
+      "@routes/*": ["./src/routes/*"]
     }
   },
   "include": ["src/**/*", "test/**/*"],

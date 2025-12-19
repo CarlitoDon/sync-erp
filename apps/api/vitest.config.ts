@@ -10,6 +10,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@modules': path.resolve(__dirname, 'src/modules'),
+      '@src': path.resolve(__dirname, 'src'),
+      '@middlewares': path.resolve(__dirname, 'src/middlewares'),
+      '@routes': path.resolve(__dirname, 'src/routes'),
     },
   },
   plugins: [],

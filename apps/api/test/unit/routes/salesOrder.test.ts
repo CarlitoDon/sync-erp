@@ -16,8 +16,8 @@ vi.mock('@modules/sales/sales.service', () => ({
 // FulfillmentService is now merged into SalesService (ship method)
 
 // Import after mocking
-import { salesOrderRouter } from '../../../src/routes/salesOrder';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { salesOrderRouter } from '@routes/salesOrder';
+import { errorHandler } from '@middlewares/errorHandler';
 
 const createTestApp = () => {
   const app = express();

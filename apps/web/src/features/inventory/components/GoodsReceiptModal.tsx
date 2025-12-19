@@ -50,7 +50,9 @@ export function GoodsReceiptModal({
 }: GoodsReceiptModalProps) {
   const { currentCompany } = useCompany();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'confirm' | 'processing' | 'posted'>('confirm');
+  const [step, setStep] = useState<
+    'confirm' | 'processing' | 'posted'
+  >('confirm');
 
   // Pre-fill items from PO
   const defaultItems = orderItems.map((item) => ({
@@ -72,8 +74,6 @@ export function GoodsReceiptModal({
     },
   });
 
-
-
   const onSubmit = async (data: FormData) => {
     if (!currentCompany) return;
     setLoading(true);
@@ -88,7 +88,10 @@ export function GoodsReceiptModal({
         items: data.items.filter((item) => item.quantity > 0),
       };
 
-      const grn = await createGoodsReceipt(currentCompany.id, grnInput);
+      const grn = await createGoodsReceipt(
+        currentCompany.id,
+        grnInput
+      );
 
       // Step 2: Post GRN (Stock IN)
       await postGoodsReceipt(currentCompany.id, grn.id);
@@ -195,7 +198,9 @@ export function GoodsReceiptModal({
                     <DatePicker
                       value={
                         field.value
-                          ? new Date(field.value).toISOString().split('T')[0]
+                          ? new Date(field.value)
+                              .toISOString()
+                              .split('T')[0]
                           : ''
                       }
                       onChange={(date) => field.onChange(date)}
@@ -233,7 +238,11 @@ export function GoodsReceiptModal({
             >
               Cancel
             </Button>
-            <Button type="submit" isLoading={loading} disabled={step !== 'confirm'}>
+            <Button
+              type="submit"
+              isLoading={loading}
+              disabled={step !== 'confirm'}
+            >
               {step === 'confirm' ? 'Receive All' : 'Processing...'}
             </Button>
           </DialogFooter>

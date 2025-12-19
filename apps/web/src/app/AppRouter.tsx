@@ -66,7 +66,10 @@ export function AppRouter() {
           />
           <Route path="inventory" element={<Inventory />} />
           <Route path="receipts" element={<GoodsReceipts />} />
-          <Route path="receipts/:id" element={<GoodsReceiptDetail />} />
+          <Route
+            path="receipts/:id"
+            element={<GoodsReceiptDetail />}
+          />
           <Route path="shipments" element={<Shipments />} />
           <Route path="shipments/:id" element={<ShipmentDetail />} />
           <Route path="sales-orders" element={<SalesOrders />} />
@@ -83,7 +86,10 @@ export function AppRouter() {
           <Route path="journals/:id" element={<JournalDetail />} />
           <Route path="team" element={<TeamManagement />} />
           {/* Admin Observability (US5 - FR-014, FR-015, FR-016) */}
-          <Route path="admin/observability" element={<Observability />} />
+          <Route
+            path="admin/observability"
+            element={<Observability />}
+          />
         </Route>
       </Route>
     </Routes>

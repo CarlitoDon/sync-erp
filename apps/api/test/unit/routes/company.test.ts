@@ -18,17 +18,17 @@ vi.mock('@modules/company/company.service', () => ({
   },
 }));
 
-vi.mock('../../../src/middlewares/auth', () => ({
+vi.mock('@middlewares/auth', () => ({
   authMiddleware: vi.fn((_req, _res, next) => next()),
 }));
 
-vi.mock('../../../src/middlewares/rbac', () => ({
+vi.mock('@middlewares/rbac', () => ({
   checkPermissions: () => vi.fn((_req, _res, next) => next()),
 }));
 
 // Import after mocking
-import { companyRouter } from '../../../src/routes/company';
-import { errorHandler } from '../../../src/middlewares/errorHandler';
+import { companyRouter } from '@routes/company';
+import { errorHandler } from '@middlewares/errorHandler';
 
 const createTestApp = () => {
   const app = express();

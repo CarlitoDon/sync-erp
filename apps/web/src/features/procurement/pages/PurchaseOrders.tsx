@@ -211,7 +211,9 @@ export default function PurchaseOrders() {
                 <Select
                   value={currentItem.productId}
                   onChange={(val) => {
-                    const product = products.find((p) => p.id === val);
+                    const product = products.find(
+                      (p) => p.id === val
+                    );
                     setCurrentItem({
                       ...currentItem,
                       productId: val,

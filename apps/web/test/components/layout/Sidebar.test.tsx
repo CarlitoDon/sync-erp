@@ -28,9 +28,7 @@ vi.mock('@/components/layout/CompanySwitcher', () => ({
 
 // Mock the contexts
 vi.mock('@/contexts/SidebarContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/SidebarContext'
-  );
+  const actual = await vi.importActual('@/contexts/SidebarContext');
   return {
     ...actual,
     useSidebar: vi.fn(),
@@ -38,9 +36,7 @@ vi.mock('@/contexts/SidebarContext', async () => {
 });
 
 vi.mock('@/contexts/CompanyContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/CompanyContext'
-  );
+  const actual = await vi.importActual('@/contexts/CompanyContext');
   return {
     ...actual,
     useCompany: vi.fn(),
@@ -48,9 +44,7 @@ vi.mock('@/contexts/CompanyContext', async () => {
 });
 
 vi.mock('@/contexts/AuthContext', async () => {
-  const actual = await vi.importActual(
-    '@/contexts/AuthContext'
-  );
+  const actual = await vi.importActual('@/contexts/AuthContext');
   return {
     ...actual,
     useAuth: vi.fn(),
