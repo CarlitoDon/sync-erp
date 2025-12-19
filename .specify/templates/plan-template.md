@@ -34,6 +34,7 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 - [ ] **I. Architecture**: Frontend ↔ Backend via HTTP only? Dependencies uni-directional?
 - [ ] **II. Contracts**: Shared types in `packages/shared`? Validators exported?
 - [ ] **III. Backend Layers**: Service checks `Policy` before Action? (Service → Policy → Repository)
+- [ ] **III-A. Dumb Layers**: Controller only calls service? Repository has no business logic?
 - [ ] **IV. Multi-Tenant**: ALL data isolated by `companyId`?
 - [ ] **V. Frontend**: UI is State Projection? No complex conditionals?
 - [ ] **VIII. Verification**: `npx tsc --noEmit` and `npm run build` will pass?
@@ -43,6 +44,11 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 - [ ] **XII. Apple-Standard**: Does logic derive from `BusinessShape`? No technical questions to user?
 - [ ] **XIII. Data Flow**: Is Frontend pure reflection? No local business state calculation?
 - [ ] **XIV-XVII. Human Experience**: Clear Navigation? Simplified Workflows? Performance-First? Pixel Perfect?
+- [ ] **XVIII. Test Contracts**: Mocks satisfy all Policy/Service layer expectations?
+- [ ] **XIX. Financial Precision**: Decimal for money? `Number()` in test assertions?
+- [ ] **XX. Integration State**: Sequential flows in single `it()` block?
+- [ ] **XXI. Schema for Raw SQL**: `$executeRaw` column names match Prisma schema?
+- [ ] **XXII. Seed Completeness**: All expected accounts/configs in seed files?
 
 ## Project Structure
 

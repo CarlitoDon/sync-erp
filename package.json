@@ -19,12 +19,14 @@
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
     "test:all": "turbo run test:all",
+    "db:reset": "npm run db:reset --workspace=@sync-erp/database",
     "db:generate": "npm run db:generate --workspace=@sync-erp/database",
     "db:push": "npm run db:push --workspace=@sync-erp/database",
     "db:migrate": "npm run db:migrate --workspace=@sync-erp/database",
     "db:seed": "npm run db:seed --workspace=@sync-erp/database",
     "db:studio": "npm run db:studio --workspace=@sync-erp/database",
     "db:test": "npm run db:test --workspace=@sync-erp/database",
+    "db:reseed:full": "npm run db:reset && npm run db:seed && ./scripts/seed-via-api.sh",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "engines": {

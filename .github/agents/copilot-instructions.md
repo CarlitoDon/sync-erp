@@ -5,6 +5,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 ## Active Technologies
 - TypeScript 5.x (Node 20+) + Vitest, Prisma Clien (030-test-floor-phase1)
 - PostgreSQL (Test DB) with Seeded Scenarios (030-test-floor-phase1)
+- TypeScript 5.x (Node.js 18+) + Express, Prisma, React, Vitest, Zod (034-grn-fullstack)
 
 - TypeScript 5.9, Node.js 20+ + Express, Prisma, Vitest (023-fix-idempotency-scope)
 - TypeScript 5.x (Node.js) + Prisma ORM, Postgres (026-parallel-saga-safety)
@@ -54,10 +55,10 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 034-grn-fullstack: Added TypeScript 5.x (Node.js 18+) + Express, Prisma, React, Vitest, Zod
 - 030-test-floor-phase1: Added TypeScript 5.x (Node 20+) + Vitest, Prisma Clien
 
 - 028-domain-contract-stabilization: Added TypeScript 5.x + Express, Zod, Prisma
-- 027-pending-shape-guard: Added TypeScript 5.x (Node.js backend) + Express.js, Prisma
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

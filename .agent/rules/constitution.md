@@ -1,27 +1,26 @@
 <!--
 SYNC IMPACT REPORT
-Version: 2.2.1 -> 2.3.0 (MINOR - Prioritized Integration Testing)
+Version: 2.5.0 -> 2.5.1 (PATCH - Expanded Dumb Repository Guidance)
 Modified Principles:
-- III. Layered Backend (Emphasized Integration Testing over Unit Testing for Business Rules)
-- XVII. Development Standards (Mandated Integration Tests for every feature)
-- Part C: Human Experience Philosophy (Updated GUARDRAILS.md reference logic)
+- III-A. Dumb Controller / Dumb Repository (Expanded with code examples, anti-patterns, Apple framing)
 Added Sections:
-- None
+- None (expansion of existing)
 Removed Sections:
 - None
 Templates requiring updates:
-- plan-template.md (Testing context)
-- spec-template.md (Testing guidance)
-- tasks-template.md (Sample tasks)
+- plan-template.md ✅ (already has III-A check)
+- spec-template.md ✅ (no changes needed)
+- tasks-template.md ✅ (no changes needed)
 Follow-up TODOs:
-- Ensure all ongoing features adopt the integration-first approach.
+- Update instructions.md with expanded Dumb Repository examples
+Last Updated: 2025-12-18
 -->
 
 # Sync ERP Constitution
 
 > "Simplicity is the ultimate sophistication."
 
-## Core Principles (17 Total)
+## Core Principles (22 Total)
 
 ---
 
@@ -57,6 +56,139 @@ packages/shared ←── packages/shared ←── (Prisma types)
 | **Rules**      | `src/modules/*/rules/*.ts`    | **Pure Business Logic**: Stateless, Integration Testable (Unit optional). | None (Pure)               |
 | **Policy**     | `src/modules/*/policy.ts`     | **Shape Constraints**: "Can this run?"                                    | Shared Constants          |
 | **Repository** | `src/modules/*/repository.ts` | **Data Access**: Query, Transaction. No Rules.                            | `packages/database`       |
+
+### III-A. Dumb Controller / Dumb Repository Principle
+
+> **Repository knows _how_ to talk to the database, not _why_ a write is allowed.**
+
+**Layer Responsibility Map**:
+
+| Layer      | Knows about                         | Must NOT know about                          |
+| ---------- | ----------------------------------- | -------------------------------------------- |
+| Controller | HTTP, auth, DTO                     | Business rules                               |
+| Service    | Use case, state rules, policy, saga | SQL, table shape                             |
+| Repository | Persistence, queries, locks         | State machine, policy, saga, business intent |
+| Policy     | Business constraints                | DB, transactions                             |
+
+Repository sits **below** business intent.
+
+#### What "Dumb Repository" Actually Means
+
+It does **not** mean CRUD-only. It means **no branching based on business meaning**.
+
+**Repository MAY do**:
+
+- SQL shape optimization
+- Atomic guards (`balance: { gte: amount }`)
+- Optimistic concurrency
+- Row locking (`SELECT ... FOR UPDATE`)
+- Aggregate-safe updates
+- Transaction client support (`tx?: Prisma.TransactionClient`)
+
+**Correct Example** (Technical Integrity, not Business Logic):
+
+```typescript
+decreaseBalanceWithGuard(
+  invoiceId: string,
+  amount: number,
+  tx?: Prisma.TransactionClient
+) {
+  return (tx || prisma).invoice.update({
+    where: {
+      id: invoiceId,
+      balance: { gte: amount }  // Atomic guard - technical integrity
+    },
+    data: {
+      balance: { decrement: amount }
+    }
+  });
+}
+```
+
+#### Repository MUST NOT Do
+
+**❌ State Logic**:
+
+```typescript
+if (invoice.status !== 'POSTED') throw new Error('...');
+```
+
+**❌ Policy Checks**:
+
+```typescript
+if (company.shape === 'SERVICE') throw new Error('...');
+```
+
+**❌ Intent Branching**:
+
+```typescript
+if (paymentType === 'REFUND') { ... } else { ... }
+```
+
+**❌ Saga Orchestration**:
+
+```typescript
+try {
+  updateInvoice();
+  createJournal();
+} catch {
+  compensate();
+}
+```
+
+The moment repository starts asking "should I do this?", the boundary is lost.
+
+#### Controller vs Repository Comparison
+
+| Aspect                    | Controller | Repository |
+| ------------------------- | ---------- | ---------- |
+| Owns business rules       | ❌         | ❌         |
+| Owns data shape           | ❌         | ✅         |
+| Knows HTTP                | ✅         | ❌         |
+| Knows DB                  | ❌         | ✅         |
+| Can enforce atomic guards | ❌         | ✅         |
+
+**Controller is dumb about domain.**
+**Repository is dumb about intent.**
+
+#### Common Mistakes to Avoid
+
+**Mistake 1: "Just one small check"**
+
+```typescript
+if (invoice.status === 'PAID') throw new Error('...');
+```
+
+This spreads domain rules everywhere. Later you will miss one path.
+
+**Mistake 2: "Helper logic"**
+
+```typescript
+createPaymentAndUpdateInvoice(); // Repository as service in disguise
+```
+
+**Mistake 3: Policy leaking downward**
+
+```typescript
+if (!policy.canPay(invoice)) return null;
+```
+
+Policy must never depend on persistence.
+
+#### Mental Test
+
+Before adding logic to repository, ask:
+
+> "If tomorrow I move from Prisma to raw SQL, would this logic still make sense here?"
+
+- **Yes** → It may belong in Repository
+- **No** → It belongs in Service or Policy
+
+#### Apple-Like Framing
+
+> Repositories are **mechanics**, not **judges**.
+> They ensure the engine doesn't explode.
+> They never decide where the car is allowed to go.
 
 ### IV. Multi-Tenant Isolation
 
@@ -245,6 +377,198 @@ Apple-like software is not just about looks; it is about how it runs.
 
 ---
 
+### Part C: Testing & Data Integrity
+
+### XVIII. Test Contract Compliance
+
+**Principle**: Mock return values MUST satisfy all implicit contracts expected by consuming layers.
+
+**The Problem**:
+
+```typescript
+// ❌ Incomplete mock fails at Policy layer
+mockRepo.findOrder.mockResolvedValue({ id, items: [] });
+// Error: "Order must be CONFIRMED" (Policy expects status field)
+```
+
+**The Solution**:
+
+```typescript
+// ✅ Complete mock satisfies Policy requirements
+mockRepo.findOrder.mockResolvedValue({
+  id,
+  items: [{ productId, quantity: 10, price: 100 }],
+  status: 'CONFIRMED', // Policy.ensureOrderConfirmed() needs this
+  partnerId: 'partner-1',
+});
+```
+
+**Rules**:
+| Rule | Enforcement |
+|------|-------------|
+| Layer contracts | Mock MUST include all fields checked by Policy/Service |
+| Dependency mocks | Mock ALL repositories/services that the tested service calls |
+| State prerequisites | If Policy checks status, mock MUST return valid status |
+
+**Rationale**: Layered architecture means each layer has expectations from the layer below. Mocks that don't meet these expectations produce false test failures unrelated to the code being tested.
+
+### XIX. Financial Precision (Decimal Handling)
+
+**Principle**: Financial values MUST use Decimal type; convert to Number only for comparisons.
+
+**The Problem**:
+
+```typescript
+// JavaScript floating point is imprecise
+0.1 + 0.2 === 0.3; // false! (0.30000000000000004)
+
+// Prisma Decimal is an object, not primitive
+expect(payment.amount).toBe(555000); // FAIL: Decimal !== number
+```
+
+**The Solution**:
+
+```typescript
+// ✅ Convert Decimal to Number for assertions
+expect(Number(payment.amount)).toBe(555000);
+expect(Number(invoice.balance)).toBeCloseTo(0, 2);
+
+// ✅ Use Decimal.js for calculations
+const total = Decimal(subtotal).add(tax);
+```
+
+**Rules**:
+| Context | Use |
+|---------|-----|
+| Database fields | Prisma `Decimal` type |
+| Business calculations | `Decimal.js` library |
+| Test assertions | `Number(value)` wrapper |
+| Display formatting | `toFixed(2)` after conversion |
+
+**Rationale**: IEEE 754 floating point cannot precisely represent all decimals. Financial systems require exact arithmetic (e.g., 0.1 + 0.2 = 0.3 exactly).
+
+### XX. Integration Test State Management
+
+**Principle**: Sequential business flows MUST be tested in a single test block, not split across multiple `it()` blocks.
+
+**The Problem**:
+
+```typescript
+// ❌ Variables don't persist across it() blocks
+describe('Flow', () => {
+  let orderId: string;
+  it('Step 1', async () => {
+    orderId = order.id;
+  });
+  it('Step 2', async () => {
+    /* orderId undefined! */
+  });
+});
+```
+
+**The Solution**:
+
+```typescript
+// ✅ Single block for complete flow
+it('Full P2P Flow: PO -> GRN -> Bill -> Post', async () => {
+  const order = await createOrder();
+  await confirmOrder(order.id);
+  await processGRN(order.id);
+  const bill = await createBill(order.id); // orderId guaranteed
+  await postBill(bill.id);
+  // All assertions here
+});
+```
+
+**Rules**:
+| Scenario | Pattern |
+|----------|---------|
+| Independent operations | Separate `it()` blocks |
+| Sequential flow with shared state | Single `it()` block |
+| Setup data for multiple tests | `beforeAll()` + class variables |
+
+**Rationale**: Test frameworks run each `it()` in isolation by design. This ensures test independence but breaks state sharing. Sequential flows must be in one block.
+
+### XXI. Schema is Source of Truth (Raw SQL Alignment)
+
+**Principle**: Raw SQL queries MUST use column names exactly as defined in Prisma schema.
+
+**The Problem**:
+
+```typescript
+// Prisma Schema
+model JournalLine {
+  journalId String  // ← actual column name
+}
+
+// ❌ Wrong column name in raw SQL
+prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "entryId" IN ...`
+// Error: ColumnNotFound
+```
+
+**The Solution**:
+
+```typescript
+// ✅ Always verify against schema
+prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN ...`;
+```
+
+**Rules**:
+| Rule | Enforcement |
+|------|-------------|
+| Column names | MUST match Prisma schema exactly |
+| Table names | Use quoted PascalCase as defined in schema |
+| Prefer ORM | Use `prisma.model.deleteMany()` over raw SQL when possible |
+| Raw SQL review | Double-check schema before any `$executeRaw` |
+
+**Rationale**: ORM abstractions can be "leaky". When bypassing Prisma with raw SQL, you lose schema validation and must match database reality exactly.
+
+### XXII. Seed Data Completeness
+
+**Principle**: Seed files MUST include all data that services expect to exist at runtime.
+
+**The Problem**:
+
+```typescript
+// JournalService.postInvoice expects these accounts:
+lines: [
+  { accountCode: '1300' }, // AR
+  { accountCode: '4100' }, // Revenue
+  { accountCode: '2300' }, // VAT Payable
+];
+// Error: "System Account code 4100 not found"
+```
+
+**The Solution**:
+
+```typescript
+// Seed MUST include all expected accounts
+const ACCOUNTS = [
+  { code: '1100', name: 'Cash' },
+  { code: '1200', name: 'Bank' },
+  { code: '1300', name: 'AR' },
+  { code: '1400', name: 'Inventory' },
+  { code: '1500', name: 'VAT Receivable' },
+  { code: '2100', name: 'AP' },
+  { code: '2105', name: 'GRNI Accrual' },
+  { code: '2300', name: 'VAT Payable' },
+  { code: '4100', name: 'Revenue' },
+  { code: '5000', name: 'COGS' },
+];
+```
+
+**Rules**:
+| Data Type | Seed Location | Used By |
+|-----------|---------------|---------|
+| Chart of Accounts | `packages/database/prisma/seed.ts` | JournalService |
+| System Configs | Base seed | PolicyService, ConfigService |
+| Default Roles | Base seed | AuthService |
+| Test fixtures | `test/fixtures/` | Integration tests |
+
+**Rationale**: Services often have implicit dependencies on reference data (accounts, configs, roles). Missing seed data causes runtime errors that are hard to debug.
+
+---
+
 ## Project Structure
 
 ```text
@@ -268,4 +592,4 @@ sync-erp/
 - **Compliance**: Code reviews MUST verify principle adherence.
 - **Tooling**: `npm` + `turbo` + `vite` (frontend) + `tsc` (backend).
 
-**Version**: 2.3.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-18
+**Version**: 2.5.1 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-18

@@ -1,6 +1,7 @@
 # AI Agent Instructions for Sync ERP
 
 > Multi-tenant ERP system • Vite + React (frontend) • Express + TypeScript (backend) • Prisma (ORM)
+> Constitution v2.4.0 | 22 Principles
 
 ## Architecture Overview
 
@@ -31,6 +32,8 @@ sync-erp/
 7.  **Build Check**: Run `npx tsc --noEmit` to verify type safety before completing tasks.
 8.  **Service Layer Purity**: Service MUST NOT import `prisma`. All DB access via Repository.
 9.  **Business Flow Prerequisites**: Validate document prerequisites in Policy before creation (e.g., GRN before Bill).
+10. **Test Contract Compliance**: Mocks MUST satisfy all layer contracts (Policy expects, Service expects).
+11. **Seed Completeness**: All system-expected accounts/configs MUST exist in seed files.
 
 ## Backend Patterns (apps/api)
 
@@ -54,11 +57,6 @@ apps/api/src/modules/[domain]/
 | Service    | Use case, state rules, policy, saga | SQL, table shape                             |
 | Repository | Persistence, queries, locks         | State machine, policy, saga, business intent |
 | Policy     | Business constraints                | DB, transactions                             |
-
-**Key Rule**: Repository knows _how_ to talk to the database, not _why_ a write is allowed.
-
-- **Repository MAY**: Atomic guards (`balance: { gte: amount }`), row locking, optimistic concurrency
-- **Repository MUST NOT**: State checks, policy checks, intent branching, saga orchestration
 
 **Mental Test**: "If I move from Prisma to raw SQL, would this logic still make sense here?" Yes → repository. No → service/policy.
 
@@ -133,10 +131,80 @@ async post(id: string, companyId: string, actorId?: string, correlationId?: stri
 }
 ```
 
-### Idempotency
+## Testing Patterns (Constitution Part C)
 
-- **Scope**: Idempotency keys must be scoped to `(companyId, entityId, action)`.
-- **Concurrency**: Prevent parallel mutation of the same entity.
+### Integration Tests are Mandatory
+
+**Rule**: Every business flow MUST have integration tests. Unit tests are optional for `rules/` pure logic.
+
+### Sequential Flows in Single Block
+
+```typescript
+// ✅ CORRECT: Sequential flow in single it() block
+it('Full P2P Flow: PO -> GRN -> Bill -> Post', async () => {
+  const order = await createOrder();
+  await confirmOrder(order.id);
+  await processGRN(order.id);
+  const bill = await createBill(order.id); // orderId guaranteed available
+  await postBill(bill.id);
+  // All assertions here
+});
+
+// ❌ WRONG: Split across multiple it() blocks
+describe('Flow', () => {
+  let orderId: string;
+  it('Step 1', async () => {
+    orderId = order.id;
+  });
+  it('Step 2', async () => {
+    /* orderId undefined! */
+  });
+});
+```
+
+### Mock Contract Compliance
+
+```typescript
+// ❌ WRONG: Incomplete mock fails at Policy layer
+mockRepo.findOrder.mockResolvedValue({ id, items: [] });
+// Error: "Order must be CONFIRMED"
+
+// ✅ CORRECT: Mock satisfies all Policy expectations
+mockRepo.findOrder.mockResolvedValue({
+  id,
+  items: [{ productId, quantity: 10, price: 100 }],
+  status: 'CONFIRMED', // Policy.ensureOrderConfirmed() needs this
+  partnerId: 'partner-1',
+});
+
+mockInventoryRepo.countByOrderReference.mockResolvedValue(1); // GRN exists
+```
+
+### Financial Precision (Decimal Handling)
+
+```typescript
+// Prisma Decimal is NOT JavaScript number
+expect(payment.amount).toBe(555000); // ❌ FAIL
+
+// ✅ Convert to Number for assertions
+expect(Number(payment.amount)).toBe(555000);
+expect(Number(invoice.balance)).toBeCloseTo(0, 2);
+```
+
+### Schema for Raw SQL
+
+```typescript
+// Prisma Schema says: journalId
+model JournalLine {
+  journalId String  // ← actual column name
+}
+
+// ❌ WRONG column name
+prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "entryId" IN ...`
+
+// ✅ CORRECT: Match schema exactly
+prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN ...`
+```
 
 ## Frontend Patterns (apps/web)
 
@@ -177,18 +245,23 @@ const handleSubmit = async () => {
 - **Transaction Seed**: `./scripts/seed-via-api.sh` - Uses API for PO/SO/Invoice/Bill flows
 - **Why**: Direct DB inserts bypass Sagas, Journals, Inventory. API seeding ensures correct business logic.
 
-## Shared Library Patterns (packages/shared)
-
-**Schema Definition**: `packages/shared/src/validators/index.ts`
+### Required Accounts (JournalService)
 
 ```typescript
-// 1. Define
-export const UserSchema = z.object({ name: z.string() });
-// 2. Export Type
-export type UserInput = z.infer<typeof UserSchema>;
+// These account codes MUST exist in seed for journal posting to work
+const REQUIRED_ACCOUNTS = [
+  { code: '1100', name: 'Cash' },
+  { code: '1200', name: 'Bank' },
+  { code: '1300', name: 'Accounts Receivable' },
+  { code: '1400', name: 'Inventory Asset' },
+  { code: '1500', name: 'VAT Receivable (Input)' },
+  { code: '2100', name: 'Accounts Payable' },
+  { code: '2105', name: 'GRNI Accrual' },
+  { code: '2300', name: 'VAT Payable (Output)' },
+  { code: '4100', name: 'Sales Revenue' },
+  { code: '5000', name: 'Cost of Goods Sold' },
+];
 ```
-
-**Rule**: Use `z.infer` types in both Frontend and Backend. No manual interfaces for DTOs.
 
 ## Essential Commands
 
@@ -217,14 +290,20 @@ export type UserInput = z.infer<typeof UserSchema>;
 - ❌ **No Direct DB Seeding for Transactions**: Use API seeder for PO/SO/Invoice/Bill.
 - ❌ **No Skipping Prerequisites**: Bill requires GRN, Invoice requires SO CONFIRMED.
 - ❌ **No Missing Accounts**: Verify Chart of Accounts before journal-creating features.
+- ❌ **No Split Integration Flows**: Sequential flows must be in single `it()` block.
+- ❌ **No Incomplete Mocks**: Mocks must satisfy ALL Policy/Service layer expectations.
+- ❌ **No Decimal Comparison**: Use `Number()` wrapper for Prisma Decimal assertions.
 
 ## Key Files Reference
 
-- **Constitution**: `.agent/rules/constitution.md`
+- **Constitution**: `.agent/rules/constitution.md` (v2.4.0, 22 principles)
 - **Guardrails**: `docs/apple-like-development/GUARDRAILS.md`
 - **Memory**: `.agent/rules/memory.md`
 - **Routes**: `apps/web/src/app/AppRouter.tsx`
 - **Prisma**: `packages/database/prisma/schema.prisma`
+- **Base Seed**: `packages/database/prisma/seed.ts`
+- **Finance Seed**: `apps/api/scripts/seed-finance-accounts.ts`
 - **API Seeder**: `scripts/seed-via-api.sh`
 - **BillPolicy**: `apps/api/src/modules/accounting/policies/bill.policy.ts`
 - **InvoicePolicy**: `apps/api/src/modules/accounting/policies/invoice.policy.ts`
+- **JournalService**: `apps/api/src/modules/accounting/services/journal.service.ts`

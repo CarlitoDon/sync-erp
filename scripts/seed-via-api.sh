@@ -132,10 +132,16 @@ create_purchase_order_flow() {
   
   # 3. Receive Goods (GRN)
   log_info "  → Receiving goods..."
-  GRN_RESPONSE=$(api_call "POST" "/goods-receipts" "{
+  GRN_RESPONSE=$(api_call "POST" "/inventory/goods-receipt" "{
     \"orderId\": \"${PO_ID}\",
-    \"reference\": \"GRN-$(date +%Y%m%d)-001\"
+    \"reference\": \"GRN-$(date +%Y%m%d)-${PO_ID}\"
   }")
+  
+  if echo "$GRN_RESPONSE" | grep -q "error"; then
+     log_error "Failed to receive goods: $GRN_RESPONSE"
+     return 1
+  fi
+  
   log_success "  Goods Received"
   
   # 4. Create Bill
@@ -144,6 +150,10 @@ create_purchase_order_flow() {
     \"orderId\": \"${PO_ID}\"
   }")
   BILL_ID=$(echo "$BILL_RESPONSE" | jq -r '.data.id // empty')
+  if [ -z "$BILL_ID" ]; then
+    log_warn "Failed to create Bill: $BILL_RESPONSE"
+    return 1
+  fi
   log_success "  Bill Created: $BILL_ID"
   
   # 5. Post Bill
@@ -206,6 +216,10 @@ create_sales_order_flow() {
     \"orderId\": \"${SO_ID}\"
   }")
   INV_ID=$(echo "$INV_RESPONSE" | jq -r '.data.id // empty')
+  if [ -z "$INV_ID" ]; then
+    log_error "Failed to create Invoice: $INV_RESPONSE"
+    return 1
+  fi
   log_success "  Invoice Created: $INV_ID"
   
   # 4. Post Invoice (this triggers the Saga!)
@@ -267,6 +281,11 @@ create_outstanding_invoice() {
     \"orderId\": \"${SO_ID}\"
   }")
   INV_ID=$(echo "$INV_RESPONSE" | jq -r '.data.id // empty')
+  
+  if [ -z "$INV_ID" ]; then
+    log_warn "Failed to create outstanding Invoice: $INV_RESPONSE"
+    return 0
+  fi
   
   # 4. Post Invoice
   api_call "POST" "/invoices/${INV_ID}/post" > /dev/null
