@@ -117,11 +117,11 @@ _Example of marking unclear requirements:_
 ## Constitution & Architecture Compliance _(mandatory)_
 
 <!--
-  ACTION REQUIRED: Verify compliance with Constitution v3.1.0.
+  ACTION REQUIRED: Verify compliance with Constitution v3.2.0.
   See `.agent/rules/constitution.md` for full details.
 -->
 
-### Backend Architecture (Apps/API) - Principles I, II, III
+### Backend Architecture (Apps/API) - Principles I, II, III, XXI
 
 - [ ] **5-Layer Architecture**: Logic strictly follows Route → Controller → Service → Policy → Repository.
 - [ ] **Schema-First**: All new fields defined in `packages/shared` Zod schemas first.
@@ -129,6 +129,7 @@ _Example of marking unclear requirements:_
 - [ ] **Service Purity**: Service layer DOES NOT import `prisma` (uses Repository only).
 - [ ] **Policy & Rules**: Business constraints in Policy, pure logic in `rules/`.
 - [ ] **Repository Purity**: No business logic in Repository (Data access only).
+- [ ] **Anti-Bloat**: No redundant business logic methods added; existing ones updated (XXI).
 
 ### Frontend Architecture (Apps/Web) - Principles IV, XI
 

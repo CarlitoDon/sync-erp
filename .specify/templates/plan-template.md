@@ -50,6 +50,7 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 - [ ] **XVII. Integration State**: Sequential flows in single `it()` block?
 - [ ] **XVIII. Schema for Raw SQL**: `$executeRaw` column names match Prisma schema?
 - [ ] **XIX. Seed Completeness**: All expected accounts/configs in seed files?
+- [ ] **XXI. Anti-Bloat**: Reuse existing methods? No redundant method creation?
 
 ## Project Structure
 
@@ -112,6 +113,12 @@ packages/
 directories captured above]
 
 ## Complexity Tracking
+
+## Governance Update (Constitution v3.2.0)
+
+| Principle | Change | Rationale                                    |
+| --------- | ------ | -------------------------------------------- |
+| XXI       | ADDED  | Anti-Method Bloat Rule - Enforce code reuse. |
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 

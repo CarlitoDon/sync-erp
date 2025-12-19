@@ -113,6 +113,24 @@ _Handling sequential numbering (FR-030 to FR-034)_
 | `lastSequence`                             | Int    | Yes      | Increments atomically |
 | `@@unique([companyId, type, year, month])` |        |          | Constraint            |
 
+### AuditLog
+
+_Logging sensitive operations (FR-021 to FR-024)_
+
+| Field        | Type          | Required | Description              |
+| :----------- | :------------ | :------- | :----------------------- |
+| `id`         | String (CUID) | Yes      | PK                       |
+| `companyId`  | String        | Yes      | Scope                    |
+| `timestamp`  | DateTime      | Yes      |                          |
+| `userId`     | String        | Yes      |                          |
+| `docType`    | String        | Yes      | PO, GRN, etc.            |
+| `docId`      | String        | Yes      |                          |
+| `action`     | String        | Yes      | VOID, CANCEL, POST       |
+| `prevStatus` | String        | No       |                          |
+| `newStatus`  | String        | Yes      |                          |
+| `reason`     | String        | No       | Mandatory for voids      |
+| `metadata`   | Json          | No       | Concurrent version, etc. |
+
 ## Relationships
 
 ```mermaid

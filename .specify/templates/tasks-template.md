@@ -188,7 +188,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 
-### Task Completion Verification (Constitution Principles VI & II) ⚠️
+### Task Completion Verification (Constitution v3.2.0 - Principles VI, II, XXI) ⚠️
 
 > **CRITICAL**: These verification steps MUST pass before marking feature complete
 
@@ -197,6 +197,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Full build: `npm run build` (verify all packages build) [Principle VI]
 - [ ] TXXX If `packages/shared` modified: rebuild before checking dependents [Principle VI]
 - [ ] TXXX Schema-first: New API fields exist in Zod schema, types use `z.infer` [Principle II]
+- [ ] TXXX Anti-Bloat: Verify no redundant methods created; check for reused logic [Principle XXI]
 
 ---
 

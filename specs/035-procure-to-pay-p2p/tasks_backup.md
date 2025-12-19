@@ -31,13 +31,13 @@
 
 - [ ] T014 [US1] Create Repository in `apps/api/src/modules/procurement/purchase-order.repository.ts` (Implement version-check logic. Audit for existing methods - XXI)
 - [ ] T015 [US1] Create Policy in `apps/api/src/modules/procurement/purchase-order.policy.ts` (Check status transitions)
-- [ ] T016 [US1] Implement Service in `apps/api/src/modules/procurement/purchase-order.service.ts` (**Refine** `create` and `confirm` methods. Audit for duplicates - XXI)
+- [ ] T016 [US1] Implement Service in `apps/api/src/modules/procurement/purchase-order.service.ts` (Create, Confirm. Audit for existing methods - XXI)
 - [ ] T017 [US1] Implement Controller in `apps/api/src/modules/procurement/purchase-order.controller.ts`
 - [ ] T018 [US1] Register routes in `apps/api/src/routes/v1/procurement.routes.ts`
 - [ ] T019 [US1] Create `usePurchaseOrder` hook in `apps/web/src/features/procurement/hooks/usePurchaseOrder.ts`
-- [ ] T020 [US1] Refine PO List UI in `apps/web/src/features/procurement/components/PurchaseOrderList.tsx` (Integrate new Service, preserve existing Actions)
+- [ ] T020 [US1] Implement PO List UI in `apps/web/src/features/procurement/components/PurchaseOrderList.tsx`
 - [ ] T021 [US1] Implement PO Create Form in `apps/web/src/features/procurement/components/PurchaseOrderForm.tsx`
-- [ ] T022 [US1] Refine PO Detail View in `apps/web/src/features/procurement/components/PurchaseOrderDetail.tsx` (Ensure "Confirm" & "Create GRN" actions use new Policy)
+- [ ] T022 [US1] Implement PO Detail View with Confirm Action in `apps/web/src/features/procurement/components/PurchaseOrderDetail.tsx`
 - [ ] T023 [US1] Integration Test: `tests/integration/p2p/us1_po_flow.test.ts`
 
 ## Phase 3: User Story 2 - Receive Goods (GRN) (Priority: P1)
@@ -50,12 +50,12 @@
 
 - [ ] T024 [US2] Create Repository in `apps/api/src/modules/procurement/goods-receipt.repository.ts` (Audit for existing methods - XXI)
 - [ ] T025 [US2] Create Policy in `apps/api/src/modules/procurement/goods-receipt.policy.ts` (Check PO status, remaining qty)
-- [ ] T026 [US2] Implement Service in `apps/api/src/modules/procurement/goods-receipt.service.ts` (**Refine** existing `receive` method to include locking. Reuse `GoodsReceiptSaga`. Audit - XXI)
+- [ ] T026 [US2] Implement Service in `apps/api/src/modules/procurement/goods-receipt.service.ts` (Create, Post with Stock Update. Audit for existing methods - XXI)
 - [ ] T027 [US2] Implement Controller in `apps/api/src/modules/procurement/goods-receipt.controller.ts`
 - [ ] T028 [US2] Add GRN routes to `apps/api/src/routes/v1/procurement.routes.ts`
 - [ ] T029 [US2] Create `useGoodsReceipt` hook in `apps/web/src/features/procurement/hooks/useGoodsReceipt.ts`
 - [ ] T030 [US2] Implement GRN Create Form (load PO items) in `apps/web/src/features/procurement/components/GoodsReceiptForm.tsx`
-- [ ] T031 [US2] Refine GRN Detail View in `apps/web/src/features/procurement/components/GoodsReceiptDetail.tsx` (Integrate "Post" & "Create Bill" shortcuts)
+- [ ] T031 [US2] Implement GRN Detail View with Post Action in `apps/web/src/features/procurement/components/GoodsReceiptDetail.tsx`
 - [ ] T032 [US2] Integration Test: `tests/integration/p2p/us2_grn_flow.test.ts`
 
 ## Phase 4: User Story 3 - Create & Post Bill (Priority: P1)
@@ -68,12 +68,12 @@
 
 - [ ] T033 [US3] Create Repository in `apps/api/src/modules/accounting/bill.repository.ts` (Audit for existing methods - XXI)
 - [ ] T034 [US3] Create Policy in `apps/api/src/modules/accounting/bill.policy.ts` (3-Way Match Validation)
-- [ ] T035 [US3] Implement Service in `apps/api/src/modules/accounting/bill.service.ts` (**Refine** `createFromPurchaseOrder` and `post`. Reuse `BillPostingSaga`. Audit - XXI)
+- [ ] T035 [US3] Implement Service in `apps/api/src/modules/accounting/bill.service.ts` (Create, Post with Journal Entry. Audit for existing methods - XXI)
 - [ ] T036 [US3] Implement Controller in `apps/api/src/modules/accounting/bill.controller.ts`
 - [ ] T037 [US3] Register routes in `apps/api/src/routes/v1/accounting.routes.ts`
 - [ ] T038 [US3] Create `useBill` hook in `apps/web/src/features/accounting/hooks/useBill.ts`
 - [ ] T039 [US3] Implement Bill Create Form (load GRN items) in `apps/web/src/features/accounting/components/BillForm.tsx`
-- [ ] T040 [US3] Refine Bill Detail View in `apps/web/src/features/accounting/components/BillDetail.tsx` (Integrate "Post" & "Record Payment". Add Price Discrepancy UI - FR-049)
+- [ ] T040 [US3] Implement Bill Detail View with Post Action in `apps/web/src/features/accounting/components/BillDetail.tsx`
 - [ ] T041 [US3] Integration Test: `tests/integration/p2p/us3_bill_flow.test.ts`
 
 ## Phase 5: User Story 4 - Record Payment (Priority: P2)
@@ -84,9 +84,9 @@
 
 ### Implementation [US4]
 
-- [ ] T042 [US4] Update Repository in `apps/api/src/modules/accounting/payment.repository.ts` (**Audit** existing methods first - XXI)
+- [ ] T042 [US4] Create Repository in `apps/api/src/modules/accounting/payment.repository.ts` (Audit for existing methods - XXI)
 - [ ] T043 [US4] Create Policy in `apps/api/src/modules/accounting/payment.policy.ts` (Check Bill status, amount)
-- [ ] T044 [US4] Implement Service in `apps/api/src/modules/accounting/payment.service.ts` (**Refine** `create` and `post`. Reuse `PaymentPostingSaga`. Audit - XXI)
+- [ ] T044 [US4] Implement Service in `apps/api/src/modules/accounting/payment.service.ts` (Record, Update Bill, Journal Entry. Audit for existing methods - XXI)
 - [ ] T045 [US4] Implement Controller in `apps/api/src/modules/accounting/payment.controller.ts`
 - [ ] T046 [US4] Add Payment routes to `apps/api/src/routes/v1/accounting.routes.ts`
 - [ ] T047 [US4] Create `usePayment` hook in `apps/web/src/features/accounting/hooks/usePayment.ts`

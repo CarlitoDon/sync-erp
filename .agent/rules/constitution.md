@@ -1,24 +1,18 @@
 <!--
 SYNC IMPACT REPORT
-Version: 3.0.0 -> 3.1.0 (MINOR - Consolidated duplicate principles)
+Version: 3.1.0 -> 3.2.0 (MINOR - Added Anti-Method Bloat Rule)
 Modified Principles:
-- Merged F-1 into III (Layer Architecture)
-- Merged II + VII into single "Type System & Contracts"
-- Merged XXII into IX (Performance by Design)
-- Merged F-3 into I (Architecture)
-Added Sections:
 - None
+Added Sections:
+- XXI. Anti-Method Bloat Rule (Part C)
 Removed Sections:
-- F-1. Separation of Concerns (merged into III)
-- II. Shared Type Contracts (merged into new section)
-- VII. Schema-First Development (merged into new section)
-- XXII. Preventing N+1 (merged into IX)
+- None
 Templates requiring updates:
-- plan-template.md ✅ (principle numbers updated)
-- spec-template.md ✅ (no structural changes needed)
-- tasks-template.md ✅ (no structural changes needed)
+- plan-template.md ✅ (principle XXI added)
+- spec-template.md ✅ (principle reference updated)
+- tasks-template.md ✅
 Follow-up TODOs:
-- Update plan-template.md Constitution Check references
+- Ensure all agents perform a full 'grep' or 'view_file' before adding new methods.
 Last Updated: 2025-12-19
 -->
 
@@ -26,7 +20,7 @@ Last Updated: 2025-12-19
 
 > "Simplicity is the ultimate sophistication."
 
-**Version**: 3.1.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-19
+**Version**: 3.2.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-19
 
 ---
 
@@ -435,6 +429,15 @@ prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN ...`;
 2. Semua occurrences **HARUS** diubah dalam single commit.
 3. Setelah refactoring, **HARUS** verify zero remaining instances.
 4. Commit **HARUS** satu per feature, bukan per session.
+
+### XXI. Anti-Method Bloat Rule (Maximizing Code Reuse)
+
+1. Agent **DILARANG** membuat method baru jika fungsionalitasnya tumpang tindih (>50%) dengan yang sudah ada di file tersebut.
+2. Agent **HARUS** melakukan `view_file` penuh atau `view_file_outline` pada target file sebelum menambah logic baru.
+3. Refactoring method existing **LEBIH DIUTAMAKAN** daripada membuat method baru dengan akhiran `2`, `New`, `V2`, atau variasi sinonim lainnya.
+4. Jika logic baru memang unik tetapi mirip, pertimbangkan untuk mengekstrak logic bersama ke private helper method.
+
+**Rationale**: AI cenderung menghindari modifikasi kode lama untuk "cari aman", yang mengakibatkan codebase membengkak dengan duplikasi. Aturan ini mewajibkan AI untuk berani dan teliti dalam mengupdate kode yang sudah ada.
 
 ---
 
