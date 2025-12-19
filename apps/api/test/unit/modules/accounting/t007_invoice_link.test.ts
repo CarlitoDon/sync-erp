@@ -59,10 +59,10 @@ describe('T007: Implement Invoice-Stock Link (FR-008)', () => {
         expect.objectContaining({
           invoiceId,
           companyId,
-          // businessShape: BusinessShape.RETAIL -- Might not be passed to execute payload, but implementation detail
         }),
         invoiceId,
-        companyId
+        companyId,
+        undefined // correlationId
       );
     });
 

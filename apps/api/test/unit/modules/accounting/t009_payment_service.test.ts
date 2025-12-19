@@ -51,7 +51,7 @@ describe('T009: Implement/Verify Payment Service (SC-001)', () => {
       const input = {
         invoiceId,
         amount: 40,
-        method: 'BANK_TRANSFER',
+        method: 'BANK_TRANSFER' as const,
       };
 
       // Saga Success

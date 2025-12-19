@@ -77,6 +77,13 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
     await prisma.invoice.deleteMany({
       where: { companyId: COMPANY_ID },
     });
+    // Delete Shipments first
+    await prisma.shipmentItem.deleteMany({
+      where: { shipment: { companyId: COMPANY_ID } },
+    });
+    await prisma.shipment.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     await prisma.orderItem.deleteMany({
       where: { order: { companyId: COMPANY_ID } },
     });

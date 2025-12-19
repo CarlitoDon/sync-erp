@@ -64,7 +64,7 @@ describe('T026: Payment Posting Saga', () => {
     companyId: 'co-1',
     step: SagaStep.PENDING,
     stepData: {},
-    error: null,
+    error: null, correlationId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -92,7 +92,7 @@ describe('T026: Payment Posting Saga', () => {
         id: 'pay-1',
         invoiceId: 'inv-1',
         amount: 500,
-        method: 'bank_transfer',
+        method: 'BANK_TRANSFER',
       } as any);
 
       vi.mocked(prisma.account.findFirst).mockResolvedValue({
@@ -107,7 +107,7 @@ describe('T026: Payment Posting Saga', () => {
           invoiceId: 'inv-1',
           companyId: 'co-1',
           amount: 500,
-          method: 'bank_transfer',
+          method: 'BANK_TRANSFER',
         },
         'inv-1',
         'co-1'
@@ -137,7 +137,7 @@ describe('T026: Payment Posting Saga', () => {
           invoiceId: 'inv-1',
           companyId: 'co-1',
           amount: 500,
-          method: 'bank_transfer',
+          method: 'BANK_TRANSFER',
         },
         'inv-1',
         'co-1'
@@ -159,7 +159,7 @@ describe('T026: Payment Posting Saga', () => {
             invoiceId: 'inv-999',
             companyId: 'co-1',
             amount: 100,
-            method: 'cash',
+            method: 'CASH',
           },
           'inv-999',
           'co-1'
@@ -178,7 +178,7 @@ describe('T026: Payment Posting Saga', () => {
             invoiceId: 'inv-1',
             companyId: 'co-1',
             amount: 1500,
-            method: 'cash',
+            method: 'CASH',
           },
           'inv-1',
           'co-1'
@@ -200,7 +200,7 @@ describe('T026: Payment Posting Saga', () => {
             invoiceId: 'inv-1',
             companyId: 'co-1',
             amount: 100,
-            method: 'cash',
+            method: 'CASH',
             businessDate: pastDate,
           },
           'inv-1',
@@ -223,7 +223,7 @@ describe('T026: Payment Posting Saga', () => {
             invoiceId: 'inv-1',
             companyId: 'co-1',
             amount: 100,
-            method: 'cash',
+            method: 'CASH',
           },
           'inv-1',
           'co-1'
@@ -260,7 +260,7 @@ describe('T026: Payment Posting Saga', () => {
             invoiceId: 'inv-1',
             companyId: 'co-1',
             amount: 500,
-            method: 'cash',
+            method: 'CASH',
           },
           'inv-1',
           'co-1'

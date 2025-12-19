@@ -3,10 +3,12 @@ import { prisma } from '@sync-erp/database';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
 import { ProcurementService } from '@modules/procurement/procurement.service';
+import { InventoryService } from '@modules/inventory/inventory.service';
 
 const billService = new BillService();
 const journalService = new JournalService();
 const purchaseOrderService = new ProcurementService();
+const inventoryService = new InventoryService();
 
 const COMPANY_ID = 'test-tax-purchase-001';
 
@@ -82,6 +84,16 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     await prisma.invoice.deleteMany({
       where: { companyId: COMPANY_ID },
     });
+    await prisma.inventoryMovement.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    // Delete GRN first
+    await prisma.goodsReceiptItem.deleteMany({
+      where: { goodsReceipt: { companyId: COMPANY_ID } },
+    });
+    await prisma.goodsReceipt.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     await prisma.orderItem.deleteMany({
       where: { order: { companyId: COMPANY_ID } },
     });
@@ -115,7 +127,15 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
       COMPANY_ID
     );
 
-    // 2. Create Bill
+    // 2. Create and Post GRN (required before Bill creation)
+    const grn = await inventoryService.createGRN(COMPANY_ID, {
+      purchaseOrderId: confirmedOrder.id,
+      notes: `GRN for Tax Test ${confirmedOrder.id}`,
+      items: [{ productId, quantity: 2 }],
+    });
+    await inventoryService.postGRN(COMPANY_ID, grn.id);
+
+    // 3. Create Bill
     const bill = await billService.createFromPurchaseOrder(
       COMPANY_ID,
       {
@@ -169,7 +189,15 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
       COMPANY_ID
     );
 
-    // 2. Create Bill
+    // 2. Create and Post GRN (required before Bill creation)
+    const grnZero = await inventoryService.createGRN(COMPANY_ID, {
+      purchaseOrderId: confirmedOrder.id,
+      notes: `GRN for Zero Tax Test ${confirmedOrder.id}`,
+      items: [{ productId, quantity: 1 }],
+    });
+    await inventoryService.postGRN(COMPANY_ID, grnZero.id);
+
+    // 3. Create Bill
     const bill = await billService.createFromPurchaseOrder(
       COMPANY_ID,
       {

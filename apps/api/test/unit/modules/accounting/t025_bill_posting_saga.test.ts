@@ -64,7 +64,7 @@ describe('T025: Bill Posting Saga', () => {
     companyId: 'co-1',
     step: SagaStep.PENDING,
     stepData: {},
-    error: null,
+    error: null, correlationId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

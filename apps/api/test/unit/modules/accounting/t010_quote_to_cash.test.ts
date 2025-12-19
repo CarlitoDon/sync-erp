@@ -189,11 +189,12 @@ describe('T010: Quote-to-Cash Integration (E2E Flow)', () => {
     await salesService.confirm('so-1', companyId);
 
     // --- 3. Create Invoice from Order ---
-    // Mock finding order for invoice creation
+    // Mock finding order for invoice creation (must be CONFIRMED)
     vi.mocked(
       InvoiceRepository.prototype.findOrder
     ).mockResolvedValue({
       ...order,
+      status: OrderStatus.CONFIRMED, // Policy requires CONFIRMED status
       items: [{ productId, quantity: 1, price: 100 } as any],
     } as any);
     vi.mocked(
@@ -306,7 +307,7 @@ describe('T010: Quote-to-Cash Integration (E2E Flow)', () => {
     await paymentService.create(companyId, {
       invoiceId: 'inv-1',
       amount: 110,
-      method: 'CASH',
+      method: 'CASH' as const,
     });
 
     // Verify Saga Called

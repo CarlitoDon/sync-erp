@@ -51,7 +51,7 @@ describe('T015: Payment Idempotency (FR-Safety)', () => {
 
   const companyId = 'co-1';
   const invoiceId = 'inv-1';
-  const input = { invoiceId, amount: 50, method: 'CASH' };
+  const input = { invoiceId, amount: 50, method: 'CASH' as const };
 
   it('should execute payment logic if key is new', async () => {
     // 1. Lock returns saved=false

@@ -72,7 +72,7 @@ describe('PaymentService', () => {
         companyId,
         invoiceId: 'invoice-1',
         amount: 500,
-        method: 'TRANSFER',
+        method: 'BANK_TRANSFER',
       };
 
       mockPaymentPostingSaga.execute.mockResolvedValue({
@@ -83,7 +83,7 @@ describe('PaymentService', () => {
       const result = await service.create(companyId, {
         invoiceId: 'invoice-1',
         amount: 500,
-        method: 'TRANSFER',
+        method: 'BANK_TRANSFER',
       });
 
       expect(result).toEqual(mockPayment);

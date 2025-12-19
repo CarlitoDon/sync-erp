@@ -99,6 +99,18 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     const deleteInvMov = prisma.inventoryMovement.deleteMany({
       where: { companyId: COMPANY_ID },
     });
+    const deleteShipmentItems = prisma.shipmentItem.deleteMany({
+      where: { shipment: { companyId: COMPANY_ID } },
+    });
+    const deleteShipments = prisma.shipment.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteGrnItems = prisma.goodsReceiptItem.deleteMany({
+      where: { goodsReceipt: { companyId: COMPANY_ID } },
+    });
+    const deleteGrns = prisma.goodsReceipt.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     const deleteInvoice = prisma.invoice.deleteMany({
       where: { companyId: COMPANY_ID },
     });
@@ -124,6 +136,10 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     await prisma.$transaction([
       deleteJournal,
       deleteInvMov,
+      deleteShipmentItems,
+      deleteShipments,
+      deleteGrnItems,
+      deleteGrns,
       deleteInvoice,
       deleteItems,
       deleteOrders,
@@ -147,15 +163,17 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     );
 
     // 2. Goods Receipt -> Accrual
-    await inventoryService.processGoodsReceipt(COMPANY_ID, {
-      orderId: confirmedPO.id,
-      reference: 'GRN-E2E-001',
+    const grn = await inventoryService.createGRN(COMPANY_ID, {
+      purchaseOrderId: confirmedPO.id,
+      notes: `GRN-E2E-001 ${confirmedPO.id}`,
+      items: [{ productId, quantity: 10 }],
     });
+    await inventoryService.postGRN(COMPANY_ID, grn.id);
 
     // Check Accrual Journal
     const journals = await journalService.list(COMPANY_ID);
-    const grnJournal = journals.find(
-      (j) => j.reference === 'GRN-E2E-001'
+    const grnJournal = journals.find((j) =>
+      j.reference?.includes('GRN')
     );
     expect(grnJournal).toBeDefined(); // Dr Inventory, Cr 2105 (1,000,000)
 

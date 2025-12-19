@@ -99,7 +99,8 @@ describe('T014: Invoice Idempotency (FR-Safety)', () => {
     expect(mockSaga.execute).toHaveBeenCalledWith(
       expect.objectContaining({ invoiceId, companyId }),
       invoiceId,
-      companyId
+      companyId,
+      undefined // correlationId
     );
 
     // Verify Complete called

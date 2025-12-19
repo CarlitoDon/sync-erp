@@ -72,6 +72,7 @@ describe('InvoiceService', () => {
         id: 'order-1',
         companyId,
         type: 'SALES',
+        status: 'CONFIRMED', // Policy requires CONFIRMED status
         totalAmount: 1000,
         taxRate: 11,
         partnerId: 'partner-1',
@@ -178,7 +179,8 @@ describe('InvoiceService', () => {
           companyId,
         }),
         'invoice-1',
-        companyId
+        companyId,
+        undefined // correlationId
       );
     });
 

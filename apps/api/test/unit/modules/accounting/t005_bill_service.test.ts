@@ -28,6 +28,19 @@ vi.mock(
   })
 );
 
+// Mock InventoryRepository for GRN check
+const mockInventoryRepository = {
+  countByReferencePatterns: vi.fn().mockResolvedValue(1), // GRN exists
+};
+vi.mock(
+  '../../../../src/modules/inventory/inventory.repository',
+  () => ({
+    InventoryRepository: function () {
+      return mockInventoryRepository;
+    },
+  })
+);
+
 describe('T005: Implement/Verify Bill Service (FR-011)', () => {
   let service: BillService;
   let mockRepo: any;
@@ -51,6 +64,7 @@ describe('T005: Implement/Verify Bill Service (FR-011)', () => {
       const mockOrder = {
         id: orderId,
         partnerId: 'partner-1',
+        status: 'CONFIRMED', // Policy requires CONFIRMED status
         totalAmount: 110, // Gross
         taxRate: 10,
         orderNumber: 'PO-001',
@@ -123,7 +137,8 @@ describe('T005: Implement/Verify Bill Service (FR-011)', () => {
       expect(mockBillPostingSaga.execute).toHaveBeenCalledWith(
         expect.objectContaining({ billId, companyId }),
         billId,
-        companyId
+        companyId,
+        undefined // correlationId
       );
 
       expect(result.status).toBe(InvoiceStatus.POSTED);

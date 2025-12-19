@@ -53,6 +53,19 @@ vi.mock(
   })
 );
 
+// Mock InventoryRepository for GRN check (BillService requires GRN before Bill)
+const mockInventoryRepository = {
+  countByReferencePatterns: vi.fn().mockResolvedValue(1), // GRN exists
+};
+vi.mock(
+  '../../../src/modules/inventory/inventory.repository',
+  () => ({
+    InventoryRepository: function () {
+      return mockInventoryRepository;
+    },
+  })
+);
+
 // Import after mocking
 import { BillService } from '../../../src/modules/accounting/services/bill.service';
 
@@ -72,6 +85,7 @@ describe('BillService', () => {
         id: 'order-1',
         companyId,
         type: 'PURCHASE',
+        status: 'CONFIRMED', // Policy requires CONFIRMED status
         totalAmount: 1000,
         taxRate: 10,
         partnerId: 'partner-1',
@@ -181,7 +195,8 @@ describe('BillService', () => {
           companyId,
         }),
         'bill-1',
-        companyId
+        companyId,
+        undefined // correlationId
       );
     });
 

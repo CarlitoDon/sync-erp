@@ -49,6 +49,33 @@ vi.mock('@sync-erp/database', async () => {
           async (callback: (tx: any) => Promise<any>) => {
             const mockTx = {
               $executeRawUnsafe: vi.fn().mockResolvedValue(1),
+              order: {
+                findFirst: vi.fn(),
+                update: vi.fn(),
+              },
+              orderItem: {
+                findMany: vi.fn(),
+                update: vi.fn(),
+              },
+              product: {
+                findUnique: vi.fn(),
+                findFirst: vi.fn(),
+                update: vi.fn(),
+              },
+              inventoryMovement: {
+                create: vi.fn(),
+                findMany: vi.fn(),
+              },
+              account: {
+                findFirst: vi.fn(),
+              },
+              journalEntry: {
+                create: vi.fn(),
+              },
+              goodsReceipt: {
+                findFirst: vi.fn(),
+                update: vi.fn(),
+              },
             };
             return callback(mockTx);
           }
@@ -78,6 +105,7 @@ describe('T024: Goods Receipt Saga', () => {
     step: SagaStep.PENDING,
     stepData: {},
     error: null,
+    correlationId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

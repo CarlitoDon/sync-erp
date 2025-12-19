@@ -83,13 +83,17 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     await prisma.payment.deleteMany({
       where: { companyId: COMPANY_ID },
     });
-    await prisma.journalEntry.deleteMany({
+    await prisma.inventoryMovement.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     await prisma.invoice.deleteMany({
       where: { companyId: COMPANY_ID },
     });
-    await prisma.inventoryMovement.deleteMany({
+    // Delete GRN first
+    await prisma.goodsReceiptItem.deleteMany({
+      where: { goodsReceipt: { companyId: COMPANY_ID } },
+    });
+    await prisma.goodsReceipt.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     await prisma.orderItem.deleteMany({
@@ -123,17 +127,19 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
       COMPANY_ID
     );
 
-    // 2. Process Goods Receipt (Should trigger Accrual)
+    // 2. Create and Post GRN (Should trigger Accrual)
     // Value: 5 * 100,000 = 500,000
-    await inventoryService.processGoodsReceipt(COMPANY_ID, {
-      orderId: confirmedOrder.id,
-      reference: 'GRN-001',
+    const grn = await inventoryService.createGRN(COMPANY_ID, {
+      purchaseOrderId: confirmedOrder.id,
+      notes: `GRN-001 ${confirmedOrder.id}`,
+      items: [{ productId, quantity: 5 }],
     });
+    await inventoryService.postGRN(COMPANY_ID, grn.id);
 
     // 3. Verify Accrual Journal
     const journals = await journalService.list(COMPANY_ID);
-    const grnJournal = journals.find(
-      (j) => j.reference === 'GRN-001'
+    const grnJournal = journals.find((j) =>
+      j.reference?.includes('GRN')
     );
 
     expect(grnJournal).toBeDefined();

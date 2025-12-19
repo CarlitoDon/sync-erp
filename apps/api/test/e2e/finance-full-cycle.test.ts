@@ -110,6 +110,18 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
     const deletePayments = prisma.payment.deleteMany({
       where: { invoice: { companyId: COMPANY_ID } },
     });
+    const deleteShipmentItems = prisma.shipmentItem.deleteMany({
+      where: { shipment: { companyId: COMPANY_ID } },
+    });
+    const deleteShipments = prisma.shipment.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteGrnItems = prisma.goodsReceiptItem.deleteMany({
+      where: { goodsReceipt: { companyId: COMPANY_ID } },
+    });
+    const deleteGrns = prisma.goodsReceipt.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
     const deleteInvoices = prisma.invoice.deleteMany({
       where: { companyId: COMPANY_ID },
     });
@@ -135,6 +147,10 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
     await prisma.$transaction([
       deleteJournals,
       deleteMovements,
+      deleteShipmentItems,
+      deleteShipments,
+      deleteGrnItems,
+      deleteGrns,
       deletePayments, // Payments first because of FK
       deleteInvoices,
       deleteOrderItems,
@@ -168,11 +184,13 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
     });
 
     it('2. Should Receive Goods (Updates Stock, Creates GRNI Accrual Journal)', async () => {
-      // Process goods receipt
-      await inventoryService.processGoodsReceipt(COMPANY_ID, {
-        orderId,
-        reference: 'GRN-001',
+      // Create and Post GRN
+      const grn = await inventoryService.createGRN(COMPANY_ID, {
+        purchaseOrderId: orderId,
+        notes: `GRN-001 ${orderId}`,
+        items: [{ productId, quantity: 10 }],
       });
+      await inventoryService.postGRN(COMPANY_ID, grn.id);
 
       // Check Stock using Service (or Prisma)
       const prod = await prisma.product.findUnique({
@@ -184,7 +202,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       // Verify GRNI Accrual Journal exists (Dr Inventory, Cr GRNI)
       const journals = await journalService.list(COMPANY_ID);
       const grnJournal = journals.find((j: any) =>
-        j.reference?.includes('GRN-001')
+        j.reference?.includes('GRN')
       ) as any;
       expect(grnJournal).toBeDefined();
 
@@ -277,9 +295,6 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
 
     it('2. Should Ship Goods (Dr COGS 5000, Cr Inventory 1400)', async () => {
       // Get Order Number for reference check
-      const order = await prisma.order.findUnique({
-        where: { id: orderId },
-      });
 
       await salesOrderService.ship(COMPANY_ID, orderId);
 
@@ -292,9 +307,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       // Check Journal
       const journals = await journalService.list(COMPANY_ID);
       const shipJournal = journals.find((j: any) =>
-        j.reference?.includes(
-          `Shipment for Order ${order?.orderNumber}`
-        )
+        j.reference?.includes('SHP')
       ) as any;
 
       expect(shipJournal).toBeDefined();

@@ -52,7 +52,7 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null,
+        error: null, correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -147,7 +147,7 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null,
+        error: null, correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -171,7 +171,7 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null,
+        error: null, correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -203,7 +203,7 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.BALANCE_DONE,
         stepData: { previousBalance: 1000 },
-        error: null,
+        error: null, correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -291,7 +291,7 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null,
+        error: null, correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -317,7 +317,7 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null,
+        error: null, correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -339,7 +339,7 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null,
+        error: null, correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
