@@ -1,6 +1,6 @@
 import { AdminRepository } from './repository';
 
-interface PaginatedResult<T> {
+export interface PaginatedResult<T> {
   data: T[];
   pagination: {
     total: number;

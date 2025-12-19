@@ -9,29 +9,39 @@ import { productRouter } from './routers/product.router';
 import { dashboardRouter } from './routers/dashboard.router';
 import { userRouter } from './routers/user.router';
 import { companyRouter } from './routers/company.router';
+import { authRouter } from './routers/auth.router';
+import { adminRouter } from './routers/admin.router';
+import { healthRouter } from './routers/health.router';
+import { inventoryRouter } from './routers/inventory.router';
+import { financeRouter } from './routers/finance.router';
 
-/**
- * Root application router
- * All module routers combined here
- */
 export const appRouter = router({
-  // Accounting
+  // Public routes
+  auth: authRouter,
+  health: healthRouter,
+
+  // Core business documents
   bill: billRouter,
+  purchaseOrder: purchaseOrderRouter,
   invoice: invoiceRouter,
   payment: paymentRouter,
-
-  // Procurement & Sales
-  purchaseOrder: purchaseOrderRouter,
   salesOrder: salesOrderRouter,
 
-  // Master Data
+  // Master data
   partner: partnerRouter,
   product: productRouter,
+
+  // Operations
+  inventory: inventoryRouter,
+
+  // Finance & Accounting
+  finance: financeRouter,
 
   // System
   dashboard: dashboardRouter,
   user: userRouter,
   company: companyRouter,
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;
