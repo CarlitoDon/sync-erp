@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useCompany } from '@/contexts/CompanyContext';
 import {
-  createGoodsReceipt,
-  postGoodsReceipt,
-  CreateGoodsReceiptInput,
+  createShipment,
+  postShipment,
+  CreateShipmentInput,
 } from '@/features/inventory/services/inventoryService';
-
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -27,10 +26,10 @@ interface OrderItem {
   product?: { name: string; sku?: string };
 }
 
-interface GoodsReceiptModalProps {
+interface ShipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  purchaseOrderId: string;
+  salesOrderId: string;
   orderItems: OrderItem[];
   onSuccess?: () => void;
 }
@@ -41,18 +40,18 @@ interface FormData {
   items: { productId: string; quantity: number }[];
 }
 
-export function GoodsReceiptModal({
+export function ShipmentModal({
   isOpen,
   onClose,
-  purchaseOrderId,
+  salesOrderId,
   orderItems,
   onSuccess,
-}: GoodsReceiptModalProps) {
+}: ShipmentModalProps) {
   const { currentCompany } = useCompany();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'confirm' | 'processing' | 'posted'>('confirm');
+  const [step, setStep] = useState<'confirm' | 'processing' | 'shipped'>('confirm');
 
-  // Pre-fill items from PO
+  // Pre-fill items from SO
   const defaultItems = orderItems.map((item) => ({
     productId: item.productId,
     quantity: item.quantity,
@@ -72,30 +71,26 @@ export function GoodsReceiptModal({
     },
   });
 
-
-
   const onSubmit = async (data: FormData) => {
     if (!currentCompany) return;
     setLoading(true);
     setStep('processing');
 
     try {
-      // Step 1: Create GRN
-      const grnInput: CreateGoodsReceiptInput = {
-        purchaseOrderId,
+      // Step 1: Create Shipment
+      const shipmentInput: CreateShipmentInput = {
+        salesOrderId,
         notes: data.notes,
         date: data.date?.toISOString(),
         items: data.items.filter((item) => item.quantity > 0),
       };
 
-      const grn = await createGoodsReceipt(currentCompany.id, grnInput);
+      const shipment = await createShipment(currentCompany.id, shipmentInput);
 
-      // Step 2: Post GRN (Stock IN)
-      await postGoodsReceipt(currentCompany.id, grn.id);
+      // Step 2: Post Shipment (Stock OUT)
+      await postShipment(currentCompany.id, shipment.id);
 
-      setStep('posted');
-
-      // Success toast shown by onSuccess callback
+      setStep('shipped');
 
       onSuccess?.();
       setTimeout(() => {
@@ -103,9 +98,9 @@ export function GoodsReceiptModal({
         reset();
         setStep('confirm');
       }, 500);
-    } catch (error) {
+    } catch {
       setStep('confirm');
-      // Error toast handled by apiAction in service
+      // Error toast handled by service
     } finally {
       setLoading(false);
     }
@@ -123,13 +118,13 @@ export function GoodsReceiptModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Receive Goods</DialogTitle>
+          <DialogTitle>Ship Goods</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid gap-4 py-4">
             {/* Items List */}
             <div className="space-y-2">
-              <Label>Items to Receive</Label>
+              <Label>Items to Ship</Label>
               <div className="border rounded-md divide-y">
                 {orderItems.map((item, index) => (
                   <div
@@ -208,12 +203,12 @@ export function GoodsReceiptModal({
             {/* Status Message */}
             {step === 'processing' && (
               <p className="text-sm text-blue-600 text-center animate-pulse">
-                Creating receipt and updating stock...
+                Creating shipment and updating stock...
               </p>
             )}
-            {step === 'posted' && (
+            {step === 'shipped' && (
               <p className="text-sm text-green-600 text-center">
-                ✓ Goods received successfully!
+                ✓ Goods shipped successfully!
               </p>
             )}
 
@@ -234,7 +229,7 @@ export function GoodsReceiptModal({
               Cancel
             </Button>
             <Button type="submit" isLoading={loading} disabled={step !== 'confirm'}>
-              {step === 'confirm' ? 'Receive All' : 'Processing...'}
+              {step === 'confirm' ? 'Ship All' : 'Processing...'}
             </Button>
           </DialogFooter>
         </form>
