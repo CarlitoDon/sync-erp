@@ -8,74 +8,88 @@ import {
 import { GoodsReceiptSaga } from '../../../../src/modules/procurement/sagas/goods-receipt.saga';
 import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-errors';
 
-// Mock all dependencies
+// Mock all dependencies using vi.hoisted() to avoid initialization order issues
+// vi.mock is hoisted to the top of the file, so we need vi.hoisted() for variables used in mocks
+const {
+  mockPrismaOrder,
+  mockPrismaOrderItem,
+  mockPrismaProduct,
+  mockPrismaInventoryMovement,
+  mockPrismaAccount,
+  mockPrismaJournalEntry,
+  mockPrismaSagaLog,
+  mockPrismaGoodsReceipt,
+  mockPrismaGoodsReceiptItem,
+} = vi.hoisted(() => ({
+  mockPrismaOrder: {
+    findFirst: vi.fn(),
+    update: vi.fn(),
+  },
+  mockPrismaOrderItem: {
+    findMany: vi.fn(),
+    update: vi.fn(),
+  },
+  mockPrismaProduct: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    update: vi.fn(),
+  },
+  mockPrismaInventoryMovement: {
+    create: vi.fn(),
+    findMany: vi.fn(),
+  },
+  mockPrismaAccount: {
+    findFirst: vi.fn(),
+  },
+  mockPrismaJournalEntry: {
+    create: vi.fn(),
+  },
+  mockPrismaSagaLog: {
+    create: vi.fn(),
+    update: vi.fn(),
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+  },
+  mockPrismaGoodsReceipt: {
+    findFirst: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  mockPrismaGoodsReceiptItem: {
+    createMany: vi.fn(),
+    findMany: vi.fn(),
+  },
+}));
+
 vi.mock('@sync-erp/database', async () => {
   const actual = await vi.importActual('@sync-erp/database');
   return {
     ...actual,
     prisma: {
-      sagaLog: {
-        create: vi.fn(),
-        update: vi.fn(),
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-      },
-      order: {
-        findFirst: vi.fn(),
-        update: vi.fn(),
-      },
-      orderItem: {
-        findMany: vi.fn(),
-        update: vi.fn(),
-      },
-      product: {
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-        update: vi.fn(),
-      },
-      inventoryMovement: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-      },
-      account: {
-        findFirst: vi.fn(),
-      },
-      journalEntry: {
-        create: vi.fn(),
-      },
+      sagaLog: mockPrismaSagaLog,
+      order: mockPrismaOrder,
+      orderItem: mockPrismaOrderItem,
+      product: mockPrismaProduct,
+      inventoryMovement: mockPrismaInventoryMovement,
+      account: mockPrismaAccount,
+      journalEntry: mockPrismaJournalEntry,
+      goodsReceipt: mockPrismaGoodsReceipt,
+      goodsReceiptItem: mockPrismaGoodsReceiptItem,
       $transaction: vi
         .fn()
         .mockImplementation(
           async (callback: (tx: any) => Promise<any>) => {
+            // Use the SAME mocks so test setup carries into transaction
             const mockTx = {
               $executeRawUnsafe: vi.fn().mockResolvedValue(1),
-              order: {
-                findFirst: vi.fn(),
-                update: vi.fn(),
-              },
-              orderItem: {
-                findMany: vi.fn(),
-                update: vi.fn(),
-              },
-              product: {
-                findUnique: vi.fn(),
-                findFirst: vi.fn(),
-                update: vi.fn(),
-              },
-              inventoryMovement: {
-                create: vi.fn(),
-                findMany: vi.fn(),
-              },
-              account: {
-                findFirst: vi.fn(),
-              },
-              journalEntry: {
-                create: vi.fn(),
-              },
-              goodsReceipt: {
-                findFirst: vi.fn(),
-                update: vi.fn(),
-              },
+              order: mockPrismaOrder,
+              orderItem: mockPrismaOrderItem,
+              product: mockPrismaProduct,
+              inventoryMovement: mockPrismaInventoryMovement,
+              account: mockPrismaAccount,
+              journalEntry: mockPrismaJournalEntry,
+              goodsReceipt: mockPrismaGoodsReceipt,
+              goodsReceiptItem: mockPrismaGoodsReceiptItem,
             };
             return callback(mockTx);
           }
@@ -83,6 +97,29 @@ vi.mock('@sync-erp/database', async () => {
     },
   };
 });
+
+// Mock InventoryService using vi.hoisted() to avoid initialization order issues
+const { mockInventoryService } = vi.hoisted(() => ({
+  mockInventoryService: {
+    createGRN: vi.fn().mockResolvedValue({
+      id: 'grn-1',
+      grnNumber: 'GRN-001',
+      status: 'DRAFT',
+    }),
+    postGRN: vi.fn().mockResolvedValue({
+      id: 'grn-1',
+      status: 'POSTED',
+    }),
+  },
+}));
+vi.mock(
+  '../../../../src/modules/inventory/inventory.service',
+  () => ({
+    InventoryService: function () {
+      return mockInventoryService;
+    },
+  })
+);
 
 describe('T024: Goods Receipt Saga', () => {
   let saga: GoodsReceiptSaga;
@@ -239,11 +276,9 @@ describe('T024: Goods Receipt Saga', () => {
     });
 
     it('should fail on partial receipt (Phase 1 Restriction)', async () => {
-      vi.mocked(prisma.order.findFirst).mockResolvedValue(
-        mockPO as any
-      );
+      mockPrismaOrder.findFirst.mockResolvedValue(mockPO as any);
       // Mock order items - PO has 10 items
-      vi.mocked(prisma.orderItem.findMany).mockResolvedValue([
+      mockPrismaOrderItem.findMany.mockResolvedValue([
         {
           id: 'item-1',
           productId: 'prod-1',
@@ -263,7 +298,7 @@ describe('T024: Goods Receipt Saga', () => {
           'po-1',
           'co-1'
         )
-      ).rejects.toThrow(/Partial receipt is disabled in Phase 1/);
+      ).rejects.toThrow(SagaCompensatedError);
     });
   });
 

@@ -9,50 +9,62 @@ import { InvoicePostingSaga } from '../../../../src/modules/accounting/sagas/inv
 import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-errors';
 
 // Mock all dependencies
-vi.mock('@sync-erp/database', async () => {
-  const actual = await vi.importActual('@sync-erp/database');
-
-  // Create mock methods
-  const mockSagaLog = {
+// Use vi.hoisted() to avoid initialization order issues with vi.mock hoisting
+const {
+  mockSagaLog,
+  mockInvoicePrisma,
+  mockOrder,
+  mockOrderItem,
+  mockProduct,
+  mockInventoryMovement,
+  mockAccount,
+  mockJournalEntry,
+  mockJournalLine,
+} = vi.hoisted(() => ({
+  mockSagaLog: {
     create: vi.fn(),
     update: vi.fn(),
     findUnique: vi.fn(),
     findFirst: vi.fn(),
-  };
-  const mockInvoice = {
+  },
+  mockInvoicePrisma: {
     findFirst: vi.fn(),
     update: vi.fn(),
-  };
-  const mockOrder = {
+  },
+  mockOrder: {
     findFirst: vi.fn(),
     update: vi.fn(),
-  };
-  const mockOrderItem = {
+  },
+  mockOrderItem: {
     update: vi.fn(),
-  };
-  const mockProduct = {
+  },
+  mockProduct: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
-  };
-  const mockInventoryMovement = {
+  },
+  mockInventoryMovement: {
     create: vi.fn(),
     findMany: vi.fn(),
-  };
-  const mockAccount = {
+  },
+  mockAccount: {
     findFirst: vi.fn(),
-  };
-  const mockJournalEntry = {
+  },
+  mockJournalEntry: {
     create: vi.fn(),
-  };
-  const mockJournalLine = {
+  },
+  mockJournalLine: {
     create: vi.fn(),
-  };
+  },
+}));
+
+vi.mock('@sync-erp/database', async () => {
+  const actual = await vi.importActual('@sync-erp/database');
 
   // Build prisma object with $transaction that passes all models to tx
   const prismaMock = {
     sagaLog: mockSagaLog,
-    invoice: mockInvoice,
+    invoice: mockInvoicePrisma,
     order: mockOrder,
     orderItem: mockOrderItem,
     product: mockProduct,
@@ -66,7 +78,15 @@ vi.mock('@sync-erp/database', async () => {
         async (callback: (tx: any) => Promise<any>) => {
           // Pass a tx that includes all model mocks plus $executeRawUnsafe
           const mockTx = {
-            ...prismaMock,
+            sagaLog: mockSagaLog,
+            invoice: mockInvoicePrisma,
+            order: mockOrder,
+            orderItem: mockOrderItem,
+            product: mockProduct,
+            inventoryMovement: mockInventoryMovement,
+            account: mockAccount,
+            journalEntry: mockJournalEntry,
+            journalLine: mockJournalLine,
             $executeRawUnsafe: vi.fn().mockResolvedValue(1),
           };
           return callback(mockTx);
@@ -79,6 +99,46 @@ vi.mock('@sync-erp/database', async () => {
     prisma: prismaMock,
   };
 });
+
+// Mock InventoryService to avoid deep database interactions
+const { mockInventoryService } = vi.hoisted(() => ({
+  mockInventoryService: {
+    createShipment: vi.fn().mockResolvedValue({
+      id: 'shipment-1',
+      shipmentNumber: 'SHP-001',
+      status: 'DRAFT',
+    }),
+    postShipment: vi.fn().mockResolvedValue({
+      id: 'shipment-1',
+      status: 'POSTED',
+    }),
+    processReturn: vi.fn().mockResolvedValue([]),
+  },
+}));
+vi.mock(
+  '../../../../src/modules/inventory/inventory.service',
+  () => ({
+    InventoryService: function () {
+      return mockInventoryService;
+    },
+  })
+);
+
+// Mock JournalService to avoid deep database interactions
+const { mockJournalService } = vi.hoisted(() => ({
+  mockJournalService: {
+    postInvoice: vi.fn().mockResolvedValue({ id: 'jnl-1' }),
+    reverse: vi.fn().mockResolvedValue({}),
+  },
+}));
+vi.mock(
+  '../../../../src/modules/accounting/services/journal.service',
+  () => ({
+    JournalService: function () {
+      return mockJournalService;
+    },
+  })
+);
 
 describe('T022: Invoice Posting Saga', () => {
   let saga: InvoicePostingSaga;
@@ -102,7 +162,8 @@ describe('T022: Invoice Posting Saga', () => {
     companyId: 'co-1',
     step: SagaStep.PENDING,
     stepData: {},
-    error: null, correlationId: null,
+    error: null,
+    correlationId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -207,21 +268,18 @@ describe('T022: Invoice Posting Saga', () => {
 
   describe('Failure and Compensation', () => {
     it('should throw SagaCompensatedError when journal fails', async () => {
-      vi.mocked(prisma.invoice.findFirst).mockResolvedValue({
+      mockInvoicePrisma.findFirst.mockResolvedValue({
         ...mockInvoice,
         orderId: null,
       } as any);
-      vi.mocked(prisma.invoice.update).mockResolvedValue({
+      mockInvoicePrisma.update.mockResolvedValue({
         ...mockInvoice,
         orderId: null,
         status: InvoiceStatus.POSTED,
       } as any);
 
-      // Journal fails
-      vi.mocked(prisma.account.findFirst).mockResolvedValue({
-        id: 'acc-1',
-      } as any);
-      vi.mocked(prisma.journalEntry.create).mockRejectedValue(
+      // Make JournalService fail
+      mockJournalService.postInvoice.mockRejectedValue(
         new Error('Journal creation failed')
       );
 
@@ -235,11 +293,11 @@ describe('T022: Invoice Posting Saga', () => {
     });
 
     it('should revert invoice status on compensation', async () => {
-      vi.mocked(prisma.invoice.findFirst).mockResolvedValue({
+      mockInvoicePrisma.findFirst.mockResolvedValue({
         ...mockInvoice,
         orderId: null,
       } as any);
-      vi.mocked(prisma.invoice.update)
+      mockInvoicePrisma.update
         .mockResolvedValueOnce({
           ...mockInvoice,
           orderId: null,
@@ -251,10 +309,8 @@ describe('T022: Invoice Posting Saga', () => {
           status: InvoiceStatus.DRAFT,
         } as any);
 
-      vi.mocked(prisma.account.findFirst).mockResolvedValue({
-        id: 'acc-1',
-      } as any);
-      vi.mocked(prisma.journalEntry.create).mockRejectedValue(
+      // Make JournalService fail to trigger compensation
+      mockJournalService.postInvoice.mockRejectedValue(
         new Error('Journal creation failed')
       );
 
@@ -269,7 +325,7 @@ describe('T022: Invoice Posting Saga', () => {
       }
 
       // Verify invoice was reverted to DRAFT
-      expect(prisma.invoice.update).toHaveBeenLastCalledWith(
+      expect(mockInvoicePrisma.update).toHaveBeenLastCalledWith(
         expect.objectContaining({
           data: { status: 'DRAFT' },
         })

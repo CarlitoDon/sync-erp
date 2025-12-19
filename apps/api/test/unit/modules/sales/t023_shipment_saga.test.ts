@@ -8,40 +8,71 @@ import {
 import { ShipmentSaga } from '../../../../src/modules/sales/sagas/shipment.saga';
 import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-errors';
 
-// Mock all dependencies
+// Mock all dependencies using vi.hoisted() to avoid initialization order issues
+const {
+  mockSagaLog,
+  mockOrder,
+  mockOrderItem,
+  mockProduct,
+  mockInventoryMovement,
+  mockAccount,
+  mockJournalEntry,
+  mockShipment,
+  mockShipmentItem,
+} = vi.hoisted(() => ({
+  mockSagaLog: {
+    create: vi.fn(),
+    update: vi.fn(),
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+  },
+  mockOrder: {
+    findFirst: vi.fn(),
+    update: vi.fn(),
+  },
+  mockOrderItem: {
+    update: vi.fn(),
+  },
+  mockProduct: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    update: vi.fn(),
+  },
+  mockInventoryMovement: {
+    create: vi.fn(),
+    findMany: vi.fn(),
+  },
+  mockAccount: {
+    findFirst: vi.fn(),
+  },
+  mockJournalEntry: {
+    create: vi.fn(),
+  },
+  mockShipment: {
+    count: vi.fn().mockResolvedValue(0),
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    update: vi.fn(),
+  },
+  mockShipmentItem: {
+    createMany: vi.fn(),
+  },
+}));
+
 vi.mock('@sync-erp/database', async () => {
   const actual = await vi.importActual('@sync-erp/database');
   return {
     ...actual,
     prisma: {
-      sagaLog: {
-        create: vi.fn(),
-        update: vi.fn(),
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-      },
-      order: {
-        findFirst: vi.fn(),
-        update: vi.fn(),
-      },
-      orderItem: {
-        update: vi.fn(),
-      },
-      product: {
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-        update: vi.fn(),
-      },
-      inventoryMovement: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-      },
-      account: {
-        findFirst: vi.fn(),
-      },
-      journalEntry: {
-        create: vi.fn(),
-      },
+      sagaLog: mockSagaLog,
+      order: mockOrder,
+      orderItem: mockOrderItem,
+      product: mockProduct,
+      inventoryMovement: mockInventoryMovement,
+      account: mockAccount,
+      journalEntry: mockJournalEntry,
+      shipment: mockShipment,
+      shipmentItem: mockShipmentItem,
       $transaction: vi
         .fn()
         .mockImplementation(
@@ -49,12 +80,14 @@ vi.mock('@sync-erp/database', async () => {
             // The mockTx must include all models that ShipmentSaga uses
             const mockTx = {
               $executeRawUnsafe: vi.fn().mockResolvedValue(1),
-              order: prisma.order,
-              orderItem: prisma.orderItem,
-              product: prisma.product,
-              inventoryMovement: prisma.inventoryMovement,
-              account: prisma.account,
-              journalEntry: prisma.journalEntry,
+              order: mockOrder,
+              orderItem: mockOrderItem,
+              product: mockProduct,
+              inventoryMovement: mockInventoryMovement,
+              account: mockAccount,
+              journalEntry: mockJournalEntry,
+              shipment: mockShipment,
+              shipmentItem: mockShipmentItem,
             };
             return callback(mockTx);
           }
@@ -63,10 +96,50 @@ vi.mock('@sync-erp/database', async () => {
   };
 });
 
+// Mock InventoryService to avoid deep database interactions
+const { mockInventoryService } = vi.hoisted(() => ({
+  mockInventoryService: {
+    createShipment: vi.fn().mockResolvedValue({
+      id: 'shipment-1',
+      shipmentNumber: 'SHP-001',
+      status: 'DRAFT',
+    }),
+    postShipment: vi.fn().mockResolvedValue({
+      id: 'shipment-1',
+      status: 'POSTED',
+    }),
+  },
+}));
+vi.mock(
+  '../../../../src/modules/inventory/inventory.service',
+  () => ({
+    InventoryService: function () {
+      return mockInventoryService;
+    },
+  })
+);
+
+// Mock ProductService for stock checking
+const { mockProductService } = vi.hoisted(() => ({
+  mockProductService: {
+    checkStock: vi.fn().mockResolvedValue(true),
+    getById: vi
+      .fn()
+      .mockResolvedValue({ stockQty: 100, averageCost: 50 }),
+    decreaseStock: vi.fn().mockResolvedValue({}),
+  },
+}));
+vi.mock('../../../../src/modules/product/product.service', () => ({
+  ProductService: function () {
+    return mockProductService;
+  },
+}));
+
 describe('T023: Shipment Saga', () => {
   let saga: ShipmentSaga;
 
-  const mockOrder = {
+  // Renamed to mockOrderData to avoid collision with hoisted prisma mockOrder
+  const mockOrderData = {
     id: 'order-1',
     companyId: 'co-1',
     orderNumber: 'SO-001',
@@ -83,7 +156,8 @@ describe('T023: Shipment Saga', () => {
     companyId: 'co-1',
     step: SagaStep.PENDING,
     stepData: {},
-    error: null, correlationId: null,
+    error: null,
+    correlationId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -101,10 +175,10 @@ describe('T023: Shipment Saga', () => {
     it('should ship order with stock movements', async () => {
       // Mock order lookup
       vi.mocked(prisma.order.findFirst).mockResolvedValue(
-        mockOrder as any
+        mockOrderData as any
       );
       vi.mocked(prisma.order.update).mockResolvedValue({
-        ...mockOrder,
+        ...mockOrderData,
         status: OrderStatus.COMPLETED,
       } as any);
 
@@ -181,25 +255,27 @@ describe('T023: Shipment Saga', () => {
     });
 
     it('should fail on insufficient stock', async () => {
-      vi.mocked(prisma.order.findFirst).mockResolvedValue(
-        mockOrder as any
-      );
-      vi.mocked(prisma.order.update).mockResolvedValue({} as any);
-
-      // Mock product with insufficient stock
-      // checkStock uses findUnique and compares stockQty >= quantity
-      const insufficientProduct = {
-        id: 'prod-1',
-        stockQty: 2, // Less than required 5
-        averageCost: 50,
-        isService: false,
+      // Use mockOrder (the prisma mock) to set up the order data
+      // The test's local mockOrder variable contains the test data
+      const testOrderData = {
+        id: 'order-1',
+        companyId: 'co-1',
+        orderNumber: 'SO-001',
+        status: OrderStatus.CONFIRMED,
+        items: [
+          {
+            id: 'item-1',
+            productId: 'prod-1',
+            quantity: 5,
+            price: 100,
+          },
+        ],
       };
-      vi.mocked(prisma.product.findUnique).mockResolvedValue(
-        insufficientProduct as any
-      );
-      vi.mocked(prisma.product.findFirst).mockResolvedValue(
-        insufficientProduct as any
-      );
+      mockOrder.findFirst.mockResolvedValue(testOrderData as any);
+      mockOrder.update.mockResolvedValue({} as any);
+
+      // Make ProductService.checkStock fail (insufficient stock)
+      mockProductService.checkStock.mockResolvedValue(false);
 
       await expect(
         saga.execute(
@@ -214,7 +290,7 @@ describe('T023: Shipment Saga', () => {
   describe('Compensation', () => {
     it('should revert order status on failure', async () => {
       vi.mocked(prisma.order.findFirst).mockResolvedValue(
-        mockOrder as any
+        mockOrderData as any
       );
       vi.mocked(prisma.order.update).mockResolvedValue({} as any);
 

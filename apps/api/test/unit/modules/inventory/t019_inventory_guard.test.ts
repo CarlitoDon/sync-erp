@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InventoryService } from '../../../../src/modules/inventory/inventory.service';
-import { prisma } from '@sync-erp/database';
 
 // Mock dependencies
 vi.mock('@sync-erp/database', async () => {
@@ -35,7 +34,8 @@ describe('T019: Inventory Concurrency Guard', () => {
   const orderId = 'ord-1';
 
   it('should process shipment atomically', async () => {
-    vi.mocked(prisma.order.findFirst).mockResolvedValue({
+    // Mock repository.findOrderWithItems (used by InventoryService.processShipment)
+    mockRepo.findOrderWithItems.mockResolvedValue({
       id: orderId,
       companyId,
       orderNumber: 'SO-1',
@@ -45,6 +45,8 @@ describe('T019: Inventory Concurrency Guard', () => {
     mockProductService.decreaseStock.mockResolvedValue({});
     mockProductService.getById.mockResolvedValue({
       id: 'p1',
+      name: 'Product 1',
+      stockQty: 100,
       averageCost: 10,
     });
     mockRepo.createMovement.mockResolvedValue({});
@@ -56,11 +58,12 @@ describe('T019: Inventory Concurrency Guard', () => {
       5,
       undefined
     );
-    expect(prisma.orderItem.update).toHaveBeenCalled();
+    expect(mockRepo.updateOrderItemCost).toHaveBeenCalled();
   });
 
   it('should rollback if second item fails', async () => {
-    vi.mocked(prisma.order.findFirst).mockResolvedValue({
+    // Mock repository.findOrderWithItems
+    mockRepo.findOrderWithItems.mockResolvedValue({
       id: orderId,
       companyId,
       orderNumber: 'SO-1',
@@ -72,6 +75,8 @@ describe('T019: Inventory Concurrency Guard', () => {
 
     mockProductService.getById.mockResolvedValue({
       id: 'p1',
+      name: 'Product 1',
+      stockQty: 100,
       averageCost: 10,
     });
     mockRepo.createMovement.mockResolvedValue({});

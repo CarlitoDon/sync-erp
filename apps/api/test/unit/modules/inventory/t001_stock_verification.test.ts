@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InventoryService } from '../../../../src/modules/inventory/inventory.service';
-import { BusinessShape, prisma } from '@sync-erp/database';
+import { BusinessShape } from '@sync-erp/database';
 
 // Automock dependencies
 vi.mock('../../../../src/modules/inventory/inventory.repository');
@@ -114,12 +114,12 @@ describe('T001: Verify Stock Movements', () => {
       const companyId = 'co-1';
       const orderId = 'so-1';
       const orderItems = [
-        { productId: 'prod-A', quantity: 2 },
-        { productId: 'prod-B', quantity: 1 },
+        { id: 'item-1', productId: 'prod-A', quantity: 2 },
+        { id: 'item-2', productId: 'prod-B', quantity: 1 },
       ];
 
-      // Setup prisma mock via imported object
-      vi.mocked(prisma.order.findFirst).mockResolvedValue({
+      // Mock repository.findOrderWithItems (used by InventoryService.processShipment)
+      mockRepo.findOrderWithItems.mockResolvedValue({
         id: orderId,
         companyId,
         orderNumber: 'SO-001',
@@ -128,8 +128,12 @@ describe('T001: Verify Stock Movements', () => {
 
       mockProductService.checkStock.mockResolvedValue(true);
       mockProductService.getById.mockResolvedValue({
+        id: 'prod-A',
+        name: 'Product A',
+        stockQty: 100,
         averageCost: 500,
       });
+      mockProductService.decreaseStock.mockResolvedValue({});
 
       await service.processShipment(companyId, orderId);
 

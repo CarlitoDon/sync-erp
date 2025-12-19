@@ -24,6 +24,17 @@ vi.mock('../../../src/modules/inventory/inventory.service', () => ({
       adjustStock: vi
         .fn()
         .mockResolvedValue({ id: 'mov-3', type: 'ADJUSTMENT' }),
+      // GRN methods (034-grn-fullstack)
+      listGRN: vi.fn().mockResolvedValue([]),
+      getGRN: vi
+        .fn()
+        .mockResolvedValue({ id: 'grn-1', status: 'DRAFT' }),
+      createGRN: vi
+        .fn()
+        .mockResolvedValue({ id: 'grn-1', status: 'DRAFT' }),
+      postGRN: vi
+        .fn()
+        .mockResolvedValue({ id: 'grn-1', status: 'POSTED' }),
     };
   },
 }));
@@ -97,20 +108,24 @@ describe('Inventory Routes', () => {
     });
   });
 
-  describe('POST /api/inventory/goods-receipt', () => {
-    it('should process goods receipt', async () => {
+  describe('POST /api/inventory/receipts (GRN)', () => {
+    it('should create goods receipt', async () => {
       const response = await request(app)
-        .post('/api/inventory/goods-receipt')
-        .send({ orderId: '123e4567-e89b-12d3-a456-426614174000' });
+        .post('/api/inventory/receipts')
+        .send({
+          purchaseOrderId: '123e4567-e89b-12d3-a456-426614174000',
+          items: [{ productId: 'prod-1', quantity: 10 }],
+        });
       expect(response.status).toBe(201);
     });
 
-    it('should accept optional reference', async () => {
+    it('should accept optional notes', async () => {
       const response = await request(app)
-        .post('/api/inventory/goods-receipt')
+        .post('/api/inventory/receipts')
         .send({
-          orderId: '123e4567-e89b-12d3-a456-426614174000',
-          reference: 'GR-001',
+          purchaseOrderId: '123e4567-e89b-12d3-a456-426614174000',
+          items: [{ productId: 'prod-1', quantity: 10 }],
+          notes: 'GR-001',
         });
       expect(response.status).toBe(201);
     });

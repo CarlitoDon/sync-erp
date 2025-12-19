@@ -73,8 +73,7 @@ describe('T003: Verify Purchase Order Cycle (FR-009)', () => {
 
       expect(mockRepo.updateStatus).toHaveBeenCalledWith(
         orderId,
-        OrderStatus.CONFIRMED,
-        undefined
+        OrderStatus.CONFIRMED
       );
     });
 

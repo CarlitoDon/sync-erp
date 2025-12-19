@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InventoryService } from '../../../../src/modules/inventory/inventory.service';
-import { prisma } from '@sync-erp/database';
 
 // Automock prisma
 vi.mock('@sync-erp/database', async () => {
@@ -24,12 +23,14 @@ describe('T017: Stock Return (Cost Accuracy)', () => {
   let service: InventoryService;
   let mockProductService: any;
   let mockJournal: any;
+  let mockRepo: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
     service = new InventoryService();
     mockProductService = (service as any).productService;
     mockJournal = (service as any).journalService;
+    mockRepo = (service as any).repository;
   });
 
   const companyId = 'co-1';
@@ -37,8 +38,8 @@ describe('T017: Stock Return (Cost Accuracy)', () => {
   const productId = 'prod-1';
 
   it('should save cost during shipment', async () => {
-    // Setup Order
-    vi.mocked(prisma.order.findFirst).mockResolvedValue({
+    // Mock repository.findOrderWithItems (used by InventoryService.processShipment)
+    mockRepo.findOrderWithItems.mockResolvedValue({
       id: orderId,
       companyId,
       orderNumber: 'SO-1',
@@ -49,21 +50,25 @@ describe('T017: Stock Return (Cost Accuracy)', () => {
     mockProductService.checkStock.mockResolvedValue(true);
     mockProductService.getById.mockResolvedValue({
       id: productId,
+      name: 'Product 1',
+      stockQty: 100,
       averageCost: 50,
     });
+    mockProductService.decreaseStock.mockResolvedValue({});
 
     await service.processShipment(companyId, orderId);
 
     // Verify Cost Snapshot
-    expect(prisma.orderItem.update).toHaveBeenCalledWith({
-      where: { id: 'item-1' },
-      data: { cost: 50 },
-    });
+    expect(mockRepo.updateOrderItemCost).toHaveBeenCalledWith(
+      'item-1',
+      50,
+      undefined
+    );
   });
 
   it('should use snapshot cost for return', async () => {
-    // Setup Order with Snapshot Cost = 50
-    vi.mocked(prisma.order.findFirst).mockResolvedValue({
+    // Mock repository.findOrderWithItems (used by InventoryService.processReturn)
+    mockRepo.findOrderWithItems.mockResolvedValue({
       id: orderId,
       companyId,
       orderNumber: 'SO-1',
@@ -98,8 +103,8 @@ describe('T017: Stock Return (Cost Accuracy)', () => {
   });
 
   it('should fallback to current cost if snapshot is missing', async () => {
-    // Setup Order WITHOUT Snapshot Cost
-    vi.mocked(prisma.order.findFirst).mockResolvedValue({
+    // Mock repository.findOrderWithItems
+    mockRepo.findOrderWithItems.mockResolvedValue({
       id: orderId,
       companyId,
       orderNumber: 'SO-1',

@@ -69,6 +69,7 @@ export const mockInventoryRepository = {
   createMovement: vi.fn(),
   findMovements: vi.fn(),
   findById: vi.fn(),
+  countByReferencePatterns: vi.fn().mockResolvedValue(1), // Default: GRN exists
 };
 
 // ==================== Sales Repository ====================

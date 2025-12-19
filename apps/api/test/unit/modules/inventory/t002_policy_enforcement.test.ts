@@ -41,17 +41,21 @@ describe('T002: Enforce Rules & Policies (FR-005)', () => {
     const shape = BusinessShape.RETAIL;
 
     it('shoud throw DomainError if stock is insufficient (Negative Stock Prevention)', async () => {
-      // Mock order found
-      vi.mocked(prisma.order.findFirst).mockResolvedValue({
+      // Get access to repository mock
+      const mockRepo = (service as any).repository;
+
+      // Mock repository.findOrderWithItems (used by InventoryService.processShipment)
+      mockRepo.findOrderWithItems.mockResolvedValue({
         id: orderId,
         companyId,
         orderNumber: 'SO-001',
-        items: [{ productId: 'prod-A', quantity: 10 }],
+        items: [{ id: 'item-1', productId: 'prod-A', quantity: 10 }],
       } as any);
 
       // Mock Product found
       mockProductService.getById.mockResolvedValue({
         id: 'prod-A',
+        name: 'Product A',
         stockQty: 0,
       });
 
