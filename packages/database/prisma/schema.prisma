@@ -37,6 +37,9 @@ model Company {
   categories      ProductCategory[]
   idempotencyKeys IdempotencyKey[]
   sagaLogs        SagaLog[]
+  auditLogs       AuditLog[]
+  goodsReceipts   GoodsReceipt[]
+  shipments       Shipment[]
 }
 
 model User {
@@ -112,11 +115,13 @@ model Product {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  company     Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  category    ProductCategory?    @relation(fields: [categoryId], references: [id])
-  orderItems  OrderItem[]
-  movements   InventoryMovement[]
-  stockLayers StockLayer[]
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category          ProductCategory?    @relation(fields: [categoryId], references: [id])
+  orderItems        OrderItem[]
+  movements         InventoryMovement[]
+  stockLayers       StockLayer[]
+  goodsReceiptItems GoodsReceiptItem[]
+  shipmentItems     ShipmentItem[]
 
   @@unique([companyId, sku])
   @@index([companyId])
@@ -140,10 +145,12 @@ model Order {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  company  Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  partner  Partner     @relation(fields: [partnerId], references: [id])
-  items    OrderItem[]
-  invoices Invoice[]
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  partner       Partner        @relation(fields: [partnerId], references: [id])
+  items         OrderItem[]
+  invoices      Invoice[]
+  goodsReceipts GoodsReceipt[]
+  shipments     Shipment[]
 
   @@index([companyId])
   @@index([companyId, type])
@@ -160,6 +167,9 @@ model OrderItem {
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
+
+  goodsReceiptItems GoodsReceiptItem[]
+  shipmentItems     ShipmentItem[]
 
   @@index([orderId])
 }
@@ -225,13 +235,13 @@ model Invoice {
 }
 
 model Payment {
-  id        String   @id @default(uuid())
+  id        String        @id @default(uuid())
   companyId String
   invoiceId String
-  amount    Decimal  @db.Decimal(15, 2)
-  date      DateTime @default(now())
-  method    String
-  createdAt DateTime @default(now())
+  amount    Decimal       @db.Decimal(15, 2)
+  date      DateTime      @default(now())
+  method    PaymentMethod
+  createdAt DateTime      @default(now())
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   invoice Invoice @relation(fields: [invoiceId], references: [id])
@@ -385,6 +395,14 @@ enum InvoiceStatus {
   VOID
 }
 
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CREDIT_CARD
+  CHECK
+  OTHER
+}
+
 // ============================================
 // Apple-Like Core Enums
 // ============================================
@@ -517,20 +535,60 @@ enum IdempotencyStatus {
 // ============================================
 
 model SagaLog {
-  id        String   @id @default(uuid())
-  sagaType  SagaType
-  entityId  String
-  companyId String
-  step      SagaStep
-  stepData  Json?
-  error     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  sagaType      SagaType
+  entityId      String
+  companyId     String
+  step          SagaStep
+  stepData      Json?
+  error         String?
+  correlationId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([entityId])
   @@index([companyId, sagaType, step])
+  @@index([correlationId])
+}
+
+model AuditLog {
+  id              String         @id @default(uuid())
+  companyId       String
+  actorId         String
+  action          AuditLogAction
+  entityType      EntityType
+  entityId        String
+  businessDate    DateTime
+  payloadSnapshot Json?
+  correlationId   String?
+  createdAt       DateTime       @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, action])
+  @@index([entityId])
+  @@index([businessDate])
+  @@index([correlationId])
+}
+
+enum AuditLogAction {
+  INVOICE_POSTED
+  BILL_POSTED
+  PAYMENT_RECORDED
+  ORDER_CONFIRMED
+  GOODS_RECEIVED
+  SHIPMENT_CREATED
+}
+
+enum EntityType {
+  INVOICE
+  BILL
+  PAYMENT
+  ORDER
+  SHIPMENT
+  GOODS_RECEIPT
 }
 
 enum SagaType {
@@ -552,4 +610,71 @@ enum SagaStep {
   COMPLETED
   FAILED
   COMPENSATION_FAILED
+}
+
+// ============================================
+// Features: 034-grn-fullstack (Inventory P2P/O2C)
+// ============================================
+
+model GoodsReceipt {
+  id              String   @id @default(uuid())
+  companyId       String
+  purchaseOrderId String
+  number          String
+  date            DateTime
+  status          String   @default("DRAFT") // DRAFT, POSTED, VOID
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company       Company            @relation(fields: [companyId], references: [id])
+  purchaseOrder Order              @relation(fields: [purchaseOrderId], references: [id])
+  items         GoodsReceiptItem[]
+
+  @@index([companyId])
+  @@index([purchaseOrderId])
+}
+
+model GoodsReceiptItem {
+  id                  String  @id @default(uuid())
+  goodsReceiptId      String
+  productId           String
+  quantity            Decimal @db.Decimal(10, 2)
+  purchaseOrderItemId String
+
+  goodsReceipt      GoodsReceipt @relation(fields: [goodsReceiptId], references: [id])
+  product           Product      @relation(fields: [productId], references: [id])
+  purchaseOrderItem OrderItem    @relation(fields: [purchaseOrderItemId], references: [id])
+}
+
+model Shipment {
+  id           String   @id @default(uuid())
+  companyId    String
+  salesOrderId String
+  number       String
+  date         DateTime
+  status       String   @default("DRAFT") // DRAFT, POSTED, VOID
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company    Company        @relation(fields: [companyId], references: [id])
+  salesOrder Order          @relation(fields: [salesOrderId], references: [id])
+  items      ShipmentItem[]
+
+  @@index([companyId])
+  @@index([salesOrderId])
+}
+
+model ShipmentItem {
+  id               String   @id @default(uuid())
+  shipmentId       String
+  productId        String
+  quantity         Decimal  @db.Decimal(10, 2)
+  salesOrderItemId String
+  costSnapshot     Decimal? @db.Decimal(15, 2) // COGS snapshot
+
+  shipment       Shipment  @relation(fields: [shipmentId], references: [id])
+  product        Product   @relation(fields: [productId], references: [id])
+  salesOrderItem OrderItem @relation(fields: [salesOrderItemId], references: [id])
 }

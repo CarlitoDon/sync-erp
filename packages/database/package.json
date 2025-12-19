@@ -26,7 +26,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "db:test": "tsx scripts/test-database.ts"
+    "db:test": "tsx scripts/test-database.ts",
+    "db:reset": "prisma migrate reset --force"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.1.0",

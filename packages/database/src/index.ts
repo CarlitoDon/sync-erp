@@ -21,6 +21,7 @@ export type {
   Session,
   Account,
   SagaLog,
+  AuditLog,
 } from './generated/client/client.js';
 
 // Re-export enums as values (not just types)
@@ -39,6 +40,9 @@ export {
   SagaType,
   SagaStep,
   JournalSourceType,
+  AuditLogAction,
+  EntityType,
+  PaymentMethod,
 } from './generated/client/client.js';
 
 export { Prisma } from './generated/client/client.js';

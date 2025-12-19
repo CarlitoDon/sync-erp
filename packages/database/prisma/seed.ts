@@ -195,12 +195,22 @@ async function main() {
 
     // ==========================================
     // 1. Seed Chart of Accounts
+    // JournalService expects these specific codes:
+    // Assets: 1100 Cash, 1200 Bank, 1300 AR, 1400 Inventory, 1500 VAT Receivable
+    // Liabilities: 2100 AP, 2105 GRNI Accrual, 2300 VAT Payable
+    // Revenue: 4100 Sales Revenue
+    // Expenses: 5000 COGS, 5200 Inventory Adjustment
     // ==========================================
     console.warn('📊 Seeding Chart of Accounts...');
     const ACCOUNTS = [
-      // Assets
+      // Assets (1xxx)
       { code: '1100', name: 'Cash on Hand', type: 'ASSET' as const },
       { code: '1200', name: 'Bank Account', type: 'ASSET' as const },
+      {
+        code: '1210',
+        name: 'Goods in Transit',
+        type: 'ASSET' as const,
+      },
       {
         code: '1300',
         name: 'Accounts Receivable',
@@ -212,17 +222,17 @@ async function main() {
         type: 'ASSET' as const,
       },
       {
-        code: '1210',
-        name: 'Goods in Transit',
-        type: 'ASSET' as const,
-      }, // Added
-      {
         code: '1500',
+        name: 'VAT Receivable (Input)',
+        type: 'ASSET' as const,
+      }, // JournalService expects this
+      {
+        code: '1600',
         name: 'Office Equipment',
         type: 'ASSET' as const,
       },
 
-      // Liabilities
+      // Liabilities (2xxx)
       {
         code: '2100',
         name: 'Accounts Payable',
@@ -230,7 +240,7 @@ async function main() {
       },
       {
         code: '2105',
-        name: 'Accrued Liability (GRN)',
+        name: 'Accrued Liability (GRNI)',
         type: 'LIABILITY' as const,
       },
       {
@@ -238,8 +248,13 @@ async function main() {
         name: 'Sales Tax Payable',
         type: 'LIABILITY' as const,
       },
+      {
+        code: '2300',
+        name: 'VAT Payable (Output)',
+        type: 'LIABILITY' as const,
+      }, // JournalService expects this
 
-      // Equity
+      // Equity (3xxx)
       {
         code: '3100',
         name: "Owner's Capital",
@@ -251,29 +266,29 @@ async function main() {
         type: 'EQUITY' as const,
       },
 
-      // Revenue
+      // Revenue (4xxx)
       {
         code: '4100',
         name: 'Sales Revenue',
         type: 'REVENUE' as const,
-      },
+      }, // JournalService expects this
       {
         code: '4200',
         name: 'Service Income',
         type: 'REVENUE' as const,
       },
 
-      // Expenses
+      // Expenses (5xxx, 6xxx)
       {
-        code: '5100',
+        code: '5000',
         name: 'Cost of Goods Sold',
         type: 'EXPENSE' as const,
-      },
+      }, // JournalService expects this
       {
         code: '5200',
         name: 'Inventory Adjustment',
         type: 'EXPENSE' as const,
-      }, // Added
+      },
       {
         code: '6100',
         name: 'Rent Expense',
