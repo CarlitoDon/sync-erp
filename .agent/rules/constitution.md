@@ -1,32 +1,62 @@
----
-trigger: model_decision
----
-
 <!--
 SYNC IMPACT REPORT
-Version: 2.5.0 -> 2.5.1 (PATCH - Expanded Dumb Repository Guidance)
+Version: 3.0.0 -> 3.1.0 (MINOR - Consolidated duplicate principles)
 Modified Principles:
-- III-A. Dumb Controller / Dumb Repository (Expanded with code examples, anti-patterns, Apple framing)
+- Merged F-1 into III (Layer Architecture)
+- Merged II + VII into single "Type System & Contracts"
+- Merged XXII into IX (Performance by Design)
+- Merged F-3 into I (Architecture)
 Added Sections:
-- None (expansion of existing)
-Removed Sections:
 - None
+Removed Sections:
+- F-1. Separation of Concerns (merged into III)
+- II. Shared Type Contracts (merged into new section)
+- VII. Schema-First Development (merged into new section)
+- XXII. Preventing N+1 (merged into IX)
 Templates requiring updates:
-- plan-template.md ✅ (already has III-A check)
-- spec-template.md ✅ (no changes needed)
-- tasks-template.md ✅ (no changes needed)
+- plan-template.md ✅ (principle numbers updated)
+- spec-template.md ✅ (no structural changes needed)
+- tasks-template.md ✅ (no structural changes needed)
 Follow-up TODOs:
-- Update instructions.md with expanded Dumb Repository examples
-Last Updated: 2025-12-18
+- Update plan-template.md Constitution Check references
+Last Updated: 2025-12-19
 -->
 
 # Sync ERP Constitution
 
 > "Simplicity is the ultimate sophistication."
 
-## Core Principles (22 Total)
+**Version**: 3.1.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-19
 
 ---
+
+## Definisi Istilah
+
+| Istilah            | Definisi                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------- |
+| **Controller**     | Lapisan HTTP boundary yang menerima request dan mengembalikan response. Tidak mengandung logika bisnis. |
+| **Service**        | Unit orchestration yang mengkoordinasi Policy, Rules, dan Repository. Mengandung "why" dari operasi.    |
+| **Repository**     | Lapisan akses data yang hanya tahu "how" berbicara ke database. Tidak mengandung logika bisnis.         |
+| **Policy**         | Komponen yang menentukan "can this run?" berdasarkan business shape constraints.                        |
+| **Rules**          | Pure business logic yang stateless dan testable.                                                        |
+| **Saga**           | Serangkaian operasi transaksional dengan compensation logic.                                            |
+| **State Machine**  | Alur status dokumen yang rigid dan tidak dapat dilanggar.                                               |
+| **Business Shape** | Konfigurasi bisnis (contoh: TRADING vs SERVICE) yang mendikte semua logika downstream.                  |
+
+---
+
+## Fundamental Principles (Immutable)
+
+### F-1. Single Source of Truth
+
+1. Prisma schema **HARUS** menjadi sumber utama tipe data.
+2. Types **HARUS** didefinisikan di `packages/shared`.
+3. Frontend **DILARANG** mendefinisikan manual interface untuk API types.
+4. Setiap API field baru **HARUS** ditambahkan ke Zod schema terlebih dahulu.
+
+---
+
+## Architectural Laws (Tidak Boleh Dilanggar)
 
 ### Part A: Technical Architecture
 
@@ -38,49 +68,85 @@ apps/web ─HTTP→ apps/api ─Repository→ packages/database
 packages/shared ←── packages/shared ←── (Prisma types)
 ```
 
-- **Frontend ↔ Backend**: `apps/web` MUST interact with `apps/api` via HTTP/REST only.
-- **Database Access**: ONLY `packages/database` imports Prisma. Backend uses Repository pattern.
-- **Dependency Direction**: `apps/` → `packages/shared` → `packages/database`. No cycles.
-- **Workspace Links**: Use `workspace:*` protocol for internal dependencies.
+**Dependency Rules:**
 
-### II. Shared Type Contracts
+1. Frontend **HARUS** berinteraksi dengan Backend via HTTP/REST only.
+2. Hanya `packages/database` yang **BOLEH** mengimport Prisma.
+3. Dependency direction **HARUS** mengikuti: `apps/` → `packages/shared` → `packages/database`.
+4. Circular dependencies **DILARANG**.
+5. Internal dependencies **HARUS** menggunakan `workspace:*` protocol.
 
-- **Single Source**: Types flow from Prisma → `packages/shared` → both apps.
-- **Runtime Validation**: DTOs in `packages/shared/types` use Zod schemas.
-- **Export All**: Validators MUST be re-exported from `packages/shared/src/validators/index.ts`.
-- **Type Inference**: Use `z.infer<typeof Schema>` instead of manual interface definitions.
+**Multi-Tenant Isolation:**
 
-### III. Layered Backend (Route → Controller → Service → Policy → Repository)
+6. Semua query **HARUS** di-scope dengan `companyId`.
+7. `companyId` **HARUS** diperoleh dari header `X-Company-Id`.
+8. Cross-company data access **DILARANG** dalam kondisi apapun.
 
-| Layer          | Location                      | Responsibility                                                            | Can Import                |
-| :------------- | :---------------------------- | :------------------------------------------------------------------------ | :------------------------ |
-| **Route**      | `src/routes/*.ts`             | **Dump Adapter**: Maps URL → Controller. No Logic.                        | Controller, Middleware    |
-| **Controller** | `src/modules/*/controller.ts` | **HTTP Boundary**: Req/Res, Validation. No Business Logic.                | Service                   |
-| **Service**    | `src/modules/*/service.ts`    | **Orchestrator**: The "Why". Combines Rules + Repo.                       | Policy, Rules, Repository |
-| **Rules**      | `src/modules/*/rules/*.ts`    | **Pure Business Logic**: Stateless, Integration Testable (Unit optional). | None (Pure)               |
-| **Policy**     | `src/modules/*/policy.ts`     | **Shape Constraints**: "Can this run?"                                    | Shared Constants          |
-| **Repository** | `src/modules/*/repository.ts` | **Data Access**: Query, Transaction. No Rules.                            | `packages/database`       |
+### II. Type System & Contracts
 
-### III-A. Dumb Controller / Dumb Repository Principle
+**Single Source of Truth:**
 
-> **Repository knows _how_ to talk to the database, not _why_ a write is allowed.**
+1. Runtime validation **HARUS** menggunakan Zod schemas di `packages/shared/types`.
+2. Semua validators **HARUS** di-re-export dari `packages/shared/src/validators/index.ts`.
+3. Type inference **HARUS** menggunakan `z.infer<typeof Schema>`.
+4. Manual interface definitions untuk API types **DILARANG**.
 
-**Layer Responsibility Map**:
+**Schema-First Workflow (HARUS diikuti untuk API field baru):**
 
-| Layer      | Knows about                         | Must NOT know about                          |
-| ---------- | ----------------------------------- | -------------------------------------------- |
-| Controller | HTTP, auth, DTO                     | Business rules                               |
-| Service    | Use case, state rules, policy, saga | SQL, table shape                             |
-| Repository | Persistence, queries, locks         | State machine, policy, saga, business intent |
-| Policy     | Business constraints                | DB, transactions                             |
+```text
+1. Schema First  → Tambah field ke packages/shared/src/validators/*.ts
+2. Export Type   → export type Input = z.infer<typeof Schema>
+3. Frontend      → Import type dari @sync-erp/shared
+4. Backend       → Service menerima validated data
+5. Rebuild       → cd packages/shared && npm run build
+```
 
-Repository sits **below** business intent.
+**Rules:**
 
-#### What "Dumb Repository" Actually Means
+5. API field baru **HARUS** ada di Zod schema sebelum frontend/backend code.
+6. Frontend types **HARUS** menggunakan `z.infer<typeof Schema>` dari shared.
+7. Schema rebuild **HARUS** dilakukan setelah setiap perubahan schema.
 
-It does **not** mean CRUD-only. It means **no branching based on business meaning**.
+### III. Layered Backend Architecture
 
-**Repository MAY do**:
+| Layer          | Location                        | Responsibility            | Can Import                |
+| :------------- | :------------------------------ | :------------------------ | :------------------------ |
+| **Route**      | `src/routes/*.ts`               | URL → Controller mapping  | Controller, Middleware    |
+| **Controller** | `src/modules/*/*.controller.ts` | HTTP Boundary, Validation | Service only              |
+| **Service**    | `src/modules/*/*.service.ts`    | Orchestration ("Why")     | Policy, Rules, Repository |
+| **Rules**      | `src/modules/*/*.rules/*.ts`    | Pure Business Logic       | None (Pure)               |
+| **Policy**     | `src/modules/*/*.policy.ts`     | Shape Constraints         | Shared Constants only     |
+| **Repository** | `src/modules/*/*.repository.ts` | Data Access               | `packages/database` only  |
+
+**Separation of Concerns (Aturan Layer):**
+
+1. Setiap layer **HARUS** memiliki tanggung jawab tunggal.
+2. Route **DILARANG** mengandung logic apapun selain mapping URL ke Controller.
+3. Controller **HARUS** hanya memanggil Service.
+4. Controller **DILARANG** memanggil Repository secara langsung.
+5. Controller **DILARANG** mengandung business logic.
+6. Service **HARUS** menjadi satu-satunya tempat orchestration.
+7. Service **HARUS** memeriksa Policy sebelum melakukan Action.
+8. Policy **DILARANG** mengakses database.
+9. Policy **DILARANG** bergantung pada persistence.
+10. Repository **DILARANG** mengandung business logic.
+11. Repository **DILARANG** mengatur transaction boundary.
+12. Repository **DILARANG** melakukan validasi bisnis.
+
+### III-A. Dumb Controller / Dumb Repository
+
+> Repository knows _how_ to talk to the database, not _why_ a write is allowed.
+
+**Layer Knowledge Matrix:**
+
+| Layer      | Knows About                         | MUST NOT Know About         |
+| ---------- | ----------------------------------- | --------------------------- |
+| Controller | HTTP, auth, DTO                     | Business rules              |
+| Service    | Use case, state rules, policy, saga | SQL, table shape            |
+| Repository | Persistence, queries, locks         | State machine, policy, saga |
+| Policy     | Business constraints                | DB, transactions            |
+
+**Repository BOLEH melakukan:**
 
 - SQL shape optimization
 - Atomic guards (`balance: { gte: amount }`)
@@ -89,226 +155,86 @@ It does **not** mean CRUD-only. It means **no branching based on business meanin
 - Aggregate-safe updates
 - Transaction client support (`tx?: Prisma.TransactionClient`)
 
-**Correct Example** (Technical Integrity, not Business Logic):
+**Repository DILARANG melakukan:**
 
-```typescript
-decreaseBalanceWithGuard(
-  invoiceId: string,
-  amount: number,
-  tx?: Prisma.TransactionClient
-) {
-  return (tx || prisma).invoice.update({
-    where: {
-      id: invoiceId,
-      balance: { gte: amount }  // Atomic guard - technical integrity
-    },
-    data: {
-      balance: { decrement: amount }
-    }
-  });
-}
-```
+1. State logic: `if (invoice.status !== 'POSTED') throw new Error(...)`
+2. Policy checks: `if (company.shape === 'SERVICE') throw new Error(...)`
+3. Intent branching: `if (paymentType === 'REFUND') { ... } else { ... }`
+4. Saga orchestration: `try { updateInvoice(); createJournal(); } catch { compensate(); }`
 
-#### Repository MUST NOT Do
+**Mental Test:**
 
-**❌ State Logic**:
+> Jika logic ini dipindah dari Prisma ke raw SQL, apakah masih masuk akal di Repository?
+>
+> - **Ya** → **BOLEH** di Repository
+> - **Tidak** → **HARUS** di Service atau Policy
 
-```typescript
-if (invoice.status !== 'POSTED') throw new Error('...');
-```
+### IV. Frontend Architecture
 
-**❌ Policy Checks**:
-
-```typescript
-if (company.shape === 'SERVICE') throw new Error('...');
-```
-
-**❌ Intent Branching**:
-
-```typescript
-if (paymentType === 'REFUND') { ... } else { ... }
-```
-
-**❌ Saga Orchestration**:
-
-```typescript
-try {
-  updateInvoice();
-  createJournal();
-} catch {
-  compensate();
-}
-```
-
-The moment repository starts asking "should I do this?", the boundary is lost.
-
-#### Controller vs Repository Comparison
-
-| Aspect                    | Controller | Repository |
-| ------------------------- | ---------- | ---------- |
-| Owns business rules       | ❌         | ❌         |
-| Owns data shape           | ❌         | ✅         |
-| Knows HTTP                | ✅         | ❌         |
-| Knows DB                  | ❌         | ✅         |
-| Can enforce atomic guards | ❌         | ✅         |
-
-**Controller is dumb about domain.**
-**Repository is dumb about intent.**
-
-#### Common Mistakes to Avoid
-
-**Mistake 1: "Just one small check"**
-
-```typescript
-if (invoice.status === 'PAID') throw new Error('...');
-```
-
-This spreads domain rules everywhere. Later you will miss one path.
-
-**Mistake 2: "Helper logic"**
-
-```typescript
-createPaymentAndUpdateInvoice(); // Repository as service in disguise
-```
-
-**Mistake 3: Policy leaking downward**
-
-```typescript
-if (!policy.canPay(invoice)) return null;
-```
-
-Policy must never depend on persistence.
-
-#### Mental Test
-
-Before adding logic to repository, ask:
-
-> "If tomorrow I move from Prisma to raw SQL, would this logic still make sense here?"
-
-- **Yes** → It may belong in Repository
-- **No** → It belongs in Service or Policy
-
-#### Apple-Like Framing
-
-> Repositories are **mechanics**, not **judges**.
-> They ensure the engine doesn't explode.
-> They never decide where the car is allowed to go.
-
-### IV. Multi-Tenant Isolation
-
-- ALL queries MUST scope by `companyId` via `X-Company-Id` header.
-- NO cross-company data access allowed.
-
-### V. Frontend Architecture & Patterns
-
-**Structure**:
+**Directory Structure:**
 
 - `src/features/[domain]/` - Business logic (components, hooks, services, types)
-- `src/components/ui/` - Generic UI atoms only (NO business logic)
+- `src/components/ui/` - Generic UI atoms only
 
-**Refined Rules**:
+**Rules:**
 
-- **No Local Logic**: Frontend components MUST NOT calculate derived business state.
-- **State Projection**: UI purely renders the `backendState` and reacts to `HTTP 200/400`.
+1. Frontend components **DILARANG** menghitung derived business state.
+2. UI **HARUS** murni merender `backendState`.
+3. Error handling **HARUS** melalui Axios interceptor.
+4. Per-page try-catch **DILARANG**.
+5. Success feedback **HARUS** menggunakan `apiAction()` helper.
+6. Direct `toast()` calls **DILARANG**.
+7. Confirmation dialogs **HARUS** menggunakan `useConfirm()` hook.
+8. `window.confirm()` **DILARANG**.
 
-**Mandatory Patterns**:
-| Pattern | Implementation | Forbidden |
-|---------|----------------|-----------|
-| State Projection | UI renders usage of `backendState` | Local complex conditionals |
-| Error handling | Axios interceptor | Per-page try-catch |
-| Success feedback | `apiAction()` helper | Direct `toast()` |
-| Confirmation | `useConfirm()` hook | `window.confirm()` |
-| Loading states | Hook returns `loading` | Manual flags |
+### V. Callback-Safe Services
 
-### VI. Systematic Refactoring
-
-1. **Search First**: `grep -r "pattern" apps/ --include="*.tsx"`
-2. **Update All**: Change ALL occurrences in single commit
-3. **Verify Zero**: Search again to confirm no remaining instances
-4. **Commit Often**: One commit per feature, not per session
-
-### VII. Callback-Safe Services
-
-Frontend services MUST use standalone functions, NOT object methods with `this`:
+1. Frontend services **HARUS** menggunakan standalone functions.
+2. Object methods dengan `this` context **DILARANG**.
 
 ```typescript
-// ✅ Correct                    // ❌ Wrong
-export const svc = { getData };   export const svc = {
-async function getData() {...}      async getData() { this.x }  // 'this' lost!
-                                  }
+// ✅ BENAR
+export const svc = { getData };
+async function getData() {...}
+
+// ❌ SALAH
+export const svc = {
+  async getData() { this.x }  // 'this' akan hilang!
+}
 ```
 
-### VIII. Build Verification
+### VI. Build Verification
 
-Before marking ANY task complete:
+Sebelum menandai task sebagai complete:
 
-```bash
-npx tsc --noEmit              # TypeScript check (source of truth)
-npm run build                 # Full build (before merge)
-# If packages/shared modified: cd packages/shared && npm run build
-```
+1. **HARUS** menjalankan `npx tsc --noEmit` (zero errors).
+2. **HARUS** menjalankan `npm run build` (sebelum merge).
+3. Jika `packages/shared` dimodifikasi, **HARUS** rebuild: `cd packages/shared && npm run build`.
+4. **HARUS** memeriksa `typecheck:watch` terminal jika sedang berjalan.
 
-Check `typecheck:watch` terminal if running. IDE errors may be stale.
+### VII. Modular Parity (Symmetry)
 
-### IX. Schema-First Development
+1. Domain yang berhubungan (Sales ↔ Procurement) **HARUS** mengimplementasi fitur equivalent.
+2. Naming patterns **HARUS** identik across related domains.
+3. UI layouts **HARUS** konsisten untuk operasi serupa.
 
-**Problem Prevented**: Zod strips unknown fields silently.
+### VIII. Performance by Design
 
-**Workflow** (MUST follow for new API fields):
+**Preventing N+1:**
 
-```text
-1. Schema First  → Add field to packages/shared/src/validators/*.ts
-2. Export Type   → export type Input = z.infer<typeof Schema>
-3. Frontend      → Import type from @sync-erp/shared, NOT manual interface
-4. Backend       → Service receives validated data with all fields
-5. Rebuild       → cd packages/shared && npm run build
-```
+1. Repositories **HARUS** mendukung eager loading (`include` atau joins).
+2. Frontend **DILARANG** fetch individual related records dalam loop.
+3. Missing 1:1 relations yang trigger error toasts **HARUS** dihindari.
+4. Patterns yang menyebabkan 404 error toasts untuk missing relations **DILARANG**.
 
-**Rules**:
-| Rule | Enforcement |
-|------|-------------|
-| New API field | MUST exist in Zod schema BEFORE frontend/backend code |
-| Frontend types | MUST use `z.infer<typeof Schema>` from shared |
-| Manual interfaces | FORBIDDEN for API request/response types |
-| Schema rebuild | REQUIRED after any schema change |
+### IX. The Apple-Like Standard
 
-**Example** (Correct):
+1. Business Shape **HARUS** mendikte semua downstream logic.
+2. Core system **HARUS** driven by explicit rigid state machines.
+3. Technical questions ke user **DILARANG**.
+4. Configuration tables **HARUS** tersembunyi dari user interface.
 
-```typescript
-// packages/shared/src/validators/index.ts
-export const CreateOrderSchema = z.object({
-  partnerId: z.string().uuid(),
-  items: z.array(OrderItemSchema),
-  taxRate: z.number().optional(),  // ← Schema first!
-});
-export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
-
-// apps/web - uses shared type
-import { CreateOrderInput } from '@sync-erp/shared';
-const [form, setForm] = useState<CreateOrderInput>({...});
-```
-
-**Rationale**: Prevents silent data loss from Zod stripping unknown fields.
-
-### X. Modular Parity (Symmetry)
-
-- **Mirror Implementation**: Related domains (e.g., Sales ↔ Procurement) MUST implement equivalent features.
-- **Cognitive Consistency**: Use identical naming patterns and UI layouts.
-
-### XI. Performance by Design (Preventing N+1)
-
-- **Backend Optimization**: Repositories MUST support eager loading (`include` or joins).
-- **Forbidden**: Frontend MUST NOT fetch individual related records inside a loop.
-- **404 Handling**: Avoid patterns where missing 1:1 relations trigger error toasts.
-
-### XII. The Apple-Like Standard (Core Tenets)
-
-- **Decision Lives Once**: The "Business Shape" dictates all downstream logic.
-- **State > CRUD**: The core system is driven by explicit rigid state machines.
-- **Invisible Complexity**: Never ask the user a technical question.
-- **No Knobs**: Configuration tables exist but are hidden from the user interface.
-
-### XIII. The Data Flow Standard (Single Direction of Truth)
+### X. Single Direction of Truth
 
 ```text
 UI → API → Controller → Service → Rules/Policy → Repository → DB
@@ -316,149 +242,129 @@ UI → API → Controller → Service → Rules/Policy → Repository → DB
 └──────────────────────── (Response) ─────────────────────────┘
 ```
 
-1.  **Frontend Never "Key"**: Frontend is a read-only projection.
-2.  **Backend Always Wins**: All decisions happen in Service/Rules.
-3.  **Feature = Service + Rule**: Not controller or route.
-4.  **Onboarding is Config**: Toggles flags, not logic.
+1. Frontend **DILARANG** menjadi "key" atau source of truth.
+2. Semua keputusan **HARUS** terjadi di Service/Rules.
+3. Feature = Service + Rule, bukan Controller atau Route.
+4. Onboarding adalah Config, bukan logic.
 
 ---
 
 ### Part B: Human Experience Philosophy
 
-### XIV. Human Interface & Design Philosophy
+### XI. Human Interface & Design
 
-Our primary goal is to create an application that feels **clear, intuitive, and effortless**.
+**Simplicity & Clarity:**
 
-**Simplicity & Clarity**:
+1. Non-essential features **HARUS** dipotong tanpa kompromi.
+2. User **DILARANG** bingung tentang "where am I?" atau "what do I do next?".
+3. Visual aesthetic **HARUS** clean dan minimalist.
+4. Designed lists **HARUS** digunakan, bukan generic tables.
 
-- **Essentialism**: Ruthlessly cut non-essential features and visual noise.
-- **Clear Navigation**: Users MUST never wonder "where am I?" or "what do I do next?".
-- **Visuals**: Adopt a clean, minimalist aesthetic. Prefer designed lists over generic tables.
+**Human-Centered Design:**
 
-**Human-Centered Design**:
+5. Aplikasi **HARUS** pleasing to use dan terasa stable.
+6. Complex ERP tasks **HARUS** dipecah menjadi linear, bite-sized steps (Wizards).
+7. Smart suggestions **HARUS** disediakan untuk mengantisipasi user needs.
 
-- **Emotional Connection**: The app MUST be pleasing to use ("delightful") and feel stable.
-- **Simplified Workflows**: Break complex ERP tasks into linear, bite-sized steps (Wizards).
-- **Assistance**: Anticipate user needs with smart suggestions.
+### XII. Privacy by Design
 
-### XV. Privacy by Design
+**Minimization & Transparency:**
 
-We treat user data with the same respect as Apple treats personal data.
+1. Permission untuk sensitive interactions **HARUS** diminta secara explicit.
+2. Alasan mengapa data dibutuhkan **HARUS** dijelaskan dengan jelas.
+3. Data processing di client side **HARUS** diprioritaskan jika memungkinkan.
 
-**Minimization & Transparency**:
+**Security:**
 
-- **Opt-In**: Explicitly ask for permission before accessing sensitive interactions.
-- **Transparency**: Clearly explain _why_ data is needed.
-- **Local Processing**: Where possible, process data on the client side.
+4. Role-Based Access Control (RBAC) **HARUS** diterapkan secara strict.
+5. Sensitive business data **HARUS** diperlakukan sebagai confidential.
 
-**Security**:
+### XIII. Engineering Excellence
 
-- **Access Control**: Strict Role-Based Access Control (RBAC).
-- **Encryption**: Sensitive business data MUST be treated as confidential.
+**Performance-First:**
 
-### XVI. Engineering Excellence
+1. UI **HARUS** tetap fluid (60fps).
+2. Interactions **HARUS** terasa instant.
+3. Heavy calculations **HARUS** di-background agar main thread tidak block.
+4. Optimistic UI updates **HARUS** digunakan untuk network requests.
 
-Apple-like software is not just about looks; it is about how it runs.
+**Architecture & Quality:**
 
-**Performance-First**:
+5. Code **HARUS** diorganisir dalam strict, decoupled modules.
+6. Automated pipelines **HARUS** memverifikasi setiap commit.
+7. Code **HARUS** clean, readable, dan standard-compliant.
 
-- **Responsiveness**: UI MUST remain fluid (60fps). Interactions MUST feel instant.
-- **Efficiency**: Background heavy calculations so the main thread never blocks.
-- **Instant Launch**: Use optimistic UI updates to make network requests feel instantaneous.
+### XIV. Development Standards (Non-Negotiables)
 
-**Architecture & Quality**:
-
-- **Modularity**: Code is organized into strict, decoupled modules.
-- **CI/CD**: "Test early, test often." Automated pipelines MUST verify every commit.
-- **Maintainability**: Code MUST be clean, readable, and standard-compliant.
-
-### XVII. Development Standards (The Non-Negotiables)
-
-1.  **Zero-Lag Rule**: No interaction MUST freeze the UI.
-2.  **Pixel Perfection**: Alignment, spacing, and typography MUST be consistent.
-3.  **Battery/Resource Minded**: Avoid unnecessary polling or heavy background scripts.
-4.  **Tests as Spec**: Every feature MUST have accompanying tests. **Integration Tests are MANDATORY** for business flows and cross-layer logic. Unit tests are encouraged only for isolated pure logic in `rules/` if beneficial.
+1. Interaksi apapun **DILARANG** membekukan UI (Zero-Lag Rule).
+2. Alignment, spacing, dan typography **HARUS** konsisten (Pixel Perfection).
+3. Unnecessary polling atau heavy background scripts **DILARANG** (Battery/Resource Minded).
+4. Setiap feature **HARUS** memiliki accompanying tests.
+5. Integration Tests **HARUS ADA** untuk business flows dan cross-layer logic.
+6. Unit tests **BOLEH** untuk isolated pure logic di `rules/` jika beneficial.
 
 ---
 
 ### Part C: Testing & Data Integrity
 
-### XVIII. Test Contract Compliance
+### XV. Test Contract Compliance
 
-**Principle**: Mock return values MUST satisfy all implicit contracts expected by consuming layers.
+1. Mock return values **HARUS** memenuhi semua implicit contracts yang diharapkan oleh consuming layers.
+2. Mock **HARUS** menyertakan semua fields yang di-check oleh Policy/Service.
+3. Semua repositories/services yang dipanggil **HARUS** di-mock.
+4. Jika Policy memeriksa status, mock **HARUS** mengembalikan status yang valid.
 
-**The Problem**:
+**Contoh SALAH:**
 
 ```typescript
-// ❌ Incomplete mock fails at Policy layer
+// ❌ Incomplete mock gagal di Policy layer
 mockRepo.findOrder.mockResolvedValue({ id, items: [] });
 // Error: "Order must be CONFIRMED" (Policy expects status field)
 ```
 
-**The Solution**:
+**Contoh BENAR:**
 
 ```typescript
-// ✅ Complete mock satisfies Policy requirements
+// ✅ Complete mock memenuhi Policy requirements
 mockRepo.findOrder.mockResolvedValue({
   id,
   items: [{ productId, quantity: 10, price: 100 }],
-  status: 'CONFIRMED', // Policy.ensureOrderConfirmed() needs this
+  status: 'CONFIRMED',
   partnerId: 'partner-1',
 });
 ```
 
-**Rules**:
-| Rule | Enforcement |
-|------|-------------|
-| Layer contracts | Mock MUST include all fields checked by Policy/Service |
-| Dependency mocks | Mock ALL repositories/services that the tested service calls |
-| State prerequisites | If Policy checks status, mock MUST return valid status |
+### XVI. Financial Precision (Decimal Handling)
 
-**Rationale**: Layered architecture means each layer has expectations from the layer below. Mocks that don't meet these expectations produce false test failures unrelated to the code being tested.
+1. Financial values **HARUS** menggunakan Decimal type.
+2. Konversi ke Number **BOLEH** hanya untuk comparisons dan assertions.
+3. Business calculations **HARUS** menggunakan `Decimal.js` library.
 
-### XIX. Financial Precision (Decimal Handling)
+| Context               | Use                           |
+| --------------------- | ----------------------------- |
+| Database fields       | Prisma `Decimal` type         |
+| Business calculations | `Decimal.js` library          |
+| Test assertions       | `Number(value)` wrapper       |
+| Display formatting    | `toFixed(2)` after conversion |
 
-**Principle**: Financial values MUST use Decimal type; convert to Number only for comparisons.
+### XVII. Integration Test as Tracked Tasks
 
-**The Problem**:
+1. Integration tests **HARUS** dilacak menggunakan status markers.
+2. Sequential business flows **HARUS** ditest dalam single test block.
+3. Flows **DILARANG** dipecah ke multiple `it()` blocks.
 
-```typescript
-// JavaScript floating point is imprecise
-0.1 + 0.2 === 0.3; // false! (0.30000000000000004)
+**Status Notation:**
 
-// Prisma Decimal is an object, not primitive
-expect(payment.amount).toBe(555000); // FAIL: Decimal !== number
-```
+| Marker | Status      | Meaning                        |
+| ------ | ----------- | ------------------------------ |
+| `[ ]`  | TODO        | Test not started               |
+| `[/]`  | In Progress | Test implementation ongoing    |
+| `[x]`  | Finished    | Test passing, reviewed, merged |
 
-**The Solution**:
-
-```typescript
-// ✅ Convert Decimal to Number for assertions
-expect(Number(payment.amount)).toBe(555000);
-expect(Number(invoice.balance)).toBeCloseTo(0, 2);
-
-// ✅ Use Decimal.js for calculations
-const total = Decimal(subtotal).add(tax);
-```
-
-**Rules**:
-| Context | Use |
-|---------|-----|
-| Database fields | Prisma `Decimal` type |
-| Business calculations | `Decimal.js` library |
-| Test assertions | `Number(value)` wrapper |
-| Display formatting | `toFixed(2)` after conversion |
-
-**Rationale**: IEEE 754 floating point cannot precisely represent all decimals. Financial systems require exact arithmetic (e.g., 0.1 + 0.2 = 0.3 exactly).
-
-### XX. Integration Test State Management
-
-**Principle**: Sequential business flows MUST be tested in a single test block, not split across multiple `it()` blocks.
-
-**The Problem**:
+**Contoh SALAH:**
 
 ```typescript
-// ❌ Variables don't persist across it() blocks
+// ❌ Variables tidak persist across it() blocks
 describe('Flow', () => {
   let orderId: string;
   it('Step 1', async () => {
@@ -470,106 +376,65 @@ describe('Flow', () => {
 });
 ```
 
-**The Solution**:
+**Contoh BENAR:**
 
 ```typescript
-// ✅ Single block for complete flow
+// ✅ Single block untuk complete flow
 it('Full P2P Flow: PO -> GRN -> Bill -> Post', async () => {
   const order = await createOrder();
   await confirmOrder(order.id);
   await processGRN(order.id);
-  const bill = await createBill(order.id); // orderId guaranteed
+  const bill = await createBill(order.id);
   await postBill(bill.id);
-  // All assertions here
 });
 ```
 
-**Rules**:
-| Scenario | Pattern |
-|----------|---------|
-| Independent operations | Separate `it()` blocks |
-| Sequential flow with shared state | Single `it()` block |
-| Setup data for multiple tests | `beforeAll()` + class variables |
+### XVIII. Schema is Source of Truth (Raw SQL)
 
-**Rationale**: Test frameworks run each `it()` in isolation by design. This ensures test independence but breaks state sharing. Sequential flows must be in one block.
+1. Raw SQL queries **HARUS** menggunakan column names persis seperti di Prisma schema.
+2. Table names **HARUS** menggunakan quoted PascalCase seperti di schema.
+3. `prisma.model.deleteMany()` **HARUS** diprioritaskan daripada raw SQL.
+4. Setiap `$executeRaw` **HARUS** di-double-check terhadap schema.
 
-### XXI. Schema is Source of Truth (Raw SQL Alignment)
-
-**Principle**: Raw SQL queries MUST use column names exactly as defined in Prisma schema.
-
-**The Problem**:
+**Contoh SALAH:**
 
 ```typescript
-// Prisma Schema
-model JournalLine {
-  journalId String  // ← actual column name
-}
-
-// ❌ Wrong column name in raw SQL
-prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "entryId" IN ...`
-// Error: ColumnNotFound
+// ❌ Wrong column name
+prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "entryId" IN ...`;
+// Error: ColumnNotFound (seharusnya "journalId")
 ```
 
-**The Solution**:
+**Contoh BENAR:**
 
 ```typescript
-// ✅ Always verify against schema
+// ✅ Column name sesuai schema
 prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN ...`;
 ```
 
-**Rules**:
-| Rule | Enforcement |
-|------|-------------|
-| Column names | MUST match Prisma schema exactly |
-| Table names | Use quoted PascalCase as defined in schema |
-| Prefer ORM | Use `prisma.model.deleteMany()` over raw SQL when possible |
-| Raw SQL review | Double-check schema before any `$executeRaw` |
+### XIX. Seed Data Completeness
 
-**Rationale**: ORM abstractions can be "leaky". When bypassing Prisma with raw SQL, you lose schema validation and must match database reality exactly.
+1. Seed files **HARUS** menyertakan semua data yang services harapkan ada saat runtime.
+2. Chart of Accounts **HARUS** lengkap di seed.
+3. System configs **HARUS** ada di base seed.
+4. Default roles **HARUS** ada di base seed.
 
-### XXII. Seed Data Completeness
+| Data Type         | Seed Location                      | Used By                      |
+| ----------------- | ---------------------------------- | ---------------------------- |
+| Chart of Accounts | `packages/database/prisma/seed.ts` | JournalService               |
+| System Configs    | Base seed                          | PolicyService, ConfigService |
+| Default Roles     | Base seed                          | AuthService                  |
+| Test fixtures     | `test/fixtures/`                   | Integration tests            |
 
-**Principle**: Seed files MUST include all data that services expect to exist at runtime.
+---
 
-**The Problem**:
+## Implementation Rules (Dapat Dievolusi)
 
-```typescript
-// JournalService.postInvoice expects these accounts:
-lines: [
-  { accountCode: '1300' }, // AR
-  { accountCode: '4100' }, // Revenue
-  { accountCode: '2300' }, // VAT Payable
-];
-// Error: "System Account code 4100 not found"
-```
+### XX. Systematic Refactoring
 
-**The Solution**:
-
-```typescript
-// Seed MUST include all expected accounts
-const ACCOUNTS = [
-  { code: '1100', name: 'Cash' },
-  { code: '1200', name: 'Bank' },
-  { code: '1300', name: 'AR' },
-  { code: '1400', name: 'Inventory' },
-  { code: '1500', name: 'VAT Receivable' },
-  { code: '2100', name: 'AP' },
-  { code: '2105', name: 'GRNI Accrual' },
-  { code: '2300', name: 'VAT Payable' },
-  { code: '4100', name: 'Revenue' },
-  { code: '5000', name: 'COGS' },
-];
-```
-
-**Rules**:
-| Data Type | Seed Location | Used By |
-|-----------|---------------|---------|
-| Chart of Accounts | `packages/database/prisma/seed.ts` | JournalService |
-| System Configs | Base seed | PolicyService, ConfigService |
-| Default Roles | Base seed | AuthService |
-| Test fixtures | `test/fixtures/` | Integration tests |
-
-**Rationale**: Services often have implicit dependencies on reference data (accounts, configs, roles). Missing seed data causes runtime errors that are hard to debug.
+1. Sebelum refactoring, **HARUS** search dulu: `grep -r "pattern" apps/ --include="*.tsx"`.
+2. Semua occurrences **HARUS** diubah dalam single commit.
+3. Setelah refactoring, **HARUS** verify zero remaining instances.
+4. Commit **HARUS** satu per feature, bukan per session.
 
 ---
 
@@ -582,18 +447,31 @@ sync-erp/
 │   └── api/src/                    # Express + TS (Orchestrator)
 │       ├── routes/                 # Dumb Adapters
 │       └── modules/[domain]/       # DOMAIN-FIRST STRUCTURE
-│           ├── controller.ts       # HTTP Boundary
-│           ├── service.ts          # Orchestrator
-│           ├── policy.ts           # Shape Constraints
-│           ├── rules/              # Pure Logic
-│           └── repository.ts       # Data Access
+│           ├── *.controller.ts     # HTTP Boundary
+│           ├── *.service.ts        # Orchestrator
+│           ├── *.policy.ts         # Shape Constraints
+│           ├── *.rules/*.ts        # Pure Logic
+│           └── *.repository.ts     # Data Access
 ```
+
+---
 
 ## Governance
 
-- **Authority**: This Constitution supersedes all other preferences.
-- **Amendments**: Require PR + team consensus.
-- **Compliance**: Code reviews MUST verify principle adherence.
-- **Tooling**: `npm` + `turbo` + `vite` (frontend) + `tsc` (backend).
+1. Constitution ini **HARUS** supersede semua preferensi lain.
+2. Amendments **HARUS** melalui PR + team consensus.
+3. Code reviews **HARUS** memverifikasi adherence terhadap principles.
+4. Tooling: `npm` + `turbo` + `vite` (frontend) + `tsc` (backend).
 
-**Version**: 2.5.1 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-18
+---
+
+## Tes Kualitas Konstitusi
+
+Sebelum aturan dianggap final, **HARUS** lolos tes ini:
+
+- [ ] Apakah bisa ditegakkan secara otomatis (lint, test, review)?
+- [ ] Apakah satu aturan bisa ditafsirkan dua cara?
+- [ ] Apakah kata normatifnya konsisten?
+- [ ] Apakah aturan ini punya pengecualian tersembunyi?
+
+Jika "ya" pada salah satu poin, tata bahasanya belum cukup baik.
