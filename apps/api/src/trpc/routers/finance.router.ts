@@ -2,6 +2,10 @@ import { router, protectedProcedure } from '../trpc';
 import { AccountService } from '../../modules/accounting/services/account.service';
 import { JournalService } from '../../modules/accounting/services/journal.service';
 import { ReportService } from '../../modules/accounting/services/report.service';
+import {
+  CreateAccountSchema,
+  CreateJournalSchema,
+} from '@sync-erp/shared';
 import { z } from 'zod';
 
 const accountService = new AccountService();
@@ -20,19 +24,7 @@ export const financeRouter = router({
    * Create new account
    */
   createAccount: protectedProcedure
-    .input(
-      z.object({
-        code: z.string().min(3).max(10),
-        name: z.string().min(1),
-        type: z.enum([
-          'ASSET',
-          'LIABILITY',
-          'EQUITY',
-          'REVENUE',
-          'EXPENSE',
-        ]),
-      })
-    )
+    .input(CreateAccountSchema)
     .mutation(async ({ ctx, input }) => {
       return accountService.create(ctx.companyId!, input);
     }),
@@ -79,7 +71,7 @@ export const financeRouter = router({
    * Create journal entry
    */
   createJournal: protectedProcedure
-    .input(z.any()) // Complex schema, let service handle validation
+    .input(CreateJournalSchema)
     .mutation(async ({ ctx, input }) => {
       return journalService.create(ctx.companyId!, input);
     }),

@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 export * from './auth.js';
 export * from './company.js';
+export * from './finance.js';
 
 export const PaginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),

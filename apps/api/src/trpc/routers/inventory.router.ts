@@ -1,5 +1,9 @@
 import { router, protectedProcedure } from '../trpc';
 import { InventoryService } from '../../modules/inventory/inventory.service';
+import {
+  CreateGoodsReceiptSchema,
+  CreateShipmentSchema,
+} from '@sync-erp/shared';
 import { z } from 'zod';
 
 const inventoryService = new InventoryService();
@@ -46,19 +50,7 @@ export const inventoryRouter = router({
    * Create Goods Receipt Note
    */
   createGRN: protectedProcedure
-    .input(
-      z.object({
-        purchaseOrderId: z.string().uuid(),
-        date: z.string().optional(),
-        notes: z.string().optional(),
-        items: z.array(
-          z.object({
-            productId: z.string().uuid(),
-            quantity: z.number().positive(),
-          })
-        ),
-      })
-    )
+    .input(CreateGoodsReceiptSchema)
     .mutation(async ({ ctx, input }) => {
       return inventoryService.createGRN(ctx.companyId!, input);
     }),
@@ -92,19 +84,7 @@ export const inventoryRouter = router({
    * Create Shipment
    */
   createShipment: protectedProcedure
-    .input(
-      z.object({
-        salesOrderId: z.string().uuid(),
-        date: z.string().optional(),
-        notes: z.string().optional(),
-        items: z.array(
-          z.object({
-            productId: z.string().uuid(),
-            quantity: z.number().positive(),
-          })
-        ),
-      })
-    )
+    .input(CreateShipmentSchema)
     .mutation(async ({ ctx, input }) => {
       return inventoryService.createShipment(ctx.companyId!, input);
     }),
