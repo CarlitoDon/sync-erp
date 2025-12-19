@@ -1,23 +1,24 @@
 import { useState } from 'react';
-import { formatCurrency } from '../../../utils/format';
+import { formatCurrency } from '@/utils/format';
 import {
   salesOrderService,
   CreateSalesOrderInput,
-} from '../services/salesOrderService';
+} from '@/features/sales/services/salesOrderService';
 import {
   partnerService,
   Partner,
-} from '../../partners/services/partnerService';
+} from '@/features/partners/services/partnerService';
 import {
   productService,
   Product,
-} from '../../inventory/services/productService';
-import { useCompany } from '../../../contexts/CompanyContext';
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { apiAction } from '../../../hooks/useApiAction';
-import ActionButton from '../../../components/ui/ActionButton';
-import FormModal from '../../../components/ui/FormModal';
-import SalesOrderList from '../components/SalesOrderList';
+} from '@/features/inventory/services/productService';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { apiAction } from '@/hooks/useApiAction';
+import ActionButton from '@/components/ui/ActionButton';
+import FormModal from '@/components/ui/FormModal';
+import SalesOrderList from '@/features/sales/components/SalesOrderList';
+import Select from '@/components/ui/Select';
 
 interface OrderItemForm {
   productId: string;
@@ -167,72 +168,63 @@ export default function SalesOrders() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Customer *
             </label>
-            <select
+            <Select
               required
               value={formData.partnerId}
-              onChange={(e) =>
+              onChange={(val) =>
                 setFormData({
                   ...formData,
-                  partnerId: e.target.value,
+                  partnerId: val,
                 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="">Select a customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </select>
+              options={customers.map((c) => ({
+                value: c.id,
+                label: c.name,
+              }))}
+              placeholder="Select a customer"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tax Rate
             </label>
-            <select
+            <Select
               value={formData.taxRate || 0}
-              onChange={(e) =>
+              onChange={(val) =>
                 setFormData({
                   ...formData,
-                  taxRate: Number(e.target.value),
+                  taxRate: Number(val),
                 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              <option value={0}>No Tax (0%)</option>
-              <option value={11}>PPN 11%</option>
-              <option value={12}>PPN 12%</option>
-            </select>
+              options={[
+                { value: 0, label: 'No Tax (0%)' },
+                { value: 11, label: 'PPN 11%' },
+                { value: 12, label: 'PPN 12%' },
+              ]}
+            />
           </div>
 
           <div className="border rounded-lg p-4 space-y-3">
             <h3 className="font-medium">Add Items</h3>
             <div className="grid grid-cols-4 gap-3">
               <div>
-                <select
+                <Select
                   value={currentItem.productId}
-                  onChange={(e) => {
-                    const product = products.find(
-                      (p) => p.id === e.target.value
-                    );
+                  onChange={(val) => {
+                    const product = products.find((p) => p.id === val);
                     setCurrentItem({
                       ...currentItem,
-                      productId: e.target.value,
+                      productId: val,
                       price: product ? Number(product.price) : 0,
                     });
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Select product</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.sku} - {product.name} (Stock:{' '}
-                      {product.stockQty})
-                    </option>
-                  ))}
-                </select>
+                  options={products.map((p) => ({
+                    value: p.id,
+                    label: `${p.sku} - ${p.name} (Stock: ${p.stockQty})`,
+                  }))}
+                  placeholder="Select product"
+                />
               </div>
               <div>
                 <input

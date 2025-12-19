@@ -5,9 +5,9 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import CreateCompany from '../../../src/features/company/pages/CreateCompany';
-import * as CompanyContext from '../../../src/contexts/CompanyContext';
-import * as companyService from '../../../src/features/company/services/companyService';
+import CreateCompany from '@/features/company/pages/CreateCompany';
+import * as CompanyContext from '@/contexts/CompanyContext';
+import * as companyService from '@/features/company/services/companyService';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -18,9 +18,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../../src/contexts/CompanyContext', async () => {
+vi.mock('@/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/CompanyContext'
+    '@/contexts/CompanyContext'
   );
   return {
     ...actual,
@@ -29,7 +29,7 @@ vi.mock('../../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock(
-  '../../../src/features/company/services/companyService',
+  '@/features/company/services/companyService',
   () => ({
     createCompany: vi.fn(),
     getCompanies: vi.fn(),

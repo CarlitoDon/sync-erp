@@ -1,12 +1,12 @@
 import { MemoryRouter } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
-import Dashboard from '../../../src/features/dashboard/pages/Dashboard';
-import * as CompanyContext from '../../../src/contexts/CompanyContext';
-import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
+import Dashboard from '@/features/dashboard/pages/Dashboard';
+import * as CompanyContext from '@/contexts/CompanyContext';
+import * as useCompanyDataHook from '@/hooks/useCompanyData';
 
-vi.mock('../../../src/contexts/CompanyContext', async () => {
+vi.mock('@/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/CompanyContext'
+    '@/contexts/CompanyContext'
   );
   return {
     ...actual,
@@ -14,12 +14,12 @@ vi.mock('../../../src/contexts/CompanyContext', async () => {
   };
 });
 
-vi.mock('../../../src/hooks/useCompanyData', () => ({
+vi.mock('@/hooks/useCompanyData', () => ({
   useCompanyData: vi.fn(),
 }));
 
 vi.mock(
-  '../../../src/features/dashboard/hooks/useOnboardingProgress',
+  '@/features/dashboard/hooks/useOnboardingProgress',
   () => ({
     useOnboardingProgress: vi.fn(() => ({
       loading: false,

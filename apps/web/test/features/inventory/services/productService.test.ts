@@ -1,8 +1,8 @@
 import {
   productService,
   CreateProductInput,
-} from '../../../../src/features/inventory/services/productService';
-import api from '../../../../src/services/api';
+} from '@/features/inventory/services/productService';
+import api from '@/services/api';
 
 const { mockApi } = vi.hoisted(() => {
   return {
@@ -20,7 +20,7 @@ const { mockApi } = vi.hoisted(() => {
   };
 });
 
-vi.mock('../../../../src/services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: mockApi,
 }));
 

@@ -1,9 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import Sidebar from '../../../src/components/layout/Sidebar';
-import * as SidebarContext from '../../../src/contexts/SidebarContext';
-import * as CompanyContext from '../../../src/contexts/CompanyContext';
-import * as AuthContext from '../../../src/contexts/AuthContext';
+import Sidebar from '@/components/layout/Sidebar';
+import * as SidebarContext from '@/contexts/SidebarContext';
+import * as CompanyContext from '@/contexts/CompanyContext';
+import * as AuthContext from '@/contexts/AuthContext';
 
 // Mock react-router-dom's useNavigate
 const mockNavigate = vi.fn();
@@ -16,20 +16,20 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock child components
-vi.mock('../../../src/components/layout/SidebarNav', () => ({
+vi.mock('@/components/layout/SidebarNav', () => ({
   default: () => <nav data-testid="sidebar-nav">Navigation</nav>,
 }));
 
-vi.mock('../../../src/components/layout/CompanySwitcher', () => ({
+vi.mock('@/components/layout/CompanySwitcher', () => ({
   default: () => (
     <div data-testid="company-switcher">Company Switcher</div>
   ),
 }));
 
 // Mock the contexts
-vi.mock('../../../src/contexts/SidebarContext', async () => {
+vi.mock('@/contexts/SidebarContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/SidebarContext'
+    '@/contexts/SidebarContext'
   );
   return {
     ...actual,
@@ -37,9 +37,9 @@ vi.mock('../../../src/contexts/SidebarContext', async () => {
   };
 });
 
-vi.mock('../../../src/contexts/CompanyContext', async () => {
+vi.mock('@/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/CompanyContext'
+    '@/contexts/CompanyContext'
   );
   return {
     ...actual,
@@ -47,9 +47,9 @@ vi.mock('../../../src/contexts/CompanyContext', async () => {
   };
 });
 
-vi.mock('../../../src/contexts/AuthContext', async () => {
+vi.mock('@/contexts/AuthContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/AuthContext'
+    '@/contexts/AuthContext'
   );
   return {
     ...actual,

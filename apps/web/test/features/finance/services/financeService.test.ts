@@ -1,5 +1,5 @@
-import { financeService } from '../../../../src/features/finance/services/financeService';
-import api from '../../../../src/services/api';
+import { financeService } from '@/features/finance/services/financeService';
+import api from '@/services/api';
 import { CreateJournalEntryInput } from '@sync-erp/shared';
 
 const { mockApi } = vi.hoisted(() => {
@@ -18,7 +18,7 @@ const { mockApi } = vi.hoisted(() => {
   };
 });
 
-vi.mock('../../../../src/services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: mockApi,
 }));
 

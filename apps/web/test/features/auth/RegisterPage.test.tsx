@@ -5,8 +5,8 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { RegisterPage } from '../../../src/features/auth/components/RegisterPage';
-import * as AuthContext from '../../../src/contexts/AuthContext';
+import { RegisterPage } from '@/features/auth/components/RegisterPage';
+import * as AuthContext from '@/contexts/AuthContext';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -17,9 +17,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../../src/contexts/AuthContext', async () => {
+vi.mock('@/contexts/AuthContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/AuthContext'
+    '@/contexts/AuthContext'
   );
   return {
     ...actual,

@@ -1,9 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import SidebarToggle from '../../../src/components/layout/SidebarToggle';
+import SidebarToggle from '@/components/layout/SidebarToggle';
 import {
   SidebarContext,
   SidebarContextType,
-} from '../../../src/contexts/SidebarContext';
+} from '@/contexts/SidebarContext';
 
 // Helper to define context structure
 type MockSidebarContext = Partial<SidebarContextType>;

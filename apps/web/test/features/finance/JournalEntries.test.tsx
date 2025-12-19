@@ -4,14 +4,14 @@ import {
   fireEvent,
   waitFor,
 } from '@testing-library/react';
-import JournalEntries from '../../../src/features/finance/pages/JournalEntries';
-import * as CompanyContext from '../../../src/contexts/CompanyContext';
-import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
-import * as financeService from '../../../src/features/finance/services/financeService';
+import JournalEntries from '@/features/finance/pages/JournalEntries';
+import * as CompanyContext from '@/contexts/CompanyContext';
+import * as useCompanyDataHook from '@/hooks/useCompanyData';
+import * as financeService from '@/features/finance/services/financeService';
 
-vi.mock('../../../src/hooks/useCompanyData', async () => {
+vi.mock('@/hooks/useCompanyData', async () => {
   const actual = await vi.importActual(
-    '../../../src/hooks/useCompanyData'
+    '@/hooks/useCompanyData'
   );
   return {
     ...actual,
@@ -19,9 +19,9 @@ vi.mock('../../../src/hooks/useCompanyData', async () => {
   };
 });
 
-vi.mock('../../../src/contexts/CompanyContext', async () => {
+vi.mock('@/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/CompanyContext'
+    '@/contexts/CompanyContext'
   );
   return {
     ...actual,
@@ -30,7 +30,7 @@ vi.mock('../../../src/contexts/CompanyContext', async () => {
 });
 
 vi.mock(
-  '../../../src/features/finance/services/financeService',
+  '@/features/finance/services/financeService',
   () => ({
     financeService: {
       listJournals: vi.fn(),
@@ -40,7 +40,7 @@ vi.mock(
   })
 );
 
-vi.mock('../../../src/hooks/useApiAction', () => ({
+vi.mock('@/hooks/useApiAction', () => ({
   useApiAction: (fn: () => Promise<void>) => ({
     execute: async () => {
       await fn();
@@ -144,10 +144,10 @@ describe('JournalEntries', () => {
       renderComponent();
 
       fireEvent.click(screen.getByText('New Entry'));
-      const initialLines = screen.getAllByRole('combobox').length;
+      const initialLines = screen.getAllByTestId('select-trigger').length;
 
       fireEvent.click(screen.getByText('Add Line'));
-      const newLines = screen.getAllByRole('combobox').length;
+      const newLines = screen.getAllByTestId('select-trigger').length;
 
       expect(newLines).toBeGreaterThan(initialLines);
     });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../../contexts/AuthContext';
-import { RegisterPayload } from '../services/authService';
+import { useAuth } from '@/contexts/AuthContext';
+import { RegisterPayload } from '@/features/auth/services/authService';
 import { AxiosError } from 'axios';
 
 export const RegisterPage: React.FC = () => {

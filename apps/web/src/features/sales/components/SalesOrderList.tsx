@@ -1,15 +1,15 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { apiAction } from '../../../hooks/useApiAction';
-import { useConfirm } from '../../../components/ui/ConfirmModal';
-import ActionButton from '../../../components/ui/ActionButton';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { apiAction } from '@/hooks/useApiAction';
+import { useConfirm } from '@/components/ui/ConfirmModal';
+import ActionButton from '@/components/ui/ActionButton';
 import {
   salesOrderService,
   SalesOrder,
-} from '../services/salesOrderService';
-import { invoiceService } from '../../finance/services/invoiceService';
-import { formatCurrency } from '../../../utils/format';
+} from '@/features/sales/services/salesOrderService';
+import { invoiceService } from '@/features/finance/services/invoiceService';
+import { formatCurrency } from '@/utils/format';
 
 interface SalesOrderListProps {
   filter?: { partnerId?: string; status?: string };

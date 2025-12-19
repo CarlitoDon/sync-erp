@@ -5,10 +5,10 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { CompanySelectionPage } from '../../../src/features/company/pages/CompanySelectionPage';
-import * as CompanyContext from '../../../src/contexts/CompanyContext';
-import * as AuthContext from '../../../src/contexts/AuthContext';
-import * as companyService from '../../../src/features/company/services/companyService';
+import { CompanySelectionPage } from '@/features/company/pages/CompanySelectionPage';
+import * as CompanyContext from '@/contexts/CompanyContext';
+import * as AuthContext from '@/contexts/AuthContext';
+import * as companyService from '@/features/company/services/companyService';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -19,9 +19,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../../src/contexts/CompanyContext', async () => {
+vi.mock('@/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/CompanyContext'
+    '@/contexts/CompanyContext'
   );
   return {
     ...actual,
@@ -29,9 +29,9 @@ vi.mock('../../../src/contexts/CompanyContext', async () => {
   };
 });
 
-vi.mock('../../../src/contexts/AuthContext', async () => {
+vi.mock('@/contexts/AuthContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/AuthContext'
+    '@/contexts/AuthContext'
   );
   return {
     ...actual,
@@ -40,7 +40,7 @@ vi.mock('../../../src/contexts/AuthContext', async () => {
 });
 
 vi.mock(
-  '../../../src/features/company/services/companyService',
+  '@/features/company/services/companyService',
   () => ({
     createCompany: vi.fn(),
     joinCompany: vi.fn(),

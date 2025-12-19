@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Payment } from '@sync-erp/shared';
-import { paymentService } from '../services/paymentService';
-import { apiAction } from '../../../utils/apiAction';
-import { formatDate } from '../../../utils/format';
+import { paymentService } from '@/features/finance/services/paymentService';
+import { apiAction } from '@/utils/apiAction';
+import { formatDate } from '@/utils/format';
 
 interface PaymentHistoryListProps {
   invoiceId: string;

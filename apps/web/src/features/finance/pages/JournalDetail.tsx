@@ -1,13 +1,13 @@
 import { useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { useCompanyData } from '../../../hooks/useCompanyData';
+import { useCompanyData } from '@/hooks/useCompanyData';
 import {
   financeService,
   JournalEntry,
-} from '../services/financeService';
-import ActionButton from '../../../components/ui/ActionButton';
-import { formatCurrency, formatDate } from '../../../utils/format';
+} from '@/features/finance/services/financeService';
+import ActionButton from '@/components/ui/ActionButton';
+import { formatCurrency, formatDate } from '@/utils/format';
 
 export default function JournalDetail() {
   const { id } = useParams<{ id: string }>();

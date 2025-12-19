@@ -1,11 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import MobileMenuButton from '../../../src/components/layout/MobileMenuButton';
-import * as SidebarContext from '../../../src/contexts/SidebarContext';
+import MobileMenuButton from '@/components/layout/MobileMenuButton';
+import * as SidebarContext from '@/contexts/SidebarContext';
 
 // Mock the SidebarContext
-vi.mock('../../../src/contexts/SidebarContext', async () => {
+vi.mock('@/contexts/SidebarContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/SidebarContext'
+    '@/contexts/SidebarContext'
   );
   return {
     ...actual,

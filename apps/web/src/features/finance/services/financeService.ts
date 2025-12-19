@@ -1,10 +1,10 @@
-import api from '../../../services/api';
+import api from '@/services/api';
 import {
   Account,
   CreateJournalEntryInput,
   CreateJournalLineInput,
 } from '@sync-erp/shared';
-import { ensureArray } from '../../../utils/safeData';
+import { ensureArray } from '@/utils/safeData';
 
 export type {
   Account,

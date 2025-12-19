@@ -1,12 +1,12 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import SidebarItem from '../../../src/components/layout/SidebarItem';
-import * as SidebarContext from '../../../src/contexts/SidebarContext';
+import SidebarItem from '@/components/layout/SidebarItem';
+import * as SidebarContext from '@/contexts/SidebarContext';
 
 // Mock the SidebarContext
-vi.mock('../../../src/contexts/SidebarContext', async () => {
+vi.mock('@/contexts/SidebarContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/SidebarContext'
+    '@/contexts/SidebarContext'
   );
   return {
     ...actual,

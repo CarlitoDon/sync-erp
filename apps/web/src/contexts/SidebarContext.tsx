@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { useSidebarState } from '../hooks/useSidebarState';
+import { useSidebarState } from '@/hooks/useSidebarState';
 
 export interface SidebarContextType {
   isCollapsed: boolean;

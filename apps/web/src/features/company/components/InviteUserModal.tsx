@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import { useCompany } from '../../../contexts/CompanyContext';
-import { apiAction } from '../../../utils/apiAction';
-import { userService } from '../services/userService';
+import { useCompany } from '@/contexts/CompanyContext';
+import { apiAction } from '@/utils/apiAction';
+import { userService } from '@/features/company/services/userService';
 import { InviteUserSchema, InviteUserInput } from '@sync-erp/shared';
 import {
   Dialog,
@@ -12,10 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '../../../components/ui/dialog';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Label } from '../../../components/ui/label';
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface InviteUserModalProps {
   isOpen: boolean;

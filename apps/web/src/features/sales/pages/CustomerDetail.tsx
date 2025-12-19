@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { useCompanyData } from '../../../hooks/useCompanyData';
+import { useCompanyData } from '@/hooks/useCompanyData';
 import {
   partnerService,
   Partner,
-} from '../../partners/services/partnerService';
-import ActionButton from '../../../components/ui/ActionButton';
-import SalesOrderList from '../components/SalesOrderList';
-import { InvoiceList } from '../../finance/components/InvoiceList';
-import { formatDate } from '../../../utils/format';
+} from '@/features/partners/services/partnerService';
+import ActionButton from '@/components/ui/ActionButton';
+import SalesOrderList from '@/features/sales/components/SalesOrderList';
+import { InvoiceList } from '@/features/finance/components/InvoiceList';
+import { formatDate } from '@/utils/format';
 
 type Tab = 'orders' | 'invoices' | 'payments';
 

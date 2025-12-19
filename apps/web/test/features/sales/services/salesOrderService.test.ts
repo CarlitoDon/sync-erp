@@ -1,8 +1,8 @@
 import {
   salesOrderService,
   CreateSalesOrderInput,
-} from '../../../../src/features/sales/services/salesOrderService';
-import api from '../../../../src/services/api';
+} from '@/features/sales/services/salesOrderService';
+import api from '@/services/api';
 
 const { mockApi } = vi.hoisted(() => {
   return {
@@ -20,7 +20,7 @@ const { mockApi } = vi.hoisted(() => {
   };
 });
 
-vi.mock('../../../../src/services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: mockApi,
 }));
 

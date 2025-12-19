@@ -3,17 +3,18 @@ import {
   financeService,
   Account,
   TrialBalance,
-} from '../services/financeService';
-import { useCompany } from '../../../contexts/CompanyContext';
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { apiAction } from '../../../hooks/useApiAction';
+} from '@/features/finance/services/financeService';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { apiAction } from '@/hooks/useApiAction';
 import {
   FinancialReport,
   ReportSection,
-} from '../components/FinancialReport';
-import JournalEntries from './JournalEntries';
+} from '@/features/finance/components/FinancialReport';
+import JournalEntries from '@/features/finance/pages/JournalEntries';
 import { AccountGroup, AccountType } from '@sync-erp/shared';
-import FormModal from '../../../components/ui/FormModal';
+import FormModal from '@/components/ui/FormModal';
+import Select from '@/components/ui/Select';
 
 // Helper to check account type category
 const isDebitNormal = (type: string) =>
@@ -351,28 +352,23 @@ export default function Finance() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Type
                   </label>
-                  <select
+                  <Select
                     value={newAccount.type}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       setNewAccount({
                         ...newAccount,
-                        type: e.target.value as Account['type'],
+                        type: val as Account['type'],
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    {[
+                    options={[
                       'ASSET',
                       'LIABILITY',
                       'EQUITY',
                       'REVENUE',
                       'EXPENSE',
-                    ].map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
+                    ].map((t) => ({ value: t, label: t }))}
+                    placeholder="Select Type"
+                  />
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">

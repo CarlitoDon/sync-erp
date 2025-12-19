@@ -1,13 +1,13 @@
 import { MemoryRouter } from 'react-router-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
-import Suppliers from '../../../src/features/procurement/pages/Suppliers';
-import * as CompanyContext from '../../../src/contexts/CompanyContext';
-import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
-import { ConfirmProvider } from '../../../src/components/ui/ConfirmModal';
+import Suppliers from '@/features/procurement/pages/Suppliers';
+import * as CompanyContext from '@/contexts/CompanyContext';
+import * as useCompanyDataHook from '@/hooks/useCompanyData';
+import { ConfirmProvider } from '@/components/ui/ConfirmModal';
 
-vi.mock('../../../src/contexts/CompanyContext', async () => {
+vi.mock('@/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/CompanyContext'
+    '@/contexts/CompanyContext'
   );
   return {
     ...actual,
@@ -15,9 +15,9 @@ vi.mock('../../../src/contexts/CompanyContext', async () => {
   };
 });
 
-vi.mock('../../../src/hooks/useCompanyData', async () => {
+vi.mock('@/hooks/useCompanyData', async () => {
   const actual = await vi.importActual(
-    '../../../src/hooks/useCompanyData'
+    '@/hooks/useCompanyData'
   );
   return {
     ...actual,
@@ -26,7 +26,7 @@ vi.mock('../../../src/hooks/useCompanyData', async () => {
 });
 
 // Mock partnerService
-vi.mock('../../../src/services/partnerService', () => ({
+vi.mock('@/services/partnerService', () => ({
   partnerService: {
     listSuppliers: vi.fn(),
     create: vi.fn(),

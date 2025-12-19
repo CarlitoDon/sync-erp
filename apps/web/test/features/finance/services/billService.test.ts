@@ -1,8 +1,8 @@
 import {
   billService,
   CreateBillInput,
-} from '../../../../src/features/finance/services/billService';
-import api from '../../../../src/services/api';
+} from '@/features/finance/services/billService';
+import api from '@/services/api';
 
 const { mockApi } = vi.hoisted(() => {
   return {
@@ -20,7 +20,7 @@ const { mockApi } = vi.hoisted(() => {
   };
 });
 
-vi.mock('../../../../src/services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: mockApi,
 }));
 

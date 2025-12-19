@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '../../../contexts/AuthContext';
-import { useCompany } from '../../../contexts/CompanyContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface ProtectedRouteProps {
   requireCompany?: boolean;

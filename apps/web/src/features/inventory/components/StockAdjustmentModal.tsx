@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { StockAdjustmentInput } from '@sync-erp/shared';
-import { useCompany } from '../../../contexts/CompanyContext';
-import { adjustStock } from '../services/inventoryService';
-import { apiAction } from '../../../utils/apiAction';
-import { Button } from '../../../components/ui/button';
+import { useCompany } from '@/contexts/CompanyContext';
+import { adjustStock } from '@/features/inventory/services/inventoryService';
+import { apiAction } from '@/utils/apiAction';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '../../../components/ui/dialog';
-import { Input } from '../../../components/ui/input';
-import { Label } from '../../../components/ui/label';
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import Select from '@/components/ui/Select';
 
 interface StockAdjustmentModalProps {
   isOpen: boolean;
@@ -102,19 +103,17 @@ export function StockAdjustmentModal({
               <Label htmlFor="type" className="text-right">
                 Type
               </Label>
-              <select
-                id="type"
-                className="col-span-3 flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              <Select
                 value={adjustmentType}
-                onChange={(e) =>
-                  setAdjustmentType(
-                    e.target.value as 'INCREMENT' | 'DECREMENT'
-                  )
+                onChange={(val) =>
+                  setAdjustmentType(val as 'INCREMENT' | 'DECREMENT')
                 }
-              >
-                <option value="INCREMENT">Increment (+)</option>
-                <option value="DECREMENT">Decrement (-)</option>
-              </select>
+                options={[
+                  { value: 'INCREMENT', label: 'Increment (+)' },
+                  { value: 'DECREMENT', label: 'Decrement (-)' },
+                ]}
+                className="col-span-3"
+              />
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">

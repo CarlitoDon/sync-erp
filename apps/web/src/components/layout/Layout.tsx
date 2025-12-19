@@ -1,6 +1,6 @@
 import { Outlet, Link } from 'react-router-dom';
-import Sidebar from './Sidebar';
-import MobileMenuButton from './MobileMenuButton';
+import Sidebar from '@/components/layout/Sidebar';
+import MobileMenuButton from '@/components/layout/MobileMenuButton';
 
 export default function Layout() {
   return (

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { UserPlusIcon } from '@heroicons/react/24/outline';
-import { UserList } from '../components/UserList';
-import { InviteUserModal } from '../components/InviteUserModal';
-import { useCompany } from '../../../contexts/CompanyContext';
+import { UserList } from '@/features/company/components/UserList';
+import { InviteUserModal } from '@/features/company/components/InviteUserModal';
+import { useCompany } from '@/contexts/CompanyContext';
 
 export default function TeamManagement() {
   const { currentCompany } = useCompany();

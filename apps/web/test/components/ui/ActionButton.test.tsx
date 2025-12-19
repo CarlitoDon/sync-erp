@@ -4,7 +4,7 @@ import {
   fireEvent,
   cleanup,
 } from '@testing-library/react';
-import ActionButton from '../../../src/components/ui/ActionButton';
+import ActionButton from '@/components/ui/ActionButton';
 
 describe('ActionButton', () => {
   afterEach(() => {

@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
 import { Link } from 'react-router-dom';
-import { billService, Bill } from '../services/billService';
+import { billService, Bill } from '@/features/finance/services/billService';
 import {
   paymentService,
   CreatePaymentInput,
-} from '../services/invoiceService';
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { apiAction } from '../../../hooks/useApiAction';
-import { useConfirm } from '../../../components/ui/ConfirmModal';
-import ActionButton from '../../../components/ui/ActionButton';
-import { formatCurrency, formatDate } from '../../../utils/format';
-import { PaymentHistoryList } from './PaymentHistoryList';
-import FormModal from '../../../components/ui/FormModal';
+} from '@/features/finance/services/invoiceService';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { apiAction } from '@/hooks/useApiAction';
+import { useConfirm } from '@/components/ui/ConfirmModal';
+import ActionButton from '@/components/ui/ActionButton';
+import { formatCurrency, formatDate } from '@/utils/format';
+import { PaymentHistoryList } from '@/features/finance/components/PaymentHistoryList';
+import FormModal from '@/components/ui/FormModal';
+import Select from '@/components/ui/Select';
 
 // Extend Bill type with order relation
 interface BillWithOrder extends Bill {
@@ -213,21 +214,19 @@ export const BillList = ({ filter }: BillListProps) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Payment Method
               </label>
-              <select
+              <Select
                 value={paymentMethod}
-                onChange={(e) =>
-                  setPaymentMethod(
-                    e.target.value as CreatePaymentInput['method']
-                  )
+                onChange={(val) =>
+                  setPaymentMethod(val as CreatePaymentInput['method'])
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="CASH">Cash</option>
-                <option value="CHECK">Check</option>
-                <option value="CREDIT_CARD">Credit Card</option>
-                <option value="OTHER">Other</option>
-              </select>
+                options={[
+                  { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
+                  { value: 'CASH', label: 'Cash' },
+                  { value: 'CHECK', label: 'Check' },
+                  { value: 'CREDIT_CARD', label: 'Credit Card' },
+                  { value: 'OTHER', label: 'Other' },
+                ]}
+              />
             </div>
 
             {/* Actions */}

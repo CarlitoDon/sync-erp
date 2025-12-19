@@ -5,7 +5,7 @@ import {
   financeService,
   JournalEntry,
   Account,
-} from '../services/financeService';
+} from '@/features/finance/services/financeService';
 // import { CreateJournalEntryInput, CreateJournalLineInput } from '@sync-erp/shared';
 // Defining locally to avoid build issues
 interface CreateJournalLineInput {
@@ -19,11 +19,12 @@ interface CreateJournalEntryInput {
   memo?: string;
   lines: CreateJournalLineInput[];
 }
-import ActionButton from '../../../components/ui/ActionButton';
-import FormModal from '../../../components/ui/FormModal';
-import { useApiAction } from '../../../hooks/useApiAction';
-import { formatCurrency, formatDate } from '../../../utils/format';
+import ActionButton from '@/components/ui/ActionButton';
+import FormModal from '@/components/ui/FormModal';
+import { useApiAction } from '@/hooks/useApiAction';
+import { formatCurrency, formatDate } from '@/utils/format';
 import { toast } from 'react-hot-toast';
+import Select from '@/components/ui/Select';
 
 export default function JournalEntries() {
   const [journals, setJournals] = useState<JournalEntry[]>([]);
@@ -321,24 +322,17 @@ export default function JournalEntries() {
                   className="grid grid-cols-12 gap-2 items-center"
                 >
                   <div className="col-span-6">
-                    <select
+                    <Select
                       value={line.accountId}
-                      onChange={(e) =>
-                        handleLineChange(
-                          idx,
-                          'accountId',
-                          e.target.value
-                        )
+                      onChange={(val) =>
+                        handleLineChange(idx, 'accountId', val)
                       }
-                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2"
-                    >
-                      <option value="">Select Account...</option>
-                      {accounts.map((acc) => (
-                        <option key={acc.id} value={acc.id}>
-                          {acc.code} - {acc.name}
-                        </option>
-                      ))}
-                    </select>
+                      options={accounts.map((acc) => ({
+                        value: acc.id,
+                        label: `${acc.code} - ${acc.name}`,
+                      }))}
+                      placeholder="Select Account..."
+                    />
                   </div>
                   <div className="col-span-2">
                     <input

@@ -1,5 +1,5 @@
-import api from '../../../services/api';
-import { ensureArray } from '../../../utils/safeData';
+import api from '@/services/api';
+import { ensureArray } from '@/utils/safeData';
 import { Payment } from '@sync-erp/shared';
 
 export const paymentService = {

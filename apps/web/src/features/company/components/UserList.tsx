@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { userService } from '../services/userService';
-import { useCompany } from '../../../contexts/CompanyContext';
-import { useCompanyData } from '../../../hooks/useCompanyData';
+import { userService } from '@/features/company/services/userService';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useCompanyData } from '@/hooks/useCompanyData';
 import { User, CompanyMember } from '@sync-erp/shared';
-import ActionButton from '../../../components/ui/ActionButton';
-import { AssignCompanyModal } from './AssignCompanyModal';
+import ActionButton from '@/components/ui/ActionButton';
+import { AssignCompanyModal } from '@/features/company/components/AssignCompanyModal';
 
 export function UserList() {
   const { currentCompany } = useCompany();

@@ -1,9 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useSidebar } from '../../contexts/SidebarContext';
-import { useCompany } from '../../contexts/CompanyContext';
-import { useAuth } from '../../contexts/AuthContext';
-import SidebarNav from './SidebarNav';
-import CompanySwitcher from './CompanySwitcher';
+import { useSidebar } from '@/contexts/SidebarContext';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useAuth } from '@/contexts/AuthContext';
+import SidebarNav from '@/components/layout/SidebarNav';
+import CompanySwitcher from '@/components/layout/CompanySwitcher';
 import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,

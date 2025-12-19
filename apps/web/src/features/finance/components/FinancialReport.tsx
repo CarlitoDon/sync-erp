@@ -1,5 +1,5 @@
 import { AccountGroup } from '@sync-erp/shared';
-import { formatCurrency } from '../../../utils/format';
+import { formatCurrency } from '@/utils/format';
 
 export interface ReportSection {
   title: string;

@@ -1,11 +1,11 @@
-import { useCompany } from '../../../contexts/CompanyContext';
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { dashboardService } from '../services/dashboardService';
-import { formatCurrency, formatDate } from '../../../utils/format';
-import OnboardingGuide from '../components/OnboardingGuide';
-import PendingShapeBanner from '../components/PendingShapeBanner';
-import { DashboardKPIs } from '../components/DashboardKPIs';
-import type { DashboardMetrics, RecentTransaction } from '../types';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { dashboardService } from '@/features/dashboard/services/dashboardService';
+import { formatCurrency, formatDate } from '@/utils/format';
+import OnboardingGuide from '@/features/dashboard/components/OnboardingGuide';
+import PendingShapeBanner from '@/features/dashboard/components/PendingShapeBanner';
+import { DashboardKPIs } from '@/features/dashboard/components/DashboardKPIs';
+import type { DashboardMetrics, RecentTransaction } from '@/features/dashboard/types';
 
 export default function Dashboard() {
   const { currentCompany } = useCompany();

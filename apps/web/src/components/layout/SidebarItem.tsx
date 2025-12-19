@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useSidebar } from '../../contexts/SidebarContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 interface SidebarItemProps {
   path: string;

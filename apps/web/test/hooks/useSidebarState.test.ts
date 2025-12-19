@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { useSidebarState } from '../../src/hooks/useSidebarState';
+import { useSidebarState } from '@/hooks/useSidebarState';
 
 describe('useSidebarState', () => {
   beforeEach(() => {

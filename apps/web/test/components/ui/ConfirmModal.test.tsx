@@ -7,7 +7,7 @@ import {
 import {
   ConfirmProvider,
   useConfirm,
-} from '../../../src/components/ui/ConfirmModal';
+} from '@/components/ui/ConfirmModal';
 
 // Test component that uses the confirm hook
 function TestComponent({

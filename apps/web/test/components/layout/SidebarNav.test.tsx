@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import SidebarNav from '../../../src/components/layout/SidebarNav';
-import { SidebarProvider } from '../../../src/contexts/SidebarContext';
+import SidebarNav from '@/components/layout/SidebarNav';
+import { SidebarProvider } from '@/contexts/SidebarContext';
 
 // We need to provide SidebarProvider for SidebarItem which is used inside SidebarNav
 const renderComponent = (initialRoute = '/') => {

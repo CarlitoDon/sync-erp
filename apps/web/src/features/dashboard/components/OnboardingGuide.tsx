@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import OnboardingStep from './OnboardingStep';
-import { useOnboardingProgress } from '../hooks/useOnboardingProgress';
-import type { DashboardMetrics } from '../types';
+import OnboardingStep from '@/features/dashboard/components/OnboardingStep';
+import { useOnboardingProgress } from '@/features/dashboard/hooks/useOnboardingProgress';
+import type { DashboardMetrics } from '@/features/dashboard/types';
 
 interface OnboardingGuideProps {
   metrics: DashboardMetrics | null;

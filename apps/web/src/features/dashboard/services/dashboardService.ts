@@ -1,6 +1,6 @@
-import api from '../../../services/api';
-import { ensureArray } from '../../../utils/safeData';
-import type { DashboardMetrics, RecentTransaction } from '../types';
+import api from '@/services/api';
+import { ensureArray } from '@/utils/safeData';
+import type { DashboardMetrics, RecentTransaction } from '@/features/dashboard/types';
 
 // Backend KPI response type (from /api/dashboard/kpis)
 export interface DashboardKPIs {

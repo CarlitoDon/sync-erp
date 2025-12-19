@@ -1,10 +1,10 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { useCompanyData } from '../../src/hooks/useCompanyData';
+import { useCompanyData } from '@/hooks/useCompanyData';
 import { Company } from '@sync-erp/shared';
 
 import { mockUseCompany } from '../mocks/hooks.mock';
 
-vi.mock('../../src/contexts/CompanyContext', async () => {
+vi.mock('@/contexts/CompanyContext', async () => {
   const { mockUseCompany } = await vi.importActual<any>(
     '../mocks/hooks.mock'
   );

@@ -1,5 +1,5 @@
-import * as companyService from '../../../../src/features/company/services/companyService';
-import api from '../../../../src/services/api';
+import * as companyService from '@/features/company/services/companyService';
+import api from '@/services/api';
 import { CreateCompanyDto, JoinCompanyDto } from '@sync-erp/shared';
 
 // Mock api
@@ -19,7 +19,7 @@ const { mockApi } = vi.hoisted(() => {
   };
 });
 
-vi.mock('../../../../src/services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: mockApi,
 }));
 

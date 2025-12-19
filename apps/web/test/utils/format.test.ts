@@ -1,4 +1,4 @@
-import { formatCurrency, formatDate } from '../../src/utils/format';
+import { formatCurrency, formatDate } from '@/utils/format';
 
 describe('formatCurrency', () => {
   it('should format number to IDR currency', () => {

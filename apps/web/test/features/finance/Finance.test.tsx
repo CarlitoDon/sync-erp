@@ -5,14 +5,14 @@ import {
   fireEvent,
   waitFor,
 } from '@testing-library/react';
-import Finance from '../../../src/features/finance/pages/Finance';
-import * as CompanyContext from '../../../src/contexts/CompanyContext';
-import * as useCompanyDataHook from '../../../src/hooks/useCompanyData';
+import Finance from '@/features/finance/pages/Finance';
+import * as CompanyContext from '@/contexts/CompanyContext';
+import * as useCompanyDataHook from '@/hooks/useCompanyData';
 import { AccountType } from '@sync-erp/shared';
 
-vi.mock('../../../src/contexts/CompanyContext', async () => {
+vi.mock('@/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/CompanyContext'
+    '@/contexts/CompanyContext'
   );
   return {
     ...actual,
@@ -20,9 +20,9 @@ vi.mock('../../../src/contexts/CompanyContext', async () => {
   };
 });
 
-vi.mock('../../../src/hooks/useCompanyData', async () => {
+vi.mock('@/hooks/useCompanyData', async () => {
   const actual = await vi.importActual(
-    '../../../src/hooks/useCompanyData'
+    '@/hooks/useCompanyData'
   );
   return {
     ...actual,
@@ -30,7 +30,7 @@ vi.mock('../../../src/hooks/useCompanyData', async () => {
   };
 });
 
-vi.mock('../../../src/services/financeService', () => ({
+vi.mock('@/services/financeService', () => ({
   financeService: {
     getAccounts: vi.fn(),
     createAccount: vi.fn(),
@@ -47,7 +47,7 @@ vi.mock('../../../src/services/financeService', () => ({
 }));
 
 // Mock child component to simplify testing
-vi.mock('../../../src/pages/JournalEntries', () => ({
+vi.mock('@/pages/JournalEntries', () => ({
   default: () => (
     <div data-testid="journal-entries-component">
       Journal Entries Component
@@ -57,7 +57,7 @@ vi.mock('../../../src/pages/JournalEntries', () => ({
 
 // Mock FinancialReport component
 vi.mock(
-  '../../../src/features/finance/components/FinancialReport',
+  '@/features/finance/components/FinancialReport',
   () => ({
     FinancialReport: ({ title }: { title: string }) => (
       <div data-testid="financial-report">{title}</div>

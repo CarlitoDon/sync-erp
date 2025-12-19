@@ -1,6 +1,6 @@
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { adminService, type OrphanJournal } from '../services/admin.service';
-import { formatCurrency } from '../../../utils/format';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { adminService, type OrphanJournal } from '@/features/admin/services/admin.service';
+import { formatCurrency } from '@/utils/format';
 
 const defaultOrphans: OrphanJournal[] = [];
 

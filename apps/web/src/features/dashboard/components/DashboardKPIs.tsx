@@ -1,6 +1,6 @@
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { dashboardService, type DashboardKPIs } from '../services/dashboardService';
-import { StatCard } from './StatCard';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { dashboardService, type DashboardKPIs } from '@/features/dashboard/services/dashboardService';
+import { StatCard } from '@/features/dashboard/components/StatCard';
 
 const defaultKPIs: DashboardKPIs = {
   totalSales: 0,

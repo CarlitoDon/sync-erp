@@ -2,7 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import {
   useApiAction,
   apiAction,
-} from '../../src/hooks/useApiAction';
+} from '@/hooks/useApiAction';
 import toast from 'react-hot-toast';
 
 // Mock react-hot-toast

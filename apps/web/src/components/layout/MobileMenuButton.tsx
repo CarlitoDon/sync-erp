@@ -1,5 +1,5 @@
 import { Bars3Icon } from '@heroicons/react/24/outline';
-import { useSidebar } from '../../contexts/SidebarContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 export default function MobileMenuButton() {
   const { toggleMobileOpen } = useSidebar();

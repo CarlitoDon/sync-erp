@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useCompany } from '../contexts/CompanyContext';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface UseCompanyDataReturn<T> {
   data: T;

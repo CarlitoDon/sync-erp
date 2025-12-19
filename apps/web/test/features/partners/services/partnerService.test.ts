@@ -1,8 +1,8 @@
-import { partnerService } from '../../../../src/features/partners/services/partnerService';
-import api from '../../../../src/services/api';
+import { partnerService } from '@/features/partners/services/partnerService';
+import api from '@/services/api';
 
 // Mock the api module
-vi.mock('../../../../src/services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: {
     get: vi.fn(() => Promise.resolve({ data: { data: [] } })),
     post: vi.fn(() => Promise.resolve({ data: { data: {} } })),

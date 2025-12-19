@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import {
   FinancialReport,
   ReportSection,
-} from '../../../src/features/finance/components/FinancialReport';
+} from '@/features/finance/components/FinancialReport';
 
 const mockSections: ReportSection[] = [
   {

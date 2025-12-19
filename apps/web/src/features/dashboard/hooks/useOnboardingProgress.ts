@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { partnerService } from '../../partners/services/partnerService';
-import { financeService } from '../../finance/services/financeService';
+import { partnerService } from '@/features/partners/services/partnerService';
+import { financeService } from '@/features/finance/services/financeService';
 import type {
   OnboardingStep,
   OnboardingProgress,
   DashboardMetrics,
-} from '../types';
+} from '@/features/dashboard/types';
 
 // Step configurations
 const ONBOARDING_STEPS_CONFIG: Omit<OnboardingStep, 'isCompleted'>[] =

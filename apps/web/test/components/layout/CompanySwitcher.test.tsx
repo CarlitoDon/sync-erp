@@ -5,8 +5,8 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import CompanySwitcher from '../../../src/components/layout/CompanySwitcher';
-import * as CompanyContext from '../../../src/contexts/CompanyContext';
+import CompanySwitcher from '@/components/layout/CompanySwitcher';
+import * as CompanyContext from '@/contexts/CompanyContext';
 import type { Company } from '@sync-erp/shared';
 
 // Mock react-router-dom's useNavigate
@@ -20,9 +20,9 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock the CompanyContext
-vi.mock('../../../src/contexts/CompanyContext', async () => {
+vi.mock('@/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/CompanyContext'
+    '@/contexts/CompanyContext'
   );
   return {
     ...actual,

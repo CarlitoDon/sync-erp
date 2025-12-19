@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import { useCompany } from '../../../contexts/CompanyContext';
-import { apiAction } from '../../../utils/apiAction';
-import { userService } from '../services/userService';
+import { useCompany } from '@/contexts/CompanyContext';
+import { apiAction } from '@/utils/apiAction';
+import { userService } from '@/features/company/services/userService';
 import { AssignRoleSchema } from '@sync-erp/shared';
 import {
   Dialog,
@@ -12,9 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '../../../components/ui/dialog';
-import { Button } from '../../../components/ui/button';
-import { Label } from '../../../components/ui/label';
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import Select from '@/components/ui/Select';
 
 const AssignUserFormSchema = AssignRoleSchema.pick({ roleId: true });
 
@@ -51,8 +52,8 @@ export function AssignCompanyModal({
   }, []);
 
   const {
-    register,
     handleSubmit,
+    control,
     formState: { errors },
     reset,
   } = useForm<{ roleId: string }>({
@@ -94,18 +95,21 @@ export function AssignCompanyModal({
                 Role
               </Label>
               <div className="col-span-3">
-                <select
-                  id="roleId"
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  {...register('roleId')}
-                >
-                  <option value="">Select a role...</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="roleId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={roles.map((r) => ({
+                        value: r.id,
+                        label: r.name,
+                      }))}
+                      placeholder="Select a role..."
+                    />
+                  )}
+                />
                 {errors.roleId && (
                   <p className="text-red-500 text-xs mt-1">
                     {errors.roleId.message}

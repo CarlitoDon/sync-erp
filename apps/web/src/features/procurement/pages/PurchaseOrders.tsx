@@ -1,23 +1,24 @@
 import { useState } from 'react';
-import ActionButton from '../../../components/ui/ActionButton';
+import ActionButton from '@/components/ui/ActionButton';
+import Select from '@/components/ui/Select';
 import {
   purchaseOrderService,
   CreatePurchaseOrderInput,
-} from '../services/purchaseOrderService';
+} from '@/features/procurement/services/purchaseOrderService';
 import {
   partnerService,
   Partner,
-} from '../../partners/services/partnerService';
+} from '@/features/partners/services/partnerService';
 import {
   productService,
   Product,
-} from '../../inventory/services/productService';
-import { useCompany } from '../../../contexts/CompanyContext';
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { apiAction } from '../../../hooks/useApiAction';
-import FormModal from '../../../components/ui/FormModal';
-import PurchaseOrderList from '../components/PurchaseOrderList';
-import { formatCurrency } from '../../../utils/format';
+} from '@/features/inventory/services/productService';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { apiAction } from '@/hooks/useApiAction';
+import FormModal from '@/components/ui/FormModal';
+import PurchaseOrderList from '@/features/procurement/components/PurchaseOrderList';
+import { formatCurrency } from '@/utils/format';
 
 interface OrderItemForm {
   productId: string;
@@ -165,71 +166,64 @@ export default function PurchaseOrders() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Supplier *
             </label>
-            <select
+            <Select
               required
               value={formData.partnerId}
-              onChange={(e) =>
+              onChange={(val) =>
                 setFormData({
                   ...formData,
-                  partnerId: e.target.value,
+                  partnerId: val,
                 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="">Select a supplier</option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </select>
+              options={suppliers.map((s) => ({
+                value: s.id,
+                label: s.name,
+              }))}
+              placeholder="Select a supplier"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tax Rate
             </label>
-            <select
+            <Select
               value={formData.taxRate || 0}
-              onChange={(e) =>
+              onChange={(val) =>
                 setFormData({
                   ...formData,
-                  taxRate: Number(e.target.value),
+                  taxRate: Number(val),
                 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              <option value={0}>No Tax (0%)</option>
-              <option value={11}>PPN 11%</option>
-              <option value={12}>PPN 12%</option>
-            </select>
+              options={[
+                { value: 0, label: 'No Tax (0%)' },
+                { value: 11, label: 'PPN 11%' },
+                { value: 12, label: 'PPN 12%' },
+              ]}
+              placeholder="Select Tax Rate"
+            />
           </div>
 
           <div className="border rounded-lg p-4 space-y-3">
             <h3 className="font-medium">Add Items</h3>
             <div className="grid grid-cols-4 gap-3">
-              <div>
-                <select
+              <div className="col-span-1">
+                <Select
                   value={currentItem.productId}
-                  onChange={(e) => {
-                    const product = products.find(
-                      (p) => p.id === e.target.value
-                    );
+                  onChange={(val) => {
+                    const product = products.find((p) => p.id === val);
                     setCurrentItem({
                       ...currentItem,
-                      productId: e.target.value,
+                      productId: val,
                       price: product ? Number(product.price) : 0,
                     });
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Select product</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.sku} - {product.name}
-                    </option>
-                  ))}
-                </select>
+                  options={products.map((p) => ({
+                    value: p.id,
+                    label: `${p.sku} - ${p.name}`,
+                  }))}
+                  placeholder="Select product"
+                />
               </div>
               <div>
                 <input

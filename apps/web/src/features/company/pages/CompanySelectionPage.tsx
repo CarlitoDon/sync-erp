@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCompany } from '../../../contexts/CompanyContext';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   createCompany,
   joinCompany,
-} from '../services/companyService';
+} from '@/features/company/services/companyService';
 import type { Company } from '@sync-erp/shared';
 import { AxiosError } from 'axios';
 

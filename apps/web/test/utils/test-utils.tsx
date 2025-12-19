@@ -5,7 +5,7 @@ import {
   RenderResult,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { AppProviders } from '../../src/app/AppProviders';
+import { AppProviders } from '@/app/AppProviders';
 import userEvent from '@testing-library/user-event';
 
 interface ExtendedRenderOptions extends Omit<

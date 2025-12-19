@@ -1,5 +1,5 @@
-import { authService } from '../../../../src/features/auth/services/authService';
-import api from '../../../../src/services/api';
+import { authService } from '@/features/auth/services/authService';
+import api from '@/services/api';
 import { LoginPayload, RegisterPayload } from '@sync-erp/shared';
 
 // Mock api module
@@ -19,7 +19,7 @@ const { mockApi } = vi.hoisted(() => {
   };
 });
 
-vi.mock('../../../../src/services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: mockApi,
 }));
 

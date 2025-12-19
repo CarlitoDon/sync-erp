@@ -1,13 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { ProtectedRoute } from '../../../src/features/auth/components/ProtectedRoute';
-import * as AuthContext from '../../../src/contexts/AuthContext';
-import * as CompanyContext from '../../../src/contexts/CompanyContext';
+import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
+import * as AuthContext from '@/contexts/AuthContext';
+import * as CompanyContext from '@/contexts/CompanyContext';
 
 // Mock the contexts
-vi.mock('../../../src/contexts/AuthContext', async () => {
+vi.mock('@/contexts/AuthContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/AuthContext'
+    '@/contexts/AuthContext'
   );
   return {
     ...actual,
@@ -15,9 +15,9 @@ vi.mock('../../../src/contexts/AuthContext', async () => {
   };
 });
 
-vi.mock('../../../src/contexts/CompanyContext', async () => {
+vi.mock('@/contexts/CompanyContext', async () => {
   const actual = await vi.importActual(
-    '../../../src/contexts/CompanyContext'
+    '@/contexts/CompanyContext'
   );
   return {
     ...actual,

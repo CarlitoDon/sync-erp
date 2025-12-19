@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCompany } from '../../contexts/CompanyContext';
+import { useCompany } from '@/contexts/CompanyContext';
 import type { Company } from '@sync-erp/shared';
 
 export default function CompanySwitcher() {

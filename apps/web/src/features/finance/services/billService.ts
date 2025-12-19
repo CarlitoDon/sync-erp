@@ -1,5 +1,5 @@
-import api from '../../../services/api';
-import { ensureArray } from '../../../utils/safeData';
+import api from '@/services/api';
+import { ensureArray } from '@/utils/safeData';
 
 import type { Invoice as Bill } from '@sync-erp/shared';
 export type { Bill };

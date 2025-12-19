@@ -1,5 +1,5 @@
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { adminService, type SagaLog } from '../services/admin.service';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { adminService, type SagaLog } from '@/features/admin/services/admin.service';
 
 const defaultSagaLogs: SagaLog[] = [];
 

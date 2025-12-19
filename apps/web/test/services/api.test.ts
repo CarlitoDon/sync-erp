@@ -28,7 +28,7 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
-import '../../src/services/api';
+import '@/services/api';
 import toast from 'react-hot-toast';
 
 describe('api service', () => {

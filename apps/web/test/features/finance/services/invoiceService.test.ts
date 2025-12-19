@@ -3,8 +3,8 @@ import {
   paymentService,
   CreateInvoiceInput,
   CreatePaymentInput,
-} from '../../../../src/features/finance/services/invoiceService';
-import api from '../../../../src/services/api';
+} from '@/features/finance/services/invoiceService';
+import api from '@/services/api';
 
 const { mockApi } = vi.hoisted(() => {
   return {
@@ -22,7 +22,7 @@ const { mockApi } = vi.hoisted(() => {
   };
 });
 
-vi.mock('../../../../src/services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: mockApi,
 }));
 

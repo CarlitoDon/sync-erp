@@ -1,17 +1,17 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import Layout from '../../../src/components/layout/Layout';
-import { SidebarProvider } from '../../../src/contexts/SidebarContext';
-import { AuthProvider } from '../../../src/contexts/AuthContext';
-import { CompanyProvider } from '../../../src/contexts/CompanyContext';
-import { ConfirmProvider } from '../../../src/components/ui/ConfirmModal';
+import Layout from '@/components/layout/Layout';
+import { SidebarProvider } from '@/contexts/SidebarContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { CompanyProvider } from '@/contexts/CompanyContext';
+import { ConfirmProvider } from '@/components/ui/ConfirmModal';
 
 // Mock child components to simplify testing
-vi.mock('../../../src/components/layout/Sidebar', () => ({
+vi.mock('@/components/layout/Sidebar', () => ({
   default: () => <div data-testid="sidebar">Sidebar</div>,
 }));
 
-vi.mock('../../../src/components/layout/MobileMenuButton', () => ({
+vi.mock('@/components/layout/MobileMenuButton', () => ({
   default: () => (
     <button data-testid="mobile-menu-button">Menu</button>
   ),

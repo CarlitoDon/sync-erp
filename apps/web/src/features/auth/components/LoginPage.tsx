@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../../contexts/AuthContext';
-import { LoginPayload } from '../services/authService';
+import { useAuth } from '@/contexts/AuthContext';
+import { LoginPayload } from '@/features/auth/services/authService';
 import { AxiosError } from 'axios';
 
 export const LoginPage: React.FC = () => {

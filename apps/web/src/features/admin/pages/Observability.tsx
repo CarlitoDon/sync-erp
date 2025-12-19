@@ -1,5 +1,5 @@
-import { SagaFailureList } from '../components/SagaFailureList';
-import { JournalOrphanList } from '../components/JournalOrphanList';
+import { SagaFailureList } from '@/features/admin/components/SagaFailureList';
+import { JournalOrphanList } from '@/features/admin/components/JournalOrphanList';
 
 /**
  * Observability page for admin users.

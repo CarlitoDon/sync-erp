@@ -1,4 +1,4 @@
-import api from '../../../services/api';
+import api from '@/services/api';
 import {
   User,
   CompanyMember,
@@ -6,7 +6,7 @@ import {
   AssignRoleSchema,
 } from '@sync-erp/shared';
 import { z } from 'zod';
-import { ensureArray } from '../../../utils/safeData';
+import { ensureArray } from '@/utils/safeData';
 
 export type AssignUserPayload = z.infer<typeof AssignRoleSchema>;
 
