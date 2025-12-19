@@ -1,11 +1,11 @@
 # Tasks: 034-grn-fullstack
 
-**Status**: Draft
+**Status**: Approved
 **Validation**:
 
-- [ ] All tasks have IDs (e.g., T001)
-- [ ] All tasks have file paths
-- [ ] User stories are separated
+- [x] All tasks have IDs (e.g., T001)
+- [x] All tasks have file paths
+- [x] User stories are separated
 
 ## Phase 1: Setup
 
@@ -27,7 +27,7 @@
 
 ### Tests
 
-- [ ] T008 [US1] Create integration test skeleton for P2P flow in apps/api/test/integration/p2p-flow.test.ts
+- [x] T008 [US1] Create integration test skeleton for P2P flow in apps/api/test/integration/p2p-full-cycle.test.ts
 
 ### Backend
 
@@ -45,11 +45,11 @@
 ## Phase 4: User Story 2 - O2C/Shipment (Priority P1)
 
 **Goal**: Record Shipment to decrease stock.
-**Independent Test**: `npm test apps/api/test/integration/o2c-flow.test.ts`
+**Independent Test**: `npm test apps/api/test/integration/o2c-full-cycle.test.ts`
 
 ### Tests
 
-- [ ] T016 [US2] Create integration test skeleton for O2C flow in apps/api/test/integration/o2c-flow.test.ts
+- [x] T016 [US2] Create integration test skeleton for O2C flow in apps/api/test/integration/o2c-full-cycle.test.ts
 
 ### Backend
 
@@ -70,23 +70,23 @@
 
 ### Backend
 
-- [ ] T024 [US3] Implement `listReceipts` and `getReceiptById` in apps/api/src/modules/inventory/repository.ts
-- [ ] T025 [US3] Implement `listShipments` and `getShipmentById` in apps/api/src/modules/inventory/repository.ts
-- [ ] T026 [US3] Add GET endpoints for lists/details in apps/api/src/modules/inventory/controller.ts
+- [x] T024 [US3] Implement `listReceipts` and `getReceiptById` in apps/api/src/modules/inventory/repository.ts
+- [x] T025 [US3] Implement `listShipments` and `getShipmentById` in apps/api/src/modules/inventory/repository.ts
+- [x] T026 [US3] Add GET endpoints for lists/details in apps/api/src/modules/inventory/controller.ts
 
 ### Frontend
 
-- [ ] T027 [US3] Create `ReceiptsList` page in apps/web/src/features/inventory/pages/ReceiptsList.tsx
-- [ ] T028 [US3] Create `ReceiptDetail` page in apps/web/src/features/inventory/pages/ReceiptDetail.tsx
-- [ ] T029 [US3] Create `ShipmentsList` page in apps/web/src/features/inventory/pages/ShipmentsList.tsx
-- [ ] T030 [US3] Create `ShipmentDetail` page in apps/web/src/features/inventory/pages/ShipmentDetail.tsx
-- [ ] T031 [US3] Register new routes in apps/web/src/app/routes.tsx
+- [x] T027 [US3] Create `ReceiptsList` page in apps/web/src/features/inventory/pages/GoodsReceipts.tsx
+- [x] T028 [US3] Create `ReceiptDetail` page in apps/web/src/features/inventory/pages/GoodsReceiptDetail.tsx
+- [x] T029 [US3] Create `ShipmentsList` page in apps/web/src/features/inventory/pages/Shipments.tsx
+- [x] T030 [US3] Create `ShipmentDetail` page in apps/web/src/features/inventory/pages/ShipmentDetail.tsx
+- [x] T031 [US3] Register new routes in apps/web/src/app/AppRouter.tsx
 
 ## Final Phase: Polish
 
-- [ ] T032 Ensure all texts are externalized/consistent
-- [ ] T033 Verify Optimistic UI updates on Create/Post actions
-- [ ] T034 Run full regression suite `npm test`
+- [x] T032 Ensure all texts are externalized/consistent
+- [x] T033 Verify Optimistic UI updates on Create/Post actions
+- [x] T034 Run full regression suite `npm test`
 
 ## Dependencies
 
