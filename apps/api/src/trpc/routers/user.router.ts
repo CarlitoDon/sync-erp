@@ -1,8 +1,6 @@
 import { router, protectedProcedure } from '../trpc';
-import {
-  UserService,
-  CreateUserInput,
-} from '../../modules/user/user.service';
+import { UserService } from '../../modules/user/user.service';
+import { CreateUserSchema } from '@sync-erp/shared';
 import { z } from 'zod';
 
 const userService = new UserService();
@@ -28,18 +26,9 @@ export const userRouter = router({
    * Create user
    */
   create: protectedProcedure
-    .input(
-      z.object({
-        email: z.string().email(),
-        name: z.string(),
-        passwordHash: z.string().optional(),
-      })
-    )
+    .input(CreateUserSchema)
     .mutation(async ({ ctx, input }) => {
-      return userService.create(
-        input as CreateUserInput,
-        ctx.companyId
-      );
+      return userService.create(input, ctx.companyId);
     }),
 });
 
