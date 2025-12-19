@@ -186,7 +186,10 @@ export class PurchaseOrderService {
       );
     }
 
-    PurchaseOrderPolicy.validateCancel(order.status);
+    // Count existing GRNs for this PO
+    const grnCount = await this.repository.countGoodsReceipts(id);
+
+    PurchaseOrderPolicy.validateCancel(order.status, grnCount);
 
     const updated = await this.repository.updateStatus(
       id,

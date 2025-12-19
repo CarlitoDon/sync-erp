@@ -58,6 +58,9 @@ export class PurchaseOrderRepository {
         items: { include: { product: true } },
         partner: true,
         invoices: true,
+        _count: {
+          select: { goodsReceipts: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -131,6 +134,12 @@ export class PurchaseOrderRepository {
     return db.orderItem.findMany({
       where: { orderId },
       include: { product: true },
+    });
+  }
+
+  async countGoodsReceipts(orderId: string): Promise<number> {
+    return prisma.goodsReceipt.count({
+      where: { purchaseOrderId: orderId },
     });
   }
 }

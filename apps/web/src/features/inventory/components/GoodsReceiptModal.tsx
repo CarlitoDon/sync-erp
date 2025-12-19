@@ -74,7 +74,7 @@ export function GoodsReceiptModal({
     },
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSave = async (data: FormData, shouldPost: boolean) => {
     if (!currentCompany) return;
     setLoading(true);
     setStep('processing');
@@ -93,13 +93,20 @@ export function GoodsReceiptModal({
         grnInput
       );
 
-      // Step 2: Post GRN (Stock IN)
-      await postGoodsReceipt(currentCompany.id, grn.id);
-
-      setStep('posted');
+      // Step 2: Post GRN (Stock IN) if requested
+      if (shouldPost) {
+        await postGoodsReceipt(currentCompany.id, grn.id);
+        setStep('posted');
+      } else {
+         // Just close if draft
+         onSuccess?.();
+         onClose();
+         reset();
+         setStep('confirm');
+         return; 
+      }
 
       // Success toast shown by onSuccess callback
-
       onSuccess?.();
       setTimeout(() => {
         onClose();
@@ -128,7 +135,7 @@ export function GoodsReceiptModal({
         <DialogHeader>
           <DialogTitle>Receive Goods</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form className="space-y-4"> {/* Removed onSubmit here, handled by buttons */}
           <div className="grid gap-4 py-4">
             {/* Items List */}
             <div className="space-y-2">
@@ -137,25 +144,31 @@ export function GoodsReceiptModal({
                 {orderItems.map((item, index) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3"
+                    className="p-3"
                   >
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        {item.product?.name || item.productId}
-                      </p>
-                      {item.product?.sku && (
-                        <p className="text-sm text-muted-foreground">
-                          SKU: {item.product.sku}
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <p className="font-medium">
+                          {item.product?.name || item.productId}
                         </p>
-                      )}
+                        {item.product?.sku && (
+                          <p className="text-sm text-muted-foreground">
+                            SKU: {item.product.sku}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Ordered: <span className="font-medium text-gray-900">{item.quantity}</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        Ordered: {item.quantity}
-                      </span>
+                      <Label htmlFor={`qty-${index}`} className="text-sm whitespace-nowrap">
+                        Receive qty:
+                      </Label>
                       <Input
+                        id={`qty-${index}`}
                         type="number"
-                        className="w-20"
+                        className="w-24"
                         min={0}
                         max={item.quantity}
                         {...register(`items.${index}.quantity`, {
@@ -213,7 +226,7 @@ export function GoodsReceiptModal({
             {/* Status Message */}
             {step === 'processing' && (
               <p className="text-sm text-blue-600 text-center animate-pulse">
-                Creating receipt and updating stock...
+                Processing...
               </p>
             )}
             {step === 'posted' && (
@@ -229,22 +242,33 @@ export function GoodsReceiptModal({
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               onClick={handleClose}
               disabled={loading}
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              isLoading={loading}
-              disabled={step !== 'confirm'}
-            >
-              {step === 'confirm' ? 'Receive All' : 'Processing...'}
-            </Button>
+            <div className="flex gap-2">
+                <Button
+                type="button"
+                variant="outline"
+                onClick={handleSubmit((data) => onSave(data, false))}
+                disabled={step !== 'confirm' || loading}
+                >
+                Save Draft
+                </Button>
+                <Button
+                type="button"
+                onClick={handleSubmit((data) => onSave(data, true))}
+                isLoading={loading}
+                disabled={step !== 'confirm'}
+                >
+                Receive & Post
+                </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

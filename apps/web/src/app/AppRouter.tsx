@@ -19,7 +19,8 @@ import SalesOrderDetail from '@/features/sales/pages/SalesOrderDetail';
 import Invoices from '@/features/finance/pages/Invoices';
 import InvoiceDetail from '@/features/finance/pages/InvoiceDetail';
 import AccountsPayable from '@/features/finance/pages/AccountsPayable';
-import BillDetail from '@/features/finance/pages/BillDetail';
+import BillDetail from '@/features/accounting/components/BillDetail';
+import BillForm from '@/features/accounting/components/BillForm';
 import TeamManagement from '@/features/company/pages/TeamManagement';
 import Finance from '@/features/finance/pages/Finance';
 import { RegisterPage } from '@/features/auth/components/RegisterPage';
@@ -80,6 +81,7 @@ export function AppRouter() {
           <Route path="invoices" element={<Invoices />} />
           <Route path="invoices/:id" element={<InvoiceDetail />} />
           <Route path="bills" element={<AccountsPayable />} />
+          <Route path="bills/new" element={<BillForm />} />
           <Route path="bills/:id" element={<BillDetail />} />
           <Route path="finance" element={<Finance />} />
           <Route path="journals" element={<JournalEntries />} />

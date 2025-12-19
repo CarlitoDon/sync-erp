@@ -21,6 +21,9 @@ export interface PurchaseOrder {
   totalAmount: number;
   items: OrderItem[];
   invoices?: Invoice[];
+  _count?: {
+    goodsReceipts: number;
+  };
   createdAt: string;
 }
 

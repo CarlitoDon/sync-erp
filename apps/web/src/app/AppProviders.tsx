@@ -15,7 +15,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
             <Toaster
               position="top-right"
               toastOptions={{
-                duration: 15000,
+                duration: 3000,
                 style: {
                   background: '#363636',
                   color: '#fff',

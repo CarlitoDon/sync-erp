@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PaymentMethod } from '@sync-erp/database';
+import { PAYMENT_METHODS } from '../constants/index.js';
 
 // ==========================================
 // Purchase Order Validators
@@ -68,11 +68,13 @@ export const CreateP2PBillSchema = z.object({
   taxRate: z.number().min(0).optional(),
 });
 
-export const CreateP2PBillFromPOSchema = z.object({
+export const CreateBillFromPOSchema = z.object({
   orderId: z.string().uuid(),
-  supplierInvoiceNumber: z.string().min(1),
-  date: z.coerce.date(),
-  dueDate: z.coerce.date().optional(), // Can calculate
+  invoiceNumber: z.string().optional(),
+  dueDate: z.coerce.date().optional(),
+  taxRate: z.number().optional(),
+  businessDate: z.coerce.date().optional(),
+  paymentTermsString: z.string().optional(),
   items: z
     .array(
       z.object({
@@ -92,7 +94,7 @@ export const CreateP2PBillFromPOSchema = z.object({
 export const CreateP2PPaymentSchema = z.object({
   invoiceId: z.string().uuid(),
   amount: z.number().positive(),
-  method: z.nativeEnum(PaymentMethod),
+  method: z.enum(PAYMENT_METHODS),
   accountId: z.string().uuid(),
   reference: z.string().optional(),
   date: z.coerce.date(),

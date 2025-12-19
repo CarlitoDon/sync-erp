@@ -169,6 +169,7 @@ export const CreateInvoiceSchema = z.object({
   dueDate: z.coerce.date(),
   amount: z.number().positive('Amount must be positive'),
   businessDate: z.coerce.date().optional(), // G5: Explicit business date
+  paymentTermsString: z.string().optional(), // Payment terms (NET30, NET60, etc.)
 });
 
 export const CreateBillSchema = CreateInvoiceSchema.extend({
@@ -195,11 +196,12 @@ export const CreateManualBillSchema = z.object({
 
 // Bill Creation from Purchase Order (only requires orderId)
 export const CreateBillFromPOSchema = z.object({
-  orderId: z.string().uuid('Invalid order ID'),
-  dueDate: z.coerce.date().optional(),
-  taxRate: z.number().min(0).max(100).optional(),
+  orderId: z.string().uuid(),
   invoiceNumber: z.string().optional(),
-  businessDate: z.coerce.date().optional(), // G5: Explicit business date
+  dueDate: z.coerce.date().optional(),
+  taxRate: z.number().optional(),
+  businessDate: z.coerce.date().optional(),
+  paymentTermsString: z.string().optional(),
 });
 
 // Invoice Creation from Sales Order (only requires orderId)

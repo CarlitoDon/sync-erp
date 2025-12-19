@@ -37,7 +37,7 @@ describe('T001: Verify Stock Movements', () => {
     // Access the automocked instances that the service constructor received
     mockRepo = (service as any).repository;
     mockProductService = (service as any).productService;
-    mockPurchaseOrderService = (service as any).procurementService;
+    mockPurchaseOrderService = (service as any).purchaseOrderService;
   });
 
   describe('FR-001 & FR-003: Goods Receipt (Stock IN + AVG Cost)', () => {

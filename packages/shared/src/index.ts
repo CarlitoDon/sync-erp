@@ -5,3 +5,4 @@ export * from './types';
 export * from './validators';
 export * from './domain/Money';
 export * from './domain/BusinessDate';
+export * from './utils/paymentTerms';

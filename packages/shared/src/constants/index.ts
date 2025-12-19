@@ -97,3 +97,20 @@ export const SCOPES = {
   OWN: 'OWN',
   ALL: 'ALL',
 } as const;
+
+export const PAYMENT_METHODS = [
+  'CASH',
+  'BANK_TRANSFER',
+  'CHECK',
+  'CREDIT_CARD',
+  'OTHER',
+] as const;
+
+export const PAYMENT_TERMS = [
+  { code: 'NET7', label: 'Net 7', days: 7 },
+  { code: 'NET30', label: 'Net 30', days: 30 },
+  { code: 'NET60', label: 'Net 60', days: 60 },
+  { code: 'NET90', label: 'Net 90', days: 90 },
+  { code: 'COD', label: 'Cash on Delivery', days: 0 },
+  { code: 'EOM', label: 'End of Month', days: -1 }, // Special calculation
+] as const;

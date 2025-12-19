@@ -1,18 +1,19 @@
 <!--
 SYNC IMPACT REPORT
-Version: 3.1.0 -> 3.2.0 (MINOR - Added Anti-Method Bloat Rule)
+Version: 3.2.0 -> 3.3.0 (MINOR - Added Golden Flow & DB Encapsulation)
 Modified Principles:
-- None
+- XXI. Anti-Method Bloat Rule (Renamed to Context-First & Anti-Method Bloat)
 Added Sections:
-- XXI. Anti-Method Bloat Rule (Part C)
+- III-B. Database Error Encapsulation
+- XXII. The Golden Flow Standard
 Removed Sections:
 - None
 Templates requiring updates:
-- plan-template.md ✅ (principle XXI added)
-- spec-template.md ✅ (principle reference updated)
-- tasks-template.md ✅
+- plan-template.md ⚠
+- spec-template.md ⚠
+- tasks-template.md ⚠
 Follow-up TODOs:
-- Ensure all agents perform a full 'grep' or 'view_file' before adding new methods.
+- Update templates to reflect new Golden Flow terminology.
 Last Updated: 2025-12-19
 -->
 
@@ -20,7 +21,7 @@ Last Updated: 2025-12-19
 
 > "Simplicity is the ultimate sophistication."
 
-**Version**: 3.2.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-19
+**Version**: 3.3.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-19
 
 ---
 
@@ -162,6 +163,15 @@ packages/shared ←── packages/shared ←── (Prisma types)
 >
 > - **Ya** → **BOLEH** di Repository
 > - **Tidak** → **HARUS** di Service atau Policy
+
+### III-B. Database Error Encapsulation
+
+1. Repository **HARUS** menangkap semua error database (Prisma Client errors).
+2. Repository **HARUS** melempar *application-specific error* (e.g., `RecordNotFound`, `ConstraintViolation`).
+3. Service **DILARANG** menangkap atau mengimport Prisma types/errors secara langsung.
+4. Raw database errors **DILARANG** bocor ke layer Service atau Controller.
+
+**Rationale**: Memastikan Service layer agnostik terhadap database technology dan mencegah error kryptik bocor ke client.
 
 ### IV. Frontend Architecture
 
@@ -430,14 +440,38 @@ prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN ...`;
 3. Setelah refactoring, **HARUS** verify zero remaining instances.
 4. Commit **HARUS** satu per feature, bukan per session.
 
-### XXI. Anti-Method Bloat Rule (Maximizing Code Reuse)
+### XXI. Context-First & Anti-Method Bloat (Smart Coding)
 
-1. Agent **DILARANG** membuat method baru jika fungsionalitasnya tumpang tindih (>50%) dengan yang sudah ada di file tersebut.
-2. Agent **HARUS** melakukan `view_file` penuh atau `view_file_outline` pada target file sebelum menambah logic baru.
-3. Refactoring method existing **LEBIH DIUTAMAKAN** daripada membuat method baru dengan akhiran `2`, `New`, `V2`, atau variasi sinonim lainnya.
-4. Jika logic baru memang unik tetapi mirip, pertimbangkan untuk mengekstrak logic bersama ke private helper method.
+1. Agent **HARUS** memahami full context file (via `view_file` atau `view_file_outline`) sebelum melakukan edit.
+2. Agent **DILARANG** membuat method baru jika fungsionalitasnya tumpang tindih (>50%) dengan yang sudah ada.
+3. Refactoring method existing **LEBIH DIUTAMAKAN** daripada membuat method baru (e.g., `updateV2`).
+4. Jika logic baru unik tapi mirip, ekstrak shared logic ke private helper.
 
-**Rationale**: AI cenderung menghindari modifikasi kode lama untuk "cari aman", yang mengakibatkan codebase membengkak dengan duplikasi. Aturan ini mewajibkan AI untuk berani dan teliti dalam mengupdate kode yang sudah ada.
+**Rationale**: Mencegah "fear-driven development" dimana AI takut mengubah kode lama dan memilih membuat duplikasi, yang merusak maintainability jangka panjang.
+
+### XXII. The Golden Flow Standard
+
+Semua Business Flow (transaksi) **HARUS** mengikuti struktur 4-Tahap standar ini:
+
+1. **Prepare (Validation & Policy)**
+   - Check input types (Zod).
+   - Check business constraints (Policy).
+   - Ensure state prerequisites (e.g., "PO must be CONFIRMED").
+
+2. **Orchestrate (Saga/Steps)**
+   - Define exact steps required (e.g., "Update Stock -> Create Journal -> Update Status").
+   - Prepare data payloads for Repository.
+
+3. **Execute (Repository Transaction)**
+   - Perform atomic DB operations via Repository.
+   - **HARUS** dalam satu transaction block jika multiple writes.
+
+4. **Post-Process (Side Effects)**
+   - Send notifications (Email/Slack).
+   - Trigger async jobs (Webhooks).
+   - Return clean DTO output.
+
+**Rule**: Service method yang menangani transaksi **HARUS** terlihat jelas memisahkan 4 tahap ini.
 
 ---
 

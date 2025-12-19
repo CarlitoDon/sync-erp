@@ -7,7 +7,7 @@ import {
 } from '@sync-erp/database';
 
 // Automock
-vi.mock('@modules/procurement/procurement.repository');
+vi.mock('@modules/procurement/purchase-order.repository');
 vi.mock('@modules/common/services/document-number.service');
 
 // Mock Prisma
@@ -18,6 +18,9 @@ vi.mock('@sync-erp/database', async () => {
     prisma: {
       order: {
         findFirst: vi.fn(),
+      },
+      auditLog: {
+        create: vi.fn().mockResolvedValue({ id: 'audit-1' }),
       },
     },
   };
@@ -71,7 +74,8 @@ describe('T003: Verify Purchase Order Cycle (FR-009)', () => {
 
       expect(mockRepo.updateStatus).toHaveBeenCalledWith(
         orderId,
-        OrderStatus.CONFIRMED
+        OrderStatus.CONFIRMED,
+        undefined // order.version is undefined in mock
       );
     });
 
@@ -105,6 +109,7 @@ describe('T003: Verify Purchase Order Cycle (FR-009)', () => {
       expect(mockRepo.updateStatus).toHaveBeenCalledWith(
         orderId,
         OrderStatus.COMPLETED,
+        undefined,
         undefined
       );
     });

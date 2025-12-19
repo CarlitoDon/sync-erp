@@ -19,8 +19,9 @@ export interface CreateBillInput {
   invoiceNumber?: string;
   dueDate?: Date;
   taxRate?: number;
-  businessDate?: Date; // G5
-}
+  businessDate?: Date;
+  paymentTermsString?: string;
+} // G5
 
 import { DocumentNumberService } from '../../common/services/document-number.service';
 import { BillPostingSaga } from '../sagas/bill-posting.saga';
@@ -110,6 +111,7 @@ export class BillService {
       dueDate:
         data.dueDate ||
         new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      paymentTermsString: data.paymentTermsString || 'NET30', // Store payment terms
     };
 
     return this.repository.create(createData);

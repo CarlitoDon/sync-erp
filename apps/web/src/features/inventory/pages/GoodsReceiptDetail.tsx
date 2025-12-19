@@ -1,38 +1,63 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
-import {
-  getGoodsReceipt,
-  GoodsReceiptResponse,
-} from '@/features/inventory/services/inventoryService';
+import { useGoodsReceipt } from '@/features/procurement/hooks/useGoodsReceipt'; // Use new hook
 import { formatCurrency, formatDate } from '@/utils/format';
+import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/ConfirmModal';
+import { GoodsReceiptResponse, GoodsReceiptItemResponse } from '@/features/inventory/services/inventoryService';
 
 export default function GoodsReceiptDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
+  const confirm = useConfirm();
 
-  const [receipt, setReceipt] = useState<GoodsReceiptResponse | null>(
-    null
-  );
+  // Use the hook for fetching and actions
+  const { getReceipt, postReceipt, loading: hookLoading } = useGoodsReceipt();
+  
+  const [receipt, setReceipt] = useState<GoodsReceiptResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const loadData = async () => {
+    if (!id || !currentCompany) return;
+    setLoading(true);
+    try {
+      const data = await getReceipt(id);
+      setReceipt(data);
+    } catch (error) {
+      console.error('Failed to load goods receipt:', error);
+      navigate('/receipts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadReceipt = async () => {
-      if (!id || !currentCompany) return;
-      setLoading(true);
-      try {
-        const data = await getGoodsReceipt(currentCompany.id, id);
-        setReceipt(data);
-      } catch (error) {
-        console.error('Failed to load goods receipt:', error);
-        navigate('/receipts');
-      } finally {
-        setLoading(false);
+    loadData();
+  }, [id, currentCompany?.id]);
+
+  const handlePost = async () => {
+    if (!receipt) return;
+    
+    const confirmed = await confirm({
+       title: 'Post Goods Receipt',
+       message: 'This will update inventory levels and cannot be undone. Are you sure?',
+       confirmText: 'Yes, Post',
+    });
+
+    if (confirmed) {
+      const result = await postReceipt(receipt.id);
+      if (result) {
+        loadData(); // Refresh data to see new status
       }
-    };
-    loadReceipt();
-  }, [id, currentCompany, navigate]);
+    }
+  };
+
+  const handleCreateBill = () => {
+    if (!receipt) return;
+    navigate(`/bills/new?grnId=${receipt.id}`);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -45,7 +70,7 @@ export default function GoodsReceiptDetail() {
     }
   };
 
-  if (loading) {
+  if (loading || !currentCompany) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -56,13 +81,13 @@ export default function GoodsReceiptDetail() {
   if (!receipt) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Goods Receipt not found</div>
+        <div className="text-gray-500">Goods Receipt not found or access denied.</div>
       </div>
     );
   }
 
   const totalValue = receipt.items.reduce(
-    (sum, item) => sum + item.quantity * (item.unitCost || 0),
+    (sum: number, item: GoodsReceiptItemResponse) => sum + item.quantity * (item.unitCost || 0),
     0
   );
 
@@ -77,16 +102,31 @@ export default function GoodsReceiptDetail() {
           >
             ← Back to Goods Receipts
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <div className="flex items-center gap-3">
+             <h1 className="text-2xl font-bold text-gray-900">
             {receipt.number}
-          </h1>
+            </h1>
+            <span
+            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(receipt.status)}`}
+            >
+            {receipt.status}
+            </span>
+          </div>
           <p className="text-gray-500">Goods Receipt Note</p>
         </div>
-        <span
-          className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(receipt.status)}`}
-        >
-          {receipt.status}
-        </span>
+        
+        <div className="flex gap-2">
+           {receipt.status === 'DRAFT' && (
+             <Button onClick={handlePost} disabled={hookLoading}>
+               Post Receipt
+             </Button>
+           )}
+           {receipt.status === 'POSTED' && (
+             <Button onClick={handleCreateBill} variant="outline">
+               Create Bill
+             </Button>
+           )}
+        </div>
       </div>
 
       {/* Details Card */}
@@ -154,7 +194,7 @@ export default function GoodsReceiptDetail() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {receipt.items.map((item) => (
+            {receipt.items.map((item: GoodsReceiptItemResponse) => (
               <tr key={item.id}>
                 <td className="px-4 py-3">
                   {item.product ? (

@@ -19,19 +19,25 @@ export interface Invoice {
   companyId: string;
   orderId?: string | null;
   partnerId: string;
-  type: InvoiceType;
-  status: InvoiceStatus;
-  dueDate: Date;
+  type: 'INVOICE' | 'BILL';
+  status: 'DRAFT' | 'POSTED' | 'PAID' | 'VOID';
+  invoiceNumber: string;
+  dueDate: Date | string;
   amount: number;
   subtotal: number;
   taxAmount: number;
   taxRate: number;
   balance: number;
-  invoiceNumber?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  supplierInvoiceNumber?: string | null;
+  paymentTermsString?: string | null; // Payment terms (NET30, NET60, etc.)
+  notes?: string | null;
+  version: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   partner?: Partner;
   payments?: Payment[];
+  relatedInvoiceId?: string | null; // For credit notes
+  creditNotes?: Invoice[]; // Reverse: invoices that reference this one as relatedInvoiceId
 }
 
 export interface Payment {

@@ -109,12 +109,29 @@ export class PurchaseOrderPolicy {
     }
   }
 
-  static validateCancel(status: string): void {
+  static validateCancel(status: string, grnCount?: number): void {
     if (status === OrderStatus.COMPLETED) {
       throw new DomainError(
         'Cannot cancel a completed order',
         422,
         DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    if (status === OrderStatus.CANCELLED) {
+      throw new DomainError(
+        'Order is already cancelled',
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    // Check if any goods have been received
+    if (grnCount !== undefined && grnCount > 0) {
+      throw new DomainError(
+        'Cannot cancel order: Goods have already been received',
+        422,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
       );
     }
   }

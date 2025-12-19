@@ -177,20 +177,27 @@ async function main() {
     ];
 
     for (const config of CONFIGS) {
-      await prisma.systemConfig.upsert({
+      const existing = await prisma.systemConfig.findFirst({
         where: {
-          companyId_key: {
-            companyId: demoCompany.id,
-            key: config.key,
-          },
-        },
-        update: { value: config.value },
-        create: {
           companyId: demoCompany.id,
           key: config.key,
-          value: config.value,
         },
       });
+
+      if (existing) {
+        await prisma.systemConfig.update({
+          where: { id: existing.id },
+          data: { value: config.value },
+        });
+      } else {
+        await prisma.systemConfig.create({
+          data: {
+            companyId: demoCompany.id,
+            key: config.key,
+            value: config.value,
+          },
+        });
+      }
     }
 
     // ==========================================

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCompanyData } from '@/hooks/useCompanyData';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
@@ -20,6 +20,7 @@ export default function PurchaseOrderList({
   filter,
 }: PurchaseOrderListProps) {
   const confirm = useConfirm();
+  const navigate = useNavigate();
   const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(
     null
   );
@@ -122,7 +123,7 @@ export default function PurchaseOrderList({
   };
 
   const handleViewBill = (billId: string) => {
-    window.location.href = `/bills/${billId}`;
+    navigate(`/bills/${billId}`);
   };
 
   if (loading && orders.length === 0) {
@@ -211,7 +212,8 @@ export default function PurchaseOrderList({
                       </ActionButton>
                     </>
                   )}
-                  {order.status === 'CONFIRMED' && (
+                  {order.status === 'CONFIRMED' &&
+                    (!order._count || order._count.goodsReceipts === 0) && (
                     <ActionButton
                       onClick={() => handleGoodsReceipt(order.id)}
                       variant="success"
