@@ -114,3 +114,5 @@ export const PAYMENT_TERMS = [
   { code: 'COD', label: 'Cash on Delivery', days: 0 },
   { code: 'EOM', label: 'End of Month', days: -1 }, // Special calculation
 ] as const;
+
+export * from './inventory.js';

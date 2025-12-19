@@ -16,15 +16,7 @@ export enum BusinessShape {
   SERVICE = 'SERVICE',
 }
 
-/**
- * CostingMethod determines how cost of goods sold (HPP) is calculated.
- * AVG: Weighted Average Cost (default for Retail).
- * FIFO: First-In First-Out (default for Manufacturing).
- */
-export enum CostingMethod {
-  AVG = 'AVG',
-  FIFO = 'FIFO',
-}
+// CostingMethod moved to constants/inventory.ts
 
 // ============================================
 // Company Types

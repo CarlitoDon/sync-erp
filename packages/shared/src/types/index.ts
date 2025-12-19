@@ -4,6 +4,7 @@
 export * from './auth.js';
 export * from './finance.js';
 export * from './partner.js';
+import { MovementType } from '../constants/inventory.js';
 
 export interface Company {
   id: string;
@@ -76,7 +77,7 @@ export interface OrderItem {
 // Inventory Types
 // ============================================
 
-export type MovementType = 'IN' | 'OUT';
+// MovementType moved to constants/inventory.ts
 
 export interface InventoryMovement {
   id: string;
@@ -161,3 +162,5 @@ export interface CreateOrderItemDto {
   price: number;
 }
 export * from './p2p';
+export * from './report.js';
+export * from './dashboard.js';

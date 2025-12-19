@@ -1,12 +1,5 @@
 import { prisma, InvoiceStatus } from '@sync-erp/database';
-
-export interface DashboardKPIs {
-  totalSales: number;
-  outstandingAR: number;
-  outstandingAP: number;
-  inventoryValue: number;
-  currency: string;
-}
+import { DashboardKPIs } from '@sync-erp/shared';
 
 /**
  * Dashboard Service - Business logic for dashboard KPI aggregation.
