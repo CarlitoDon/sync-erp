@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Payment } from '@sync-erp/shared';
-import { paymentService } from '@/features/finance/services/paymentService';
-import { apiAction } from '@/utils/apiAction';
+import { trpc } from '@/lib/trpc';
 import { formatDate } from '@/utils/format';
 
 interface PaymentHistoryListProps {
   invoiceId: string;
-  totalAmount: number;
+  totalAmount: number | string;
   currency?: string;
 }
 
@@ -15,33 +12,20 @@ export function PaymentHistoryList({
   totalAmount,
   currency = 'IDR',
 }: PaymentHistoryListProps) {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Filter payments client-side since we don't have getByInvoiceId endpoint
+  const { data: allPayments = [], isLoading: loading } =
+    trpc.payment.list.useQuery();
 
-  useEffect(() => {
-    const loadPayments = async () => {
-      setLoading(true);
-      await apiAction(
-        () => paymentService.getPaymentHistory(invoiceId),
-        {
-          onSuccess: (data) => setPayments(data),
-          onError: () => setPayments([]), // Handle API error gracefully
-          errorMessage: 'Failed to load payment history',
-        }
-      );
-      setLoading(false);
-    };
-
-    if (invoiceId) {
-      loadPayments();
-    }
-  }, [invoiceId]);
+  // Filter to this invoice
+  const payments = allPayments.filter(
+    (p) => p.invoiceId === invoiceId
+  );
 
   const totalPaid = payments.reduce(
     (sum, p) => sum + Number(p.amount),
     0
   );
-  const remainingBalance = totalAmount - totalPaid;
+  const remainingBalance = Number(totalAmount) - totalPaid;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {

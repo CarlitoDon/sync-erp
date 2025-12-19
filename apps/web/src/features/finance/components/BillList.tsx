@@ -1,14 +1,7 @@
-import { useState, useEffect, useCallback, Fragment } from 'react';
+import { useState, Fragment } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  billService,
-  Bill,
-} from '@/features/finance/services/billService';
-import {
-  paymentService,
-  CreatePaymentInput,
-} from '@/features/finance/services/invoiceService';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { trpc, RouterOutputs } from '@/lib/trpc';
+import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
@@ -17,10 +10,13 @@ import { PaymentHistoryList } from '@/features/finance/components/PaymentHistory
 import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
 
-// Extend Bill type with order relation
-interface BillWithOrder extends Bill {
-  order?: { orderNumber: string } | null;
-}
+type Bill = RouterOutputs['bill']['list'][number];
+type PaymentMethod =
+  | 'BANK_TRANSFER'
+  | 'CASH'
+  | 'CHECK'
+  | 'CREDIT_CARD'
+  | 'OTHER';
 
 interface BillListProps {
   filter?: {
@@ -31,15 +27,34 @@ interface BillListProps {
 
 export const BillList = ({ filter }: BillListProps) => {
   const confirm = useConfirm();
+  const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
 
-  const {
-    data: bills,
-    loading,
-    refresh: loadBills,
-  } = useCompanyData<Bill[]>(
-    useCallback(() => billService.list(filter), [filter]),
-    []
-  );
+  const { data: bills = [], isLoading: loading } =
+    trpc.bill.list.useQuery(
+      {
+        status:
+          filter?.partnerId || filter?.orderId
+            ? undefined
+            : undefined,
+      },
+      { enabled: !!currentCompany?.id }
+    );
+
+  const postMutation = trpc.bill.post.useMutation({
+    onSuccess: () => utils.bill.list.invalidate(),
+  });
+
+  const voidMutation = trpc.bill.void.useMutation({
+    onSuccess: () => utils.bill.list.invalidate(),
+  });
+
+  const paymentMutation = trpc.payment.create.useMutation({
+    onSuccess: () => {
+      utils.bill.list.invalidate();
+      utils.payment.list.invalidate();
+    },
+  });
 
   const [filterStatus, setFilterStatus] = useState<
     'ALL' | 'DRAFT' | 'POSTED' | 'PAID' | 'VOID'
@@ -49,16 +64,14 @@ export const BillList = ({ filter }: BillListProps) => {
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] =
-    useState<CreatePaymentInput['method']>('BANK_TRANSFER');
+    useState<PaymentMethod>('BANK_TRANSFER');
   const [showHistory, setShowHistory] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadBills();
-  }, [filter, loadBills]);
-
   const handlePost = async (id: string) => {
-    await apiAction(() => billService.post(id), 'Bill posted!');
-    loadBills();
+    await apiAction(
+      () => postMutation.mutateAsync({ id }),
+      'Bill posted!'
+    );
   };
 
   const handleVoid = async (id: string) => {
@@ -69,8 +82,10 @@ export const BillList = ({ filter }: BillListProps) => {
       variant: 'danger',
     });
     if (!confirmed) return;
-    await apiAction(() => billService.void(id), 'Bill voided');
-    loadBills();
+    await apiAction(
+      () => voidMutation.mutateAsync({ id }),
+      'Bill voided'
+    );
   };
 
   const openPaymentModal = (bill: Bill) => {
@@ -85,19 +100,24 @@ export const BillList = ({ filter }: BillListProps) => {
   };
 
   const handlePayment = async () => {
-    if (!selectedBill || paymentAmount <= 0) return;
+    if (
+      !selectedBill ||
+      paymentAmount <= 0 ||
+      paymentMutation.isPending
+    )
+      return;
     const result = await apiAction(
       () =>
-        paymentService.create({
-          invoiceId: selectedBill.id,
+        paymentMutation.mutateAsync({
+          invoiceId: selectedBill.id, // Bills use same payment endpoint
           amount: paymentAmount,
           method: paymentMethod,
+          businessDate: new Date(),
         }),
       'Payment recorded!'
     );
     if (result) {
       closePaymentModal();
-      loadBills();
     }
   };
 
@@ -158,7 +178,7 @@ export const BillList = ({ filter }: BillListProps) => {
                   Supplier
                 </span>
                 <span className="font-medium">
-                  {selectedBill.partner?.name || '-'}
+                  {selectedBill.partnerId || '-'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -220,9 +240,7 @@ export const BillList = ({ filter }: BillListProps) => {
               <Select
                 value={paymentMethod}
                 onChange={(val) =>
-                  setPaymentMethod(
-                    val as CreatePaymentInput['method']
-                  )
+                  setPaymentMethod(val as PaymentMethod)
                 }
                 options={[
                   { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
@@ -248,11 +266,14 @@ export const BillList = ({ filter }: BillListProps) => {
                 onClick={handlePayment}
                 disabled={
                   paymentAmount <= 0 ||
-                  paymentAmount > Number(selectedBill.balance)
+                  paymentAmount > Number(selectedBill.balance) ||
+                  paymentMutation.isPending
                 }
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
-                Confirm Payment
+                {paymentMutation.isPending
+                  ? 'Processing...'
+                  : 'Confirm Payment'}
               </button>
             </div>
           </div>
@@ -296,28 +317,21 @@ export const BillList = ({ filter }: BillListProps) => {
       {/* Filters */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
-          {['ALL', 'DRAFT', 'POSTED', 'PAID'].map((status) => (
-            <button
-              key={status}
-              onClick={() =>
-                setFilterStatus(
-                  status as
-                    | 'ALL'
-                    | 'DRAFT'
-                    | 'POSTED'
-                    | 'PAID'
-                    | 'VOID'
-                )
-              }
-              className={`${
-                filterStatus === status
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-            >
-              {status === 'ALL' ? 'All Bills' : status}
-            </button>
-          ))}
+          {(['ALL', 'DRAFT', 'POSTED', 'PAID'] as const).map(
+            (status) => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status)}
+                className={`${
+                  filterStatus === status
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              >
+                {status === 'ALL' ? 'All Bills' : status}
+              </button>
+            )
+          )}
         </nav>
       </div>
 
@@ -331,9 +345,6 @@ export const BillList = ({ filter }: BillListProps) => {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Supplier
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Source PO
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                 Amount
@@ -356,7 +367,7 @@ export const BillList = ({ filter }: BillListProps) => {
             {filteredBills.length === 0 ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={7}
                   className="px-6 py-12 text-center text-gray-500"
                 >
                   No bills found.
@@ -375,30 +386,7 @@ export const BillList = ({ filter }: BillListProps) => {
                       </Link>
                     </td>
                     <td className="px-6 py-4">
-                      {bill.partner?.name ? (
-                        <Link
-                          to={`/suppliers/${bill.partnerId}`}
-                          className="text-blue-600 hover:underline"
-                        >
-                          {bill.partner.name}
-                        </Link>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-                    <td className="px-6 py-4 font-mono text-sm text-gray-500">
-                      {(bill as BillWithOrder).order ? (
-                        <Link
-                          to={`/purchase-orders/${(bill as BillWithOrder).orderId}`}
-                          className="text-blue-600 hover:underline"
-                        >
-                          {(bill as BillWithOrder).order?.orderNumber}
-                        </Link>
-                      ) : (
-                        <span className="text-gray-400 italic">
-                          Manual
-                        </span>
-                      )}
+                      {bill.partnerId || '-'}
                     </td>
                     <td className="px-6 py-4 text-right">
                       {formatCurrency(Number(bill.amount))}
@@ -466,10 +454,10 @@ export const BillList = ({ filter }: BillListProps) => {
                   </tr>
                   {showHistory === bill.id && (
                     <tr className="bg-gray-50">
-                      <td colSpan={8} className="px-6 py-4">
+                      <td colSpan={7} className="px-6 py-4">
                         <PaymentHistoryList
                           invoiceId={bill.id}
-                          totalAmount={bill.amount}
+                          totalAmount={Number(bill.amount)}
                         />
                       </td>
                     </tr>

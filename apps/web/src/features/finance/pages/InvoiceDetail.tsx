@@ -1,10 +1,5 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import {
-  invoiceService,
-  paymentService,
-  CreatePaymentInput,
-} from '@/features/finance/services/invoiceService';
+import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
@@ -13,75 +8,75 @@ import FormModal from '@/components/ui/FormModal';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { PaymentHistoryList } from '@/features/finance/components/PaymentHistoryList';
 import Select from '@/components/ui/Select';
+import { useState } from 'react';
 
-// Invoice type with order relation
-interface InvoiceWithOrder {
-  id: string;
-  invoiceNumber: string | null;
-  amount: number | string;
-  balance: number | string;
-  subtotal: number | string;
-  taxAmount: number | string;
-  taxRate: number;
-  dueDate: Date | string;
-  createdAt: Date | string;
-  status: string;
-  orderId?: string | null;
-  order?: { id: string; orderNumber: string } | null;
-  partnerId?: string;
-  partner?: { name: string } | null;
-  payments?: Array<{
-    id: string;
-    amount: number;
-    method: string;
-    createdAt: string;
-  }>;
-}
+// Type from tRPC response
+type PaymentMethod =
+  | 'BANK_TRANSFER'
+  | 'CASH'
+  | 'CHECK'
+  | 'CREDIT_CARD'
+  | 'OTHER';
+
+// Exhaustive status label mapping
+const statusLabels: Record<string, { label: string; color: string }> =
+  {
+    DRAFT: { label: 'Draft', color: 'bg-gray-100 text-gray-800' },
+    POSTED: {
+      label: 'Posted',
+      color: 'bg-yellow-100 text-yellow-800',
+    },
+    PAID: { label: 'Paid', color: 'bg-green-100 text-green-800' },
+    VOID: { label: 'Void', color: 'bg-red-100 text-red-800' },
+  };
+
+const getStatusDisplay = (status: string) =>
+  statusLabels[status] || {
+    label: status,
+    color: 'bg-gray-100 text-gray-800',
+  };
 
 export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
+  const utils = trpc.useUtils();
 
-  const [invoice, setInvoice] = useState<InvoiceWithOrder | null>(
-    null
-  );
-  const [loading, setLoading] = useState(true);
+  const { data: invoice, isLoading: loading } =
+    trpc.invoice.getById.useQuery(
+      { id: id! },
+      { enabled: !!id && !!currentCompany?.id }
+    );
+
+  const postMutation = trpc.invoice.post.useMutation({
+    onSuccess: () => utils.invoice.getById.invalidate({ id: id! }),
+  });
+
+  const voidMutation = trpc.invoice.void.useMutation({
+    onSuccess: () => utils.invoice.getById.invalidate({ id: id! }),
+  });
+
+  const paymentMutation = trpc.payment.create.useMutation({
+    onSuccess: () => {
+      utils.invoice.getById.invalidate({ id: id! });
+      utils.payment.list.invalidate();
+    },
+  });
 
   // Payment Modal State
   const [showPayment, setShowPayment] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] =
-    useState<CreatePaymentInput['method']>('BANK_TRANSFER');
+    useState<PaymentMethod>('BANK_TRANSFER');
   const [showHistory, setShowHistory] = useState(false);
-
-  const loadInvoice = async () => {
-    if (!id || !currentCompany) return;
-    setLoading(true);
-    try {
-      const data = await invoiceService.getById(id);
-      setInvoice(data as InvoiceWithOrder);
-      setPaymentAmount(Number(data.balance));
-    } catch (error) {
-      console.error('Failed to load invoice:', error);
-      navigate('/invoices'); // Assuming there is an invoice list page, otherwise back to dashboard or sales
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadInvoice();
-  }, [id, currentCompany]);
 
   const handlePost = async () => {
     if (!invoice) return;
     await apiAction(
-      () => invoiceService.post(invoice.id),
+      () => postMutation.mutateAsync({ id: invoice.id }),
       'Invoice posted!'
     );
-    loadInvoice();
   };
 
   const handleVoid = async () => {
@@ -94,41 +89,26 @@ export default function InvoiceDetail() {
     });
     if (!confirmed) return;
     await apiAction(
-      () => invoiceService.void(invoice.id),
+      () => voidMutation.mutateAsync({ id: invoice.id }),
       'Invoice voided'
     );
-    loadInvoice();
   };
 
   const handleRecordPayment = async () => {
-    if (!invoice || paymentAmount <= 0) return;
+    if (!invoice || paymentAmount <= 0 || paymentMutation.isPending)
+      return;
     await apiAction(
       () =>
-        paymentService.create({
+        paymentMutation.mutateAsync({
           invoiceId: invoice.id,
           amount: paymentAmount,
           method: paymentMethod,
+          businessDate: new Date(),
         }),
       'Payment recorded!'
     );
     setShowPayment(false);
     setPaymentAmount(0);
-    loadInvoice();
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'POSTED':
-        return 'bg-yellow-100 text-yellow-800'; // Match new "Warning" style for outstanding
-      case 'PAID':
-        return 'bg-green-100 text-green-800';
-      case 'VOID':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
   };
 
   if (loading) {
@@ -149,6 +129,8 @@ export default function InvoiceDetail() {
     );
   }
 
+  const statusDisplay = getStatusDisplay(invoice.status);
+
   return (
     <>
       {/* Payment Modal */}
@@ -159,7 +141,6 @@ export default function InvoiceDetail() {
         maxWidth="md"
       >
         <div className="space-y-4">
-          {/* Invoice Info Header */}
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">
@@ -170,9 +151,11 @@ export default function InvoiceDetail() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Customer</span>
-              <span className="font-medium">
-                {invoice.partner?.name || '-'}
+              <span className="text-sm text-gray-500">
+                Customer ID
+              </span>
+              <span className="font-medium font-mono text-xs">
+                {invoice.partnerId || '-'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -205,7 +188,6 @@ export default function InvoiceDetail() {
             </div>
           </div>
 
-          {/* Payment Form */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Payment Amount *
@@ -231,7 +213,7 @@ export default function InvoiceDetail() {
             <Select
               value={paymentMethod}
               onChange={(val) =>
-                setPaymentMethod(val as CreatePaymentInput['method'])
+                setPaymentMethod(val as PaymentMethod)
               }
               options={[
                 { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
@@ -243,12 +225,11 @@ export default function InvoiceDetail() {
             />
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={() => setShowPayment(false)}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
             >
               Cancel
             </button>
@@ -257,11 +238,14 @@ export default function InvoiceDetail() {
               onClick={handleRecordPayment}
               disabled={
                 paymentAmount <= 0 ||
-                paymentAmount > Number(invoice.balance)
+                paymentAmount > Number(invoice.balance) ||
+                paymentMutation.isPending
               }
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300"
             >
-              Confirm Payment
+              {paymentMutation.isPending
+                ? 'Processing...'
+                : 'Confirm Payment'}
             </button>
           </div>
         </div>
@@ -286,7 +270,7 @@ export default function InvoiceDetail() {
         <div className="flex items-center justify-between">
           <div>
             <button
-              onClick={() => navigate('/sales-orders')} // Using SO list as main nav for now? Or implement Invoice List? Assuming generic back
+              onClick={() => navigate(-1)}
               className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
             >
               ← Back
@@ -295,12 +279,12 @@ export default function InvoiceDetail() {
               Invoice {invoice.invoiceNumber}
             </h1>
             <p className="text-gray-500">
-              {invoice.partner ? (
+              {invoice.partnerId ? (
                 <Link
                   to={`/customers/${invoice.partnerId}`}
                   className="text-blue-600 hover:text-blue-800 hover:underline"
                 >
-                  {invoice.partner.name}
+                  Customer Details
                 </Link>
               ) : (
                 'Unknown Customer'
@@ -308,9 +292,9 @@ export default function InvoiceDetail() {
             </p>
           </div>
           <span
-            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(invoice.status)}`}
+            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${statusDisplay.color}`}
           >
-            {invoice.status}
+            {statusDisplay.label}
           </span>
         </div>
 
@@ -325,21 +309,6 @@ export default function InvoiceDetail() {
               <p className="font-mono font-medium">
                 {invoice.invoiceNumber}
               </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Source SO</p>
-              {invoice.order ? (
-                <Link
-                  to={`/sales-orders/${invoice.order.id}`}
-                  className="font-mono font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  {invoice.order.orderNumber}
-                </Link>
-              ) : (
-                <span className="text-gray-400 italic">
-                  Manual Entry
-                </span>
-              )}
             </div>
             <div>
               <p className="text-sm text-gray-500">Due Date</p>
@@ -365,20 +334,6 @@ export default function InvoiceDetail() {
           <hr className="my-6" />
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <p className="text-sm text-gray-500">Subtotal</p>
-              <p className="font-medium">
-                {formatCurrency(Number(invoice.subtotal))}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">
-                Tax ({invoice.taxRate}%)
-              </p>
-              <p className="font-medium">
-                {formatCurrency(Number(invoice.taxAmount))}
-              </p>
-            </div>
             <div>
               <p className="text-sm text-gray-500">Total Amount</p>
               <p className="text-xl font-bold text-gray-900">
@@ -419,7 +374,10 @@ export default function InvoiceDetail() {
                 <>
                   <ActionButton
                     variant="success"
-                    onClick={() => setShowPayment(true)}
+                    onClick={() => {
+                      setPaymentAmount(Number(invoice.balance));
+                      setShowPayment(true);
+                    }}
                   >
                     Record Payment
                   </ActionButton>
@@ -428,14 +386,12 @@ export default function InvoiceDetail() {
                   </ActionButton>
                 </>
               )}
-            {(invoice.payments?.length || 0) > 0 && (
-              <ActionButton
-                variant="secondary"
-                onClick={() => setShowHistory(true)}
-              >
-                View Payment History ({invoice.payments?.length})
-              </ActionButton>
-            )}
+            <ActionButton
+              variant="secondary"
+              onClick={() => setShowHistory(true)}
+            >
+              View Payment History
+            </ActionButton>
           </div>
         </div>
       </div>

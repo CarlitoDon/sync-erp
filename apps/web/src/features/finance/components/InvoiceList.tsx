@@ -1,12 +1,7 @@
-import { useState, useEffect, useCallback, Fragment } from 'react';
+import { useState, Fragment } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  invoiceService,
-  paymentService,
-  Invoice,
-  CreatePaymentInput,
-} from '@/features/finance/services/invoiceService';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { trpc, RouterOutputs } from '@/lib/trpc';
+import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
@@ -17,10 +12,13 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { Button } from '@/components/ui/button';
 import Select from '@/components/ui/Select';
 
-// Extend Invoice type with order
-interface InvoiceWithOrder extends Invoice {
-  order?: { orderNumber: string } | null;
-}
+type Invoice = RouterOutputs['invoice']['list'][number];
+type PaymentMethod =
+  | 'BANK_TRANSFER'
+  | 'CASH'
+  | 'CHECK'
+  | 'CREDIT_CARD'
+  | 'OTHER';
 
 interface InvoiceListProps {
   filter?: {
@@ -31,15 +29,34 @@ interface InvoiceListProps {
 
 export const InvoiceList = ({ filter }: InvoiceListProps) => {
   const confirm = useConfirm();
+  const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
 
-  const {
-    data: invoices,
-    loading,
-    refresh: loadInvoices,
-  } = useCompanyData<Invoice[]>(
-    useCallback(() => invoiceService.list(filter), [filter]),
-    []
-  );
+  const { data: invoices = [], isLoading: loading } =
+    trpc.invoice.list.useQuery(
+      {
+        status:
+          filter?.partnerId || filter?.orderId
+            ? undefined
+            : undefined,
+      },
+      { enabled: !!currentCompany?.id }
+    );
+
+  const postMutation = trpc.invoice.post.useMutation({
+    onSuccess: () => utils.invoice.list.invalidate(),
+  });
+
+  const voidMutation = trpc.invoice.void.useMutation({
+    onSuccess: () => utils.invoice.list.invalidate(),
+  });
+
+  const paymentMutation = trpc.payment.create.useMutation({
+    onSuccess: () => {
+      utils.invoice.list.invalidate();
+      utils.payment.list.invalidate();
+    },
+  });
 
   const [filterStatus, setFilterStatus] = useState<
     'ALL' | 'DRAFT' | 'POSTED' | 'PAID' | 'VOID'
@@ -50,20 +67,17 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
     useState<Invoice | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] =
-    useState<CreatePaymentInput['method']>('BANK_TRANSFER');
+    useState<PaymentMethod>('BANK_TRANSFER');
   const [businessDate, setBusinessDate] = useState(
     new Date().toISOString().split('T')[0]
   );
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHistory, setShowHistory] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadInvoices();
-  }, [filter, loadInvoices]);
-
   const handlePost = async (id: string) => {
-    await apiAction(() => invoiceService.post(id), 'Invoice posted!');
-    loadInvoices();
+    await apiAction(
+      () => postMutation.mutateAsync({ id }),
+      'Invoice posted!'
+    );
   };
 
   const handleVoid = async (id: string) => {
@@ -74,8 +88,10 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
       variant: 'danger',
     });
     if (!confirmed) return;
-    await apiAction(() => invoiceService.void(id), 'Invoice voided');
-    loadInvoices();
+    await apiAction(
+      () => voidMutation.mutateAsync({ id }),
+      'Invoice voided'
+    );
   };
 
   const openPaymentModal = (invoice: Invoice) => {
@@ -88,27 +104,27 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
   const closePaymentModal = () => {
     setSelectedInvoice(null);
     setPaymentAmount(0);
-    setIsSubmitting(false);
   };
 
   const handlePayment = async () => {
-    if (!selectedInvoice || paymentAmount <= 0 || isSubmitting)
+    if (
+      !selectedInvoice ||
+      paymentAmount <= 0 ||
+      paymentMutation.isPending
+    )
       return;
-    setIsSubmitting(true);
     const result = await apiAction(
       () =>
-        paymentService.create({
+        paymentMutation.mutateAsync({
           invoiceId: selectedInvoice.id,
           amount: paymentAmount,
           method: paymentMethod,
-          date: businessDate,
+          businessDate: new Date(businessDate),
         }),
       'Payment recorded!'
     );
-    setIsSubmitting(false);
     if (result) {
       closePaymentModal();
-      loadInvoices();
     }
   };
 
@@ -169,7 +185,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
                   Customer
                 </span>
                 <span className="font-medium">
-                  {selectedInvoice.partner?.name || '-'}
+                  {selectedInvoice.partnerId || '-'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -232,9 +248,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
               <Select
                 value={paymentMethod}
                 onChange={(val) =>
-                  setPaymentMethod(
-                    val as CreatePaymentInput['method']
-                  )
+                  setPaymentMethod(val as PaymentMethod)
                 }
                 options={[
                   { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
@@ -246,7 +260,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
               />
             </div>
 
-            {/* Business Date (FR-005a) */}
+            {/* Business Date */}
             <DatePicker
               label="Business Date *"
               value={businessDate}
@@ -258,7 +272,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
               <button
                 type="button"
                 onClick={closePaymentModal}
-                disabled={isSubmitting}
+                disabled={paymentMutation.isPending}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
                 Cancel
@@ -266,7 +280,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
               <Button
                 variant="primary"
                 onClick={handlePayment}
-                isLoading={isSubmitting}
+                isLoading={paymentMutation.isPending}
                 disabled={
                   paymentAmount <= 0 ||
                   paymentAmount > Number(selectedInvoice.balance)
@@ -317,20 +331,11 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
       {/* Filters */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
-          {['ALL', 'DRAFT', 'POSTED', 'PAID', 'VOID'].map(
+          {(['ALL', 'DRAFT', 'POSTED', 'PAID', 'VOID'] as const).map(
             (status) => (
               <button
                 key={status}
-                onClick={() =>
-                  setFilterStatus(
-                    status as
-                      | 'ALL'
-                      | 'DRAFT'
-                      | 'POSTED'
-                      | 'PAID'
-                      | 'VOID'
-                  )
-                }
+                onClick={() => setFilterStatus(status)}
                 className={`${
                   filterStatus === status
                     ? 'border-blue-500 text-blue-600'
@@ -355,9 +360,6 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Customer
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Source SO
-              </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                 Amount
               </th>
@@ -379,7 +381,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
             {filteredInvoices.length === 0 ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={7}
                   className="px-6 py-12 text-center text-gray-500"
                 >
                   No invoices found.
@@ -398,15 +400,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
                       </Link>
                     </td>
                     <td className="px-6 py-4">
-                      {invoice.partner?.name || '-'}
-                    </td>
-                    <td className="px-6 py-4 font-mono text-sm text-gray-500">
-                      {(invoice as InvoiceWithOrder).order
-                        ?.orderNumber || (
-                        <span className="text-gray-400 italic">
-                          Manual
-                        </span>
-                      )}
+                      {invoice.partnerId || '-'}
                     </td>
                     <td className="px-6 py-4 text-right">
                       {formatCurrency(Number(invoice.amount))}
@@ -476,10 +470,10 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
                   </tr>
                   {showHistory === invoice.id && (
                     <tr className="bg-gray-50">
-                      <td colSpan={8} className="px-6 py-4">
+                      <td colSpan={7} className="px-6 py-4">
                         <PaymentHistoryList
                           invoiceId={invoice.id}
-                          totalAmount={invoice.amount}
+                          totalAmount={Number(invoice.amount)}
                         />
                       </td>
                     </tr>
