@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config';
-// import tsconfigPaths from 'vite-tsconfig-paths'; // Removed unused import to fix lint
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -20,8 +19,14 @@ export default defineConfig({
     name: '@sync-erp/api',
     globals: true,
     environment: 'node',
-    // Run unit tests only (integration/e2e need real server + DB)
-    include: ['test/unit/**/*.test.ts'],
+    // Include all tests - setup file handles mock conditionally
+    include: [
+      'test/unit/**/*.test.ts',
+      'test/invariants/**/*.test.ts',
+      'test/integration/**/*.test.ts',
+      'test/e2e/**/*.test.ts',
+    ],
+    testTimeout: 60000,
     setupFiles: ['./test/setup.ts'],
     coverage: {
       provider: 'v8',
@@ -29,7 +34,7 @@ export default defineConfig({
       reportsDirectory: './coverage',
       thresholds: {
         lines: 80,
-        branches: 79, // 79.13% actual - remaining gaps in Prisma-calling services need integration tests
+        branches: 79,
         functions: 80,
         statements: 80,
       },
@@ -42,8 +47,7 @@ export default defineConfig({
         '**/*.spec.ts',
         '**/test/**',
         'vitest.config.ts',
-        'src/index.ts', // Entry point bootstrap
-        // Repositories are thin Prisma wrappers - tested via integration tests
+        'src/index.ts',
         '**/*.repository.ts',
         '**/repositories/**',
       ],

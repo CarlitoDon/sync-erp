@@ -9,5 +9,7 @@
   "chat.tools.terminal.autoApprove": {
     ".specify/scripts/bash/": true,
     ".specify/scripts/powershell/": true
-  }
+  },
+  "vitest.maximumConfigs": 10,
+  "vitest.configSearchPatternExclude": "**/node_modules/**"
 }

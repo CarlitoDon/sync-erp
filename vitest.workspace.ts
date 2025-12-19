@@ -1,6 +1,1 @@
-export default [
-  'apps/api',
-  'apps/web',
-  'packages/shared',
-  'packages/database',
-];
+export default ['apps/api', 'apps/web', 'packages/shared'];
