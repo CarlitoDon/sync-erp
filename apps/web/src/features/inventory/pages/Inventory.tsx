@@ -1,11 +1,12 @@
+import { Link } from 'react-router-dom';
 import {
   productService,
   StockLevel,
-} from '../services/productService';
-import { useCompany } from '../../../contexts/CompanyContext';
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
-import ActionButton from '../../../components/ui/ActionButton';
+} from '@/features/inventory/services/productService';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { StockAdjustmentModal } from '@/features/inventory/components/StockAdjustmentModal';
+import ActionButton from '@/components/ui/ActionButton';
 import { useState } from 'react';
 
 export default function Inventory() {
@@ -180,11 +181,21 @@ export default function Inventory() {
                   item.stockQty * Number(item.averageCost);
                 return (
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-mono text-sm text-gray-600">
-                      {item.sku}
+                    <td className="px-6 py-4 font-mono text-sm">
+                      <Link
+                        to={`/products/${item.id}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {item.sku}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 font-medium text-gray-900">
-                      {item.name}
+                      <Link
+                        to={`/products/${item.id}`}
+                        className="hover:text-blue-600 hover:underline"
+                      >
+                        {item.name}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-right font-semibold">
                       {item.stockQty.toLocaleString()}

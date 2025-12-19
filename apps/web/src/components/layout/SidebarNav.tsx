@@ -1,4 +1,4 @@
-import SidebarItem from './SidebarItem';
+import SidebarItem from '@/components/layout/SidebarItem';
 import {
   HomeIcon,
   TruckIcon,
@@ -45,6 +45,8 @@ const navItems = [
     label: 'Inventory',
     icon: <ArchiveBoxIcon />,
   },
+  { path: '/receipts', label: 'Goods Receipts', icon: <TruckIcon /> },
+  { path: '/shipments', label: 'Shipments', icon: <TruckIcon /> },
 
   // Finance
   { path: '/finance', label: 'Finance', icon: <BanknotesIcon /> },

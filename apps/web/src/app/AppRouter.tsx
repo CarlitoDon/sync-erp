@@ -1,32 +1,36 @@
 import { Routes, Route } from 'react-router-dom';
-import { ProtectedRoute } from '../features/auth/components/ProtectedRoute';
-import Layout from '../components/layout/Layout';
-import Dashboard from '../features/dashboard/pages/Dashboard';
-import Companies from '../features/company/pages/Companies';
-import CreateCompany from '../features/company/pages/CreateCompany';
-import Suppliers from '../features/procurement/pages/Suppliers';
-import Customers from '../features/sales/pages/Customers';
-import Products from '../features/inventory/pages/Products';
-import PurchaseOrders from '../features/procurement/pages/PurchaseOrders';
-import PurchaseOrderDetail from '../features/procurement/pages/PurchaseOrderDetail';
-import Inventory from '../features/inventory/pages/Inventory';
-import SalesOrders from '../features/sales/pages/SalesOrders';
-import SalesOrderDetail from '../features/sales/pages/SalesOrderDetail';
-import Invoices from '../features/finance/pages/Invoices';
-import InvoiceDetail from '../features/finance/pages/InvoiceDetail';
-import AccountsPayable from '../features/finance/pages/AccountsPayable';
-import BillDetail from '../features/finance/pages/BillDetail';
-import TeamManagement from '../features/company/pages/TeamManagement';
-import Finance from '../features/finance/pages/Finance';
-import { RegisterPage } from '../features/auth/components/RegisterPage';
-import { LoginPage } from '../features/auth/components/LoginPage';
-import { CompanySelectionPage } from '../features/company/pages/CompanySelectionPage';
-import CustomerDetail from '../features/sales/pages/CustomerDetail';
-import SupplierDetail from '../features/procurement/pages/SupplierDetail';
-import ProductDetail from '../features/inventory/pages/ProductDetail';
-import JournalDetail from '../features/finance/pages/JournalDetail';
-import JournalEntries from '../features/finance/pages/JournalEntries';
-import Observability from '../features/admin/pages/Observability';
+import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
+import Layout from '@/components/layout/Layout';
+import Dashboard from '@/features/dashboard/pages/Dashboard';
+import Companies from '@/features/company/pages/Companies';
+import CreateCompany from '@/features/company/pages/CreateCompany';
+import Suppliers from '@/features/procurement/pages/Suppliers';
+import Customers from '@/features/sales/pages/Customers';
+import Products from '@/features/inventory/pages/Products';
+import PurchaseOrders from '@/features/procurement/pages/PurchaseOrders';
+import PurchaseOrderDetail from '@/features/procurement/pages/PurchaseOrderDetail';
+import Inventory from '@/features/inventory/pages/Inventory';
+import GoodsReceipts from '@/features/inventory/pages/GoodsReceipts';
+import GoodsReceiptDetail from '@/features/inventory/pages/GoodsReceiptDetail';
+import Shipments from '@/features/inventory/pages/Shipments';
+import ShipmentDetail from '@/features/inventory/pages/ShipmentDetail';
+import SalesOrders from '@/features/sales/pages/SalesOrders';
+import SalesOrderDetail from '@/features/sales/pages/SalesOrderDetail';
+import Invoices from '@/features/finance/pages/Invoices';
+import InvoiceDetail from '@/features/finance/pages/InvoiceDetail';
+import AccountsPayable from '@/features/finance/pages/AccountsPayable';
+import BillDetail from '@/features/finance/pages/BillDetail';
+import TeamManagement from '@/features/company/pages/TeamManagement';
+import Finance from '@/features/finance/pages/Finance';
+import { RegisterPage } from '@/features/auth/components/RegisterPage';
+import { LoginPage } from '@/features/auth/components/LoginPage';
+import { CompanySelectionPage } from '@/features/company/pages/CompanySelectionPage';
+import CustomerDetail from '@/features/sales/pages/CustomerDetail';
+import SupplierDetail from '@/features/procurement/pages/SupplierDetail';
+import ProductDetail from '@/features/inventory/pages/ProductDetail';
+import JournalDetail from '@/features/finance/pages/JournalDetail';
+import JournalEntries from '@/features/finance/pages/JournalEntries';
+import Observability from '@/features/admin/pages/Observability';
 
 export function AppRouter() {
   return (
@@ -61,6 +65,10 @@ export function AppRouter() {
             element={<PurchaseOrderDetail />}
           />
           <Route path="inventory" element={<Inventory />} />
+          <Route path="receipts" element={<GoodsReceipts />} />
+          <Route path="receipts/:id" element={<GoodsReceiptDetail />} />
+          <Route path="shipments" element={<Shipments />} />
+          <Route path="shipments/:id" element={<ShipmentDetail />} />
           <Route path="sales-orders" element={<SalesOrders />} />
           <Route
             path="sales-orders/:id"
