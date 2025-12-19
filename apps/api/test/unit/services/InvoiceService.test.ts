@@ -8,44 +8,35 @@ import {
 const mockJournalService = {
   postInvoice: vi.fn().mockResolvedValue({}),
 };
-vi.mock(
-  '../../../src/modules/accounting/services/journal.service',
-  () => ({
-    JournalService: function () {
-      return mockJournalService;
-    },
-  })
-);
+vi.mock('@modules/accounting/services/journal.service', () => ({
+  JournalService: function () {
+    return mockJournalService;
+  },
+}));
 
 // Mock DocumentNumberService
 const mockDocumentNumberService = {
   generate: vi.fn().mockResolvedValue('INV-00001'),
 };
-vi.mock(
-  '../../../src/modules/common/services/document-number.service',
-  () => ({
-    DocumentNumberService: function () {
-      return mockDocumentNumberService;
-    },
-  })
-);
+vi.mock('@modules/common/services/document-number.service', () => ({
+  DocumentNumberService: function () {
+    return mockDocumentNumberService;
+  },
+}));
 
 // Mock InvoicePostingSaga
 const mockInvoicePostingSaga = {
   execute: vi.fn(),
 };
-vi.mock(
-  '../../../src/modules/accounting/sagas/invoice-posting.saga',
-  () => ({
-    InvoicePostingSaga: function () {
-      return mockInvoicePostingSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/invoice-posting.saga', () => ({
+  InvoicePostingSaga: function () {
+    return mockInvoicePostingSaga;
+  },
+}));
 
 // Mock InvoiceRepository
 vi.mock(
-  '../../../src/modules/accounting/repositories/invoice.repository',
+  '@modules/accounting/repositories/invoice.repository',
   () => ({
     InvoiceRepository: function () {
       return mockInvoiceRepository;
@@ -54,7 +45,7 @@ vi.mock(
 );
 
 // Import after mocking
-import { InvoiceService } from '../../../src/modules/accounting/services/invoice.service';
+import { InvoiceService } from '@modules/accounting/services/invoice.service';
 
 describe('InvoiceService', () => {
   let service: InvoiceService;

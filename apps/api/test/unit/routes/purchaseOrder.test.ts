@@ -8,14 +8,11 @@ import {
 } from '../mocks/services.mock';
 
 // Mock dependencies
-vi.mock(
-  '../../../src/modules/procurement/procurement.service',
-  () => ({
-    ProcurementService: function () {
-      return mockProcurementService;
-    },
-  })
-);
+vi.mock('@modules/procurement/procurement.service', () => ({
+  ProcurementService: function () {
+    return mockProcurementService;
+  },
+}));
 
 // Import after mocking
 import { purchaseOrderRouter } from '../../../src/routes/purchaseOrder';

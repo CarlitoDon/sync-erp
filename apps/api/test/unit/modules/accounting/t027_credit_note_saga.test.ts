@@ -5,8 +5,8 @@ import {
   SagaStep,
   InvoiceStatus,
 } from '@sync-erp/database';
-import { CreditNoteSaga } from '../../../../src/modules/accounting/sagas/credit-note.saga';
-import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-errors';
+import { CreditNoteSaga } from '@modules/accounting/sagas/credit-note.saga';
+import { SagaCompensatedError } from '@modules/common/saga/saga-errors';
 
 vi.mock('@sync-erp/database', async () => {
   const actual = await vi.importActual('@sync-erp/database');

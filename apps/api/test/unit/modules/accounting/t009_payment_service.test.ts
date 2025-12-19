@@ -1,28 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PaymentService } from '../../../../src/modules/accounting/services/payment.service';
+import { PaymentService } from '@modules/accounting/services/payment.service';
 // import { InvoiceType, InvoiceStatus } from '@sync-erp/database';
 
 // Automock deps
-vi.mock(
-  '../../../../src/modules/accounting/repositories/payment.repository'
-);
-vi.mock(
-  '../../../../src/modules/accounting/repositories/invoice.repository'
-);
-vi.mock(
-  '../../../../src/modules/accounting/services/journal.service'
-);
+vi.mock('@modules/accounting/repositories/payment.repository');
+vi.mock('@modules/accounting/repositories/invoice.repository');
+vi.mock('@modules/accounting/services/journal.service');
 
 // Mock Saga
 const mockPaymentPostingSaga = { execute: vi.fn() };
-vi.mock(
-  '../../../../src/modules/accounting/sagas/payment-posting.saga',
-  () => ({
-    PaymentPostingSaga: function () {
-      return mockPaymentPostingSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/payment-posting.saga', () => ({
+  PaymentPostingSaga: function () {
+    return mockPaymentPostingSaga;
+  },
+}));
 
 describe('T009: Implement/Verify Payment Service (SC-001)', () => {
   let service: PaymentService;

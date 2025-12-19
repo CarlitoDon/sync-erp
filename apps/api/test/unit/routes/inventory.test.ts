@@ -9,7 +9,7 @@ vi.mock('../../../src/middlewares/auth', () => ({
 }));
 
 // Mock InventoryService
-vi.mock('../../../src/modules/inventory/inventory.service', () => ({
+vi.mock('@modules/inventory/inventory.service', () => ({
   InventoryService: function () {
     return {
       getStockLevels: vi
@@ -40,19 +40,16 @@ vi.mock('../../../src/modules/inventory/inventory.service', () => ({
 }));
 
 // Mock ProcurementService
-vi.mock(
-  '../../../src/modules/procurement/procurement.service',
-  () => ({
-    ProcurementService: function () {
-      return {
-        receive: vi.fn().mockResolvedValue({
-          movements: [{ id: 'mov-2' }],
-          sagaLogId: 'saga-1',
-        }),
-      };
-    },
-  })
-);
+vi.mock('@modules/procurement/procurement.service', () => ({
+  ProcurementService: function () {
+    return {
+      receive: vi.fn().mockResolvedValue({
+        movements: [{ id: 'mov-2' }],
+        sagaLogId: 'saga-1',
+      }),
+    };
+  },
+}));
 
 // Import after mocking
 import { inventoryRouter } from '../../../src/routes/inventory';

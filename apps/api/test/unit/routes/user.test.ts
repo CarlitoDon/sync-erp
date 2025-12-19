@@ -7,7 +7,7 @@ import {
 } from '../mocks/services.mock';
 
 // Mock UserService
-vi.mock('../../../src/modules/user/user.service', () => ({
+vi.mock('@modules/user/user.service', () => ({
   UserService: function () {
     return mockUserService;
   },

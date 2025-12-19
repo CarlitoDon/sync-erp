@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { IdempotencyService } from '../../../../src/modules/common/services/idempotency.service';
+import { IdempotencyService } from '@modules/common/services/idempotency.service';
 import { prisma, IdempotencyStatus } from '@sync-erp/database';
 
 // Automock prisma

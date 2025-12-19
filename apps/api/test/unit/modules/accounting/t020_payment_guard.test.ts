@@ -1,27 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PaymentService } from '../../../../src/modules/accounting/services/payment.service';
+import { PaymentService } from '@modules/accounting/services/payment.service';
 
 // Mock dependencies
-vi.mock(
-  '../../../../src/modules/accounting/repositories/payment.repository'
-);
-vi.mock(
-  '../../../../src/modules/accounting/repositories/invoice.repository'
-);
-vi.mock(
-  '../../../../src/modules/common/services/idempotency.service'
-);
+vi.mock('@modules/accounting/repositories/payment.repository');
+vi.mock('@modules/accounting/repositories/invoice.repository');
+vi.mock('@modules/common/services/idempotency.service');
 
 // Mock Saga
 const mockSaga = { execute: vi.fn() };
-vi.mock(
-  '../../../../src/modules/accounting/sagas/payment-posting.saga',
-  () => ({
-    PaymentPostingSaga: function () {
-      return mockSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/payment-posting.saga', () => ({
+  PaymentPostingSaga: function () {
+    return mockSaga;
+  },
+}));
 
 describe('T020: Payment Concurrency Guard', () => {
   let service: PaymentService;

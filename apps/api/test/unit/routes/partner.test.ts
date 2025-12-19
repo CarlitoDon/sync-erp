@@ -21,7 +21,7 @@ const { mockPartnerService, mockAuthMiddleware, mockRbacMiddleware } =
   });
 
 // Mock dependencies
-vi.mock('../../../src/modules/partner/partner.service', () => ({
+vi.mock('@modules/partner/partner.service', () => ({
   PartnerService: function () {
     return mockPartnerService;
   },

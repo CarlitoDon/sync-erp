@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PaymentService } from '../../../../src/modules/accounting/services/payment.service';
+import { PaymentService } from '@modules/accounting/services/payment.service';
 import { IdempotencyScope } from '@sync-erp/database';
 
 // Mock dependencies
@@ -13,29 +13,18 @@ vi.mock('@sync-erp/database', async () => {
     },
   };
 });
-vi.mock(
-  '../../../../src/modules/common/services/idempotency.service'
-);
-vi.mock(
-  '../../../../src/modules/accounting/repositories/payment.repository'
-);
-vi.mock(
-  '../../../../src/modules/accounting/repositories/invoice.repository'
-);
-vi.mock(
-  '../../../../src/modules/accounting/services/journal.service'
-);
+vi.mock('@modules/common/services/idempotency.service');
+vi.mock('@modules/accounting/repositories/payment.repository');
+vi.mock('@modules/accounting/repositories/invoice.repository');
+vi.mock('@modules/accounting/services/journal.service');
 
 // Mock Saga
 const mockSaga = { execute: vi.fn() };
-vi.mock(
-  '../../../../src/modules/accounting/sagas/payment-posting.saga',
-  () => ({
-    PaymentPostingSaga: function () {
-      return mockSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/payment-posting.saga', () => ({
+  PaymentPostingSaga: function () {
+    return mockSaga;
+  },
+}));
 
 describe('T015: Payment Idempotency (FR-Safety)', () => {
   let service: PaymentService;

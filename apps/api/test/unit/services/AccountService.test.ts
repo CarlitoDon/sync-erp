@@ -6,7 +6,7 @@ import {
 
 // Mock the AccountRepository module
 vi.mock(
-  '../../../src/modules/accounting/repositories/account.repository',
+  '@modules/accounting/repositories/account.repository',
   () => ({
     AccountRepository: function () {
       return mockAccountRepository;
@@ -15,7 +15,7 @@ vi.mock(
 );
 
 // Import after mocking
-import { AccountService } from '../../../src/modules/accounting/services/account.service';
+import { AccountService } from '@modules/accounting/services/account.service';
 
 describe('AccountService', () => {
   let service: AccountService;

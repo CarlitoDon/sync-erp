@@ -5,8 +5,8 @@ import {
   SagaStep,
   OrderStatus,
 } from '@sync-erp/database';
-import { GoodsReceiptSaga } from '../../../../src/modules/procurement/sagas/goods-receipt.saga';
-import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-errors';
+import { GoodsReceiptSaga } from '@modules/procurement/sagas/goods-receipt.saga';
+import { SagaCompensatedError } from '@modules/common/saga/saga-errors';
 
 // Mock all dependencies using vi.hoisted() to avoid initialization order issues
 // vi.mock is hoisted to the top of the file, so we need vi.hoisted() for variables used in mocks
@@ -112,14 +112,11 @@ const { mockInventoryService } = vi.hoisted(() => ({
     }),
   },
 }));
-vi.mock(
-  '../../../../src/modules/inventory/inventory.service',
-  () => ({
-    InventoryService: function () {
-      return mockInventoryService;
-    },
-  })
-);
+vi.mock('@modules/inventory/inventory.service', () => ({
+  InventoryService: function () {
+    return mockInventoryService;
+  },
+}));
 
 describe('T024: Goods Receipt Saga', () => {
   let saga: GoodsReceiptSaga;

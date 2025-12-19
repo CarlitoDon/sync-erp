@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { InventoryService } from '../../../../src/modules/inventory/inventory.service';
+import { InventoryService } from '@modules/inventory/inventory.service';
 
 // Mock dependencies
 vi.mock('@sync-erp/database', async () => {
@@ -12,11 +12,9 @@ vi.mock('@sync-erp/database', async () => {
     },
   };
 });
-vi.mock('../../../../src/modules/inventory/inventory.repository');
-vi.mock('../../../../src/modules/product/product.service');
-vi.mock(
-  '../../../../src/modules/accounting/services/journal.service'
-);
+vi.mock('@modules/inventory/inventory.repository');
+vi.mock('@modules/product/product.service');
+vi.mock('@modules/accounting/services/journal.service');
 
 describe('T019: Inventory Concurrency Guard', () => {
   let service: InventoryService;

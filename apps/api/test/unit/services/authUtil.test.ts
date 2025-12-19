@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   hashPassword,
   comparePassword,
-} from '../../../src/modules/auth/auth.utils';
+} from '@modules/auth/auth.utils';
 
 describe('authUtil', () => {
   describe('hashPassword', () => {

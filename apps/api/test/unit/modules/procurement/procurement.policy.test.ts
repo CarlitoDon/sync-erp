@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { BusinessShape } from '@sync-erp/database';
 import { DomainError } from '@sync-erp/shared';
-import { ProcurementPolicy } from '../../../../src/modules/procurement/procurement.policy';
+import { ProcurementPolicy } from '@modules/procurement/procurement.policy';
 
 describe('ProcurementPolicy', () => {
   describe('canPurchasePhysicalGoods', () => {

@@ -5,8 +5,8 @@ import {
   SagaStep,
   InvoiceStatus,
 } from '@sync-erp/database';
-import { InvoicePostingSaga } from '../../../../src/modules/accounting/sagas/invoice-posting.saga';
-import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-errors';
+import { InvoicePostingSaga } from '@modules/accounting/sagas/invoice-posting.saga';
+import { SagaCompensatedError } from '@modules/common/saga/saga-errors';
 
 // Mock all dependencies
 // Use vi.hoisted() to avoid initialization order issues with vi.mock hoisting
@@ -115,14 +115,11 @@ const { mockInventoryService } = vi.hoisted(() => ({
     processReturn: vi.fn().mockResolvedValue([]),
   },
 }));
-vi.mock(
-  '../../../../src/modules/inventory/inventory.service',
-  () => ({
-    InventoryService: function () {
-      return mockInventoryService;
-    },
-  })
-);
+vi.mock('@modules/inventory/inventory.service', () => ({
+  InventoryService: function () {
+    return mockInventoryService;
+  },
+}));
 
 // Mock JournalService to avoid deep database interactions
 const { mockJournalService } = vi.hoisted(() => ({
@@ -131,14 +128,11 @@ const { mockJournalService } = vi.hoisted(() => ({
     reverse: vi.fn().mockResolvedValue({}),
   },
 }));
-vi.mock(
-  '../../../../src/modules/accounting/services/journal.service',
-  () => ({
-    JournalService: function () {
-      return mockJournalService;
-    },
-  })
-);
+vi.mock('@modules/accounting/services/journal.service', () => ({
+  JournalService: function () {
+    return mockJournalService;
+  },
+}));
 
 describe('T022: Invoice Posting Saga', () => {
   let saga: InvoicePostingSaga;

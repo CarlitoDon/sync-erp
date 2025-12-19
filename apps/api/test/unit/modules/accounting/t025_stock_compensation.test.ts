@@ -1,22 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { InvoicePostingSaga } from '../../../../src/modules/accounting/sagas/invoice-posting.saga';
-import { InvoiceRepository } from '../../../../src/modules/accounting/repositories/invoice.repository';
-import { InventoryService } from '../../../../src/modules/inventory/inventory.service';
-import { JournalService } from '../../../../src/modules/accounting/services/journal.service';
+import { InvoicePostingSaga } from '@modules/accounting/sagas/invoice-posting.saga';
+import { InvoiceRepository } from '@modules/accounting/repositories/invoice.repository';
+import { InventoryService } from '@modules/inventory/inventory.service';
+import { JournalService } from '@modules/accounting/services/journal.service';
 import { InvoiceStatus } from '@sync-erp/database';
 
 // Mocks
-vi.mock(
-  '../../../../src/modules/accounting/repositories/invoice.repository'
-);
-vi.mock('../../../../src/modules/inventory/inventory.service');
-vi.mock(
-  '../../../../src/modules/accounting/services/journal.service'
-);
-vi.mock('../../../../src/modules/common/saga', () => {
-  const actual = vi.importActual(
-    '../../../../src/modules/common/saga'
-  );
+vi.mock('@modules/accounting/repositories/invoice.repository');
+vi.mock('@modules/inventory/inventory.service');
+vi.mock('@modules/accounting/services/journal.service');
+vi.mock('@modules/common/saga', () => {
+  const actual = vi.importActual('@modules/common/saga');
   return {
     ...actual,
     SagaOrchestrator: class MockOrchestrator {

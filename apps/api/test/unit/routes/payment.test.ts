@@ -19,14 +19,11 @@ const { mockPaymentService, mockAuthMiddleware, mockRbacMiddleware } =
     };
   });
 
-vi.mock(
-  '../../../src/modules/accounting/services/payment.service',
-  () => ({
-    PaymentService: function () {
-      return mockPaymentService;
-    },
-  })
-);
+vi.mock('@modules/accounting/services/payment.service', () => ({
+  PaymentService: function () {
+    return mockPaymentService;
+  },
+}));
 
 vi.mock('../../../src/middlewares/auth', () => ({
   authMiddleware: mockAuthMiddleware,

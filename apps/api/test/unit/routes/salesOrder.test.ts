@@ -7,7 +7,7 @@ import {
 } from '../mocks/services.mock';
 
 // Mock dependencies
-vi.mock('../../../src/modules/sales/sales.service', () => ({
+vi.mock('@modules/sales/sales.service', () => ({
   SalesService: function () {
     return mockSalesService;
   },

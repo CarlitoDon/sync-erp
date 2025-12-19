@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { BusinessShape } from '@sync-erp/database';
 import { DomainError } from '@sync-erp/shared';
-import { CompanyPolicy } from '../../../../src/modules/company/company.policy';
+import { CompanyPolicy } from '@modules/company/company.policy';
 
 describe('CompanyPolicy', () => {
   describe('canSelectShape', () => {

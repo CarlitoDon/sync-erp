@@ -12,7 +12,7 @@ import {
   SagaStep,
   InvoiceStatus,
 } from '@sync-erp/database';
-import { PaymentPostingSaga } from '../../../../src/modules/accounting/sagas/payment-posting.saga';
+import { PaymentPostingSaga } from '@modules/accounting/sagas/payment-posting.saga';
 
 // Mock all dependencies
 vi.mock('@sync-erp/database', async () => {

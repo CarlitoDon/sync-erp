@@ -5,17 +5,14 @@ import {
 } from '../mocks/repositories.mock';
 
 // Mock ProcurementRepository
-vi.mock(
-  '../../../src/modules/procurement/procurement.repository',
-  () => ({
-    ProcurementRepository: function () {
-      return mockProcurementRepository;
-    },
-  })
-);
+vi.mock('@modules/procurement/procurement.repository', () => ({
+  ProcurementRepository: function () {
+    return mockProcurementRepository;
+  },
+}));
 
 // Import after mocking
-import { ProcurementService } from '../../../src/modules/procurement/procurement.service';
+import { ProcurementService } from '@modules/procurement/procurement.service';
 
 describe('PurchaseOrderService (ProcurementService)', () => {
   let service: ProcurementService;

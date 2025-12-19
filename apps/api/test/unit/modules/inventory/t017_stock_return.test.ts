@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { InventoryService } from '../../../../src/modules/inventory/inventory.service';
+import { InventoryService } from '@modules/inventory/inventory.service';
 
 // Automock prisma
 vi.mock('@sync-erp/database', async () => {
@@ -13,11 +13,9 @@ vi.mock('@sync-erp/database', async () => {
   };
 });
 
-vi.mock('../../../../src/modules/inventory/inventory.repository');
-vi.mock('../../../../src/modules/product/product.service');
-vi.mock(
-  '../../../../src/modules/accounting/services/journal.service'
-);
+vi.mock('@modules/inventory/inventory.repository');
+vi.mock('@modules/product/product.service');
+vi.mock('@modules/accounting/services/journal.service');
 
 describe('T017: Stock Return (Cost Accuracy)', () => {
   let service: InventoryService;

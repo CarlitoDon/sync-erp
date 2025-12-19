@@ -12,7 +12,7 @@ const mockProductService = {
   getById: vi.fn(),
   list: vi.fn(),
 };
-vi.mock('../../../src/modules/product/product.service', () => ({
+vi.mock('@modules/product/product.service', () => ({
   ProductService: function () {
     return mockProductService;
   },
@@ -24,14 +24,11 @@ const mockProcurementService = {
   getItems: vi.fn(),
   complete: vi.fn(),
 };
-vi.mock(
-  '../../../src/modules/procurement/procurement.service',
-  () => ({
-    ProcurementService: function () {
-      return mockProcurementService;
-    },
-  })
-);
+vi.mock('@modules/procurement/procurement.service', () => ({
+  ProcurementService: function () {
+    return mockProcurementService;
+  },
+}));
 
 // Mock JournalService
 const mockJournalService = {
@@ -40,27 +37,21 @@ const mockJournalService = {
   postSalesReturn: vi.fn().mockResolvedValue({}),
   postAdjustment: vi.fn().mockResolvedValue({}),
 };
-vi.mock(
-  '../../../src/modules/accounting/services/journal.service',
-  () => ({
-    JournalService: function () {
-      return mockJournalService;
-    },
-  })
-);
+vi.mock('@modules/accounting/services/journal.service', () => ({
+  JournalService: function () {
+    return mockJournalService;
+  },
+}));
 
 // Mock InventoryRepository
-vi.mock(
-  '../../../src/modules/inventory/inventory.repository',
-  () => ({
-    InventoryRepository: function () {
-      return mockInventoryRepository;
-    },
-  })
-);
+vi.mock('@modules/inventory/inventory.repository', () => ({
+  InventoryRepository: function () {
+    return mockInventoryRepository;
+  },
+}));
 
 // Import after mocking
-import { InventoryService } from '../../../src/modules/inventory/inventory.service';
+import { InventoryService } from '@modules/inventory/inventory.service';
 
 describe('InventoryService', () => {
   let service: InventoryService;

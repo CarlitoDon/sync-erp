@@ -1,21 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { InvoiceService } from '../../../../src/modules/accounting/services/invoice.service';
+import { InvoiceService } from '@modules/accounting/services/invoice.service';
 import { InvoiceStatus, InvoiceType } from '@sync-erp/database';
 
 // Mock dependencies
-vi.mock(
-  '../../../../src/modules/common/services/idempotency.service'
-);
-vi.mock(
-  '../../../../src/modules/accounting/repositories/invoice.repository'
-);
-vi.mock(
-  '../../../../src/modules/accounting/services/journal.service'
-);
-vi.mock(
-  '../../../../src/modules/common/services/document-number.service'
-);
-vi.mock('../../../../src/modules/inventory/inventory.service');
+vi.mock('@modules/common/services/idempotency.service');
+vi.mock('@modules/accounting/repositories/invoice.repository');
+vi.mock('@modules/accounting/services/journal.service');
+vi.mock('@modules/common/services/document-number.service');
+vi.mock('@modules/inventory/inventory.service');
 
 describe('T016: Credit Note (Reversal)', () => {
   let service: InvoiceService;

@@ -5,14 +5,14 @@ import {
 } from '../mocks/repositories.mock';
 
 // Mock the ProductRepository module
-vi.mock('../../../src/modules/product/product.repository', () => ({
+vi.mock('@modules/product/product.repository', () => ({
   ProductRepository: function () {
     return mockProductRepository;
   },
 }));
 
 // Import after mocking
-import { ProductService } from '../../../src/modules/product/product.service';
+import { ProductService } from '@modules/product/product.service';
 
 describe('ProductService', () => {
   let service: ProductService;

@@ -100,16 +100,13 @@ vi.mock('@sync-erp/database', () => ({
 }));
 
 // Mock all saga classes globally with function syntax for Vitest 4.x
+vi.mock('@modules/accounting/sagas/invoice-posting.saga', () => ({
+  InvoicePostingSaga: function () {
+    return mockInvoicePostingSaga;
+  },
+}));
 vi.mock(
-  '../../src/modules/accounting/sagas/invoice-posting.saga',
-  () => ({
-    InvoicePostingSaga: function () {
-      return mockInvoicePostingSaga;
-    },
-  })
-);
-vi.mock(
-  '../../src/modules/accounting/sagas/bill-posting.saga',
+  '@modules/accounting/sagas/bill-posting.saga',
   () => ({
     BillPostingSaga: function () {
       return mockBillPostingSaga;
@@ -117,20 +114,20 @@ vi.mock(
   })
 );
 vi.mock(
-  '../../src/modules/accounting/sagas/payment-posting.saga',
+  '@modules/accounting/sagas/payment-posting.saga',
   () => ({
     PaymentPostingSaga: function () {
       return mockPaymentPostingSaga;
     },
   })
 );
-vi.mock('../../src/modules/sales/sagas/shipment.saga', () => ({
+vi.mock('@modules/sales/sagas/shipment.saga', () => ({
   ShipmentSaga: function () {
     return mockShipmentSaga;
   },
 }));
 vi.mock(
-  '../../src/modules/procurement/sagas/goods-receipt.saga',
+  '@modules/procurement/sagas/goods-receipt.saga',
   () => ({
     GoodsReceiptSaga: function () {
       return mockGoodsReceiptSaga;

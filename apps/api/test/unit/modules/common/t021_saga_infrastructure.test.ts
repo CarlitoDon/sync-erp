@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prisma, SagaType, SagaStep } from '@sync-erp/database';
-import * as sagaLogRepo from '../../../../src/modules/common/saga/saga-log.repository';
-import { PostingContext } from '../../../../src/modules/common/saga/posting-context';
+import * as sagaLogRepo from '@modules/common/saga/saga-log.repository';
+import { PostingContext } from '@modules/common/saga/posting-context';
 import {
   SagaCompensatedError,
   SagaCompensationFailedError,
   DomainError,
-} from '../../../../src/modules/common/saga/saga-errors';
-import { SagaOrchestrator } from '../../../../src/modules/common/saga/saga-orchestrator';
+} from '@modules/common/saga/saga-errors';
+import { SagaOrchestrator } from '@modules/common/saga/saga-orchestrator';
 
 // Automock prisma
 vi.mock('@sync-erp/database', async () => {
@@ -52,7 +52,8 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null, correlationId: null,
+        error: null,
+        correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -147,7 +148,8 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null, correlationId: null,
+        error: null,
+        correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -171,7 +173,8 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null, correlationId: null,
+        error: null,
+        correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -203,7 +206,8 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.BALANCE_DONE,
         stepData: { previousBalance: 1000 },
-        error: null, correlationId: null,
+        error: null,
+        correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -291,7 +295,8 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null, correlationId: null,
+        error: null,
+        correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -317,7 +322,8 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null, correlationId: null,
+        error: null,
+        correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -339,7 +345,8 @@ describe('T021: SAGA Infrastructure', () => {
         companyId: 'co-1',
         step: SagaStep.PENDING,
         stepData: {},
-        error: null, correlationId: null,
+        error: null,
+        correlationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });

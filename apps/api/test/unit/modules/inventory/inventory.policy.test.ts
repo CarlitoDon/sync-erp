@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { BusinessShape } from '@sync-erp/database';
 import { DomainError } from '@sync-erp/shared';
-import { InventoryPolicy } from '../../../../src/modules/inventory/inventory.policy';
+import { InventoryPolicy } from '@modules/inventory/inventory.policy';
 
 describe('InventoryPolicy', () => {
   describe('canAdjustStock', () => {

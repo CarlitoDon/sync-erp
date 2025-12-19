@@ -5,14 +5,14 @@ import {
 } from '../mocks/repositories.mock';
 
 // Mock the UserRepository module
-vi.mock('../../../src/modules/user/user.repository', () => ({
+vi.mock('@modules/user/user.repository', () => ({
   UserRepository: function () {
     return mockUserRepository;
   },
 }));
 
 // Import after mocking
-import { UserService } from '../../../src/modules/user/user.service';
+import { UserService } from '@modules/user/user.service';
 
 describe('UserService', () => {
   let service: UserService;

@@ -33,32 +33,23 @@ const mockAuthMiddleware = vi.fn();
 // Mock RBAC Middleware
 const mockRbacMiddleware = vi.fn();
 
-vi.mock(
-  '../../../src/modules/accounting/services/account.service',
-  () => ({
-    AccountService: function () {
-      return mockAccountService;
-    },
-  })
-);
+vi.mock('@modules/accounting/services/account.service', () => ({
+  AccountService: function () {
+    return mockAccountService;
+  },
+}));
 
-vi.mock(
-  '../../../src/modules/accounting/services/journal.service',
-  () => ({
-    JournalService: function () {
-      return mockJournalService;
-    },
-  })
-);
+vi.mock('@modules/accounting/services/journal.service', () => ({
+  JournalService: function () {
+    return mockJournalService;
+  },
+}));
 
-vi.mock(
-  '../../../src/modules/accounting/services/report.service',
-  () => ({
-    ReportService: function () {
-      return mockReportService;
-    },
-  })
-);
+vi.mock('@modules/accounting/services/report.service', () => ({
+  ReportService: function () {
+    return mockReportService;
+  },
+}));
 
 vi.mock('../../../src/middlewares/auth', () => ({
   authMiddleware: mockAuthMiddleware,

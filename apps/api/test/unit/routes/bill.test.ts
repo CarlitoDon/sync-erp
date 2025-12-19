@@ -3,38 +3,35 @@ import express, { Response, NextFunction } from 'express';
 import request from 'supertest';
 
 // Mock BillService
-vi.mock(
-  '../../../src/modules/accounting/services/bill.service',
-  () => ({
-    BillService: function () {
-      return {
-        list: vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'bill-1', billNumber: 'BILL-001' },
-          ]),
-        getById: vi.fn().mockImplementation((id: string) => {
-          if (id === 'not-found') return Promise.resolve(null);
-          return Promise.resolve({
-            id: 'bill-1',
-            billNumber: 'BILL-001',
-          });
-        }),
-        getOutstanding: vi.fn().mockResolvedValue([]),
-        createFromPurchaseOrder: vi
-          .fn()
-          .mockResolvedValue({ id: 'bill-new' }),
-        post: vi
-          .fn()
-          .mockResolvedValue({ id: 'bill-1', status: 'POSTED' }),
-        void: vi
-          .fn()
-          .mockResolvedValue({ id: 'bill-1', status: 'VOID' }),
-        getRemainingAmount: vi.fn().mockResolvedValue(300),
-      };
-    },
-  })
-);
+vi.mock('@modules/accounting/services/bill.service', () => ({
+  BillService: function () {
+    return {
+      list: vi
+        .fn()
+        .mockResolvedValue([
+          { id: 'bill-1', billNumber: 'BILL-001' },
+        ]),
+      getById: vi.fn().mockImplementation((id: string) => {
+        if (id === 'not-found') return Promise.resolve(null);
+        return Promise.resolve({
+          id: 'bill-1',
+          billNumber: 'BILL-001',
+        });
+      }),
+      getOutstanding: vi.fn().mockResolvedValue([]),
+      createFromPurchaseOrder: vi
+        .fn()
+        .mockResolvedValue({ id: 'bill-new' }),
+      post: vi
+        .fn()
+        .mockResolvedValue({ id: 'bill-1', status: 'POSTED' }),
+      void: vi
+        .fn()
+        .mockResolvedValue({ id: 'bill-1', status: 'VOID' }),
+      getRemainingAmount: vi.fn().mockResolvedValue(300),
+    };
+  },
+}));
 
 // Import after mocking
 import { billRouter } from '../../../src/routes/bill';

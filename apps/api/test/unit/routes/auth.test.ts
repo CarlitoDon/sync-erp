@@ -39,7 +39,7 @@ vi.mock('../../../src/middlewares/auth', () => ({
 }));
 
 // Mock AuthService
-vi.mock('../../../src/modules/auth/auth.service', () => ({
+vi.mock('@modules/auth/auth.service', () => ({
   AuthService: function () {
     return mockAuthService;
   },

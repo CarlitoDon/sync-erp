@@ -5,14 +5,14 @@ import {
 } from '../mocks/repositories.mock';
 
 // Mock the PartnerRepository module
-vi.mock('../../../src/modules/partner/partner.repository', () => ({
+vi.mock('@modules/partner/partner.repository', () => ({
   PartnerRepository: function () {
     return mockPartnerRepository;
   },
 }));
 
 // Import after mocking
-import { PartnerService } from '../../../src/modules/partner/partner.service';
+import { PartnerService } from '@modules/partner/partner.service';
 
 describe('PartnerService', () => {
   let service: PartnerService;

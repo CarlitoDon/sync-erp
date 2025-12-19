@@ -17,18 +17,15 @@ const mockAccountService = {
   getById: vi.fn(),
   getByCode: vi.fn(),
 };
-vi.mock(
-  '../../../src/modules/accounting/services/account.service',
-  () => ({
-    AccountService: function () {
-      return mockAccountService;
-    },
-  })
-);
+vi.mock('@modules/accounting/services/account.service', () => ({
+  AccountService: function () {
+    return mockAccountService;
+  },
+}));
 
 // Mock the JournalRepository module
 vi.mock(
-  '../../../src/modules/accounting/repositories/journal.repository',
+  '@modules/accounting/repositories/journal.repository',
   () => ({
     JournalRepository: function () {
       return mockJournalRepository;
@@ -37,7 +34,7 @@ vi.mock(
 );
 
 // Import after mocking
-import { JournalService } from '../../../src/modules/accounting/services/journal.service';
+import { JournalService } from '@modules/accounting/services/journal.service';
 
 describe('JournalService', () => {
   let service: JournalService;

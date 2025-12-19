@@ -8,7 +8,7 @@ import {
 const mockProductService = {
   checkStock: vi.fn().mockResolvedValue(true),
 };
-vi.mock('../../../src/modules/product/product.service', () => ({
+vi.mock('@modules/product/product.service', () => ({
   ProductService: function () {
     return mockProductService;
   },
@@ -18,7 +18,7 @@ vi.mock('../../../src/modules/product/product.service', () => ({
 const mockInventoryService = {
   processShipment: vi.fn().mockResolvedValue([]),
 };
-vi.mock('../../../src/modules/inventory/inventory.service', () => ({
+vi.mock('@modules/inventory/inventory.service', () => ({
   InventoryService: function () {
     return mockInventoryService;
   },
@@ -28,34 +28,31 @@ vi.mock('../../../src/modules/inventory/inventory.service', () => ({
 const mockDocumentNumberService = {
   generate: vi.fn().mockResolvedValue('SO-00001'),
 };
-vi.mock(
-  '../../../src/modules/common/services/document-number.service',
-  () => ({
-    DocumentNumberService: function () {
-      return mockDocumentNumberService;
-    },
-  })
-);
+vi.mock('@modules/common/services/document-number.service', () => ({
+  DocumentNumberService: function () {
+    return mockDocumentNumberService;
+  },
+}));
 
 // Mock ShipmentSaga
 const mockShipmentSaga = {
   execute: vi.fn(),
 };
-vi.mock('../../../src/modules/sales/sagas/shipment.saga', () => ({
+vi.mock('@modules/sales/sagas/shipment.saga', () => ({
   ShipmentSaga: function () {
     return mockShipmentSaga;
   },
 }));
 
 // Mock SalesRepository
-vi.mock('../../../src/modules/sales/sales.repository', () => ({
+vi.mock('@modules/sales/sales.repository', () => ({
   SalesRepository: function () {
     return mockSalesRepository;
   },
 }));
 
 // Import after mocking
-import { SalesService } from '../../../src/modules/sales/sales.service';
+import { SalesService } from '@modules/sales/sales.service';
 
 describe('SalesOrderService (SalesService)', () => {
   let service: SalesService;

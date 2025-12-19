@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prisma, SagaType, SagaStep } from '@sync-erp/database';
-import { StockTransferSaga } from '../../../../src/modules/inventory/sagas/stock-transfer.saga';
-import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-errors';
+import { StockTransferSaga } from '@modules/inventory/sagas/stock-transfer.saga';
+import { SagaCompensatedError } from '@modules/common/saga/saga-errors';
 
 vi.mock('@sync-erp/database', async () => {
   const actual = await vi.importActual('@sync-erp/database');

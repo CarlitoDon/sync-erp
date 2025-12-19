@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { BusinessShape } from '@sync-erp/database';
 import { DomainError } from '@sync-erp/shared';
-import { SalesPolicy } from '../../../../src/modules/sales/sales.policy';
+import { SalesPolicy } from '@modules/sales/sales.policy';
 
 describe('SalesPolicy', () => {
   describe('canSellPhysicalGoods', () => {

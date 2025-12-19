@@ -12,7 +12,7 @@ const mockCompanyService = vi.hoisted(() => ({
   join: vi.fn(),
 }));
 
-vi.mock('../../../src/modules/company/company.service', () => ({
+vi.mock('@modules/company/company.service', () => ({
   CompanyService: function () {
     return mockCompanyService;
   },

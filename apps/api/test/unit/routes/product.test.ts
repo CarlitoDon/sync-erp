@@ -19,7 +19,7 @@ const { mockProductService, mockAuthMiddleware, mockRbacMiddleware } =
     };
   });
 
-vi.mock('../../../src/modules/product/product.service', () => ({
+vi.mock('@modules/product/product.service', () => ({
   ProductService: function () {
     return mockProductService;
   },

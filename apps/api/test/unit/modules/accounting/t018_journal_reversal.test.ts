@@ -1,13 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { JournalService } from '../../../../src/modules/accounting/services/journal.service';
+import { JournalService } from '@modules/accounting/services/journal.service';
 
 // Mock dependencies
-vi.mock(
-  '../../../../src/modules/accounting/services/account.service'
-);
-vi.mock(
-  '../../../../src/modules/accounting/repositories/journal.repository'
-);
+vi.mock('@modules/accounting/services/account.service');
+vi.mock('@modules/accounting/repositories/journal.repository');
 
 describe('T018: Journal Reversal', () => {
   let service: JournalService;

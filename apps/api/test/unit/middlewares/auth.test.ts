@@ -23,7 +23,7 @@ vi.mock('@sync-erp/database', () => ({
   },
 }));
 
-vi.mock('../../../src/modules/auth/auth.repository', () => ({
+vi.mock('@modules/auth/auth.repository', () => ({
   AuthRepository: function () {
     return {
       getSession: mockGetSession,

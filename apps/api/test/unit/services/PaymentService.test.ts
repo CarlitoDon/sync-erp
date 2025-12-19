@@ -10,18 +10,15 @@ const mockJournalService = {
   postPaymentReceived: vi.fn().mockResolvedValue({}),
   postPaymentMade: vi.fn().mockResolvedValue({}),
 };
-vi.mock(
-  '../../../src/modules/accounting/services/journal.service',
-  () => ({
-    JournalService: function () {
-      return mockJournalService;
-    },
-  })
-);
+vi.mock('@modules/accounting/services/journal.service', () => ({
+  JournalService: function () {
+    return mockJournalService;
+  },
+}));
 
 // Mock PaymentRepository
 vi.mock(
-  '../../../src/modules/accounting/repositories/payment.repository',
+  '@modules/accounting/repositories/payment.repository',
   () => ({
     PaymentRepository: function () {
       return mockPaymentRepository;
@@ -33,18 +30,15 @@ vi.mock(
 const mockPaymentPostingSaga = {
   execute: vi.fn(),
 };
-vi.mock(
-  '../../../src/modules/accounting/sagas/payment-posting.saga',
-  () => ({
-    PaymentPostingSaga: function () {
-      return mockPaymentPostingSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/payment-posting.saga', () => ({
+  PaymentPostingSaga: function () {
+    return mockPaymentPostingSaga;
+  },
+}));
 
 // Mock InvoiceRepository
 vi.mock(
-  '../../../src/modules/accounting/repositories/invoice.repository',
+  '@modules/accounting/repositories/invoice.repository',
   () => ({
     InvoiceRepository: function () {
       return mockInvoiceRepository;
@@ -53,7 +47,7 @@ vi.mock(
 );
 
 // Import after mocking
-import { PaymentService } from '../../../src/modules/accounting/services/payment.service';
+import { PaymentService } from '@modules/accounting/services/payment.service';
 
 describe('PaymentService', () => {
   let service: PaymentService;

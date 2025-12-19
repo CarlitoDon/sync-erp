@@ -7,13 +7,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BusinessShape } from '@sync-erp/database';
 import { DomainError } from '@sync-erp/shared';
-import { ProcurementService } from '../../../../src/modules/procurement/procurement.service';
+import { ProcurementService } from '@modules/procurement/procurement.service';
 
 // Mock dependencies
-vi.mock('../../../../src/modules/procurement/procurement.repository');
-vi.mock(
-  '../../../../src/modules/common/services/document-number.service'
-);
+vi.mock('@modules/procurement/procurement.repository');
+vi.mock('@modules/common/services/document-number.service');
 
 describe('ProcurementService', () => {
   let service: ProcurementService;

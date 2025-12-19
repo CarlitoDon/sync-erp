@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BillService } from '../../../../src/modules/accounting/services/bill.service';
+import { BillService } from '@modules/accounting/services/bill.service';
 import {
   InvoiceType,
   InvoiceStatus,
@@ -7,39 +7,27 @@ import {
 } from '@sync-erp/database';
 
 // Automock
-vi.mock(
-  '../../../../src/modules/accounting/repositories/invoice.repository'
-);
-vi.mock(
-  '../../../../src/modules/accounting/services/journal.service'
-);
-vi.mock(
-  '../../../../src/modules/common/services/document-number.service'
-);
+vi.mock('@modules/accounting/repositories/invoice.repository');
+vi.mock('@modules/accounting/services/journal.service');
+vi.mock('@modules/common/services/document-number.service');
 
 // Mock Saga
 const mockBillPostingSaga = { execute: vi.fn() };
-vi.mock(
-  '../../../../src/modules/accounting/sagas/bill-posting.saga',
-  () => ({
-    BillPostingSaga: function () {
-      return mockBillPostingSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/bill-posting.saga', () => ({
+  BillPostingSaga: function () {
+    return mockBillPostingSaga;
+  },
+}));
 
 // Mock InventoryRepository for GRN check
 const mockInventoryRepository = {
   countByReferencePatterns: vi.fn().mockResolvedValue(1), // GRN exists
 };
-vi.mock(
-  '../../../../src/modules/inventory/inventory.repository',
-  () => ({
-    InventoryRepository: function () {
-      return mockInventoryRepository;
-    },
-  })
-);
+vi.mock('@modules/inventory/inventory.repository', () => ({
+  InventoryRepository: function () {
+    return mockInventoryRepository;
+  },
+}));
 
 describe('T005: Implement/Verify Bill Service (FR-011)', () => {
   let service: BillService;

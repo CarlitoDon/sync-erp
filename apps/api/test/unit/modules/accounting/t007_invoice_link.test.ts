@@ -1,29 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { InvoiceService } from '../../../../src/modules/accounting/services/invoice.service';
+import { InvoiceService } from '@modules/accounting/services/invoice.service';
 import { InvoiceStatus, BusinessShape } from '@sync-erp/database';
 
 // Automock deps
-vi.mock(
-  '../../../../src/modules/accounting/repositories/invoice.repository'
-);
-vi.mock(
-  '../../../../src/modules/accounting/services/journal.service'
-);
-vi.mock(
-  '../../../../src/modules/common/services/document-number.service'
-);
-// vi.mock('../../../../src/modules/inventory/inventory.service');
+vi.mock('@modules/accounting/repositories/invoice.repository');
+vi.mock('@modules/accounting/services/journal.service');
+vi.mock('@modules/common/services/document-number.service');
+// vi.mock('@modules/inventory/inventory.service');
 
 // Mock Saga
 const mockSaga = { execute: vi.fn() };
-vi.mock(
-  '../../../../src/modules/accounting/sagas/invoice-posting.saga',
-  () => ({
-    InvoicePostingSaga: function () {
-      return mockSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/invoice-posting.saga', () => ({
+  InvoicePostingSaga: function () {
+    return mockSaga;
+  },
+}));
 
 describe('T007: Implement Invoice-Stock Link (FR-008)', () => {
   let service: InvoiceService;

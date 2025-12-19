@@ -8,44 +8,35 @@ import {
 const mockJournalService = {
   postBill: vi.fn().mockResolvedValue({}),
 };
-vi.mock(
-  '../../../src/modules/accounting/services/journal.service',
-  () => ({
-    JournalService: function () {
-      return mockJournalService;
-    },
-  })
-);
+vi.mock('@modules/accounting/services/journal.service', () => ({
+  JournalService: function () {
+    return mockJournalService;
+  },
+}));
 
 // Mock DocumentNumberService with function() syntax for Vitest 4.x
 const mockDocumentNumberService = {
   generate: vi.fn().mockResolvedValue('BILL-00001'),
 };
-vi.mock(
-  '../../../src/modules/common/services/document-number.service',
-  () => ({
-    DocumentNumberService: function () {
-      return mockDocumentNumberService;
-    },
-  })
-);
+vi.mock('@modules/common/services/document-number.service', () => ({
+  DocumentNumberService: function () {
+    return mockDocumentNumberService;
+  },
+}));
 
 // Mock BillPostingSaga
 const mockBillPostingSaga = {
   execute: vi.fn(),
 };
-vi.mock(
-  '../../../src/modules/accounting/sagas/bill-posting.saga',
-  () => ({
-    BillPostingSaga: function () {
-      return mockBillPostingSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/bill-posting.saga', () => ({
+  BillPostingSaga: function () {
+    return mockBillPostingSaga;
+  },
+}));
 
 // Mock the InvoiceRepository module (BillService uses InvoiceRepository)
 vi.mock(
-  '../../../src/modules/accounting/repositories/invoice.repository',
+  '@modules/accounting/repositories/invoice.repository',
   () => ({
     InvoiceRepository: function () {
       return mockInvoiceRepository;
@@ -57,17 +48,14 @@ vi.mock(
 const mockInventoryRepository = {
   countByReferencePatterns: vi.fn().mockResolvedValue(1), // GRN exists
 };
-vi.mock(
-  '../../../src/modules/inventory/inventory.repository',
-  () => ({
-    InventoryRepository: function () {
-      return mockInventoryRepository;
-    },
-  })
-);
+vi.mock('@modules/inventory/inventory.repository', () => ({
+  InventoryRepository: function () {
+    return mockInventoryRepository;
+  },
+}));
 
 // Import after mocking
-import { BillService } from '../../../src/modules/accounting/services/bill.service';
+import { BillService } from '@modules/accounting/services/bill.service';
 
 describe('BillService', () => {
   let service: BillService;

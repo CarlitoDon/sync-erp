@@ -5,8 +5,8 @@ import {
   SagaStep,
   InvoiceStatus,
 } from '@sync-erp/database';
-import { PaymentPostingSaga } from '../../../../src/modules/accounting/sagas/payment-posting.saga';
-import { SagaCompensatedError } from '../../../../src/modules/common/saga/saga-errors';
+import { PaymentPostingSaga } from '@modules/accounting/sagas/payment-posting.saga';
+import { SagaCompensatedError } from '@modules/common/saga/saga-errors';
 
 // Mock all dependencies
 vi.mock('@sync-erp/database', async () => {
@@ -64,7 +64,8 @@ describe('T026: Payment Posting Saga', () => {
     companyId: 'co-1',
     step: SagaStep.PENDING,
     stepData: {},
-    error: null, correlationId: null,
+    error: null,
+    correlationId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

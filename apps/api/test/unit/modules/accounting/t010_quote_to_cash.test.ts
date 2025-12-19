@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SalesService } from '../../../../src/modules/sales/sales.service';
-import { InvoiceService } from '../../../../src/modules/accounting/services/invoice.service';
-import { PaymentService } from '../../../../src/modules/accounting/services/payment.service';
+import { SalesService } from '@modules/sales/sales.service';
+import { InvoiceService } from '@modules/accounting/services/invoice.service';
+import { PaymentService } from '@modules/accounting/services/payment.service';
 import {
   BusinessShape,
   InvoiceStatus,
@@ -10,23 +10,15 @@ import {
 } from '@sync-erp/database';
 
 // Mock Repositories GLOBALLY
-vi.mock('../../../../src/modules/sales/sales.repository');
-vi.mock(
-  '../../../../src/modules/accounting/repositories/invoice.repository'
-);
-vi.mock(
-  '../../../../src/modules/accounting/repositories/payment.repository'
-);
-vi.mock(
-  '../../../../src/modules/accounting/repositories/journal.repository'
-);
-vi.mock('../../../../src/modules/inventory/inventory.repository');
-vi.mock('../../../../src/modules/product/product.repository');
+vi.mock('@modules/sales/sales.repository');
+vi.mock('@modules/accounting/repositories/invoice.repository');
+vi.mock('@modules/accounting/repositories/payment.repository');
+vi.mock('@modules/accounting/repositories/journal.repository');
+vi.mock('@modules/inventory/inventory.repository');
+vi.mock('@modules/product/product.repository');
 
 // Mock Doc Service
-vi.mock(
-  '../../../../src/modules/common/services/document-number.service'
-);
+vi.mock('@modules/common/services/document-number.service');
 
 // Mock ProductService (to avoid complex stock logic, or let it use mocked repo?)
 // SalesService uses ProductService. InventoryService uses ProductService.
@@ -62,33 +54,27 @@ vi.mock('@sync-erp/database', async () => {
 
 // Mock Sagas
 const mockInvoicePostingSaga = { execute: vi.fn() };
-vi.mock(
-  '../../../../src/modules/accounting/sagas/invoice-posting.saga',
-  () => ({
-    InvoicePostingSaga: function () {
-      return mockInvoicePostingSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/invoice-posting.saga', () => ({
+  InvoicePostingSaga: function () {
+    return mockInvoicePostingSaga;
+  },
+}));
 
 const mockPaymentPostingSaga = { execute: vi.fn() };
-vi.mock(
-  '../../../../src/modules/accounting/sagas/payment-posting.saga',
-  () => ({
-    PaymentPostingSaga: function () {
-      return mockPaymentPostingSaga;
-    },
-  })
-);
+vi.mock('@modules/accounting/sagas/payment-posting.saga', () => ({
+  PaymentPostingSaga: function () {
+    return mockPaymentPostingSaga;
+  },
+}));
 
 // Access Mocks needs to be dynamic or via vi.mocked imports in test?
-import { SalesRepository } from '../../../../src/modules/sales/sales.repository';
-import { InvoiceRepository } from '../../../../src/modules/accounting/repositories/invoice.repository';
-import { PaymentRepository } from '../../../../src/modules/accounting/repositories/payment.repository';
+import { SalesRepository } from '@modules/sales/sales.repository';
+import { InvoiceRepository } from '@modules/accounting/repositories/invoice.repository';
+import { PaymentRepository } from '@modules/accounting/repositories/payment.repository';
 
-import { InventoryRepository } from '../../../../src/modules/inventory/inventory.repository';
-import { ProductRepository } from '../../../../src/modules/product/product.repository';
-import { DocumentNumberService } from '../../../../src/modules/common/services/document-number.service';
+import { InventoryRepository } from '@modules/inventory/inventory.repository';
+import { ProductRepository } from '@modules/product/product.repository';
+import { DocumentNumberService } from '@modules/common/services/document-number.service';
 import { prisma } from '@sync-erp/database';
 
 describe('T010: Quote-to-Cash Integration (E2E Flow)', () => {

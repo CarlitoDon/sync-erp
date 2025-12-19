@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Invoice, InvoiceStatus } from '@sync-erp/database';
-import { InvoicePolicy } from '../../../../src/modules/accounting/policies/invoice.policy';
+import { InvoicePolicy } from '@modules/accounting/policies/invoice.policy';
 import { DomainError } from '@sync-erp/shared';
 
 describe('InvoicePolicy', () => {

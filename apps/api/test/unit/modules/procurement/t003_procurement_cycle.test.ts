@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ProcurementService } from '../../../../src/modules/procurement/procurement.service';
+import { ProcurementService } from '@modules/procurement/procurement.service';
 import {
   BusinessShape,
   OrderStatus,
@@ -7,10 +7,8 @@ import {
 } from '@sync-erp/database';
 
 // Automock
-vi.mock('../../../../src/modules/procurement/procurement.repository');
-vi.mock(
-  '../../../../src/modules/common/services/document-number.service'
-);
+vi.mock('@modules/procurement/procurement.repository');
+vi.mock('@modules/common/services/document-number.service');
 
 // Mock Prisma
 vi.mock('@sync-erp/database', async () => {

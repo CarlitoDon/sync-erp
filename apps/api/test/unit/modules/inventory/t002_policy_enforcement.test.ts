@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { InventoryService } from '../../../../src/modules/inventory/inventory.service';
+import { InventoryService } from '@modules/inventory/inventory.service';
 import { BusinessShape, prisma } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 // Automock dependencies
-vi.mock('../../../../src/modules/inventory/inventory.repository');
-vi.mock('../../../../src/modules/product/product.service');
-vi.mock('../../../../src/modules/procurement/procurement.service');
+vi.mock('@modules/inventory/inventory.repository');
+vi.mock('@modules/product/product.service');
+vi.mock('@modules/procurement/procurement.service');
 
 // Mock Prisma
 vi.mock('@sync-erp/database', async () => {

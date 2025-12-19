@@ -9,28 +9,28 @@ const mockUserService = {
   getByEmail: vi.fn(),
   create: vi.fn(),
 };
-vi.mock('../../../src/modules/user/user.service', () => ({
+vi.mock('@modules/user/user.service', () => ({
   UserService: function () {
     return mockUserService;
   },
 }));
 
 // Mock auth.utils
-vi.mock('../../../src/modules/auth/auth.utils', () => ({
+vi.mock('@modules/auth/auth.utils', () => ({
   hashPassword: vi.fn().mockResolvedValue('hashed-password'),
   comparePassword: vi.fn().mockResolvedValue(true),
 }));
 
 // Mock AuthRepository
-vi.mock('../../../src/modules/auth/auth.repository', () => ({
+vi.mock('@modules/auth/auth.repository', () => ({
   AuthRepository: function () {
     return mockAuthRepository;
   },
 }));
 
 // Import after mocking
-import { AuthService } from '../../../src/modules/auth/auth.service';
-import * as authUtils from '../../../src/modules/auth/auth.utils';
+import { AuthService } from '@modules/auth/auth.service';
+import * as authUtils from '@modules/auth/auth.utils';
 
 describe('AuthService', () => {
   let service: AuthService;
