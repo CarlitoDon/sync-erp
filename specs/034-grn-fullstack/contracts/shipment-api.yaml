@@ -1,0 +1,62 @@
+openapi: 3.0.0
+info:
+  title: Shipment API
+  version: 1.0.0
+paths:
+  /inventory/shipments:
+    get:
+      summary: List all Shipments
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of shipments
+    post:
+      summary: Create a Shipment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - salesOrderId
+                - items
+              properties:
+                salesOrderId:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - productId
+                      - quantity
+                    properties:
+                      productId:
+                        type: string
+                      quantity:
+                        type: number
+      responses:
+        '201':
+          description: Created
+
+  /inventory/shipments/{id}:
+    get:
+      summary: Get Shipment Details
+      responses:
+        '200':
+          description: Details
+
+  /inventory/shipments/{id}/post:
+    post:
+      summary: Post Shipment (Stock Out)
+      responses:
+        '200':
+          description: Posted

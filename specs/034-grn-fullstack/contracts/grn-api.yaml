@@ -1,0 +1,62 @@
+openapi: 3.0.0
+info:
+  title: Goods Receipt Note API
+  version: 1.0.0
+paths:
+  /inventory/receipts:
+    get:
+      summary: List all Goods Receipts
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of receipts
+    post:
+      summary: Create a Goods Receipt
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - purchaseOrderId
+                - items
+              properties:
+                purchaseOrderId:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - productId
+                      - quantity
+                    properties:
+                      productId:
+                        type: string
+                      quantity:
+                        type: number
+      responses:
+        '201':
+          description: Created
+
+  /inventory/receipts/{id}:
+    get:
+      summary: Get Receipt Details
+      responses:
+        '200':
+          description: Details
+
+  /inventory/receipts/{id}/post:
+    post:
+      summary: Post Receipt (Stock In)
+      responses:
+        '200':
+          description: Posted
