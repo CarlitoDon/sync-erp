@@ -11,14 +11,18 @@ import FormModal from '@/components/ui/FormModal';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Button } from '@/components/ui/button';
 import Select from '@/components/ui/Select';
+import {
+  PaymentMethod,
+  InvoiceStatusFilter,
+  InvoiceStatus,
+  paymentMethodOptions,
+  defaultPaymentMethod,
+  getInvoiceStatusDisplay,
+  invoiceStatusFilterOptions,
+} from '@/features/finance/utils/financeEnums';
+import { InvoiceStatusSchema as StatusSchema } from '@sync-erp/shared';
 
 type Invoice = RouterOutputs['invoice']['list'][number];
-type PaymentMethod =
-  | 'BANK_TRANSFER'
-  | 'CASH'
-  | 'CHECK'
-  | 'CREDIT_CARD'
-  | 'OTHER';
 
 interface InvoiceListProps {
   filter?: {
@@ -58,16 +62,16 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
     },
   });
 
-  const [filterStatus, setFilterStatus] = useState<
-    'ALL' | 'DRAFT' | 'POSTED' | 'PAID' | 'VOID'
-  >('ALL');
+  const [filterStatus, setFilterStatus] =
+    useState<InvoiceStatusFilter>('ALL');
 
   // Payment Modal State
   const [selectedInvoice, setSelectedInvoice] =
     useState<Invoice | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] =
-    useState<PaymentMethod>('BANK_TRANSFER');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    defaultPaymentMethod
+  );
   const [businessDate, setBusinessDate] = useState(
     new Date().toISOString().split('T')[0]
   );
@@ -97,7 +101,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
   const openPaymentModal = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setPaymentAmount(Number(invoice.balance));
-    setPaymentMethod('BANK_TRANSFER');
+    setPaymentMethod(defaultPaymentMethod);
     setBusinessDate(new Date().toISOString().split('T')[0]);
   };
 
@@ -128,19 +132,8 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'POSTED':
-        return 'bg-blue-100 text-blue-800';
-      case 'PAID':
-        return 'bg-green-100 text-green-800';
-      case 'VOID':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusColor = (status: InvoiceStatus) => {
+    return getInvoiceStatusDisplay(status).color;
   };
 
   if (loading && invoices.length === 0) {
@@ -156,7 +149,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
   );
 
   const outstandingAmount = invoices
-    .filter((inv) => inv.status === 'POSTED')
+    .filter((inv) => inv.status === StatusSchema.enum.POSTED)
     .reduce((sum, inv) => sum + Number(inv.balance), 0);
 
   return (
@@ -250,13 +243,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
                 onChange={(val) =>
                   setPaymentMethod(val as PaymentMethod)
                 }
-                options={[
-                  { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-                  { value: 'CASH', label: 'Cash' },
-                  { value: 'CHECK', label: 'Check' },
-                  { value: 'CREDIT_CARD', label: 'Credit Card' },
-                  { value: 'OTHER', label: 'Other' },
-                ]}
+                options={paymentMethodOptions}
               />
             </div>
 
@@ -309,13 +296,21 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
             Outstanding
           </p>
           <p className="text-3xl font-bold text-blue-600 mt-2">
-            {invoices.filter((i) => i.status === 'POSTED').length}
+            {
+              invoices.filter(
+                (i) => i.status === StatusSchema.enum.POSTED
+              ).length
+            }
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <p className="text-sm text-gray-500 uppercase">Paid</p>
           <p className="text-3xl font-bold text-green-600 mt-2">
-            {invoices.filter((i) => i.status === 'PAID').length}
+            {
+              invoices.filter(
+                (i) => i.status === StatusSchema.enum.PAID
+              ).length
+            }
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -331,21 +326,19 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
       {/* Filters */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
-          {(['ALL', 'DRAFT', 'POSTED', 'PAID', 'VOID'] as const).map(
-            (status) => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`${
-                  filterStatus === status
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                {status === 'ALL' ? 'All Invoices' : status}
-              </button>
-            )
-          )}
+          {invoiceStatusFilterOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setFilterStatus(opt.value)}
+              className={`${
+                filterStatus === opt.value
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              {opt.value === 'ALL' ? 'All Invoices' : opt.label}
+            </button>
+          ))}
         </nav>
       </div>
 
@@ -412,7 +405,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
                       <span
                         className={
                           new Date(invoice.dueDate) < new Date() &&
-                          invoice.status === 'POSTED'
+                          invoice.status === StatusSchema.enum.POSTED
                             ? 'text-red-600 font-bold'
                             : ''
                         }
@@ -428,7 +421,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
-                      {invoice.status === 'DRAFT' && (
+                      {invoice.status === StatusSchema.enum.DRAFT && (
                         <>
                           <ActionButton
                             onClick={() => handlePost(invoice.id)}
@@ -444,7 +437,8 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
                           </ActionButton>
                         </>
                       )}
-                      {invoice.status === 'POSTED' && (
+                      {invoice.status ===
+                        StatusSchema.enum.POSTED && (
                         <ActionButton
                           onClick={() => openPaymentModal(invoice)}
                           variant="success"

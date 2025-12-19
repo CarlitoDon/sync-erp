@@ -9,32 +9,13 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { PaymentHistoryList } from '@/features/finance/components/PaymentHistoryList';
 import Select from '@/components/ui/Select';
 import { useState } from 'react';
-
-// Type from tRPC response
-type PaymentMethod =
-  | 'BANK_TRANSFER'
-  | 'CASH'
-  | 'CHECK'
-  | 'CREDIT_CARD'
-  | 'OTHER';
-
-// Exhaustive status label mapping
-const statusLabels: Record<string, { label: string; color: string }> =
-  {
-    DRAFT: { label: 'Draft', color: 'bg-gray-100 text-gray-800' },
-    POSTED: {
-      label: 'Posted',
-      color: 'bg-yellow-100 text-yellow-800',
-    },
-    PAID: { label: 'Paid', color: 'bg-green-100 text-green-800' },
-    VOID: { label: 'Void', color: 'bg-red-100 text-red-800' },
-  };
-
-const getStatusDisplay = (status: string) =>
-  statusLabels[status] || {
-    label: status,
-    color: 'bg-gray-100 text-gray-800',
-  };
+import {
+  PaymentMethod,
+  paymentMethodOptions,
+  defaultPaymentMethod,
+  getInvoiceStatusDisplay,
+} from '@/features/finance/utils/financeEnums';
+import { InvoiceStatusSchema as StatusSchema } from '@sync-erp/shared';
 
 export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
@@ -67,8 +48,9 @@ export default function InvoiceDetail() {
   // Payment Modal State
   const [showPayment, setShowPayment] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] =
-    useState<PaymentMethod>('BANK_TRANSFER');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    defaultPaymentMethod
+  );
   const [showHistory, setShowHistory] = useState(false);
 
   const handlePost = async () => {
@@ -129,7 +111,7 @@ export default function InvoiceDetail() {
     );
   }
 
-  const statusDisplay = getStatusDisplay(invoice.status);
+  const statusDisplay = getInvoiceStatusDisplay(invoice.status);
 
   return (
     <>
@@ -215,13 +197,7 @@ export default function InvoiceDetail() {
               onChange={(val) =>
                 setPaymentMethod(val as PaymentMethod)
               }
-              options={[
-                { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-                { value: 'CASH', label: 'Cash' },
-                { value: 'CHECK', label: 'Check' },
-                { value: 'CREDIT_CARD', label: 'Credit Card' },
-                { value: 'OTHER', label: 'Other' },
-              ]}
+              options={paymentMethodOptions}
             />
           </div>
 
@@ -359,7 +335,7 @@ export default function InvoiceDetail() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold mb-4">Actions</h2>
           <div className="flex flex-wrap gap-3">
-            {invoice.status === 'DRAFT' && (
+            {invoice.status === StatusSchema.enum.DRAFT && (
               <>
                 <ActionButton variant="primary" onClick={handlePost}>
                   Post Invoice
@@ -369,7 +345,7 @@ export default function InvoiceDetail() {
                 </ActionButton>
               </>
             )}
-            {invoice.status === 'POSTED' &&
+            {invoice.status === StatusSchema.enum.POSTED &&
               Number(invoice.balance) > 0 && (
                 <>
                   <ActionButton

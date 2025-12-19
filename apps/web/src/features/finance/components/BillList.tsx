@@ -9,14 +9,18 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { PaymentHistoryList } from '@/features/finance/components/PaymentHistoryList';
 import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
+import {
+  PaymentMethod,
+  InvoiceStatusFilter,
+  InvoiceStatus,
+  paymentMethodOptions,
+  defaultPaymentMethod,
+  getInvoiceStatusDisplay,
+  invoiceStatusFilterOptions,
+} from '@/features/finance/utils/financeEnums';
+import { InvoiceStatusSchema as StatusSchema } from '@sync-erp/shared';
 
 type Bill = RouterOutputs['bill']['list'][number];
-type PaymentMethod =
-  | 'BANK_TRANSFER'
-  | 'CASH'
-  | 'CHECK'
-  | 'CREDIT_CARD'
-  | 'OTHER';
 
 interface BillListProps {
   filter?: {
@@ -56,15 +60,15 @@ export const BillList = ({ filter }: BillListProps) => {
     },
   });
 
-  const [filterStatus, setFilterStatus] = useState<
-    'ALL' | 'DRAFT' | 'POSTED' | 'PAID' | 'VOID'
-  >('ALL');
+  const [filterStatus, setFilterStatus] =
+    useState<InvoiceStatusFilter>('ALL');
 
   // Payment Modal State
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] =
-    useState<PaymentMethod>('BANK_TRANSFER');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    defaultPaymentMethod
+  );
   const [showHistory, setShowHistory] = useState<string | null>(null);
 
   const handlePost = async (id: string) => {
@@ -91,7 +95,7 @@ export const BillList = ({ filter }: BillListProps) => {
   const openPaymentModal = (bill: Bill) => {
     setSelectedBill(bill);
     setPaymentAmount(Number(bill.balance));
-    setPaymentMethod('BANK_TRANSFER');
+    setPaymentMethod(defaultPaymentMethod);
   };
 
   const closePaymentModal = () => {
@@ -121,19 +125,8 @@ export const BillList = ({ filter }: BillListProps) => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'POSTED':
-        return 'bg-blue-100 text-blue-800';
-      case 'PAID':
-        return 'bg-green-100 text-green-800';
-      case 'VOID':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusColor = (status: InvoiceStatus) => {
+    return getInvoiceStatusDisplay(status).color;
   };
 
   if (loading && bills.length === 0) {
@@ -149,7 +142,7 @@ export const BillList = ({ filter }: BillListProps) => {
   );
 
   const outstandingAmount = bills
-    .filter((b) => b.status === 'POSTED')
+    .filter((b) => b.status === StatusSchema.enum.POSTED)
     .reduce((sum, b) => sum + Number(b.balance), 0);
 
   return (
@@ -242,13 +235,7 @@ export const BillList = ({ filter }: BillListProps) => {
                 onChange={(val) =>
                   setPaymentMethod(val as PaymentMethod)
                 }
-                options={[
-                  { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-                  { value: 'CASH', label: 'Cash' },
-                  { value: 'CHECK', label: 'Check' },
-                  { value: 'CREDIT_CARD', label: 'Credit Card' },
-                  { value: 'OTHER', label: 'Other' },
-                ]}
+                options={paymentMethodOptions}
               />
             </div>
 
@@ -295,13 +282,20 @@ export const BillList = ({ filter }: BillListProps) => {
             Unpaid Bills
           </p>
           <p className="text-3xl font-bold text-blue-600 mt-2">
-            {bills.filter((b) => b.status === 'POSTED').length}
+            {
+              bills.filter(
+                (b) => b.status === StatusSchema.enum.POSTED
+              ).length
+            }
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <p className="text-sm text-gray-500 uppercase">Paid</p>
           <p className="text-3xl font-bold text-green-600 mt-2">
-            {bills.filter((b) => b.status === 'PAID').length}
+            {
+              bills.filter((b) => b.status === StatusSchema.enum.PAID)
+                .length
+            }
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -317,21 +311,21 @@ export const BillList = ({ filter }: BillListProps) => {
       {/* Filters */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
-          {(['ALL', 'DRAFT', 'POSTED', 'PAID'] as const).map(
-            (status) => (
+          {invoiceStatusFilterOptions
+            .filter((o) => o.value !== 'VOID')
+            .map((opt) => (
               <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
+                key={opt.value}
+                onClick={() => setFilterStatus(opt.value)}
                 className={`${
-                  filterStatus === status
+                  filterStatus === opt.value
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
-                {status === 'ALL' ? 'All Bills' : status}
+                {opt.value === 'ALL' ? 'All Bills' : opt.label}
               </button>
-            )
-          )}
+            ))}
         </nav>
       </div>
 
@@ -398,7 +392,7 @@ export const BillList = ({ filter }: BillListProps) => {
                       <span
                         className={
                           new Date(bill.dueDate) < new Date() &&
-                          bill.status === 'POSTED'
+                          bill.status === StatusSchema.enum.POSTED
                             ? 'text-red-600 font-bold'
                             : ''
                         }
@@ -414,7 +408,7 @@ export const BillList = ({ filter }: BillListProps) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
-                      {bill.status === 'DRAFT' && (
+                      {bill.status === StatusSchema.enum.DRAFT && (
                         <>
                           <ActionButton
                             variant="primary"
@@ -430,7 +424,7 @@ export const BillList = ({ filter }: BillListProps) => {
                           </ActionButton>
                         </>
                       )}
-                      {bill.status === 'POSTED' && (
+                      {bill.status === StatusSchema.enum.POSTED && (
                         <ActionButton
                           variant="success"
                           onClick={() => openPaymentModal(bill)}
