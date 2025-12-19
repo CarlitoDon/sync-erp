@@ -41,7 +41,7 @@ export function useBill(options: UseBillOptions = {}) {
     async (id: string): Promise<Invoice | undefined> => {
       if (!currentCompany?.id) return undefined;
       const bill = await utils.bill.getById.fetch({ id });
-      return (bill as Invoice) || undefined;
+      return (bill as unknown as Invoice) || undefined;
     },
     [currentCompany?.id, utils]
   );
