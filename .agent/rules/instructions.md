@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 # AI Agent Instructions for Sync ERP
 
 > Multi-tenant ERP system • Vite + React (frontend) • Express + TypeScript (backend) • Prisma (ORM)

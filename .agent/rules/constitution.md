@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+---
+
 <!--
 SYNC IMPACT REPORT
 Version: 2.5.0 -> 2.5.1 (PATCH - Expanded Dumb Repository Guidance)
