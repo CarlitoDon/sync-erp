@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import { Prisma } from '@sync-erp/database';
 import { ERROR_CODES } from '@sync-erp/shared';
 
 // Type for error details - validation errors or key-value pairs
@@ -28,12 +29,73 @@ export class AppError extends Error {
   }
 }
 
+// Helper to get user-friendly message for Prisma errors
+function getPrismaErrorMessage(
+  error: Prisma.PrismaClientKnownRequestError
+): string {
+  switch (error.code) {
+    case 'P2002':
+      return 'A record with this value already exists';
+    case 'P2003':
+      return 'Referenced record not found';
+    case 'P2025':
+      return 'Record not found';
+    case 'P1001':
+      return 'Cannot connect to database';
+    case 'P1002':
+      return 'Database connection timed out';
+    case 'P2021':
+    case 'P2022':
+      // Table/column does not exist - likely missing migration
+      return 'Database schema is out of sync. Please contact support.';
+    default:
+      return 'Database operation failed';
+  }
+}
+
 export function errorHandler(
   err: Error | AppError,
   _req: Request,
   res: Response,
   _next: NextFunction
 ) {
+  // Handle Prisma known request errors (constraint violations, not found, etc.)
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    console.error('Prisma Error:', err.code, err.message);
+    const statusCode = err.code === 'P2025' ? 404 : 400;
+    return res.status(statusCode).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.DATABASE_ERROR || 'DATABASE_ERROR',
+        message: getPrismaErrorMessage(err),
+      },
+    });
+  }
+
+  // Handle Prisma validation errors (invalid query construction)
+  if (err instanceof Prisma.PrismaClientValidationError) {
+    console.error('Prisma Validation Error:', err.message);
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'Invalid database operation',
+      },
+    });
+  }
+
+  // Handle Prisma initialization errors (connection issues)
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    console.error('Prisma Initialization Error:', err.message);
+    return res.status(503).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.DATABASE_ERROR || 'DATABASE_ERROR',
+        message: 'Database service unavailable',
+      },
+    });
+  }
+
   // Handle Zod validation errors
   if (err instanceof ZodError) {
     return res.status(400).json({
