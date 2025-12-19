@@ -1,11 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { InventoryService } from './inventory.service';
-import { ProcurementService } from '../procurement/procurement.service';
-import {
-  GoodsReceiptSchema,
-  StockAdjustmentSchema,
-  DomainError,
-} from '@sync-erp/shared';
+import { StockAdjustmentSchema, DomainError } from '@sync-erp/shared';
 
 /**
  * InventoryController
@@ -63,41 +58,6 @@ export class InventoryController {
     }
   };
 
-  // POST /api/inventory/goods-receipt - Process goods receipt from PO
-  processGoodsReceipt = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    try {
-      const companyId = req.context.companyId!;
-      const company = req.company!; // Company context with businessShape
-      const validated = GoodsReceiptSchema.parse(req.body);
-
-      // Critical: Validated items must be passed to Saga for "Partial Receipt" check
-      // We delegate to ProcurementService.receive which runs the GoodsReceiptSaga
-
-      // We need to instantiate ProcurementService (or inject it)
-      // Since this is a simple controller, new instance is fine (stateless)
-      const procurementService = new ProcurementService();
-
-      const movements = await procurementService.receive(
-        validated.orderId,
-        companyId,
-        validated.reference,
-        company.businessShape,
-        validated.items
-      );
-
-      res.status(201).json({ success: true, data: movements });
-    } catch (error) {
-      if (error instanceof DomainError) {
-        return res.status(error.statusCode).json(error.toJSON());
-      }
-      next(error);
-    }
-  };
-
   // POST /api/inventory/adjust - Manual stock adjustment
   adjustStock = async (
     req: Request,
@@ -116,6 +76,178 @@ export class InventoryController {
         company.configs
       );
       res.status(201).json({ success: true, data: movement });
+    } catch (error) {
+      if (error instanceof DomainError) {
+        return res.status(error.statusCode).json(error.toJSON());
+      }
+      next(error);
+    }
+  };
+
+  // ==========================================
+  // GRN Endpoints (034-grn-fullstack)
+  // ==========================================
+
+  // GET /api/inventory/receipts
+  listReceipts = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const receipts = await this.service.listGRN(companyId);
+      res.json({ success: true, data: receipts });
+    } catch (error) {
+      if (error instanceof DomainError) {
+        return res.status(error.statusCode).json(error.toJSON());
+      }
+      next(error);
+    }
+  };
+
+  // GET /api/inventory/receipts/:id
+  getReceipt = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const { id } = req.params;
+      const receipt = await this.service.getGRN(companyId, id);
+      if (!receipt) {
+        return res
+          .status(404)
+          .json({ success: false, error: 'Receipt not found' });
+      }
+      res.json({ success: true, data: receipt });
+    } catch (error) {
+      if (error instanceof DomainError) {
+        return res.status(error.statusCode).json(error.toJSON());
+      }
+      next(error);
+    }
+  };
+
+  // POST /api/inventory/receipts
+  createReceipt = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const receipt = await this.service.createGRN(
+        companyId,
+        req.body
+      );
+      res.status(201).json({ success: true, data: receipt });
+    } catch (error) {
+      if (error instanceof DomainError) {
+        return res.status(error.statusCode).json(error.toJSON());
+      }
+      next(error);
+    }
+  };
+
+  // POST /api/inventory/receipts/:id/post
+  postReceipt = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const { id } = req.params;
+      const receipt = await this.service.postGRN(companyId, id);
+      res.json({ success: true, data: receipt });
+    } catch (error) {
+      if (error instanceof DomainError) {
+        return res.status(error.statusCode).json(error.toJSON());
+      }
+      next(error);
+    }
+  };
+
+  // ==========================================
+  // Shipment Endpoints (034-grn-fullstack)
+  // ==========================================
+
+  // GET /api/inventory/shipments
+  listShipments = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const shipments = await this.service.listShipments(companyId);
+      res.json({ success: true, data: shipments });
+    } catch (error) {
+      if (error instanceof DomainError) {
+        return res.status(error.statusCode).json(error.toJSON());
+      }
+      next(error);
+    }
+  };
+
+  // GET /api/inventory/shipments/:id
+  getShipment = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const { id } = req.params;
+      const shipment = await this.service.getShipment(companyId, id);
+      if (!shipment) {
+        return res
+          .status(404)
+          .json({ success: false, error: 'Shipment not found' });
+      }
+      res.json({ success: true, data: shipment });
+    } catch (error) {
+      if (error instanceof DomainError) {
+        return res.status(error.statusCode).json(error.toJSON());
+      }
+      next(error);
+    }
+  };
+
+  // POST /api/inventory/shipments
+  createShipment = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const shipment = await this.service.createShipment(
+        companyId,
+        req.body
+      );
+      res.status(201).json({ success: true, data: shipment });
+    } catch (error) {
+      if (error instanceof DomainError) {
+        return res.status(error.statusCode).json(error.toJSON());
+      }
+      next(error);
+    }
+  };
+
+  // POST /api/inventory/shipments/:id/post
+  postShipment = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const companyId = req.context.companyId!;
+      const { id } = req.params;
+      const shipment = await this.service.postShipment(companyId, id);
+      res.json({ success: true, data: shipment });
     } catch (error) {
       if (error instanceof DomainError) {
         return res.status(error.statusCode).json(error.toJSON());

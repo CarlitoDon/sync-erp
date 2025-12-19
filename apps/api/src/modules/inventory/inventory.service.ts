@@ -43,14 +43,16 @@ export class InventoryService {
     // Assuming read ops are safe or updated later.
     const order = await this.procurementService.getById(
       data.orderId,
-      companyId
+      companyId,
+      tx
     );
     if (!order) {
       throw new Error('Purchase order not found');
     }
 
     const orderItems = await this.procurementService.getItems(
-      data.orderId
+      data.orderId,
+      tx
     );
     const movements: InventoryMovement[] = [];
 
@@ -97,7 +99,11 @@ export class InventoryService {
     }
 
     // Mark order as completed
-    await this.procurementService.complete(data.orderId, companyId);
+    await this.procurementService.complete(
+      data.orderId,
+      companyId,
+      tx
+    );
 
     return movements;
   }
@@ -118,7 +124,6 @@ export class InventoryService {
     configs?: { key: string; value: Prisma.JsonValue }[],
     tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement[]> {
-    const db = tx || prisma;
     // Policy checks
     if (configs) {
       InventoryPolicy.ensureInventoryEnabled(configs);
@@ -127,21 +132,12 @@ export class InventoryService {
       InventoryPolicy.ensureCanAdjustStock(shape);
     }
 
-    // Note: Assuming PurchaseOrderService or similar handles Sales Orders?
-    // The original code used prisma.order.findFirst directly.
-    // Ideally we should use SalesOrderService. But SalesOrderService is likely legacy too.
-    // For now, I'll access Prisma directly for order details to match original implementation OR delegate to SalesOrderService if available.
-    // Original code: prisma.order.findFirst({ where: { id: orderId, companyId }, include: { items: true } })
-
-    // I will check if SalesOrderService exists and has what I need?
-    // Or just replicate the logic using prisma here, but that violates logic separation.
-    // I'll stick to Prisma direct access for now as per "Type B" service refactoring,
-    // waiting for Sales Module refactor to abstract it properly.
-
-    const order = await db.order.findFirst({
-      where: { id: orderId, companyId },
-      include: { items: true },
-    });
+    // Fetch order via Repository (Service Layer Purity)
+    const order = await this.repository.findOrderWithItems(
+      orderId,
+      companyId,
+      tx
+    );
 
     if (!order) {
       throw new DomainError('Order not found', 404);
@@ -200,10 +196,11 @@ export class InventoryService {
         movements.push(movement);
 
         // Snapshot COGS on OrderItem (T017 Accuracy)
-        await db.orderItem.update({
-          where: { id: item.id },
-          data: { cost: product.averageCost },
-        });
+        await this.repository.updateOrderItemCost(
+          item.id,
+          product.averageCost,
+          tx
+        );
 
         // Accumulate COGS
         totalCogs += Number(product.averageCost) * item.quantity;
@@ -257,14 +254,15 @@ export class InventoryService {
     reference?: string,
     tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement[]> {
-    const db = tx || prisma;
-    const order = await db.order.findFirst({
-      where: { id: orderId, companyId },
-      include: { items: true },
-    });
+    // Fetch order via Repository (Service Layer Purity)
+    const order = await this.repository.findOrderWithItems(
+      orderId,
+      companyId,
+      tx
+    );
 
     if (!order) {
-      throw new Error('Order not found');
+      throw new DomainError('Order not found', 404);
     }
 
     const movements: InventoryMovement[] = [];
@@ -429,5 +427,245 @@ export class InventoryService {
     tx?: Prisma.TransactionClient
   ) {
     return this.productService.list(companyId, tx);
+  }
+
+  // ==========================================
+  // GRN Methods (034-grn-fullstack)
+  // ==========================================
+
+  /**
+   * Create a new Goods Receipt Note
+   * Policy: Order must be CONFIRMED
+   */
+  async createGRN(
+    companyId: string,
+    data: {
+      purchaseOrderId: string;
+      date?: string;
+      notes?: string;
+      items: { productId: string; quantity: number }[];
+    },
+    tx?: Prisma.TransactionClient
+  ) {
+    // 1. Fetch PO with items via Repository
+    const order = await this.repository.findPurchaseOrderWithItems(
+      data.purchaseOrderId,
+      companyId,
+      tx
+    );
+
+    if (!order) {
+      throw new DomainError('Purchase order not found', 404);
+    }
+
+    // 2. Policy: Order must be CONFIRMED
+    if (order.status !== 'CONFIRMED') {
+      throw new DomainError(
+        `Cannot receive goods for order in status: ${order.status}. Order must be CONFIRMED.`,
+        400
+      );
+    }
+
+    // 3. Map input items to include purchaseOrderItemId
+    const mappedItems = data.items.map((item) => {
+      const orderItem = order.items.find(
+        (oi) => oi.productId === item.productId
+      );
+      if (!orderItem) {
+        throw new DomainError(
+          `Product ${item.productId} not found in order`,
+          400
+        );
+      }
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        purchaseOrderItemId: orderItem.id,
+      };
+    });
+
+    // 4. Create GRN
+    return this.repository.createGoodsReceipt(
+      {
+        companyId,
+        purchaseOrderId: data.purchaseOrderId,
+        date: data.date ? new Date(data.date) : new Date(),
+        notes: data.notes,
+        items: mappedItems,
+      },
+      tx
+    );
+  }
+
+  /**
+   * Post a Goods Receipt Note (Stock IN + Cost Update)
+   */
+  async postGRN(
+    companyId: string,
+    grnId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const execute = async (t: Prisma.TransactionClient) => {
+      // 1. Post to Stock (and get updated GRN with items)
+      const postedGrn = await this.repository.postGoodsReceipt(
+        grnId,
+        companyId,
+        t
+      );
+
+      // 2. Calculate Value
+      const totalValue = postedGrn.items.reduce(
+        (sum, item) =>
+          sum +
+          Number(item.quantity) *
+            Number(item.purchaseOrderItem.price),
+        0
+      );
+
+      // 3. Post Accrual Journal (if value > 0)
+      if (totalValue > 0) {
+        await this.journalService.postGoodsReceipt(
+          companyId,
+          `GRN:${postedGrn.number}`,
+          totalValue,
+          t
+        );
+      }
+
+      return postedGrn;
+    };
+
+    if (tx) {
+      return execute(tx);
+    }
+    return prisma.$transaction(execute);
+  }
+
+  async listGRN(companyId: string) {
+    return this.repository.listGoodsReceipts(companyId);
+  }
+
+  async getGRN(companyId: string, grnId: string) {
+    return this.repository.findGoodsReceiptById(grnId, companyId);
+  }
+
+  // ==========================================
+  // Shipment Methods (034-grn-fullstack)
+  // ==========================================
+
+  /**
+   * Create a new Shipment
+   * Policy: Order must be CONFIRMED, Stock must be available
+   */
+  async createShipment(
+    companyId: string,
+    data: {
+      salesOrderId: string;
+      date?: string;
+      notes?: string;
+      items: { productId: string; quantity: number }[];
+    },
+    tx?: Prisma.TransactionClient
+  ) {
+    // 1. Fetch SO with items via Repository
+    const order = await this.repository.findSalesOrderWithItems(
+      data.salesOrderId,
+      companyId,
+      tx
+    );
+
+    if (!order) {
+      throw new DomainError('Sales order not found', 404);
+    }
+
+    // 2. Policy: Order must be CONFIRMED
+    if (order.status !== 'CONFIRMED') {
+      throw new DomainError(
+        `Cannot ship goods for order in status: ${order.status}. Order must be CONFIRMED.`,
+        400
+      );
+    }
+
+    // 3. Map input items to include salesOrderItemId
+    const mappedItems = data.items.map((item) => {
+      const orderItem = order.items.find(
+        (oi) => oi.productId === item.productId
+      );
+      if (!orderItem) {
+        throw new DomainError(
+          `Product ${item.productId} not found in order`,
+          400
+        );
+      }
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        salesOrderItemId: orderItem.id,
+      };
+    });
+
+    // 4. Create Shipment
+    return this.repository.createShipment(
+      {
+        companyId,
+        salesOrderId: data.salesOrderId,
+        date: data.date ? new Date(data.date) : new Date(),
+        notes: data.notes,
+        items: mappedItems,
+      },
+      tx
+    );
+  }
+
+  /**
+   * Post a Shipment (Stock OUT + COGS Snapshot)
+   */
+  async postShipment(
+    companyId: string,
+    shipmentId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const execute = async (t: Prisma.TransactionClient) => {
+      // 1. Post to Stock (and get updated Shipment with items and cost snapshots)
+      const postedShipment = await this.repository.postShipment(
+        shipmentId,
+        companyId,
+        t
+      );
+
+      // 2. Calculate COGS Value
+      const totalCogs = postedShipment.items.reduce(
+        (sum, item) =>
+          sum +
+          Number(item.quantity) *
+            Number(item.costSnapshot || item.product.averageCost),
+        0
+      );
+
+      // 3. Post COGS Journal (if value > 0)
+      if (totalCogs > 0) {
+        await this.journalService.postShipment(
+          companyId,
+          `SHP:${postedShipment.number}`,
+          totalCogs,
+          t
+        );
+      }
+
+      return postedShipment;
+    };
+
+    if (tx) {
+      return execute(tx);
+    }
+    return prisma.$transaction(execute);
+  }
+
+  async listShipments(companyId: string) {
+    return this.repository.listShipments(companyId);
+  }
+
+  async getShipment(companyId: string, shipmentId: string) {
+    return this.repository.findShipmentById(shipmentId, companyId);
   }
 }

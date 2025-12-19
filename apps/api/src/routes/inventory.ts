@@ -11,16 +11,43 @@ inventoryRouter.get('/stock', controller.getStockLevels);
 // GET /api/inventory/movements - Get inventory movements
 inventoryRouter.get('/movements', controller.getMovements);
 
-// POST /api/inventory/goods-receipt - Process goods receipt from PO
-inventoryRouter.post(
-  '/goods-receipt',
-  requireActiveShape(),
-  controller.processGoodsReceipt
-);
-
 // POST /api/inventory/adjust - Manual stock adjustment
 inventoryRouter.post(
   '/adjust',
   requireActiveShape(),
   controller.adjustStock
+);
+
+// ==========================================
+// GRN Routes (034-grn-fullstack)
+// ==========================================
+
+inventoryRouter.get('/receipts', controller.listReceipts);
+inventoryRouter.get('/receipts/:id', controller.getReceipt);
+inventoryRouter.post(
+  '/receipts',
+  requireActiveShape(),
+  controller.createReceipt
+);
+inventoryRouter.post(
+  '/receipts/:id/post',
+  requireActiveShape(),
+  controller.postReceipt
+);
+
+// ==========================================
+// Shipment Routes (034-grn-fullstack)
+// ==========================================
+
+inventoryRouter.get('/shipments', controller.listShipments);
+inventoryRouter.get('/shipments/:id', controller.getShipment);
+inventoryRouter.post(
+  '/shipments',
+  requireActiveShape(),
+  controller.createShipment
+);
+inventoryRouter.post(
+  '/shipments/:id/post',
+  requireActiveShape(),
+  controller.postShipment
 );
