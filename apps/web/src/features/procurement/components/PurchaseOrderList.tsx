@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useCompanyData } from '../../../hooks/useCompanyData';
-import { apiAction } from '../../../hooks/useApiAction';
-import { useConfirm } from '../../../components/ui/ConfirmModal';
-import ActionButton from '../../../components/ui/ActionButton';
-import { GoodsReceiptModal } from '../../inventory/components/GoodsReceiptModal';
-import { formatCurrency } from '../../../utils/format';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { apiAction } from '@/hooks/useApiAction';
+import { useConfirm } from '@/components/ui/ConfirmModal';
+import ActionButton from '@/components/ui/ActionButton';
+import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
+import { formatCurrency } from '@/utils/format';
 import {
   purchaseOrderService,
   PurchaseOrder,
-} from '../services/purchaseOrderService';
-import { billService } from '../../finance/services/billService';
+} from '@/features/procurement/services/purchaseOrderService';
+import { billService } from '@/features/finance/services/billService';
 
 interface PurchaseOrderListProps {
   filter?: { partnerId?: string; status?: string };
@@ -265,6 +265,13 @@ export default function PurchaseOrderList({
           isOpen={!!goodsReceiptId}
           onClose={() => setGoodsReceiptId(null)}
           purchaseOrderId={goodsReceiptId}
+          orderItems={(orders.find((o) => o.id === goodsReceiptId)?.items || []).map((item) => ({
+            id: item.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: Number(item.price),
+            product: item.product,
+          }))}
           onSuccess={loadData}
         />
       )}

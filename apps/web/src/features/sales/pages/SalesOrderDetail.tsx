@@ -3,13 +3,14 @@ import { useState, useEffect } from 'react';
 import {
   salesOrderService,
   SalesOrder,
-} from '../services/salesOrderService';
-import { invoiceService } from '../../finance/services/invoiceService';
-import { useCompany } from '../../../contexts/CompanyContext';
-import { apiAction } from '../../../hooks/useApiAction';
-import { useConfirm } from '../../../components/ui/ConfirmModal';
-import ActionButton from '../../../components/ui/ActionButton';
-import { formatCurrency, formatDate } from '../../../utils/format';
+} from '@/features/sales/services/salesOrderService';
+import { invoiceService } from '@/features/finance/services/invoiceService';
+import { useCompany } from '@/contexts/CompanyContext';
+import { apiAction } from '@/hooks/useApiAction';
+import { useConfirm } from '@/components/ui/ConfirmModal';
+import ActionButton from '@/components/ui/ActionButton';
+import { formatCurrency, formatDate } from '@/utils/format';
+import { ShipmentModal } from '@/features/inventory/components/ShipmentModal';
 
 export default function SalesOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,7 @@ export default function SalesOrderDetail() {
 
   const [order, setOrder] = useState<SalesOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shipmentModalOpen, setShipmentModalOpen] = useState(false);
 
   const loadOrder = async () => {
     if (!id || !currentCompany) return;
@@ -63,13 +65,8 @@ export default function SalesOrderDetail() {
     loadOrder();
   };
 
-  const handleShip = async () => {
-    if (!order) return;
-    await apiAction(
-      () => salesOrderService.ship(order.id),
-      'Order shipped!'
-    );
-    loadOrder();
+  const handleShip = () => {
+    setShipmentModalOpen(true);
   };
 
   const handleCreateInvoice = async () => {
@@ -133,173 +130,193 @@ export default function SalesOrderDetail() {
   const shipmentStatus = getShipmentStatus(order.status);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => navigate('/sales-orders')}
-            className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
-          >
-            ← Back to Sales Orders
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {order.orderNumber}
-          </h1>
-          <p className="text-gray-500">
-            {order.partner?.name || 'Unknown Customer'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <span
-            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
-          >
-            {order.status}
-          </span>
-        </div>
-      </div>
+    <>
+      {/* Shipment Modal */}
+      <ShipmentModal
+        isOpen={shipmentModalOpen}
+        salesOrderId={order.id}
+        orderItems={order.items.map((item) => ({
+          id: item.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: Number(item.price),
+          product: item.product,
+        }))}
+        onClose={() => setShipmentModalOpen(false)}
+        onSuccess={() => {
+          setShipmentModalOpen(false);
+          loadOrder();
+        }}
+      />
 
-      {/* Details Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Order Details</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">Order Number</p>
-            <p className="font-mono font-medium">
-              {order.orderNumber}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Customer</p>
-            <p className="font-medium">
-              {order.partner ? (
-                <Link
-                  to={`/customers/${order.partnerId}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  {order.partner.name}
-                </Link>
-              ) : (
-                '-'
-              )}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Created</p>
-            <p className="font-medium">
-              {formatDate(order.createdAt)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Shipment Status</p>
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${shipmentStatus.color}`}
+            <button
+              onClick={() => navigate('/sales-orders')}
+              className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
             >
-              {shipmentStatus.label}
+              ← Back to Sales Orders
+            </button>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {order.orderNumber}
+            </h1>
+            <p className="text-gray-500">
+              {order.partner?.name || 'Unknown Customer'}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <span
+              className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
+            >
+              {order.status}
             </span>
           </div>
         </div>
 
-        <hr className="my-6" />
-
-        <div>
-          <p className="text-sm text-gray-500 mb-2">Total Amount</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(Number(order.totalAmount))}
-          </p>
-        </div>
-      </div>
-
-      {/* Items Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Order Items</h2>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Product
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Quantity
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Unit Price
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Total
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {order.items.map((item) => (
-              <tr key={item.id}>
-                <td className="px-4 py-3">
-                  {item.product ? (
-                    <Link
-                      to={`/products/${item.productId}`}
-                      className="text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      {item.product.name}
-                    </Link>
-                  ) : (
-                    item.productId
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {item.quantity}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {formatCurrency(Number(item.price))}
-                </td>
-                <td className="px-4 py-3 text-right font-medium">
-                  {formatCurrency(item.quantity * Number(item.price))}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Actions */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Actions</h2>
-        <div className="flex flex-wrap gap-3">
-          {order.status === 'DRAFT' && (
-            <>
-              <ActionButton variant="primary" onClick={handleConfirm}>
-                Confirm Order
-              </ActionButton>
-              <ActionButton variant="danger" onClick={handleCancel}>
-                Cancel Order
-              </ActionButton>
-            </>
-          )}
-          {order.status === 'CONFIRMED' && (
-            <ActionButton variant="success" onClick={handleShip}>
-              Ship Order
-            </ActionButton>
-          )}
-          {order.status === 'COMPLETED' &&
-            (!order.invoices || order.invoices.length === 0) && (
-              <ActionButton
-                variant="warning"
-                onClick={handleCreateInvoice}
+        {/* Details Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">Order Details</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">Order Number</p>
+              <p className="font-mono font-medium">
+                {order.orderNumber}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Customer</p>
+              <p className="font-medium">
+                {order.partner ? (
+                  <Link
+                    to={`/customers/${order.partnerId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {order.partner.name}
+                  </Link>
+                ) : (
+                  '-'
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Created</p>
+              <p className="font-medium">
+                {formatDate(order.createdAt)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Shipment Status</p>
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${shipmentStatus.color}`}
               >
-                Create Invoice
+                {shipmentStatus.label}
+              </span>
+            </div>
+          </div>
+
+          <hr className="my-6" />
+
+          <div>
+            <p className="text-sm text-gray-500 mb-2">Total Amount</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {formatCurrency(Number(order.totalAmount))}
+            </p>
+          </div>
+        </div>
+
+        {/* Items Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">Order Items</h2>
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Product
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Quantity
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Unit Price
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Total
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {order.items.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-4 py-3">
+                    {item.product ? (
+                      <Link
+                        to={`/products/${item.productId}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {item.product.name}
+                      </Link>
+                    ) : (
+                      item.productId
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {item.quantity}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {formatCurrency(Number(item.price))}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium">
+                    {formatCurrency(item.quantity * Number(item.price))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Actions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">Actions</h2>
+          <div className="flex flex-wrap gap-3">
+            {order.status === 'DRAFT' && (
+              <>
+                <ActionButton variant="primary" onClick={handleConfirm}>
+                  Confirm Order
+                </ActionButton>
+                <ActionButton variant="danger" onClick={handleCancel}>
+                  Cancel Order
+                </ActionButton>
+              </>
+            )}
+            {order.status === 'CONFIRMED' && (
+              <ActionButton variant="success" onClick={handleShip}>
+                Ship Order
               </ActionButton>
             )}
-          {order.invoices && order.invoices.length > 0 && (
-            <ActionButton
-              variant="secondary"
-              onClick={() =>
-                navigate(`/invoices/${order.invoices![0].id}`)
-              }
-            >
-              View Invoice
-            </ActionButton>
-          )}
+            {order.status === 'COMPLETED' &&
+              (!order.invoices || order.invoices.length === 0) && (
+                <ActionButton
+                  variant="warning"
+                  onClick={handleCreateInvoice}
+                >
+                  Create Invoice
+                </ActionButton>
+              )}
+            {order.invoices && order.invoices.length > 0 && (
+              <ActionButton
+                variant="secondary"
+                onClick={() =>
+                  navigate(`/invoices/${order.invoices![0].id}`)
+                }
+              >
+                View Invoice
+              </ActionButton>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -3,14 +3,14 @@ import { useState, useEffect } from 'react';
 import {
   purchaseOrderService,
   PurchaseOrder,
-} from '../services/purchaseOrderService';
-import { billService } from '../../finance/services/billService';
-import { useCompany } from '../../../contexts/CompanyContext';
-import { apiAction } from '../../../hooks/useApiAction';
-import { useConfirm } from '../../../components/ui/ConfirmModal';
-import ActionButton from '../../../components/ui/ActionButton';
-import { formatCurrency, formatDate } from '../../../utils/format';
-import { GoodsReceiptModal } from '../../inventory/components/GoodsReceiptModal';
+} from '@/features/procurement/services/purchaseOrderService';
+import { billService } from '@/features/finance/services/billService';
+import { useCompany } from '@/contexts/CompanyContext';
+import { apiAction } from '@/hooks/useApiAction';
+import { useConfirm } from '@/components/ui/ConfirmModal';
+import ActionButton from '@/components/ui/ActionButton';
+import { formatCurrency, formatDate } from '@/utils/format';
+import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -133,6 +133,13 @@ export default function PurchaseOrderDetail() {
       <GoodsReceiptModal
         isOpen={goodsReceiptId !== null}
         purchaseOrderId={goodsReceiptId || ''}
+        orderItems={(order?.items || []).map((item) => ({
+          id: item.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: Number(item.price),
+          product: item.product,
+        }))}
         onClose={() => setGoodsReceiptId(null)}
         onSuccess={() => {
           setGoodsReceiptId(null);
