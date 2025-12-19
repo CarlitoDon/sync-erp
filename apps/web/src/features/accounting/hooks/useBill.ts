@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import { apiAction } from '@/hooks/useApiAction';
 import { useCompany } from '@/contexts/CompanyContext';
-import api from '@/services/api';
-import { Invoice } from '@sync-erp/shared'; // Using shared types (Invoice is mirrored from DB)
+import { useConfirm } from '@/components/ui/ConfirmModal';
+import { apiAction } from '@/hooks/useApiAction';
+import { trpc } from '@/lib/trpc';
+import type { Invoice } from '@sync-erp/shared';
 
-// Input interfaces matching API expectations
+// Export CreateBillInput for BillForm
 export interface CreateBillInput {
   orderId: string;
   invoiceNumber?: string;
@@ -15,123 +15,126 @@ export interface CreateBillInput {
   paymentTermsString?: string;
 }
 
-export interface UseBillOptions {
-  filters?: { status?: string };
+interface UseBillOptions {
+  filters?: {
+    status?: string;
+  };
 }
 
-export interface UseBillReturn {
-  bills: Invoice[];
-  loading: boolean;
-  refresh: () => Promise<void>;
-  createFromPO: (
-    data: CreateBillInput
-  ) => Promise<Invoice | undefined>;
-  postBill: (id: string) => Promise<Invoice | undefined>;
-  voidBill: (id: string) => Promise<Invoice | undefined>;
-  getBill: (id: string) => Promise<Invoice | undefined>;
-}
-
-export function useBill(options: UseBillOptions = {}): UseBillReturn {
+export function useBill(options: UseBillOptions = {}) {
   const { currentCompany } = useCompany();
+  const confirm = useConfirm();
+  const utils = trpc.useUtils();
 
-  // List fetcher
-  const fetchBills = useCallback(
-    async (companyId: string) => {
-      const response = await api.get<{ data: Invoice[] }>(
-        '/api/bills',
-        {
-          headers: { 'x-company-id': companyId },
-          params: options.filters,
-        }
-      );
-      return response.data.data;
-    },
-    [JSON.stringify(options.filters)]
-  );
-
+  // List bills using tRPC
   const {
     data: bills,
-    loading,
-    refresh,
-  } = useCompanyData<Invoice[]>(fetchBills, []);
+    isLoading: loading,
+    refetch: loadData,
+  } = trpc.bill.list.useQuery(
+    { status: options.filters?.status },
+    { enabled: !!currentCompany?.id }
+  );
+
+  // Get bill by ID
+  const getBill = useCallback(
+    async (id: string): Promise<Invoice | undefined> => {
+      if (!currentCompany?.id) return undefined;
+      const bill = await utils.bill.getById.fetch({ id });
+      return (bill as Invoice) || undefined;
+    },
+    [currentCompany?.id, utils]
+  );
+
+  // Create bill from PO
+  const createBillMutation = trpc.bill.createFromPO.useMutation({
+    onSuccess: () => {
+      loadData();
+    },
+  });
 
   const createFromPO = useCallback(
     async (data: CreateBillInput) => {
-      if (!currentCompany?.id) return undefined;
+      if (!currentCompany?.id) return null;
 
-      const result = await apiAction(async () => {
-        const response = await api.post<{ data: Invoice }>(
-          '/api/bills',
-          data,
-          { headers: { 'x-company-id': currentCompany.id } }
-        );
-        return response.data.data;
-      }, 'Bill created successfully!');
+      const result = await apiAction(
+        async () => createBillMutation.mutateAsync(data),
+        'Bill created successfully!'
+      );
 
-      if (result) refresh();
       return result;
     },
-    [currentCompany?.id, refresh]
+    [currentCompany?.id, createBillMutation]
   );
+
+  // Post bill
+  const postBillMutation = trpc.bill.post.useMutation({
+    onSuccess: () => {
+      loadData();
+    },
+  });
 
   const postBill = useCallback(
     async (id: string) => {
-      if (!currentCompany?.id) return undefined;
+      if (!currentCompany?.id) return;
 
-      const result = await apiAction(async () => {
-        const response = await api.post<{ data: Invoice }>(
-          `/api/bills/${id}/post`,
-          {},
-          { headers: { 'x-company-id': currentCompany.id } }
-        );
-        return response.data.data;
-      }, 'Bill posted successfully!');
+      const confirmed = await confirm({
+        title: 'Post Bill',
+        message: 'This will post the bill to the ledger. Continue?',
+        confirmText: 'Post',
+      });
 
-      if (result) refresh();
+      if (!confirmed) return;
+
+      const result = await apiAction(
+        async () => postBillMutation.mutateAsync({ id }),
+        'Bill posted successfully!'
+      );
+
       return result;
     },
-    [currentCompany?.id, refresh]
+    [currentCompany?.id, confirm, postBillMutation]
   );
+
+  // Void bill
+  const voidBillMutation = trpc.bill.void.useMutation({
+    onSuccess: () => {
+      loadData();
+    },
+  });
 
   const voidBill = useCallback(
     async (id: string) => {
-      if (!currentCompany?.id) return undefined;
+      if (!currentCompany?.id) return;
 
-      const result = await apiAction(async () => {
-        const response = await api.post<{ data: Invoice }>(
-          `/api/bills/${id}/void`,
-          {},
-          { headers: { 'x-company-id': currentCompany.id } }
-        );
-        return response.data.data;
-      }, 'Bill voided successfully!');
+      const confirmed = await confirm({
+        title: 'Void Bill',
+        message:
+          'Are you sure you want to void this bill? This cannot be undone.',
+        confirmText: 'Void',
+        variant: 'danger',
+      });
 
-      if (result) refresh();
+      if (!confirmed) return;
+
+      const result = await apiAction(
+        async () => voidBillMutation.mutateAsync({ id }),
+        'Bill voided successfully!'
+      );
+
       return result;
     },
-    [currentCompany?.id, refresh]
-  );
-
-  const getBill = useCallback(
-    async (id: string) => {
-      if (!currentCompany?.id) return undefined;
-      const response = await api.get<{ data: Invoice }>(
-        `/api/bills/${id}`,
-        { headers: { 'x-company-id': currentCompany.id } }
-      );
-      return response.data.data;
-    },
-    [currentCompany?.id]
+    [currentCompany?.id, confirm, voidBillMutation]
   );
 
   return {
-    bills,
+    bills: bills || [],
     loading,
-    refresh,
+    refresh: loadData,
+    getBill,
     createFromPO,
     postBill,
     voidBill,
-    getBill,
   };
 }
 

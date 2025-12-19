@@ -1,106 +1,132 @@
 import { useCallback } from 'react';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import { apiAction } from '@/hooks/useApiAction';
+import { useCompany } from '@/contexts/CompanyContext';
 import { useConfirm } from '@/components/ui/ConfirmModal';
-import {
-  purchaseOrderService,
-  PurchaseOrder,
-  CreatePurchaseOrderInput,
-} from '@/features/procurement/services/purchaseOrderService';
+import { apiAction } from '@/hooks/useApiAction';
+import { trpc } from '@/lib/trpc';
 
-export interface UsePurchaseOrderOptions {
-  filters?: { status?: string; partnerId?: string };
+interface UsePurchaseOrderOptions {
+  filters?: {
+    status?: string;
+  };
 }
 
-export interface UsePurchaseOrderReturn {
-  orders: PurchaseOrder[];
-  loading: boolean;
-  refresh: () => Promise<void>;
-  createOrder: (
-    data: CreatePurchaseOrderInput
-  ) => Promise<PurchaseOrder | undefined>;
-  confirmOrder: (id: string) => Promise<void>;
-  cancelOrder: (id: string) => Promise<void>;
-  getOrder: (id: string) => Promise<PurchaseOrder | undefined>;
-}
-
-/**
- * Hook for managing Purchase Order operations.
- * Encapsulates list fetching, CRUD actions with toast notifications.
- */
 export function usePurchaseOrder(
   options: UsePurchaseOrderOptions = {}
-): UsePurchaseOrderReturn {
+) {
+  const { currentCompany } = useCompany();
   const confirm = useConfirm();
+  const utils = trpc.useUtils();
 
+  // List purchase orders using tRPC
   const {
     data: orders,
-    loading,
-    refresh,
-  } = useCompanyData<PurchaseOrder[]>(
-    useCallback(
-      () => purchaseOrderService.list(options.filters),
-      [JSON.stringify(options.filters)]
-    ),
-    []
+    isLoading: loading,
+    refetch: loadData,
+  } = trpc.purchaseOrder.list.useQuery(
+    { status: options.filters?.status },
+    { enabled: !!currentCompany?.id }
   );
 
+  // Get PO by ID
+  const getOrder = useCallback(
+    async (id: string) => {
+      if (!currentCompany?.id) return undefined;
+      const order = await utils.purchaseOrder.getById.fetch({ id });
+      return order || undefined;
+    },
+    [currentCompany?.id, utils]
+  );
+
+  // Create PO
+  const createOrderMutation = trpc.purchaseOrder.create.useMutation({
+    onSuccess: () => {
+      loadData();
+    },
+  });
+
   const createOrder = useCallback(
-    async (data: CreatePurchaseOrderInput) => {
+    async (data: any) => {
+      if (!currentCompany?.id) return null;
+
       const result = await apiAction(
-        () => purchaseOrderService.create(data),
-        'Purchase Order created!'
+        async () => createOrderMutation.mutateAsync(data),
+        'Purchase order created successfully'
       );
-      if (result) {
-        refresh();
-      }
+
       return result;
     },
-    [refresh]
+    [currentCompany?.id, createOrderMutation]
+  );
+
+  // Confirm PO
+  const confirmOrderMutation = trpc.purchaseOrder.confirm.useMutation(
+    {
+      onSuccess: () => {
+        loadData();
+      },
+    }
   );
 
   const confirmOrder = useCallback(
     async (id: string) => {
-      await apiAction(
-        () => purchaseOrderService.confirm(id),
-        'Order confirmed!'
+      if (!currentCompany?.id) return;
+
+      const confirmed = await confirm({
+        title: 'Confirm Purchase Order',
+        message: 'Confirm this purchase order?',
+        confirmText: 'Confirm',
+      });
+
+      if (!confirmed) return;
+
+      const result = await apiAction(
+        async () => confirmOrderMutation.mutateAsync({ id }),
+        'Purchase order confirmed'
       );
-      refresh();
+
+      return result;
     },
-    [refresh]
+    [currentCompany?.id, confirm, confirmOrderMutation]
   );
+
+  // Cancel PO
+  const cancelOrderMutation = trpc.purchaseOrder.cancel.useMutation({
+    onSuccess: () => {
+      loadData();
+    },
+  });
 
   const cancelOrder = useCallback(
     async (id: string) => {
+      if (!currentCompany?.id) return;
+
       const confirmed = await confirm({
         title: 'Cancel Order',
         message: 'Are you sure you want to cancel this order?',
         confirmText: 'Yes, Cancel',
         variant: 'danger',
       });
+
       if (!confirmed) return;
 
-      await apiAction(
-        () => purchaseOrderService.cancel(id),
+      const result = await apiAction(
+        async () => cancelOrderMutation.mutateAsync({ id }),
         'Order cancelled'
       );
-      refresh();
+
+      return result;
     },
-    [confirm, refresh]
+    [currentCompany?.id, confirm, cancelOrderMutation]
   );
 
-  const getOrder = useCallback(async (id: string) => {
-    return purchaseOrderService.getById(id);
-  }, []);
-
   return {
-    orders,
+    orders: orders || [],
     loading,
-    refresh,
+    refresh: loadData,
+    getOrder,
     createOrder,
     confirmOrder,
     cancelOrder,
-    getOrder,
   };
 }
 

@@ -1,54 +1,59 @@
+import { useCallback } from 'react';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
-import {
-  paymentService,
-  Payment,
-} from '@/features/accounting/services/paymentService';
-import { CreatePaymentInput } from '@sync-erp/shared';
+import { trpc } from '@/lib/trpc';
 
 export function usePayment() {
   const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
 
-  const createPayment = async (
-    data: CreatePaymentInput
-  ): Promise<Payment | null> => {
-    if (!currentCompany) return null;
+  // List payments using tRPC
+  const {
+    data: payments,
+    isLoading: loading,
+    refetch: loadData,
+  } = trpc.payment.list.useQuery(undefined, {
+    enabled: !!currentCompany?.id,
+  });
 
-    const result = await apiAction(
-      () => paymentService.create(currentCompany.id, data),
-      'Payment recorded successfully!'
-    );
+  // Get payment by ID
+  const getPayment = useCallback(
+    async (id: string) => {
+      if (!currentCompany?.id) return undefined;
+      const payment = await utils.payment.getById.fetch({ id });
+      return payment || undefined;
+    },
+    [currentCompany?.id, utils]
+  );
 
-    return result ?? null;
-  };
+  // Create payment
+  const createPaymentMutation = trpc.payment.create.useMutation({
+    onSuccess: () => {
+      loadData();
+    },
+  });
 
-  const getPayments = async (
-    invoiceId?: string
-  ): Promise<Payment[]> => {
-    if (!currentCompany) return [];
+  const createPayment = useCallback(
+    async (data: any) => {
+      if (!currentCompany?.id) return null;
 
-    try {
-      return await paymentService.list(currentCompany.id, invoiceId);
-    } catch (error) {
-      console.error('Failed to load payments:', error);
-      return [];
-    }
-  };
+      const result = await apiAction(
+        async () => createPaymentMutation.mutateAsync(data),
+        'Payment created successfully'
+      );
 
-  const getPayment = async (id: string): Promise<Payment | null> => {
-    if (!currentCompany) return null;
-
-    try {
-      return await paymentService.getById(currentCompany.id, id);
-    } catch (error) {
-      console.error('Failed to load payment:', error);
-      return null;
-    }
-  };
+      return result;
+    },
+    [currentCompany?.id, createPaymentMutation]
+  );
 
   return {
-    createPayment,
-    getPayments,
+    payments: payments || [],
+    loading,
+    loadData,
     getPayment,
+    createPayment,
   };
 }
+
+export default usePayment;
