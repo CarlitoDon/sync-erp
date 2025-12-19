@@ -1,5 +1,6 @@
 ---
 trigger: model_decision
+description: Buka file ini saat pertama berinteraksi dengan user
 ---
 
 # AI Agent Instructions for Sync ERP

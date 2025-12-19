@@ -1,5 +1,6 @@
 ---
 trigger: model_decision
+description: Gunakan file ini untuk memorizing
 ---
 
 <!--
