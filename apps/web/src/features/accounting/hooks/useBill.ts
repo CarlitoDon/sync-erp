@@ -38,10 +38,9 @@ export function useBill(options: UseBillOptions = {}) {
 
   // Get bill by ID
   const getBill = useCallback(
-    async (id: string): Promise<Invoice | undefined> => {
+    async (id: string) => {
       if (!currentCompany?.id) return undefined;
-      const bill = await utils.bill.getById.fetch({ id });
-      return (bill as unknown as Invoice) || undefined;
+      return await utils.bill.getById.fetch({ id });
     },
     [currentCompany?.id, utils]
   );
