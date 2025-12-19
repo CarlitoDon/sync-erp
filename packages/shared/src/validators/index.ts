@@ -115,6 +115,8 @@ export const CreatePurchaseOrderSchema = CreateOrderSchema.extend({
 // Inventory Schemas
 // ============================================
 
+export * from './inventory';
+
 export const MovementTypeSchema = z.enum(['IN', 'OUT']);
 
 export const InventoryCheckSchema = z.object({
@@ -138,6 +140,7 @@ export const GoodsReceiptSchema = z.object({
       })
     )
     .optional(),
+  businessDate: z.coerce.date().optional(),
 });
 
 export const StockAdjustmentSchema = z.object({
@@ -212,11 +215,70 @@ export const CreateInvoiceFromSOSchema = z.object({
 // Payment Schemas
 // ============================================
 
+export const PaymentMethodSchema = z.enum([
+  'CASH',
+  'BANK_TRANSFER',
+  'CREDIT_CARD',
+  'CHECK',
+  'OTHER',
+]);
+
 export const CreatePaymentSchema = z.object({
   invoiceId: z.string().uuid(),
   amount: z.number().positive('Payment amount must be positive'),
-  method: z.string().min(1, 'Payment method is required'),
+  method: PaymentMethodSchema,
   businessDate: z.coerce.date().optional(), // G5: Explicit business date
+  correlationId: z.string().uuid().optional(), // FR-010.1: Request tracing
+});
+
+// ============================================
+// Audit & Saga Schemas (FR-010.1, FR-010.2)
+// ============================================
+
+export const AuditLogActionSchema = z.enum([
+  'INVOICE_POSTED',
+  'BILL_POSTED',
+  'PAYMENT_RECORDED',
+  'ORDER_CONFIRMED',
+  'GOODS_RECEIVED',
+  'SHIPMENT_CREATED',
+]);
+
+export const EntityTypeSchema = z.enum([
+  'INVOICE',
+  'BILL',
+  'PAYMENT',
+  'ORDER',
+  'SHIPMENT',
+  'GOODS_RECEIPT',
+]);
+
+export const CreateAuditLogSchema = z.object({
+  actorId: z.string().uuid(),
+  action: AuditLogActionSchema,
+  entityType: EntityTypeSchema,
+  entityId: z.string().uuid(),
+  businessDate: z.coerce.date(),
+  payloadSnapshot: z.record(z.unknown()).optional(),
+  correlationId: z.string().uuid().optional(),
+});
+
+export const SagaStatusSchema = z.enum([
+  'PENDING',
+  'STARTED',
+  'COMPLETED',
+  'FAILED',
+  'COMPENSATING',
+  'COMPENSATED',
+]);
+
+export const SagaLogInputSchema = z.object({
+  sagaType: z.string(),
+  entityId: z.string().uuid(),
+  step: z.string(),
+  stepData: z.record(z.unknown()).optional(),
+  error: z.string().optional(),
+  correlationId: z.string().uuid().optional(),
 });
 
 // ============================================
@@ -263,3 +325,9 @@ export type StockAdjustmentInput = z.infer<
   typeof StockAdjustmentSchema
 >;
 export type PaginationInput = z.infer<typeof PaginationSchema>;
+export type CreateAuditLogInput = z.infer<
+  typeof CreateAuditLogSchema
+>;
+export type AuditLogAction = z.infer<typeof AuditLogActionSchema>;
+export type SagaLogInput = z.infer<typeof SagaLogInputSchema>;
+export type SagaStatus = z.infer<typeof SagaStatusSchema>;
