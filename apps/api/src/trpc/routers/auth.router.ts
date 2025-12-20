@@ -1,4 +1,8 @@
-import { router, publicProcedure, protectedProcedure } from '../trpc';
+import {
+  router,
+  publicProcedure,
+  authenticatedProcedure,
+} from '../trpc';
 import { AuthService } from '../../modules/auth/auth.service';
 import { registerSchema, loginSchema } from '@sync-erp/shared';
 import { z } from 'zod';
@@ -90,7 +94,7 @@ export const authRouter = router({
   /**
    * Get current user (me)
    */
-  me: protectedProcedure.query(async ({ ctx }) => {
+  me: authenticatedProcedure.query(async ({ ctx }) => {
     // We can fetch full user details if needed, or return session user
     // Ideally we return the user profile.
     // authService.getById? Or just return ctx.user if updated middleware populates it fully?

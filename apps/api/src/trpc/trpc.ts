@@ -13,14 +13,36 @@ export const router = t.router;
 export const publicProcedure = t.procedure;
 
 /**
- * Protected procedure - requires authentication
+ * Authenticated procedure - requires userId only (no company required)
+ * Use for auth endpoints like /me that don't need company context
+ */
+export const authenticatedProcedure = t.procedure.use(
+  async ({ ctx, next }) => {
+    if (!ctx.userId) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'Not authenticated',
+      });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        userId: ctx.userId,
+      },
+    });
+  }
+);
+
+/**
+ * Protected procedure - requires authentication AND company context
  */
 export const protectedProcedure = t.procedure.use(
   async ({ ctx, next }) => {
     if (!ctx.userId || !ctx.companyId) {
       throw new TRPCError({
         code: 'UNAUTHORIZED',
-        message: 'Not authenticated',
+        message: 'Not authenticated or company not selected',
       });
     }
 
