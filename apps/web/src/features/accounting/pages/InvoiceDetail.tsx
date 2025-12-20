@@ -107,23 +107,25 @@ export default function InvoiceDetail() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-4">
             <BackButton to="/invoices" />
-            <h1 className="text-2xl font-bold text-gray-900 mt-2">
-              Invoice {invoice.invoiceNumber}
-            </h1>
-            <p className="text-gray-500">
-              {invoice.partnerId ? (
-                <Link
-                  to={`/customers/${invoice.partnerId}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  Customer Details
-                </Link>
-              ) : (
-                'Unknown Customer'
-              )}
-            </p>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Invoice {invoice.invoiceNumber}
+              </h1>
+              <p className="text-sm text-gray-500">
+                {invoice.partnerId ? (
+                  <Link
+                    to={`/customers/${invoice.partnerId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    Customer Details
+                  </Link>
+                ) : (
+                  'Unknown Customer'
+                )}
+              </p>
+            </div>
           </div>
           <span
             className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${statusDisplay.color}`}

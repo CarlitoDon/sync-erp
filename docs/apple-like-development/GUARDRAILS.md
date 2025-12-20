@@ -30,32 +30,40 @@ Jika invariant tidak bisa dipaksakan:
 
 ---
 
-## 2. Saga & Side Effects
+## 2. Transactions & Side Effects
 
-### 2.1 No Cross-Aggregate Without Saga
+### 2.1 Multi-Aggregate Atomicity
 
-Jika sebuah flow menyentuh:
+Jika sebuah flow menyentuh ≥2 aggregate dalam **satu database**:
 
-- ≥2 aggregate, atau
-- ≥1 aggregate + external side effect
+➡️ **WAJIB `prisma.$transaction`** dengan:
 
-➡️ **WAJIB Saga**
+- Row-level lock (`SELECT ... FOR UPDATE`)
+- Semua operasi dalam satu transaction callback
+- Auto-rollback on any error
 
 ---
 
-### 2.2 Compensation Is Mandatory
+### 2.2 External Side Effects Require Saga
 
-Setiap step Saga:
+Jika sebuah flow melibatkan:
 
-- Harus punya compensation
-- Jika tidak bisa → step itu **tidak boleh ada**
+- External API (payment gateway, email, webhooks), atau
+- Multiple databases / microservices
+
+➡️ **WAJIB Saga** dengan:
+
+- Explicit compensation untuk setiap step
+- FAILED / COMPENSATED / COMPENSATION_FAILED state tracking
+- Idempotency key
 
 ---
 
 ### 2.3 Failure Is a First-Class State
 
-- FAILED / COMPENSATED / COMPENSATION_FAILED harus eksplisit
+- FAILED state harus eksplisit di response
 - Tidak ada `catch { console.log }`
+- Error harus propagate dengan proper DomainError
 
 ---
 

@@ -61,12 +61,16 @@ export default function ShipmentDetail() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-4">
           <BackButton to="/shipments" />
-          <h1 className="text-2xl font-bold text-gray-900 mt-2">
-            {shipment.number}
-          </h1>
-          <p className="text-gray-500">Shipment / Delivery Note</p>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {shipment.number}
+            </h1>
+            <p className="text-sm text-gray-500">
+              Shipment / Delivery Note
+            </p>
+          </div>
         </div>
         <span
           className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(shipment.status)}`}

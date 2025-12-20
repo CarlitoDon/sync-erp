@@ -361,6 +361,50 @@ export class JournalService {
     );
   }
 
+  /**
+   * Reverse Bill Journal Entry (for void Bill)
+   * Reverses: Debit AP, Credit Accrual (and VAT if applicable)
+   */
+  async postBillReversal(
+    companyId: string,
+    billId: string,
+    billNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const lines: {
+      accountCode: string;
+      debit?: number;
+      credit?: number;
+    }[] = [
+      { accountCode: '2100', debit: amount }, // Reverse Accounts Payable
+    ];
+
+    if (taxAmount && taxAmount > 0) {
+      lines.push({
+        accountCode: '2105',
+        credit: subtotal || amount - taxAmount,
+      }); // Reverse Accrual
+      lines.push({ accountCode: '1500', credit: taxAmount }); // Reverse VAT Receivable
+    } else {
+      lines.push({ accountCode: '2105', credit: amount }); // Reverse Accrual
+    }
+
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Bill Reversal: ${billNumber}`,
+        memo: `Reversal of voided bill ${billNumber}`,
+        sourceType: JournalSourceType.BILL,
+        sourceId: billId,
+        lines,
+      },
+      tx
+    );
+  }
+
   async postPaymentReceived(
     companyId: string,
     paymentId: string,

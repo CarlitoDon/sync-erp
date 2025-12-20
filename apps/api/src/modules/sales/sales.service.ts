@@ -4,6 +4,7 @@ import {
   OrderType,
   Prisma,
   BusinessShape,
+  prisma,
 } from '@sync-erp/database';
 import { SalesRepository } from './sales.repository';
 import { SalesPolicy } from './sales.policy';
@@ -16,13 +17,13 @@ import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 // CreateSalesOrderInput has { type: 'SALES', items: ... }
 
 import { DocumentNumberService } from '../common/services/document-number.service';
-import { ShipmentSaga } from './sagas/shipment.saga';
+import { InventoryService } from '../inventory/inventory.service.js';
 
 export class SalesService {
   private repository = new SalesRepository();
   private productService = new ProductService();
   private documentNumberService = new DocumentNumberService();
-  private shipmentSaga = new ShipmentSaga();
+  private inventoryService = new InventoryService();
 
   /**
    * Create a new sales order.
@@ -145,29 +146,93 @@ export class SalesService {
   }
 
   /**
-   * Ship/Deliver Order using saga pattern for atomic execution with compensation.
-   * If shipment fails mid-way, compensation will automatically reverse changes.
-   * @throws SagaCompensatedError if shipping fails but was compensated
-   * @throws SagaCompensationFailedError if compensation also fails
+   * Ship/Deliver Order atomically using Prisma transaction.
+   * All operations (validate SO + check stock + create shipment + update status) are atomic.
    */
   async ship(
     companyId: string,
     orderId: string,
     reference?: string,
-    shape?: BusinessShape,
-    configs?: { key: string; value: Prisma.JsonValue }[]
+    _shape?: BusinessShape,
+    _configs?: { key: string; value: Prisma.JsonValue }[]
   ) {
-    const result = await this.shipmentSaga.execute(
-      { orderId, companyId, reference, shape, configs },
-      orderId,
-      companyId
+    return prisma.$transaction(
+      async (tx) => {
+        // 1. Lock order row for concurrency safety
+        await tx.$executeRaw`SELECT 1 FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
+
+        // 2. Validate order exists and is CONFIRMED
+        const order = await this.repository.findById(
+          orderId,
+          companyId,
+          tx
+        );
+        if (!order) {
+          throw new DomainError(
+            'Sales order not found',
+            404,
+            DomainErrorCodes.ORDER_NOT_FOUND
+          );
+        }
+
+        if (order.status !== OrderStatus.CONFIRMED) {
+          throw new DomainError(
+            'Order must be confirmed before shipping',
+            422,
+            DomainErrorCodes.ORDER_INVALID_STATE
+          );
+        }
+
+        // 3. Validate stock availability
+        for (const item of order.items) {
+          const hasStock = await this.productService.checkStock(
+            item.productId,
+            item.quantity,
+            tx
+          );
+          if (!hasStock) {
+            throw new DomainError(
+              `Insufficient stock for product ${item.productId}`,
+              422,
+              DomainErrorCodes.INSUFFICIENT_STOCK
+            );
+          }
+        }
+
+        // 4. Create Shipment document
+        const shipment = await this.inventoryService.createShipment(
+          companyId,
+          {
+            salesOrderId: orderId,
+            notes:
+              reference || `Shipment for Order ${order.orderNumber}`,
+            items: order.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+            })),
+          },
+          tx
+        );
+
+        // 5. Post Shipment (Stock OUT + COGS Snapshot)
+        await this.inventoryService.postShipment(
+          companyId,
+          shipment.id,
+          tx
+        );
+
+        // 6. Update order status to COMPLETED
+        await this.repository.updateStatus(
+          orderId,
+          OrderStatus.COMPLETED,
+          tx
+        );
+
+        // Return empty movements array for backward compatibility
+        return [];
+      },
+      { timeout: 60000 }
     );
-
-    if (!result.success || !result.data) {
-      throw result.error || new Error('Shipment failed');
-    }
-
-    return result.data.movements;
   }
 
   async complete(id: string, companyId: string) {

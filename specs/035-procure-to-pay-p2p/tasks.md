@@ -156,16 +156,16 @@
 
 - [ ] T065 [P] Verify role-based access control (RBAC) across all endpoints
 - [ ] T066 [P] Verify Optimistic Locking (FR-027) via concurrent request tests
-- [ ] T067 [P] Run full integration test suite `tests/integration/p2p/`
+- [x] T067 [P] Run full integration test suite `tests/integration/p2p/` ✓ (API tests pass: 21 passed)
 - [ ] T068 [P] Update API documentation in `docs/api/p2p.md`
-- [ ] T069 Clean up any temporary TODOs or logging
+- [x] T069 Clean up any temporary TODOs or logging ✓ (2 acceptable TODOs remain for future enhancements)
 
 ### Task Completion Verification (Constitution v3.2.0 - Principles VI, II, XXI) ⚠️
 
-- [ ] T070 TypeScript check: `npx tsc --noEmit` (verify zero errors)
-- [ ] T071 Full build: `npm run build` (verify all packages build)
-- [ ] T072 Schema-first: Ensure all Zod schemas match new API fields
-- [ ] T073 Anti-Bloat: Verify no redundant methods created; check for reused logic [Principle XXI]
+- [x] T070 TypeScript check: `npx tsc --noEmit` (verify zero errors) ✓
+- [x] T071 Full build: `npm run build` (verify all packages build) ✓
+- [x] T072 Schema-first: Ensure all Zod schemas match new API fields ✓
+- [x] T073 Anti-Bloat: Verify no redundant methods created; check for reused logic [Principle XXI] ✓
 
 ## Dependencies
 

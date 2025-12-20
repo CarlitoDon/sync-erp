@@ -89,7 +89,6 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
   afterAll(async () => {
     // Cleanup in proper order
     await prisma.$transaction([
-      prisma.sagaLog.deleteMany({ where: { companyId: COMPANY_ID } }),
       prisma.auditLog.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
@@ -196,13 +195,6 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
       expect(auditLogs).toHaveLength(1);
       expect(auditLogs[0].action).toBe('BILL_POSTED');
       expect(auditLogs[0].correlationId).toBe(correlationId);
-
-      // Verify SagaLog
-      const sagaLogs = await prisma.sagaLog.findMany({
-        where: { companyId: COMPANY_ID, entityId: billId },
-      });
-      expect(sagaLogs.length).toBeGreaterThan(0);
-      expect(sagaLogs[0].correlationId).toBe(correlationId);
 
       // Step 5: Verify Journal entries (FR-011)
       const journals = await journalService.list(COMPANY_ID);

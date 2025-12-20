@@ -159,14 +159,16 @@ export default function SalesOrderDetail() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-4">
             <BackButton to="/sales-orders" />
-            <h1 className="text-2xl font-bold text-gray-900 mt-2">
-              {order.orderNumber}
-            </h1>
-            <p className="text-gray-500">
-              {order.partner?.name || 'Unknown Customer'}
-            </p>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {order.orderNumber}
+              </h1>
+              <p className="text-sm text-gray-500">
+                {order.partner?.name || 'Unknown Customer'}
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <span

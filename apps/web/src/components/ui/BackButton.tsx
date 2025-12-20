@@ -7,7 +7,7 @@ interface BackButtonProps {
 
 /**
  * Consistent back button component for all detail pages.
- * Apple-like design with just arrow icon.
+ * Apple-like design with circular hover state.
  */
 export function BackButton({ to }: BackButtonProps) {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export function BackButton({ to }: BackButtonProps) {
     <button
       type="button"
       onClick={handleClick}
-      className="inline-flex items-center justify-center w-8 h-8 -ml-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
       style={{ cursor: 'pointer' }}
       aria-label="Go back"
     >
@@ -34,13 +34,13 @@ export function BackButton({ to }: BackButtonProps) {
         viewBox="0 0 24 24"
         strokeWidth={2}
         stroke="currentColor"
-        className="w-5 h-5"
+        className="w-6 h-6"
         style={{ pointerEvents: 'none' }}
       >
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          d="M15.75 19.5L8.25 12l7.5-7.5"
+          d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
         />
       </svg>
     </button>

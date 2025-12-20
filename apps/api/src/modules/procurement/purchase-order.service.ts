@@ -6,18 +6,35 @@ import {
   BusinessShape,
   AuditLogAction,
   EntityType,
+  prisma,
 } from '@sync-erp/database';
 import { PurchaseOrderRepository } from './purchase-order.repository';
 import { PurchaseOrderPolicy } from './purchase-order.policy';
 import { DocumentNumberService } from '../common/services/document-number.service';
 import { recordAudit } from '../common/audit/audit-log.service';
-import { GoodsReceiptSaga } from './sagas/goods-receipt.saga';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+
+// Lazy-loaded to avoid circular dependency with InventoryService
+import type { InventoryService as InventoryServiceType } from '../inventory/inventory.service';
 
 export class PurchaseOrderService {
   private repository = new PurchaseOrderRepository();
   private documentNumberService = new DocumentNumberService();
-  private goodsReceiptSaga = new GoodsReceiptSaga();
+  private _inventoryService: InventoryServiceType | null = null;
+
+  // Lazy load InventoryService to break circular dependency
+  private get inventoryService(): InventoryServiceType {
+    if (!this._inventoryService) {
+      // Dynamic import at runtime
+      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+      const {
+        InventoryService,
+      } = require('../inventory/inventory.service.js');
+      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+      this._inventoryService = new InventoryService();
+    }
+    return this._inventoryService!;
+  }
 
   /**
    * Create a new purchase order.
@@ -218,29 +235,101 @@ export class PurchaseOrderService {
   }
 
   /**
-   * Receive goods using saga pattern for atomic execution with compensation.
-   * If goods receipt fails mid-way, compensation will automatically reverse changes.
-   * @throws SagaCompensatedError if goods receipt fails but was compensated
-   * @throws SagaCompensationFailedError if compensation also fails
+   * Receive goods atomically using Prisma transaction.
+   * All operations (validate PO + create GRN + stock IN + update status) are atomic.
    */
   async receive(
     orderId: string,
     companyId: string,
     reference?: string,
-    shape?: BusinessShape,
+    _shape?: BusinessShape,
     items?: { id: string; quantity: number }[]
   ) {
-    const result = await this.goodsReceiptSaga.execute(
-      { orderId, companyId, reference, shape, items },
-      orderId,
-      companyId
+    return prisma.$transaction(
+      async (tx) => {
+        // 1. Lock PO row for concurrency safety
+        await tx.$executeRaw`SELECT 1 FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
+
+        // 2. Validate PO exists and is not cancelled
+        const order = await this.repository.findById(
+          orderId,
+          companyId,
+          tx
+        );
+        if (!order) {
+          throw new DomainError(
+            'Purchase order not found',
+            404,
+            DomainErrorCodes.ORDER_NOT_FOUND
+          );
+        }
+
+        if (order.status === OrderStatus.CANCELLED) {
+          throw new DomainError(
+            'Cannot receive goods for a cancelled order',
+            422,
+            DomainErrorCodes.ORDER_INVALID_STATE
+          );
+        }
+
+        // Phase 1 Guard: Reject Partial Receipt
+        if (items && items.length > 0) {
+          const poItems = await this.repository.findItems(
+            order.id,
+            tx
+          );
+          if (items.length !== poItems.length) {
+            throw new DomainError(
+              'Partial receipt is disabled in Phase 1',
+              400,
+              DomainErrorCodes.FEATURE_DISABLED_PHASE_1
+            );
+          }
+          for (const inputItem of items) {
+            const poItem = poItems.find((i) => i.id === inputItem.id);
+            if (!poItem || inputItem.quantity !== poItem.quantity) {
+              throw new DomainError(
+                'Partial receipt is disabled in Phase 1',
+                400,
+                DomainErrorCodes.FEATURE_DISABLED_PHASE_1
+              );
+            }
+          }
+        }
+
+        // 3. Create GRN document
+        const poItems = await this.repository.findItems(order.id, tx);
+        const grn = await this.inventoryService.createGRN(
+          companyId,
+          {
+            purchaseOrderId: orderId,
+            notes:
+              reference ||
+              `Goods receipt for PO ${order.orderNumber}`,
+            items: poItems.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+            })),
+          },
+          tx
+        );
+
+        // 4. Post GRN (Stock IN + Cost Update)
+        await this.inventoryService.postGRN(companyId, grn.id, tx);
+
+        // 5. Update PO status to COMPLETED
+        await this.repository.updateStatus(
+          orderId,
+          OrderStatus.COMPLETED,
+          undefined,
+          tx
+        );
+
+        // Return empty movements array for backward compatibility
+        return [];
+      },
+      { timeout: 60000 }
     );
-
-    if (!result.success || !result.data) {
-      throw result.error || new Error('Goods receipt failed');
-    }
-
-    return result.data.movements;
   }
 
   /**

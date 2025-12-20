@@ -8,11 +8,13 @@ import {
   IdempotencyScope,
   AuditLogAction,
   EntityType,
+  prisma,
 } from '@sync-erp/database';
 import {
   DomainError,
   DomainErrorCodes,
   BusinessDate,
+  Money,
 } from '@sync-erp/shared';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { JournalService } from './journal.service';
@@ -30,15 +32,15 @@ export interface CreateInvoiceInput {
 
 import { DocumentNumberService } from '../../common/services/document-number.service';
 import { IdempotencyService } from '../../common/services/idempotency.service';
-import { InvoicePostingSaga } from '../sagas/invoice-posting.saga';
 import * as auditLogService from '../../common/audit/audit-log.service';
+import { InventoryService } from '../../inventory/inventory.service.js';
 
 export class InvoiceService {
   private repository = new InvoiceRepository();
   private journalService = new JournalService();
   private documentNumberService = new DocumentNumberService();
   private idempotencyService = new IdempotencyService();
-  private invoicePostingSaga = new InvoicePostingSaga();
+  private inventoryService = new InventoryService();
 
   async createFromSalesOrder(
     companyId: string,
@@ -200,49 +202,26 @@ export class InvoiceService {
   }
 
   /**
-   * Post invoice using saga pattern for atomic execution with compensation.
-   * If posting fails mid-way, compensation will automatically reverse changes.
-   * @throws SagaCompensatedError if posting fails but was compensated
-   * @throws SagaCompensationFailedError if compensation also fails
+   * Post invoice atomically using Prisma transaction.
+   * All operations (shipment + status update + journal) are atomic - auto-rollback on error.
    */
   async post(
     id: string,
     companyId: string,
-    shape?: BusinessShape,
-    configs?: { key: string; value: Prisma.JsonValue }[],
+    _shape?: BusinessShape,
+    _configs?: { key: string; value: Prisma.JsonValue }[],
     idempotencyKey?: string,
     businessDate?: Date, // G5: Accepted here
     actorId?: string, // FR-010.1: Actor for audit log
     correlationId?: string // FR-010.1: Request tracing
   ): Promise<Invoice> {
     // Idempotency Check (if provided)
-    const invoice = await this.repository.findById(
-      id,
-      companyId,
-      InvoiceType.INVOICE
-    );
-    if (!invoice) {
-      throw new DomainError(
-        'Invoice not found',
-        404,
-        DomainErrorCodes.INVOICE_NOT_FOUND
-      );
-    }
-
-    if (invoice.status !== InvoiceStatus.DRAFT) {
-      throw new DomainError(
-        `Cannot post invoice with status ${invoice.status}`,
-        422,
-        DomainErrorCodes.INVOICE_INVALID_STATE
-      );
-    }
-
     if (idempotencyKey) {
       const lock = await this.idempotencyService.lock<Invoice>(
         idempotencyKey,
         companyId,
         IdempotencyScope.INVOICE_POST,
-        id // entityId: invoice being posted
+        id
       );
       if (lock.saved && lock.response) {
         return lock.response;
@@ -251,45 +230,128 @@ export class InvoiceService {
 
     if (businessDate) {
       BusinessDate.from(businessDate).ensureValid();
+      BusinessDate.from(businessDate).ensureNotBackdated();
+    }
+
+    // FR-010.1: Record Audit Log BEFORE transaction
+    if (actorId) {
+      await auditLogService.recordAudit({
+        companyId,
+        actorId,
+        action: AuditLogAction.INVOICE_POSTED,
+        entityType: EntityType.INVOICE,
+        entityId: id,
+        businessDate: businessDate || new Date(),
+        payloadSnapshot: { idempotencyKey },
+        correlationId,
+      });
     }
 
     try {
-      // FR-010.1: Record Audit Log BEFORE triggering Saga
-      // This ensures business intent is captured regardless of saga outcome
-      if (actorId) {
-        await auditLogService.recordAudit({
-          companyId,
-          actorId,
-          action: AuditLogAction.INVOICE_POSTED,
-          entityType: EntityType.INVOICE,
-          entityId: id,
-          businessDate: businessDate || new Date(),
-          payloadSnapshot: { shape, idempotencyKey },
-          correlationId,
-        });
-      }
+      const result = await prisma.$transaction(
+        async (tx) => {
+          // 1. Lock row for concurrency safety
+          await tx.$executeRaw`SELECT 1 FROM "Invoice" WHERE id = ${id} FOR UPDATE`;
 
-      // Execute via saga for atomic operation with compensation
-      const result = await this.invoicePostingSaga.execute(
-        { invoiceId: id, companyId, shape, configs, businessDate },
-        id,
-        companyId,
-        correlationId // FR-010: Pass correlationId to saga for tracing
+          // 2. Validate invoice exists and is DRAFT
+          const invoice = await this.repository.findById(
+            id,
+            companyId,
+            InvoiceType.INVOICE,
+            tx
+          );
+          if (!invoice) {
+            throw new DomainError(
+              'Invoice not found',
+              404,
+              DomainErrorCodes.INVOICE_NOT_FOUND
+            );
+          }
+
+          if (invoice.status !== InvoiceStatus.DRAFT) {
+            throw new DomainError(
+              `Cannot post invoice with status ${invoice.status}`,
+              422,
+              DomainErrorCodes.INVOICE_INVALID_STATE
+            );
+          }
+
+          // Phase 1 Guard: Block Multi-Currency
+          const currency =
+            (invoice as Invoice & { currency?: string }).currency ||
+            'IDR';
+          Money.from(0, currency).ensureBase();
+
+          // 3. Stock OUT (if order-linked)
+          if (invoice.orderId) {
+            const order = await this.repository.findOrderWithItems(
+              invoice.orderId,
+              companyId,
+              tx
+            );
+
+            if (order) {
+              // Create Shipment document
+              const shipment =
+                await this.inventoryService.createShipment(
+                  companyId,
+                  {
+                    salesOrderId: invoice.orderId,
+                    notes: `Shipment for Invoice ${invoice.invoiceNumber}`,
+                    items: order.items.map((item) => ({
+                      productId: item.productId,
+                      quantity: item.quantity,
+                    })),
+                  },
+                  tx
+                );
+
+              // Post Shipment (Stock OUT + COGS Snapshot)
+              await this.inventoryService.postShipment(
+                companyId,
+                shipment.id,
+                tx
+              );
+            }
+          }
+
+          // 4. Update invoice status to POSTED
+          const updatedInvoice = await this.repository.update(
+            id,
+            { status: InvoiceStatus.POSTED },
+            tx
+          );
+
+          if (!updatedInvoice.invoiceNumber) {
+            throw new Error(`Invoice ${id} has no invoice number`);
+          }
+
+          // 5. Create AR journal entry
+          await this.journalService.postInvoice(
+            companyId,
+            id,
+            updatedInvoice.invoiceNumber,
+            Number(updatedInvoice.amount),
+            Number(updatedInvoice.subtotal),
+            Number(updatedInvoice.taxAmount),
+            tx,
+            businessDate
+          );
+
+          return updatedInvoice;
+        },
+        { timeout: 60000 }
       );
-
-      if (!result.success || !result.data) {
-        throw result.error || new Error('Invoice posting failed');
-      }
 
       // Idempotency Complete
       if (idempotencyKey) {
         await this.idempotencyService.complete(
           idempotencyKey,
-          result.data
+          result
         );
       }
 
-      return result.data;
+      return result;
     } catch (error) {
       if (idempotencyKey) {
         await this.idempotencyService.fail(idempotencyKey);

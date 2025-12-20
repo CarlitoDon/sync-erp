@@ -106,23 +106,25 @@ export default function BillDetail() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-4">
             <BackButton to="/bills" />
-            <h1 className="text-2xl font-bold text-gray-900 mt-2">
-              Bill {bill.invoiceNumber}
-            </h1>
-            <p className="text-gray-500">
-              {bill.partnerId ? (
-                <Link
-                  to={`/suppliers/${bill.partnerId}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  Supplier Details
-                </Link>
-              ) : (
-                'Unknown Supplier'
-              )}
-            </p>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Bill {bill.invoiceNumber}
+              </h1>
+              <p className="text-sm text-gray-500">
+                {bill.partnerId ? (
+                  <Link
+                    to={`/suppliers/${bill.partnerId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    Supplier Details
+                  </Link>
+                ) : (
+                  'Unknown Supplier'
+                )}
+              </p>
+            </div>
           </div>
           <span
             className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${statusDisplay.color}`}

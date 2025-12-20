@@ -6,13 +6,16 @@ import {
   Prisma,
   AuditLogAction,
   EntityType,
+  prisma,
 } from '@sync-erp/database';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import {
   BusinessDate,
   DomainError,
   DomainErrorCodes,
+  Money,
 } from '@sync-erp/shared';
+import { JournalService } from './journal.service';
 
 export interface CreateBillInput {
   orderId: string;
@@ -24,7 +27,6 @@ export interface CreateBillInput {
 } // G5
 
 import { DocumentNumberService } from '../../common/services/document-number.service';
-import { BillPostingSaga } from '../sagas/bill-posting.saga';
 import { BillPolicy } from '../policies/bill.policy';
 import { InventoryRepository } from '../../inventory/inventory.repository.js';
 import * as auditLogService from '../../common/audit/audit-log.service';
@@ -33,7 +35,7 @@ export class BillService {
   private repository = new InvoiceRepository();
   private inventoryRepository = new InventoryRepository();
   private documentNumberService = new DocumentNumberService();
-  private billPostingSaga = new BillPostingSaga();
+  private journalService = new JournalService();
 
   async createFromPurchaseOrder(
     companyId: string,
@@ -137,10 +139,8 @@ export class BillService {
   }
 
   /**
-   * Post bill using saga pattern for atomic execution with compensation.
-   * If posting fails mid-way, compensation will automatically reverse changes.
-   * @throws SagaCompensatedError if posting fails but was compensated
-   * @throws SagaCompensationFailedError if compensation also fails
+   * Post bill atomically using Prisma transaction.
+   * All operations (status update + journal entry) are atomic - auto-rollback on error.
    */
   async post(
     id: string,
@@ -151,30 +151,10 @@ export class BillService {
   ): Promise<Invoice> {
     if (businessDate) {
       BusinessDate.from(businessDate).ensureValid();
+      BusinessDate.from(businessDate).ensureNotBackdated();
     }
 
-    const bill = await this.repository.findById(
-      id,
-      companyId,
-      InvoiceType.BILL
-    );
-    if (!bill) {
-      throw new DomainError(
-        'Bill not found',
-        404,
-        DomainErrorCodes.BILL_NOT_FOUND
-      );
-    }
-
-    if (bill.status !== InvoiceStatus.DRAFT) {
-      throw new DomainError(
-        `Cannot post bill with status ${bill.status}`,
-        422,
-        DomainErrorCodes.BILL_INVALID_STATE
-      );
-    }
-
-    // FR-010.1: Record Audit Log BEFORE triggering Saga
+    // FR-010.1: Record Audit Log BEFORE transaction
     if (actorId) {
       await auditLogService.recordAudit({
         companyId,
@@ -187,18 +167,66 @@ export class BillService {
       });
     }
 
-    const result = await this.billPostingSaga.execute(
-      { billId: id, companyId, businessDate },
-      id,
-      companyId,
-      correlationId // FR-010: Pass correlationId to saga
+    return prisma.$transaction(
+      async (tx) => {
+        // 1. Lock row for concurrency safety
+        await tx.$executeRaw`SELECT 1 FROM "Invoice" WHERE id = ${id} FOR UPDATE`;
+
+        // 2. Validate bill exists and is DRAFT
+        const bill = await this.repository.findById(
+          id,
+          companyId,
+          InvoiceType.BILL,
+          tx
+        );
+        if (!bill) {
+          throw new DomainError(
+            'Bill not found',
+            404,
+            DomainErrorCodes.BILL_NOT_FOUND
+          );
+        }
+
+        if (bill.status !== InvoiceStatus.DRAFT) {
+          throw new DomainError(
+            `Cannot post bill with status ${bill.status}`,
+            422,
+            DomainErrorCodes.BILL_INVALID_STATE
+          );
+        }
+
+        // Phase 1 Guard: Block Multi-Currency
+        const currency =
+          (bill as Invoice & { currency?: string }).currency || 'IDR';
+        Money.from(0, currency).ensureBase();
+
+        // 3. Update status to POSTED
+        const updatedBill = await this.repository.update(
+          id,
+          { status: InvoiceStatus.POSTED },
+          tx
+        );
+
+        if (!updatedBill.invoiceNumber) {
+          throw new Error(`Bill ${id} has no bill number`);
+        }
+
+        // 4. Create AP journal entry
+        await this.journalService.postBill(
+          companyId,
+          id,
+          updatedBill.invoiceNumber,
+          Number(updatedBill.amount),
+          Number(updatedBill.subtotal),
+          Number(updatedBill.taxAmount),
+          tx,
+          businessDate
+        );
+
+        return updatedBill;
+      },
+      { timeout: 60000 }
     );
-
-    if (!result.success || !result.data) {
-      throw result.error || new Error('Bill posting failed');
-    }
-
-    return result.data;
   }
 
   /**
@@ -241,9 +269,19 @@ export class BillService {
       );
     }
 
-    // If POSTED, we should reverse the AP journal
-    // For MVP, we just mark as VOID - journal reversal can be added later
-    // TODO: Add journal reversal when JournalService.reverseBill is implemented
+    // If POSTED, reverse the AP journal entry
+    if (bill.status === InvoiceStatus.POSTED) {
+      const { JournalService } = await import('./journal.service');
+      const journalService = new JournalService();
+      await journalService.postBillReversal(
+        companyId,
+        bill.id,
+        bill.invoiceNumber || '',
+        Number(bill.amount),
+        Number(bill.subtotal) || undefined,
+        Number(bill.taxAmount) || undefined
+      );
+    }
 
     return this.repository.update(id, {
       status: InvoiceStatus.VOID,

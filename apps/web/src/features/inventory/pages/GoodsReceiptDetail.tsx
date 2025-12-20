@@ -122,19 +122,23 @@ export default function GoodsReceiptDetail() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-4">
           <BackButton to="/receipts" />
-          <div className="flex items-center gap-3 mt-2">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {receipt.number}
-            </h1>
-            <span
-              className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(receipt.status)}`}
-            >
-              {receipt.status}
-            </span>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {receipt.number}
+              </h1>
+              <span
+                className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(receipt.status)}`}
+              >
+                {receipt.status}
+              </span>
+            </div>
+            <p className="text-sm text-gray-500">
+              Goods Receipt Note
+            </p>
           </div>
-          <p className="text-gray-500">Goods Receipt Note</p>
         </div>
 
         <div className="flex gap-2">

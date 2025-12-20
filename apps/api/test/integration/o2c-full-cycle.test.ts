@@ -89,7 +89,6 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
   afterAll(async () => {
     // Cleanup in proper order
     await prisma.$transaction([
-      prisma.sagaLog.deleteMany({ where: { companyId: COMPANY_ID } }),
       prisma.auditLog.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
@@ -179,13 +178,6 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       expect(auditLogs).toHaveLength(1);
       expect(auditLogs[0].action).toBe('INVOICE_POSTED');
       expect(auditLogs[0].correlationId).toBe(correlationId);
-
-      // Verify SagaLog
-      const sagaLogs = await prisma.sagaLog.findMany({
-        where: { companyId: COMPANY_ID, entityId: invoiceId },
-      });
-      expect(sagaLogs.length).toBeGreaterThan(0);
-      expect(sagaLogs[0].correlationId).toBe(correlationId);
 
       // Step 4: Verify Journal entries
       let journals = await journalService.list(COMPANY_ID);
