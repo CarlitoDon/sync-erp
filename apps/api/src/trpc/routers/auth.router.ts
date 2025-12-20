@@ -12,7 +12,7 @@ export const authRouter = router({
    */
   register: publicProcedure
     .input(registerSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const result = await authService.register(input);
 
       if (!result.success) {
@@ -25,6 +25,14 @@ export const authRouter = router({
         });
       }
 
+      // Set session cookie
+      ctx.res.cookie('sessionId', result.session!.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
       return {
         user: result.user!,
         session: result.session!,
@@ -36,7 +44,7 @@ export const authRouter = router({
    */
   login: publicProcedure
     .input(loginSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const result = await authService.login(input);
 
       if (!result.success) {
@@ -45,6 +53,14 @@ export const authRouter = router({
           message: result.error!.message,
         });
       }
+
+      // Set session cookie
+      ctx.res.cookie('sessionId', result.session!.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
 
       return {
         user: result.user!,
