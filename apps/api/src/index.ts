@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { errorHandler } from './middlewares/errorHandler';
-import { authMiddleware } from './middlewares/auth';
+import { optionalAuthMiddleware } from './middlewares/auth';
 
 import cookieParser from 'cookie-parser';
 
@@ -30,10 +30,10 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// tRPC (mounted with auth middleware)
+// tRPC (mounted with OPTIONAL auth - tRPC procedures handle their own auth via protectedProcedure)
 app.use(
   '/api/trpc',
-  authMiddleware,
+  optionalAuthMiddleware,
   trpcExpress.createExpressMiddleware({
     router: appRouter,
     createContext,
