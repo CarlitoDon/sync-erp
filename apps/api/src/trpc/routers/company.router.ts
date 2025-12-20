@@ -1,4 +1,4 @@
-import { router, protectedProcedure } from '../trpc';
+import { router, authenticatedProcedure } from '../trpc';
 import { CompanyService } from '../../modules/company/company.service';
 import {
   CreateCompanySchema,
@@ -12,14 +12,14 @@ export const companyRouter = router({
   /**
    * List all companies for current user
    */
-  list: protectedProcedure.query(async ({ ctx }) => {
+  list: authenticatedProcedure.query(async ({ ctx }) => {
     return companyService.listForUser(ctx.userId!);
   }),
 
   /**
    * Get company by ID
    */
-  getById: protectedProcedure
+  getById: authenticatedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input }) => {
       return companyService.getById(input.id);
@@ -28,7 +28,7 @@ export const companyRouter = router({
   /**
    * Create company
    */
-  create: protectedProcedure
+  create: authenticatedProcedure
     .input(CreateCompanySchema)
     .mutation(async ({ ctx, input }) => {
       return companyService.create(input, ctx.userId);
@@ -37,7 +37,7 @@ export const companyRouter = router({
   /**
    * Join company via invite code
    */
-  join: protectedProcedure
+  join: authenticatedProcedure
     .input(JoinCompanySchema)
     .mutation(async ({ ctx, input }) => {
       return companyService.join(input, ctx.userId!);

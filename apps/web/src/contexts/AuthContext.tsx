@@ -60,8 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    // Backend uses protected procedure context for session
-    await logoutMutation.mutateAsync({ sessionId: '' });
+    // Backend reads sessionId from cookie
+    await logoutMutation.mutateAsync();
   };
 
   return (

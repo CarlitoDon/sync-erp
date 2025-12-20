@@ -29,7 +29,7 @@ const trpcClient = trpc.createClient({
       },
       headers() {
         // CompanyId header added by httpClient interceptor
-        const companyId = localStorage.getItem('selectedCompanyId');
+        const companyId = localStorage.getItem('currentCompanyId');
         return {
           ...(companyId && { 'x-company-id': companyId }),
         };

@@ -30,10 +30,13 @@ export function CompanyProvider({
 }) {
   const { isAuthenticated } = useAuth();
 
+  // Track if we've tried to restore from localStorage
+  const [isInitialized, setIsInitialized] = useState(false);
+
   // Use tRPC to fetch companies
   const {
     data: companies = [],
-    isLoading,
+    isLoading: queryLoading,
     refetch,
   } = trpc.company.list.useQuery(undefined, {
     enabled: !!isAuthenticated,
@@ -52,22 +55,43 @@ export function CompanyProvider({
     }
   }, []);
 
-  // Effect to restore selection or update when companies load
+  // Effect to restore selection from localStorage when companies load
   useEffect(() => {
-    if (!isAuthenticated || isLoading) return;
+    // Skip if not authenticated or query still loading
+    if (!isAuthenticated || queryLoading) return;
 
+    // If no companies fetched yet, wait
+    if (companies.length === 0) {
+      // Edge case: user has no companies, mark as initialized
+      setIsInitialized(true);
+      return;
+    }
+
+    // If company already set, mark as initialized and done
+    if (currentCompany) {
+      setIsInitialized(true);
+      return;
+    }
+
+    // Try to restore from localStorage
     const savedId = localStorage.getItem('currentCompanyId');
     if (savedId) {
       const found = companies.find((c) => c.id === savedId);
       if (found) {
         _setCurrentCompanyState(found);
-      } else if (companies.length > 0 && !currentCompany) {
-        // Saved ID not found in list (maybe removed), or list reloaded.
-        // Could select first one, or just clear.
-        // localStorage.removeItem('currentCompanyId');
+      } else {
+        // Saved company not found (maybe deleted), clear it
+        localStorage.removeItem('currentCompanyId');
       }
     }
-  }, [companies, isAuthenticated, isLoading]);
+
+    // Mark as initialized regardless of whether we found a saved company
+    setIsInitialized(true);
+  }, [companies, isAuthenticated, queryLoading, currentCompany]);
+
+  // Combined loading state: query loading OR not yet initialized
+  const isLoading =
+    queryLoading || (!isInitialized && isAuthenticated);
 
   return (
     <CompanyContext.Provider

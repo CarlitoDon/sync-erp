@@ -75,12 +75,16 @@ export const authRouter = router({
   /**
    * Logout user
    */
-  logout: publicProcedure
-    .input(z.object({ sessionId: z.string() }))
-    .mutation(async ({ input }) => {
-      await authService.logout(input.sessionId);
-      return { success: true };
-    }),
+  logout: authenticatedProcedure.mutation(async ({ ctx }) => {
+    // Get sessionId from cookie (parsed by optionalAuthMiddleware)
+    const sessionId = ctx.req.cookies['sessionId'];
+    if (sessionId) {
+      await authService.logout(sessionId);
+    }
+    // Clear session cookie
+    ctx.res.clearCookie('sessionId');
+    return { success: true };
+  }),
 
   /**
    * Get session
