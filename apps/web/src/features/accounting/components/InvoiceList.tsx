@@ -6,7 +6,7 @@ import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
-import { PaymentHistoryList } from '@/features/finance/components/PaymentHistoryList';
+import { PaymentHistoryList } from '@/features/accounting/components/PaymentHistoryList';
 import FormModal from '@/components/ui/FormModal';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ import {
   defaultPaymentMethod,
   getInvoiceStatusDisplay,
   invoiceStatusFilterOptions,
-} from '@/features/finance/utils/financeEnums';
+} from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@sync-erp/shared';
 
 type Invoice = RouterOutputs['invoice']['list'][number];

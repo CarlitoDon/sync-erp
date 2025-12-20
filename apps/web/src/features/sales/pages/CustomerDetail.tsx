@@ -5,7 +5,7 @@ import { trpc } from '@/lib/trpc';
 // import { useCompany } from '@/contexts/CompanyContext';
 import ActionButton from '@/components/ui/ActionButton';
 import SalesOrderList from '@/features/sales/components/SalesOrderList';
-import { InvoiceList } from '@/features/finance/components/InvoiceList';
+import { InvoiceList } from '@/features/accounting/components/InvoiceList';
 import { formatDate } from '@/utils/format';
 
 type Tab = 'orders' | 'invoices' | 'payments';

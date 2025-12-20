@@ -16,21 +16,21 @@ import Shipments from '@/features/inventory/pages/Shipments';
 import ShipmentDetail from '@/features/inventory/pages/ShipmentDetail';
 import SalesOrders from '@/features/sales/pages/SalesOrders';
 import SalesOrderDetail from '@/features/sales/pages/SalesOrderDetail';
-import Invoices from '@/features/finance/pages/Invoices';
-import InvoiceDetail from '@/features/finance/pages/InvoiceDetail';
-import AccountsPayable from '@/features/finance/pages/AccountsPayable';
+import Invoices from '@/features/accounting/pages/Invoices';
+import InvoiceDetail from '@/features/accounting/pages/InvoiceDetail';
+import AccountsPayable from '@/features/accounting/pages/AccountsPayable';
 import BillDetail from '@/features/accounting/components/BillDetail';
 import BillForm from '@/features/accounting/components/BillForm';
 import TeamManagement from '@/features/company/pages/TeamManagement';
-import Finance from '@/features/finance/pages/Finance';
+import Finance from '@/features/accounting/pages/Finance';
 import { RegisterPage } from '@/features/auth/components/RegisterPage';
 import { LoginPage } from '@/features/auth/components/LoginPage';
 import { CompanySelectionPage } from '@/features/company/pages/CompanySelectionPage';
 import CustomerDetail from '@/features/sales/pages/CustomerDetail';
 import SupplierDetail from '@/features/procurement/pages/SupplierDetail';
 import ProductDetail from '@/features/inventory/pages/ProductDetail';
-import JournalDetail from '@/features/finance/pages/JournalDetail';
-import JournalEntries from '@/features/finance/pages/JournalEntries';
+import JournalDetail from '@/features/accounting/pages/JournalDetail';
+import JournalEntries from '@/features/accounting/pages/JournalEntries';
 import Observability from '@/features/admin/pages/Observability';
 
 export function AppRouter() {

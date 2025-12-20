@@ -1,5 +1,5 @@
 import { useCompany } from '@/contexts/CompanyContext';
-import { InvoiceList } from '@/features/finance/components/InvoiceList';
+import { InvoiceList } from '@/features/accounting/components/InvoiceList';
 
 export default function Invoices() {
   const { currentCompany } = useCompany();

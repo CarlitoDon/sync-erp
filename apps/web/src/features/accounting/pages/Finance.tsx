@@ -5,8 +5,8 @@ import { apiAction } from '@/hooks/useApiAction';
 import {
   FinancialReport,
   ReportSection,
-} from '@/features/finance/components/FinancialReport';
-import JournalEntries from '@/features/finance/pages/JournalEntries';
+} from '@/features/accounting/components/FinancialReport';
+import JournalEntries from '@/features/accounting/pages/JournalEntries';
 import { AccountGroup, AccountType } from '@sync-erp/shared';
 import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';

@@ -4,7 +4,7 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { trpc } from '@/lib/trpc';
 import ActionButton from '@/components/ui/ActionButton';
 import PurchaseOrderList from '@/features/procurement/components/PurchaseOrderList';
-import { BillList } from '@/features/finance/components/BillList';
+import { BillList } from '@/features/accounting/components/BillList';
 import { formatDate } from '@/utils/format';
 
 type Tab = 'orders' | 'bills' | 'payments';

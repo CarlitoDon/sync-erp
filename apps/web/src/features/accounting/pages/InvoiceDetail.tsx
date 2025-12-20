@@ -6,7 +6,7 @@ import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
 import { formatCurrency, formatDate } from '@/utils/format';
-import { PaymentHistoryList } from '@/features/finance/components/PaymentHistoryList';
+import { PaymentHistoryList } from '@/features/accounting/components/PaymentHistoryList';
 import Select from '@/components/ui/Select';
 import { useState } from 'react';
 import {
@@ -14,33 +14,33 @@ import {
   paymentMethodOptions,
   defaultPaymentMethod,
   getInvoiceStatusDisplay,
-} from '@/features/finance/utils/financeEnums';
+} from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@sync-erp/shared';
 
-export default function BillDetail() {
+export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
   const utils = trpc.useUtils();
 
-  const { data: bill, isLoading: loading } =
-    trpc.bill.getById.useQuery(
+  const { data: invoice, isLoading: loading } =
+    trpc.invoice.getById.useQuery(
       { id: id! },
       { enabled: !!id && !!currentCompany?.id }
     );
 
-  const postMutation = trpc.bill.post.useMutation({
-    onSuccess: () => utils.bill.getById.invalidate({ id: id! }),
+  const postMutation = trpc.invoice.post.useMutation({
+    onSuccess: () => utils.invoice.getById.invalidate({ id: id! }),
   });
 
-  const voidMutation = trpc.bill.void.useMutation({
-    onSuccess: () => utils.bill.getById.invalidate({ id: id! }),
+  const voidMutation = trpc.invoice.void.useMutation({
+    onSuccess: () => utils.invoice.getById.invalidate({ id: id! }),
   });
 
   const paymentMutation = trpc.payment.create.useMutation({
     onSuccess: () => {
-      utils.bill.getById.invalidate({ id: id! });
+      utils.invoice.getById.invalidate({ id: id! });
       utils.payment.list.invalidate();
     },
   });
@@ -54,35 +54,35 @@ export default function BillDetail() {
   const [showHistory, setShowHistory] = useState(false);
 
   const handlePost = async () => {
-    if (!bill) return;
+    if (!invoice) return;
     await apiAction(
-      () => postMutation.mutateAsync({ id: bill.id }),
-      'Bill posted!'
+      () => postMutation.mutateAsync({ id: invoice.id }),
+      'Invoice posted!'
     );
   };
 
   const handleVoid = async () => {
-    if (!bill) return;
+    if (!invoice) return;
     const confirmed = await confirm({
-      title: 'Void Bill',
-      message: 'Are you sure you want to void this bill?',
+      title: 'Void Invoice',
+      message: 'Are you sure you want to void this invoice?',
       confirmText: 'Yes, Void',
       variant: 'danger',
     });
     if (!confirmed) return;
     await apiAction(
-      () => voidMutation.mutateAsync({ id: bill.id }),
-      'Bill voided'
+      () => voidMutation.mutateAsync({ id: invoice.id }),
+      'Invoice voided'
     );
   };
 
   const handleRecordPayment = async () => {
-    if (!bill || paymentAmount <= 0 || paymentMutation.isPending)
+    if (!invoice || paymentAmount <= 0 || paymentMutation.isPending)
       return;
     await apiAction(
       () =>
         paymentMutation.mutateAsync({
-          invoiceId: bill.id, // Bills use same payment endpoint
+          invoiceId: invoice.id,
           amount: paymentAmount,
           method: paymentMethod,
           businessDate: new Date(),
@@ -96,20 +96,22 @@ export default function BillDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading bill details...</div>
+        <div className="text-gray-500">
+          Loading invoice details...
+        </div>
       </div>
     );
   }
 
-  if (!bill) {
+  if (!invoice) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Bill not found</div>
+        <div className="text-gray-500">Invoice not found</div>
       </div>
     );
   }
 
-  const statusDisplay = getInvoiceStatusDisplay(bill.status);
+  const statusDisplay = getInvoiceStatusDisplay(invoice.status);
 
   return (
     <>
@@ -124,18 +126,18 @@ export default function BillDetail() {
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">
-                Bill Number
+                Invoice Number
               </span>
               <span className="font-mono font-medium">
-                {bill.invoiceNumber}
+                {invoice.invoiceNumber}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">
-                Supplier ID
+                Customer ID
               </span>
               <span className="font-medium font-mono text-xs">
-                {bill.partnerId || '-'}
+                {invoice.partnerId || '-'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -143,7 +145,7 @@ export default function BillDetail() {
                 Total Amount
               </span>
               <span className="font-medium">
-                {formatCurrency(Number(bill.amount))}
+                {formatCurrency(Number(invoice.amount))}
               </span>
             </div>
             <div className="flex justify-between">
@@ -151,19 +153,19 @@ export default function BillDetail() {
                 Outstanding Balance
               </span>
               <span className="font-bold text-red-600">
-                {formatCurrency(Number(bill.balance))}
+                {formatCurrency(Number(invoice.balance))}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Due Date</span>
               <span
                 className={
-                  new Date(bill.dueDate) < new Date()
+                  new Date(invoice.dueDate) < new Date()
                     ? 'text-red-600 font-bold'
                     : ''
                 }
               >
-                {formatDate(bill.dueDate)}
+                {formatDate(invoice.dueDate)}
               </span>
             </div>
           </div>
@@ -178,11 +180,11 @@ export default function BillDetail() {
               onChange={(e) =>
                 setPaymentAmount(Number(e.target.value))
               }
-              max={Number(bill.balance)}
+              max={Number(invoice.balance)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Max: {formatCurrency(Number(bill.balance))}
+              Max: {formatCurrency(Number(invoice.balance))}
             </p>
           </div>
 
@@ -212,7 +214,7 @@ export default function BillDetail() {
               onClick={handleRecordPayment}
               disabled={
                 paymentAmount <= 0 ||
-                paymentAmount > Number(bill.balance) ||
+                paymentAmount > Number(invoice.balance) ||
                 paymentMutation.isPending
               }
               className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300"
@@ -233,8 +235,8 @@ export default function BillDetail() {
         maxWidth="2xl"
       >
         <PaymentHistoryList
-          invoiceId={bill.id}
-          totalAmount={Number(bill.amount)}
+          invoiceId={invoice.id}
+          totalAmount={Number(invoice.amount)}
         />
       </FormModal>
 
@@ -250,18 +252,18 @@ export default function BillDetail() {
               ← Back
             </button>
             <h1 className="text-2xl font-bold text-gray-900">
-              Bill {bill.invoiceNumber}
+              Invoice {invoice.invoiceNumber}
             </h1>
             <p className="text-gray-500">
-              {bill.partnerId ? (
+              {invoice.partnerId ? (
                 <Link
-                  to={`/suppliers/${bill.partnerId}`}
+                  to={`/customers/${invoice.partnerId}`}
                   className="text-blue-600 hover:text-blue-800 hover:underline"
                 >
-                  Supplier Details
+                  Customer Details
                 </Link>
               ) : (
-                'Unknown Supplier'
+                'Unknown Customer'
               )}
             </p>
           </div>
@@ -274,31 +276,33 @@ export default function BillDetail() {
 
         {/* Details Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Bill Details</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            Invoice Details
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
-              <p className="text-sm text-gray-500">Bill Number</p>
+              <p className="text-sm text-gray-500">Invoice Number</p>
               <p className="font-mono font-medium">
-                {bill.invoiceNumber}
+                {invoice.invoiceNumber}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Due Date</p>
               <p
                 className={`font-medium ${
-                  new Date(bill.dueDate) < new Date() &&
-                  bill.status === 'POSTED'
+                  new Date(invoice.dueDate) < new Date() &&
+                  invoice.status === 'POSTED'
                     ? 'text-red-600'
                     : ''
                 }`}
               >
-                {formatDate(bill.dueDate)}
+                {formatDate(invoice.dueDate)}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Created</p>
               <p className="font-medium">
-                {formatDate(bill.createdAt)}
+                {formatDate(invoice.createdAt)}
               </p>
             </div>
           </div>
@@ -309,19 +313,19 @@ export default function BillDetail() {
             <div>
               <p className="text-sm text-gray-500">Total Amount</p>
               <p className="text-xl font-bold text-gray-900">
-                {formatCurrency(Number(bill.amount))}
+                {formatCurrency(Number(invoice.amount))}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Balance Due</p>
               <p
                 className={`text-xl font-bold ${
-                  Number(bill.balance) > 0
+                  Number(invoice.balance) > 0
                     ? 'text-red-600'
                     : 'text-green-600'
                 }`}
               >
-                {formatCurrency(Number(bill.balance))}
+                {formatCurrency(Number(invoice.balance))}
               </p>
             </div>
           </div>
@@ -331,23 +335,23 @@ export default function BillDetail() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold mb-4">Actions</h2>
           <div className="flex flex-wrap gap-3">
-            {bill.status === StatusSchema.enum.DRAFT && (
+            {invoice.status === StatusSchema.enum.DRAFT && (
               <>
                 <ActionButton variant="primary" onClick={handlePost}>
-                  Post Bill
+                  Post Invoice
                 </ActionButton>
                 <ActionButton variant="danger" onClick={handleVoid}>
                   Void
                 </ActionButton>
               </>
             )}
-            {bill.status === StatusSchema.enum.POSTED &&
-              Number(bill.balance) > 0 && (
+            {invoice.status === StatusSchema.enum.POSTED &&
+              Number(invoice.balance) > 0 && (
                 <>
                   <ActionButton
                     variant="success"
                     onClick={() => {
-                      setPaymentAmount(Number(bill.balance));
+                      setPaymentAmount(Number(invoice.balance));
                       setShowPayment(true);
                     }}
                   >

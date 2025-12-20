@@ -1,5 +1,5 @@
 import { useCompany } from '@/contexts/CompanyContext';
-import { BillList } from '@/features/finance/components/BillList';
+import { BillList } from '@/features/accounting/components/BillList';
 
 export default function AccountsPayable() {
   const { currentCompany } = useCompany();
