@@ -337,6 +337,44 @@ export class InventoryRepository {
     return postedGrn;
   }
 
+  /**
+   * Count Bills linked to a Purchase Order
+   * Used to check if GRN can be voided
+   */
+  async countBillsForOrder(
+    orderId: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const db = tx || prisma;
+    return db.invoice.count({
+      where: {
+        companyId,
+        orderId,
+        type: 'BILL',
+        status: { not: 'VOID' }, // Don't count voided bills
+      },
+    });
+  }
+
+  /**
+   * Void a Goods Receipt Note
+   * Just updates status to VOIDED - validation is in service layer
+   */
+  async voidGoodsReceipt(id: string, tx?: Prisma.TransactionClient) {
+    const db = tx || prisma;
+    return db.goodsReceipt.update({
+      where: { id },
+      data: { status: 'VOIDED' },
+      include: {
+        items: {
+          include: { product: true, purchaseOrderItem: true },
+        },
+        purchaseOrder: true,
+      },
+    });
+  }
+
   // ==========================================
   // Shipment Methods (034-grn-fullstack)
   // ==========================================

@@ -201,6 +201,10 @@ export class BillService {
     return result.data;
   }
 
+  /**
+   * Void a Bill
+   * Policy: Cannot void if payments exist. If POSTED, reverse AP journal.
+   */
   async void(id: string, companyId: string): Promise<Invoice> {
     const bill = await this.repository.findById(
       id,
@@ -208,16 +212,38 @@ export class BillService {
       InvoiceType.BILL
     );
     if (!bill) {
-      throw new Error('Bill not found');
+      throw new DomainError(
+        'Bill not found',
+        404,
+        DomainErrorCodes.BILL_NOT_FOUND
+      );
     }
 
-    if (bill.status === InvoiceStatus.PAID) {
+    // Cannot void if already VOID
+    if (bill.status === InvoiceStatus.VOID) {
       throw new DomainError(
-        'Cannot void a paid bill',
+        'Bill is already voided',
         422,
         DomainErrorCodes.BILL_INVALID_STATE
       );
     }
+
+    // Cannot void if any payments exist
+    const paymentCount = await this.repository.countPayments(
+      id,
+      companyId
+    );
+    if (paymentCount > 0) {
+      throw new DomainError(
+        'Cannot void bill: Payments have been recorded. Void the payments first.',
+        422,
+        DomainErrorCodes.BILL_HAS_PAYMENTS
+      );
+    }
+
+    // If POSTED, we should reverse the AP journal
+    // For MVP, we just mark as VOID - journal reversal can be added later
+    // TODO: Add journal reversal when JournalService.reverseBill is implemented
 
     return this.repository.update(id, {
       status: InvoiceStatus.VOID,

@@ -156,4 +156,22 @@ export class InvoiceRepository {
       include: { items: true },
     });
   }
+
+  /**
+   * Count payments for an invoice/bill
+   * Used to check if void is allowed.
+   * Note: All payments count - payments are not voidable in current schema.
+   */
+  async countPayments(
+    invoiceId: string,
+    _companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const db = tx || prisma;
+    return db.payment.count({
+      where: {
+        invoiceId,
+      },
+    });
+  }
 }

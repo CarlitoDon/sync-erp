@@ -1,6 +1,10 @@
 import { Payment, IdempotencyScope } from '@sync-erp/database';
 import { PaymentRepository } from '../repositories/payment.repository';
-import { CreatePaymentInput, BusinessDate } from '@sync-erp/shared';
+import {
+  CreatePaymentInput,
+  BusinessDate,
+  CorrelationId,
+} from '@sync-erp/shared';
 import { IdempotencyService } from '../../common/services/idempotency.service';
 import { PaymentPostingSaga } from '../sagas/payment-posting.saga';
 
@@ -18,7 +22,7 @@ export class PaymentService {
   async create(
     companyId: string,
     data: CreatePaymentInput,
-    idempotencyKey?: string
+    idempotencyKey?: CorrelationId
   ): Promise<Payment> {
     // Idempotency Check
     if (idempotencyKey) {
@@ -78,5 +82,32 @@ export class PaymentService {
 
   async list(companyId: string, invoiceId?: string) {
     return this.repository.findAll(companyId, invoiceId);
+  }
+
+  /**
+   * Void a Payment
+   * Effect: Restore invoice/bill balance
+   * Note: For MVP, we mark by prepending [VOIDED] to reference.
+   * Schema enhancement for proper status field is recommended.
+   */
+  async void(id: string, companyId: string): Promise<Payment> {
+    const payment = await this.repository.findById(id, companyId);
+    if (!payment) {
+      throw new Error('Payment not found');
+    }
+
+    // Check if already voided (using convention - reference contains [VOIDED])
+    if (payment.reference?.includes('[VOIDED]')) {
+      throw new Error('Payment is already voided');
+    }
+
+    // Restore invoice balance and mark payment as voided
+    const restored = await this.repository.voidPayment(
+      id,
+      payment.invoiceId,
+      Number(payment.amount)
+    );
+
+    return restored;
   }
 }

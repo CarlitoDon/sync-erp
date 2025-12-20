@@ -549,6 +549,103 @@ export class InventoryService {
     return this.repository.findGoodsReceiptById(grnId, companyId);
   }
 
+  /**
+   * Void a Goods Receipt Note
+   * Policy: GRN must be POSTED and no Bill exists for the linked PO
+   * Effect: Rollback stock, reverse journal, update PO status
+   *
+   * @throws DomainError if GRN cannot be voided
+   */
+  async voidGRN(
+    companyId: string,
+    grnId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const execute = async (t: Prisma.TransactionClient) => {
+      // 1. Fetch GRN with items
+      const grn = await this.repository.findGoodsReceiptById(
+        grnId,
+        companyId,
+        t
+      );
+
+      if (!grn) {
+        throw new DomainError('Goods Receipt Note not found', 404);
+      }
+
+      // 2. Policy: Must be POSTED
+      if (grn.status !== 'POSTED') {
+        throw new DomainError(
+          `Cannot void GRN in status: ${grn.status}. Only POSTED GRNs can be voided.`,
+          400
+        );
+      }
+
+      // 3. Policy: Check no Bill exists for this PO
+      const billCount = await this.repository.countBillsForOrder(
+        grn.purchaseOrderId,
+        companyId,
+        t
+      );
+      if (billCount > 0) {
+        throw new DomainError(
+          'Cannot void GRN: A Bill has been created for this Purchase Order. Void the Bill first.',
+          400
+        );
+      }
+
+      // 4. Calculate value for journal reversal
+      const totalValue = grn.items.reduce(
+        (sum, item) =>
+          sum +
+          Number(item.quantity) *
+            Number(item.purchaseOrderItem?.price || 0),
+        0
+      );
+
+      // 5. Rollback stock for each item
+      for (const item of grn.items) {
+        // Decrease stock (reverse of GRN post)
+        await this.productService.updateStock(
+          item.productId,
+          -Number(item.quantity),
+          t
+        );
+      }
+
+      // 6. Post Reversal Journal (if value > 0)
+      if (totalValue > 0) {
+        await this.journalService.postGoodsReceiptReversal(
+          companyId,
+          `VOID GRN:${grn.number}`,
+          totalValue,
+          t
+        );
+      }
+
+      // 7. Update GRN status to VOIDED
+      const voidedGrn = await this.repository.voidGoodsReceipt(
+        grnId,
+        t
+      );
+
+      // 8. Update PO status (may need to recalculate received quantities)
+      // If all GRNs are voided, revert PO to CONFIRMED
+      await this.purchaseOrderService.recalculateStatus(
+        grn.purchaseOrderId,
+        companyId,
+        t
+      );
+
+      return voidedGrn;
+    };
+
+    if (tx) {
+      return execute(tx);
+    }
+    return prisma.$transaction(execute);
+  }
+
   // ==========================================
   // Shipment Methods (034-grn-fullstack)
   // ==========================================

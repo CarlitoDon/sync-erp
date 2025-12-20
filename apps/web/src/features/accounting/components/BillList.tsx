@@ -117,6 +117,7 @@ export const BillList = ({ filter }: BillListProps) => {
           amount: paymentAmount,
           method: paymentMethod,
           businessDate: new Date(),
+          correlationId: crypto.randomUUID(),
         }),
       'Payment recorded!'
     );

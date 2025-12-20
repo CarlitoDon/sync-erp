@@ -7,6 +7,7 @@ import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
+import { BackButton } from '@/components/ui/BackButton';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -146,13 +147,8 @@ export default function PurchaseOrderDetail() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <button
-              onClick={() => navigate('/purchase-orders')}
-              className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
-            >
-              ← Back to Purchase Orders
-            </button>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <BackButton to="/purchase-orders" />
+            <h1 className="text-2xl font-bold text-gray-900 mt-2">
               {order.orderNumber}
             </h1>
             <p className="text-gray-500">

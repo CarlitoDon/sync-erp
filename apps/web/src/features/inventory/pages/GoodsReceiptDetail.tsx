@@ -4,6 +4,7 @@ import { trpc } from '@/lib/trpc';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import { BackButton } from '@/components/ui/BackButton';
 
 export default function GoodsReceiptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +26,13 @@ export default function GoodsReceiptDetail() {
     onSuccess: () => utils.inventory.getGRN.invalidate({ id: id! }),
   });
 
+  const voidMutation = trpc.inventory.voidGRN.useMutation({
+    onSuccess: () => {
+      utils.inventory.getGRN.invalidate({ id: id! });
+      utils.inventory.listGRN.invalidate();
+    },
+  });
+
   const handlePost = async () => {
     if (!receipt) return;
 
@@ -40,6 +48,26 @@ export default function GoodsReceiptDetail() {
     }
   };
 
+  const handleVoid = async () => {
+    if (!receipt) return;
+
+    const confirmed = await confirm({
+      title: 'Void Goods Receipt',
+      message:
+        'This will reverse the inventory update and journal entries. Are you sure?',
+      confirmText: 'Yes, Void',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
+      try {
+        await voidMutation.mutateAsync({ id: receipt.id });
+      } catch (error) {
+        console.error('Failed to void GRN:', error);
+      }
+    }
+  };
+
   const handleCreateBill = () => {
     if (!receipt) return;
     navigate(`/bills/new?grnId=${receipt.id}`);
@@ -51,6 +79,8 @@ export default function GoodsReceiptDetail() {
         return 'bg-green-100 text-green-800';
       case 'DRAFT':
         return 'bg-gray-100 text-gray-800';
+      case 'VOIDED':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -93,13 +123,8 @@ export default function GoodsReceiptDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <button
-            onClick={() => navigate('/receipts')}
-            className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
-          >
-            ← Back to Goods Receipts
-          </button>
-          <div className="flex items-center gap-3">
+          <BackButton to="/receipts" />
+          <div className="flex items-center gap-3 mt-2">
             <h1 className="text-2xl font-bold text-gray-900">
               {receipt.number}
             </h1>
@@ -122,9 +147,18 @@ export default function GoodsReceiptDetail() {
             </Button>
           )}
           {receipt.status === 'POSTED' && (
-            <Button onClick={handleCreateBill} variant="outline">
-              Create Bill
-            </Button>
+            <>
+              <Button onClick={handleCreateBill} variant="outline">
+                Create Bill
+              </Button>
+              <Button
+                onClick={handleVoid}
+                variant="danger"
+                disabled={voidMutation.isPending}
+              >
+                {voidMutation.isPending ? 'Voiding...' : 'Void'}
+              </Button>
+            </>
           )}
         </div>
       </div>

@@ -45,15 +45,23 @@ export function CompanyProvider({
   const [currentCompany, _setCurrentCompanyState] =
     useState<Company | null>(null);
 
-  // Wrapper to sync with localStorage
-  const setCurrentCompany = useCallback((company: Company | null) => {
-    _setCurrentCompanyState(company);
-    if (company) {
-      localStorage.setItem('currentCompanyId', company.id);
-    } else {
-      localStorage.removeItem('currentCompanyId');
-    }
-  }, []);
+  // Get tRPC utils for invalidating queries
+  const utils = trpc.useUtils();
+
+  // Wrapper to sync with localStorage and invalidate queries
+  const setCurrentCompany = useCallback(
+    (company: Company | null) => {
+      _setCurrentCompanyState(company);
+      if (company) {
+        localStorage.setItem('currentCompanyId', company.id);
+      } else {
+        localStorage.removeItem('currentCompanyId');
+      }
+      // Invalidate all queries so they refetch with new company context
+      utils.invalidate();
+    },
+    [utils]
+  );
 
   // Effect to restore selection from localStorage when companies load
   useEffect(() => {

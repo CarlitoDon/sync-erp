@@ -1,6 +1,9 @@
 import { router, protectedProcedure } from '../trpc';
 import { PaymentService } from '../../modules/accounting/services/payment.service';
-import { CreatePaymentSchema } from '@sync-erp/shared';
+import {
+  CreatePaymentSchema,
+  asCorrelationId,
+} from '@sync-erp/shared';
 import { z } from 'zod';
 
 const paymentService = new PaymentService();
@@ -24,11 +27,27 @@ export const paymentRouter = router({
 
   /**
    * Create payment
+   * Uses correlationId for idempotency to allow multiple partial payments
    */
   create: protectedProcedure
     .input(CreatePaymentSchema)
     .mutation(async ({ ctx, input }) => {
-      return paymentService.create(ctx.companyId, input, ctx.userId);
+      return paymentService.create(
+        ctx.companyId,
+        input,
+        input.correlationId
+          ? asCorrelationId(input.correlationId)
+          : undefined
+      );
+    }),
+
+  /**
+   * Void payment (restore invoice balance)
+   */
+  void: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return paymentService.void(input.id, ctx.companyId);
     }),
 });
 

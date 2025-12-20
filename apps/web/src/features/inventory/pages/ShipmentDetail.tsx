@@ -2,6 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
 import { trpc } from '@/lib/trpc';
 import { formatCurrency, formatDate } from '@/utils/format';
+import { BackButton } from '@/components/ui/BackButton';
 
 export default function ShipmentDetail() {
   const { id } = useParams<{ id: string }>();
@@ -61,13 +62,8 @@ export default function ShipmentDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <button
-            onClick={() => navigate('/shipments')}
-            className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
-          >
-            ← Back to Shipments
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <BackButton to="/shipments" />
+          <h1 className="text-2xl font-bold text-gray-900 mt-2">
             {shipment.number}
           </h1>
           <p className="text-gray-500">Shipment / Delivery Note</p>

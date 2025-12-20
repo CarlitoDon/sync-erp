@@ -242,4 +242,56 @@ export class PurchaseOrderService {
 
     return result.data.movements;
   }
+
+  /**
+   * Recalculate PO status based on existing non-voided GRNs.
+   * If no valid GRNs, revert to CONFIRMED.
+   * If some GRNs, could be PARTIALLY_RECEIVED or COMPLETED.
+   *
+   * Used when voiding a GRN to potentially revert PO status.
+   */
+  async recalculateStatus(
+    orderId: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<Order> {
+    const order = await this.repository.findById(
+      orderId,
+      companyId,
+      tx
+    );
+    if (!order) {
+      throw new DomainError(
+        'Purchase order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+
+    // Count non-voided GRNs
+    const validGrnCount =
+      await this.repository.countValidGoodsReceipts(orderId, tx);
+
+    let newStatus = order.status;
+
+    // If PO was COMPLETED but now has no valid GRNs, revert to CONFIRMED
+    if (
+      order.status === OrderStatus.COMPLETED &&
+      validGrnCount === 0
+    ) {
+      newStatus = OrderStatus.CONFIRMED;
+    }
+
+    // If status changed, update it
+    if (newStatus !== order.status) {
+      return this.repository.updateStatus(
+        orderId,
+        newStatus,
+        undefined, // No optimistic lock in transaction context
+        tx
+      );
+    }
+
+    return order;
+  }
 }

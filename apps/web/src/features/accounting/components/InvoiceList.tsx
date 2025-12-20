@@ -124,6 +124,7 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
           amount: paymentAmount,
           method: paymentMethod,
           businessDate: new Date(businessDate),
+          correlationId: crypto.randomUUID(),
         }),
       'Payment recorded!'
     );

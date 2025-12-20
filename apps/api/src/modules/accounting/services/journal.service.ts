@@ -295,6 +295,30 @@ export class JournalService {
     );
   }
 
+  /**
+   * Reverse Goods Receipt Journal Entry (for void GRN)
+   * Reverses the accrual (Credit Asset, Debit Liability)
+   */
+  async postGoodsReceiptReversal(
+    companyId: string,
+    reference: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference,
+        memo: 'Reversal of Goods Receipt Accrual',
+        lines: [
+          { accountCode: '1400', credit: amount }, // Reverse Asset
+          { accountCode: '2105', debit: amount }, // Reverse Liability Suspense
+        ],
+      },
+      tx
+    );
+  }
+
   async postBill(
     companyId: string,
     billId: string,

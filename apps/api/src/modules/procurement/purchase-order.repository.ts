@@ -153,4 +153,21 @@ export class PurchaseOrderRepository {
       where: { purchaseOrderId: orderId },
     });
   }
+
+  /**
+   * Count non-voided GRNs for a Purchase Order.
+   * Used for recalculating PO status after voiding a GRN.
+   */
+  async countValidGoodsReceipts(
+    orderId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const db = tx || prisma;
+    return db.goodsReceipt.count({
+      where: {
+        purchaseOrderId: orderId,
+        status: { not: 'VOIDED' },
+      },
+    });
+  }
 }

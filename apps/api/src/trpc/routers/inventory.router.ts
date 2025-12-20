@@ -118,6 +118,16 @@ export const inventoryRouter = router({
         reference: input.reference,
       });
     }),
+
+  /**
+   * Void GRN (reverse stock and journal)
+   * Policy: Must be POSTED and no Bill exists for the PO
+   */
+  voidGRN: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return inventoryService.voidGRN(ctx.companyId!, input.id);
+    }),
 });
 
 export type InventoryRouter = typeof inventoryRouter;

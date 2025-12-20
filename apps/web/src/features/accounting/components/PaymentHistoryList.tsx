@@ -1,5 +1,7 @@
 import { trpc } from '@/lib/trpc';
 import { formatDate } from '@/utils/format';
+import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 
 interface PaymentHistoryListProps {
   invoiceId: string;
@@ -12,13 +14,25 @@ export function PaymentHistoryList({
   totalAmount,
   currency = 'IDR',
 }: PaymentHistoryListProps) {
+  const confirm = useConfirm();
+  const utils = trpc.useUtils();
+
   // Filter payments client-side since we don't have getByInvoiceId endpoint
   const { data: allPayments = [], isLoading: loading } =
     trpc.payment.list.useQuery();
 
-  // Filter to this invoice
+  const voidMutation = trpc.payment.void.useMutation({
+    onSuccess: () => {
+      utils.payment.list.invalidate();
+      utils.invoice.getById.invalidate();
+      utils.bill.getById.invalidate();
+    },
+  });
+
+  // Filter to this invoice (exclude voided)
   const payments = allPayments.filter(
-    (p) => p.invoiceId === invoiceId
+    (p) =>
+      p.invoiceId === invoiceId && !p.reference?.includes('[VOIDED]')
   );
 
   const totalPaid = payments.reduce(
@@ -32,6 +46,24 @@ export function PaymentHistoryList({
       style: 'currency',
       currency: currency,
     }).format(amount);
+  };
+
+  const handleVoidPayment = async (paymentId: string) => {
+    const confirmed = await confirm({
+      title: 'Void Payment',
+      message:
+        'This will restore the invoice balance. Are you sure you want to void this payment?',
+      confirmText: 'Yes, Void',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
+      try {
+        await voidMutation.mutateAsync({ id: paymentId });
+      } catch (error) {
+        console.error('Failed to void payment:', error);
+      }
+    }
   };
 
   if (loading) {
@@ -60,13 +92,16 @@ export function PaymentHistoryList({
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                 Amount
               </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {payments.length === 0 ? (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-6 py-4 text-center text-sm text-gray-500"
                 >
                   No payments recorded.
@@ -79,13 +114,24 @@ export function PaymentHistoryList({
                     {formatDate(payment.date)}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    -
+                    {payment.reference || '-'}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {payment.method}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 text-right">
                     {formatCurrency(Number(payment.amount))}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleVoidPayment(payment.id)}
+                      disabled={voidMutation.isPending}
+                      className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                    >
+                      Void
+                    </Button>
                   </td>
                 </tr>
               ))
@@ -94,7 +140,7 @@ export function PaymentHistoryList({
           <tfoot className="bg-gray-50 border-t border-gray-200">
             <tr>
               <td
-                colSpan={3}
+                colSpan={4}
                 className="px-6 py-4 text-right text-sm font-medium text-gray-500"
               >
                 Total Paid:
@@ -105,7 +151,7 @@ export function PaymentHistoryList({
             </tr>
             <tr>
               <td
-                colSpan={3}
+                colSpan={4}
                 className="px-6 py-4 text-right text-sm font-medium text-gray-500"
               >
                 Remaining Balance:

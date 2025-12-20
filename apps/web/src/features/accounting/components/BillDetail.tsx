@@ -1,182 +1,236 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { useBill } from '@/features/accounting/hooks/useBill';
-import { Button } from '@/components/ui/button';
+import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
-import { PaymentForm } from '@/features/accounting/components/PaymentForm';
-import { getPaymentTermLabel } from '@sync-erp/shared';
+import { RecordPaymentModal } from '@/features/accounting/components/RecordPaymentModal';
+import { PaymentHistoryModal } from '@/features/accounting/components/PaymentHistoryModal';
+import { BackButton } from '@/components/ui/BackButton';
+import { useState } from 'react';
+import { getBillStatusDisplay } from '@/features/accounting/utils/financeEnums';
+import {
+  InvoiceStatusSchema as StatusSchema,
+  getPaymentTermLabel,
+} from '@sync-erp/shared';
 
 export default function BillDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
-  const { getBill, postBill, voidBill } = useBill();
+  const utils = trpc.useUtils();
 
-  const [bill, setBill] =
-    useState<
-      Awaited<ReturnType<ReturnType<typeof useBill>['getBill']>>
-    >(null);
-  const [loading, setLoading] = useState(true);
-  const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+  const { data: bill, isLoading: loading } =
+    trpc.bill.getById.useQuery(
+      { id: id! },
+      { enabled: !!id && !!currentCompany?.id }
+    );
 
-  const loadData = async () => {
-    if (!id || !currentCompany) return;
-    setLoading(true);
-    try {
-      const data = await getBill(id);
-      setBill(data ?? null);
-    } catch (error) {
-      navigate('/bills');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const postMutation = trpc.bill.post.useMutation({
+    onSuccess: () => utils.bill.getById.invalidate({ id: id! }),
+  });
 
-  useEffect(() => {
-    loadData();
-  }, [id, currentCompany?.id]);
+  const voidMutation = trpc.bill.void.useMutation({
+    onSuccess: () => utils.bill.getById.invalidate({ id: id! }),
+  });
+
+  // Modal State
+  const [showPayment, setShowPayment] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const handlePost = async () => {
     if (!bill) return;
-
-    const confirmed = await confirm({
-      title: 'Post Bill',
-      message: 'This will post the bill to the ledger. Are you sure?',
-      confirmText: 'Yes, Post',
-    });
-
-    if (confirmed) {
-      const result = await postBill(bill.id);
-      if (result) loadData();
-    }
+    await apiAction(
+      () => postMutation.mutateAsync({ id: bill.id }),
+      'Bill posted!'
+    );
   };
 
   const handleVoid = async () => {
     if (!bill) return;
-
     const confirmed = await confirm({
       title: 'Void Bill',
-      message: 'This will void the bill. Are you sure?',
+      message: 'Are you sure you want to void this bill?',
       confirmText: 'Yes, Void',
       variant: 'danger',
     });
-
-    if (confirmed) {
-      const result = await voidBill(bill.id);
-      if (result) loadData();
-    }
+    if (!confirmed) return;
+    await apiAction(
+      () => voidMutation.mutateAsync({ id: bill.id }),
+      'Bill voided'
+    );
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'POSTED':
-        return 'bg-green-100 text-green-800';
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'PAID':
-        return 'bg-blue-100 text-blue-800';
-      case 'VOID':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  if (loading || !currentCompany) {
-    return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Loading bill details...</div>
+      </div>
+    );
   }
 
-  if (!bill) return <div>Bill not found</div>;
+  if (!bill) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Bill not found</div>
+      </div>
+    );
+  }
+
+  const statusDisplay = getBillStatusDisplay(bill.status);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => navigate('/bills')}
-            className="text-blue-600 mb-2"
-          >
-            ← Back to Bills
-          </button>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">
-              {bill.invoiceNumber}
+    <>
+      {/* Payment Modal */}
+      <RecordPaymentModal
+        isOpen={showPayment}
+        onClose={() => setShowPayment(false)}
+        invoiceId={bill.id}
+        invoiceNumber={bill.invoiceNumber || ''}
+        balance={Number(bill.balance)}
+        dueDate={bill.dueDate}
+        documentType="bill"
+        onSuccess={() => utils.bill.getById.invalidate({ id: id! })}
+      />
+
+      {/* Payment History Modal */}
+      <PaymentHistoryModal
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        invoiceId={bill.id}
+        totalAmount={Number(bill.amount)}
+      />
+
+      {/* Page Content */}
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <BackButton to="/bills" />
+            <h1 className="text-2xl font-bold text-gray-900 mt-2">
+              Bill {bill.invoiceNumber}
             </h1>
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(bill.status)}`}
-            >
-              {bill.status}
-            </span>
+            <p className="text-gray-500">
+              {bill.partnerId ? (
+                <Link
+                  to={`/suppliers/${bill.partnerId}`}
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  Supplier Details
+                </Link>
+              ) : (
+                'Unknown Supplier'
+              )}
+            </p>
+          </div>
+          <span
+            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${statusDisplay.color}`}
+          >
+            {statusDisplay.label}
+          </span>
+        </div>
+
+        {/* Details Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">Bill Details</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">Bill Number</p>
+              <p className="font-mono font-medium">
+                {bill.invoiceNumber}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Due Date</p>
+              <p
+                className={`font-medium ${
+                  new Date(bill.dueDate) < new Date() &&
+                  bill.status === 'POSTED'
+                    ? 'text-red-600'
+                    : ''
+                }`}
+              >
+                {formatDate(bill.dueDate)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Created</p>
+              <p className="font-medium">
+                {formatDate(bill.createdAt)}
+              </p>
+            </div>
+            {bill.paymentTermsString && (
+              <div>
+                <p className="text-sm text-gray-500">Payment Terms</p>
+                <p className="font-medium">
+                  {getPaymentTermLabel(bill.paymentTermsString)}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <hr className="my-6" />
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">Total Amount</p>
+              <p className="text-xl font-bold text-gray-900">
+                {formatCurrency(Number(bill.amount))}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Balance Due</p>
+              <p
+                className={`text-xl font-bold ${
+                  Number(bill.balance) > 0
+                    ? 'text-red-600'
+                    : 'text-green-600'
+                }`}
+              >
+                {formatCurrency(Number(bill.balance))}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="space-x-2">
-          {bill.status === 'DRAFT' && (
-            <Button onClick={handlePost}>Post Bill</Button>
-          )}
-          {bill.status === 'POSTED' && Number(bill.balance) > 0 && (
-            <Button onClick={() => setIsPaymentFormOpen(true)}>
-              Record Payment
-            </Button>
-          )}
-          {bill.status !== 'VOID' && bill.status !== 'PAID' && (
-            <Button
-              variant="outline"
-              onClick={handleVoid}
-              className="text-red-600 border-red-200 hover:bg-red-50"
+
+        {/* Actions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">Actions</h2>
+          <div className="flex flex-wrap gap-3">
+            {bill.status === StatusSchema.enum.DRAFT && (
+              <>
+                <ActionButton variant="primary" onClick={handlePost}>
+                  Post Bill
+                </ActionButton>
+                <ActionButton variant="danger" onClick={handleVoid}>
+                  Void
+                </ActionButton>
+              </>
+            )}
+            {bill.status === StatusSchema.enum.POSTED &&
+              Number(bill.balance) > 0 && (
+                <>
+                  <ActionButton
+                    variant="success"
+                    onClick={() => setShowPayment(true)}
+                  >
+                    Record Payment
+                  </ActionButton>
+                  <ActionButton variant="danger" onClick={handleVoid}>
+                    Void
+                  </ActionButton>
+                </>
+              )}
+            <ActionButton
+              variant="secondary"
+              onClick={() => setShowHistory(true)}
             >
-              Void
-            </Button>
-          )}
+              View Payment History
+            </ActionButton>
+          </div>
         </div>
       </div>
-
-      <div className="bg-white rounded-xl shadow p-6 border">
-        <div className="grid grid-cols-4 gap-6">
-          <div>
-            <p className="text-sm text-gray-500">Supplier</p>
-            <p className="font-medium">{bill.partnerId}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Date</p>
-            <p className="font-medium">
-              {formatDate(bill.createdAt)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Due Date</p>
-            <p className="font-medium">{formatDate(bill.dueDate)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Amount</p>
-            <p className="font-medium text-lg">
-              {formatCurrency(bill.amount.toNumber())}
-            </p>
-          </div>
-        </div>
-
-        {bill.paymentTermsString && (
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-sm text-gray-500">Payment Terms</p>
-            <p className="font-medium">
-              {getPaymentTermLabel(bill.paymentTermsString)}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Payment Form Modal */}
-      {isPaymentFormOpen && (
-        <PaymentForm
-          isOpen={isPaymentFormOpen}
-          onClose={() => setIsPaymentFormOpen(false)}
-          invoiceId={bill.id}
-          outstandingAmount={Number(bill.balance)}
-          onSuccess={loadData}
-        />
-      )}
-    </div>
+    </>
   );
 }

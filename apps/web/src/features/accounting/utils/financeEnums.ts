@@ -97,3 +97,10 @@ export function hasBalance(
 ): boolean {
   return isPosted(status) && balance > 0;
 }
+
+// ============================================
+// Bill Status Options (same as Invoice status)
+// ============================================
+// Bill uses same status as Invoice, so we reuse InvoiceStatus types
+export const getBillStatusDisplay = getInvoiceStatusDisplay;
+export type BillStatus = InvoiceStatus;

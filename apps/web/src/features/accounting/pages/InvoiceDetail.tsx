@@ -1,25 +1,19 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
-import FormModal from '@/components/ui/FormModal';
 import { formatCurrency, formatDate } from '@/utils/format';
-import { PaymentHistoryList } from '@/features/accounting/components/PaymentHistoryList';
-import Select from '@/components/ui/Select';
+import { RecordPaymentModal } from '@/features/accounting/components/RecordPaymentModal';
+import { PaymentHistoryModal } from '@/features/accounting/components/PaymentHistoryModal';
+import { BackButton } from '@/components/ui/BackButton';
 import { useState } from 'react';
-import {
-  PaymentMethod,
-  paymentMethodOptions,
-  defaultPaymentMethod,
-  getInvoiceStatusDisplay,
-} from '@/features/accounting/utils/financeEnums';
+import { getInvoiceStatusDisplay } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@sync-erp/shared';
 
 export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
   const utils = trpc.useUtils();
@@ -38,19 +32,8 @@ export default function InvoiceDetail() {
     onSuccess: () => utils.invoice.getById.invalidate({ id: id! }),
   });
 
-  const paymentMutation = trpc.payment.create.useMutation({
-    onSuccess: () => {
-      utils.invoice.getById.invalidate({ id: id! });
-      utils.payment.list.invalidate();
-    },
-  });
-
-  // Payment Modal State
+  // Modal State
   const [showPayment, setShowPayment] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    defaultPaymentMethod
-  );
   const [showHistory, setShowHistory] = useState(false);
 
   const handlePost = async () => {
@@ -76,23 +59,6 @@ export default function InvoiceDetail() {
     );
   };
 
-  const handleRecordPayment = async () => {
-    if (!invoice || paymentAmount <= 0 || paymentMutation.isPending)
-      return;
-    await apiAction(
-      () =>
-        paymentMutation.mutateAsync({
-          invoiceId: invoice.id,
-          amount: paymentAmount,
-          method: paymentMethod,
-          businessDate: new Date(),
-        }),
-      'Payment recorded!'
-    );
-    setShowPayment(false);
-    setPaymentAmount(0);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -116,142 +82,34 @@ export default function InvoiceDetail() {
   return (
     <>
       {/* Payment Modal */}
-      <FormModal
+      <RecordPaymentModal
         isOpen={showPayment}
         onClose={() => setShowPayment(false)}
-        title="Record Payment"
-        maxWidth="md"
-      >
-        <div className="space-y-4">
-          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">
-                Invoice Number
-              </span>
-              <span className="font-mono font-medium">
-                {invoice.invoiceNumber}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">
-                Customer ID
-              </span>
-              <span className="font-medium font-mono text-xs">
-                {invoice.partnerId || '-'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">
-                Total Amount
-              </span>
-              <span className="font-medium">
-                {formatCurrency(Number(invoice.amount))}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">
-                Outstanding Balance
-              </span>
-              <span className="font-bold text-red-600">
-                {formatCurrency(Number(invoice.balance))}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Due Date</span>
-              <span
-                className={
-                  new Date(invoice.dueDate) < new Date()
-                    ? 'text-red-600 font-bold'
-                    : ''
-                }
-              >
-                {formatDate(invoice.dueDate)}
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Amount *
-            </label>
-            <input
-              type="number"
-              value={paymentAmount}
-              onChange={(e) =>
-                setPaymentAmount(Number(e.target.value))
-              }
-              max={Number(invoice.balance)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Max: {formatCurrency(Number(invoice.balance))}
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Method
-            </label>
-            <Select
-              value={paymentMethod}
-              onChange={(val) =>
-                setPaymentMethod(val as PaymentMethod)
-              }
-              options={paymentMethodOptions}
-            />
-          </div>
-
-          <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => setShowPayment(false)}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleRecordPayment}
-              disabled={
-                paymentAmount <= 0 ||
-                paymentAmount > Number(invoice.balance) ||
-                paymentMutation.isPending
-              }
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300"
-            >
-              {paymentMutation.isPending
-                ? 'Processing...'
-                : 'Confirm Payment'}
-            </button>
-          </div>
-        </div>
-      </FormModal>
+        invoiceId={invoice.id}
+        invoiceNumber={invoice.invoiceNumber || ''}
+        balance={Number(invoice.balance)}
+        dueDate={invoice.dueDate}
+        documentType="invoice"
+        onSuccess={() =>
+          utils.invoice.getById.invalidate({ id: id! })
+        }
+      />
 
       {/* Payment History Modal */}
-      <FormModal
+      <PaymentHistoryModal
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
-        title="Payment History"
-        maxWidth="2xl"
-      >
-        <PaymentHistoryList
-          invoiceId={invoice.id}
-          totalAmount={Number(invoice.amount)}
-        />
-      </FormModal>
+        invoiceId={invoice.id}
+        totalAmount={Number(invoice.amount)}
+      />
 
       {/* Page Content */}
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <button
-              onClick={() => navigate(-1)}
-              className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
-            >
-              ← Back
-            </button>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <BackButton to="/invoices" />
+            <h1 className="text-2xl font-bold text-gray-900 mt-2">
               Invoice {invoice.invoiceNumber}
             </h1>
             <p className="text-gray-500">
@@ -350,10 +208,7 @@ export default function InvoiceDetail() {
                 <>
                   <ActionButton
                     variant="success"
-                    onClick={() => {
-                      setPaymentAmount(Number(invoice.balance));
-                      setShowPayment(true);
-                    }}
+                    onClick={() => setShowPayment(true)}
                   >
                     Record Payment
                   </ActionButton>
