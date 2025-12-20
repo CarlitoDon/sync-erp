@@ -6,7 +6,7 @@ import FormModal from '@/components/ui/FormModal';
 import PurchaseOrderList from '@/features/procurement/components/PurchaseOrderList';
 import { formatCurrency } from '@/utils/format';
 import { trpc } from '@/lib/trpc';
-import usePurchaseOrder from '@/features/procurement/hooks/usePurchaseOrder';
+import { apiAction } from '@/hooks/useApiAction';
 
 interface OrderItemForm {
   productId: string;
@@ -16,7 +16,11 @@ interface OrderItemForm {
 
 export default function PurchaseOrders() {
   const { currentCompany } = useCompany();
-  const { createOrder, refresh } = usePurchaseOrder();
+  const utils = trpc.useUtils();
+
+  const createMutation = trpc.purchaseOrder.create.useMutation({
+    onSuccess: () => utils.purchaseOrder.list.invalidate(),
+  });
 
   const { data: suppliers } = trpc.partner.list.useQuery(
     { type: 'SUPPLIER' },
@@ -63,14 +67,18 @@ export default function PurchaseOrders() {
     e.preventDefault();
     if (!formData.partnerId || formData.items.length === 0) return;
 
-    await createOrder({
-      partnerId: formData.partnerId,
-      items: formData.items,
-      taxRate: formData.taxRate,
-    });
+    await apiAction(
+      () =>
+        createMutation.mutateAsync({
+          type: 'PURCHASE',
+          partnerId: formData.partnerId,
+          items: formData.items,
+          taxRate: formData.taxRate,
+        }),
+      'Purchase order created!'
+    );
 
     handleClose();
-    refresh();
   };
 
   const handleClose = () => {
