@@ -4,10 +4,8 @@
  * Import enums from shared schema - never hardcode enum values in UI.
  * This file provides type-safe options for Select components and label mappings.
  */
-import {
-  InvoiceStatusSchema,
-  PaymentMethodSchema,
-} from '@sync-erp/shared';
+import { InvoiceStatusSchema } from '@/types/api';
+import { PaymentMethodSchema } from '@sync-erp/shared';
 import { z } from 'zod';
 
 // Types inferred from schemas (source of truth)

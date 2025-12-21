@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { Partner } from './partner.js';
 
 // ============================================
 // Core Finance Types
@@ -13,42 +12,6 @@ export const TAX_RATES = [
   { label: 'PPN 11%', value: 11 },
   { label: 'PPN 12%', value: 12 },
 ] as const;
-
-export interface Invoice {
-  id: string;
-  companyId: string;
-  orderId?: string | null;
-  partnerId: string;
-  type: 'INVOICE' | 'BILL';
-  status: 'DRAFT' | 'POSTED' | 'PAID' | 'VOID';
-  invoiceNumber: string;
-  dueDate: Date | string;
-  amount: number;
-  subtotal: number;
-  taxAmount: number;
-  taxRate: number;
-  balance: number;
-  supplierInvoiceNumber?: string | null;
-  paymentTermsString?: string | null; // Payment terms (NET30, NET60, etc.)
-  notes?: string | null;
-  version: number;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-  partner?: Partner;
-  payments?: Payment[];
-  relatedInvoiceId?: string | null; // For credit notes
-  creditNotes?: Invoice[]; // Reverse: invoices that reference this one as relatedInvoiceId
-}
-
-export interface Payment {
-  id: string;
-  companyId: string;
-  invoiceId: string;
-  amount: number;
-  date: Date;
-  method: string;
-  createdAt: Date;
-}
 
 // Chart of Accounts
 export const AccountType = z.enum([

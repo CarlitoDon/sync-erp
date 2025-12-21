@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Select from '@/components/ui/Select';
 import FormModal from '@/components/ui/FormModal';
-import { PAYMENT_TERMS, calculateDueDate } from '@sync-erp/shared';
+import { PAYMENT_TERMS, calculateDueDate } from '@/types/api';
 
 interface CreateBillModalProps {
   isOpen: boolean;

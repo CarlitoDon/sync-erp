@@ -4,6 +4,8 @@ import {
   MovementType,
   BusinessShape,
   Prisma,
+  AuditLogAction,
+  EntityType,
 } from '@sync-erp/database';
 import { InventoryRepository } from './inventory.repository';
 import { ProductService } from '../product/product.service';
@@ -15,6 +17,7 @@ import {
   StockAdjustmentInput,
   DomainError,
 } from '@sync-erp/shared';
+import { recordAudit } from '../common/audit/audit-log.service';
 
 export class InventoryService {
   private repository = new InventoryRepository();
@@ -499,11 +502,16 @@ export class InventoryService {
 
   /**
    * Post a Goods Receipt Note (Stock IN + Cost Update)
+   * @param companyId - Company ID
+   * @param grnId - GRN ID to post
+   * @param tx - Optional transaction client
+   * @param userId - Optional user ID for audit logging
    */
   async postGRN(
     companyId: string,
     grnId: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    userId?: string
   ) {
     const execute = async (t: Prisma.TransactionClient) => {
       // 1. Post to Stock (and get updated GRN with items)
@@ -532,6 +540,22 @@ export class InventoryService {
         );
       }
 
+      // 4. Record Audit Log (if userId provided)
+      if (userId) {
+        await recordAudit({
+          companyId,
+          actorId: userId,
+          action: AuditLogAction.GRN_POSTED,
+          entityType: EntityType.GOODS_RECEIPT,
+          entityId: grnId,
+          businessDate: new Date(),
+          payloadSnapshot: {
+            grnNumber: postedGrn.number,
+            totalValue,
+          },
+        });
+      }
+
       return postedGrn;
     };
 
@@ -554,12 +578,17 @@ export class InventoryService {
    * Policy: GRN must be POSTED and no Bill exists for the linked PO
    * Effect: Rollback stock, reverse journal, update PO status
    *
+   * @param companyId - Company ID
+   * @param grnId - GRN ID to void
+   * @param tx - Optional transaction client
+   * @param userId - Optional user ID for audit logging
    * @throws DomainError if GRN cannot be voided
    */
   async voidGRN(
     companyId: string,
     grnId: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    userId?: string
   ) {
     const execute = async (t: Prisma.TransactionClient) => {
       // 1. Fetch GRN with items
@@ -636,6 +665,19 @@ export class InventoryService {
         companyId,
         t
       );
+
+      // 9. Record Audit Log (if userId provided)
+      if (userId) {
+        await recordAudit({
+          companyId,
+          actorId: userId,
+          action: AuditLogAction.GRN_VOIDED,
+          entityType: EntityType.GOODS_RECEIPT,
+          entityId: grnId,
+          businessDate: new Date(),
+          payloadSnapshot: { grnNumber: grn.number, totalValue },
+        });
+      }
 
       return voidedGrn;
     };

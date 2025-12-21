@@ -7,7 +7,8 @@ import {
   ReportSection,
 } from '@/features/accounting/components/FinancialReport';
 import JournalEntries from '@/features/accounting/pages/JournalEntries';
-import { AccountGroup, AccountType } from '@sync-erp/shared';
+import type { AccountGroup } from '@/types/api';
+import { AccountType } from '@/types/api';
 import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
 

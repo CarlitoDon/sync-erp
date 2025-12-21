@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoginPayload } from '@sync-erp/shared';
+import type { LoginInput } from '@/types/api';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [formData, setFormData] = useState<LoginPayload>({
+  const [formData, setFormData] = useState<LoginInput>({
     email: '',
     password: '',
   });

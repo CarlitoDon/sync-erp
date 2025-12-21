@@ -10,10 +10,8 @@ import { PaymentHistoryModal } from '@/features/accounting/components/PaymentHis
 import { BackButton } from '@/components/ui/BackButton';
 import { useState } from 'react';
 import { getBillStatusDisplay } from '@/features/accounting/utils/financeEnums';
-import {
-  InvoiceStatusSchema as StatusSchema,
-  getPaymentTermLabel,
-} from '@sync-erp/shared';
+import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
+import { getPaymentTermLabel } from '@sync-erp/shared';
 
 export default function BillDetail() {
   const { id } = useParams<{ id: string }>();

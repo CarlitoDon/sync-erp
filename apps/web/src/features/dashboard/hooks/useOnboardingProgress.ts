@@ -4,7 +4,7 @@ import type {
   OnboardingStep,
   OnboardingProgress,
 } from '@/features/dashboard/types';
-import type { DashboardMetrics } from '@sync-erp/shared';
+import type { DashboardMetrics } from '@/types/api';
 
 // Step configurations
 const ONBOARDING_STEPS_CONFIG: Omit<OnboardingStep, 'isCompleted'>[] =

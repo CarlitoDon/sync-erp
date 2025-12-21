@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Select from '@/components/ui/Select';
 import { DatePicker } from '@/components/ui/DatePicker';
-import { PAYMENT_METHODS } from '@sync-erp/shared';
+import { PAYMENT_METHODS } from '@/types/api';
 
 interface PaymentFormProps {
   isOpen: boolean;
@@ -25,7 +25,7 @@ interface PaymentFormProps {
 
 interface FormData {
   amount: number;
-  method: typeof PAYMENT_METHODS[number];
+  method: (typeof PAYMENT_METHODS)[number];
   date: Date;
 }
 
@@ -101,7 +101,10 @@ export function PaymentForm({
                 className="col-span-3"
                 {...register('amount', {
                   required: 'Amount is required',
-                  min: { value: 0.01, message: 'Amount must be positive' },
+                  min: {
+                    value: 0.01,
+                    message: 'Amount must be positive',
+                  },
                   max: {
                     value: outstandingAmount,
                     message: `Cannot exceed outstanding amount (${outstandingAmount})`,
@@ -154,7 +157,9 @@ export function PaymentForm({
                     <DatePicker
                       value={
                         field.value
-                          ? new Date(field.value).toISOString().split('T')[0]
+                          ? new Date(field.value)
+                              .toISOString()
+                              .split('T')[0]
                           : ''
                       }
                       onChange={(date) => field.onChange(date)}

@@ -20,7 +20,7 @@ import {
   getInvoiceStatusDisplay,
   invoiceStatusFilterOptions,
 } from '@/features/accounting/utils/financeEnums';
-import { InvoiceStatusSchema as StatusSchema } from '@sync-erp/shared';
+import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
 
 type Invoice = RouterOutputs['invoice']['list'][number];
 

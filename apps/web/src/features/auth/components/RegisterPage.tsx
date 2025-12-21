@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { RegisterPayload } from '@sync-erp/shared';
+import type { RegisterInput } from '@/types/api';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [formData, setFormData] = useState<RegisterPayload>({
+  const [formData, setFormData] = useState<RegisterInput>({
     email: '',
     name: '',
     password: '',

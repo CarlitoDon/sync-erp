@@ -1,4 +1,4 @@
-import type { Invoice } from '@sync-erp/shared';
+import type { Invoice } from '@/types/api';
 
 export interface DashboardMetrics {
   // US1: Business Overview

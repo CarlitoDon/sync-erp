@@ -10,7 +10,7 @@ import { PaymentHistoryModal } from '@/features/accounting/components/PaymentHis
 import { BackButton } from '@/components/ui/BackButton';
 import { useState } from 'react';
 import { getInvoiceStatusDisplay } from '@/features/accounting/utils/financeEnums';
-import { InvoiceStatusSchema as StatusSchema } from '@sync-erp/shared';
+import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
 
 export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();

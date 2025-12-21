@@ -432,6 +432,64 @@ export class JournalService {
     );
   }
 
+  /**
+   * Reverse Payment Received Journal Entry (for void Payment on Invoice AR)
+   * Reverses: Debit AR, Credit Cash
+   */
+  async postPaymentReceivedReversal(
+    companyId: string,
+    paymentId: string,
+    invoiceNumber: string,
+    amount: number,
+    method: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Payment Reversal: ${invoiceNumber}`,
+        memo: `Reversal of voided payment`,
+        sourceType: JournalSourceType.PAYMENT,
+        sourceId: `${paymentId}-reversal`,
+        lines: [
+          { accountCode: '1300', debit: amount }, // Restore AR
+          { accountCode: cashAccount, credit: amount }, // Reverse Cash
+        ],
+      },
+      tx
+    );
+  }
+
+  /**
+   * Reverse Payment Made Journal Entry (for void Payment on Bill AP)
+   * Reverses: Credit AP, Debit Cash
+   */
+  async postPaymentMadeReversal(
+    companyId: string,
+    paymentId: string,
+    billNumber: string,
+    amount: number,
+    method: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Bill Payment Reversal: ${billNumber}`,
+        memo: `Reversal of voided payment`,
+        sourceType: JournalSourceType.PAYMENT,
+        sourceId: `${paymentId}-reversal`,
+        lines: [
+          { accountCode: cashAccount, debit: amount }, // Restore Cash
+          { accountCode: '2100', credit: amount }, // Restore AP
+        ],
+      },
+      tx
+    );
+  }
+
   async postPaymentMade(
     companyId: string,
     paymentId: string,

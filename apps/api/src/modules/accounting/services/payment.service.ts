@@ -152,29 +152,85 @@ export class PaymentService {
   }
 
   /**
-   * Void a Payment
-   * Effect: Restore invoice/bill balance
+   * Void a Payment atomically using Prisma transaction.
+   * Effect: Restore invoice/bill balance + reverse journal entry
    * Note: For MVP, we mark by prepending [VOIDED] to reference.
-   * Schema enhancement for proper status field is recommended.
    */
   async void(id: string, companyId: string): Promise<Payment> {
-    const payment = await this.repository.findById(id, companyId);
-    if (!payment) {
-      throw new Error('Payment not found');
-    }
+    return prisma.$transaction(
+      async (tx) => {
+        // 1. Lock payment row for concurrency safety
+        await tx.$executeRaw`SELECT 1 FROM "Payment" WHERE id = ${id} FOR UPDATE`;
 
-    // Check if already voided (using convention - reference contains [VOIDED])
-    if (payment.reference?.includes('[VOIDED]')) {
-      throw new Error('Payment is already voided');
-    }
+        // 2. Validate payment exists
+        const payment = await this.repository.findById(
+          id,
+          companyId,
+          tx
+        );
+        if (!payment) {
+          throw new DomainError(
+            'Payment not found',
+            404,
+            DomainErrorCodes.PAYMENT_NOT_FOUND
+          );
+        }
 
-    // Restore invoice balance and mark payment as voided
-    const restored = await this.repository.voidPayment(
-      id,
-      payment.invoiceId,
-      Number(payment.amount)
+        // 3. Check if already voided
+        if (payment.reference?.includes('[VOIDED]')) {
+          throw new DomainError(
+            'Payment is already voided',
+            422,
+            DomainErrorCodes.PAYMENT_ALREADY_VOIDED
+          );
+        }
+
+        // 4. Get invoice details for journal reversal
+        const invoice = await this.invoiceRepository.findById(
+          payment.invoiceId,
+          companyId,
+          undefined,
+          tx
+        );
+        if (!invoice) {
+          throw new DomainError(
+            'Associated invoice not found',
+            404,
+            DomainErrorCodes.INVOICE_NOT_FOUND
+          );
+        }
+
+        // 5. Create journal reversal based on invoice type
+        // INVOICE type = AR (payment received), BILL type = AP (payment made)
+        if (invoice.type === 'INVOICE') {
+          await this.journalService.postPaymentReceivedReversal(
+            companyId,
+            id,
+            invoice.invoiceNumber || payment.invoiceId,
+            Number(payment.amount),
+            payment.method,
+            tx
+          );
+        } else if (invoice.type === 'BILL') {
+          await this.journalService.postPaymentMadeReversal(
+            companyId,
+            id,
+            invoice.invoiceNumber || payment.invoiceId,
+            Number(payment.amount),
+            payment.method,
+            tx
+          );
+        }
+
+        // 6. Restore invoice balance and mark payment as voided
+        return this.repository.voidPayment(
+          id,
+          payment.invoiceId,
+          Number(payment.amount),
+          tx
+        );
+      },
+      { timeout: 60000 }
     );
-
-    return restored;
   }
 }

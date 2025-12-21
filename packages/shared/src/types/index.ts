@@ -4,49 +4,11 @@
 export * from './auth.js';
 export * from './finance.js';
 export * from './partner.js';
-import { MovementType } from '../constants/inventory.js';
-
-export interface Company {
-  id: string;
-  name: string;
-  businessShape?: 'PENDING' | 'RETAIL' | 'MANUFACTURING' | 'SERVICE';
-  createdAt: Date;
-}
-
 export interface User {
   id: string;
   email: string;
   name: string;
 }
-
-export interface CompanyMember {
-  id: string;
-  userId: string;
-  companyId: string;
-  roleId?: string;
-}
-
-// Partner Types moved to partner.ts
-
-// ============================================
-// Product Types
-// ============================================
-
-export interface Product {
-  id: string;
-  companyId: string;
-  sku: string;
-  name: string;
-  price: number;
-  averageCost: number;
-  stockQty: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// ============================================
-// Order Types
-// ============================================
 
 export type OrderType = 'SALES' | 'PURCHASE';
 export type OrderStatus =
@@ -55,38 +17,12 @@ export type OrderStatus =
   | 'COMPLETED'
   | 'CANCELLED';
 
-export interface Order {
-  id: string;
-  companyId: string;
-  partnerId: string;
-  type: OrderType;
-  status: OrderStatus;
-  date: Date;
-  totalAmount: number;
-}
-
 export interface OrderItem {
   id: string;
   orderId: string;
   productId: string;
   quantity: number;
   price: number;
-}
-
-// ============================================
-// Inventory Types
-// ============================================
-
-// MovementType moved to constants/inventory.ts
-
-export interface InventoryMovement {
-  id: string;
-  companyId: string;
-  productId: string;
-  type: MovementType;
-  quantity: number;
-  reference?: string;
-  date: Date;
 }
 
 // ============================================

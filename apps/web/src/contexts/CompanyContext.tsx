@@ -6,7 +6,7 @@ import {
   ReactNode,
   useEffect,
 } from 'react';
-import type { Company } from '@sync-erp/shared';
+import type { Company } from '@/types/api';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
 

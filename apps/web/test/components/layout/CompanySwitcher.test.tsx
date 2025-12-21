@@ -7,7 +7,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import CompanySwitcher from '@/components/layout/CompanySwitcher';
 import * as CompanyContext from '@/contexts/CompanyContext';
-import type { Company } from '@sync-erp/shared';
+import type { BusinessShape, Company } from '@/types/api';
 
 // Mock react-router-dom's useNavigate
 const mockNavigate = vi.fn();
@@ -29,9 +29,30 @@ vi.mock('@/contexts/CompanyContext', async () => {
 });
 
 const mockCompanies: Company[] = [
-  { id: '1', name: 'Acme Corp', createdAt: new Date() },
-  { id: '2', name: 'Beta Inc', createdAt: new Date() },
-  { id: '3', name: 'Gamma LLC', createdAt: new Date() },
+  {
+    id: '1',
+    name: 'Acme Corp',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    businessShape: 'RETAIL' as BusinessShape,
+    inviteCode: 'ABC123',
+  },
+  {
+    id: '2',
+    name: 'Beta Inc',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    businessShape: 'SERVICE' as BusinessShape,
+    inviteCode: 'DEF456',
+  },
+  {
+    id: '3',
+    name: 'Gamma LLC',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    businessShape: 'MANUFACTURING' as BusinessShape,
+    inviteCode: 'GHI789',
+  },
 ];
 
 describe('CompanySwitcher', () => {

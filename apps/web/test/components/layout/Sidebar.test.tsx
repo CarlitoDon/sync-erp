@@ -4,6 +4,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import * as SidebarContext from '@/contexts/SidebarContext';
 import * as CompanyContext from '@/contexts/CompanyContext';
 import * as AuthContext from '@/contexts/AuthContext';
+import { BusinessShape } from '@/types/api';
 
 // Mock react-router-dom's useNavigate
 const mockNavigate = vi.fn();
@@ -84,6 +85,9 @@ describe('Sidebar', () => {
         id: '1',
         name: 'Acme Corp',
         createdAt: new Date(),
+        updatedAt: new Date(),
+        businessShape: 'RETAIL' as BusinessShape,
+        inviteCode: 'ABC123',
       },
       companies: [],
       setCurrentCompany: vi.fn(),
@@ -96,7 +100,14 @@ describe('Sidebar', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
       isAuthenticated: true,
       isLoading: false,
-      user: { id: '1', email: 'test@test.com', name: 'John Doe' },
+      user: {
+        id: '1',
+        email: 'test@test.com',
+        name: 'John Doe',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        passwordHash: 'hashed',
+      },
       login: vi.fn(),
       register: vi.fn(),
       logout: mockLogout,

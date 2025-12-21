@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { trpc } from '@/lib/trpc';
-import type { Company } from '@sync-erp/shared';
+import type { Company } from '@/types/api';
 
 export function CompanySelectionPage() {
   const navigate = useNavigate();

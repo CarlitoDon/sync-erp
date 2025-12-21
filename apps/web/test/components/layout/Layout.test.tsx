@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { SidebarProvider } from '@/contexts/SidebarContext';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { CompanyProvider } from '@/contexts/CompanyContext';
+import * as AuthContext from '@/contexts/AuthContext';
+import * as CompanyContext from '@/contexts/CompanyContext';
+import * as SidebarContext from '@/contexts/SidebarContext';
 import { ConfirmProvider } from '@/components/ui/ConfirmModal';
 
 // Mock child components to simplify testing
@@ -17,37 +17,85 @@ vi.mock('@/components/layout/MobileMenuButton', () => ({
   ),
 }));
 
+// Mock the contexts
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: vi.fn(),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
+vi.mock('@/contexts/CompanyContext', () => ({
+  useCompany: vi.fn(),
+  CompanyProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
+vi.mock('@/contexts/SidebarContext', () => ({
+  useSidebar: vi.fn(),
+  SidebarProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
 const renderWithProviders = (initialRoute = '/') => {
+  // Setup default mock values
+  vi.mocked(AuthContext.useAuth).mockReturnValue({
+    isAuthenticated: true,
+    user: {
+      id: '1',
+      name: 'Test User',
+      email: 'test@example.com',
+    } as any,
+    isLoading: false,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    checkAuth: vi.fn(),
+  });
+
+  vi.mocked(CompanyContext.useCompany).mockReturnValue({
+    currentCompany: { id: '1', name: 'Test Co' } as any,
+    companies: [],
+    setCurrentCompany: vi.fn(),
+    setCompanies: vi.fn(),
+    refreshCompanies: vi.fn(),
+    isLoading: false,
+  });
+
+  vi.mocked(SidebarContext.useSidebar).mockReturnValue({
+    isCollapsed: false,
+    setIsCollapsed: vi.fn(),
+    toggleCollapse: vi.fn(),
+    isMobileOpen: false,
+    setIsMobileOpen: vi.fn(),
+    toggleMobileOpen: vi.fn(),
+    closeMobile: vi.fn(),
+  });
+
   return render(
     <MemoryRouter initialEntries={[initialRoute]}>
-      <AuthProvider>
-        <CompanyProvider>
-          <SidebarProvider>
-            <ConfirmProvider>
-              <Routes>
-                <Route path="/" element={<Layout />}>
-                  <Route
-                    index
-                    element={
-                      <div data-testid="outlet-content">
-                        Dashboard Content
-                      </div>
-                    }
-                  />
-                  <Route
-                    path="test"
-                    element={
-                      <div data-testid="outlet-content">
-                        Test Content
-                      </div>
-                    }
-                  />
-                </Route>
-              </Routes>
-            </ConfirmProvider>
-          </SidebarProvider>
-        </CompanyProvider>
-      </AuthProvider>
+      <ConfirmProvider>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route
+              index
+              element={
+                <div data-testid="outlet-content">
+                  Dashboard Content
+                </div>
+              }
+            />
+            <Route
+              path="test"
+              element={
+                <div data-testid="outlet-content">Test Content</div>
+              }
+            />
+          </Route>
+        </Routes>
+      </ConfirmProvider>
     </MemoryRouter>
   );
 };

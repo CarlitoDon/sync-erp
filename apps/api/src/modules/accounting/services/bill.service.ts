@@ -187,13 +187,7 @@ export class BillService {
           );
         }
 
-        if (bill.status !== InvoiceStatus.DRAFT) {
-          throw new DomainError(
-            `Cannot post bill with status ${bill.status}`,
-            422,
-            DomainErrorCodes.BILL_INVALID_STATE
-          );
-        }
+        BillPolicy.validatePost(bill.status);
 
         // Phase 1 Guard: Block Multi-Currency
         const currency =
@@ -230,62 +224,75 @@ export class BillService {
   }
 
   /**
-   * Void a Bill
+   * Void a Bill atomically using Prisma transaction.
    * Policy: Cannot void if payments exist. If POSTED, reverse AP journal.
    */
   async void(id: string, companyId: string): Promise<Invoice> {
-    const bill = await this.repository.findById(
-      id,
-      companyId,
-      InvoiceType.BILL
+    return prisma.$transaction(
+      async (tx) => {
+        // 1. Lock row for concurrency safety
+        await tx.$executeRaw`SELECT 1 FROM "Invoice" WHERE id = ${id} FOR UPDATE`;
+
+        // 2. Validate bill exists
+        const bill = await this.repository.findById(
+          id,
+          companyId,
+          InvoiceType.BILL,
+          tx
+        );
+        if (!bill) {
+          throw new DomainError(
+            'Bill not found',
+            404,
+            DomainErrorCodes.BILL_NOT_FOUND
+          );
+        }
+
+        // 3. Cannot void if already VOID
+        if (bill.status === InvoiceStatus.VOID) {
+          throw new DomainError(
+            'Bill is already voided',
+            422,
+            DomainErrorCodes.BILL_INVALID_STATE
+          );
+        }
+
+        // 4. Cannot void if any payments exist
+        const paymentCount = await this.repository.countPayments(
+          id,
+          companyId,
+          tx
+        );
+        if (paymentCount > 0) {
+          throw new DomainError(
+            'Cannot void bill: Payments have been recorded. Void the payments first.',
+            422,
+            DomainErrorCodes.BILL_HAS_PAYMENTS
+          );
+        }
+
+        // 5. If POSTED, reverse the AP journal entry
+        if (bill.status === InvoiceStatus.POSTED) {
+          await this.journalService.postBillReversal(
+            companyId,
+            bill.id,
+            bill.invoiceNumber || '',
+            Number(bill.amount),
+            Number(bill.subtotal) || undefined,
+            Number(bill.taxAmount) || undefined,
+            tx
+          );
+        }
+
+        // 6. Update status to VOID
+        return this.repository.update(
+          id,
+          { status: InvoiceStatus.VOID },
+          tx
+        );
+      },
+      { timeout: 60000 }
     );
-    if (!bill) {
-      throw new DomainError(
-        'Bill not found',
-        404,
-        DomainErrorCodes.BILL_NOT_FOUND
-      );
-    }
-
-    // Cannot void if already VOID
-    if (bill.status === InvoiceStatus.VOID) {
-      throw new DomainError(
-        'Bill is already voided',
-        422,
-        DomainErrorCodes.BILL_INVALID_STATE
-      );
-    }
-
-    // Cannot void if any payments exist
-    const paymentCount = await this.repository.countPayments(
-      id,
-      companyId
-    );
-    if (paymentCount > 0) {
-      throw new DomainError(
-        'Cannot void bill: Payments have been recorded. Void the payments first.',
-        422,
-        DomainErrorCodes.BILL_HAS_PAYMENTS
-      );
-    }
-
-    // If POSTED, reverse the AP journal entry
-    if (bill.status === InvoiceStatus.POSTED) {
-      const { JournalService } = await import('./journal.service');
-      const journalService = new JournalService();
-      await journalService.postBillReversal(
-        companyId,
-        bill.id,
-        bill.invoiceNumber || '',
-        Number(bill.amount),
-        Number(bill.subtotal) || undefined,
-        Number(bill.taxAmount) || undefined
-      );
-    }
-
-    return this.repository.update(id, {
-      status: InvoiceStatus.VOID,
-    });
   }
 
   async getOutstanding(companyId: string) {

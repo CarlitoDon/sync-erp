@@ -1,17 +1,13 @@
 import { createContext, useContext, ReactNode } from 'react';
-import {
-  User,
-  LoginPayload,
-  RegisterPayload,
-} from '@sync-erp/shared';
+import type { User, LoginInput, RegisterInput } from '@/types/api';
 import { trpc } from '@/lib/trpc';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (payload: LoginPayload) => Promise<void>;
-  register: (payload: RegisterPayload) => Promise<void>;
+  login: (payload: LoginInput) => Promise<void>;
+  register: (payload: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -51,11 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const login = async (payload: LoginPayload) => {
+  const login = async (payload: LoginInput) => {
     await loginMutation.mutateAsync(payload);
   };
 
-  const register = async (payload: RegisterPayload) => {
+  const register = async (payload: RegisterInput) => {
     await registerMutation.mutateAsync(payload);
   };
 

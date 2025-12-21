@@ -60,6 +60,19 @@ export class BillPolicy {
   }
 
   /**
+   * Validate bill can be posted (must be DRAFT)
+   */
+  static validatePost(status: string): void {
+    if (status !== InvoiceStatus.DRAFT) {
+      throw new DomainError(
+        `Cannot post bill with status ${status}`,
+        422,
+        DomainErrorCodes.BILL_INVALID_STATE
+      );
+    }
+  }
+
+  /**
    * Ensure the Purchase Order is in a valid state for Bill creation.
    * PO must be CONFIRMED, RECEIVED, or COMPLETED.
    */

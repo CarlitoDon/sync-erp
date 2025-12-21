@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Companies from '@/features/company/pages/Companies';
 import * as CompanyContext from '@/contexts/CompanyContext';
+import { BusinessShape, type Company } from '@/types/api';
 
 vi.mock('@/contexts/CompanyContext', async () => {
   const actual = await vi.importActual('@/contexts/CompanyContext');
@@ -87,8 +88,22 @@ describe('Companies', () => {
     it('displays company names', () => {
       setupMock({
         companies: [
-          { id: '1', name: 'Acme Corp', createdAt: new Date() },
-          { id: '2', name: 'Beta Inc', createdAt: new Date() },
+          {
+            id: '1',
+            name: 'Acme Corp',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            businessShape: BusinessShape.RETAIL,
+            inviteCode: 'INV1',
+          },
+          {
+            id: '2',
+            name: 'Beta Inc',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            businessShape: BusinessShape.SERVICE,
+            inviteCode: 'INV2',
+          },
         ],
       });
       renderComponent();
@@ -98,16 +113,26 @@ describe('Companies', () => {
     });
 
     it('shows Active badge on current company', () => {
-      const currentCompany = {
+      const currentCompany: Company = {
         id: '1',
         name: 'Acme Corp',
         createdAt: new Date(),
+        updatedAt: new Date(),
+        businessShape: BusinessShape.RETAIL,
+        inviteCode: 'INV1',
       };
       setupMock({
         currentCompany,
         companies: [
           currentCompany,
-          { id: '2', name: 'Beta Inc', createdAt: new Date() },
+          {
+            id: '2',
+            name: 'Beta Inc',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            businessShape: BusinessShape.SERVICE,
+            inviteCode: 'INV2',
+          },
         ],
       });
       renderComponent();
@@ -116,10 +141,13 @@ describe('Companies', () => {
     });
 
     it('calls setCurrentCompany when company card is clicked', () => {
-      const company = {
+      const company: Company = {
         id: '1',
         name: 'Acme Corp',
         createdAt: new Date(),
+        updatedAt: new Date(),
+        businessShape: BusinessShape.RETAIL,
+        inviteCode: 'INV1',
       };
       setupMock({ companies: [company] });
       renderComponent();

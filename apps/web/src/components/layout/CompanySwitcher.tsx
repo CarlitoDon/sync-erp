@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
-import type { Company } from '@sync-erp/shared';
+import type { Company } from '@/types/api';
 
 export default function CompanySwitcher() {
   const navigate = useNavigate();

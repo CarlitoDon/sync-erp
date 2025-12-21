@@ -169,9 +169,7 @@ describe('RegisterPage', () => {
 
     it('shows error message on registration failure', async () => {
       mockRegister.mockRejectedValueOnce({
-        response: {
-          data: { error: { message: 'Email already exists' } },
-        },
+        message: 'Email already exists',
       });
       renderComponent();
 

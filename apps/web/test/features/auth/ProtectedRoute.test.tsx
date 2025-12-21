@@ -3,6 +3,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import * as AuthContext from '@/contexts/AuthContext';
 import * as CompanyContext from '@/contexts/CompanyContext';
+import { BusinessShape } from '@/types/api';
 
 // Mock the contexts
 vi.mock('@/contexts/AuthContext', async () => {
@@ -97,7 +98,14 @@ describe('ProtectedRoute', () => {
       vi.mocked(AuthContext.useAuth).mockReturnValue({
         isAuthenticated: true,
         isLoading: false,
-        user: { id: '1', email: 'test@test.com', name: 'Test' },
+        user: {
+          id: '1',
+          email: 'test@test.com',
+          name: 'Test',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          passwordHash: 'hashed',
+        },
         login: vi.fn(),
         register: vi.fn(),
         logout: vi.fn(),
@@ -152,7 +160,14 @@ describe('ProtectedRoute', () => {
       vi.mocked(AuthContext.useAuth).mockReturnValue({
         isAuthenticated: true,
         isLoading: false,
-        user: { id: '1', email: 'test@test.com', name: 'Test' },
+        user: {
+          id: '1',
+          email: 'test@test.com',
+          name: 'Test',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          passwordHash: 'hashed',
+        },
         login: vi.fn(),
         register: vi.fn(),
         logout: vi.fn(),
@@ -181,7 +196,14 @@ describe('ProtectedRoute', () => {
       vi.mocked(AuthContext.useAuth).mockReturnValue({
         isAuthenticated: true,
         isLoading: false,
-        user: { id: '1', email: 'test@test.com', name: 'Test' },
+        user: {
+          id: '1',
+          email: 'test@test.com',
+          name: 'Test',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          passwordHash: 'hashed',
+        },
         login: vi.fn(),
         register: vi.fn(),
         logout: vi.fn(),
@@ -209,7 +231,14 @@ describe('ProtectedRoute', () => {
       vi.mocked(AuthContext.useAuth).mockReturnValue({
         isAuthenticated: true,
         isLoading: false,
-        user: { id: '1', email: 'test@test.com', name: 'Test' },
+        user: {
+          id: '1',
+          email: 'test@test.com',
+          name: 'Test',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          passwordHash: 'hashed',
+        },
         login: vi.fn(),
         register: vi.fn(),
         logout: vi.fn(),
@@ -220,9 +249,19 @@ describe('ProtectedRoute', () => {
           id: '1',
           name: 'Test Co',
           createdAt: new Date(),
+          updatedAt: new Date(),
+          businessShape: 'RETAIL' as BusinessShape,
+          inviteCode: 'ABC123',
         },
         companies: [
-          { id: '1', name: 'Test Co', createdAt: new Date() },
+          {
+            id: '1',
+            name: 'Test Co',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            businessShape: 'RETAIL' as BusinessShape,
+            inviteCode: 'ABC123',
+          },
         ],
         setCurrentCompany: vi.fn(),
         setCompanies: vi.fn(),

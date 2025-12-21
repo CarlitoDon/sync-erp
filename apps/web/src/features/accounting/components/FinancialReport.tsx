@@ -1,4 +1,4 @@
-import { AccountGroup } from '@sync-erp/shared';
+import type { AccountGroup } from '@/types/api';
 import { formatCurrency } from '@/utils/format';
 
 export interface ReportSection {

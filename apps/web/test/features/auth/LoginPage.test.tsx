@@ -172,9 +172,7 @@ describe('LoginPage', () => {
 
     it('shows error message on login failure', async () => {
       mockLogin.mockRejectedValueOnce({
-        response: {
-          data: { error: { message: 'Invalid credentials' } },
-        },
+        message: 'Invalid credentials',
       });
       renderComponent();
 

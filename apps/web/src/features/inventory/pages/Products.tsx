@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CreateProductInput } from '@sync-erp/shared';
+import type { CreateProductInput } from '@/types/api';
 import { trpc } from '@/lib/trpc';
 
 import { useCompany } from '@/contexts/CompanyContext';
