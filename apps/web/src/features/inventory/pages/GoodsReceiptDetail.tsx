@@ -1,10 +1,12 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
 import { useCompany } from '@/contexts/CompanyContext';
 import { trpc } from '@/lib/trpc';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { BackButton } from '@/components/ui/BackButton';
+import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 
 export default function GoodsReceiptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +14,7 @@ export default function GoodsReceiptDetail() {
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
   const utils = trpc.useUtils();
+  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
 
   const {
     data: receipt,
@@ -70,7 +73,7 @@ export default function GoodsReceiptDetail() {
 
   const handleCreateBill = () => {
     if (!receipt) return;
-    navigate(`/bills/new?grnId=${receipt.id}`);
+    setIsBillModalOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -265,6 +268,17 @@ export default function GoodsReceiptDetail() {
           </tbody>
         </table>
       </div>
+
+      {/* Bill Modal */}
+      <CreateBillModal
+        isOpen={isBillModalOpen}
+        onClose={() => setIsBillModalOpen(false)}
+        grnId={receipt.id}
+        onSuccess={(billId) => {
+          utils.inventory.getGRN.invalidate({ id: id! });
+          navigate(`/bills/${billId}`);
+        }}
+      />
     </div>
   );
 }

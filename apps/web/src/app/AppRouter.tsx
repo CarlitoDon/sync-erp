@@ -20,7 +20,7 @@ import Invoices from '@/features/accounting/pages/Invoices';
 import InvoiceDetail from '@/features/accounting/pages/InvoiceDetail';
 import AccountsPayable from '@/features/accounting/pages/AccountsPayable';
 import BillDetail from '@/features/accounting/components/BillDetail';
-import BillForm from '@/features/accounting/components/BillForm';
+
 import TeamManagement from '@/features/company/pages/TeamManagement';
 import Finance from '@/features/accounting/pages/Finance';
 import { RegisterPage } from '@/features/auth/components/RegisterPage';
@@ -81,7 +81,7 @@ export function AppRouter() {
           <Route path="invoices" element={<Invoices />} />
           <Route path="invoices/:id" element={<InvoiceDetail />} />
           <Route path="bills" element={<AccountsPayable />} />
-          <Route path="bills/new" element={<BillForm />} />
+
           <Route path="bills/:id" element={<BillDetail />} />
           <Route path="finance" element={<Finance />} />
           <Route path="journals" element={<JournalEntries />} />

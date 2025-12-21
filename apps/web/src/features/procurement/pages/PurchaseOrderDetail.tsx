@@ -8,6 +8,7 @@ import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import { BackButton } from '@/components/ui/BackButton';
+import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export default function PurchaseOrderDetail() {
   const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(
     null
   );
+  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
 
   const { data: order, isLoading: loading } =
     trpc.purchaseOrder.getById.useQuery(
@@ -33,13 +35,6 @@ export default function PurchaseOrderDetail() {
   const cancelMutation = trpc.purchaseOrder.cancel.useMutation({
     onSuccess: () =>
       utils.purchaseOrder.getById.invalidate({ id: id! }),
-  });
-
-  const createBillMutation = trpc.bill.createFromPO.useMutation({
-    onSuccess: () => {
-      utils.purchaseOrder.getById.invalidate({ id: id! });
-      utils.bill.list.invalidate();
-    },
   });
 
   const handleConfirm = async () => {
@@ -65,12 +60,9 @@ export default function PurchaseOrderDetail() {
     );
   };
 
-  const handleCreateBill = async () => {
+  const handleCreateBill = () => {
     if (!order) return;
-    await apiAction(
-      () => createBillMutation.mutateAsync({ orderId: order.id }),
-      'Bill created from Purchase Order!'
-    );
+    setIsBillModalOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -139,6 +131,17 @@ export default function PurchaseOrderDetail() {
         onSuccess={() => {
           setGoodsReceiptId(null);
           utils.purchaseOrder.getById.invalidate({ id: id! });
+        }}
+      />
+
+      {/* Bill Creation Modal */}
+      <CreateBillModal
+        isOpen={isBillModalOpen}
+        onClose={() => setIsBillModalOpen(false)}
+        orderId={order.id}
+        onSuccess={(billId) => {
+          utils.purchaseOrder.getById.invalidate({ id: id! });
+          navigate(`/bills/${billId}`);
         }}
       />
 

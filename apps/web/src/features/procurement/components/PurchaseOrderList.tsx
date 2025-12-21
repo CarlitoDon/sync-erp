@@ -6,6 +6,7 @@ import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
+import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import { formatCurrency } from '@/utils/format';
 
 interface PurchaseOrderListProps {
@@ -22,6 +23,9 @@ export default function PurchaseOrderList({
   const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(
     null
   );
+  const [createBillOrderId, setCreateBillOrderId] = useState<
+    string | null
+  >(null);
 
   const { data: orders = [], isLoading: loading } =
     trpc.purchaseOrder.list.useQuery(filter, {
@@ -34,13 +38,6 @@ export default function PurchaseOrderList({
 
   const cancelMutation = trpc.purchaseOrder.cancel.useMutation({
     onSuccess: () => utils.purchaseOrder.list.invalidate(),
-  });
-
-  const createBillMutation = trpc.bill.createFromPO.useMutation({
-    onSuccess: () => {
-      utils.purchaseOrder.list.invalidate();
-      utils.bill.list.invalidate();
-    },
   });
 
   const getStatusColor = (status: string) => {
@@ -116,11 +113,8 @@ export default function PurchaseOrderList({
     );
   };
 
-  const handleCreateBill = async (orderId: string) => {
-    await apiAction(
-      () => createBillMutation.mutateAsync({ orderId }),
-      'Bill created from Purchase Order!'
-    );
+  const handleCreateBill = (orderId: string) => {
+    setCreateBillOrderId(orderId);
   };
 
   const handleViewBill = (billId: string) => {
@@ -281,6 +275,17 @@ export default function PurchaseOrderList({
           onSuccess={() => utils.purchaseOrder.list.invalidate()}
         />
       )}
+
+      {/* Bill Creation Modal */}
+      <CreateBillModal
+        isOpen={createBillOrderId !== null}
+        onClose={() => setCreateBillOrderId(null)}
+        orderId={createBillOrderId || undefined}
+        onSuccess={(billId) => {
+          utils.purchaseOrder.list.invalidate();
+          navigate(`/bills/${billId}`);
+        }}
+      />
     </div>
   );
 }

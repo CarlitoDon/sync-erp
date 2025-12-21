@@ -118,7 +118,8 @@ export default function BillDetail() {
                     to={`/suppliers/${bill.partnerId}`}
                     className="text-blue-600 hover:text-blue-800 hover:underline"
                   >
-                    Supplier Details
+                    {(bill as { partner?: { name?: string } }).partner
+                      ?.name || 'View Supplier'}
                   </Link>
                 ) : (
                   'Unknown Supplier'
@@ -141,6 +142,22 @@ export default function BillDetail() {
               <p className="text-sm text-gray-500">Bill Number</p>
               <p className="font-mono font-medium">
                 {bill.invoiceNumber}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Purchase Order</p>
+              <p className="font-medium">
+                {bill.orderId ? (
+                  <Link
+                    to={`/purchase-orders/${bill.orderId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline font-mono"
+                  >
+                    {(bill as { order?: { orderNumber?: string } })
+                      .order?.orderNumber || bill.orderId}
+                  </Link>
+                ) : (
+                  <span className="text-gray-400">-</span>
+                )}
               </p>
             </div>
             <div>

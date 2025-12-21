@@ -119,7 +119,8 @@ export default function InvoiceDetail() {
                     to={`/customers/${invoice.partnerId}`}
                     className="text-blue-600 hover:text-blue-800 hover:underline"
                   >
-                    Customer Details
+                    {(invoice as { partner?: { name?: string } })
+                      .partner?.name || 'View Customer'}
                   </Link>
                 ) : (
                   'Unknown Customer'
@@ -144,6 +145,22 @@ export default function InvoiceDetail() {
               <p className="text-sm text-gray-500">Invoice Number</p>
               <p className="font-mono font-medium">
                 {invoice.invoiceNumber}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Sales Order</p>
+              <p className="font-medium">
+                {invoice.orderId ? (
+                  <Link
+                    to={`/sales-orders/${invoice.orderId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline font-mono"
+                  >
+                    {(invoice as { order?: { orderNumber?: string } })
+                      .order?.orderNumber || invoice.orderId}
+                  </Link>
+                ) : (
+                  <span className="text-gray-400">-</span>
+                )}
               </p>
             </div>
             <div>
