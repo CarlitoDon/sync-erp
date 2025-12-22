@@ -61,15 +61,8 @@ export default function PaymentDetail() {
     );
   }
 
-  // Invoice is included in the backend response but not in the base type
-  // Use intersection to extend the type safely
-  type InvoiceInfo = {
-    invoiceNumber?: string;
-    type?: string;
-    partnerId?: string;
-    partner?: { name?: string };
-  };
-  const invoice = (payment as { invoice?: InvoiceInfo }).invoice;
+  // Invoice is now properly included in tRPC response type
+  const invoice = payment.invoice;
 
   const isVoided = payment.reference?.startsWith('[VOIDED]');
   const isBill = invoice?.type === 'BILL';

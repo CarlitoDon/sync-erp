@@ -13,11 +13,17 @@ export class PaymentRepository {
     id: string,
     companyId: string,
     tx?: Prisma.TransactionClient
-  ): Promise<Payment | null> {
+  ) {
     const db = tx || prisma;
     return db.payment.findFirst({
       where: { id, companyId },
-      include: { invoice: true },
+      include: {
+        invoice: {
+          include: {
+            partner: true,
+          },
+        },
+      },
     });
   }
 
