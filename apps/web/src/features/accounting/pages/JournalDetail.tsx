@@ -1,9 +1,41 @@
-import { useParams } from 'react-router-dom';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { useParams, Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
+import { BackButton } from '@/components/ui/BackButton';
+
+// Source type display config
+const SOURCE_TYPE_CONFIG: Record<
+  string,
+  { label: string; color: string; path: string }
+> = {
+  INVOICE: {
+    label: 'Invoice Posting',
+    color: 'bg-blue-100 text-blue-800',
+    path: '/invoices',
+  },
+  BILL: {
+    label: 'Bill Posting',
+    color: 'bg-orange-100 text-orange-800',
+    path: '/bills',
+  },
+  PAYMENT: {
+    label: 'Payment',
+    color: 'bg-green-100 text-green-800',
+    path: '/payments',
+  },
+  CREDIT_NOTE: {
+    label: 'Credit Note',
+    color: 'bg-purple-100 text-purple-800',
+    path: '/credit-notes',
+  },
+  ADJUSTMENT: {
+    label: 'Adjustment',
+    color: 'bg-gray-100 text-gray-800',
+    path: '',
+  },
+};
 
 export default function JournalDetail() {
   const { id } = useParams<{ id: string }>();
@@ -54,33 +86,95 @@ export default function JournalDetail() {
     0
   );
 
+  // Get source type config
+  const sourceConfig = journal.sourceType
+    ? SOURCE_TYPE_CONFIG[journal.sourceType]
+    : null;
+  const sourceLink =
+    sourceConfig && journal.sourceId
+      ? `${sourceConfig.path}/${journal.sourceId}`
+      : null;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => window.history.back()}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <ArrowLeftIcon className="w-6 h-6" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Journal Entry{' '}
-            {journal.reference ? `#${journal.reference}` : ''}
-          </h1>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span>{formatDate(journal.date)}</span>
-            {journal.memo && (
-              <>
-                <span>•</span>
-                <span>{journal.memo}</span>
-              </>
-            )}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <BackButton to="/journals" />
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Journal Entry{' '}
+              {journal.reference ? `#${journal.reference}` : ''}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {formatDate(journal.date)}
+              {journal.memo && ` • ${journal.memo}`}
+            </p>
           </div>
         </div>
+        {sourceConfig && (
+          <span
+            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${sourceConfig.color}`}
+          >
+            {sourceConfig.label}
+          </span>
+        )}
       </div>
 
+      {/* Summary Card */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold mb-4">
+          Journal Summary
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div>
+            <p className="text-sm text-gray-500">Reference</p>
+            <p className="font-mono font-medium">
+              {journal.reference || '-'}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Date</p>
+            <p className="font-medium">{formatDate(journal.date)}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Total Amount</p>
+            <p className="text-xl font-bold text-gray-900">
+              {formatCurrency(totalDebit)}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Source Document</p>
+            <p className="font-medium">
+              {sourceLink ? (
+                <Link
+                  to={sourceLink}
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  View {sourceConfig?.label.replace(' Posting', '')}
+                </Link>
+              ) : (
+                <span className="text-gray-400">Manual Entry</span>
+              )}
+            </p>
+          </div>
+        </div>
+        {journal.memo && (
+          <>
+            <hr className="my-4" />
+            <div>
+              <p className="text-sm text-gray-500">Memo</p>
+              <p className="text-gray-700">{journal.memo}</p>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Journal Lines Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold">Journal Lines</h2>
+        </div>
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -97,10 +191,13 @@ export default function JournalDetail() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {journal.lines.map((line) => (
-              <tr key={line.id}>
+              <tr key={line.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 text-sm text-gray-900">
                   <div className="font-medium">
-                    {line.account?.code} - {line.account?.name}
+                    <span className="text-gray-500 font-mono">
+                      {line.account?.code}
+                    </span>{' '}
+                    {line.account?.name}
                   </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-right text-gray-900 font-mono">
@@ -128,6 +225,16 @@ export default function JournalDetail() {
                 {formatCurrency(totalCredit)}
               </td>
             </tr>
+            {totalDebit !== totalCredit && (
+              <tr className="bg-red-50">
+                <td
+                  colSpan={3}
+                  className="px-6 py-2 text-sm text-red-600 text-center"
+                >
+                  ⚠️ Imbalanced: Debit ≠ Credit
+                </td>
+              </tr>
+            )}
           </tfoot>
         </table>
       </div>
