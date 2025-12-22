@@ -14,6 +14,13 @@ import Select from '@/components/ui/Select';
 import FormModal from '@/components/ui/FormModal';
 import { PAYMENT_TERMS, calculateDueDate } from '@/types/api';
 
+/**
+ * Convert Date to yyyy-MM-dd string format required by HTML date input
+ */
+function toDateInputValue(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
 interface CreateBillModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -48,21 +55,20 @@ export default function CreateBillModal({
       defaultValues: {
         supplierInvoiceNumber: '',
         paymentTermsString: 'NET30',
-        businessDate: new Date(), // Pre-fill today
+        businessDate: toDateInputValue(new Date()), // Pre-fill today in yyyy-MM-dd format
       },
     });
 
   const businessDate = watch('businessDate');
   const paymentTermsString = watch('paymentTermsString');
 
-  // Reset form when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
       reset();
       setPoId(null);
     } else {
-      // Set default date to today when opening
-      setValue('businessDate', new Date());
+      // Set default date to today when opening (in yyyy-MM-dd format)
+      setValue('businessDate', toDateInputValue(new Date()));
     }
   }, [isOpen, reset, setValue]);
 
@@ -79,7 +85,6 @@ export default function CreateBillModal({
     }
   }, [order, setValue]);
 
-  // Auto-calculate dueDate when businessDate or payment terms change
   useEffect(() => {
     if (businessDate && paymentTermsString) {
       // Ensure businessDate is a Date object for calculation
@@ -89,7 +94,8 @@ export default function CreateBillModal({
           dateObj,
           paymentTermsString
         );
-        setValue('dueDate', calculated);
+        // Convert to yyyy-MM-dd format for HTML date input
+        setValue('dueDate', toDateInputValue(calculated));
       }
     }
   }, [businessDate, paymentTermsString, setValue]);
