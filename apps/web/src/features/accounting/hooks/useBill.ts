@@ -4,7 +4,7 @@ import { useConfirm } from '@/components/ui/ConfirmModal';
 import { apiAction } from '@/hooks/useApiAction';
 import { trpc } from '@/lib/trpc';
 
-// Export CreateBillInput for BillForm
+// Export CreateBillInput for API - uses Date objects
 export interface CreateBillInput {
   orderId: string;
   supplierInvoiceNumber?: string; // External reference from supplier

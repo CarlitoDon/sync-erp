@@ -29,6 +29,16 @@ interface CreateBillModalProps {
   onSuccess?: (billId: string) => void;
 }
 
+// Form-specific type with string dates (HTML input compatible)
+interface BillFormData {
+  orderId: string;
+  supplierInvoiceNumber?: string;
+  dueDate?: string;
+  taxRate?: number;
+  businessDate?: string;
+  paymentTermsString?: string;
+}
+
 // Tax Rate is inherited from PO, no need to input here
 
 export default function CreateBillModal({
@@ -51,7 +61,7 @@ export default function CreateBillModal({
   );
 
   const { register, handleSubmit, setValue, watch, control, reset } =
-    useForm<CreateBillInput>({
+    useForm<BillFormData>({
       defaultValues: {
         supplierInvoiceNumber: '',
         paymentTermsString: 'NET30',
@@ -124,8 +134,19 @@ export default function CreateBillModal({
     loadData();
   }, [currentCompany, grnId, orderId, isOpen, setValue, getReceipt]);
 
-  const onSubmit = async (data: CreateBillInput) => {
-    const result = await createFromPO(data);
+  const onSubmit = async (formData: BillFormData) => {
+    // Convert form data to API format (string dates to Date objects)
+    const apiData: CreateBillInput = {
+      ...formData,
+      businessDate: formData.businessDate
+        ? new Date(formData.businessDate)
+        : undefined,
+      dueDate: formData.dueDate
+        ? new Date(formData.dueDate)
+        : undefined,
+    };
+
+    const result = await createFromPO(apiData);
     if (result) {
       onSuccess?.(result.id);
       onClose();
