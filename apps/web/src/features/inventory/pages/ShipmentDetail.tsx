@@ -62,7 +62,7 @@ export default function ShipmentDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <BackButton to="/shipments" />
+          <BackButton />
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               {shipment.number}

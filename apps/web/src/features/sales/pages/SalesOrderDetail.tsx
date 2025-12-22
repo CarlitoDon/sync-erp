@@ -160,7 +160,7 @@ export default function SalesOrderDetail() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <BackButton to="/sales-orders" />
+            <BackButton />
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
                 {order.orderNumber}

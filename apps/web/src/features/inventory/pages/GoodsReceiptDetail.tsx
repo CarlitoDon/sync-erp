@@ -126,7 +126,7 @@ export default function GoodsReceiptDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <BackButton to="/receipts" />
+          <BackButton />
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">
