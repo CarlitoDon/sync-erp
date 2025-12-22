@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { formatDate } from '@/utils/format';
 import { Button } from '@/components/ui/button';
@@ -113,8 +114,14 @@ export function PaymentHistoryList({
                   <td className="px-6 py-4 text-sm text-gray-900">
                     {formatDate(payment.date)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {payment.reference || '-'}
+                  <td className="px-6 py-4 text-sm">
+                    <Link
+                      to={`/payments/${payment.id}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline font-mono"
+                    >
+                      {payment.reference ||
+                        `PAY-${payment.id.slice(0, 8)}`}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {payment.method}
