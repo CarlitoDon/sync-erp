@@ -550,8 +550,10 @@ model IdempotencyKey {
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  @@unique([companyId, scope, entityId]) // Prevent same operation on same entity
+  // Note: id is already unique as PK. We removed @@unique([companyId, scope, entityId])
+  // because it prevents multiple partial payments on the same invoice.
   @@index([companyId])
+  @@index([companyId, scope, entityId]) // For efficient lookup
   @@index([status, updatedAt]) // For efficient zombie cleanup query
 }
 
