@@ -451,7 +451,7 @@ export class JournalService {
         reference: `Payment Reversal: ${invoiceNumber}`,
         memo: `Reversal of voided payment`,
         sourceType: JournalSourceType.PAYMENT,
-        sourceId: `${paymentId}-reversal`,
+        sourceId: paymentId, // Use original paymentId (UUID must remain valid)
         lines: [
           { accountCode: '1300', debit: amount }, // Restore AR
           { accountCode: cashAccount, credit: amount }, // Reverse Cash
@@ -480,7 +480,7 @@ export class JournalService {
         reference: `Bill Payment Reversal: ${billNumber}`,
         memo: `Reversal of voided payment`,
         sourceType: JournalSourceType.PAYMENT,
-        sourceId: `${paymentId}-reversal`,
+        sourceId: paymentId, // Use original paymentId (UUID must remain valid)
         lines: [
           { accountCode: cashAccount, debit: amount }, // Restore Cash
           { accountCode: '2100', credit: amount }, // Restore AP
