@@ -5,6 +5,7 @@ import {
   InvoiceStatus,
   PaymentMethod,
 } from '@sync-erp/database';
+import { asCorrelationId } from '@sync-erp/shared';
 import { PaymentService } from '@modules/accounting/services/payment.service';
 
 describe('Partial Payment Flow', () => {
@@ -63,7 +64,7 @@ describe('Partial Payment Flow', () => {
         method: PaymentMethod.BANK_TRANSFER,
         businessDate: new Date(),
       },
-      `payment-1-${Date.now()}`
+      asCorrelationId(`payment-1-${Date.now()}`)
     );
     expect(Number(payment1.amount)).toBe(400000);
 
@@ -82,7 +83,7 @@ describe('Partial Payment Flow', () => {
         method: PaymentMethod.BANK_TRANSFER,
         businessDate: new Date(),
       },
-      `payment-2-${Date.now()}`
+      asCorrelationId(`payment-2-${Date.now()}`)
     );
     expect(Number(payment2.amount)).toBe(300000);
 
@@ -101,7 +102,7 @@ describe('Partial Payment Flow', () => {
         method: PaymentMethod.BANK_TRANSFER,
         businessDate: new Date(),
       },
-      `payment-3-${Date.now()}`
+      asCorrelationId(`payment-3-${Date.now()}`)
     );
     expect(Number(payment3.amount)).toBe(300000);
 
@@ -145,7 +146,7 @@ describe('Partial Payment Flow', () => {
           method: PaymentMethod.BANK_TRANSFER,
           businessDate: new Date(),
         },
-        `payment-exceed-${Date.now()}`
+        asCorrelationId(`payment-exceed-${Date.now()}`)
       )
     ).rejects.toThrow();
   });
