@@ -119,8 +119,7 @@ export default function InvoiceDetail() {
                     to={`/customers/${invoice.partnerId}`}
                     className="text-blue-600 hover:text-blue-800 hover:underline"
                   >
-                    {(invoice as { partner?: { name?: string } })
-                      .partner?.name || 'View Customer'}
+                    {invoice.partner?.name || 'View Customer'}
                   </Link>
                 ) : (
                   'Unknown Customer'
@@ -155,8 +154,7 @@ export default function InvoiceDetail() {
                     to={`/sales-orders/${invoice.orderId}`}
                     className="text-blue-600 hover:text-blue-800 hover:underline font-mono"
                   >
-                    {(invoice as { order?: { orderNumber?: string } })
-                      .order?.orderNumber || invoice.orderId}
+                    {invoice.order?.orderNumber || invoice.orderId}
                   </Link>
                 ) : (
                   <span className="text-gray-400">-</span>

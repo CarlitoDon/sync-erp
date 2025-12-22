@@ -10,7 +10,7 @@ export class InvoiceRepository {
   async create(
     data: Prisma.InvoiceUncheckedCreateInput,
     tx?: Prisma.TransactionClient
-  ): Promise<Invoice> {
+  ) {
     const db = tx || prisma;
     return db.invoice.create({
       data,
@@ -26,7 +26,7 @@ export class InvoiceRepository {
     companyId: string,
     type?: InvoiceType,
     tx?: Prisma.TransactionClient
-  ): Promise<Invoice | null> {
+  ) {
     const db = tx || prisma;
     return db.invoice.findFirst({
       where: {
@@ -47,7 +47,7 @@ export class InvoiceRepository {
     type?: InvoiceType,
     status?: InvoiceStatus,
     tx?: Prisma.TransactionClient
-  ): Promise<Invoice[]> {
+  ) {
     const db = tx || prisma;
     return db.invoice.findMany({
       where: {
@@ -68,7 +68,7 @@ export class InvoiceRepository {
     id: string,
     data: Prisma.InvoiceUncheckedUpdateInput,
     tx?: Prisma.TransactionClient
-  ): Promise<Invoice> {
+  ) {
     const db = tx || prisma;
     return db.invoice.update({
       where: { id },
@@ -76,6 +76,7 @@ export class InvoiceRepository {
       include: {
         partner: true,
         payments: true,
+        order: true,
       },
     });
   }
