@@ -18,7 +18,10 @@ import { PAYMENT_TERMS, calculateDueDate } from '@/types/api';
  * Convert Date to yyyy-MM-dd string format required by HTML date input
  */
 function toDateInputValue(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 interface CreateBillModalProps {
@@ -98,7 +101,8 @@ export default function CreateBillModal({
   useEffect(() => {
     if (businessDate && paymentTermsString) {
       // Ensure businessDate is a Date object for calculation
-      const dateObj = new Date(businessDate);
+      // Parse as local time to avoid timezone shifts
+      const dateObj = new Date(`${businessDate}T00:00:00`);
       if (!isNaN(dateObj.getTime())) {
         const calculated = calculateDueDate(
           dateObj,
@@ -226,7 +230,6 @@ export default function CreateBillModal({
               <Input
                 type="date"
                 {...register('businessDate', {
-                  valueAsDate: true,
                   required: true,
                 })}
                 value={formatDateForInput(watch('businessDate'))}
@@ -236,7 +239,7 @@ export default function CreateBillModal({
               <Label>Due Date (Auto-calculated)</Label>
               <Input
                 type="date"
-                {...register('dueDate', { valueAsDate: true })}
+                {...register('dueDate')}
                 disabled
                 className="bg-gray-50"
                 value={formatDateForInput(watch('dueDate'))}

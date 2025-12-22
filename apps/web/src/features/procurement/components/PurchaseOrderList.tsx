@@ -179,7 +179,7 @@ export default function PurchaseOrderList({
                 <td className="px-6 py-4">
                   <Link
                     to={`/suppliers/${order.partnerId}`}
-                    className="text-gray-900 hover:text-blue-600 hover:underline"
+                    className="text-blue-600 hover:underline"
                   >
                     {order.partner?.name || '-'}
                   </Link>

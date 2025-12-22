@@ -172,7 +172,7 @@ export const BillList = ({ filter }: BillListProps) => {
                   Supplier
                 </span>
                 <span className="font-medium">
-                  {selectedBill.partnerId || '-'}
+                  {selectedBill.partner?.name || '-'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -381,7 +381,12 @@ export const BillList = ({ filter }: BillListProps) => {
                       </Link>
                     </td>
                     <td className="px-6 py-4">
-                      {bill.partnerId || '-'}
+                      <Link
+                        to={`/suppliers/${bill.partnerId}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {bill.partner?.name || '-'}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-right">
                       {formatCurrency(Number(bill.amount))}
