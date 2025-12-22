@@ -70,7 +70,7 @@ export const CreateP2PBillSchema = z.object({
 
 export const CreateBillFromPOSchema = z.object({
   orderId: z.string().uuid(),
-  invoiceNumber: z.string().optional(),
+  supplierInvoiceNumber: z.string().optional(), // External reference from supplier's invoice
   dueDate: z.coerce.date().optional(),
   taxRate: z.number().optional(),
   businessDate: z.coerce.date().optional(),

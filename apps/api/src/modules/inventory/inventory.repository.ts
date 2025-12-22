@@ -219,6 +219,36 @@ export class InventoryRepository {
     return `GRN-${year}-${String(count + 1).padStart(4, '0')}`;
   }
 
+  /**
+   * Get already received quantities for a Purchase Order (from POSTED GRNs)
+   * Used to validate not over-receiving
+   */
+  async getReceivedQuantitiesForOrder(
+    orderId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<Map<string, number>> {
+    const db = tx || prisma;
+    const grnItems = await db.goodsReceiptItem.findMany({
+      where: {
+        goodsReceipt: {
+          purchaseOrderId: orderId,
+          status: 'POSTED',
+        },
+      },
+      select: { productId: true, quantity: true },
+    });
+
+    const receivedMap = new Map<string, number>();
+    for (const item of grnItems) {
+      const current = receivedMap.get(item.productId) || 0;
+      receivedMap.set(
+        item.productId,
+        current + Number(item.quantity)
+      );
+    }
+    return receivedMap;
+  }
+
   async createGoodsReceipt(
     data: {
       companyId: string;

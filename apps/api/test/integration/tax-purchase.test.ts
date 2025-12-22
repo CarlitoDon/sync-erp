@@ -141,7 +141,7 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
       COMPANY_ID,
       {
         orderId: confirmedOrder.id,
-        invoiceNumber: `BILL-${Date.now()}`,
+        // Bill number is auto-generated
       }
     );
 

@@ -63,6 +63,21 @@ export const purchaseOrderRouter = router({
         ctx.userId
       );
     }),
+
+  /**
+   * Get already received quantities for a PO
+   * Used by GoodsReceiptModal to show remaining qty to receive
+   */
+  getReceivedQuantities: protectedProcedure
+    .input(z.object({ orderId: z.string().uuid() }))
+    .query(async ({ input }) => {
+      const receivedMap =
+        await purchaseOrderService.getReceivedQuantities(
+          input.orderId
+        );
+      // Convert Map to array of [productId, quantity] for JSON serialization
+      return Array.from(receivedMap.entries());
+    }),
 });
 
 export type PurchaseOrderRouter = typeof purchaseOrderRouter;

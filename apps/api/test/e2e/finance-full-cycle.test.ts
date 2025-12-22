@@ -227,7 +227,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
         COMPANY_ID,
         {
           orderId,
-          invoiceNumber: 'BILL-001',
+          supplierInvoiceNumber: 'FKT/001', // External reference
         }
       );
       billId = bill.id;

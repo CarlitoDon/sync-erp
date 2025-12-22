@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useCompany } from '@/contexts/CompanyContext';
 import { trpc } from '@/lib/trpc';
+import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -49,6 +50,19 @@ export function GoodsReceiptModal({
     'confirm' | 'processing' | 'posted'
   >('confirm');
 
+  // Fetch already received quantities
+  const { data: receivedData } =
+    trpc.purchaseOrder.getReceivedQuantities.useQuery(
+      { orderId: purchaseOrderId },
+      { enabled: isOpen && !!purchaseOrderId }
+    );
+
+  // Convert to Map for easy lookup - memoized to prevent infinite loop
+  const receivedMap = React.useMemo(
+    () => new Map<string, number>(receivedData || []),
+    [receivedData]
+  );
+
   const createMutation = trpc.inventory.createGRN.useMutation({
     onSuccess: () => utils.inventory.listGRN.invalidate(),
   });
@@ -57,12 +71,20 @@ export function GoodsReceiptModal({
     onSuccess: () => utils.inventory.listGRN.invalidate(),
   });
 
-  // Pre-fill items from PO
-  const defaultItems = orderItems.map((item) => ({
-    productId: item.productId,
-    quantity: item.quantity,
-    unitCost: item.price,
-  }));
+  // Pre-fill items with remaining qty (ordered - received)
+  const defaultItems = React.useMemo(
+    () =>
+      orderItems.map((item) => {
+        const received = receivedMap.get(item.productId) || 0;
+        const remaining = Math.max(0, item.quantity - received);
+        return {
+          productId: item.productId,
+          quantity: remaining,
+          unitCost: item.price,
+        };
+      }),
+    [orderItems, receivedMap]
+  );
 
   const {
     register,
@@ -77,6 +99,25 @@ export function GoodsReceiptModal({
       items: defaultItems,
     },
   });
+
+  // Reset form when modal opens
+  React.useEffect(() => {
+    if (isOpen && receivedData !== undefined) {
+      const items = orderItems.map((item) => {
+        const received =
+          new Map<string, number>(receivedData || []).get(
+            item.productId
+          ) || 0;
+        const remaining = Math.max(0, item.quantity - received);
+        return {
+          productId: item.productId,
+          quantity: remaining,
+          unitCost: item.price,
+        };
+      });
+      reset({ notes: '', date: new Date(), items });
+    }
+  }, [isOpen, purchaseOrderId, receivedData, orderItems, reset]);
 
   const loading = createMutation.isPending || postMutation.isPending;
 
@@ -113,8 +154,14 @@ export function GoodsReceiptModal({
         reset();
         setStep('confirm');
       }, 500);
-    } catch (error) {
+    } catch (error: unknown) {
       setStep('confirm');
+      // Show error toast with message from backend
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to receive goods';
+      toast.error(message);
     }
   };
 
@@ -138,56 +185,108 @@ export function GoodsReceiptModal({
             <div className="space-y-2">
               <Label>Items to Receive</Label>
               <div className="border rounded-md divide-y">
-                {orderItems.map((item, index) => (
-                  <div key={item.id} className="p-3">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <p className="font-medium">
-                          {item.product?.name || item.productId}
-                        </p>
-                        {item.product?.sku && (
-                          <p className="text-sm text-muted-foreground">
-                            SKU: {item.product.sku}
+                {orderItems.map((item, index) => {
+                  const received =
+                    receivedMap.get(item.productId) || 0;
+                  const remaining = Math.max(
+                    0,
+                    item.quantity - received
+                  );
+                  const isFullyReceived = remaining === 0;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-3 ${isFullyReceived ? 'bg-green-50' : ''}`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="font-medium">
+                            {item.product?.name || item.productId}
                           </p>
-                        )}
+                          {item.product?.sku && (
+                            <p className="text-sm text-muted-foreground">
+                              SKU: {item.product.sku}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right text-sm">
+                          <div className="text-muted-foreground">
+                            Ordered:{' '}
+                            <span className="font-medium text-gray-900">
+                              {item.quantity}
+                            </span>
+                          </div>
+                          <div className="text-muted-foreground">
+                            Received:{' '}
+                            <span className="font-medium text-blue-600">
+                              {received}
+                            </span>
+                          </div>
+                          <div
+                            className={`font-medium ${isFullyReceived ? 'text-green-600' : 'text-amber-600'}`}
+                          >
+                            {isFullyReceived
+                              ? '✓ Complete'
+                              : `Remaining: ${remaining}`}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Ordered:{' '}
-                        <span className="font-medium text-gray-900">
-                          {item.quantity}
-                        </span>
-                      </div>
+                      {!isFullyReceived && (
+                        <div className="flex items-center gap-2">
+                          <Label
+                            htmlFor={`qty-${index}`}
+                            className="text-sm whitespace-nowrap"
+                          >
+                            Receive qty:
+                          </Label>
+                          <Input
+                            id={`qty-${index}`}
+                            type="number"
+                            className="w-24"
+                            min={0}
+                            max={remaining}
+                            {...register(`items.${index}.quantity`, {
+                              valueAsNumber: true,
+                              max: remaining,
+                            })}
+                          />
+                          <input
+                            type="hidden"
+                            {...register(`items.${index}.productId`)}
+                          />
+                          <input
+                            type="hidden"
+                            {...register(`items.${index}.unitCost`, {
+                              valueAsNumber: true,
+                            })}
+                          />
+                        </div>
+                      )}
+                      {isFullyReceived && (
+                        <>
+                          <input
+                            type="hidden"
+                            value={0}
+                            {...register(`items.${index}.quantity`, {
+                              valueAsNumber: true,
+                            })}
+                          />
+                          <input
+                            type="hidden"
+                            {...register(`items.${index}.productId`)}
+                          />
+                          <input
+                            type="hidden"
+                            {...register(`items.${index}.unitCost`, {
+                              valueAsNumber: true,
+                            })}
+                          />
+                        </>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Label
-                        htmlFor={`qty-${index}`}
-                        className="text-sm whitespace-nowrap"
-                      >
-                        Receive qty:
-                      </Label>
-                      <Input
-                        id={`qty-${index}`}
-                        type="number"
-                        className="w-24"
-                        min={0}
-                        max={item.quantity}
-                        {...register(`items.${index}.quantity`, {
-                          valueAsNumber: true,
-                        })}
-                      />
-                      <input
-                        type="hidden"
-                        {...register(`items.${index}.productId`)}
-                      />
-                      <input
-                        type="hidden"
-                        {...register(`items.${index}.unitCost`, {
-                          valueAsNumber: true,
-                        })}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

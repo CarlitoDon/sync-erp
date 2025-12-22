@@ -170,4 +170,40 @@ export class PurchaseOrderRepository {
       },
     });
   }
+
+  /**
+   * Get total received quantities per product from valid (POSTED) GRNs.
+   * Used to determine if PO is PARTIALLY_RECEIVED or fully RECEIVED.
+   */
+  async getReceivedQuantities(
+    orderId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<Map<string, number>> {
+    const db = tx || prisma;
+
+    // Get all POSTED GRN items for this order
+    const grnItems = await db.goodsReceiptItem.findMany({
+      where: {
+        goodsReceipt: {
+          purchaseOrderId: orderId,
+          status: 'POSTED',
+        },
+      },
+      select: {
+        productId: true,
+        quantity: true,
+      },
+    });
+
+    // Aggregate quantities by productId
+    const receivedMap = new Map<string, number>();
+    for (const item of grnItems) {
+      const current = receivedMap.get(item.productId) || 0;
+      receivedMap.set(
+        item.productId,
+        current + Number(item.quantity)
+      );
+    }
+    return receivedMap;
+  }
 }

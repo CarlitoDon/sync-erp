@@ -74,10 +74,15 @@ export class BillPolicy {
 
   /**
    * Ensure the Purchase Order is in a valid state for Bill creation.
-   * PO must be CONFIRMED, RECEIVED, or COMPLETED.
+   * PO must be CONFIRMED, PARTIALLY_RECEIVED, RECEIVED, or COMPLETED.
    */
   static ensureOrderReadyForBill(order: { status: string }): void {
-    const validStatuses = ['CONFIRMED', 'RECEIVED', 'COMPLETED'];
+    const validStatuses = [
+      'CONFIRMED',
+      'PARTIALLY_RECEIVED',
+      'RECEIVED',
+      'COMPLETED',
+    ];
     if (!validStatuses.includes(order.status)) {
       throw new DomainError(
         `Cannot create bill: PO status is ${order.status}, must be CONFIRMED or later`,

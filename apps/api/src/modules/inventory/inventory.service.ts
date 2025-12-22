@@ -461,15 +461,23 @@ export class InventoryService {
       throw new DomainError('Purchase order not found', 404);
     }
 
-    // 2. Policy: Order must be CONFIRMED
-    if (order.status !== 'CONFIRMED') {
+    // 2. Policy: Order must be CONFIRMED or PARTIALLY_RECEIVED
+    const allowedStatuses = ['CONFIRMED', 'PARTIALLY_RECEIVED'];
+    if (!allowedStatuses.includes(order.status)) {
       throw new DomainError(
-        `Cannot receive goods for order in status: ${order.status}. Order must be CONFIRMED.`,
+        `Cannot receive goods for order in status: ${order.status}. Order must be CONFIRMED or PARTIALLY_RECEIVED.`,
         400
       );
     }
 
-    // 3. Map input items to include purchaseOrderItemId
+    // 3. Get already received quantities from POSTED GRNs via repository
+    const alreadyReceivedMap =
+      await this.repository.getReceivedQuantitiesForOrder(
+        data.purchaseOrderId,
+        tx
+      );
+
+    // 4. Map input items and validate not over-receiving
     const mappedItems = data.items.map((item) => {
       const orderItem = order.items.find(
         (oi) => oi.productId === item.productId
@@ -480,6 +488,19 @@ export class InventoryService {
           400
         );
       }
+
+      // Validate: alreadyReceived + newQty <= orderedQty
+      const alreadyReceived =
+        alreadyReceivedMap.get(item.productId) || 0;
+      const remainingQty = orderItem.quantity - alreadyReceived;
+      if (item.quantity > remainingQty) {
+        throw new DomainError(
+          `Cannot receive ${item.quantity} units. ` +
+            `Only ${remainingQty} remaining (ordered: ${orderItem.quantity}, already received: ${alreadyReceived}).`,
+          422
+        );
+      }
+
       return {
         productId: item.productId,
         quantity: item.quantity,
@@ -487,7 +508,7 @@ export class InventoryService {
       };
     });
 
-    // 4. Create GRN
+    // 5. Create GRN
     return this.repository.createGoodsReceipt(
       {
         companyId,
@@ -555,6 +576,13 @@ export class InventoryService {
           },
         });
       }
+
+      // 5. Recalculate PO status (PARTIALLY_RECEIVED or RECEIVED)
+      await this.purchaseOrderService.recalculateStatus(
+        postedGrn.purchaseOrderId,
+        companyId,
+        t
+      );
 
       return postedGrn;
     };

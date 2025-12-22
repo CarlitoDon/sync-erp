@@ -71,6 +71,10 @@ export default function PurchaseOrderDetail() {
         return 'bg-gray-100 text-gray-800';
       case 'CONFIRMED':
         return 'bg-blue-100 text-blue-800';
+      case 'PARTIALLY_RECEIVED':
+        return 'bg-amber-100 text-amber-800';
+      case 'RECEIVED':
+        return 'bg-teal-100 text-teal-800';
       case 'COMPLETED':
         return 'bg-green-100 text-green-800';
       case 'CANCELLED':
@@ -81,15 +85,20 @@ export default function PurchaseOrderDetail() {
   };
 
   const getReceiptStatus = (status: string) => {
-    if (status === 'COMPLETED')
+    if (status === 'RECEIVED' || status === 'COMPLETED')
       return {
-        label: 'Received',
+        label: 'Fully Received',
         color: 'text-green-600 bg-green-50',
+      };
+    if (status === 'PARTIALLY_RECEIVED')
+      return {
+        label: 'Partial',
+        color: 'text-amber-600 bg-amber-50',
       };
     if (status === 'CONFIRMED')
       return {
         label: 'Pending',
-        color: 'text-amber-600 bg-amber-50',
+        color: 'text-blue-600 bg-blue-50',
       };
     if (status === 'CANCELLED')
       return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
@@ -289,7 +298,8 @@ export default function PurchaseOrderDetail() {
                 </ActionButton>
               </>
             )}
-            {order.status === 'CONFIRMED' && (
+            {(order.status === 'CONFIRMED' ||
+              order.status === 'PARTIALLY_RECEIVED') && (
               <ActionButton
                 variant="success"
                 onClick={() => setGoodsReceiptId(order.id)}
@@ -297,7 +307,9 @@ export default function PurchaseOrderDetail() {
                 Receive Goods
               </ActionButton>
             )}
-            {order.status === 'COMPLETED' &&
+            {(order.status === 'RECEIVED' ||
+              order.status === 'PARTIALLY_RECEIVED' ||
+              order.status === 'COMPLETED') &&
               (!order.invoices || order.invoices.length === 0) && (
                 <ActionButton
                   variant="primary"

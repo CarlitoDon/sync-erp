@@ -163,7 +163,7 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
       COMPANY_ID,
       {
         orderId: confirmedOrder.id,
-        invoiceNumber: 'INV-SUP-001',
+        supplierInvoiceNumber: 'FKT/SUP/001', // External reference from supplier
       }
     );
 
@@ -173,10 +173,10 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     // 5. Post Bill (Should Offset Accrual)
     await billService.post(bill.id, COMPANY_ID);
 
-    // 6. Verify Bill Journal
+    // 6. Verify Bill Journal (search by sourceType and sourceId)
     const allJournals = await journalService.list(COMPANY_ID);
-    const billJournal = allJournals.find((j) =>
-      j.reference?.includes('INV-SUP-001')
+    const billJournal = allJournals.find(
+      (j) => j.sourceType === 'BILL' && j.sourceId === bill.id
     );
 
     expect(billJournal).toBeDefined();

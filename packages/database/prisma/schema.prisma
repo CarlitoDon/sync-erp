@@ -384,6 +384,8 @@ enum OrderType {
 enum OrderStatus {
   DRAFT
   CONFIRMED
+  PARTIALLY_RECEIVED
+  RECEIVED
   COMPLETED
   CANCELLED
 }

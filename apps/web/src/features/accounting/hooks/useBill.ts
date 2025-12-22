@@ -7,7 +7,7 @@ import { trpc } from '@/lib/trpc';
 // Export CreateBillInput for BillForm
 export interface CreateBillInput {
   orderId: string;
-  invoiceNumber?: string;
+  supplierInvoiceNumber?: string; // External reference from supplier
   dueDate?: Date;
   taxRate?: number;
   businessDate?: Date;

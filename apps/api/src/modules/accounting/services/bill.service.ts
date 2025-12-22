@@ -3,6 +3,7 @@ import {
   InvoiceStatus,
   InvoiceType,
   OrderType,
+  OrderStatus,
   Prisma,
   AuditLogAction,
   EntityType,
@@ -19,7 +20,7 @@ import { JournalService } from './journal.service';
 
 export interface CreateBillInput {
   orderId: string;
-  invoiceNumber?: string;
+  supplierInvoiceNumber?: string; // External reference from supplier's invoice
   dueDate?: Date;
   taxRate?: number;
   businessDate?: Date;
@@ -72,13 +73,11 @@ export class BillService {
     // Note: passing undefined for tx implicitly as it's optional last arg
     BillPolicy.ensureGoodsReceived(grnCount);
 
-    let invoiceNumber = data.invoiceNumber;
-    if (!invoiceNumber) {
-      invoiceNumber = await this.documentNumberService.generate(
-        companyId,
-        'BILL'
-      );
-    }
+    // Always auto-generate internal Bill number
+    const invoiceNumber = await this.documentNumberService.generate(
+      companyId,
+      'BILL'
+    );
 
     // Calculate subtotal from items (Net) avoiding double tax from order.totalAmount (Gross)
     const subtotal = order.items.reduce(
@@ -105,6 +104,7 @@ export class BillService {
       type: InvoiceType.BILL,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
+      supplierInvoiceNumber: data.supplierInvoiceNumber, // External reference from supplier
       amount,
       subtotal,
       taxAmount,
@@ -216,6 +216,20 @@ export class BillService {
           tx,
           businessDate
         );
+
+        // 5. Update PO to COMPLETED if it's already RECEIVED
+        if (updatedBill.orderId) {
+          await tx.order.updateMany({
+            where: {
+              id: updatedBill.orderId,
+              companyId,
+              status: OrderStatus.RECEIVED,
+            },
+            data: {
+              status: OrderStatus.COMPLETED,
+            },
+          });
+        }
 
         return updatedBill;
       },

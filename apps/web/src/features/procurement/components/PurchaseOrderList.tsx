@@ -46,6 +46,10 @@ export default function PurchaseOrderList({
         return 'bg-gray-100 text-gray-800';
       case 'CONFIRMED':
         return 'bg-blue-100 text-blue-800';
+      case 'PARTIALLY_RECEIVED':
+        return 'bg-amber-100 text-amber-800';
+      case 'RECEIVED':
+        return 'bg-teal-100 text-teal-800';
       case 'COMPLETED':
         return 'bg-green-100 text-green-800';
       case 'CANCELLED':
@@ -207,17 +211,18 @@ export default function PurchaseOrderList({
                       </ActionButton>
                     </>
                   )}
-                  {order.status === 'CONFIRMED' &&
-                    (!order._count ||
-                      order._count.goodsReceipts === 0) && (
-                      <ActionButton
-                        onClick={() => handleGoodsReceipt(order.id)}
-                        variant="success"
-                      >
-                        Receive Goods
-                      </ActionButton>
-                    )}
-                  {order.status === 'COMPLETED' &&
+                  {(order.status === 'CONFIRMED' ||
+                    order.status === 'PARTIALLY_RECEIVED') && (
+                    <ActionButton
+                      onClick={() => handleGoodsReceipt(order.id)}
+                      variant="success"
+                    >
+                      Receive Goods
+                    </ActionButton>
+                  )}
+                  {(order.status === 'RECEIVED' ||
+                    order.status === 'PARTIALLY_RECEIVED' ||
+                    order.status === 'COMPLETED') &&
                     (!order.invoices ||
                       order.invoices.length === 0) && (
                       <ActionButton
@@ -227,7 +232,8 @@ export default function PurchaseOrderList({
                         Create Bill
                       </ActionButton>
                     )}
-                  {order.status === 'COMPLETED' &&
+                  {(order.status === 'RECEIVED' ||
+                    order.status === 'COMPLETED') &&
                     order.invoices &&
                     order.invoices.length > 0 && (
                       <div className="flex flex-col items-end gap-1">

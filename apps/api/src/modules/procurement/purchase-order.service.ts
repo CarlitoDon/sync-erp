@@ -333,11 +333,15 @@ export class PurchaseOrderService {
   }
 
   /**
-   * Recalculate PO status based on existing non-voided GRNs.
-   * If no valid GRNs, revert to CONFIRMED.
-   * If some GRNs, could be PARTIALLY_RECEIVED or COMPLETED.
+   * Recalculate PO status based on existing valid (POSTED) GRNs.
+   * Compares received quantities to ordered quantities per line item.
    *
-   * Used when voiding a GRN to potentially revert PO status.
+   * Status logic:
+   * - If total received = 0 → CONFIRMED
+   * - If 0 < received < ordered → PARTIALLY_RECEIVED
+   * - If received >= ordered → RECEIVED (or COMPLETED if Bill exists)
+   *
+   * Used after posting/voiding a GRN to update PO status.
    */
   async recalculateStatus(
     orderId: string,
@@ -357,18 +361,45 @@ export class PurchaseOrderService {
       );
     }
 
-    // Count non-voided GRNs
-    const validGrnCount =
-      await this.repository.countValidGoodsReceipts(orderId, tx);
-
-    let newStatus = order.status;
-
-    // If PO was COMPLETED but now has no valid GRNs, revert to CONFIRMED
+    // Don't recalculate if already CANCELLED or DRAFT
     if (
-      order.status === OrderStatus.COMPLETED &&
-      validGrnCount === 0
+      order.status === OrderStatus.CANCELLED ||
+      order.status === OrderStatus.DRAFT
     ) {
+      return order;
+    }
+
+    // Get ordered quantities per product
+    const orderItems = order.items;
+    const orderedQty = new Map<string, number>();
+    for (const item of orderItems) {
+      orderedQty.set(item.productId, item.quantity);
+    }
+
+    // Get received quantities from POSTED GRNs
+    const receivedQty = await this.repository.getReceivedQuantities(
+      orderId,
+      tx
+    );
+
+    // Calculate total ordered and received
+    let totalOrdered = 0;
+    let totalReceived = 0;
+    for (const [productId, qty] of orderedQty) {
+      totalOrdered += qty;
+      totalReceived += receivedQty.get(productId) || 0;
+    }
+
+    // Determine new status
+    let newStatus = order.status;
+    if (totalReceived === 0) {
       newStatus = OrderStatus.CONFIRMED;
+    } else if (totalReceived < totalOrdered) {
+      // Partial receiving
+      newStatus = OrderStatus.PARTIALLY_RECEIVED;
+    } else {
+      // Fully received
+      newStatus = OrderStatus.RECEIVED;
     }
 
     // If status changed, update it
@@ -382,5 +413,16 @@ export class PurchaseOrderService {
     }
 
     return order;
+  }
+
+  /**
+   * Get already received quantities for a PO
+   * Wrapper for repository method to expose to router layer
+   */
+  async getReceivedQuantities(
+    orderId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<Map<string, number>> {
+    return this.repository.getReceivedQuantities(orderId, tx);
   }
 }

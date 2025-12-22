@@ -183,17 +183,17 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
       COMPANY_ID,
       {
         orderId: confirmedPO.id,
-        invoiceNumber: 'BILL-E2E-001',
+        supplierInvoiceNumber: 'FKT/E2E/001', // External reference from supplier
       }
     );
     expect(Number(bill.taxAmount)).toBe(110000); // 1,000,000 * 11%
 
     await billService.post(bill.id, COMPANY_ID);
 
-    // Check Bill Journal
+    // Check Bill Journal (search by sourceType and sourceId)
     const allJournals = await journalService.list(COMPANY_ID);
-    const billJournal = allJournals.find((j) =>
-      j.reference?.includes('BILL-E2E-001')
+    const billJournal = allJournals.find(
+      (j) => j.sourceType === 'BILL' && j.sourceId === bill.id
     ) as any;
     expect(billJournal).toBeDefined();
 

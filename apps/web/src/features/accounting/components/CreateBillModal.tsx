@@ -22,11 +22,7 @@ interface CreateBillModalProps {
   onSuccess?: (billId: string) => void;
 }
 
-const TAX_RATES = [
-  { value: 0, label: '0%' },
-  { value: 11, label: '11% (PPN)' },
-  { value: 12, label: '12% (PPN Next)' },
-];
+// Tax Rate is inherited from PO, no need to input here
 
 export default function CreateBillModal({
   isOpen,
@@ -50,8 +46,7 @@ export default function CreateBillModal({
   const { register, handleSubmit, setValue, watch, control, reset } =
     useForm<CreateBillInput>({
       defaultValues: {
-        invoiceNumber: '',
-        taxRate: 0,
+        supplierInvoiceNumber: '',
         paymentTermsString: 'NET30',
         businessDate: new Date(), // Pre-fill today
       },
@@ -157,7 +152,7 @@ export default function CreateBillModal({
           <div>
             <div className="flex items-center gap-1.5 mb-1">
               <Label className="mb-0">
-                Supplier Invoice Number *
+                Supplier Invoice Ref (Optional)
               </Label>
               <div className="group relative">
                 <span className="flex items-center justify-center w-4 h-4 text-xs text-gray-500 bg-gray-200 rounded-full cursor-help hover:bg-gray-300 transition-colors">
@@ -165,33 +160,20 @@ export default function CreateBillModal({
                 </span>
                 <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 text-xs text-white bg-gray-800 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-56 z-50">
                   <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
-                  Nomor faktur/invoice dari supplier Anda. Ini adalah
-                  nomor yang tertera pada dokumen tagihan yang dikirim
-                  supplier kepada Anda.
+                  Nomor faktur/invoice dari supplier Anda. Field ini
+                  opsional untuk referensi. Bill Number akan
+                  di-generate otomatis.
                 </div>
               </div>
             </div>
             <Input
-              {...register('invoiceNumber', { required: true })}
-              placeholder="e.g. INV-2024-001"
+              {...register('supplierInvoiceNumber')}
+              placeholder="e.g. FKT/2024/001"
               autoFocus
             />
           </div>
 
-          <div>
-            <Label>Tax Rate</Label>
-            <Controller
-              name="taxRate"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  value={field.value ?? 0}
-                  onChange={(val) => field.onChange(Number(val))}
-                  options={TAX_RATES}
-                />
-              )}
-            />
-          </div>
+          {/* Tax Rate inherited from PO - no input needed */}
 
           <div>
             <Label>Payment Terms</Label>
