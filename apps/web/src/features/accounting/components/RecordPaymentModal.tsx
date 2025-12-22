@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
 import { formatCurrency, formatDate } from '@/utils/format';
@@ -37,6 +37,17 @@ export function RecordPaymentModal({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     defaultPaymentMethod
   );
+  // Stable correlationId per modal session to prevent accidental double-submit
+  const correlationIdRef = useRef<string>('');
+  const isSubmittingRef = useRef(false);
+
+  // Generate new correlationId when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      correlationIdRef.current = crypto.randomUUID();
+      isSubmittingRef.current = false;
+    }
+  }, [isOpen]);
 
   const utils = trpc.useUtils();
 
@@ -56,7 +67,14 @@ export function RecordPaymentModal({
   });
 
   const handleRecordPayment = async () => {
-    if (paymentAmount <= 0 || paymentMutation.isPending) return;
+    // Double-submit guard
+    if (
+      paymentAmount <= 0 ||
+      paymentMutation.isPending ||
+      isSubmittingRef.current
+    )
+      return;
+    isSubmittingRef.current = true;
 
     await apiAction(
       () =>
@@ -65,7 +83,7 @@ export function RecordPaymentModal({
           amount: paymentAmount,
           method: paymentMethod,
           businessDate: new Date(),
-          correlationId: crypto.randomUUID(),
+          correlationId: correlationIdRef.current,
         }),
       'Payment recorded!'
     );
@@ -75,6 +93,7 @@ export function RecordPaymentModal({
   const handleClose = () => {
     setPaymentAmount(0);
     setPaymentMethod(defaultPaymentMethod);
+    isSubmittingRef.current = false;
     onClose();
   };
 
