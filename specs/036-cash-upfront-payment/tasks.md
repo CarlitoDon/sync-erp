@@ -121,7 +121,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T043 [US3] Verify existing GRN service does NOT block on payment status (no changes expected) in `apps/api/src/modules/inventory/inventory.service.ts`
+- [ ] T043 [US3] Verify existing GRN service does NOT block on payment status (no code changes expected - this is validation of existing behavior) in `apps/api/src/modules/inventory/inventory.service.ts`
 - [ ] T044 [US3] Integration test: GRN for PAID_UPFRONT PO works correctly in `apps/api/test/integration/upfront-payment.test.ts`
 
 **Checkpoint**: User Story 3 complete - GRN flow verified for upfront orders
@@ -192,7 +192,7 @@
   - Verify Journal (Dr 2105 Cr 2100)
   - Settle Prepaid
   - Verify Journal (Dr 2100 Cr 1600)
-  - Verify final balances: AP=0, Prepaid=0
+  - Verify final balances: AP=0, Prepaid=0 (satisfies SC-003: AP Aging zero for settled transactions)
 
 **Checkpoint**: Full E2E flow verified
 
