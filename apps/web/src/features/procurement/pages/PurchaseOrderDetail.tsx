@@ -9,9 +9,12 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import { BackButton } from '@/components/ui/BackButton';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
-// Feature 036: Payment badges
+// Feature 036: Payment components
 import { PaymentTermsBadge } from '../components/PaymentTermsBadge';
 import { PaymentStatusBadge } from '../components/PaymentStatusBadge';
+import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
+import { UpfrontPaymentCard } from '../components/UpfrontPaymentCard';
+import { PaymentHistoryTable } from '../components/PaymentHistoryTable';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -23,11 +26,22 @@ export default function PurchaseOrderDetail() {
     null
   );
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false); // Feature 036
 
   const { data: order, isLoading: loading } =
     trpc.purchaseOrder.getById.useQuery(
       { id: id! },
       { enabled: !!id && !!currentCompany?.id }
+    );
+
+  // Feature 036: Fetch payment summary for upfront orders
+  const isUpfrontOrder =
+    order?.paymentTerms === 'UPFRONT' ||
+    order?.paymentTerms === 'PARTIAL';
+  const { data: paymentSummary, isLoading: paymentLoading } =
+    trpc.upfrontPayment.getPaymentSummary.useQuery(
+      { orderId: id! },
+      { enabled: !!id && !!order && isUpfrontOrder }
     );
 
   const confirmMutation = trpc.purchaseOrder.confirm.useMutation({
@@ -156,6 +170,24 @@ export default function PurchaseOrderDetail() {
           navigate(`/bills/${billId}`);
         }}
       />
+
+      {/* Feature 036: Upfront Payment Modal */}
+      {isUpfrontOrder && (
+        <RegisterPaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          orderId={order.id}
+          orderNumber={order.orderNumber || order.id}
+          totalAmount={Number(order.totalAmount)}
+          paidAmount={paymentSummary?.paidAmount ?? 0}
+          onSuccess={() => {
+            utils.upfrontPayment.getPaymentSummary.invalidate({
+              orderId: order.id,
+            });
+            utils.purchaseOrder.getById.invalidate({ id: id! });
+          }}
+        />
+      )}
 
       {/* Page Content */}
       <div className="space-y-6">
@@ -305,6 +337,27 @@ export default function PurchaseOrderDetail() {
             </tbody>
           </table>
         </div>
+
+        {/* Feature 036: Upfront Payment Section */}
+        {isUpfrontOrder && paymentSummary && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <UpfrontPaymentCard
+              totalAmount={paymentSummary.totalAmount}
+              paidAmount={paymentSummary.paidAmount}
+              remainingAmount={paymentSummary.remainingAmount}
+              paymentStatus={paymentSummary.paymentStatus}
+              onRegisterPayment={() => setIsPaymentModalOpen(true)}
+              canRegisterPayment={
+                order.status !== 'DRAFT' &&
+                order.status !== 'CANCELLED'
+              }
+            />
+            <PaymentHistoryTable
+              payments={paymentSummary.payments}
+              isLoading={paymentLoading}
+            />
+          </div>
+        )}
 
         {/* Actions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

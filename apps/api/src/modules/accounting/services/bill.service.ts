@@ -4,6 +4,8 @@ import {
   InvoiceType,
   OrderType,
   OrderStatus,
+  PaymentStatus,
+  PaymentTerms,
   Prisma,
   AuditLogAction,
   EntityType,
@@ -217,8 +219,82 @@ export class BillService {
           businessDate
         );
 
-        // 5. Update PO to COMPLETED if it's already RECEIVED
+        // 5. Feature 036: Auto-settle prepaid for upfront POs
         if (updatedBill.orderId) {
+          const order = await tx.order.findUnique({
+            where: { id: updatedBill.orderId },
+            include: {
+              upfrontPayments: {
+                where: {
+                  paymentType: 'UPFRONT',
+                  settledAt: null, // Only unsettled payments
+                },
+              },
+            },
+          });
+
+          if (
+            order &&
+            order.paymentTerms === PaymentTerms.UPFRONT &&
+            order.upfrontPayments.length > 0
+          ) {
+            // Calculate total unsettled prepaid
+            const prepaidAmount = order.upfrontPayments.reduce(
+              (sum, p) => sum + Number(p.amount),
+              0
+            );
+            const billBalance = Number(updatedBill.balance);
+            const settlementAmount = Math.min(
+              prepaidAmount,
+              billBalance
+            );
+
+            if (settlementAmount > 0) {
+              // Create settlement journal: Dr 2100 AP, Cr 1600 Advances
+              const firstPayment = order.upfrontPayments[0];
+              await this.journalService.postSettlePrepaid(
+                companyId,
+                firstPayment.id,
+                updatedBill.invoiceNumber,
+                settlementAmount,
+                tx
+              );
+
+              // Update Bill balance
+              const newBalance = billBalance - settlementAmount;
+              await tx.invoice.update({
+                where: { id },
+                data: {
+                  balance: newBalance,
+                  status:
+                    newBalance <= 0
+                      ? InvoiceStatus.PAID
+                      : InvoiceStatus.POSTED,
+                },
+              });
+
+              // Mark Payment(s) as settled
+              await tx.payment.updateMany({
+                where: {
+                  id: { in: order.upfrontPayments.map((p) => p.id) },
+                },
+                data: {
+                  settledAt: new Date(),
+                  settlementBillId: id,
+                },
+              });
+
+              // Update Order paymentStatus to SETTLED
+              await tx.order.update({
+                where: { id: order.id },
+                data: {
+                  paymentStatus: PaymentStatus.SETTLED,
+                },
+              });
+            }
+          }
+
+          // Update PO to COMPLETED if it's already RECEIVED
           await tx.order.updateMany({
             where: {
               id: updatedBill.orderId,

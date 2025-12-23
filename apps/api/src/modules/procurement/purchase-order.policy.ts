@@ -7,9 +7,13 @@
  * Pattern: Policy.ensure*() throws DomainError if constraint violated.
  */
 
-import { BusinessShape } from '@sync-erp/database';
+import {
+  BusinessShape,
+  OrderStatus,
+  PaymentTerms,
+  PaymentStatus,
+} from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
-import { OrderStatus } from '@sync-erp/database';
 
 /**
  * PurchaseOrderPolicy - Shape-based constraints and Status Guards.
@@ -132,6 +136,93 @@ export class PurchaseOrderPolicy {
         'Cannot cancel order: Goods have already been received',
         422,
         DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+  }
+
+  // ==========================================
+  // Feature 036: Cash Upfront Payment
+  // ==========================================
+
+  /**
+   * T026: Validate PO can accept upfront payment registration.
+   * - PO must exist and be CONFIRMED or later (not DRAFT/CANCELLED)
+   * - PO must have paymentTerms = UPFRONT or PARTIAL
+   */
+  static ensureCanRegisterPayment(order: {
+    status: OrderStatus;
+    paymentTerms: PaymentTerms;
+    paymentStatus?: PaymentStatus | null;
+  }): void {
+    // Must be at least CONFIRMED
+    if (
+      order.status === OrderStatus.DRAFT ||
+      order.status === OrderStatus.CANCELLED
+    ) {
+      throw new DomainError(
+        `Cannot register payment for order with status: ${order.status}`,
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    // Must be UPFRONT or PARTIAL payment terms
+    if (
+      order.paymentTerms !== PaymentTerms.UPFRONT &&
+      order.paymentTerms !== PaymentTerms.PARTIAL
+    ) {
+      throw new DomainError(
+        'Payment registration only allowed for UPFRONT or PARTIAL payment terms',
+        400,
+        DomainErrorCodes.PAYMENT_INVALID_TYPE
+      );
+    }
+
+    // Cannot register more payments if already settled
+    if (order.paymentStatus === PaymentStatus.SETTLED) {
+      throw new DomainError(
+        'Cannot register payment: Order prepaid is already settled',
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+  }
+
+  /**
+   * T027: Validate payment amount doesn't exceed remaining balance.
+   * FR-005: payment.amount <= PO.totalAmount - alreadyPaidAmount
+   */
+  static ensurePaymentWithinLimit(
+    order: {
+      totalAmount: number | { toNumber: () => number };
+      paidAmount: number | { toNumber: () => number };
+    },
+    paymentAmount: number
+  ): void {
+    const totalAmount =
+      typeof order.totalAmount === 'object'
+        ? order.totalAmount.toNumber()
+        : order.totalAmount;
+    const paidAmount =
+      typeof order.paidAmount === 'object'
+        ? order.paidAmount.toNumber()
+        : order.paidAmount;
+
+    const remaining = totalAmount - paidAmount;
+
+    if (paymentAmount <= 0) {
+      throw new DomainError(
+        'Payment amount must be positive',
+        400,
+        DomainErrorCodes.PAYMENT_EXCEEDS_BALANCE
+      );
+    }
+
+    if (paymentAmount > remaining) {
+      throw new DomainError(
+        `Payment amount (${paymentAmount}) exceeds remaining balance (${remaining})`,
+        400,
+        DomainErrorCodes.PAYMENT_EXCEEDS_BALANCE
       );
     }
   }

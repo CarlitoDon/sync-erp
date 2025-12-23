@@ -194,14 +194,128 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
   });
 
   // Placeholder for future US2-US5 tests
-  describe.skip('US2: Register Upfront Payment', () => {
-    it.todo(
-      'Should register upfront payment and create journal (Dr 1600 Cr 1200)'
-    );
-    it.todo(
-      'Should update PO paymentStatus to PAID_UPFRONT when fully paid'
-    );
-    it.todo('Should prevent payment exceeding PO amount');
+  describe('US2: Register Upfront Payment', () => {
+    it('Should register upfront payment and create journal (Dr 1600 Cr Cash)', async () => {
+      // Create and confirm an UPFRONT PO
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 5, price: 100000 }],
+        paymentTerms: 'UPFRONT',
+      });
+      await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        ACTOR_ID
+      );
+
+      // Register upfront payment
+      const { UpfrontPaymentService } =
+        await import('@modules/procurement/upfront-payment.service');
+      const upfrontPaymentService = new UpfrontPaymentService();
+
+      const payment = await upfrontPaymentService.registerPayment(
+        COMPANY_ID,
+        {
+          orderId: order.id,
+          amount: 500000, // Full amount
+          method: 'BANK_TRANSFER',
+          reference: 'TRF-001',
+        },
+        ACTOR_ID
+      );
+
+      expect(payment.orderId).toBe(order.id);
+      expect(Number(payment.amount)).toBe(500000);
+      expect(payment.paymentType).toBe('UPFRONT');
+
+      // Verify journal was created
+      const journals = await prisma.journalEntry.findMany({
+        where: {
+          companyId: COMPANY_ID,
+          sourceId: payment.id,
+        },
+        include: { lines: true },
+      });
+
+      expect(journals).toHaveLength(1);
+      expect(journals[0].reference).toContain('Upfront Payment');
+
+      // Verify journal lines: Dr 1600, Cr 1200
+      const lines = journals[0].lines;
+      expect(lines).toHaveLength(2);
+
+      const debitLine = lines.find((l) => Number(l.debit) > 0);
+      const creditLine = lines.find((l) => Number(l.credit) > 0);
+
+      expect(Number(debitLine?.debit)).toBe(500000);
+      expect(Number(creditLine?.credit)).toBe(500000);
+    });
+
+    it('Should update PO paymentStatus to PAID_UPFRONT when fully paid', async () => {
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 2, price: 50000 }],
+        paymentTerms: 'UPFRONT',
+      });
+      await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        ACTOR_ID
+      );
+
+      const { UpfrontPaymentService } =
+        await import('@modules/procurement/upfront-payment.service');
+      const upfrontPaymentService = new UpfrontPaymentService();
+
+      await upfrontPaymentService.registerPayment(
+        COMPANY_ID,
+        {
+          orderId: order.id,
+          amount: 100000, // Full amount
+          method: 'CASH',
+        },
+        ACTOR_ID
+      );
+
+      // Verify order status updated
+      const updatedOrder = await prisma.order.findUnique({
+        where: { id: order.id },
+      });
+
+      expect(updatedOrder?.paymentStatus).toBe(
+        PaymentStatus.PAID_UPFRONT
+      );
+      expect(Number(updatedOrder?.paidAmount)).toBe(100000);
+    });
+
+    it('Should prevent payment exceeding PO amount', async () => {
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 1, price: 100000 }],
+        paymentTerms: 'UPFRONT',
+      });
+      await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        ACTOR_ID
+      );
+
+      const { UpfrontPaymentService } =
+        await import('@modules/procurement/upfront-payment.service');
+      const upfrontPaymentService = new UpfrontPaymentService();
+
+      await expect(
+        upfrontPaymentService.registerPayment(
+          COMPANY_ID,
+          {
+            orderId: order.id,
+            amount: 200000, // Exceeds PO amount
+            method: 'CASH',
+          },
+          ACTOR_ID
+        )
+      ).rejects.toThrow(/exceeds/i);
+    });
   });
 
   describe.skip('US3: Receive Goods After Payment', () => {

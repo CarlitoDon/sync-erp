@@ -654,4 +654,67 @@ export class JournalService {
       tx
     );
   }
+
+  // ==========================================
+  // Feature 036: Cash Upfront Payment
+  // ==========================================
+
+  /**
+   * T028: Post Upfront Payment Journal
+   * FR-006: Dr 1600 (Advances to Supplier), Cr Cash/Bank
+   */
+  async postUpfrontPayment(
+    companyId: string,
+    paymentId: string,
+    orderNumber: string,
+    amount: number,
+    method: string,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Upfront Payment: PO ${orderNumber}`,
+        memo: `Advance payment to supplier via ${method}`,
+        sourceType: JournalSourceType.PAYMENT,
+        sourceId: paymentId,
+        lines: [
+          { accountCode: '1600', debit: amount }, // Advances to Supplier (Asset)
+          { accountCode: cashAccount, credit: amount }, // Cash/Bank (Asset)
+        ],
+        date: businessDate,
+      },
+      tx
+    );
+  }
+
+  /**
+   * Post Settlement of Prepaid against AP
+   * FR-010: Dr 2100 (AP), Cr 1600 (Advances to Supplier)
+   * Note: Uses unique sourceId to avoid conflict with upfront payment journal
+   */
+  async postSettlePrepaid(
+    companyId: string,
+    paymentId: string,
+    billNumber: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Settle Prepaid: Bill ${billNumber}`,
+        memo: `Settlement of supplier advance against bill`,
+        sourceType: JournalSourceType.PAYMENT,
+        sourceId: `${paymentId}:settlement`, // Unique ID for settlement
+        lines: [
+          { accountCode: '2100', debit: amount }, // Reduce Accounts Payable
+          { accountCode: '1600', credit: amount }, // Clear Advances to Supplier
+        ],
+      },
+      tx
+    );
+  }
 }
