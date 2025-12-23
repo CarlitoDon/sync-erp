@@ -2,6 +2,8 @@ import {
   Payment,
   IdempotencyScope,
   InvoiceStatus,
+  PaymentTerms,
+  PaymentStatus,
   prisma,
 } from '@sync-erp/database';
 import { PaymentRepository } from '../repositories/payment.repository';
@@ -120,6 +122,20 @@ export class PaymentService {
             tx,
             data.businessDate
           );
+
+          // 6. Feature 036: When Bill is fully paid, update linked UPFRONT PO.paymentStatus
+          if (newBalance <= 0 && invoice.orderId) {
+            const order = await tx.order.findUnique({
+              where: { id: invoice.orderId },
+              select: { paymentTerms: true },
+            });
+            if (order?.paymentTerms === PaymentTerms.UPFRONT) {
+              await tx.order.update({
+                where: { id: invoice.orderId },
+                data: { paymentStatus: PaymentStatus.PAID_UPFRONT },
+              });
+            }
+          }
 
           return payment;
         },

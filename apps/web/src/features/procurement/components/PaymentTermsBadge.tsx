@@ -24,10 +24,6 @@ const termConfig: Partial<
     label: 'Net 30',
     variant: 'secondary',
   },
-  [PaymentTermsSchema.enum.PARTIAL]: {
-    label: 'Partial',
-    variant: 'outline',
-  },
   [PaymentTermsSchema.enum.UPFRONT]: {
     label: 'Cash Upfront',
     variant: 'destructive',
