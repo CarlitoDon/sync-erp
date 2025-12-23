@@ -122,6 +122,94 @@ export class BillService {
     return this.repository.create(createData);
   }
 
+  /**
+   * Create a Down Payment Bill for UPFRONT Payment Terms.
+   * Called automatically when confirming a PO with UPFRONT terms.
+   * NOTE: This SKIPS the GRN requirement since payment is needed BEFORE delivery.
+   */
+  async createDownPaymentBill(
+    companyId: string,
+    orderId: string
+  ): Promise<Invoice> {
+    const order = await this.repository.findOrder(
+      orderId,
+      companyId,
+      OrderType.PURCHASE
+    );
+
+    if (!order) {
+      throw new DomainError(
+        'Purchase order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+
+    // Must be CONFIRMED for DP Bill
+    if (order.status !== OrderStatus.CONFIRMED) {
+      throw new DomainError(
+        `Cannot create DP Bill: PO status is ${order.status}, must be CONFIRMED`,
+        400,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    // Must be UPFRONT terms
+    if (order.paymentTerms !== PaymentTerms.UPFRONT) {
+      throw new DomainError(
+        'DP Bill can only be created for UPFRONT payment terms',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    // Check if DP Bill already exists for this PO
+    const existingBill = await this.repository.findByOrderId(
+      orderId,
+      companyId
+    );
+    if (existingBill) {
+      // Already exists, return it (idempotent)
+      return existingBill;
+    }
+
+    // Generate bill number
+    const invoiceNumber = await this.documentNumberService.generate(
+      companyId,
+      'BILL'
+    );
+
+    // Calculate subtotal from items (Net)
+    const subtotal = order.items.reduce(
+      (sum, item) => sum + Number(item.price) * item.quantity,
+      0
+    );
+
+    const taxRate = order.taxRate ? Number(order.taxRate) : 0;
+    const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
+    const taxAmount = subtotal * taxMultiplier;
+    const amount = subtotal + taxAmount;
+
+    const createData: Prisma.InvoiceUncheckedCreateInput = {
+      companyId,
+      orderId,
+      partnerId: order.partnerId,
+      type: InvoiceType.BILL,
+      status: InvoiceStatus.DRAFT,
+      invoiceNumber,
+      notes: `Down Payment Bill for PO ${order.orderNumber || orderId}`,
+      amount,
+      subtotal,
+      taxAmount,
+      taxRate,
+      balance: amount,
+      dueDate: new Date(), // Immediate payment required for UPFRONT
+      paymentTermsString: 'UPFRONT',
+    };
+
+    return this.repository.create(createData);
+  }
+
   async getById(id: string, companyId: string) {
     return this.repository.findById(id, companyId, InvoiceType.BILL);
   }
