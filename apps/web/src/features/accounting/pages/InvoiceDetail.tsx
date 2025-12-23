@@ -11,6 +11,7 @@ import { BackButton } from '@/components/ui/BackButton';
 import { useState } from 'react';
 import { getInvoiceStatusDisplay } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
+import { getPaymentTermLabel } from '@sync-erp/shared';
 
 export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
@@ -180,6 +181,14 @@ export default function InvoiceDetail() {
                 {formatDate(invoice.createdAt)}
               </p>
             </div>
+            {invoice.paymentTermsString && (
+              <div>
+                <p className="text-sm text-gray-500">Payment Terms</p>
+                <p className="font-medium">
+                  {getPaymentTermLabel(invoice.paymentTermsString)}
+                </p>
+              </div>
+            )}
           </div>
 
           <hr className="my-6" />

@@ -1,13 +1,14 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
-import { SalesService } from '@modules/sales/sales.service';
+import { SalesOrderService } from '@modules/sales/sales-order.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InvoiceService } from '@modules/accounting/services/invoice.service';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
-const salesOrderService = new SalesService();
+// Initialize Services
+const salesOrderService = new SalesOrderService();
 const purchaseOrderService = new PurchaseOrderService();
 const invoiceService = new InvoiceService();
 const billService = new BillService();
@@ -209,15 +210,15 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
   });
 
   it('Flow 1: Sales Cycle (Output VAT)', async () => {
-    // 1. Sales Order (11% Tax)
-    const so = await salesOrderService.create(COMPANY_ID, {
+    // 1. Create Sales Order
+    const order = await salesOrderService.create(COMPANY_ID, {
       partnerId: customerId,
       items: [{ productId, quantity: 5, price: 200000 }], // 1M total
       taxRate: 11,
     });
 
     await prisma.order.update({
-      where: { id: so.id },
+      where: { id: order.id },
       data: { status: 'CONFIRMED' },
     });
 
@@ -225,7 +226,7 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     const invoice = await invoiceService.createFromSalesOrder(
       COMPANY_ID,
       {
-        orderId: so.id,
+        orderId: order.id,
         invoiceNumber: 'INV-E2E-001',
       }
     );
