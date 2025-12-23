@@ -155,6 +155,8 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     // 1. Create Purchase Order (11% Tax)
     const po = await purchaseOrderService.create(COMPANY_ID, {
       partnerId: supplierId,
+      type: 'PURCHASE',
+      paymentTerms: 'NET30',
       items: [{ productId, quantity: 10, price: 100000 }],
       taxRate: 11,
     });
@@ -213,6 +215,7 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     // 1. Create Sales Order
     const order = await salesOrderService.create(COMPANY_ID, {
       partnerId: customerId,
+      type: 'SALES',
       items: [{ productId, quantity: 5, price: 200000 }], // 1M total
       taxRate: 11,
     });

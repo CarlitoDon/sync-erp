@@ -5,25 +5,11 @@ import { PAYMENT_METHODS } from '../constants/index.js';
 // Feature 036: Cash Upfront Payment - Enums
 // ==========================================
 
-export const PaymentTermsSchema = z.enum([
-  'NET7',
-  'NET30',
-  'NET60',
-  'NET90',
-  'COD',
-  'EOM',
-  // Special P2P Workflows
-  'PARTIAL',
-  'UPFRONT',
-]);
+import {
+  PaymentTermsSchema,
+  PaymentStatusSchema,
+} from '../generated/zod/index.js';
 export type PaymentTerms = z.infer<typeof PaymentTermsSchema>;
-
-export const PaymentStatusSchema = z.enum([
-  'PENDING',
-  'PARTIAL',
-  'PAID_UPFRONT',
-  'SETTLED',
-]);
 export type PaymentStatus = z.infer<typeof PaymentStatusSchema>;
 
 // ==========================================

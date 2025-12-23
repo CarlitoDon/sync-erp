@@ -11,7 +11,11 @@ import {
 import { SalesOrderRepository } from './sales-order.repository';
 import { SalesOrderPolicy } from './sales-order.policy';
 import { ProductService } from '../product/product.service';
-import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import {
+  DomainError,
+  DomainErrorCodes,
+  CreateSalesOrderInput,
+} from '@sync-erp/shared';
 import { recordAudit } from '../common/audit/audit-log.service';
 
 // We define input interface if shared doesn't export strict DTO for internal use yet
@@ -39,11 +43,7 @@ export class SalesOrderService {
    */
   async create(
     companyId: string,
-    data: {
-      partnerId: string;
-      items: { productId: string; quantity: number; price: number }[];
-      taxRate?: number;
-    },
+    data: CreateSalesOrderInput,
     shape?: BusinessShape,
     userId?: string
   ): Promise<Order> {

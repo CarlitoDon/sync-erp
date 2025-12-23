@@ -110,17 +110,8 @@ export const CreateSalesOrderSchema = CreateOrderSchema.extend({
 });
 
 // Feature 036: Add paymentTerms
-const PaymentTermsSchema = z.enum([
-  'NET7',
-  'NET30',
-  'NET60',
-  'NET90',
-  'COD',
-  'EOM',
-  'NET_30', // Legacy
-  'PARTIAL',
-  'UPFRONT',
-]);
+export * from '../generated/zod/index.js';
+import { PaymentTermsSchema } from '../generated/zod/index.js';
 export const CreatePurchaseOrderSchema = CreateOrderSchema.extend({
   type: z.literal('PURCHASE'),
   paymentTerms: PaymentTermsSchema.optional().default('NET30'),
@@ -323,6 +314,12 @@ export type UpdatePartnerInput = z.infer<typeof UpdatePartnerSchema>;
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
+export type CreatePurchaseOrderInput = z.infer<
+  typeof CreatePurchaseOrderSchema
+>;
+export type CreateSalesOrderInput = z.infer<
+  typeof CreateSalesOrderSchema
+>;
 export type CreateInvoiceInput = z.infer<typeof CreateInvoiceSchema>;
 export type CreateInvoiceFromSOInput = z.infer<
   typeof CreateInvoiceFromSOSchema

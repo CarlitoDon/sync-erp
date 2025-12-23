@@ -174,6 +174,8 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
     it('1. Should create Purchase Order', async () => {
       const order = await purchaseOrderService.create(COMPANY_ID, {
         partnerId: supplierId,
+        type: 'PURCHASE',
+        paymentTerms: 'NET30',
         items: [{ productId, quantity: 10, price: 100 }], // Cost 100 * 10 = 1000
       });
       orderId = order.id;
@@ -290,6 +292,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
     it('1. Should create Sales Order', async () => {
       const order = await salesOrderService.create(COMPANY_ID, {
         partnerId: customerId,
+        type: 'SALES',
         items: [{ productId, quantity: 5, price: 200 }], // Sell 5 @ 200. Cost is 100.
       });
       orderId = order.id;

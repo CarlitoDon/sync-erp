@@ -114,6 +114,7 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
     // 1. Create SO
     const order = await salesOrderService.create(COMPANY_ID, {
       partnerId,
+      type: 'SALES',
       items: [{ productId, quantity: 10, price: 100000 }],
     });
     orderId = order.id;

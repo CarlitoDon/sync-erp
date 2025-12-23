@@ -22,7 +22,7 @@ export enum BusinessShape {
 // Company Types
 // ============================================
 
-export interface Company {
+export interface CompanyData {
   id: string;
   name: string;
   businessShape: BusinessShape;

@@ -1,4 +1,3 @@
-import { SagaFailureList } from '@/features/admin/components/SagaFailureList';
 import { JournalOrphanList } from '@/features/admin/components/JournalOrphanList';
 
 /**
@@ -22,12 +21,6 @@ export default function Observability() {
       </div>
 
       {/* Saga Failures Section */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Saga Failures
-        </h2>
-        <SagaFailureList />
-      </div>
 
       {/* Journal Orphans Section */}
       <div>

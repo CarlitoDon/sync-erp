@@ -1,4 +1,4 @@
-import { User } from './index.js';
+import { User } from '../generated/zod/index.js';
 
 export interface RegisterPayload {
   email: string;

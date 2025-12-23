@@ -4,7 +4,7 @@ import { z } from 'zod';
 // Goods Receipt (GRN)
 // ==========================================
 
-export const GoodsReceiptItemSchema = z.object({
+const GoodsReceiptInputItemSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.number().positive(),
 });
@@ -13,7 +13,7 @@ export const CreateGoodsReceiptSchema = z.object({
   purchaseOrderId: z.string().uuid(),
   date: z.string().datetime().optional(), // ISO string
   notes: z.string().optional(),
-  items: z.array(GoodsReceiptItemSchema).min(1),
+  items: z.array(GoodsReceiptInputItemSchema).min(1),
 });
 
 export const POST_GoodsReceiptSchema = z.object({
@@ -24,7 +24,7 @@ export const POST_GoodsReceiptSchema = z.object({
 // Shipment (Delivery Note)
 // ==========================================
 
-export const ShipmentItemSchema = z.object({
+const ShipmentInputItemSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.number().positive(),
 });
@@ -33,7 +33,7 @@ export const CreateShipmentSchema = z.object({
   salesOrderId: z.string().uuid(),
   date: z.string().datetime().optional(),
   notes: z.string().optional(),
-  items: z.array(ShipmentItemSchema).min(1),
+  items: z.array(ShipmentInputItemSchema).min(1),
 });
 
 export const POST_ShipmentSchema = z.object({

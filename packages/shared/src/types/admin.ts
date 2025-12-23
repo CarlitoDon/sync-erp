@@ -1,12 +1,6 @@
-export interface SagaLog {
-  id: string;
-  sagaType: string;
-  entityId: string;
-  step: string;
-  error: string | null;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-}
+import { SagaLog } from '../generated/zod/index.js';
+
+export type { SagaLog };
 
 export interface OrphanJournal {
   id: string;

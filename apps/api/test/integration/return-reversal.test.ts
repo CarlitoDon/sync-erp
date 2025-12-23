@@ -97,6 +97,7 @@ describe('US3: Sales Return Reversal', () => {
     // 1. Create Sales Order
     const order = await salesOrderService.create(COMPANY_ID, {
       partnerId,
+      type: 'SALES',
       items: [{ productId, quantity: 2, price: 200000 }],
     });
 

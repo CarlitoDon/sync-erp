@@ -4,24 +4,11 @@ import { z } from 'zod';
 // BusinessShape Zod Schema (Apple-Like Core)
 // ============================================
 
-/**
- * Zod enum for BusinessShape validation.
- * Must be kept in sync with BusinessShape enum in types/company.ts
- */
-export const BusinessShapeSchema = z.enum([
-  'PENDING',
-  'RETAIL',
-  'MANUFACTURING',
-  'SERVICE',
-]);
-
+import {
+  BusinessShapeSchema,
+  CostingMethodSchema,
+} from '../generated/zod/index.js';
 export type BusinessShapeInput = z.infer<typeof BusinessShapeSchema>;
-
-/**
- * Zod enum for CostingMethod validation.
- */
-export const CostingMethodSchema = z.enum(['AVG', 'FIFO']);
-
 export type CostingMethodInput = z.infer<typeof CostingMethodSchema>;
 
 /**

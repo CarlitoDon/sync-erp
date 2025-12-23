@@ -23,7 +23,7 @@ export const AccountType = z.enum([
 ]);
 export type AccountType = z.infer<typeof AccountType>;
 
-export interface Account {
+export interface FinanceAccount {
   id: string;
   companyId: string;
   code: string;
@@ -32,21 +32,9 @@ export interface Account {
   isActive: boolean;
 }
 
-export interface JournalEntry {
-  id: string;
-  companyId: string;
-  reference?: string;
-  date: Date;
-  memo?: string | null;
-}
+import { JournalEntry, JournalLine } from '../generated/zod/index.js';
 
-export interface JournalLine {
-  id: string;
-  journalId: string;
-  accountId: string;
-  debit: number;
-  credit: number;
-}
+export type { JournalEntry, JournalLine };
 
 // ============================================
 // DTOs (Data Transfer Objects)
