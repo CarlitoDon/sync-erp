@@ -7,6 +7,7 @@ import PurchaseOrderList from '@/features/procurement/components/PurchaseOrderLi
 import { formatCurrency } from '@/utils/format';
 import { trpc } from '@/lib/trpc';
 import { apiAction } from '@/hooks/useApiAction';
+import { PAYMENT_TERMS } from '@/types/api';
 
 interface OrderItemForm {
   productId: string;
@@ -39,7 +40,7 @@ export default function PurchaseOrders() {
     partnerId: '',
     items: [] as OrderItemForm[],
     taxRate: 0,
-    paymentTerms: 'NET_30' as 'NET_30' | 'PARTIAL' | 'UPFRONT', // Feature 036
+    paymentTerms: 'NET30', // Feature 036
   });
 
   const [currentItem, setCurrentItem] = useState<OrderItemForm>({
@@ -75,7 +76,7 @@ export default function PurchaseOrders() {
           partnerId: formData.partnerId,
           items: formData.items,
           taxRate: formData.taxRate,
-          paymentTerms: formData.paymentTerms, // Feature 036
+          paymentTerms: formData.paymentTerms as any, // Feature 036
         }),
       'Purchase order created!'
     );
@@ -89,7 +90,7 @@ export default function PurchaseOrders() {
       partnerId: '',
       items: [],
       taxRate: 0,
-      paymentTerms: 'NET_30',
+      paymentTerms: 'NET30',
     });
     setCurrentItem({ productId: '', quantity: 1, price: 0 });
   };
@@ -177,14 +178,14 @@ export default function PurchaseOrders() {
               onChange={(val) =>
                 setFormData({
                   ...formData,
-                  paymentTerms: val as
-                    | 'NET_30'
-                    | 'PARTIAL'
-                    | 'UPFRONT',
+                  paymentTerms: val,
                 })
               }
               options={[
-                { value: 'NET_30', label: 'Net 30 (Standard)' },
+                ...PAYMENT_TERMS.map((term) => ({
+                  value: term.code,
+                  label: term.label,
+                })),
                 { value: 'PARTIAL', label: 'Partial Upfront' },
                 {
                   value: 'UPFRONT',

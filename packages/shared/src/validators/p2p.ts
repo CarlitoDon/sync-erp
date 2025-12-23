@@ -6,7 +6,13 @@ import { PAYMENT_METHODS } from '../constants/index.js';
 // ==========================================
 
 export const PaymentTermsSchema = z.enum([
-  'NET_30',
+  'NET7',
+  'NET30',
+  'NET60',
+  'NET90',
+  'COD',
+  'EOM',
+  // Special P2P Workflows
   'PARTIAL',
   'UPFRONT',
 ]);
@@ -36,7 +42,7 @@ export const CreatePurchaseOrderSchema = z.object({
       })
     )
     .min(1),
-  paymentTerms: PaymentTermsSchema.optional().default('NET_30'), // Feature 036
+  paymentTerms: PaymentTermsSchema.optional().default('NET30'), // Feature 036
   notes: z.string().optional(),
   taxRate: z.number().min(0).optional(),
 });

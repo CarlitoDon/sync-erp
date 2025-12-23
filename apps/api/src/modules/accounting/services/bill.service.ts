@@ -115,7 +115,8 @@ export class BillService {
       dueDate:
         data.dueDate ||
         new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      paymentTermsString: data.paymentTermsString || 'NET30', // Store payment terms
+      paymentTermsString:
+        order.paymentTerms || data.paymentTermsString || 'NET30', // Inherit from PO if exists
     };
 
     return this.repository.create(createData);
@@ -307,7 +308,12 @@ export class BillService {
           });
         }
 
-        return updatedBill;
+        return (await this.repository.findById(
+          id,
+          companyId,
+          InvoiceType.BILL,
+          tx
+        ))!;
       },
       { timeout: 60000 }
     );

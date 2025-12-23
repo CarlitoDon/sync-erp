@@ -448,7 +448,13 @@ enum CostingMethod {
 
 // Feature 036: Cash Upfront Payment
 enum PaymentTerms {
-  NET_30 // Standard: Payment after invoice
+  NET7
+  NET30
+  NET60
+  NET90
+  COD
+  EOM
+  NET_30 // Legacy
   PARTIAL // Partial upfront
   UPFRONT // Full payment before delivery
 }
