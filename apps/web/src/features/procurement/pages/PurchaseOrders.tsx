@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { type PaymentTerms } from '@sync-erp/shared';
+import {
+  type PaymentTerms,
+  PaymentTermsSchema,
+} from '@sync-erp/shared';
 import ActionButton from '@/components/ui/ActionButton';
 import Select from '@/components/ui/Select';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -186,20 +189,38 @@ export default function PurchaseOrders() {
                   label: 'Tunai / Bayar Langsung',
                   options: [
                     {
-                      value: 'UPFRONT',
+                      value: PaymentTermsSchema.enum.UPFRONT,
                       label: 'Cash Upfront (Bayar di Muka)',
                     },
-                    { value: 'COD', label: 'Cash on Delivery' },
+                    {
+                      value: PaymentTermsSchema.enum.COD,
+                      label: 'Cash on Delivery',
+                    },
                   ],
                 },
                 {
                   label: 'Tempo / Kredit',
                   options: [
-                    { value: 'NET7', label: 'Net 7 Hari' },
-                    { value: 'NET30', label: 'Net 30 Hari' },
-                    { value: 'NET60', label: 'Net 60 Hari' },
-                    { value: 'NET90', label: 'Net 90 Hari' },
-                    { value: 'EOM', label: 'End of Month' },
+                    {
+                      value: PaymentTermsSchema.enum.NET7,
+                      label: 'Net 7 Hari',
+                    },
+                    {
+                      value: PaymentTermsSchema.enum.NET30,
+                      label: 'Net 30 Hari',
+                    },
+                    {
+                      value: PaymentTermsSchema.enum.NET60,
+                      label: 'Net 60 Hari',
+                    },
+                    {
+                      value: PaymentTermsSchema.enum.NET90,
+                      label: 'Net 90 Hari',
+                    },
+                    {
+                      value: PaymentTermsSchema.enum.EOM,
+                      label: 'End of Month',
+                    },
                   ],
                 },
               ]}
