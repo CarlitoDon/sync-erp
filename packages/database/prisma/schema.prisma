@@ -134,27 +134,31 @@ model Product {
 // ============================================
 
 model Order {
-  id           String      @id @default(uuid())
-  companyId    String
-  partnerId    String
-  type         OrderType
-  status       OrderStatus @default(DRAFT)
-  orderNumber  String?
-  date         DateTime    @default(now())
-  totalAmount  Decimal     @db.Decimal(15, 2)
-  taxRate      Decimal     @default(0) @db.Decimal(5, 2)
-  paymentTerms String? // P2P: Net 30, etc.
-  notes        String? // P2P: Notes
-  version      Int         @default(1) // Optimistic Locking
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id            String         @id @default(uuid())
+  companyId     String
+  partnerId     String
+  type          OrderType
+  status        OrderStatus    @default(DRAFT)
+  orderNumber   String?
+  date          DateTime       @default(now())
+  totalAmount   Decimal        @db.Decimal(15, 2)
+  taxRate       Decimal        @default(0) @db.Decimal(5, 2)
+  // Feature 036: Cash Upfront Payment
+  paymentTerms  PaymentTerms   @default(NET_30)
+  paymentStatus PaymentStatus?
+  paidAmount    Decimal        @default(0) @db.Decimal(15, 2)
+  notes         String? // P2P: Notes
+  version       Int            @default(1) // Optimistic Locking
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  partner       Partner        @relation(fields: [partnerId], references: [id])
-  items         OrderItem[]
-  invoices      Invoice[]
-  goodsReceipts GoodsReceipt[]
-  shipments     Shipment[]
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  partner         Partner        @relation(fields: [partnerId], references: [id])
+  items           OrderItem[]
+  invoices        Invoice[]
+  goodsReceipts   GoodsReceipt[]
+  shipments       Shipment[]
+  upfrontPayments Payment[]      @relation("OrderUpfrontPayments") // Feature 036
 
   @@index([companyId])
   @@index([companyId, type])
@@ -243,22 +247,30 @@ model Invoice {
 }
 
 model Payment {
-  id        String        @id @default(uuid())
-  companyId String
-  invoiceId String
-  amount    Decimal       @db.Decimal(15, 2)
-  date      DateTime      @default(now())
-  method    PaymentMethod
-  reference String? // P2P: External Ref
-  accountId String? // P2P: Bank/Cash Account
-  version   Int           @default(1) // Optimistic Locking
-  createdAt DateTime      @default(now())
+  id               String        @id @default(uuid())
+  companyId        String
+  invoiceId        String? // Made optional: for invoice/bill payments
+  // Feature 036: Cash Upfront Payment
+  orderId          String? // For upfront payments (PO link)
+  paymentType      String        @default("INVOICE") // 'UPFRONT' | 'INVOICE'
+  settledAt        DateTime? // When this prepaid was applied to bill
+  settlementBillId String? // Which bill consumed this prepaid
+  amount           Decimal       @db.Decimal(15, 2)
+  date             DateTime      @default(now())
+  method           PaymentMethod
+  reference        String? // P2P: External Ref
+  accountId        String? // P2P: Bank/Cash Account
+  version          Int           @default(1) // Optimistic Locking
+  createdAt        DateTime      @default(now())
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+  order   Order?   @relation("OrderUpfrontPayments", fields: [orderId], references: [id])
 
   @@index([companyId])
   @@index([invoiceId])
+  @@index([orderId])
+  @@index([paymentType])
 }
 
 // Chart of Accounts
@@ -432,6 +444,20 @@ enum BusinessShape {
 enum CostingMethod {
   AVG
   FIFO
+}
+
+// Feature 036: Cash Upfront Payment
+enum PaymentTerms {
+  NET_30 // Standard: Payment after invoice
+  PARTIAL // Partial upfront
+  UPFRONT // Full payment before delivery
+}
+
+enum PaymentStatus {
+  PENDING // Upfront PO, no payment yet
+  PARTIAL // Some payment made
+  PAID_UPFRONT // Fully paid upfront
+  SETTLED // Prepaid cleared against bill
 }
 
 // ============================================

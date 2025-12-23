@@ -2,6 +2,25 @@ import { z } from 'zod';
 import { PAYMENT_METHODS } from '../constants/index.js';
 
 // ==========================================
+// Feature 036: Cash Upfront Payment - Enums
+// ==========================================
+
+export const PaymentTermsSchema = z.enum([
+  'NET_30',
+  'PARTIAL',
+  'UPFRONT',
+]);
+export type PaymentTerms = z.infer<typeof PaymentTermsSchema>;
+
+export const PaymentStatusSchema = z.enum([
+  'PENDING',
+  'PARTIAL',
+  'PAID_UPFRONT',
+  'SETTLED',
+]);
+export type PaymentStatus = z.infer<typeof PaymentStatusSchema>;
+
+// ==========================================
 // Purchase Order Validators
 // ==========================================
 
@@ -17,7 +36,7 @@ export const CreatePurchaseOrderSchema = z.object({
       })
     )
     .min(1),
-  paymentTerms: z.string().optional(),
+  paymentTerms: PaymentTermsSchema.optional().default('NET_30'), // Feature 036
   notes: z.string().optional(),
   taxRate: z.number().min(0).optional(),
 });
@@ -100,3 +119,88 @@ export const CreateP2PPaymentSchema = z.object({
   date: z.coerce.date(),
   notes: z.string().optional(),
 });
+
+// ==========================================
+// Feature 036: Cash Upfront Payment Validators
+// ==========================================
+
+export const RegisterUpfrontPaymentSchema = z.object({
+  orderId: z.string().uuid(),
+  amount: z.number().positive(),
+  method: z.enum(PAYMENT_METHODS),
+  accountId: z.string().uuid().optional(),
+  reference: z.string().max(100).optional(),
+  businessDate: z.coerce.date().optional(),
+});
+export type RegisterUpfrontPaymentInput = z.infer<
+  typeof RegisterUpfrontPaymentSchema
+>;
+
+export const SettlePrepaidSchema = z.object({
+  billId: z.string().uuid(),
+});
+export type SettlePrepaidInput = z.infer<typeof SettlePrepaidSchema>;
+
+// Response schemas
+export const UpfrontPaymentResponseSchema = z.object({
+  id: z.string().uuid(),
+  companyId: z.string().uuid(),
+  orderId: z.string().uuid(),
+  amount: z.number(),
+  method: z.string(),
+  reference: z.string().nullable(),
+  paymentType: z.literal('UPFRONT'),
+  settledAt: z.date().nullable(),
+  createdAt: z.date(),
+});
+export type UpfrontPaymentResponse = z.infer<
+  typeof UpfrontPaymentResponseSchema
+>;
+
+export const PaymentSummaryResponseSchema = z.object({
+  totalAmount: z.number(),
+  paidAmount: z.number(),
+  remainingAmount: z.number(),
+  paymentStatus: PaymentStatusSchema.nullable(),
+  payments: z.array(UpfrontPaymentResponseSchema),
+});
+export type PaymentSummaryResponse = z.infer<
+  typeof PaymentSummaryResponseSchema
+>;
+
+export const PrepaidInfoResponseSchema = z.object({
+  billId: z.string().uuid(),
+  billAmount: z.number(),
+  billBalance: z.number(),
+  hasPrepaid: z.boolean(),
+  prepaid: z
+    .object({
+      paymentId: z.string().uuid(),
+      orderId: z.string().uuid(),
+      orderNumber: z.string().nullable(),
+      amount: z.number(),
+      paidAt: z.date(),
+    })
+    .nullable(),
+  settlementAmount: z.number(),
+  remainingAfterSettlement: z.number(),
+});
+export type PrepaidInfoResponse = z.infer<
+  typeof PrepaidInfoResponseSchema
+>;
+
+export const SettlementResponseSchema = z.object({
+  bill: z.object({
+    id: z.string().uuid(),
+    status: z.string(),
+    balance: z.number(),
+  }),
+  settlement: z.object({
+    amount: z.number(),
+    journalId: z.string().uuid(),
+    prepaidPaymentId: z.string().uuid(),
+  }),
+});
+export type SettlementResponse = z.infer<
+  typeof SettlementResponseSchema
+>;

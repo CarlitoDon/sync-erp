@@ -26,14 +26,14 @@
 
 **Purpose**: Database schema migration and seed data for Account 1600
 
-- [ ] T001 Add `PaymentTerms` enum (`NET_30`, `PARTIAL`, `UPFRONT`) to `packages/database/prisma/schema.prisma`
-- [ ] T002 Add `PaymentStatus` enum (`PENDING`, `PARTIAL`, `PAID_UPFRONT`, `SETTLED`) to `packages/database/prisma/schema.prisma`
-- [ ] T003 Add `paymentTerms`, `paymentStatus`, `paidAmount` fields to `Order` model in `packages/database/prisma/schema.prisma`
-- [ ] T004 Add `orderId`, `paymentType`, `settledAt`, `settlementBillId` fields to `Payment` model in `packages/database/prisma/schema.prisma`
-- [ ] T005 Add relation `upfrontPayments` and `settlements` to `Order` and `Invoice` models in `packages/database/prisma/schema.prisma`
-- [ ] T006 Run Prisma migration: `npm run db:migrate -- --name add-upfront-payment-fields`
-- [ ] T007 Add Account 1600 (Advances to Supplier) to seed file `packages/database/prisma/seed.ts`
-- [ ] T008 Run seed: `npm run db:seed`
+- [x] T001 Add `PaymentTerms` enum (`NET_30`, `PARTIAL`, `UPFRONT`) to `packages/database/prisma/schema.prisma`
+- [x] T002 Add `PaymentStatus` enum (`PENDING`, `PARTIAL`, `PAID_UPFRONT`, `SETTLED`) to `packages/database/prisma/schema.prisma`
+- [x] T003 Add `paymentTerms`, `paymentStatus`, `paidAmount` fields to `Order` model in `packages/database/prisma/schema.prisma`
+- [x] T004 Add `orderId`, `paymentType`, `settledAt`, `settlementBillId` fields to `Payment` model in `packages/database/prisma/schema.prisma`
+- [x] T005 Add relation `upfrontPayments` and `settlements` to `Order` and `Invoice` models in `packages/database/prisma/schema.prisma`
+- [x] T006 Run Prisma migration: `npm run db:migrate -- --name add-upfront-payment-fields`
+- [x] T007 Add Account 1600 (Advances to Supplier) to seed file `packages/database/prisma/seed.ts`
+- [x] T008 Run seed: `npm run db:seed`
 
 **Checkpoint**: Database ready with new fields and Account 1600 seeded
 
@@ -45,15 +45,15 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T009 [P] Add `PaymentTermsSchema` enum to `packages/shared/src/validators/order.validators.ts`
-- [ ] T010 [P] Add `PaymentStatusSchema` enum to `packages/shared/src/validators/order.validators.ts`
-- [ ] T011 [P] Add `RegisterUpfrontPaymentSchema` to `packages/shared/src/validators/payment.validators.ts`
-- [ ] T012 [P] Add `SettlePrepaidSchema` to `packages/shared/src/validators/payment.validators.ts`
-- [ ] T013 [P] Add `PaymentSummaryResponseSchema` to `packages/shared/src/validators/payment.validators.ts`
-- [ ] T014 [P] Add `PrepaidInfoResponseSchema` to `packages/shared/src/validators/payment.validators.ts`
-- [ ] T015 Export all new schemas from `packages/shared/src/validators/index.ts`
-- [ ] T016 Rebuild shared package: `cd packages/shared && npm run build`
-- [ ] T017 Regenerate Prisma client: `npm run db:generate`
+- [x] T009 [P] Add `PaymentTermsSchema` enum to `packages/shared/src/validators/p2p.ts`
+- [x] T010 [P] Add `PaymentStatusSchema` enum to `packages/shared/src/validators/p2p.ts`
+- [x] T011 [P] Add `RegisterUpfrontPaymentSchema` to `packages/shared/src/validators/p2p.ts`
+- [x] T012 [P] Add `SettlePrepaidSchema` to `packages/shared/src/validators/p2p.ts`
+- [x] T013 [P] Add `PaymentSummaryResponseSchema` to `packages/shared/src/validators/p2p.ts`
+- [x] T014 [P] Add `PrepaidInfoResponseSchema` to `packages/shared/src/validators/p2p.ts`
+- [x] T015 Export all new schemas from `packages/shared/src/validators/index.ts`
+- [x] T016 Rebuild shared package: `cd packages/shared && npm run build`
+- [x] T017 Regenerate Prisma client: `npm run db:generate`
 
 **Checkpoint**: Foundation ready - all types available for implementation
 
