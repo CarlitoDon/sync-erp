@@ -1,16 +1,9 @@
-export type PartnerType = 'CUSTOMER' | 'SUPPLIER';
+import {
+  Partner,
+  PartnerTypeType as PartnerType,
+} from '../generated/zod/index.js';
 
-export interface Partner {
-  id: string;
-  companyId: string;
-  type: PartnerType;
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+export type { Partner, PartnerType };
 
 export interface CreatePartnerDto {
   name: string;

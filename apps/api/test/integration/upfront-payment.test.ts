@@ -121,6 +121,8 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
     it('Should create PO with NET_30 payment terms by default', async () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
+        type: 'PURCHASE',
+        paymentTerms: 'NET30',
         items: [{ productId, quantity: 5, price: 100000 }],
       });
 
@@ -136,6 +138,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
         {
           partnerId,
           items: [{ productId, quantity: 10, price: 100000 }],
+          type: 'PURCHASE',
           paymentTerms: 'UPFRONT',
         },
         undefined,
@@ -153,6 +156,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 3, price: 100000 }],
+        type: 'PURCHASE',
         paymentTerms: 'UPFRONT',
       });
 
@@ -173,6 +177,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 2, price: 100000 }],
+        type: 'PURCHASE',
         paymentTerms: 'UPFRONT',
       });
 
@@ -201,6 +206,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 5, price: 100000 }],
+        type: 'PURCHASE',
         paymentTerms: 'UPFRONT',
       });
       await procurementService.confirm(
@@ -256,6 +262,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 2, price: 50000 }],
+        type: 'PURCHASE',
         paymentTerms: 'UPFRONT',
       });
       await procurementService.confirm(
@@ -293,6 +300,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 1, price: 100000 }],
+        type: 'PURCHASE',
         paymentTerms: 'UPFRONT',
       });
       await procurementService.confirm(
@@ -325,6 +333,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 5, price: 100000 }],
+        type: 'PURCHASE',
         paymentTerms: 'UPFRONT',
       });
       await procurementService.confirm(
@@ -374,6 +383,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 10, price: 100000 }], // 1,000,000
+        type: 'PURCHASE',
         paymentTerms: 'UPFRONT',
       });
       await procurementService.confirm(
@@ -442,6 +452,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 2, price: 100000 }], // 200,000
+        type: 'PURCHASE',
         paymentTerms: 'UPFRONT',
       });
       await procurementService.confirm(

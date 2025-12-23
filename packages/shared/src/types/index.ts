@@ -1,46 +1,68 @@
 // Core Types
 // ============================================
 
+import {
+  OrderTypeType as OrderType,
+  OrderStatusType as OrderStatus,
+  User,
+  OrderItem,
+  Role,
+  Permission,
+} from '../generated/zod/index.js';
+
+export type {
+  OrderType,
+  OrderStatus,
+  User,
+  OrderItem,
+  Role,
+  Permission,
+};
+
 export * from './auth.js';
 export * from './finance.js';
 export * from './partner.js';
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-}
+// User type is now exported from generated/zod (via validators)
+// export interface User {
+//   id: string;
+//   email: string;
+//   name: string;
+// }
 
-export type OrderType = 'SALES' | 'PURCHASE';
-export type OrderStatus =
-  | 'DRAFT'
-  | 'CONFIRMED'
-  | 'COMPLETED'
-  | 'CANCELLED';
+// OrderType and OrderStatus are now exported from generated/zod
+// export type OrderType = 'SALES' | 'PURCHASE';
+// export type OrderStatus =
+//   | 'DRAFT'
+//   | 'CONFIRMED'
+//   | 'COMPLETED'
+//   | 'CANCELLED';
 
-export interface OrderItem {
-  id: string;
-  orderId: string;
-  productId: string;
-  quantity: number;
-  price: number;
-}
+// OrderItem is now exported from generated/zod
+// export interface OrderItem {
+//   id: string;
+//   orderId: string;
+//   productId: string;
+//   quantity: number;
+//   price: number;
+// }
 
 // ============================================
 // RBAC Types
 // ============================================
 
-export interface Role {
-  id: string;
-  companyId: string;
-  name: string;
-}
+// Role and Permission are now exported from generated/zod
+// export interface Role {
+//   id: string;
+//   companyId: string;
+//   name: string;
+// }
 
-export interface Permission {
-  id: string;
-  module: string;
-  action: string;
-  scope: string;
-}
+// export interface Permission {
+//   id: string;
+//   module: string;
+//   action: string;
+//   scope: string;
+// }
 
 // ============================================
 // API Types

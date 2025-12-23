@@ -119,6 +119,8 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     // PurchaseOrderService.create(companyId, data)
     const order = await procurementService.create(COMPANY_ID, {
       partnerId,
+      type: 'PURCHASE',
+      paymentTerms: 'NET30',
       items: [{ productId, quantity: 5, price: 100000 }],
       taxRate: 11,
     });

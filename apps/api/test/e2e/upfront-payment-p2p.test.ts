@@ -143,6 +143,7 @@ describe('Feature 036: Canonical P2P Cash Upfront Flow', () => {
     // ===========================================
     const order = await procurementService.create(COMPANY_ID, {
       partnerId,
+      type: 'PURCHASE',
       items: [{ productId, quantity: 10, price: 100000 }],
       paymentTerms: 'UPFRONT',
     });

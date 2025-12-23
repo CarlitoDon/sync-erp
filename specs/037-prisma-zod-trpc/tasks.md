@@ -21,10 +21,10 @@ description: 'Tasks for 037-prisma-zod-trpc'
 
 **Purpose**: Configure the Zod generator pipeline.
 
-- [ ] T001 [US1] Install `zod-prisma-types` to `packages/database` devDependencies in `packages/database/package.json`
-- [ ] T002 [US1] Configure `generator zod` in `packages/database/prisma/schema.prisma`
-- [ ] T003 [US1] Run `prisma generate` to create initial Zod schemas in `packages/shared/src/generated/zod`
-- [ ] T004 [US1] Export generated types from `packages/shared/src/validators/index.ts`
+- [x] T001 [US1] Install `zod-prisma-types` to `packages/database` devDependencies in `packages/database/package.json`
+- [x] T002 [US1] Configure `generator zod` in `packages/database/prisma/schema.prisma`
+- [x] T003 [US1] Run `prisma generate` to create initial Zod schemas in `packages/shared/src/generated/zod`
+- [x] T004 [US1] Export generated types from `packages/shared/src/validators/index.ts`
 
 **Checkpoint**: Zod schemas are generated and exported.
 
@@ -34,8 +34,8 @@ description: 'Tasks for 037-prisma-zod-trpc'
 
 ### Implementation for US2
 
-- [ ] T005 [P] [US2] Update `PurchaseOrder` Router & Service to use generated types in `apps/api/src/modules/procurement/purchase-order.service.ts`
-- [ ] T006 [P] [US2] Update `SalesOrder` Router & Service to use generated types in `apps/api/src/modules/sales/sales-order.service.ts`
+- [x] T005 [P] [US2] Update `PurchaseOrder` Router & Service to use generated types in `apps/api/src/modules/procurement/purchase-order.service.ts`
+- [x] T006 [P] [US2] Update `SalesOrder` Router & Service to use generated types in `apps/api/src/modules/sales/sales-order.service.ts`
 - [ ] T007 [US2] Verify PO creation flow with new types (Manual Integration Test run)
 
 **Checkpoint**: Core modules are using Zod schemas.
@@ -50,8 +50,7 @@ description: 'Tasks for 037-prisma-zod-trpc'
 - [ ] T009 [P] [US3] Fix `PaymentTerms` type errors in `apps/api/src/modules/accounting/services/bill.service.ts`
 - [ ] T010 [P] [US3] Fix `PaymentTerms` type errors in `apps/api/src/modules/accounting/services/invoice.service.ts`
 - [ ] T011 [P] [US3] Fix `PaymentTerms` type errors in `apps/api/src/modules/procurement/upfront-payment.service.ts`
-- [ ] T012 [P] [US3] Fix `PaymentTerms` type errors in `apps/web/src/features/procurement/` components
-- [ ] T013 [P] [US3] Fix remaining `PaymentTerms` references in `packages/shared/src/validators/index.ts`
+- [ ] T012 [P] [US3] Fix remaining `PaymentTerms` references in `packages/shared/src/validators/index.ts`
 
 **Checkpoint**: No manual enum definitions remain.
 

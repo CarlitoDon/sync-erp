@@ -118,6 +118,8 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     // Tax: 11%.
     const order = await purchaseOrderService.create(COMPANY_ID, {
       partnerId,
+      type: 'PURCHASE',
+      paymentTerms: 'NET30',
       items: [{ productId, quantity: 2, price: 100000 }],
       taxRate: 11,
     });
@@ -182,8 +184,10 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     // 1. Create Purchase Order with 0% Tax
     const order = await purchaseOrderService.create(COMPANY_ID, {
       partnerId,
+      type: 'PURCHASE',
       items: [{ productId, quantity: 1, price: 100000 }],
       taxRate: 0,
+      paymentTerms: 'NET30',
     });
     const confirmedOrder = await purchaseOrderService.confirm(
       order.id,

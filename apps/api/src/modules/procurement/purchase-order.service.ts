@@ -7,13 +7,16 @@ import {
   AuditLogAction,
   EntityType,
   prisma,
-  PaymentTerms,
 } from '@sync-erp/database';
 import { PurchaseOrderRepository } from './purchase-order.repository';
 import { PurchaseOrderPolicy } from './purchase-order.policy';
 import { DocumentNumberService } from '../common/services/document-number.service';
 import { recordAudit } from '../common/audit/audit-log.service';
-import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import {
+  DomainError,
+  DomainErrorCodes,
+  CreatePurchaseOrderInput,
+} from '@sync-erp/shared';
 
 // Lazy-loaded to avoid circular dependency with InventoryService
 import type { InventoryService as InventoryServiceType } from '../inventory/inventory.service';
@@ -45,12 +48,7 @@ export class PurchaseOrderService {
    */
   async create(
     companyId: string,
-    data: {
-      partnerId: string;
-      items: { productId: string; quantity: number; price: number }[];
-      taxRate?: number;
-      paymentTerms?: string; // Feature 036 (Validated by Zod schema)
-    },
+    data: CreatePurchaseOrderInput,
     shape?: BusinessShape,
     userId?: string
   ): Promise<Order> {
@@ -71,13 +69,24 @@ export class PurchaseOrderService {
       (sum, item) => sum + item.quantity * item.price,
       0
     );
-    const taxRate = data.taxRate || 0;
-    const taxAmount = (subtotal * taxRate) / 100;
-    const totalAmount = subtotal + taxAmount;
+    // Use safe default 0 if taxRate is undefined
+    const taxRate = data.taxRate ?? 0;
+    const itemTax = (subtotal * taxRate) / 100;
+
+    // NOTE: If items are tax inclusive/exclusive logic differs, but here simple calc.
+    // Assuming simple tax on subtotal.
+    const totalAmount = subtotal + itemTax;
 
     // Prepare create data
     // Feature 036: Set payment terms and initial status
-    const paymentTerms = data.paymentTerms || 'NET30';
+    // Input is already validated and has default 'NET30' via Zod
+    const paymentTerms = data.paymentTerms;
+
+    // Explicit check effectively unnecessary if Zod default works, but safe.
+    // If Zod default is applied at Router boundary, it's present.
+    // If Service called internally with raw object, it might be missing?
+    // Service should expect validated input.
+
     const createData: Prisma.OrderUncheckedCreateInput = {
       companyId,
       partnerId: data.partnerId,
@@ -85,8 +94,8 @@ export class PurchaseOrderService {
       status: OrderStatus.DRAFT,
       orderNumber,
       totalAmount,
-      taxRate: data.taxRate || 0,
-      paymentTerms: paymentTerms as PaymentTerms,
+      taxRate: taxRate,
+      paymentTerms: paymentTerms, // Strictly typed from Zod
       // If UPFRONT, set initial paymentStatus to PENDING
       paymentStatus: paymentTerms === 'UPFRONT' ? 'PENDING' : null,
       paidAmount: 0,

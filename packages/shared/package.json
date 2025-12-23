@@ -31,8 +31,10 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "@prisma/client": "^7.1.0",
     "decimal.js": "^10.6.0",
-    "zod": "^3.23.0"
+    "zod": "^3.23.0",
+    "@sync-erp/database": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

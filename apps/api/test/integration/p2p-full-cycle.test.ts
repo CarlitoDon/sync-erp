@@ -131,6 +131,8 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
       // Step 1: Create and confirm Purchase Order
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
+        type: 'PURCHASE',
+        paymentTerms: 'NET30',
         items: [{ productId, quantity: 10, price: 80000 }],
       });
       orderId = order.id;
@@ -220,7 +222,9 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
       // Create another PO without receiving goods
       const order2 = await procurementService.create(COMPANY_ID, {
         partnerId,
+        type: 'PURCHASE',
         items: [{ productId, quantity: 5, price: 80000 }],
+        paymentTerms: 'NET30',
       });
       await procurementService.confirm(
         order2.id,

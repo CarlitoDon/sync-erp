@@ -131,6 +131,7 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       // Step 1: Create and confirm Sales Order
       const order = await salesOrderService.create(COMPANY_ID, {
         partnerId,
+        type: 'SALES',
         items: [{ productId, quantity: 5, price: 100000 }],
       });
       orderId = order.id;
@@ -235,6 +236,7 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
     it('should prevent shipping unconfirmed order', async () => {
       const so = await salesOrderService.create(COMPANY_ID, {
         partnerId,
+        type: 'SALES',
         items: [{ productId, quantity: 1, price: 100000 }],
       });
 
@@ -247,6 +249,7 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       // Create another invoice for this test
       const order2 = await salesOrderService.create(COMPANY_ID, {
         partnerId,
+        type: 'SALES',
         items: [{ productId, quantity: 1, price: 100000 }],
       });
       await salesOrderService.confirm(order2.id, COMPANY_ID);

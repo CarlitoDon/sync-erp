@@ -1,15 +1,18 @@
 import { PaymentMethod } from '@sync-erp/database';
-import type { OrderItem } from './index';
+import type { OrderItem } from '../generated/zod/index.js';
 
 // Re-export OrderStatus for convenience
-export type { OrderStatus, OrderType } from './index';
-export type { InvoiceStatus, InvoiceType } from './finance';
+export type {
+  OrderStatusType as OrderStatus,
+  OrderTypeType as OrderType,
+} from '../generated/zod/index.js';
+export type { InvoiceStatus, InvoiceType } from './finance.js';
 
 // ==========================================
 // Purchase Order
 // ==========================================
 
-export interface CreatePurchaseOrderInput {
+export interface LegacyCreatePurchaseOrderInput {
   partnerId: string;
   date?: Date | string;
   items: Array<{
