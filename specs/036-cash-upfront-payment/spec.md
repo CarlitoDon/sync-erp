@@ -116,6 +116,7 @@ Sebagai Finance Admin, saya ingin sistem otomatis meng-clear saldo prepaid terha
   - System HARUS mendukung partial upfront payment, dengan settlement proporsional.
 - **Cancellation**: PO dibatalkan setelah upfront payment?
   - Prepaid harus di-reverse atau di-refund (via Supplier Refund flow).
+  - ⚠️ **OUT OF SCOPE**: Refund flow is not part of this feature. Will be handled in separate feature.
 - **Multiple GRN**: PO dengan partial delivery?
   - GRN Clearing di-prorate per delivery; settlement tetap vs total invoice.
 
@@ -133,7 +134,7 @@ Sebagai Finance Admin, saya ingin sistem otomatis meng-clear saldo prepaid terha
 
 #### Upfront Payment Registration
 
-- **FR-004**: System MUST create Payment record with `referenceType = PO` and `paymentType = UPFRONT`.
+- **FR-004**: System MUST create Payment record with `orderId` (FK to PO) and `paymentType = UPFRONT`.
 - **FR-005**: System MUST validate `payment.amount <= PO.totalAmount - alreadyPaidAmount`.
 - **FR-006**: System MUST create journal on payment post:
   - Dr: Advances to Supplier (1600)
@@ -156,7 +157,7 @@ Sebagai Finance Admin, saya ingin sistem otomatis meng-clear saldo prepaid terha
 
 #### Settlement
 
-- **FR-012**: System MUST provide mechanism to settle Prepaid against AP (manual or auto).
+- **FR-012**: System MUST provide manual mechanism to settle Prepaid against AP via "Settle Prepaid" button on Bill Detail page.
 - **FR-013**: System MUST create journal on settlement:
   - Dr: Accounts Payable (2100)
   - Cr: Advances to Supplier (1600)
@@ -165,7 +166,7 @@ Sebagai Finance Admin, saya ingin sistem otomatis meng-clear saldo prepaid terha
 ### Key Entities
 
 - **Order (PO)**: Extended with `paymentTerms` enum and `paymentStatus` field.
-- **Payment**: Extended to support `referenceType = PO` and `paymentType = UPFRONT`.
+- **Payment**: Extended with `orderId` (FK to PO) and `paymentType = UPFRONT`.
 - **GoodsReceipt**: No changes, existing structure supports upfront flow.
 - **Bill (Invoice type=BILL)**: No changes, existing structure supports upfront flow.
 - **Settlement**: New entity or logic to track Prepaid vs AP clearing.
