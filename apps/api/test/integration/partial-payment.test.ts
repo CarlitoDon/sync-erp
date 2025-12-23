@@ -47,6 +47,7 @@ describe('Partial Payment Flow', () => {
         status: InvoiceStatus.POSTED,
         invoiceNumber: `TEST-BILL-${Date.now()}`,
         amount: 1000000, // 1M
+        subtotal: 1000000,
         balance: 1000000,
         taxAmount: 0,
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -130,6 +131,7 @@ describe('Partial Payment Flow', () => {
         status: InvoiceStatus.POSTED,
         invoiceNumber: `TEST-BILL-SMALL-${Date.now()}`,
         amount: 50000,
+        subtotal: 50000,
         balance: 50000,
         taxAmount: 0,
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
