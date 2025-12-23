@@ -7,6 +7,7 @@ import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
+import { RegisterPaymentModal } from '@/features/procurement/components/RegisterPaymentModal';
 import { formatCurrency } from '@/utils/format';
 
 interface PurchaseOrderListProps {
@@ -26,6 +27,8 @@ export default function PurchaseOrderList({
   const [createBillOrderId, setCreateBillOrderId] = useState<
     string | null
   >(null);
+  const [registerPaymentOrderId, setRegisterPaymentOrderId] =
+    useState<string | null>(null);
 
   const { data: orders = [], isLoading: loading } =
     trpc.purchaseOrder.list.useQuery(filter, {
@@ -125,6 +128,10 @@ export default function PurchaseOrderList({
     navigate(`/bills/${billId}`);
   };
 
+  const handleRegisterPayment = (orderId: string) => {
+    setRegisterPaymentOrderId(orderId);
+  };
+
   if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -211,6 +218,20 @@ export default function PurchaseOrderList({
                       </ActionButton>
                     </>
                   )}
+                  {/* Upfront Payment Action */}
+                  {order.status === 'CONFIRMED' &&
+                    order.paymentTerms === 'UPFRONT' &&
+                    order.paymentStatus !== 'PAID_UPFRONT' &&
+                    order.paymentStatus !== 'SETTLED' && (
+                      <ActionButton
+                        onClick={() =>
+                          handleRegisterPayment(order.id)
+                        }
+                        variant="primary"
+                      >
+                        Record Payment
+                      </ActionButton>
+                    )}
                   {(order.status === 'CONFIRMED' ||
                     order.status === 'PARTIALLY_RECEIVED') && (
                     <ActionButton
@@ -292,6 +313,28 @@ export default function PurchaseOrderList({
           navigate(`/bills/${billId}`);
         }}
       />
+
+      {/* Upfront Payment Modal */}
+      {registerPaymentOrderId && (
+        <RegisterPaymentModal
+          isOpen={!!registerPaymentOrderId}
+          onClose={() => setRegisterPaymentOrderId(null)}
+          orderId={registerPaymentOrderId}
+          orderNumber={
+            orders.find((o) => o.id === registerPaymentOrderId)
+              ?.orderNumber || ''
+          }
+          totalAmount={Number(
+            orders.find((o) => o.id === registerPaymentOrderId)
+              ?.totalAmount || 0
+          )}
+          paidAmount={Number(
+            orders.find((o) => o.id === registerPaymentOrderId)
+              ?.paidAmount || 0
+          )}
+          onSuccess={() => utils.purchaseOrder.list.invalidate()}
+        />
+      )}
     </div>
   );
 }

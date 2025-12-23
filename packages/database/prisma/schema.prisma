@@ -514,6 +514,10 @@ enum SequenceType {
   GRN
   BILL
   PAY
+  SO
+  INV
+  CN
+  JE
 }
 
 // ============================================

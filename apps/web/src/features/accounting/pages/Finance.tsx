@@ -9,12 +9,18 @@ import {
 import JournalEntries from '@/features/accounting/pages/JournalEntries';
 import type { AccountGroup } from '@/types/api';
 import { AccountType } from '@/types/api';
+import { AccountTypeSchema } from '@sync-erp/shared';
 import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
 
 // Helper to check account type category
 const isDebitNormal = (type: string) =>
-  ['ASSET', 'EXPENSE'].includes(type);
+  (
+    [
+      AccountTypeSchema.enum.ASSET,
+      AccountTypeSchema.enum.EXPENSE,
+    ] as string[]
+  ).includes(type);
 
 export default function Finance() {
   const { currentCompany } = useCompany();
@@ -48,9 +54,12 @@ export default function Finance() {
       },
     });
 
+  /* eslint-disable @sync-erp/no-hardcoded-enum */
   const [activeTab, setActiveTab] = useState<
     'overview' | 'reports' | 'journals'
   >('overview');
+  /* eslint-enable @sync-erp/no-hardcoded-enum */
+  // eslint-disable-next-line @sync-erp/no-hardcoded-enum
   const [reportType, setReportType] = useState<'IS' | 'BS'>('BS');
 
   // Create Account State
@@ -58,12 +67,7 @@ export default function Finance() {
   const [newAccount, setNewAccount] = useState({
     code: '',
     name: '',
-    type: 'ASSET' as
-      | 'ASSET'
-      | 'LIABILITY'
-      | 'EQUITY'
-      | 'REVENUE'
-      | 'EXPENSE',
+    type: AccountTypeSchema.enum.ASSET as AccountType,
   });
 
   const handleSeedAccounts = async () => {
@@ -80,25 +84,33 @@ export default function Finance() {
       'Account created!'
     );
     setIsAccountModalOpen(false);
-    setNewAccount({ code: '', name: '', type: 'ASSET' });
+    setNewAccount({
+      code: '',
+      name: '',
+      type: AccountTypeSchema.enum.ASSET,
+    });
   };
 
   const handleCloseAccountModal = () => {
     setIsAccountModalOpen(false);
-    setNewAccount({ code: '', name: '', type: 'ASSET' });
+    setNewAccount({
+      code: '',
+      name: '',
+      type: AccountTypeSchema.enum.ASSET,
+    });
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'ASSET':
+      case AccountTypeSchema.enum.ASSET:
         return 'bg-blue-100 text-blue-800';
-      case 'LIABILITY':
+      case AccountTypeSchema.enum.LIABILITY:
         return 'bg-red-100 text-red-800';
-      case 'EQUITY':
+      case AccountTypeSchema.enum.EQUITY:
         return 'bg-purple-100 text-purple-800';
-      case 'REVENUE':
+      case AccountTypeSchema.enum.REVENUE:
         return 'bg-green-100 text-green-800';
-      case 'EXPENSE':
+      case AccountTypeSchema.enum.EXPENSE:
         return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -141,8 +153,8 @@ export default function Finance() {
     };
 
     // 1. Income Statement
-    const revenueGroup = buildGroup('REVENUE');
-    const expenseGroup = buildGroup('EXPENSE');
+    const revenueGroup = buildGroup(AccountTypeSchema.enum.REVENUE);
+    const expenseGroup = buildGroup(AccountTypeSchema.enum.EXPENSE);
     const netIncome = revenueGroup.total - expenseGroup.total;
 
     const incomeStatement: {
@@ -167,16 +179,18 @@ export default function Finance() {
     };
 
     // 2. Balance Sheet
-    const assetGroup = buildGroup('ASSET');
-    const liabilityGroup = buildGroup('LIABILITY');
-    const equityGroup = buildGroup('EQUITY');
+    const assetGroup = buildGroup(AccountTypeSchema.enum.ASSET);
+    const liabilityGroup = buildGroup(
+      AccountTypeSchema.enum.LIABILITY
+    );
+    const equityGroup = buildGroup(AccountTypeSchema.enum.EQUITY);
 
     // Add Net Income to Equity
     const retainedEarnings = {
       id: 'retained-earnings',
       code: '3999',
       name: 'Current Year Earnings',
-      type: 'EQUITY',
+      type: AccountTypeSchema.enum.EQUITY,
       balance: netIncome,
       isActive: true,
       companyId: '',
@@ -190,7 +204,7 @@ export default function Finance() {
     const totalEquity = equityGroup.total + netIncome;
 
     const augmentedEquityGroup: AccountGroup = {
-      type: 'EQUITY',
+      type: AccountTypeSchema.enum.EQUITY,
       accounts: equityAccountsWithRE,
       total: totalEquity,
     };
@@ -265,6 +279,7 @@ export default function Finance() {
               key={tab.id}
               onClick={() =>
                 setActiveTab(
+                  // eslint-disable-next-line @sync-erp/no-hardcoded-enum
                   tab.id as 'overview' | 'reports' | 'journals'
                 )
               }
@@ -360,21 +375,15 @@ export default function Finance() {
                     onChange={(val) =>
                       setNewAccount({
                         ...newAccount,
-                        type: val as
-                          | 'ASSET'
-                          | 'LIABILITY'
-                          | 'EQUITY'
-                          | 'REVENUE'
-                          | 'EXPENSE',
+                        type: val as AccountType,
                       })
                     }
-                    options={[
-                      'ASSET',
-                      'LIABILITY',
-                      'EQUITY',
-                      'REVENUE',
-                      'EXPENSE',
-                    ].map((t) => ({ value: t, label: t }))}
+                    options={Object.values(
+                      AccountTypeSchema.enum
+                    ).map((t) => ({
+                      value: t as AccountType,
+                      label: t,
+                    }))}
                     placeholder="Select Type"
                   />
                 </div>
@@ -399,13 +408,7 @@ export default function Finance() {
 
           {/* CoA List by Type */}
           <div className="grid gap-6">
-            {[
-              'ASSET',
-              'LIABILITY',
-              'EQUITY',
-              'REVENUE',
-              'EXPENSE',
-            ].map((type) => {
+            {Object.values(AccountTypeSchema.enum).map((type) => {
               const typeAccounts = accounts.filter(
                 (a) => a.type === type
               );

@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 export interface DatePickerProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   'type' | 'value' | 'onChange'
@@ -9,6 +10,7 @@ export interface DatePickerProps extends Omit<
   label?: string;
   error?: string;
 }
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 /**
  * Simple DatePicker component using native date input.

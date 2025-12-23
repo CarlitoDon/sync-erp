@@ -36,9 +36,11 @@ export function StockAdjustmentModal({
 }: StockAdjustmentModalProps) {
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
+  /* eslint-disable @sync-erp/no-hardcoded-enum */
   const [adjustmentType, setAdjustmentType] = useState<
     'INCREMENT' | 'DECREMENT'
   >('INCREMENT');
+  /* eslint-enable @sync-erp/no-hardcoded-enum */
 
   const adjustMutation = trpc.inventory.adjustStock.useMutation({
     onSuccess: () => {
@@ -100,6 +102,7 @@ export function StockAdjustmentModal({
               <Select
                 value={adjustmentType}
                 onChange={(val) =>
+                  // eslint-disable-next-line @sync-erp/no-hardcoded-enum
                   setAdjustmentType(val as 'INCREMENT' | 'DECREMENT')
                 }
                 options={[

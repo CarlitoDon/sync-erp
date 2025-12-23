@@ -45,9 +45,11 @@ export function ShipmentModal({
 }: ShipmentModalProps) {
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
+  /* eslint-disable @sync-erp/no-hardcoded-enum */
   const [step, setStep] = useState<
     'confirm' | 'processing' | 'shipped'
   >('confirm');
+  /* eslint-enable @sync-erp/no-hardcoded-enum */
 
   const createMutation = trpc.inventory.createShipment.useMutation({
     onSuccess: () => utils.inventory.listShipments.invalidate(),

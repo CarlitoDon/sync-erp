@@ -24,11 +24,13 @@ const Spinner = () => (
   </svg>
 );
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
 }
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 export const Button = React.forwardRef<
   HTMLButtonElement,

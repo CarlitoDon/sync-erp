@@ -11,6 +11,7 @@ interface ConfirmOptions {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  // eslint-disable-next-line @sync-erp/no-hardcoded-enum
   variant?: 'danger' | 'warning' | 'primary';
 }
 

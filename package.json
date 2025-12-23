@@ -38,6 +38,7 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "@sync-erp/eslint-plugin": "file:packages/eslint-plugin",
     "concurrently": "^9.2.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.37.5",

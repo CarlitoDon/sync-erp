@@ -218,7 +218,7 @@ export const PaymentStatusSchema = z.enum(['PENDING','PARTIAL','PAID_UPFRONT','S
 
 export type PaymentStatusType = `${z.infer<typeof PaymentStatusSchema>}`
 
-export const SequenceTypeSchema = z.enum(['PO','GRN','BILL','PAY']);
+export const SequenceTypeSchema = z.enum(['PO','GRN','BILL','PAY','SO','INV','CN','JE']);
 
 export type SequenceTypeType = `${z.infer<typeof SequenceTypeSchema>}`
 

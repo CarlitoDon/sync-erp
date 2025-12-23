@@ -1,5 +1,6 @@
 import React from 'react';
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 interface FormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -7,6 +8,7 @@ interface FormModalProps {
   children: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl';
 }
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 const maxWidthClasses = {
   sm: 'sm:max-w-sm',

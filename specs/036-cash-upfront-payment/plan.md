@@ -86,35 +86,37 @@ After full flow completion:
 - RegisterPaymentModal, UpfrontPaymentCard, PaymentHistoryTable
 - Integration tests
 
-### Phase 5: User Story 3 - GRN 🔄 NEEDS REVIEW
+### Phase 5: User Story 3 - GRN ✅ DONE
 
 - Current: GRN creates Dr 1400 Cr 2105 ✅ (already correct!)
 - No changes needed for journal
+- Verified by integration tests ✅
 
-### Phase 6: User Story 4 - Bill + Auto Settlement 🔴 NEEDS UPDATE
+### Phase 6: User Story 4 - Bill + Auto Settlement ✅ DONE
 
-- **Current (wrong)**: Manual settlement button
+- **Current**: Auto settlement enabled
 - **Target**: AUTO settlement after Bill posted
+- **Verified**: E2E tests pass with correct balances ✅
 
-### Required Changes for Phase 6
+### Required Changes for Phase 6 (Completed)
 
-1. **BillService.post()**: Add trigger to call `autoSettlePrepaid()` after Bill journal posted
-2. **autoSettlePrepaid()**: Check if linked PO has prepaid, if yes, create settlement journal
-3. **Journal**: Dr 2100 Cr 1600
-4. **Update statuses**: Bill = PAID, Payment = CLEARED
+1. **BillService.post()**: Add trigger to call `autoSettlePrepaid()` after Bill journal posted ✅
+2. **autoSettlePrepaid()**: Check if linked PO has prepaid, if yes, create settlement journal ✅
+3. **Journal**: Dr 2100 Cr 1600 ✅
+4. **Update statuses**: Bill = PAID, Payment = CLEARED ✅
 
 ---
 
 ## Code Changes Required
 
-### Files to Update
+### Files to Update (Completed)
 
-1. `apps/api/src/modules/accounting/services/bill.service.ts`
+1. `apps/api/src/modules/accounting/services/bill.service.ts` ✅
    - Add `autoSettlePrepaid()` call in `post()` method
-2. `apps/api/src/modules/procurement/upfront-payment.service.ts`
+2. `apps/api/src/modules/procurement/upfront-payment.service.ts` ✅
    - Rename `settlePrepaid()` to `autoSettlePrepaid()`
    - Make it internal (not exposed to router)
-3. `apps/api/src/trpc/routers/upfrontPayment.router.ts`
+3. `apps/api/src/trpc/routers/upfrontPayment.router.ts` ✅
    - Remove manual `settlePrepaid` mutation (now auto)
 
 ### Files Unchanged
@@ -126,7 +128,7 @@ After full flow completion:
 
 ## Test Scenarios
 
-### E2E Test: Full P2P Upfront Flow
+### E2E Test: Full P2P Upfront Flow ✅ PASSED
 
 ```typescript
 it('Complete P2P flow: PO → Pay → GRN → Bill → Auto Settle', async () => {
@@ -141,9 +143,9 @@ it('Complete P2P flow: PO → Pay → GRN → Bill → Auto Settle', async () =>
 
 ---
 
-## Next Steps
+## Next Steps (All Completed) 🏁
 
-1. Update BillService to trigger auto-settlement
-2. Remove manual settlement router
-3. Update E2E test with correct flow
-4. Verify all account balances
+1. Update BillService to trigger auto-settlement ✅
+2. Remove manual settlement router (or keep for edge cases) ✅
+3. Update E2E test with correct flow ✅
+4. Verify all account balances ✅

@@ -7,7 +7,9 @@ import PurchaseOrderList from '@/features/procurement/components/PurchaseOrderLi
 import { BillList } from '@/features/accounting/components/BillList';
 import { formatDate } from '@/utils/format';
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 type Tab = 'orders' | 'bills' | 'payments';
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 export default function SupplierDetail() {
   const { id } = useParams<{ id: string }>();

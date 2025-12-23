@@ -7,12 +7,16 @@ import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
 
+import { PartnerTypeSchema } from '@sync-erp/shared';
+
 interface CreatePartnerInput {
   name: string;
   email: string;
   phone: string;
   address: string;
-  type: 'SUPPLIER' | 'CUSTOMER';
+  type:
+    | typeof PartnerTypeSchema.enum.SUPPLIER
+    | typeof PartnerTypeSchema.enum.CUSTOMER;
 }
 
 export default function Suppliers() {
@@ -21,7 +25,7 @@ export default function Suppliers() {
   const utils = trpc.useUtils();
   const { data: suppliers, isLoading: loading } =
     trpc.partner.list.useQuery(
-      { type: 'SUPPLIER' },
+      { type: PartnerTypeSchema.enum.SUPPLIER },
       { enabled: !!currentCompany?.id, initialData: [] }
     );
 
@@ -43,7 +47,7 @@ export default function Suppliers() {
     email: '',
     phone: '',
     address: '',
-    type: 'SUPPLIER',
+    type: PartnerTypeSchema.enum.SUPPLIER,
   });
 
   const resetForm = () => {
@@ -52,7 +56,7 @@ export default function Suppliers() {
       email: '',
       phone: '',
       address: '',
-      type: 'SUPPLIER',
+      type: PartnerTypeSchema.enum.SUPPLIER,
     });
   };
 

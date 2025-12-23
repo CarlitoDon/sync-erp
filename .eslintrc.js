@@ -9,7 +9,7 @@ module.exports = {
     ecmaVersion: 'latest',
     sourceType: 'module',
   },
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint', '@sync-erp'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -29,9 +29,16 @@ module.exports = {
     ],
     '@typescript-eslint/no-explicit-any': 'warn',
     'no-console': ['warn', { allow: ['warn', 'error'] }],
+    '@sync-erp/no-hardcoded-enum': 'error',
   },
 
   overrides: [
+    {
+      files: ['packages/shared/**'],
+      rules: {
+        '@sync-erp/no-hardcoded-enum': 'off',
+      },
+    },
     {
       files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts'],
       rules: {
