@@ -43,8 +43,7 @@ export default function PurchaseOrderDetail() {
 
   // Feature 036: Fetch payment summary for upfront orders
   const isUpfrontOrder =
-    order?.paymentTerms === PaymentTermsSchema.enum.UPFRONT ||
-    order?.paymentTerms === PaymentTermsSchema.enum.PARTIAL;
+    order?.paymentTerms === PaymentTermsSchema.enum.UPFRONT;
   const { data: paymentSummary, isLoading: paymentLoading } =
     trpc.upfrontPayment.getPaymentSummary.useQuery(
       { orderId: id! },

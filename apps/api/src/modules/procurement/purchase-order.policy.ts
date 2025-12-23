@@ -147,7 +147,7 @@ export class PurchaseOrderPolicy {
   /**
    * T026: Validate PO can accept upfront payment registration.
    * - PO must exist and be CONFIRMED or later (not DRAFT/CANCELLED)
-   * - PO must have paymentTerms = UPFRONT or PARTIAL
+   * - PO must have paymentTerms = UPFRONT
    */
   static ensureCanRegisterPayment(order: {
     status: OrderStatus;
@@ -166,13 +166,10 @@ export class PurchaseOrderPolicy {
       );
     }
 
-    // Must be UPFRONT or PARTIAL payment terms
-    if (
-      order.paymentTerms !== PaymentTerms.UPFRONT &&
-      order.paymentTerms !== PaymentTerms.PARTIAL
-    ) {
+    // Must be UPFRONT payment terms
+    if (order.paymentTerms !== PaymentTerms.UPFRONT) {
       throw new DomainError(
-        'Payment registration only allowed for UPFRONT or PARTIAL payment terms',
+        'Payment registration only allowed for UPFRONT payment terms',
         400,
         DomainErrorCodes.PAYMENT_INVALID_TYPE
       );

@@ -463,7 +463,6 @@ enum PaymentTerms {
   COD
   EOM
   NET_30 // Legacy
-  PARTIAL // Partial upfront
   UPFRONT // Full payment before delivery
 }
 
