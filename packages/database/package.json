@@ -21,7 +21,7 @@
     "clean": "rm -rf dist",
     "dev": "tsc --watch",
     "lint": "eslint src --ext .ts",
-    "db:generate": "prisma generate",
+    "db:generate": "prisma generate && node ../scripts/patch-zod-types.mjs",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
@@ -32,7 +32,8 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "7.1.0",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/pg": "^8.16.0",
