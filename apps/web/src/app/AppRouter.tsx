@@ -24,10 +24,12 @@ import PaymentDetail from '@/features/accounting/pages/PaymentDetail';
 
 import TeamManagement from '@/features/company/pages/TeamManagement';
 import Finance from '@/features/accounting/pages/Finance';
+import Payments from '@/features/accounting/pages/Payments';
 import { RegisterPage } from '@/features/auth/components/RegisterPage';
 import { LoginPage } from '@/features/auth/components/LoginPage';
 import { CompanySelectionPage } from '@/features/company/pages/CompanySelectionPage';
 import CustomerDetail from '@/features/sales/pages/CustomerDetail';
+import Quotations from '@/features/sales/pages/Quotations';
 import SupplierDetail from '@/features/procurement/pages/SupplierDetail';
 import ProductDetail from '@/features/inventory/pages/ProductDetail';
 import JournalDetail from '@/features/accounting/pages/JournalDetail';
@@ -79,12 +81,14 @@ export function AppRouter() {
             path="sales-orders/:id"
             element={<SalesOrderDetail />}
           />
+          <Route path="quotations" element={<Quotations />} />
           <Route path="invoices" element={<Invoices />} />
           <Route path="invoices/:id" element={<InvoiceDetail />} />
           <Route path="bills" element={<AccountsPayable />} />
 
           <Route path="bills/:id" element={<BillDetail />} />
           <Route path="finance" element={<Finance />} />
+          <Route path="payments" element={<Payments />} />
           <Route path="payments/:id" element={<PaymentDetail />} />
           <Route path="journals" element={<JournalEntries />} />
           <Route path="journals/:id" element={<JournalDetail />} />
