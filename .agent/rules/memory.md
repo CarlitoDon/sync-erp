@@ -1,24 +1,22 @@
 ---
 trigger: model_decision
-description: Gunakan file ini untuk memorizing
 ---
 
 <!--
 MEMORY SYNC REPORT
-Version: 1.4.0 -> 1.5.0 (Minor - tRPC Architecture Migration)
-Added Sections:
-- Key Decision: tRPC Router Architecture (Controller layer removed)
+Version: 1.5.1 -> 1.5.2 (Patch - Compression)
+Added Sections: None
 Modified Sections:
-- Overview: Updated stack to include tRPC
-- Layer Responsibility: Updated Controller to Router terminology
+- Architecture: Merged tRPC and Layer Responsibility decisions
+- Issues: Removed resolved items
 Removed Sections:
-- None
+- Redundant table rows
 Last Updated: 2025-12-23
 -->
 
 # Project Memory
 
-**Version**: 1.5.0 | **Last Updated**: 2025-12-23
+**Version**: 1.5.2 | **Last Updated**: 2025-12-23
 
 ## Overview
 
@@ -31,107 +29,56 @@ Last Updated: 2025-12-23
 
 ---
 
-### [2025-12-23] tRPC Router Architecture (Controller Layer Removed)
+### [2025-12-23] No Hardcoded Enums
 
-**Decision**: Migrated from Express Controller to tRPC Router architecture:
+**Decision**: Do NOT hardcode enum schemas in `validators/`. **Use generated schemas** from `packages/shared/src/generated/zod/index.ts`.
+**Examples**: ❌ `z.enum(['SALES'])` → ✅ `import { OrderTypeSchema } ...`
+**Rationale**: Single source of truth from Prisma schema (Principle IX).
 
-| Aspect            | Before                                                         | After                                                       |
-| ----------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
-| API Layer         | HTTP/REST + Express Controller                                 | **tRPC**                                                    |
-| Architecture      | 5-Layer (Route → Controller → Service → Policy → Repository)   | **4-Layer** (tRPC Router → Service → Policy → Repository)   |
-| Data Flow         | `web → HTTP → controller → service → policy → repository → db` | `web → tRPC → router → service → policy → repository → db`  |
-| Frontend Fetching | Custom hooks (`useCompanyData`)                                | **tRPC React Query hooks** (`trpc.invoice.list.useQuery()`) |
+### [2025-12-23] Architecture: tRPC & Layer Boundaries
 
-**New Layer Responsibility**:
+**Decision**: Replaced Express Controllers with tRPC Routers. Established strict 4-Layer Architecture:
 
-| Layer      | Knows about                     | Must NOT know about   |
-| ---------- | ------------------------------- | --------------------- |
-| Router     | tRPC, auth, Zod validation, ctx | Business rules        |
-| Service    | Use case, state rules, policy   | SQL, table shape      |
-| Repository | Persistence, queries, locks     | State machine, policy |
-| Policy     | Business constraints            | DB, transactions      |
+| Layer       | Responsibility                    | Must NOT do                   |
+| ----------- | --------------------------------- | ----------------------------- |
+| **Router**  | tRPC procedures, Zod validation   | Business logic                |
+| **Service** | Use cases, state rules, policies  | SQL, direct DB access         |
+| **Policy**  | Pure business constraints         | DB access, transactions       |
+| **Repo**    | Usage of Prisma/SQL, optimization | State logic, intent branching |
 
-**Key Files**:
+**Key Rules**:
 
-- tRPC Setup: `apps/api/src/trpc/trpc.ts`
-- Main Router: `apps/api/src/trpc/router.ts`
-- Domain Routers: `apps/api/src/trpc/routers/*.router.ts`
-- tRPC Client: `apps/web/src/lib/trpc.ts`
+1. **Frontend**: Use tRPC hooks (`trpc.invoice.list.useQuery`) instead of custom fetchers.
+2. **Repo**: Knows _how_ to persist (SQL), not _why_ (Policy).
+3. **Service**: Purity is mandatory (no `prisma` imports).
 
-**Rationale**: tRPC provides end-to-end type safety, removes boilerplate, and eliminates need for separate Controller layer since procedures handle validation directly.
-**Reference**: Constitution Principle III (Layered Backend Architecture)
+### [2025-12-18] Business Flow Standards
 
-### [2025-12-18] Layer Responsibility Principles (Thin Router/Dumb Repository)
+1. **Integration Priority**: MANDATORY for all business flows (Constitution XVII).
+2. **API Seeding**: Use `./scripts/seed-via-api.sh` for reliable side-effect testing.
+3. **Preconditions**: Documents must validate precursors (Bill needs GRN).
+4. **Data Integrity**: Validate reference data (e.g. Accounts) before writing.
 
-**Decision**: Established clear boundaries for layer responsibilities:
+### [2025-12-16] Quality & Testing Safeguards
 
-| Layer      | Knows about                         | Must NOT know about                          |
-| ---------- | ----------------------------------- | -------------------------------------------- |
-| Controller | HTTP, auth, DTO                     | Business rules                               |
-| Service    | Use case, state rules, policy, saga | SQL, table shape                             |
-| Repository | Persistence, queries, locks         | State machine, policy, saga, business intent |
-| Policy     | Business constraints                | DB, transactions                             |
-
-**Key Rule**: Repository knows _how_ to talk to the database, not _why_ a write is allowed.
-
-**Repository MAY do**: SQL shape, atomic guards (`balance: { gte: amount }`), optimistic concurrency, row locking, aggregate-safe updates.
-
-**Repository MUST NOT do**: State logic, policy checks, intent branching, saga orchestration.
-
-**Mental Test**: "If I move from Prisma to raw SQL, would this logic still make sense here?" Yes → repository. No → service/policy.
-
-**Rationale**: Prevents business logic leakage and maintains testability.
-**Reference**: Constitution Principle VIII (Service Purity)
-
-### [2025-12-18] Business Flow & Integrity Standards (Phase 1 Ready)
-
-**Decision**: Consolidated 6 key standards for system correctness:
-
-1. **Integration Priority**: Integration tests are **MANDATORY** for all business flows (Constitution XVII).
-2. **API Seeding**: Use `./scripts/seed-via-api.sh` for transactions to ensure side effects (Sagas, Journals).
-3. **Prerequisite Check**: Documents must validate preconditions (Bills need GRN, Invoices need SO).
-4. **Service Purity**: Services MUST NOT import `prisma`. Use Repository layer only.
-5. **Data Validation**: Verify Chart of Accounts (e.g. 2105) before journal creation.
-6. **Policy Ownership**: Business rules (e.g. stock validation) belong in `Policy`, not `Repository`.
-
-### [2025-12-16] Integration & Quality Safeguards
-
-**Decision**: Established 4 tactical safeguards for Phase 1 transition:
-
-1. **Saga Testing**: Mock the Saga orchestrator, not individual repositories, in integration tests.
-2. **Vitest Hoisting**: Use `function() { return mockInstance }` pattern for `vi.mock()`.
-3. **Phase 0 Close**: Gate review approved logic/config changes but remains watchful of `BusinessShape` flatness.
-4. **Case A1 Prevention**: Verify all new files (Policy/Rules) are actually imported/linked; no orphans.
-
-### [2025-12-15] Interface & Architectural Consistency
-
-**Decision**: Unified UI/UX and Backend patterns:
-
-1. **Shared Components**: Extract common UI (e.g. `RecordPaymentModal`) to `components/shared/`.
-2. **Backend-First Linking**: Use DB `include`/joins for related data instead of client-side loops (N+1 removal).
-3. **Module Symmetries**: Sales/Procurement and AP/AR must mirror implementation naming and structure.
-4. **Schema-First**: All new fields must exist in Zod schema first (Constitution Principle IX).
-5. **Standalone Services**: Frontend services use standalone functions to stay callback-safe (no `this`).
+1. **Saga Testing**: Mock the orchestrator in integration tests, not the repos.
+2. **Vitest**: Use `function() { return mockInstance }` for hoisting.
+3. **Imports**: Verify no "orphan" files after creation (Case A1 prevention).
 
 ---
 
 ## Known Issues & Workarounds
 
-> Persistent issues that need workarounds. Mark RESOLVED when fixed.
-
-| Issue                                                | Status   | Workaround                                                                                                           |
-| ---------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
-| Old orders have subtotal-only `totalAmount`          | KNOWN    | Only new orders include tax                                                                                          |
-| IDE lint may be stale                                | KNOWN    | Use `npx tsc --noEmit` as source of truth                                                                            |
-| **Dev server always running during development**     | NOTE     | User runs `Dev: Start All` and `TypeScript: Watch` in separate terminals. Do NOT try to start dev server yourself.   |
-| **Case A1: Orphan files created but not integrated** | KNOWN    | After creating any new file, grep for imports to verify it's actually used. Check `grep -r "import.*filename" apps/` |
-| **Account 2105 was missing from seed**               | RESOLVED | Added to `packages/database/prisma/seed.ts` - always verify accounts exist before creating journal entries           |
+| Issue                                       | Status | Workaround                             |
+| :------------------------------------------ | :----- | :------------------------------------- |
+| Old orders have subtotal-only `totalAmount` | KNOWN  | Only new orders include tax            |
+| IDE lint may be stale                       | KNOWN  | Trust `npx tsc --noEmit`               |
+| **Dev server always running**               | NOTE   | Do NOT start manually.                 |
+| **Orphan files (Case A1)**                  | KNOWN  | Grep imports after creating new files. |
 
 ---
 
 ## Frequently Used Patterns
-
-### Global Patterns Index
 
 ````carousel
 ```typescript
@@ -146,40 +93,22 @@ const { data, loading, refresh } = useCompanyData(() => svc.list(), []);
 ```
 <!-- slide -->
 ```typescript
-// Pattern: useConfirm
-const proceed = await confirm.show({ title: 'Delete?', danger: true });
-```
-<!-- slide -->
-```typescript
 // Pattern: Vitest 4.x Mock
 vi.mock('../svc', () => ({ Svc: () => mockInstance }));
 ```
-````
-
-### Business Flow Prerequisite (Implementation)
-
+<!-- slide -->
 ```typescript
-// Service validates via Policy before Repo action
-async createFromPO(companyId: string, data: CreateBillInput) {
-  const order = await this.repository.findOrder(data.orderId, companyId);
-  BillPolicy.ensureOrderReadyForBill(order);
-  const grnCount = await this.inventoryRepository.countByOrderReference(companyId, data.orderId, 'IN');
-  BillPolicy.ensureGoodsReceived(grnCount);
-  return this.repository.create({ ...data, companyId });
+// Pattern: Policy Check in Service
+async createFromPO(id, data) {
+  const order = await this.repo.find(id);
+  BillPolicy.ensureOrderReady(order); // Logic here
+  return this.repo.create(data);
 }
 ```
-
----
+````
 
 ## Update Guidelines
 
-1. **Version Bump**: MAJOR.MINOR.PATCH following semver
-   - MAJOR: Structure changes, section removals
-   - MINOR: New sections, significant entries
-   - PATCH: Entry updates, typo fixes
-
-2. **Adding Decisions**: Add at TOP of Key Decisions Log with date
-
-3. **Sync Report**: Update HTML comment at top when modifying
-
-4. **Constitution Sync**: Memory complements constitution, does not duplicate it
+1. **Version Bump**: MAJOR.MINOR.PATCH
+2. **Add Decisions**: At TOP with date.
+3. **Sync**: Copy to `.agent/rules/memory.md` after edit.
