@@ -1,147 +1,108 @@
-# Feature Specification: [FEATURE NAME]
+# Feature Specification: Integrasi Prisma + Zod + tRPC (Architecture)
 
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
-**Status**: Draft  
-**Input**: User description: "$ARGUMENTS"
+**Feature Branch**: `037-prisma-zod-trpc`
+**Created**: 2025-12-23
+**Status**: Draft
+**Input**: Standardize Architecture: Prisma + Zod + tRPC
 
-## User Scenarios & Testing _(mandatory)_
+## Clarifications
 
-<!--
-  IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
-  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
-  you should still have a viable MVP (Minimum Viable Product) that delivers value.
+### Session 2025-12-23
 
-  Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
-  Think of each story as a standalone slice of functionality that can be:
-  - Developed independently
-  - Verified via Integration Testing
-  - Deployed independently
-  - Demonstrated to users independently
--->
+- **Q**: Is this covering the entire project? → **A**: **Option B (Core Modules - O2C & P2P)**. Refactor Purchase Order AND Sales Order.
+- **Q**: How to handle legacy manual Enums? → **A**: **Option B (Aggressive Cleanup)**. Delete manual definitions (e.g., `PaymentTerms`) and fix all breakages immediately.
 
-### User Story 1 - [Brief Title] (Priority: P1)
+## User Scenarios & Testing
 
-[Describe this user journey in plain language]
+### User Story 1 - Setup Zod Generator Pipeline (Priority: P1)
 
-**Why this priority**: [Explain the value and why it has this priority level]
+As a backend developer, I want `zod-prisma-types` configured in the codebase so that Zod schemas are automatically generated from my Prisma models, preventing enum duplication and schema drift.
 
-**Integration Scenario**: [Describe how this can be verified via integration test - e.g., "Full flow from [trigger] to [DB record] and [UI update]"]
+**Why this priority**: Foundation for the entire architecture.
 
-**Acceptance Scenarios**:
+**Integration Scenario**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-2. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. Run `npx prisma generate`.
+2. Check `packages/shared/src/generated/zod/index.ts`.
+3. Verify it contains `PaymentTermsSchema`, `OrderSchema`, etc.
+4. Verify `PaymentTermsSchema` strictly matches the Prisma enum.
 
 ---
 
-### User Story 2 - [Brief Title] (Priority: P2)
+### User Story 2 - Refactor Core Modules (PO & SO) (Priority: P2)
 
-[Describe this user journey in plain language]
+As a developer, I want both Procurement (Purchase Order) and Sales (Sales Order) modules to use the generated Zod schemas so that the core business flows (P2P and O2C) follow the new "Clean Architecture" pattern.
 
-**Why this priority**: [Explain the value and why it has this priority level]
+**Why this priority**: Ensures both sides of the trading platform are consistent and strictly typed.
 
-**Independent Test**: [Describe how this can be tested independently]
+**Integration Scenario**:
 
-**Acceptance Scenarios**:
-
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-
----
-
-### User Story 3 - [Brief Title] (Priority: P3)
-
-[Describe this user journey in plain language]
-
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently]
+1. **Purchase Order**: Frontend calls `purchaseOrder.create` with valid/invalid payloads. Validation happens at tRPC boundary via generated schema.
+2. **Sales Order**: Frontend calls `salesOrder.create` with valid/invalid payloads. Validation happens at tRPC boundary.
+3. Both services receive strictly typed inputs.
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. **Given** the `createPOSchema` and `createSOSchema` in `packages/shared` (derived from generated types), **When** I define the tRPC procedures, **Then** they must use these schemas.
+2. **Given** `PurchaseOrderService` and `SalesOrderService`, **When** inspected, **Then** methods accept Zod-inferred types, not raw `any` or manual interfaces.
+3. **Given** the `PaymentTerms` enum, **When** used in either module, **Then** it must come from `@/generated/zod`.
 
 ---
 
-[Add more user stories as needed, each with an assigned priority]
+### User Story 3 - Aggressive Legacy Cleanup (Priority: P3)
 
-### Edge Cases
+As a maintainer, I want manual Enum definitions removed from `packages/shared` so that there is only ONE source of truth (Prisma) for database Enums.
 
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right edge cases.
--->
+**Why this priority**: Prevents future drift where a developer updates Prisma but forgets the manual file.
 
-- What happens when [boundary condition]?
-- How does system handle [error scenario]?
+**Integration Scenario**:
 
-## Requirements _(mandatory)_
+1. Delete manual `PaymentTerms` definition in `packages/shared`.
+2. Run full type-check (`tsc`).
+3. Fix all errors in Finance, Inventory, and other dependent modules by pointing them to the generated Enum.
 
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right functional requirements.
--->
+**Acceptance Scenarios**:
+
+1. **Given** the codebase, **When** searching for `enum PaymentTerms`, **Then** it should ONLY appear in `schema.prisma` and generated files (no manual TS definitions).
+2. **Given** the build process, **When** `npm run type-check` is executed, **Then** it passes with 0 errors.
+
+## Requirements
 
 ### Functional Requirements
 
-- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]
-- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-- **FR-005**: System MUST [behavior, e.g., "log all security events"]
+- **FR-001**: System MUST include `zod-prisma-types` configuration in `packages/database`.
+- **FR-002**: Auto-generation MUST output Zod schemas to `packages/shared/src/generated/zod`.
+- **FR-003**: `packages/shared` MUST export these generated schemas.
+- **FR-004**: `PurchaseOrder` module (Router + Service) MUST be refactored to use generated types.
+- **FR-005**: `SalesOrder` module (Router + Service) MUST be refactored to use generated types.
+- **FR-006**: Manual definition of `PaymentTerms` in `packages/shared` MUST be deleted.
+- **FR-007**: All references to the old `PaymentTerms` (in Finance, Inventory, etc.) MUST be updated to import the generated one.
 
-_Example of marking unclear requirements:_
+### Key Entities
 
-- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
+- **Prisma Generator**: `zod-prisma-types`
+- **Shared Schemas**: `packages/shared/src/generated`
+- **Core Modules**: Procurement (PO) and Sales (SO)
 
-### Key Entities _(include if feature involves data)_
-
-- **[Entity 1]**: [What it represents, key attributes without implementation]
-- **[Entity 2]**: [What it represents, relationships to other entities]
-
-## Success Criteria _(mandatory)_
-
-<!--
-  ACTION REQUIRED: Define measurable success criteria.
-  These must be technology-agnostic and measurable.
--->
+## Success Criteria
 
 ### Measurable Outcomes
 
-- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
-- **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
-- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
-- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+- **SC-001**: `npx prisma generate` produces functional Zod schemas.
+- **SC-002**: Zero manual `enum` definitions for `PaymentTerms` in the codebase (outside generated folders).
+- **SC-003**: `PurchaseOrderRouter` and `SalesOrderRouter` delegated fully to Services with type-safe inputs.
+- **SC-004**: Build (`npm run build`) and Tests (`npm test`) pass successfully after the aggressive cleanup.
 
-## Constitution & Architecture Compliance _(mandatory)_
-
-<!--
-  ACTION REQUIRED: Verify compliance with Constitution v3.2.0.
-  See `.agent/rules/constitution.md` for full details.
--->
+## Constitution & Architecture Compliance
 
 ### Backend Architecture (Apps/API) - Principles I, II, III, XXI
 
-- [ ] **5-Layer Architecture**: Logic strictly follows Route → Controller → Service → Policy → Repository.
-- [ ] **Schema-First**: All new fields defined in `packages/shared` Zod schemas first.
-- [ ] **Multi-Tenant**: All DB queries scoped by `companyId`.
-- [ ] **Service Purity**: Service layer DOES NOT import `prisma` (uses Repository only).
-- [ ] **Policy & Rules**: Business constraints in Policy, pure logic in `rules/`.
-- [ ] **Repository Purity**: No business logic in Repository (Data access only).
-- [ ] **Anti-Bloat**: No redundant business logic methods added; existing ones updated (XXI).
-
-### Frontend Architecture (Apps/Web) - Principles IV, XI
-
-- [ ] **Feature Isolation**: Logic in `src/features/[domain]` (not global).
-- [ ] **No Business Logic**: Components do not calculate state (render `backendState` only).
-- [ ] **API Patterns**: Using `apiAction()` helper (never direct toast/try-catch).
-- [ ] **User Safety**: Using `useConfirm()` hook (never `window.confirm`).
-- [ ] **State Projection**: UI reflects exact backend state without optimistic guessing (unless specific policy).
+- [x] **5-Layer Architecture**: Logic checks in Service, Router is transport only.
+- [x] **Schema-First**: Enforced via Generation.
+- [x] **Service Purity**: Service uses Repository/Prisma via correct abstraction (or directs if permitted by current phase, but Goal is Clean Arch).
+- [x] **Anti-Bloat**: Refactoring only, no new business logic features added.
 
 ### Testing & Quality - Principles XV, XVII
 
-- [ ] **Integration Tests**: Full business flow covered in single `it()` block.
-- [ ] **Mock Compliance**: Mocks satisfy all Policy/Service contract expectations.
-- [ ] **Financial Precision**: All assertions use `Number()` or `Decimal` aware checks.
-- [ ] **Zero-Lag**: No interaction freezes the main thread.
+- [x] **Integration Tests**: Existing tests for PO and SO must pass.
+- [x] **Type Safety**: Full strict mode compliance required for the refactor.
