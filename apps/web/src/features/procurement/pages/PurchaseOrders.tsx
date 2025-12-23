@@ -39,6 +39,7 @@ export default function PurchaseOrders() {
     partnerId: '',
     items: [] as OrderItemForm[],
     taxRate: 0,
+    paymentTerms: 'NET_30' as 'NET_30' | 'PARTIAL' | 'UPFRONT', // Feature 036
   });
 
   const [currentItem, setCurrentItem] = useState<OrderItemForm>({
@@ -74,6 +75,7 @@ export default function PurchaseOrders() {
           partnerId: formData.partnerId,
           items: formData.items,
           taxRate: formData.taxRate,
+          paymentTerms: formData.paymentTerms, // Feature 036
         }),
       'Purchase order created!'
     );
@@ -83,7 +85,12 @@ export default function PurchaseOrders() {
 
   const handleClose = () => {
     setIsModalOpen(false);
-    setFormData({ partnerId: '', items: [], taxRate: 0 });
+    setFormData({
+      partnerId: '',
+      items: [],
+      taxRate: 0,
+      paymentTerms: 'NET_30',
+    });
     setCurrentItem({ productId: '', quantity: 1, price: 0 });
   };
 
@@ -157,6 +164,34 @@ export default function PurchaseOrders() {
                 label: s.name,
               }))}
               placeholder="Select a supplier"
+            />
+          </div>
+
+          {/* Feature 036: Payment Terms */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Payment Terms
+            </label>
+            <Select
+              value={formData.paymentTerms}
+              onChange={(val) =>
+                setFormData({
+                  ...formData,
+                  paymentTerms: val as
+                    | 'NET_30'
+                    | 'PARTIAL'
+                    | 'UPFRONT',
+                })
+              }
+              options={[
+                { value: 'NET_30', label: 'Net 30 (Standard)' },
+                { value: 'PARTIAL', label: 'Partial Upfront' },
+                {
+                  value: 'UPFRONT',
+                  label: 'Cash Upfront (Prepaid Required)',
+                },
+              ]}
+              placeholder="Select payment terms"
             />
           </div>
 

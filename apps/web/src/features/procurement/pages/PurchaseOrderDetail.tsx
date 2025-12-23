@@ -9,6 +9,9 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import { BackButton } from '@/components/ui/BackButton';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
+// Feature 036: Payment badges
+import { PaymentTermsBadge } from '../components/PaymentTermsBadge';
+import { PaymentStatusBadge } from '../components/PaymentStatusBadge';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -169,12 +172,34 @@ export default function PurchaseOrderDetail() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <span
               className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
             >
               {order.status}
             </span>
+            {/* Feature 036: Payment badges */}
+            {order.paymentTerms && (
+              <PaymentTermsBadge
+                terms={
+                  order.paymentTerms as
+                    | 'NET_30'
+                    | 'PARTIAL'
+                    | 'UPFRONT'
+                }
+              />
+            )}
+            {order.paymentStatus && (
+              <PaymentStatusBadge
+                status={
+                  order.paymentStatus as
+                    | 'PENDING'
+                    | 'PARTIAL'
+                    | 'PAID_UPFRONT'
+                    | 'SETTLED'
+                }
+              />
+            )}
           </div>
         </div>
 

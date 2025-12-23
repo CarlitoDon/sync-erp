@@ -48,6 +48,7 @@ export class PurchaseOrderService {
       partnerId: string;
       items: { productId: string; quantity: number; price: number }[];
       taxRate?: number;
+      paymentTerms?: 'NET_30' | 'PARTIAL' | 'UPFRONT'; // Feature 036
     },
     shape?: BusinessShape,
     userId?: string
@@ -74,6 +75,8 @@ export class PurchaseOrderService {
     const totalAmount = subtotal + taxAmount;
 
     // Prepare create data
+    // Feature 036: Set payment terms and initial status
+    const paymentTerms = data.paymentTerms || 'NET_30';
     const createData: Prisma.OrderUncheckedCreateInput = {
       companyId,
       partnerId: data.partnerId,
@@ -82,6 +85,10 @@ export class PurchaseOrderService {
       orderNumber,
       totalAmount,
       taxRate: data.taxRate || 0,
+      paymentTerms: paymentTerms,
+      // If UPFRONT, set initial paymentStatus to PENDING
+      paymentStatus: paymentTerms === 'UPFRONT' ? 'PENDING' : null,
+      paidAmount: 0,
       items: {
         create: data.items.map((item) => ({
           productId: item.productId,
