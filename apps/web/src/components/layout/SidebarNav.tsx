@@ -14,15 +14,17 @@ import {
   UsersIcon,
   DocumentCheckIcon,
   ArrowDownTrayIcon,
-  PaperAirplaneIcon,
+  ArrowUpTrayIcon,
   CurrencyDollarIcon,
   Cog6ToothIcon,
+  ClipboardDocumentListIcon,
+  WalletIcon,
 } from '@heroicons/react/24/outline';
 
 export default function SidebarNav() {
   return (
     <nav className="flex-1 px-3 py-4 overflow-y-auto">
-      {/* Dashboard - Always visible at top */}
+      {/* Dashboard */}
       <SidebarItem path="/" label="Dashboard" icon={<HomeIcon />} />
 
       {/* Sales Division */}
@@ -33,18 +35,18 @@ export default function SidebarNav() {
           icon={<UserGroupIcon />}
         />
         <SidebarItem
+          path="/quotations"
+          label="Quotations"
+          icon={<ClipboardDocumentListIcon />}
+        />
+        <SidebarItem
           path="/sales-orders"
           label="Sales Orders"
           icon={<ShoppingCartIcon />}
         />
-        <SidebarItem
-          path="/shipments"
-          label="Shipments"
-          icon={<PaperAirplaneIcon />}
-        />
       </SidebarGroup>
 
-      {/* Procurement Division */}
+      {/* Purchasing Division */}
       <SidebarGroup label="Purchasing" icon={<ArrowDownTrayIcon />}>
         <SidebarItem
           path="/suppliers"
@@ -56,14 +58,9 @@ export default function SidebarNav() {
           label="Purchase Orders"
           icon={<DocumentCheckIcon />}
         />
-        <SidebarItem
-          path="/receipts"
-          label="Goods Receipts"
-          icon={<ArchiveBoxIcon />}
-        />
       </SidebarGroup>
 
-      {/* Inventory Division */}
+      {/* Inventory Division - Operations Hub */}
       <SidebarGroup label="Inventory" icon={<CubeIcon />}>
         <SidebarItem
           path="/products"
@@ -75,19 +72,34 @@ export default function SidebarNav() {
           label="Stock Levels"
           icon={<ArchiveBoxIcon />}
         />
+        <SidebarItem
+          path="/receipts"
+          label="Receipts"
+          icon={<ArrowDownTrayIcon />}
+        />
+        <SidebarItem
+          path="/shipments"
+          label="Deliveries"
+          icon={<ArrowUpTrayIcon />}
+        />
       </SidebarGroup>
 
       {/* Finance Division */}
       <SidebarGroup label="Finance" icon={<BanknotesIcon />}>
         <SidebarItem
           path="/invoices"
-          label="Invoices"
+          label="Customer Invoices"
           icon={<DocumentTextIcon />}
         />
         <SidebarItem
           path="/bills"
-          label="Bills"
+          label="Vendor Bills"
           icon={<CreditCardIcon />}
+        />
+        <SidebarItem
+          path="/payments"
+          label="Payments"
+          icon={<WalletIcon />}
         />
         <SidebarItem
           path="/finance"
@@ -96,7 +108,7 @@ export default function SidebarNav() {
         />
       </SidebarGroup>
 
-      {/* Settings - collapsed by default */}
+      {/* Settings */}
       <SidebarGroup
         label="Settings"
         icon={<Cog6ToothIcon />}
