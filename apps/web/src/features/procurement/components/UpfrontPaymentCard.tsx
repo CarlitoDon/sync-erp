@@ -86,13 +86,13 @@ export function UpfrontPaymentCard({
         )}
       </div>
 
-      {/* Register Payment Button */}
+      {/* Record Payment Button */}
       {canRegisterPayment && remainingAmount > 0 && (
         <button
           onClick={onRegisterPayment}
           className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
         >
-          Register Payment
+          Record Payment
         </button>
       )}
 

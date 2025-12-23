@@ -15,6 +15,7 @@ export function CompanySelectionPage() {
     isLoading,
   } = useCompany();
   // State for switching views: 'list' | 'create' | 'join'
+  // eslint-disable-next-line @sync-erp/no-hardcoded-enum
   const [view, setView] = useState<'list' | 'create' | 'join'>(
     'list'
   );

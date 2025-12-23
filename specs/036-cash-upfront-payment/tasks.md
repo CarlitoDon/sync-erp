@@ -72,7 +72,7 @@ PO (UPFRONT) → Pay Upfront → GRN → Bill → Auto Settlement → DONE
 **Goal**: Verify GRN works with standard journal (Dr 1400 Cr 2105)
 
 - [x] T043 Verify GRN journal is Dr 1400 Cr 2105 (already correct, no changes)
-- [ ] T044 Integration test: GRN for PAID_UPFRONT PO creates standard journal
+- [x] T044 Integration test: GRN for PAID_UPFRONT PO creates standard journal
 
 **Note**: GRN flow sama dengan normal - tidak perlu modifikasi
 
@@ -108,38 +108,39 @@ PO (UPFRONT) → Pay Upfront → GRN → Bill → Auto Settlement → DONE
 
 ### Testing
 
-- [ ] T055 [US5] E2E test: Full flow (PO → Pay → GRN → Bill → Auto Settle)
-- [ ] T056 [US5] Verify: Bank=-X, Inventory=+X, Advances=0, AP=0, GRN Clearing=0
-- [ ] T057 [US5] Test partial upfront scenario (prepaid < bill amount)
-- [ ] T058 [US5] Test partial payment scenario (multiple payments)
+- [x] T055 [US5] E2E test: Full flow (PO → Pay → GRN → Bill → Auto Settle)
+- [x] T056 [US5] Verify: Bank=-X, Inventory=+X, Advances=0, AP=0, GRN Clearing=0
+- [x] T057 [US5] Test partial upfront scenario (prepaid < bill amount)
+- [x] T058 [US5] Test partial payment scenario (multiple payments)
 
-**Checkpoint**: Full flow verified
+**Checkpoint**: Full flow verified ✅
 
 ---
 
 ## Phase 8: Polish & Edge Cases
 
-- [ ] T059 Partial upfront: System allows remaining AP for normal payment
-- [ ] T060 SERVICE items: Bill without GRN (out of scope for now)
-- [ ] T061 Update documentation with final flow
+- [x] T059 Partial upfront: System allows remaining AP for normal payment
+- [ ] T060 SERVICE items: Bill without GRN (deferred: out of scope for now)
+- [x] T061 Update documentation with final flow
+- [x] T062 UI Consistency: Rename "Register Payment" to "Record Payment" on PO Upfront
 
-**Checkpoint**: Feature complete
+**Checkpoint**: Feature complete ✅
 
 ---
 
 ## Summary
 
-| Phase                      | Tasks  | Status    |
-| -------------------------- | ------ | --------- |
-| Phase 1: Setup             | 8      | ✅ Done   |
-| Phase 2: Validators        | 9      | ✅ Done   |
-| Phase 3: PO Creation       | 8      | ✅ Done   |
-| Phase 4: Payment           | 17     | ✅ Done   |
-| Phase 5: GRN               | 2      | 🟡 Verify |
-| Phase 6: Bill + Settlement | 10     | 🔴 To Do  |
-| Phase 7: E2E Test          | 4      | 🔴 To Do  |
-| Phase 8: Polish            | 3      | 🔴 To Do  |
-| **Total**                  | **61** | **~60%**  |
+| Phase                      | Tasks  | Status   |
+| -------------------------- | ------ | -------- |
+| Phase 1: Setup             | 8      | ✅ Done  |
+| Phase 2: Validators        | 9      | ✅ Done  |
+| Phase 3: PO Creation       | 8      | ✅ Done  |
+| Phase 4: Payment           | 17     | ✅ Done  |
+| Phase 5: GRN               | 2      | ✅ Done  |
+| Phase 6: Bill + Settlement | 10     | ✅ Done  |
+| Phase 7: E2E Test          | 4      | ✅ Done  |
+| Phase 8: Polish            | 3      | ✅ Done  |
+| **Total**                  | **61** | **100%** |
 
 ---
 

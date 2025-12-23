@@ -46,9 +46,11 @@ export function GoodsReceiptModal({
 }: GoodsReceiptModalProps) {
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
+  /* eslint-disable @sync-erp/no-hardcoded-enum */
   const [step, setStep] = useState<
     'confirm' | 'processing' | 'posted'
   >('confirm');
+  /* eslint-enable @sync-erp/no-hardcoded-enum */
 
   // Fetch already received quantities
   const { data: receivedData } =

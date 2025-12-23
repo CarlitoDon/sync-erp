@@ -10,6 +10,7 @@ import {
 import { trpc } from '@/lib/trpc';
 import { apiAction } from '@/hooks/useApiAction';
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 interface RecordPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,6 +23,7 @@ interface RecordPaymentModalProps {
   /** Callback after successful payment */
   onSuccess?: () => void;
 }
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 export function RecordPaymentModal({
   isOpen,

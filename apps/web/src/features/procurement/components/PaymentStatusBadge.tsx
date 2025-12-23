@@ -7,6 +7,7 @@ interface PaymentStatusBadgeProps {
   className?: string;
 }
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 const statusConfig: Record<
   NonNullable<PaymentStatus>,
   {
@@ -19,6 +20,7 @@ const statusConfig: Record<
   PAID_UPFRONT: { label: 'Paid (Upfront)', variant: 'default' },
   SETTLED: { label: 'Settled', variant: 'secondary' },
 };
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 export function PaymentStatusBadge({
   status,

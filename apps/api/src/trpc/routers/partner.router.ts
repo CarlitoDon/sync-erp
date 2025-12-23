@@ -1,4 +1,5 @@
 import { router, protectedProcedure } from '../trpc';
+import { PartnerType } from '@sync-erp/database';
 import { PartnerService } from '../../modules/partner/partner.service';
 import {
   CreatePartnerSchema,
@@ -9,13 +10,10 @@ import { z } from 'zod';
 const partnerService = new PartnerService();
 
 export const partnerRouter = router({
-  /**
-   * List all partners for current company
-   */
   list: protectedProcedure
     .input(
       z
-        .object({ type: z.enum(['CUSTOMER', 'SUPPLIER']).optional() })
+        .object({ type: z.nativeEnum(PartnerType).optional() })
         .optional()
     )
     .query(async ({ ctx, input }) => {

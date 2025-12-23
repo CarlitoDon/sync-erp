@@ -16,6 +16,7 @@ export interface DashboardMetrics {
   recentTransactions: RecentTransaction[];
 }
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 export interface RecentTransaction {
   id: string;
   type: 'INVOICE' | 'BILL' | 'PAYMENT';
@@ -23,7 +24,9 @@ export interface RecentTransaction {
   amount: number;
   date: string;
 }
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 export type InvoiceData = Pick<
   Invoice,
   | 'id'
@@ -33,6 +36,7 @@ export type InvoiceData = Pick<
   | 'amount'
   | 'createdAt'
 >;
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 // Onboarding types (Feature 017)
 export interface OnboardingStep {

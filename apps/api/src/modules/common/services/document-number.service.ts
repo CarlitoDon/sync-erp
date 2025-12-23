@@ -1,19 +1,13 @@
 import { prisma, SequenceType } from '@sync-erp/database';
 
-export type DocumentType =
-  | 'PO'
-  | 'SO'
-  | 'INV'
-  | 'BILL'
-  | 'JE'
-  | 'CN'
-  | 'GRN'
-  | 'PAY';
+export const DocumentType = SequenceType;
+export type DocumentType = SequenceType;
 
 interface DocumentNumberConfig {
   prefix: string;
   separator: string;
   includeYear: boolean;
+  // eslint-disable-next-line @sync-erp/no-hardcoded-enum
   yearFormat: '2' | '4'; // YY or YYYY
   sequenceLength: number;
 }

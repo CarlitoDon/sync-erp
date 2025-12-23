@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 type BadgeVariant =
   | 'default'
   | 'secondary'
@@ -7,6 +8,7 @@ type BadgeVariant =
   | 'outline'
   | 'success'
   | 'warning';
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;

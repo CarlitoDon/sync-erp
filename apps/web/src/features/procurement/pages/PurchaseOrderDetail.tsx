@@ -14,6 +14,12 @@ import { PaymentTermsBadge } from '../components/PaymentTermsBadge';
 import { PaymentStatusBadge } from '../components/PaymentStatusBadge';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { UpfrontPaymentCard } from '../components/UpfrontPaymentCard';
+import {
+  PaymentTermsSchema,
+  OrderStatusSchema,
+  PaymentTermsType,
+  PaymentStatusType,
+} from '@sync-erp/shared';
 import { PaymentHistoryTable } from '../components/PaymentHistoryTable';
 
 export default function PurchaseOrderDetail() {
@@ -36,8 +42,8 @@ export default function PurchaseOrderDetail() {
 
   // Feature 036: Fetch payment summary for upfront orders
   const isUpfrontOrder =
-    order?.paymentTerms === 'UPFRONT' ||
-    order?.paymentTerms === 'PARTIAL';
+    order?.paymentTerms === PaymentTermsSchema.enum.UPFRONT ||
+    order?.paymentTerms === PaymentTermsSchema.enum.PARTIAL;
   const { data: paymentSummary, isLoading: paymentLoading } =
     trpc.upfrontPayment.getPaymentSummary.useQuery(
       { orderId: id! },
@@ -84,17 +90,17 @@ export default function PurchaseOrderDetail() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DRAFT':
+      case OrderStatusSchema.enum.DRAFT:
         return 'bg-gray-100 text-gray-800';
-      case 'CONFIRMED':
+      case OrderStatusSchema.enum.CONFIRMED:
         return 'bg-blue-100 text-blue-800';
-      case 'PARTIALLY_RECEIVED':
+      case OrderStatusSchema.enum.PARTIALLY_RECEIVED:
         return 'bg-amber-100 text-amber-800';
-      case 'RECEIVED':
+      case OrderStatusSchema.enum.RECEIVED:
         return 'bg-teal-100 text-teal-800';
-      case 'COMPLETED':
+      case OrderStatusSchema.enum.COMPLETED:
         return 'bg-green-100 text-green-800';
-      case 'CANCELLED':
+      case OrderStatusSchema.enum.CANCELLED:
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -102,22 +108,25 @@ export default function PurchaseOrderDetail() {
   };
 
   const getReceiptStatus = (status: string) => {
-    if (status === 'RECEIVED' || status === 'COMPLETED')
+    if (
+      status === OrderStatusSchema.enum.RECEIVED ||
+      status === OrderStatusSchema.enum.COMPLETED
+    )
       return {
         label: 'Fully Received',
         color: 'text-green-600 bg-green-50',
       };
-    if (status === 'PARTIALLY_RECEIVED')
+    if (status === OrderStatusSchema.enum.PARTIALLY_RECEIVED)
       return {
         label: 'Partial',
         color: 'text-amber-600 bg-amber-50',
       };
-    if (status === 'CONFIRMED')
+    if (status === OrderStatusSchema.enum.CONFIRMED)
       return {
         label: 'Pending',
         color: 'text-blue-600 bg-blue-50',
       };
-    if (status === 'CANCELLED')
+    if (status === OrderStatusSchema.enum.CANCELLED)
       return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
     return { label: 'N/A', color: 'text-gray-400 bg-gray-50' };
   };
@@ -213,23 +222,12 @@ export default function PurchaseOrderDetail() {
             {/* Feature 036: Payment badges */}
             {order.paymentTerms && (
               <PaymentTermsBadge
-                terms={
-                  order.paymentTerms as
-                    | 'NET_30'
-                    | 'PARTIAL'
-                    | 'UPFRONT'
-                }
+                terms={order.paymentTerms as PaymentTermsType}
               />
             )}
             {order.paymentStatus && (
               <PaymentStatusBadge
-                status={
-                  order.paymentStatus as
-                    | 'PENDING'
-                    | 'PARTIAL'
-                    | 'PAID_UPFRONT'
-                    | 'SETTLED'
-                }
+                status={order.paymentStatus as PaymentStatusType}
               />
             )}
           </div>
@@ -348,8 +346,8 @@ export default function PurchaseOrderDetail() {
               paymentStatus={paymentSummary.paymentStatus}
               onRegisterPayment={() => setIsPaymentModalOpen(true)}
               canRegisterPayment={
-                order.status !== 'DRAFT' &&
-                order.status !== 'CANCELLED'
+                order.status !== OrderStatusSchema.enum.DRAFT &&
+                order.status !== OrderStatusSchema.enum.CANCELLED
               }
             />
             <PaymentHistoryTable
@@ -363,7 +361,7 @@ export default function PurchaseOrderDetail() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold mb-4">Actions</h2>
           <div className="flex flex-wrap gap-3">
-            {order.status === 'DRAFT' && (
+            {order.status === OrderStatusSchema.enum.DRAFT && (
               <>
                 <ActionButton
                   variant="primary"
@@ -376,8 +374,9 @@ export default function PurchaseOrderDetail() {
                 </ActionButton>
               </>
             )}
-            {(order.status === 'CONFIRMED' ||
-              order.status === 'PARTIALLY_RECEIVED') && (
+            {(order.status === OrderStatusSchema.enum.CONFIRMED ||
+              order.status ===
+                OrderStatusSchema.enum.PARTIALLY_RECEIVED) && (
               <ActionButton
                 variant="success"
                 onClick={() => setGoodsReceiptId(order.id)}
@@ -385,9 +384,10 @@ export default function PurchaseOrderDetail() {
                 Receive Goods
               </ActionButton>
             )}
-            {(order.status === 'RECEIVED' ||
-              order.status === 'PARTIALLY_RECEIVED' ||
-              order.status === 'COMPLETED') &&
+            {(order.status === OrderStatusSchema.enum.RECEIVED ||
+              order.status ===
+                OrderStatusSchema.enum.PARTIALLY_RECEIVED ||
+              order.status === OrderStatusSchema.enum.COMPLETED) &&
               (!order.invoices || order.invoices.length === 0) && (
                 <ActionButton
                   variant="primary"

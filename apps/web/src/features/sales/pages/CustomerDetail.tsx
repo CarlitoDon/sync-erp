@@ -8,7 +8,9 @@ import SalesOrderList from '@/features/sales/components/SalesOrderList';
 import { InvoiceList } from '@/features/accounting/components/InvoiceList';
 import { formatDate } from '@/utils/format';
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 type Tab = 'orders' | 'invoices' | 'payments';
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();

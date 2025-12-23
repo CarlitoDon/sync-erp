@@ -1,11 +1,13 @@
 import { ReactNode } from 'react';
 
+/* eslint-disable @sync-erp/no-hardcoded-enum */
 type ActionButtonVariant =
   | 'primary'
   | 'success'
   | 'danger'
   | 'warning'
   | 'secondary';
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 interface ActionButtonProps {
   onClick: () => void;

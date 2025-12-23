@@ -135,7 +135,7 @@ export class InventoryRepository {
   async countByReferencePatterns(
     companyId: string,
     patterns: string[],
-    type: 'IN' | 'OUT' = 'IN',
+    type: MovementType = MovementType.IN,
     tx?: Prisma.TransactionClient
   ): Promise<number> {
     const db = tx || prisma;

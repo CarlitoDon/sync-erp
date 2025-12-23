@@ -4,6 +4,10 @@ import Select from '@/components/ui/Select';
 import { trpc } from '@/lib/trpc';
 import { apiAction } from '@/hooks/useApiAction';
 import { formatCurrency } from '@/utils/format';
+import {
+  PaymentMethodSchema,
+  PaymentMethodType,
+} from '@sync-erp/shared';
 
 interface RegisterPaymentModalProps {
   isOpen: boolean;
@@ -40,7 +44,8 @@ export function RegisterPaymentModal({
 
   const [formData, setFormData] = useState({
     amount: remainingAmount,
-    method: 'BANK_TRANSFER' as 'CASH' | 'BANK_TRANSFER' | 'CHECK',
+    method: PaymentMethodSchema.enum
+      .BANK_TRANSFER as PaymentMethodType,
     reference: '',
   });
 
@@ -66,7 +71,7 @@ export function RegisterPaymentModal({
   const handleClose = () => {
     setFormData({
       amount: remainingAmount,
-      method: 'BANK_TRANSFER',
+      method: PaymentMethodSchema.enum.BANK_TRANSFER,
       reference: '',
     });
     onClose();
@@ -76,7 +81,7 @@ export function RegisterPaymentModal({
     <FormModal
       isOpen={isOpen}
       onClose={handleClose}
-      title={`Register Upfront Payment - ${orderNumber}`}
+      title={`Record Upfront Payment - ${orderNumber}`}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Payment Summary */}
@@ -137,13 +142,19 @@ export function RegisterPaymentModal({
             onChange={(val) =>
               setFormData({
                 ...formData,
-                method: val as 'CASH' | 'BANK_TRANSFER' | 'CHECK',
+                method: val as PaymentMethodType,
               })
             }
             options={[
-              { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-              { value: 'CASH', label: 'Cash' },
-              { value: 'CHECK', label: 'Check' },
+              {
+                value: PaymentMethodSchema.enum.BANK_TRANSFER,
+                label: 'Bank Transfer',
+              },
+              { value: PaymentMethodSchema.enum.CASH, label: 'Cash' },
+              {
+                value: PaymentMethodSchema.enum.CHECK,
+                label: 'Check',
+              },
             ]}
           />
         </div>
@@ -184,7 +195,7 @@ export function RegisterPaymentModal({
           >
             {registerMutation.isPending
               ? 'Processing...'
-              : 'Register Payment'}
+              : 'Record Payment'}
           </button>
         </div>
       </form>
