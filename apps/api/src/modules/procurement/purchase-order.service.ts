@@ -6,6 +6,8 @@ import {
   BusinessShape,
   AuditLogAction,
   EntityType,
+  PaymentStatus,
+  PaymentTerms,
   prisma,
 } from '@sync-erp/database';
 import { PurchaseOrderRepository } from './purchase-order.repository';
@@ -173,6 +175,15 @@ export class PurchaseOrderService {
       },
     });
 
+    // Stage 1.3: Auto-create DP Bill for UPFRONT payment terms
+    if (order.paymentTerms === PaymentTerms.UPFRONT) {
+      // Lazy-load BillService to avoid circular dependency
+      const { BillService } =
+        await import('../accounting/services/bill.service');
+      const billService = new BillService();
+      await billService.createDownPaymentBill(companyId, id);
+    }
+
     return updated;
   }
 
@@ -287,6 +298,17 @@ export class PurchaseOrderService {
             422,
             DomainErrorCodes.ORDER_INVALID_STATE
           );
+        }
+
+        // Stage 3 Blocker: UPFRONT payment must be complete before receive
+        if (order.paymentTerms === PaymentTerms.UPFRONT) {
+          if (order.paymentStatus !== PaymentStatus.PAID_UPFRONT) {
+            throw new DomainError(
+              'Cannot receive goods: Upfront payment required before delivery. Please complete payment first.',
+              400,
+              DomainErrorCodes.PAYMENT_REQUIRED
+            );
+          }
         }
 
         // Phase 1 Guard: Reject Partial Receipt
