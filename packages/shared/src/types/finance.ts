@@ -4,8 +4,14 @@ import { z } from 'zod';
 // Core Finance Types
 // ============================================
 
-export type InvoiceType = 'INVOICE' | 'BILL';
-export type InvoiceStatus = 'DRAFT' | 'POSTED' | 'PAID' | 'VOID';
+import {
+  InvoiceTypeType as InvoiceType,
+  InvoiceStatusType as InvoiceStatus,
+  JournalEntry,
+  JournalLine,
+} from '../generated/zod/index.js';
+
+export type { InvoiceType, InvoiceStatus };
 
 export const TAX_RATES = [
   { label: 'No Tax (0%)', value: 0 },
@@ -31,8 +37,6 @@ export interface FinanceAccount {
   type: AccountType;
   isActive: boolean;
 }
-
-import { JournalEntry, JournalLine } from '../generated/zod/index.js';
 
 export type { JournalEntry, JournalLine };
 

@@ -76,9 +76,9 @@ export class AdminService {
       this.repository.countOrphanJournals({ companyId }),
     ]);
 
-    const mappedData = data.map((journal: any) => ({
+    const mappedData = data.map((journal) => ({
       ...journal,
-      lines: journal.lines.map((line: any) => ({
+      lines: journal.lines.map((line) => ({
         ...line,
         debit: line.debit.toNumber(),
         credit: line.credit.toNumber(),

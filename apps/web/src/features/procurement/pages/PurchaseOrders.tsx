@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { PAYMENT_TERMS } from '@/types/api';
+import { type PaymentTerms } from '@sync-erp/shared';
 import ActionButton from '@/components/ui/ActionButton';
 import Select from '@/components/ui/Select';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -7,7 +9,6 @@ import PurchaseOrderList from '@/features/procurement/components/PurchaseOrderLi
 import { formatCurrency } from '@/utils/format';
 import { trpc } from '@/lib/trpc';
 import { apiAction } from '@/hooks/useApiAction';
-import { PAYMENT_TERMS } from '@/types/api';
 
 interface OrderItemForm {
   productId: string;
@@ -76,7 +77,7 @@ export default function PurchaseOrders() {
           partnerId: formData.partnerId,
           items: formData.items,
           taxRate: formData.taxRate,
-          paymentTerms: formData.paymentTerms as any, // Feature 036
+          paymentTerms: formData.paymentTerms as PaymentTerms, // Feature 036
         }),
       'Purchase order created!'
     );

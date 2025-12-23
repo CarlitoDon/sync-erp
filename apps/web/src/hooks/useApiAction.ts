@@ -35,8 +35,12 @@ export function useApiAction<TArgs extends unknown[], TResult>(
           toast.success(successMessage);
         }
         onSuccess?.();
-      } catch (error: any) {
-        toast.error(error.message || 'An unexpected error occurred');
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred';
+        toast.error(message);
       } finally {
         setLoading(false);
       }
@@ -63,8 +67,12 @@ export async function apiAction<T>(
       toast.success(successMessage);
     }
     return result;
-  } catch (error: any) {
-    toast.error(error.message || 'An unexpected error occurred');
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'An unexpected error occurred';
+    toast.error(message);
     return undefined;
   }
 }

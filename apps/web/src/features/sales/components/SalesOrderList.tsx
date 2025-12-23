@@ -173,7 +173,7 @@ export default function SalesOrderList({
               </td>
             </tr>
           ) : (
-            orders.map((order: any) => (
+            orders.map((order) => (
               <tr key={order.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 font-mono text-sm">
                   <Link

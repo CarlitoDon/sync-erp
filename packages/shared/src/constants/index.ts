@@ -98,14 +98,6 @@ export const SCOPES = {
   ALL: 'ALL',
 } as const;
 
-export const PAYMENT_METHODS = [
-  'CASH',
-  'BANK_TRANSFER',
-  'CHECK',
-  'CREDIT_CARD',
-  'OTHER',
-] as const;
-
 export const PAYMENT_TERMS = [
   { code: 'NET7', label: 'Net 7', days: 7 },
   { code: 'NET30', label: 'Net 30', days: 30 },

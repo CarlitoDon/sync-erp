@@ -6,3 +6,4 @@ coverage/
 .turbo/
 .next/
 out/
+**/src/generated/

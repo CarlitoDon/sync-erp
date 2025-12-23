@@ -7,6 +7,8 @@
 import {
   Payment,
   PaymentStatus,
+  PaymentMethod,
+  InvoiceStatus,
   Prisma,
   prisma,
 } from '@sync-erp/database';
@@ -61,7 +63,7 @@ export class UpfrontPaymentRepository {
         orderId: data.orderId,
         invoiceId: null,
         amount: data.amount,
-        method: data.method as any, // PaymentMethod enum
+        method: data.method as PaymentMethod,
         paymentType: 'UPFRONT',
         reference: data.reference,
         date: data.date,
@@ -132,7 +134,7 @@ export class UpfrontPaymentRepository {
       where: { id: billId },
       data: {
         balance: newBalance,
-        status: newStatus as any,
+        status: newStatus as InvoiceStatus,
       },
     });
   }

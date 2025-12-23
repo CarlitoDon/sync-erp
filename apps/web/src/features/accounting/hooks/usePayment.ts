@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { type CreatePaymentInput } from '@/types/api';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { trpc } from '@/lib/trpc';
@@ -34,7 +35,7 @@ export function usePayment() {
   });
 
   const createPayment = useCallback(
-    async (data: any) => {
+    async (data: CreatePaymentInput) => {
       if (!currentCompany?.id) return null;
 
       const result = await apiAction(

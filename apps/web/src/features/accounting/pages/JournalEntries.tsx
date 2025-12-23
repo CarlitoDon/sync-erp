@@ -92,7 +92,7 @@ export default function JournalEntries() {
       return;
     }
 
-    if (formData.lines.some((l: any) => !l.accountId)) {
+    if (formData.lines.some((l) => !l.accountId)) {
       toast.error('All lines must have an account selected.');
       return;
     }

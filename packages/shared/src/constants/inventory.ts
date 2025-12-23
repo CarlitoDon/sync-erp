@@ -10,10 +10,6 @@
 export const MovementType = {
   IN: 'IN',
   OUT: 'OUT',
-  ADJUSTMENT: 'ADJUSTMENT',
-  TRANSFER: 'TRANSFER',
-  WIP_CONSUME: 'WIP_CONSUME',
-  WIP_OUTPUT: 'WIP_OUTPUT',
 } as const;
 
 export type MovementType =
