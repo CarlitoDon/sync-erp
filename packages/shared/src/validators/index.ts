@@ -1,4 +1,12 @@
 import { z } from 'zod';
+import {
+  PartnerTypeSchema,
+  OrderTypeSchema,
+  InvoiceTypeSchema,
+  PaymentMethodSchema,
+  AuditLogActionSchema,
+  EntityTypeSchema,
+} from '../generated/zod/index.js';
 
 // ============================================
 // Shared Schemas
@@ -25,7 +33,7 @@ export const CompanyIdSchema = z.string().uuid();
 // Partner Schemas
 // ============================================
 
-export const PartnerTypeSchema = z.enum(['CUSTOMER', 'SUPPLIER']);
+// PartnerTypeSchema is exported from generated zod
 
 export const CreatePartnerSchema = z.object({
   name: z
@@ -82,13 +90,7 @@ export const UpdateProductSchema = z.object({
 // Order Schemas
 // ============================================
 
-export const OrderTypeSchema = z.enum(['SALES', 'PURCHASE']);
-export const OrderStatusSchema = z.enum([
-  'DRAFT',
-  'CONFIRMED',
-  'COMPLETED',
-  'CANCELLED',
-]);
+// OrderTypeSchema and OrderStatusSchema are exported from generated zod
 
 export const OrderItemSchema = z.object({
   productId: z.string().uuid(),
@@ -123,7 +125,7 @@ export const CreatePurchaseOrderSchema = CreateOrderSchema.extend({
 
 export * from './inventory';
 
-export const MovementTypeSchema = z.enum(['IN', 'OUT']);
+// MovementTypeSchema is exported from generated zod
 
 export const InventoryCheckSchema = z.object({
   productId: z.string().uuid(),
@@ -160,13 +162,7 @@ export const StockAdjustmentSchema = z.object({
 // Invoice Schemas
 // ============================================
 
-export const InvoiceTypeSchema = z.enum(['INVOICE', 'BILL']);
-export const InvoiceStatusSchema = z.enum([
-  'DRAFT',
-  'POSTED',
-  'PAID',
-  'VOID',
-]);
+// InvoiceTypeSchema and InvoiceStatusSchema are exported from generated zod
 
 export const CreateInvoiceSchema = z.object({
   orderId: z.string().uuid().optional(),
@@ -223,13 +219,7 @@ export const CreateInvoiceFromSOSchema = z.object({
 // Payment Schemas
 // ============================================
 
-export const PaymentMethodSchema = z.enum([
-  'CASH',
-  'BANK_TRANSFER',
-  'CREDIT_CARD',
-  'CHECK',
-  'OTHER',
-]);
+// PaymentMethodSchema is exported from generated zod
 
 export const CreatePaymentSchema = z.object({
   invoiceId: z.string().uuid(),
@@ -243,23 +233,7 @@ export const CreatePaymentSchema = z.object({
 // Audit & Saga Schemas (FR-010.1, FR-010.2)
 // ============================================
 
-export const AuditLogActionSchema = z.enum([
-  'INVOICE_POSTED',
-  'BILL_POSTED',
-  'PAYMENT_RECORDED',
-  'ORDER_CONFIRMED',
-  'GOODS_RECEIVED',
-  'SHIPMENT_CREATED',
-]);
-
-export const EntityTypeSchema = z.enum([
-  'INVOICE',
-  'BILL',
-  'PAYMENT',
-  'ORDER',
-  'SHIPMENT',
-  'GOODS_RECEIPT',
-]);
+// AuditLogActionSchema and EntityTypeSchema are exported from generated zod
 
 export const CreateAuditLogSchema = z.object({
   actorId: z.string().uuid(),
