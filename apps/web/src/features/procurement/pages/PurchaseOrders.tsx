@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { PAYMENT_TERMS } from '@/types/api';
 import { type PaymentTerms } from '@sync-erp/shared';
 import ActionButton from '@/components/ui/ActionButton';
 import Select from '@/components/ui/Select';
@@ -182,18 +181,29 @@ export default function PurchaseOrders() {
                   paymentTerms: val,
                 })
               }
-              options={[
-                ...PAYMENT_TERMS.map((term) => ({
-                  value: term.code,
-                  label: term.label,
-                })),
-                { value: 'PARTIAL', label: 'Partial Upfront' },
+              groups={[
                 {
-                  value: 'UPFRONT',
-                  label: 'Cash Upfront (Prepaid Required)',
+                  label: 'Tunai / Bayar Langsung',
+                  options: [
+                    {
+                      value: 'UPFRONT',
+                      label: 'Cash Upfront (Bayar di Muka)',
+                    },
+                    { value: 'COD', label: 'Cash on Delivery' },
+                  ],
+                },
+                {
+                  label: 'Tempo / Kredit',
+                  options: [
+                    { value: 'NET7', label: 'Net 7 Hari' },
+                    { value: 'NET30', label: 'Net 30 Hari' },
+                    { value: 'NET60', label: 'Net 60 Hari' },
+                    { value: 'NET90', label: 'Net 90 Hari' },
+                    { value: 'EOM', label: 'End of Month' },
+                  ],
                 },
               ]}
-              placeholder="Select payment terms"
+              placeholder="Pilih syarat pembayaran"
             />
           </div>
 
