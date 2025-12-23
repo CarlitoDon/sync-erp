@@ -67,14 +67,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Update `CreatePurchaseOrderInput` schema to include optional `paymentTerms` field in `packages/shared/src/validators/order.validators.ts`
-- [ ] T019 [US1] Update `PurchaseOrderService.create()` to accept and store `paymentTerms` in `apps/api/src/modules/procurement/purchase-order.service.ts`
-- [ ] T020 [US1] Update `purchaseOrder.create` mutation input to include `paymentTerms` in `apps/api/src/trpc/routers/purchaseOrder.router.ts`
-- [ ] T021 [P] [US1] Add `PaymentTermsBadge` component in `apps/web/src/features/procurement/components/PaymentTermsBadge.tsx`
-- [ ] T022 [P] [US1] Add `PaymentStatusBadge` component in `apps/web/src/features/procurement/components/PaymentStatusBadge.tsx`
-- [ ] T023 [US1] Update Create PO form to include `paymentTerms` dropdown in `apps/web/src/features/procurement/pages/CreatePurchaseOrder.tsx`
-- [ ] T024 [US1] Update PO Detail page to show Payment Terms badge in `apps/web/src/features/procurement/pages/PurchaseOrderDetail.tsx`
-- [ ] T025 [US1] Integration test: Create PO with UPFRONT term, verify stored correctly in `apps/api/test/integration/upfront-payment.test.ts`
+- [x] T018 [US1] Update `CreatePurchaseOrderInput` schema to include optional `paymentTerms` field in `packages/shared/src/validators/p2p.ts`
+- [x] T019 [US1] Update `PurchaseOrderService.create()` to accept and store `paymentTerms` in `apps/api/src/modules/procurement/purchase-order.service.ts`
+- [x] T020 [US1] Update `purchaseOrder.create` mutation input to include `paymentTerms` in `apps/api/src/trpc/routers/purchaseOrder.router.ts`
+- [x] T021 [P] [US1] Add `PaymentTermsBadge` component in `apps/web/src/features/procurement/components/PaymentTermsBadge.tsx`
+- [x] T022 [P] [US1] Add `PaymentStatusBadge` component in `apps/web/src/features/procurement/components/PaymentStatusBadge.tsx`
+- [x] T023 [US1] Update Create PO form to include `paymentTerms` dropdown in `apps/web/src/features/procurement/pages/PurchaseOrders.tsx`
+- [x] T024 [US1] Update PO Detail page to show Payment Terms badge in `apps/web/src/features/procurement/pages/PurchaseOrderDetail.tsx`
+- [x] T025 [US1] Integration test: Create PO with UPFRONT term, verify stored correctly in `apps/api/test/integration/upfront-payment.test.ts`
 
 **Checkpoint**: User Story 1 complete - POs can be created with UPFRONT terms
 

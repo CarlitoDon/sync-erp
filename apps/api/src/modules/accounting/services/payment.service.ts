@@ -186,6 +186,14 @@ export class PaymentService {
         }
 
         // 4. Get invoice details for journal reversal
+        // Feature 036: invoiceId may be null for upfront payments
+        if (!payment.invoiceId) {
+          throw new DomainError(
+            'Cannot void upfront payment via this method',
+            422,
+            DomainErrorCodes.PAYMENT_INVALID_TYPE
+          );
+        }
         const invoice = await this.invoiceRepository.findById(
           payment.invoiceId,
           companyId,

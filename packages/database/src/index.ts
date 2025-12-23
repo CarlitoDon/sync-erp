@@ -44,6 +44,9 @@ export {
   EntityType,
   PaymentMethod,
   SequenceType,
+  // Feature 036: Cash Upfront Payment
+  PaymentTerms,
+  PaymentStatus,
 } from './generated/client/client.js';
 
 export { Prisma } from './generated/client/client.js';

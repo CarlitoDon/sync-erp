@@ -109,8 +109,11 @@ export const CreateSalesOrderSchema = CreateOrderSchema.extend({
   type: z.literal('SALES'),
 });
 
+// Feature 036: Add paymentTerms
+const PaymentTermsSchema = z.enum(['NET_30', 'PARTIAL', 'UPFRONT']);
 export const CreatePurchaseOrderSchema = CreateOrderSchema.extend({
   type: z.literal('PURCHASE'),
+  paymentTerms: PaymentTermsSchema.optional().default('NET_30'),
 });
 
 // ============================================
