@@ -1,31 +1,32 @@
 # AI Agent Instructions for Sync ERP
 
-> Multi-tenant ERP system • Vite + React (frontend) • Express + TypeScript (backend) • Prisma (ORM)
-> Constitution v2.4.0 | 22 Principles
+> Multi-tenant ERP system • Vite + React (frontend) • tRPC + Express + TypeScript (backend) • Prisma (ORM)
+> Constitution v3.3.0 | 22 Principles
 
 ## Architecture Overview
 
 ```text
 sync-erp/
 ├── apps/
-│   ├── web/              # Vite + React + Tailwind + React Query-like hooks
+│   ├── web/              # Vite + React + Tailwind + tRPC React Query hooks
 │   │   └── src/features/ # Domain-driven feature folders (components, services, pages)
-│   └── api/              # Express + TS backend
-│       └── src/modules/  # Domain-driven modules (5-layer architecture)
+│   └── api/              # Express + tRPC + TS backend
+│       ├── src/trpc/     # tRPC router definitions (procedures)
+│       └── src/modules/  # Domain-driven modules (4-layer architecture)
 ├── packages/
 │   ├── shared/           # Zod schemas (validators), shared types
 │   └── database/         # Prisma client, migrations, seeds
 └── turbo.json            # Build orchestration
 ```
 
-**Data Flow**: `web → HTTP → api → controller → service → policy → repository → database`
+**Data Flow**: `web → tRPC → router → service → policy → repository → database`
 **Dependency Rule**: Apps import from `packages/*`, never the reverse.
 
 ## Critical Rules (Non-Negotiable)
 
-1.  **Multi-Tenant Isolation**: ALL queries MUST be scoped by `companyId` (from `req.context.companyId`).
+1.  **Multi-Tenant Isolation**: ALL queries MUST be scoped by `companyId` (from `ctx.companyId`).
 2.  **Schema-First**: Add fields to `packages/shared` Zod schemas BEFORE any implementation.
-3.  **Five Layers**: Route → Controller → Service → Policy/Rules → Repository. Never skip logic layers.
+3.  **Four Layers**: tRPC Router → Service → Policy/Rules → Repository. Never skip logic layers.
 4.  **Invariant Protection**: Backend must enforce invariants (e.g., `balance >= 0`). Frontend logic is just a projection.
 5.  **Module Parity**: Sales & Procurement (and other pairs) must mirror implementation logic and naming.
 6.  **Performance**: Use backend `include`/joins. NO N+1 queries in frontend or backend loops.
@@ -37,49 +38,85 @@ sync-erp/
 
 ## Backend Patterns (apps/api)
 
-### Five-Layer Module Structure
+### Four-Layer Module Structure
 
 ```text
-apps/api/src/modules/[domain]/
-├── [domain].controller.ts  # HTTP Boundary: Zod validation, Response. NO business logic.
-├── [domain].service.ts     # Orchestrator: Combines Rules + Policy + Repo. NO prisma import.
-├── [domain].policy.ts      # Constraints: "Can this action run?" (Shape/Config/Prerequisite checks).
-├── [domain].repository.ts  # Data Access: Prisma queries ONLY. Scoped by companyId.
-└── rules/
-    └── *.ts                # Pure Logic: Stateless calculations. Unit testable. NO I/O.
+apps/api/src/
+├── trpc/
+│   ├── trpc.ts           # tRPC instance, procedures (public, protected)
+│   ├── context.ts        # Request context creation
+│   ├── router.ts         # Main app router
+│   └── routers/          # Domain routers (*.router.ts)
+└── modules/[domain]/
+    ├── [domain].service.ts     # Orchestrator: Combines Rules + Policy + Repo. NO prisma import.
+    ├── [domain].policy.ts      # Constraints: "Can this action run?" (Shape/Config/Prerequisite checks).
+    ├── [domain].repository.ts  # Data Access: Prisma queries ONLY. Scoped by companyId.
+    └── rules/
+        └── *.ts                # Pure Logic: Stateless calculations. Unit testable. NO I/O.
 ```
 
 ### Layer Responsibility Principle
 
-| Layer      | Knows about                         | Must NOT know about                          |
-| ---------- | ----------------------------------- | -------------------------------------------- |
-| Controller | HTTP, auth, DTO                     | Business rules                               |
-| Service    | Use case, state rules, policy, saga | SQL, table shape                             |
-| Repository | Persistence, queries, locks         | State machine, policy, saga, business intent |
-| Policy     | Business constraints                | DB, transactions                             |
+| Layer      | Knows about                     | Must NOT know about                    |
+| ---------- | ------------------------------- | -------------------------------------- |
+| Router     | tRPC, auth, Zod validation, ctx | Business rules                         |
+| Service    | Use case, state rules, policy   | SQL, table shape                       |
+| Repository | Persistence, queries, locks     | State machine, policy, business intent |
+| Policy     | Business constraints            | DB, transactions                       |
 
 **Mental Test**: "If I move from Prisma to raw SQL, would this logic still make sense here?" Yes → repository. No → service/policy.
 
-### Controller Pattern (Dumb Controller)
+### tRPC Router Pattern (Thin Router)
 
 ```typescript
-post = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const companyId = req.context.companyId!;
-    const correlationId = req.correlationId; // From correlation middleware
-    const actorId = req.context.userId; // For audit trail
-    const result = await this.service.post(
-      id,
-      companyId,
-      actorId,
-      correlationId
-    );
-    res.json({ success: true, data: result });
-  } catch (error) {
-    next(error);
-  }
-};
+// apps/api/src/trpc/routers/invoice.router.ts
+import { router, protectedProcedure } from '../trpc';
+import { InvoiceService } from '../../modules/accounting/services/invoice.service';
+import { CreateInvoiceFromSOSchema } from '@sync-erp/shared';
+import { z } from 'zod';
+
+const invoiceService = new InvoiceService();
+
+export const invoiceRouter = router({
+  /**
+   * List all invoices for current company
+   */
+  list: protectedProcedure
+    .input(z.object({ status: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      return invoiceService.list(ctx.companyId, input?.status);
+    }),
+
+  /**
+   * Create invoice from Sales Order
+   */
+  createFromSO: protectedProcedure
+    .input(CreateInvoiceFromSOSchema)
+    .mutation(async ({ ctx, input }) => {
+      return invoiceService.createFromSalesOrder(
+        ctx.companyId,
+        input
+      );
+    }),
+
+  /**
+   * Post invoice
+   */
+  post: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return invoiceService.post(input.id, ctx.companyId);
+    }),
+});
 ```
+
+### tRPC Procedure Types
+
+| Procedure Type           | Usage                           | Auth Required            |
+| ------------------------ | ------------------------------- | ------------------------ |
+| `publicProcedure`        | Health checks, public endpoints | No                       |
+| `authenticatedProcedure` | User-specific, no company ctx   | Yes (userId)             |
+| `protectedProcedure`     | Business operations             | Yes (companyId + userId) |
 
 ### Repository Pattern
 
@@ -109,25 +146,24 @@ async createFromPurchaseOrder(companyId: string, data: CreateBillInput) {
 }
 ```
 
-### Saga Pattern (Cross-Module Transactions)
+### Transaction Pattern (Prisma $transaction)
 
-Required when an operation spans multiple aggregates/modules (e.g., Invoice → Stock).
-
-- **Mandatory Compensation**: Every step must have a rollback action.
-- **Fail-Safe**: Do NOT delete data on rollback; use compensating entries.
-- **correlationId Propagation**: Pass from Controller → Service → Saga → SagaLog.
-- **AuditLog BEFORE Saga**: Record business intent before saga execution (FR-010.1).
+For multi-aggregate operations within a single database, use `prisma.$transaction`:
 
 ```typescript
-// Service: Record audit BEFORE saga execution
-async post(id: string, companyId: string, actorId?: string, correlationId?: string) {
-  if (actorId) {
-    await auditLogService.recordAudit({
-      companyId, actorId, action: AuditLogAction.INVOICE_POSTED,
-      entityType: EntityType.INVOICE, entityId: id, correlationId
-    });
-  }
-  return await this.saga.execute(input, id, companyId, correlationId);
+// In Service layer
+async post(invoiceId: string, companyId: string) {
+  // 1. Prepare - validate and check policy
+  const invoice = await this.repository.findById(invoiceId, companyId);
+  InvoicePolicy.ensureCanPost(invoice);
+
+  // 2. Execute - atomic transaction
+  return await prisma.$transaction(async (tx) => {
+    const posted = await this.repository.updateStatus(tx, invoiceId, 'POSTED');
+    await this.journalService.createFromInvoice(tx, invoice);
+    await this.inventoryService.deductStock(tx, invoice.items);
+    return posted;
+  });
 }
 ```
 
@@ -214,36 +250,52 @@ prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN ...`
 apps/web/src/features/[domain]/
 ├── components/   # Domain-specific UI
 ├── pages/        # Route components
-└── services/     # API clients (standalone functions)
+└── services/     # tRPC hooks or API clients (standalone functions)
 ```
 
-### Data Fetching
+### tRPC Data Fetching
 
 ```typescript
-// Auto-refreshes on company switch
-const { data, loading, refresh } = useCompanyData(
-  () => service.list(),
-  []
-);
+// Using tRPC React Query hooks
+import { trpc } from '@/lib/trpc';
+
+function InvoiceList() {
+  const { data, isLoading, refetch } = trpc.invoice.list.useQuery();
+
+  if (isLoading) return <Loader />;
+  return <List items={data} />;
+}
 ```
 
-### API Mutations
+### tRPC Mutations
 
 ```typescript
-// Handles loading tests, error toasts, and success messages
-const handleSubmit = async () => {
-  const ok = await apiAction(() => service.create(form), {
-    successMessage: 'Created successfully!',
+// Handles loading state, error handling, and cache invalidation
+import { trpc } from '@/lib/trpc';
+
+function CreateInvoice() {
+  const utils = trpc.useUtils();
+  const createMutation = trpc.invoice.createFromSO.useMutation({
+    onSuccess: () => {
+      utils.invoice.list.invalidate();
+      toast.success('Invoice created!');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
   });
-  if (ok) refresh();
-};
+
+  const handleSubmit = (data: CreateInvoiceInput) => {
+    createMutation.mutate(data);
+  };
+}
 ```
 
 ## Database Seeding
 
 - **Base Seed**: `npm run db:seed` - Only static data (accounts, products, partners)
 - **Transaction Seed**: `./scripts/seed-via-api.sh` - Uses API for PO/SO/Invoice/Bill flows
-- **Why**: Direct DB inserts bypass Sagas, Journals, Inventory. API seeding ensures correct business logic.
+- **Why**: Direct DB inserts bypass Journals, Inventory. API seeding ensures correct business logic.
 
 ### Required Accounts (JournalService)
 
@@ -281,7 +333,7 @@ const REQUIRED_ACCOUNTS = [
 
 - ❌ **No `any`**: Use strict Zod schemas or generic types.
 - ❌ **No `window.confirm`**: Use the `useConfirm()` hook.
-- ❌ **No Direct Toasts**: Use `apiAction` which handles errors globally.
+- ❌ **No Direct Toasts**: Use tRPC mutation callbacks which handle errors globally.
 - ❌ **No `this` in Services**: Export standalone functions (callback safety).
 - ❌ **No Frontend Logic**: Don't calculate stock/balance on client. Trust backend.
 - ❌ **No Orphan Files**: Verify imports after creating new files.
@@ -296,10 +348,13 @@ const REQUIRED_ACCOUNTS = [
 
 ## Key Files Reference
 
-- **Constitution**: `.agent/rules/constitution.md` (v2.4.0, 22 principles)
+- **Constitution**: `.agent/rules/constitution.md` (v3.3.0, 22 principles)
 - **Guardrails**: `docs/apple-like-development/GUARDRAILS.md`
 - **Memory**: `.agent/rules/memory.md`
 - **Routes**: `apps/web/src/app/AppRouter.tsx`
+- **tRPC Setup**: `apps/api/src/trpc/trpc.ts`
+- **Main Router**: `apps/api/src/trpc/router.ts`
+- **tRPC Client**: `apps/web/src/lib/trpc.ts`
 - **Prisma**: `packages/database/prisma/schema.prisma`
 - **Base Seed**: `packages/database/prisma/seed.ts`
 - **Finance Seed**: `apps/api/scripts/seed-finance-accounts.ts`
