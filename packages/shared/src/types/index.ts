@@ -22,47 +22,6 @@ export type {
 export * from './auth.js';
 export * from './finance.js';
 export * from './partner.js';
-// User type is now exported from generated/zod (via validators)
-// export interface User {
-//   id: string;
-//   email: string;
-//   name: string;
-// }
-
-// OrderType and OrderStatus are now exported from generated/zod
-// export type OrderType = 'SALES' | 'PURCHASE';
-// export type OrderStatus =
-//   | 'DRAFT'
-//   | 'CONFIRMED'
-//   | 'COMPLETED'
-//   | 'CANCELLED';
-
-// OrderItem is now exported from generated/zod
-// export interface OrderItem {
-//   id: string;
-//   orderId: string;
-//   productId: string;
-//   quantity: number;
-//   price: number;
-// }
-
-// ============================================
-// RBAC Types
-// ============================================
-
-// Role and Permission are now exported from generated/zod
-// export interface Role {
-//   id: string;
-//   companyId: string;
-//   name: string;
-// }
-
-// export interface Permission {
-//   id: string;
-//   module: string;
-//   action: string;
-//   scope: string;
-// }
 
 // ============================================
 // API Types
