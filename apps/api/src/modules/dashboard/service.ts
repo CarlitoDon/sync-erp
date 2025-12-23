@@ -185,14 +185,14 @@ export class DashboardService {
     ]);
 
     const recentTransactions = [
-      ...recentInvoices.map((inv: any) => ({
+      ...recentInvoices.map((inv) => ({
         id: inv.id,
         type: 'INVOICE' as const,
         description: inv.invoiceNumber || 'Invoice',
         amount: Number(inv.amount),
         date: inv.createdAt,
       })),
-      ...recentBills.map((bill: any) => ({
+      ...recentBills.map((bill) => ({
         id: bill.id,
         type: 'BILL' as const,
         description: bill.invoiceNumber || 'Bill',

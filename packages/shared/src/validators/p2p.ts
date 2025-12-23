@@ -1,14 +1,14 @@
 import { z } from 'zod';
-import { PAYMENT_METHODS } from '../constants/index.js';
+import {
+  PaymentMethodSchema,
+  PaymentTermsSchema,
+  PaymentStatusSchema,
+} from '../generated/zod/index.js';
 
 // ==========================================
 // Feature 036: Cash Upfront Payment - Enums
 // ==========================================
 
-import {
-  PaymentTermsSchema,
-  PaymentStatusSchema,
-} from '../generated/zod/index.js';
 export type PaymentTerms = z.infer<typeof PaymentTermsSchema>;
 export type PaymentStatus = z.infer<typeof PaymentStatusSchema>;
 
@@ -105,7 +105,7 @@ export const CreateBillFromPOSchema = z.object({
 export const CreateP2PPaymentSchema = z.object({
   invoiceId: z.string().uuid(),
   amount: z.number().positive(),
-  method: z.enum(PAYMENT_METHODS),
+  method: PaymentMethodSchema,
   accountId: z.string().uuid(),
   reference: z.string().optional(),
   date: z.coerce.date(),
@@ -119,7 +119,7 @@ export const CreateP2PPaymentSchema = z.object({
 export const RegisterUpfrontPaymentSchema = z.object({
   orderId: z.string().uuid(),
   amount: z.number().positive(),
-  method: z.enum(PAYMENT_METHODS),
+  method: PaymentMethodSchema,
   accountId: z.string().uuid().optional(),
   reference: z.string().max(100).optional(),
   businessDate: z.coerce.date().optional(),

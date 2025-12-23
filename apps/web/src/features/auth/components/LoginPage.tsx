@@ -22,8 +22,10 @@ export const LoginPage: React.FC = () => {
       await login(formData);
       // Success
       navigate('/select-company');
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Login failed';
+      setError(message);
     } finally {
       setLoading(false);
     }

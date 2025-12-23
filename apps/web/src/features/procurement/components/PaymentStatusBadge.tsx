@@ -1,11 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 
-type PaymentStatus =
-  | 'PENDING'
-  | 'PARTIAL'
-  | 'PAID_UPFRONT'
-  | 'SETTLED'
-  | null;
+import { PaymentStatus } from '@sync-erp/shared';
 
 interface PaymentStatusBadgeProps {
   status: PaymentStatus;

@@ -51,8 +51,12 @@ export function CompanySelectionPage() {
       await refreshCompanies(); // Reload list
       setCurrentCompany(newCompany); // Auto-select
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Failed to create company');
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Failed to create company';
+      setError(message);
     }
   };
 
@@ -66,8 +70,10 @@ export function CompanySelectionPage() {
       await refreshCompanies(); // Reload list
       setCurrentCompany(joinedCompany); // Auto-select
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Failed to join company');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to join company';
+      setError(message);
     }
   };
 

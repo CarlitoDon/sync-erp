@@ -23,8 +23,10 @@ export const RegisterPage: React.FC = () => {
       await register(formData);
       // Success
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Registration failed');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Registration failed';
+      setError(message);
     } finally {
       setLoading(false);
     }
