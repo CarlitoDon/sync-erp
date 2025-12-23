@@ -7,8 +7,11 @@ generator client {
 }
 
 generator zod {
-  provider = "zod-prisma-types"
-  output   = "../../shared/src/generated/zod"
+  provider             = "zod-prisma-types"
+  output               = "../../shared/src/generated/zod"
+  useDefaultValidators = false
+  createInputTypes     = false
+  prismaClientPath     = "@sync-erp/database/client"
 }
 
 datasource db {
