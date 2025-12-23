@@ -7,7 +7,6 @@ import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
-import { RegisterPaymentModal } from '@/features/procurement/components/RegisterPaymentModal';
 import { formatCurrency } from '@/utils/format';
 
 interface PurchaseOrderListProps {
@@ -27,8 +26,6 @@ export default function PurchaseOrderList({
   const [createBillOrderId, setCreateBillOrderId] = useState<
     string | null
   >(null);
-  const [registerPaymentOrderId, setRegisterPaymentOrderId] =
-    useState<string | null>(null);
 
   const { data: orders = [], isLoading: loading } =
     trpc.purchaseOrder.list.useQuery(filter, {
@@ -128,10 +125,6 @@ export default function PurchaseOrderList({
     navigate(`/bills/${billId}`);
   };
 
-  const handleRegisterPayment = (orderId: string) => {
-    setRegisterPaymentOrderId(orderId);
-  };
-
   if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -218,29 +211,20 @@ export default function PurchaseOrderList({
                       </ActionButton>
                     </>
                   )}
-                  {/* Upfront Payment Action */}
-                  {order.status === 'CONFIRMED' &&
-                    order.paymentTerms === 'UPFRONT' &&
-                    order.paymentStatus !== 'PAID_UPFRONT' &&
-                    order.paymentStatus !== 'SETTLED' && (
+                  {/* Receive Goods - blocked if UPFRONT and not PAID_UPFRONT */}
+                  {(order.status === 'CONFIRMED' ||
+                    order.status === 'PARTIALLY_RECEIVED') &&
+                    !(
+                      order.paymentTerms === 'UPFRONT' &&
+                      order.paymentStatus !== 'PAID_UPFRONT'
+                    ) && (
                       <ActionButton
-                        onClick={() =>
-                          handleRegisterPayment(order.id)
-                        }
-                        variant="primary"
+                        onClick={() => handleGoodsReceipt(order.id)}
+                        variant="success"
                       >
-                        Record Payment
+                        Receive Goods
                       </ActionButton>
                     )}
-                  {(order.status === 'CONFIRMED' ||
-                    order.status === 'PARTIALLY_RECEIVED') && (
-                    <ActionButton
-                      onClick={() => handleGoodsReceipt(order.id)}
-                      variant="success"
-                    >
-                      Receive Goods
-                    </ActionButton>
-                  )}
                   {(order.status === 'RECEIVED' ||
                     order.status === 'PARTIALLY_RECEIVED' ||
                     order.status === 'COMPLETED') &&
@@ -313,28 +297,6 @@ export default function PurchaseOrderList({
           navigate(`/bills/${billId}`);
         }}
       />
-
-      {/* Upfront Payment Modal */}
-      {registerPaymentOrderId && (
-        <RegisterPaymentModal
-          isOpen={!!registerPaymentOrderId}
-          onClose={() => setRegisterPaymentOrderId(null)}
-          orderId={registerPaymentOrderId}
-          orderNumber={
-            orders.find((o) => o.id === registerPaymentOrderId)
-              ?.orderNumber || ''
-          }
-          totalAmount={Number(
-            orders.find((o) => o.id === registerPaymentOrderId)
-              ?.totalAmount || 0
-          )}
-          paidAmount={Number(
-            orders.find((o) => o.id === registerPaymentOrderId)
-              ?.paidAmount || 0
-          )}
-          onSuccess={() => utils.purchaseOrder.list.invalidate()}
-        />
-      )}
     </div>
   );
 }
