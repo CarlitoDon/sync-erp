@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useCompany } from '@/contexts/CompanyContext';
 import {
   useBill,
@@ -10,9 +10,9 @@ import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import Select from '@/components/ui/Select';
+
 import FormModal from '@/components/ui/FormModal';
-import { PAYMENT_TERMS, calculateDueDate } from '@/types/api';
+import { calculateDueDate } from '@/types/api';
 
 /**
  * Convert Date to yyyy-MM-dd string format required by HTML date input
@@ -63,7 +63,7 @@ export default function CreateBillModal({
     { enabled: !!poId && !!currentCompany?.id }
   );
 
-  const { register, handleSubmit, setValue, watch, control, reset } =
+  const { register, handleSubmit, setValue, watch, reset } =
     useForm<BillFormData>({
       defaultValues: {
         supplierInvoiceNumber: '',
@@ -97,9 +97,6 @@ export default function CreateBillModal({
       }
     }
   }, [order, setValue]);
-
-  // Check if terms are strictly enforced (e.g. Upfront)
-  const isUpfront = order?.paymentTerms === 'UPFRONT';
 
   useEffect(() => {
     if (businessDate && paymentTermsString) {
@@ -209,30 +206,7 @@ export default function CreateBillModal({
 
           {/* Tax Rate inherited from PO - no input needed */}
 
-          <div>
-            <Label>Payment Terms</Label>
-            <Controller
-              name="paymentTermsString"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  value={field.value ?? 'NET30'}
-                  onChange={field.onChange}
-                  disabled={isUpfront}
-                  options={PAYMENT_TERMS.map((term) => ({
-                    value: term.code,
-                    label: term.label,
-                  }))}
-                />
-              )}
-            />
-            {isUpfront && (
-              <p className="text-xs text-amber-600 mt-1">
-                Payment terms are locked to "Cash Upfront" as per
-                Purchase Order.
-              </p>
-            )}
-          </div>
+          {/* Payment Terms inherited from PO - no input needed */}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
