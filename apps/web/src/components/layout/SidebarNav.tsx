@@ -38,11 +38,6 @@ export default function SidebarNav() {
           icon={<ShoppingCartIcon />}
         />
         <SidebarItem
-          path="/invoices"
-          label="Invoices"
-          icon={<DocumentTextIcon />}
-        />
-        <SidebarItem
           path="/shipments"
           label="Shipments"
           icon={<PaperAirplaneIcon />}
@@ -60,11 +55,6 @@ export default function SidebarNav() {
           path="/purchase-orders"
           label="Purchase Orders"
           icon={<DocumentCheckIcon />}
-        />
-        <SidebarItem
-          path="/bills"
-          label="Bills"
-          icon={<CreditCardIcon />}
         />
         <SidebarItem
           path="/receipts"
@@ -89,6 +79,16 @@ export default function SidebarNav() {
 
       {/* Finance Division */}
       <SidebarGroup label="Finance" icon={<BanknotesIcon />}>
+        <SidebarItem
+          path="/invoices"
+          label="Invoices"
+          icon={<DocumentTextIcon />}
+        />
+        <SidebarItem
+          path="/bills"
+          label="Bills"
+          icon={<CreditCardIcon />}
+        />
         <SidebarItem
           path="/finance"
           label="Journal & Ledger"
