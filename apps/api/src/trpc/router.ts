@@ -14,6 +14,7 @@ import { adminRouter } from './routers/admin.router';
 import { healthRouter } from './routers/health.router';
 import { inventoryRouter } from './routers/inventory.router';
 import { financeRouter } from './routers/finance.router';
+import { upfrontPaymentRouter } from './routers/upfrontPayment.router'; // Feature 036
 
 export const appRouter = router({
   // Public routes
@@ -33,6 +34,7 @@ export const appRouter = router({
 
   // Operations
   inventory: inventoryRouter,
+  upfrontPayment: upfrontPaymentRouter, // Feature 036
 
   // Finance & Accounting
   finance: financeRouter,
