@@ -17,6 +17,7 @@ import { UpfrontPaymentCard } from '../components/UpfrontPaymentCard';
 import {
   PaymentTermsSchema,
   OrderStatusSchema,
+  PaymentStatusSchema,
   PaymentTermsType,
   PaymentStatusType,
 } from '@sync-erp/shared';
@@ -233,6 +234,26 @@ export default function PurchaseOrderDetail() {
           </div>
         </div>
 
+        {/* Stage 3 Warning: UPFRONT orders require payment before goods receipt */}
+        {order.paymentTerms === PaymentTermsSchema.enum.UPFRONT &&
+          order.paymentStatus !==
+            PaymentStatusSchema.enum.PAID_UPFRONT &&
+          order.status !== OrderStatusSchema.enum.DRAFT &&
+          order.status !== OrderStatusSchema.enum.CANCELLED && (
+            <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg flex items-start gap-3">
+              <span className="text-amber-600 text-xl">⚠️</span>
+              <div>
+                <p className="font-semibold text-amber-800">
+                  Waiting Prepayment
+                </p>
+                <p className="text-sm text-amber-700">
+                  This order requires upfront payment before goods can
+                  be received. Please complete payment first.
+                </p>
+              </div>
+            </div>
+          )}
+
         {/* Details Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold mb-4">
@@ -376,14 +397,21 @@ export default function PurchaseOrderDetail() {
             )}
             {(order.status === OrderStatusSchema.enum.CONFIRMED ||
               order.status ===
-                OrderStatusSchema.enum.PARTIALLY_RECEIVED) && (
-              <ActionButton
-                variant="success"
-                onClick={() => setGoodsReceiptId(order.id)}
-              >
-                Receive Goods
-              </ActionButton>
-            )}
+                OrderStatusSchema.enum.PARTIALLY_RECEIVED) &&
+              // Stage 3 Blocker: Disable if UPFRONT and NOT PAID_UPFRONT
+              !(
+                order.paymentTerms ===
+                  PaymentTermsSchema.enum.UPFRONT &&
+                order.paymentStatus !==
+                  PaymentStatusSchema.enum.PAID_UPFRONT
+              ) && (
+                <ActionButton
+                  variant="success"
+                  onClick={() => setGoodsReceiptId(order.id)}
+                >
+                  Receive Goods
+                </ActionButton>
+              )}
             {(order.status === OrderStatusSchema.enum.RECEIVED ||
               order.status ===
                 OrderStatusSchema.enum.PARTIALLY_RECEIVED ||
