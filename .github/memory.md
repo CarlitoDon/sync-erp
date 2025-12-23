@@ -4,32 +4,63 @@ trigger: always_on
 
 <!--
 MEMORY SYNC REPORT
-Version: 1.3.0 -> 1.4.0 (Minor - Layer Responsibility Principles)
+Version: 1.4.0 -> 1.5.0 (Minor - tRPC Architecture Migration)
 Added Sections:
-- Key Decision: Layer Responsibility (Dumb Controller/Repository)
+- Key Decision: tRPC Router Architecture (Controller layer removed)
 Modified Sections:
-- None
+- Overview: Updated stack to include tRPC
+- Layer Responsibility: Updated Controller to Router terminology
 Removed Sections:
 - None
-Last Updated: 2025-12-18
+Last Updated: 2025-12-23
 -->
 
 # Project Memory
 
-**Version**: 1.4.0 | **Last Updated**: 2025-12-18
+**Version**: 1.5.0 | **Last Updated**: 2025-12-23
 
 ## Overview
 
-| Property     | Value                                                         |
-| ------------ | ------------------------------------------------------------- |
-| Project      | Sync ERP                                                      |
-| Type         | Multi-Tenant Enterprise Resource Planning                     |
-| Stack        | Vite + React (Frontend), Express + TS (Backend), Prisma (ORM) |
-| Constitution | v1.9.0 (see `.agent/rules/constitution.md`)                   |
+| Property     | Value                                                                       |
+| ------------ | --------------------------------------------------------------------------- |
+| Project      | Sync ERP                                                                    |
+| Type         | Multi-Tenant Enterprise Resource Planning                                   |
+| Stack        | Vite + React + tRPC (Frontend), Express + tRPC + TS (Backend), Prisma (ORM) |
+| Constitution | v3.3.0 (see `.agent/rules/constitution.md`)                                 |
 
 ---
 
-### [2025-12-18] Layer Responsibility Principles (Dumb Controller/Repository)
+### [2025-12-23] tRPC Router Architecture (Controller Layer Removed)
+
+**Decision**: Migrated from Express Controller to tRPC Router architecture:
+
+| Aspect            | Before                                                         | After                                                       |
+| ----------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
+| API Layer         | HTTP/REST + Express Controller                                 | **tRPC**                                                    |
+| Architecture      | 5-Layer (Route → Controller → Service → Policy → Repository)   | **4-Layer** (tRPC Router → Service → Policy → Repository)   |
+| Data Flow         | `web → HTTP → controller → service → policy → repository → db` | `web → tRPC → router → service → policy → repository → db`  |
+| Frontend Fetching | Custom hooks (`useCompanyData`)                                | **tRPC React Query hooks** (`trpc.invoice.list.useQuery()`) |
+
+**New Layer Responsibility**:
+
+| Layer      | Knows about                     | Must NOT know about   |
+| ---------- | ------------------------------- | --------------------- |
+| Router     | tRPC, auth, Zod validation, ctx | Business rules        |
+| Service    | Use case, state rules, policy   | SQL, table shape      |
+| Repository | Persistence, queries, locks     | State machine, policy |
+| Policy     | Business constraints            | DB, transactions      |
+
+**Key Files**:
+
+- tRPC Setup: `apps/api/src/trpc/trpc.ts`
+- Main Router: `apps/api/src/trpc/router.ts`
+- Domain Routers: `apps/api/src/trpc/routers/*.router.ts`
+- tRPC Client: `apps/web/src/lib/trpc.ts`
+
+**Rationale**: tRPC provides end-to-end type safety, removes boilerplate, and eliminates need for separate Controller layer since procedures handle validation directly.
+**Reference**: Constitution Principle III (Layered Backend Architecture)
+
+### [2025-12-18] Layer Responsibility Principles (Thin Router/Dumb Repository)
 
 **Decision**: Established clear boundaries for layer responsibilities:
 
