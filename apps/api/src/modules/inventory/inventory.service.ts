@@ -10,6 +10,7 @@ import {
 import { InventoryRepository } from './inventory.repository';
 import { ProductService } from '../product/product.service';
 import { PurchaseOrderService } from '../procurement/purchase-order.service';
+import { SalesOrderService } from '../sales/sales-order.service';
 import { JournalService } from '../accounting/services/journal.service';
 import { InventoryPolicy } from './inventory.policy';
 import {
@@ -23,6 +24,7 @@ export class InventoryService {
   private repository = new InventoryRepository();
   private productService = new ProductService();
   private purchaseOrderService = new PurchaseOrderService();
+  private salesOrderService = new SalesOrderService();
   private journalService = new JournalService();
 
   /**
@@ -109,6 +111,118 @@ export class InventoryService {
     );
 
     return movements;
+  }
+
+  /**
+   * Void a Shipment
+   * Policy: Shipment must be POSTED and no Invoice exists for the linked SO
+   * Effect: Rollback stock (IN), reverse COGS journal, update SO status
+   */
+  async voidShipment(
+    companyId: string,
+    shipmentId: string,
+    tx?: Prisma.TransactionClient,
+    userId?: string
+  ) {
+    const execute = async (t: Prisma.TransactionClient) => {
+      // 1. Fetch Shipment with items
+      const shipment = await this.repository.findShipmentById(
+        shipmentId,
+        companyId,
+        t
+      );
+
+      if (!shipment) {
+        throw new DomainError('Shipment not found', 404);
+      }
+
+      // 2. Policy: Must be POSTED
+      if (shipment.status !== 'POSTED') {
+        throw new DomainError(
+          `Cannot void Shipment in status: ${shipment.status}. Only POSTED Shipments can be voided.`,
+          400
+        );
+      }
+
+      // 3. Policy: Check no Invoice exists for this SO
+      const invoiceCount =
+        await this.repository.countInvoicesForOrder(
+          shipment.salesOrderId,
+          companyId,
+          t
+        );
+      if (invoiceCount > 0) {
+        throw new DomainError(
+          'Cannot void Shipment: An Invoice has been created for this Sales Order. Void the Invoice first.',
+          400
+        );
+      }
+
+      // 4. Calculate value for journal reversal (COGS)
+      const totalCogs = shipment.items.reduce(
+        (sum, item) =>
+          sum +
+          Number(item.quantity) * Number(item.costSnapshot || 0),
+        0
+      );
+
+      // 5. Rollback stock for each item (put it back IN)
+      for (const item of shipment.items) {
+        // Increase stock (reverse of Shipment post which is OUT)
+        // We act as if we are receiving it back
+        await this.productService.updateStock(
+          item.productId,
+          Number(item.quantity), // Add back
+          t
+        );
+      }
+
+      // 6. Post Reversal Journal (if value > 0)
+      if (totalCogs > 0) {
+        await this.journalService.postShipmentReversal(
+          companyId,
+          `VOID SHP:${shipment.number}`,
+          totalCogs,
+          t
+        );
+      }
+
+      // 7. Update Shipment status to VOIDED
+      const voidedShipment = await this.repository.voidShipment(
+        shipmentId,
+        t
+      );
+
+      // 8. Update SO status (using SalesOrderService logic)
+      await this.salesOrderService.recalculateStatus(
+        shipment.salesOrderId,
+        companyId,
+        t
+      );
+
+      // 9. Record Audit Log (if userId provided)
+      if (userId) {
+        await recordAudit({
+          companyId,
+          actorId: userId,
+          action: AuditLogAction.SHIPMENT_VOIDED, // Ensure enums are updated if needed or use string
+          entityType: EntityType.SHIPMENT, // Ensure enums are updated
+          entityId: shipmentId,
+          businessDate: new Date(),
+          payloadSnapshot: {
+            shipmentNumber: shipment.number,
+            totalCogs,
+          },
+        });
+      }
+
+      return voidedShipment;
+    };
+
+    if (tx) {
+      return execute(tx);
+    }
+    return prisma.$transaction(execute);
   }
 
   /**

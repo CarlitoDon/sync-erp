@@ -360,26 +360,76 @@ export class InvoiceService {
     }
   }
 
+  /**
+   * Void an Invoice atomically using Prisma transaction.
+   * Policy: Cannot void if payments exist. If POSTED, reverse AR journal.
+   */
   async void(id: string, companyId: string): Promise<Invoice> {
-    const invoice = await this.repository.findById(
-      id,
-      companyId,
-      InvoiceType.INVOICE
+    return prisma.$transaction(
+      async (tx) => {
+        // 1. Lock row for concurrency safety
+        await tx.$executeRaw`SELECT 1 FROM "Invoice" WHERE id = ${id} FOR UPDATE`;
+
+        // 2. Validate invoice exists
+        const invoice = await this.repository.findById(
+          id,
+          companyId,
+          InvoiceType.INVOICE,
+          tx
+        );
+        if (!invoice) {
+          throw new DomainError(
+            'Invoice not found',
+            404,
+            DomainErrorCodes.INVOICE_NOT_FOUND
+          );
+        }
+
+        // 3. Cannot void if already VOID
+        if (invoice.status === InvoiceStatus.VOID) {
+          throw new DomainError(
+            'Invoice is already voided',
+            422,
+            DomainErrorCodes.INVOICE_INVALID_STATE
+          );
+        }
+
+        // 4. Cannot void if any payments exist
+        const paymentCount = await this.repository.countPayments(
+          id,
+          companyId,
+          tx
+        );
+        if (paymentCount > 0) {
+          throw new DomainError(
+            'Cannot void invoice: Payments have been recorded. Void the payments first.',
+            422,
+            DomainErrorCodes.INVOICE_HAS_PAYMENTS
+          );
+        }
+
+        // 5. If POSTED, reverse the AR journal entry
+        if (invoice.status === InvoiceStatus.POSTED) {
+          await this.journalService.postInvoiceReversal(
+            companyId,
+            invoice.id,
+            invoice.invoiceNumber || '',
+            Number(invoice.amount),
+            Number(invoice.subtotal) || undefined,
+            Number(invoice.taxAmount) || undefined,
+            tx
+          );
+        }
+
+        // 6. Update status to VOID
+        return this.repository.update(
+          id,
+          { status: InvoiceStatus.VOID },
+          tx
+        );
+      },
+      { timeout: 60000 }
     );
-    if (!invoice) {
-      throw new Error('Invoice not found');
-    }
-
-    if (invoice.status === InvoiceStatus.PAID) {
-      throw new Error('Cannot void a paid invoice');
-    }
-
-    // Should we reverse journal? For MVP just mark VOID.
-    // Ideally we reverse. But legacy code didn't. We stick to legacy logic + new structure?
-    // User refactor goal: Structure.
-    return this.repository.update(id, {
-      status: InvoiceStatus.VOID,
-    });
   }
 
   async getOutstanding(companyId: string) {

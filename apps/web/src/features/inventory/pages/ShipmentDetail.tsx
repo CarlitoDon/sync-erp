@@ -1,13 +1,20 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
 import { useCompany } from '@/contexts/CompanyContext';
 import { trpc } from '@/lib/trpc';
 import { formatCurrency, formatDate } from '@/utils/format';
+import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 import { BackButton } from '@/components/ui/BackButton';
+import CreateInvoiceModal from '@/features/accounting/components/CreateInvoiceModal';
 
 export default function ShipmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
+  const confirm = useConfirm();
+  const utils = trpc.useUtils();
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const {
     data: shipment,
@@ -18,12 +25,67 @@ export default function ShipmentDetail() {
     { enabled: !!id && !!currentCompany?.id }
   );
 
+  const postMutation = trpc.inventory.postShipment.useMutation({
+    onSuccess: () =>
+      utils.inventory.getShipment.invalidate({ id: id! }),
+  });
+
+  // TODO: Add voidShipment mutation when available in backend
+  const voidMutation = trpc.inventory.voidShipment.useMutation({
+    onSuccess: () => {
+      utils.inventory.getShipment.invalidate({ id: id! });
+      utils.inventory.listShipments.invalidate();
+    },
+  });
+
+  const handlePost = async () => {
+    if (!shipment) return;
+
+    const confirmed = await confirm({
+      title: 'Post Shipment',
+      message:
+        'This will update inventory levels (deduct stock) and cannot be undone. Are you sure?',
+      confirmText: 'Yes, Post',
+    });
+
+    if (confirmed) {
+      await postMutation.mutateAsync({ id: shipment.id });
+    }
+  };
+
+  const handleVoid = async () => {
+    if (!shipment) return;
+
+    const confirmed = await confirm({
+      title: 'Void Shipment',
+      message:
+        'This will reverse the inventory update and journal entries. Are you sure?',
+      confirmText: 'Yes, Void',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
+      try {
+        await voidMutation.mutateAsync({ id: shipment.id });
+      } catch (error) {
+        console.error('Failed to void Shipment:', error);
+      }
+    }
+  };
+
+  const handleCreateInvoice = () => {
+    if (!shipment) return;
+    setIsInvoiceModalOpen(true);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'POSTED':
         return 'bg-green-100 text-green-800';
       case 'DRAFT':
         return 'bg-gray-100 text-gray-800';
+      case 'VOIDED':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -35,7 +97,7 @@ export default function ShipmentDetail() {
     return null;
   }
 
-  if (loading) {
+  if (loading || !currentCompany) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -64,19 +126,46 @@ export default function ShipmentDetail() {
         <div className="flex items-center gap-4">
           <BackButton />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {shipment.number}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {shipment.number}
+              </h1>
+              <span
+                className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(shipment.status)}`}
+              >
+                {shipment.status}
+              </span>
+            </div>
             <p className="text-sm text-gray-500">
               Shipment / Delivery Note
             </p>
           </div>
         </div>
-        <span
-          className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(shipment.status)}`}
-        >
-          {shipment.status}
-        </span>
+
+        <div className="flex gap-2">
+          {shipment.status === 'DRAFT' && (
+            <Button
+              onClick={handlePost}
+              disabled={postMutation.isPending}
+            >
+              Post Shipment
+            </Button>
+          )}
+          {shipment.status === 'POSTED' && (
+            <>
+              <Button onClick={handleCreateInvoice} variant="outline">
+                Create Invoice
+              </Button>
+              <Button
+                onClick={handleVoid}
+                variant="danger"
+                disabled={voidMutation.isPending}
+              >
+                {voidMutation.isPending ? 'Voiding...' : 'Void'}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Details Card */}
@@ -175,6 +264,17 @@ export default function ShipmentDetail() {
           </tbody>
         </table>
       </div>
+
+      {/* Invoice Modal */}
+      <CreateInvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        shipmentId={shipment.id}
+        onSuccess={(invoiceId) => {
+          utils.inventory.getShipment.invalidate({ id: id! });
+          navigate(`/invoices/${invoiceId}`);
+        }}
+      />
     </div>
   );
 }

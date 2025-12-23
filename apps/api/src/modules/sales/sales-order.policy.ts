@@ -2,18 +2,18 @@
  * Sales Policy
  *
  * Enforces BusinessShape constraints for sales operations.
- * All methods are stateless and unit-testable.
+ * Mirror of PurchaseOrderPolicy for Modular Parity (Constitution Principle X).
  *
  * Pattern: Policy.ensure*() throws DomainError if constraint violated.
  */
 
-import { BusinessShape } from '@sync-erp/database';
+import { BusinessShape, OrderStatus } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 /**
- * SalesPolicy - Shape-based constraints for sales operations.
+ * SalesOrderPolicy - Shape-based constraints and Status Guards.
  */
-export class SalesPolicy {
+export class SalesOrderPolicy {
   /**
    * Check if selling physical goods is allowed.
    * SERVICE companies can only sell services, not physical goods.
@@ -75,17 +75,75 @@ export class SalesPolicy {
   static validateUpdate(
     existingStatus: string,
     data: { orderNumber?: string },
-    existingOrderNumber: string
+    existingOrderNumber: string | null
   ): void {
-    if (existingStatus !== 'DRAFT') {
-      throw new Error('Cannot update order that is not DRAFT');
+    if (existingStatus !== OrderStatus.DRAFT) {
+      throw new DomainError(
+        'Order is not in the correct state for this action',
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
     }
 
     if (
       data.orderNumber &&
+      existingOrderNumber &&
       data.orderNumber !== existingOrderNumber
     ) {
-      throw new Error('Order number cannot be changed');
+      throw new DomainError(
+        'Order number cannot be changed',
+        400,
+        DomainErrorCodes.MUTATION_BLOCKED
+      );
+    }
+  }
+
+  /**
+   * Validate confirm rules - must be DRAFT
+   */
+  static validateConfirm(status: string): void {
+    if (status !== OrderStatus.DRAFT) {
+      throw new DomainError(
+        `Cannot confirm order with status: ${status}`,
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+  }
+
+  /**
+   * Validate cancel rules
+   * - Cannot cancel COMPLETED orders
+   * - Cannot cancel if already CANCELLED
+   * - Cannot cancel if shipments exist
+   */
+  static validateCancel(
+    status: string,
+    shipmentCount?: number
+  ): void {
+    if (status === OrderStatus.COMPLETED) {
+      throw new DomainError(
+        'Cannot cancel a completed order',
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    if (status === OrderStatus.CANCELLED) {
+      throw new DomainError(
+        'Order is already cancelled',
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    // Check if any shipments have been created
+    if (shipmentCount !== undefined && shipmentCount > 0) {
+      throw new DomainError(
+        'Cannot cancel order: Shipments have already been created',
+        422,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
     }
   }
 }

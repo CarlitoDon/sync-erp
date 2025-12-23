@@ -1,9 +1,9 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
-import { SalesService } from '@modules/sales/sales.service';
+import { SalesOrderService } from '@modules/sales/sales-order.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
 
-const salesOrderService = new SalesService();
+const salesOrderService = new SalesOrderService();
 const journalService = new JournalService();
 
 const COMPANY_ID = 'test-return-reversal-001';

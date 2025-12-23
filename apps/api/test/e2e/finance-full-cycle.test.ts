@@ -6,16 +6,16 @@ import { BillService } from '@modules/accounting/services/bill.service';
 import { InvoiceService } from '@modules/accounting/services/invoice.service';
 import { PaymentService } from '@modules/accounting/services/payment.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
-import { SalesService } from '@modules/sales/sales.service';
+import { SalesOrderService } from '@modules/sales/sales-order.service';
 
 // Initialize Services
 const inventoryService = new InventoryService();
-const journalService = new JournalService();
-const billService = new BillService();
+const salesOrderService = new SalesOrderService();
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
 const purchaseOrderService = new PurchaseOrderService();
-const salesOrderService = new SalesService();
+const journalService = new JournalService();
+const billService = new BillService();
 
 const COMPANY_ID = 'test-e2e-finance-cycle-001';
 
