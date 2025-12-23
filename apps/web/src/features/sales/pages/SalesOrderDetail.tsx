@@ -8,6 +8,7 @@ import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { ShipmentModal } from '@/features/inventory/components/ShipmentModal';
 import { BackButton } from '@/components/ui/BackButton';
+import CreateInvoiceModal from '@/features/accounting/components/CreateInvoiceModal';
 
 export default function SalesOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +17,7 @@ export default function SalesOrderDetail() {
   const utils = trpc.useUtils();
   const confirm = useConfirm();
   const [shipmentModalOpen, setShipmentModalOpen] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const { data: order, isLoading: loading } =
     trpc.salesOrder.getById.useQuery(
@@ -32,18 +34,11 @@ export default function SalesOrderDetail() {
   });
 
   // TODO: Add ship mutation when available in router
-  const shipMutation = trpc.salesOrder.ship.useMutation({
-    onSuccess: () => utils.salesOrder.getById.invalidate({ id: id! }),
-  });
+  // const shipMutation = trpc.salesOrder.ship.useMutation({
+  //   onSuccess: () => utils.salesOrder.getById.invalidate({ id: id! }),
+  // });
 
-  const createInvoiceMutation = trpc.invoice.createFromSO.useMutation(
-    {
-      onSuccess: () => {
-        utils.salesOrder.getById.invalidate({ id: id! });
-        utils.invoice.list.invalidate();
-      },
-    }
-  );
+  // Removed direct createInvoiceMutation in favor of Modal
 
   const handleConfirm = async () => {
     if (!order) return;
@@ -70,21 +65,13 @@ export default function SalesOrderDetail() {
 
   const handleShip = async () => {
     if (!order) return;
-    // For simple shipping action:
-    await apiAction(
-      () => shipMutation.mutateAsync({ id: order.id }),
-      'Order shipped'
-    );
-    // If complex shipment modal is needed, keep setShipmentModalOpen(true)
-    // setShipmentModalOpen(true);
+    // Open modal instead of direct mutation for partial shipping support
+    setShipmentModalOpen(true);
   };
 
-  const handleCreateInvoice = async () => {
+  const handleCreateInvoice = () => {
     if (!order) return;
-    await apiAction(
-      () => createInvoiceMutation.mutateAsync({ orderId: order.id }),
-      'Invoice created from Sales Order!'
-    );
+    setIsInvoiceModalOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -93,6 +80,10 @@ export default function SalesOrderDetail() {
         return 'bg-gray-100 text-gray-800';
       case 'CONFIRMED':
         return 'bg-blue-100 text-blue-800';
+      case 'PARTIALLY_SHIPPED':
+        return 'bg-amber-100 text-amber-800';
+      case 'SHIPPED':
+        return 'bg-teal-100 text-teal-800';
       case 'COMPLETED':
         return 'bg-green-100 text-green-800';
       case 'CANCELLED':
@@ -103,15 +94,20 @@ export default function SalesOrderDetail() {
   };
 
   const getShipmentStatus = (status: string) => {
-    if (status === 'COMPLETED')
+    if (status === 'SHIPPED' || status === 'COMPLETED')
       return {
-        label: 'Shipped',
+        label: 'Fully Shipped',
         color: 'text-green-600 bg-green-50',
+      };
+    if (status === 'PARTIALLY_SHIPPED')
+      return {
+        label: 'Partial',
+        color: 'text-amber-600 bg-amber-50',
       };
     if (status === 'CONFIRMED')
       return {
         label: 'Pending',
-        color: 'text-amber-600 bg-amber-50',
+        color: 'text-blue-600 bg-blue-50',
       };
     if (status === 'CANCELLED')
       return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
@@ -153,6 +149,18 @@ export default function SalesOrderDetail() {
         onSuccess={() => {
           setShipmentModalOpen(false);
           utils.salesOrder.getById.invalidate({ id: id! });
+        }}
+      />
+
+      {/* Invoice Creation Modal */}
+      <CreateInvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        orderId={order.id}
+        onSuccess={(invoiceId) => {
+          utils.salesOrder.getById.invalidate({ id: id! });
+          // Optionally navigate to invoice, or just let user see "View Invoice" button
+          navigate(`/invoices/${invoiceId}`);
         }}
       />
 
@@ -301,15 +309,18 @@ export default function SalesOrderDetail() {
                 </ActionButton>
               </>
             )}
-            {order.status === 'CONFIRMED' && (
+            {(order.status === 'CONFIRMED' ||
+              order.status === 'PARTIALLY_SHIPPED') && (
               <ActionButton variant="success" onClick={handleShip}>
                 Ship Order
               </ActionButton>
             )}
-            {order.status === 'COMPLETED' &&
+            {(order.status === 'SHIPPED' ||
+              order.status === 'PARTIALLY_SHIPPED' ||
+              order.status === 'COMPLETED') &&
               (!order.invoices || order.invoices.length === 0) && (
                 <ActionButton
-                  variant="warning"
+                  variant="primary"
                   onClick={handleCreateInvoice}
                 >
                   Create Invoice

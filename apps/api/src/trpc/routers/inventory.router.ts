@@ -128,6 +128,21 @@ export const inventoryRouter = router({
     .mutation(async ({ ctx, input }) => {
       return inventoryService.voidGRN(ctx.companyId!, input.id);
     }),
+
+  /**
+   * Void Shipment (reverse stock and journal)
+   * Policy: Must be POSTED and no Invoice exists for the SO
+   */
+  voidShipment: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return inventoryService.voidShipment(
+        ctx.companyId!,
+        input.id,
+        undefined,
+        ctx.userId
+      );
+    }),
 });
 
 export type InventoryRouter = typeof inventoryRouter;

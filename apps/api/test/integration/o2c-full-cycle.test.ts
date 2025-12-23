@@ -7,12 +7,12 @@ import {
 import { InvoiceService } from '@modules/accounting/services/invoice.service';
 import { PaymentService } from '@modules/accounting/services/payment.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
-import { SalesService } from '@modules/sales/sales.service';
+import { SalesOrderService } from '@modules/sales/sales-order.service';
 
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
 const journalService = new JournalService();
-const salesService = new SalesService();
+const salesOrderService = new SalesOrderService();
 
 const COMPANY_ID = 'test-o2c-integration-001';
 const ACTOR_ID = 'test-user-001';
@@ -129,14 +129,14 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
   describe('US1: Complete Order-to-Cash Cycle', () => {
     it('Full O2C Flow: SO -> Invoice -> Post -> Payment -> Journal', async () => {
       // Step 1: Create and confirm Sales Order
-      const order = await salesService.create(COMPANY_ID, {
+      const order = await salesOrderService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 5, price: 100000 }],
       });
       orderId = order.id;
       expect(order.status).toBe(OrderStatus.DRAFT);
 
-      const confirmedOrder = await salesService.confirm(
+      const confirmedOrder = await salesOrderService.confirm(
         orderId,
         COMPANY_ID
       );
@@ -232,13 +232,24 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
   });
 
   describe('FR-012: Invoice Balance Invariant', () => {
-    it('Should prevent overpayment (balance cannot be negative)', async () => {
-      // Create another invoice for this test
-      const order2 = await salesService.create(COMPANY_ID, {
+    it('should prevent shipping unconfirmed order', async () => {
+      const so = await salesOrderService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 1, price: 100000 }],
       });
-      await salesService.confirm(order2.id, COMPANY_ID);
+
+      await expect(
+        salesOrderService.ship(COMPANY_ID, so.id)
+      ).rejects.toThrow();
+    });
+
+    it('Should prevent overpayment (balance cannot be negative)', async () => {
+      // Create another invoice for this test
+      const order2 = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 1, price: 100000 }],
+      });
+      await salesOrderService.confirm(order2.id, COMPANY_ID);
 
       const invoice2 = await invoiceService.createFromSalesOrder(
         COMPANY_ID,

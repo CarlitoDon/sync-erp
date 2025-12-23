@@ -233,6 +233,50 @@ export class JournalService {
     );
   }
 
+  /**
+   * Reverse Invoice Journal Entry (for void Invoice)
+   * Reverses: Credit AR, Debit Sales Revenue (and VAT if applicable)
+   */
+  async postInvoiceReversal(
+    companyId: string,
+    invoiceId: string,
+    invoiceNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const lines: {
+      accountCode: string;
+      debit?: number;
+      credit?: number;
+    }[] = [
+      { accountCode: '1300', credit: amount }, // Reverse Accounts Receivable
+    ];
+
+    if (taxAmount && taxAmount > 0) {
+      lines.push({
+        accountCode: '4100',
+        debit: subtotal || amount - taxAmount,
+      }); // Reverse Sales Revenue
+      lines.push({ accountCode: '2300', debit: taxAmount }); // Reverse VAT Payable
+    } else {
+      lines.push({ accountCode: '4100', debit: amount }); // Reverse Sales Revenue
+    }
+
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Invoice Reversal: ${invoiceNumber}`,
+        memo: `Reversal of voided invoice ${invoiceNumber}`,
+        sourceType: JournalSourceType.INVOICE,
+        sourceId: invoiceId,
+        lines,
+      },
+      tx
+    );
+  }
+
   async postCreditNote(
     companyId: string,
     creditNoteId: string,
@@ -582,6 +626,30 @@ export class JournalService {
         reference,
         memo,
         lines,
+      },
+      tx
+    );
+  }
+
+  /**
+   * Reverse Shipment COGS Journal Entry (for void Shipment)
+   * Reverses: Debit Asset (1400), Credit COGS (5000)
+   */
+  async postShipmentReversal(
+    companyId: string,
+    reference: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference,
+        memo: 'Reversal of Shipment COGS',
+        lines: [
+          { accountCode: '1400', debit: amount }, // Restore Asset
+          { accountCode: '5000', credit: amount }, // Reverse COGS
+        ],
       },
       tx
     );

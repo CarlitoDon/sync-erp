@@ -547,4 +547,40 @@ export class InventoryRepository {
 
     return postedShipment;
   }
+
+  /**
+   * Count Invoices linked to a Sales Order
+   * Used to check if Shipment can be voided
+   */
+  async countInvoicesForOrder(
+    orderId: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const db = tx || prisma;
+    return db.invoice.count({
+      where: {
+        companyId,
+        orderId,
+        type: 'INVOICE',
+        status: { not: 'VOID' }, // Don't count voided invoices
+      },
+    });
+  }
+
+  /**
+   * Void a Shipment
+   * Just updates status to VOIDED
+   */
+  async voidShipment(id: string, tx?: Prisma.TransactionClient) {
+    const db = tx || prisma;
+    return db.shipment.update({
+      where: { id },
+      data: { status: 'VOIDED' },
+      include: {
+        items: { include: { product: true } },
+        salesOrder: true,
+      },
+    });
+  }
 }
