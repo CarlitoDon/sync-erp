@@ -4,8 +4,9 @@ import {
   OrderStatus,
   PaymentTerms,
   PaymentStatus,
+  InvoiceStatus,
 } from '@sync-erp/database';
-import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
+import { PurchaseOrderService } from '../../src/modules/procurement/purchase-order.service';
 
 const procurementService = new PurchaseOrderService();
 
@@ -210,7 +211,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
 
       // Register upfront payment
       const { UpfrontPaymentService } =
-        await import('@modules/procurement/upfront-payment.service');
+        await import('../../src/modules/procurement/upfront-payment.service');
       const upfrontPaymentService = new UpfrontPaymentService();
 
       const payment = await upfrontPaymentService.registerPayment(
@@ -264,7 +265,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       );
 
       const { UpfrontPaymentService } =
-        await import('@modules/procurement/upfront-payment.service');
+        await import('../../src/modules/procurement/upfront-payment.service');
       const upfrontPaymentService = new UpfrontPaymentService();
 
       await upfrontPaymentService.registerPayment(
@@ -301,7 +302,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       );
 
       const { UpfrontPaymentService } =
-        await import('@modules/procurement/upfront-payment.service');
+        await import('../../src/modules/procurement/upfront-payment.service');
       const upfrontPaymentService = new UpfrontPaymentService();
 
       await expect(
@@ -318,18 +319,224 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
     });
   });
 
-  describe.skip('US3: Receive Goods After Payment', () => {
-    it.todo('Should allow GRN for PAID_UPFRONT PO');
-    it.todo('Should create GRN journal (Dr 1400 Cr 2105)');
+  describe('US3: Receive Goods After Payment', () => {
+    it('Should allow GRN for PAID_UPFRONT PO', async () => {
+      // 1. Setup: Create and Pay PO
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 5, price: 100000 }],
+        paymentTerms: 'UPFRONT',
+      });
+      await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        ACTOR_ID
+      );
+
+      const { UpfrontPaymentService } =
+        await import('../../src/modules/procurement/upfront-payment.service');
+      const upfrontPaymentService = new UpfrontPaymentService();
+      await upfrontPaymentService.registerPayment(
+        COMPANY_ID,
+        {
+          orderId: order.id,
+          amount: 500000,
+          method: 'BANK_TRANSFER',
+        },
+        ACTOR_ID
+      );
+
+      // 2. Receive Goods
+      const { InventoryService } =
+        await import('../../src/modules/inventory/inventory.service');
+      const inventoryService = new InventoryService();
+      const orderItems = await procurementService.getItems(order.id);
+
+      const grn = await inventoryService.createGRN(COMPANY_ID, {
+        purchaseOrderId: order.id,
+        date: new Date().toISOString(),
+        items: [
+          {
+            productId: orderItems[0].productId,
+            quantity: 5,
+          },
+        ],
+      });
+
+      expect(grn).toBeDefined();
+      expect(grn.purchaseOrderId).toBe(order.id);
+    });
   });
 
-  describe.skip('US4: Bill with Prepaid Info', () => {
-    it.todo('Should show prepaid info on bill for UPFRONT PO');
+  describe('US4: Bill with Prepaid Info', () => {
+    it('Should strictly enforce UPFRONT payment terms on Bill even if NET30 requested', async () => {
+      // 1. Setup: PO -> Confirm -> Pay -> GRN
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 10, price: 100000 }], // 1,000,000
+        paymentTerms: 'UPFRONT',
+      });
+      await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        ACTOR_ID
+      );
+
+      // Pay Upfront
+      const { UpfrontPaymentService } =
+        await import('../../src/modules/procurement/upfront-payment.service');
+      const upfrontPaymentService = new UpfrontPaymentService();
+      await upfrontPaymentService.registerPayment(
+        COMPANY_ID,
+        {
+          orderId: order.id,
+          amount: 1000000,
+          method: 'BANK_TRANSFER',
+        },
+        ACTOR_ID
+      );
+
+      // Create GRN
+      const { InventoryService } =
+        await import('../../src/modules/inventory/inventory.service');
+      const inventoryService = new InventoryService();
+
+      const orderItems = await procurementService.getItems(order.id);
+
+      const grn = await inventoryService.createGRN(COMPANY_ID, {
+        purchaseOrderId: order.id,
+        date: new Date().toISOString(),
+        items: [{ productId: orderItems[0].productId, quantity: 10 }],
+      });
+      await inventoryService.postGRN(
+        COMPANY_ID,
+        grn.id,
+        undefined,
+        ACTOR_ID
+      );
+
+      // 2. Create Bill - Attempting to ignore Upfront terms
+      const { BillService } =
+        await import('../../src/modules/accounting/services/bill.service');
+      const billService = new BillService();
+
+      const bill = await billService.createFromPurchaseOrder(
+        COMPANY_ID,
+        {
+          orderId: order.id,
+          paymentTermsString: 'NET30', // Trying to override
+          dueDate: new Date(),
+        }
+      );
+
+      // 3. Verify Enforcement
+      expect(bill.orderId).toBe(order.id);
+      expect(bill.paymentTermsString).toBe('UPFRONT'); // Should be enforced
+      expect(bill.paymentTermsString).not.toBe('NET30');
+    });
   });
 
-  describe.skip('US5: Settlement Prepaid vs AP', () => {
-    it.todo(
-      'Should settle prepaid against AP and create journal (Dr 2100 Cr 1600)'
-    );
+  describe('US5: Settlement Prepaid vs AP', () => {
+    it('Should settle prepaid against AP and create journal (Dr 2100 Cr 1600)', async () => {
+      // 1. Setup: PO -> Confirm -> Pay -> GRN -> Post GRN
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 2, price: 100000 }], // 200,000
+        paymentTerms: 'UPFRONT',
+      });
+      await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        ACTOR_ID
+      );
+
+      const { UpfrontPaymentService } =
+        await import('../../src/modules/procurement/upfront-payment.service');
+      const upfrontPaymentService = new UpfrontPaymentService();
+      const payment = await upfrontPaymentService.registerPayment(
+        COMPANY_ID,
+        {
+          orderId: order.id,
+          amount: 200000,
+          method: 'CASH',
+        },
+        ACTOR_ID
+      );
+
+      const { InventoryService } =
+        await import('../../src/modules/inventory/inventory.service');
+      const inventoryService = new InventoryService();
+      const orderItems = await procurementService.getItems(order.id);
+      const grn = await inventoryService.createGRN(COMPANY_ID, {
+        purchaseOrderId: order.id,
+        items: [{ productId: orderItems[0].productId, quantity: 2 }],
+      });
+      await inventoryService.postGRN(
+        COMPANY_ID,
+        grn.id,
+        undefined,
+        ACTOR_ID
+      );
+
+      // 2. Create and Post Bill
+      const { BillService } =
+        await import('../../src/modules/accounting/services/bill.service');
+      const billService = new BillService();
+      const bill = await billService.createFromPurchaseOrder(
+        COMPANY_ID,
+        {
+          orderId: order.id,
+        }
+      );
+
+      const postedBill = await billService.post(
+        bill.id,
+        COMPANY_ID,
+        undefined,
+        ACTOR_ID
+      );
+
+      // 3. Verify Settlement
+      // Bill should be PAID because 200k was prepaid and bill is 200k (0% tax default)
+      expect(postedBill.status).toBe(InvoiceStatus.PAID);
+      expect(Number(postedBill.balance)).toBe(0);
+
+      // Verify settlement journal: Dr 2100, Cr 1600
+      const journals = await prisma.journalEntry.findMany({
+        where: {
+          companyId: COMPANY_ID,
+          sourceId: `${payment.id}:settlement`,
+        },
+        include: {
+          lines: {
+            include: { account: true },
+          },
+        },
+        // Add ordering to ensure we get exactly what we want if there are multiple
+        orderBy: { createdAt: 'desc' },
+      });
+
+      expect(journals).toHaveLength(1);
+      expect(journals[0].reference).toContain('Settle Prepaid');
+
+      const lines = journals[0].lines;
+      const drAP = (lines as any[]).find(
+        (l) => l.account.code === '2100' && Number(l.debit) > 0
+      );
+      const crAdvances = (lines as any[]).find(
+        (l) => l.account.code === '1600' && Number(l.credit) > 0
+      );
+
+      expect(drAP).toBeDefined();
+      expect(crAdvances).toBeDefined();
+      expect(Number(drAP?.debit)).toBe(200000);
+      expect(Number(crAdvances?.credit)).toBe(200000);
+
+      // Verify Order status
+      const updatedOrder = await prisma.order.findUnique({
+        where: { id: order.id },
+      });
+      expect(updatedOrder?.paymentStatus).toBe(PaymentStatus.SETTLED);
+    });
   });
 });

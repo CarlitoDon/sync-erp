@@ -91,12 +91,15 @@ export default function CreateBillModal({
       if (order.taxRate !== null && order.taxRate !== undefined) {
         setValue('taxRate', Number(order.taxRate));
       }
-      // If PO has payment terms (assuming it might be stored, if not default to NET30)
-      // Currently PO schema might not directly expose paymentTerms string cleanly or it's on partner.
-      // For now we default to NET30 or keep what user selected.
-      // If we wanted to fetch from Partner, we'd need partner data.
+      // If PO has payment terms, use it
+      if (order.paymentTerms) {
+        setValue('paymentTermsString', order.paymentTerms);
+      }
     }
   }, [order, setValue]);
+
+  // Check if terms are strictly enforced (e.g. Upfront)
+  const isUpfront = order?.paymentTerms === 'UPFRONT';
 
   useEffect(() => {
     if (businessDate && paymentTermsString) {
@@ -215,6 +218,7 @@ export default function CreateBillModal({
                 <Select
                   value={field.value ?? 'NET30'}
                   onChange={field.onChange}
+                  disabled={isUpfront}
                   options={PAYMENT_TERMS.map((term) => ({
                     value: term.code,
                     label: term.label,
@@ -222,6 +226,12 @@ export default function CreateBillModal({
                 />
               )}
             />
+            {isUpfront && (
+              <p className="text-xs text-amber-600 mt-1">
+                Payment terms are locked to "Cash Upfront" as per
+                Purchase Order.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
