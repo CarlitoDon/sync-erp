@@ -210,7 +210,7 @@ export const CostingMethodSchema = z.enum(['AVG','FIFO']);
 
 export type CostingMethodType = `${z.infer<typeof CostingMethodSchema>}`
 
-export const PaymentTermsSchema = z.enum(['NET7','NET30','NET60','NET90','COD','EOM','NET_30','PARTIAL','UPFRONT']);
+export const PaymentTermsSchema = z.enum(['NET7','NET30','NET60','NET90','COD','EOM','NET_30','UPFRONT']);
 
 export type PaymentTermsType = `${z.infer<typeof PaymentTermsSchema>}`
 
