@@ -5,26 +5,28 @@ import {
   TruckIcon,
   UserGroupIcon,
   CubeIcon,
-  ClipboardDocumentListIcon,
   ShoppingCartIcon,
   ArchiveBoxIcon,
   DocumentTextIcon,
   BanknotesIcon,
   BuildingOfficeIcon,
   CreditCardIcon,
-  ChartBarIcon,
   UsersIcon,
-  ClipboardDocumentCheckIcon,
+  DocumentCheckIcon,
+  ArrowDownTrayIcon,
+  PaperAirplaneIcon,
+  CurrencyDollarIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
 
 export default function SidebarNav() {
   return (
-    <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
+    <nav className="flex-1 px-3 py-4 overflow-y-auto">
       {/* Dashboard - Always visible at top */}
       <SidebarItem path="/" label="Dashboard" icon={<HomeIcon />} />
 
       {/* Sales Division */}
-      <SidebarGroup label="Sales" icon={<ChartBarIcon />}>
+      <SidebarGroup label="Sales" icon={<CurrencyDollarIcon />}>
         <SidebarItem
           path="/customers"
           label="Customers"
@@ -43,15 +45,12 @@ export default function SidebarNav() {
         <SidebarItem
           path="/shipments"
           label="Shipments"
-          icon={<TruckIcon />}
+          icon={<PaperAirplaneIcon />}
         />
       </SidebarGroup>
 
       {/* Procurement Division */}
-      <SidebarGroup
-        label="Procurement"
-        icon={<ClipboardDocumentListIcon />}
-      >
+      <SidebarGroup label="Purchasing" icon={<ArrowDownTrayIcon />}>
         <SidebarItem
           path="/suppliers"
           label="Suppliers"
@@ -60,7 +59,7 @@ export default function SidebarNav() {
         <SidebarItem
           path="/purchase-orders"
           label="Purchase Orders"
-          icon={<ClipboardDocumentCheckIcon />}
+          icon={<DocumentCheckIcon />}
         />
         <SidebarItem
           path="/bills"
@@ -70,12 +69,12 @@ export default function SidebarNav() {
         <SidebarItem
           path="/receipts"
           label="Goods Receipts"
-          icon={<TruckIcon />}
+          icon={<ArchiveBoxIcon />}
         />
       </SidebarGroup>
 
       {/* Inventory Division */}
-      <SidebarGroup label="Inventory" icon={<ArchiveBoxIcon />}>
+      <SidebarGroup label="Inventory" icon={<CubeIcon />}>
         <SidebarItem
           path="/products"
           label="Products"
@@ -97,10 +96,10 @@ export default function SidebarNav() {
         />
       </SidebarGroup>
 
-      {/* Administration */}
+      {/* Settings - collapsed by default */}
       <SidebarGroup
-        label="Admin"
-        icon={<BuildingOfficeIcon />}
+        label="Settings"
+        icon={<Cog6ToothIcon />}
         defaultOpen={false}
       >
         <SidebarItem
