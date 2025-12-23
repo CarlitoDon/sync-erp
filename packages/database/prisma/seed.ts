@@ -235,6 +235,11 @@ async function main() {
       }, // JournalService expects this
       {
         code: '1600',
+        name: 'Advances to Supplier', // Feature 036: Cash Upfront Payment
+        type: 'ASSET' as const,
+      },
+      {
+        code: '1700',
         name: 'Office Equipment',
         type: 'ASSET' as const,
       },
