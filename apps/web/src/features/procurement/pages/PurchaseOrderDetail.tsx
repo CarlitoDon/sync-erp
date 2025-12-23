@@ -9,11 +9,8 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import { BackButton } from '@/components/ui/BackButton';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
-// Feature 036: Payment components
 import { PaymentTermsBadge } from '../components/PaymentTermsBadge';
 import { PaymentStatusBadge } from '../components/PaymentStatusBadge';
-import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
-import { UpfrontPaymentCard } from '../components/UpfrontPaymentCard';
 import {
   PaymentTermsSchema,
   OrderStatusSchema,
@@ -21,7 +18,6 @@ import {
   PaymentTermsType,
   PaymentStatusType,
 } from '@sync-erp/shared';
-import { PaymentHistoryTable } from '../components/PaymentHistoryTable';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -33,7 +29,6 @@ export default function PurchaseOrderDetail() {
     null
   );
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false); // Feature 036
 
   const { data: order, isLoading: loading } =
     trpc.purchaseOrder.getById.useQuery(
@@ -41,14 +36,9 @@ export default function PurchaseOrderDetail() {
       { enabled: !!id && !!currentCompany?.id }
     );
 
-  // Feature 036: Fetch payment summary for upfront orders
+  // Feature 036: Check if UPFRONT order
   const isUpfrontOrder =
     order?.paymentTerms === PaymentTermsSchema.enum.UPFRONT;
-  const { data: paymentSummary, isLoading: paymentLoading } =
-    trpc.upfrontPayment.getPaymentSummary.useQuery(
-      { orderId: id! },
-      { enabled: !!id && !!order && isUpfrontOrder }
-    );
 
   const confirmMutation = trpc.purchaseOrder.confirm.useMutation({
     onSuccess: () =>
@@ -179,24 +169,6 @@ export default function PurchaseOrderDetail() {
           navigate(`/bills/${billId}`);
         }}
       />
-
-      {/* Feature 036: Upfront Payment Modal */}
-      {isUpfrontOrder && (
-        <RegisterPaymentModal
-          isOpen={isPaymentModalOpen}
-          onClose={() => setIsPaymentModalOpen(false)}
-          orderId={order.id}
-          orderNumber={order.orderNumber || order.id}
-          totalAmount={Number(order.totalAmount)}
-          paidAmount={paymentSummary?.paidAmount ?? 0}
-          onSuccess={() => {
-            utils.upfrontPayment.getPaymentSummary.invalidate({
-              orderId: order.id,
-            });
-            utils.purchaseOrder.getById.invalidate({ id: id! });
-          }}
-        />
-      )}
 
       {/* Page Content */}
       <div className="space-y-6">
@@ -356,26 +328,32 @@ export default function PurchaseOrderDetail() {
           </table>
         </div>
 
-        {/* Feature 036: Upfront Payment Section */}
-        {isUpfrontOrder && paymentSummary && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <UpfrontPaymentCard
-              totalAmount={paymentSummary.totalAmount}
-              paidAmount={paymentSummary.paidAmount}
-              remainingAmount={paymentSummary.remainingAmount}
-              paymentStatus={paymentSummary.paymentStatus}
-              onRegisterPayment={() => setIsPaymentModalOpen(true)}
-              canRegisterPayment={
-                order.status !== OrderStatusSchema.enum.DRAFT &&
-                order.status !== OrderStatusSchema.enum.CANCELLED
-              }
-            />
-            <PaymentHistoryTable
-              payments={paymentSummary.payments}
-              isLoading={paymentLoading}
-            />
-          </div>
-        )}
+        {/* Feature 036: UPFRONT Payment Info - Direct user to pay via Bill */}
+        {isUpfrontOrder &&
+          order.invoices &&
+          order.invoices.length > 0 && (
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-blue-800">
+                    Down Payment Bill Created
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    Please pay via the Bill to complete the upfront
+                    payment.
+                  </p>
+                </div>
+                <ActionButton
+                  variant="primary"
+                  onClick={() =>
+                    navigate(`/bills/${order.invoices![0].id}`)
+                  }
+                >
+                  Go to Bill →
+                </ActionButton>
+              </div>
+            </div>
+          )}
 
         {/* Actions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
