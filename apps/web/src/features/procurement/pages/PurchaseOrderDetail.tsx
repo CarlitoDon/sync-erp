@@ -3,15 +3,10 @@ import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
-import { useConfirm } from '@/components/ui/ConfirmModal';
-import ActionButton from '@/components/ui/ActionButton';
 import PurchaseOrderActions from '../components/PurchaseOrderActions';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
-import { BackButton } from '@/components/ui/BackButton';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
-import { PaymentTermsBadge } from '../components/PaymentTermsBadge';
-import { PaymentStatusBadge } from '../components/PaymentStatusBadge';
 import {
   PaymentTermsSchema,
   OrderStatusSchema,
@@ -21,11 +16,19 @@ import {
 } from '@sync-erp/shared';
 import { PageContainer } from '@/components/layout/PageLayout';
 import {
+  useConfirm,
+  ActionButton,
+  BackButton,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '@/components/ui/Card';
+  PaymentTermsBadge,
+  PaymentStatusBadge,
+  StatusBadge,
+  LoadingState,
+  OrderItemsTable,
+} from '@/components/ui';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -86,25 +89,6 @@ export default function PurchaseOrderDetail() {
     setIsBillModalOpen(true);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case OrderStatusSchema.enum.DRAFT:
-        return 'bg-gray-100 text-gray-800';
-      case OrderStatusSchema.enum.CONFIRMED:
-        return 'bg-blue-100 text-blue-800';
-      case OrderStatusSchema.enum.PARTIALLY_RECEIVED:
-        return 'bg-amber-100 text-amber-800';
-      case OrderStatusSchema.enum.RECEIVED:
-        return 'bg-teal-100 text-teal-800';
-      case OrderStatusSchema.enum.COMPLETED:
-        return 'bg-green-100 text-green-800';
-      case OrderStatusSchema.enum.CANCELLED:
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const getReceiptStatus = (status: string) => {
     if (
       status === OrderStatusSchema.enum.RECEIVED ||
@@ -130,11 +114,7 @@ export default function PurchaseOrderDetail() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading order details...</div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (!order) {
@@ -195,11 +175,7 @@ export default function PurchaseOrderDetail() {
             </div>
           </div>
           <div className="flex gap-2 items-center">
-            <span
-              className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
-            >
-              {order.status}
-            </span>
+            <StatusBadge status={order.status} domain="order" />
             {/* Feature 036: Payment badges */}
             {order.paymentTerms && (
               <PaymentTermsBadge
@@ -296,55 +272,15 @@ export default function PurchaseOrderDetail() {
           <CardHeader>
             <CardTitle>Order Items</CardTitle>
           </CardHeader>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Product
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Quantity
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Unit Price
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {order.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-6 py-3">
-                      {item.product ? (
-                        <Link
-                          to={`/products/${item.productId}`}
-                          className="text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          {item.product.name}
-                        </Link>
-                      ) : (
-                        item.productId
-                      )}
-                    </td>
-                    <td className="px-6 py-3 text-right">
-                      {item.quantity}
-                    </td>
-                    <td className="px-6 py-3 text-right">
-                      {formatCurrency(Number(item.price))}
-                    </td>
-                    <td className="px-6 py-3 text-right font-medium">
-                      {formatCurrency(
-                        item.quantity * Number(item.price)
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <OrderItemsTable
+            items={order.items.map((item) => ({
+              id: item.id,
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              product: item.product,
+            }))}
+          />
         </Card>
 
         {/* Feature 036: UPFRONT Payment Info - Direct user to pay via Bill */}

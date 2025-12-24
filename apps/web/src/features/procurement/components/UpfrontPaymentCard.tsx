@@ -1,5 +1,5 @@
 import { formatCurrency } from '@/utils/format';
-import { PaymentStatusBadge } from './PaymentStatusBadge';
+import { PaymentStatusBadge } from '@/components/ui/PaymentStatusBadge';
 
 interface UpfrontPaymentCardProps {
   totalAmount: number;

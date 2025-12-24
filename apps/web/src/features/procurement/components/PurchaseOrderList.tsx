@@ -8,6 +8,7 @@ import PurchaseOrderActions from './PurchaseOrderActions';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import { formatCurrency } from '@/utils/format';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface PurchaseOrderListProps {
   filter?: { partnerId?: string; status?: string };
@@ -39,25 +40,6 @@ export default function PurchaseOrderList({
   const cancelMutation = trpc.purchaseOrder.cancel.useMutation({
     onSuccess: () => utils.purchaseOrder.list.invalidate(),
   });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'CONFIRMED':
-        return 'bg-blue-100 text-blue-800';
-      case 'PARTIALLY_RECEIVED':
-        return 'bg-amber-100 text-amber-800';
-      case 'RECEIVED':
-        return 'bg-teal-100 text-teal-800';
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800';
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const handleConfirm = async (id: string) => {
     await apiAction(
@@ -155,11 +137,7 @@ export default function PurchaseOrderList({
                   {formatCurrency(Number(order.totalAmount))}
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}
-                  >
-                    {order.status}
-                  </span>
+                  <StatusBadge status={order.status} domain="order" />
                 </td>
                 <td className="px-6 py-4 text-right space-x-2">
                   <PurchaseOrderActions

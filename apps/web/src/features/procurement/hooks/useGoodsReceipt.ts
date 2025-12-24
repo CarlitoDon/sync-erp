@@ -85,5 +85,3 @@ export function useGoodsReceipt(
     getReceipt,
   };
 }
-
-export default useGoodsReceipt;
