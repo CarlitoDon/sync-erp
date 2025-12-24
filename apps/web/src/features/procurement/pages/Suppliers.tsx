@@ -8,6 +8,11 @@ import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
 
 import { PartnerTypeSchema } from '@sync-erp/shared';
+import {
+  PageContainer,
+  PageHeader,
+} from '@/components/layout/PageLayout';
+import { Card } from '@/components/ui/Card';
 
 interface CreatePartnerInput {
   name: string;
@@ -105,24 +110,19 @@ export default function Suppliers() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Suppliers
-          </h1>
-          <p className="text-gray-500">
-            Manage your supplier relationships for{' '}
-            {currentCompany.name}
-          </p>
-        </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          + Add Supplier
-        </button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Suppliers"
+        description={`Manage your supplier relationships for ${currentCompany.name}`}
+        actions={
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            + Add Supplier
+          </button>
+        }
+      />
 
       {/* Modal Form */}
       <FormModal
@@ -208,7 +208,7 @@ export default function Suppliers() {
         </form>
       </FormModal>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <Card className="overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -272,7 +272,7 @@ export default function Suppliers() {
             )}
           </tbody>
         </table>
-      </div>
-    </div>
+      </Card>
+    </PageContainer>
   );
 }
