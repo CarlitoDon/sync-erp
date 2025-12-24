@@ -1,0 +1,45 @@
+{
+  "$schema": "https://unpkg.com/knip@5.0.0/schema.json",
+  "workspaces": {
+    ".": {
+      "ignore": ["specs/**", "vitest.workspace.ts"],
+      "ignoreDependencies": [
+        "eslint-plugin-react",
+        "eslint-plugin-react-hooks",
+        "prettier"
+      ]
+    },
+    "apps/api": {
+      "entry": ["src/index.ts", "src/trpc/**/*.router.ts"],
+      "ignore": ["scripts/**", "test/**", "src/middlewares/rbac.ts"],
+      "ignoreDependencies": [
+        "@types/supertest",
+        "supertest",
+        "vite-tsconfig-paths"
+      ]
+    },
+    "apps/web": {
+      "entry": ["src/main.tsx"],
+      "ignore": ["test/**"],
+      "ignoreDependencies": [
+        "@testing-library/user-event",
+        "tailwindcss"
+      ]
+    },
+    "packages/database": {
+      "entry": ["src/index.ts"],
+      "ignore": ["prisma/**", "scripts/**", "*.ts"],
+      "ignoreDependencies": [
+        "@prisma/client",
+        "zod",
+        "zod-prisma-types"
+      ]
+    },
+    "packages/shared": {
+      "entry": ["src/index.ts"],
+      "ignore": ["test/**"],
+      "ignoreDependencies": ["@prisma/client"]
+    }
+  },
+  "ignoreExportsUsedInFile": true
+}

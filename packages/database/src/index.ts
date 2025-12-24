@@ -1,5 +1,5 @@
 // Database Package - Main Entry Point
-export { prisma, default as PrismaClient } from './client.js';
+export { prisma } from './client.js';
 
 // Re-export Prisma types for consumers
 export type {
