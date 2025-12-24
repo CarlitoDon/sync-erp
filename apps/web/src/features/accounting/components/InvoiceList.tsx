@@ -21,6 +21,7 @@ import {
   invoiceStatusFilterOptions,
 } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
+import { Card, CardContent } from '@/components/ui/Card';
 
 type Invoice = RouterOutputs['invoice']['list'][number];
 
@@ -284,44 +285,52 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Total Invoices
-          </p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">
-            {invoices.length}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Outstanding
-          </p>
-          <p className="text-3xl font-bold text-blue-600 mt-2">
-            {
-              invoices.filter(
-                (i) => i.status === StatusSchema.enum.POSTED
-              ).length
-            }
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Paid</p>
-          <p className="text-3xl font-bold text-green-600 mt-2">
-            {
-              invoices.filter(
-                (i) => i.status === StatusSchema.enum.PAID
-              ).length
-            }
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Outstanding Amount
-          </p>
-          <p className="text-2xl font-bold text-primary-600 mt-2">
-            {formatCurrency(outstandingAmount)}
-          </p>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">
+              Total Invoices
+            </p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">
+              {invoices.length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">
+              Outstanding
+            </p>
+            <p className="text-3xl font-bold text-blue-600 mt-2">
+              {
+                invoices.filter(
+                  (i) => i.status === StatusSchema.enum.POSTED
+                ).length
+              }
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">Paid</p>
+            <p className="text-3xl font-bold text-green-600 mt-2">
+              {
+                invoices.filter(
+                  (i) => i.status === StatusSchema.enum.PAID
+                ).length
+              }
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">
+              Outstanding Amount
+            </p>
+            <p className="text-2xl font-bold text-primary-600 mt-2">
+              {formatCurrency(outstandingAmount)}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -344,141 +353,145 @@ export const InvoiceList = ({ filter }: InvoiceListProps) => {
       </div>
 
       {/* Invoice Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Invoice #
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Customer
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Amount
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Balance
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                Due Date
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                Status
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {filteredInvoices.length === 0 ? (
+      <Card>
+        <CardContent className="p-0">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <td
-                  colSpan={7}
-                  className="px-6 py-12 text-center text-gray-500"
-                >
-                  No invoices found.
-                </td>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Invoice #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Customer
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Balance
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                  Due Date
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
-            ) : (
-              filteredInvoices.map((invoice) => (
-                <Fragment key={invoice.id}>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-mono text-sm">
-                      <Link
-                        to={`/invoices/${invoice.id}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {invoice.invoiceNumber}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4">
-                      {invoice.partnerId || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {formatCurrency(Number(invoice.amount))}
-                    </td>
-                    <td className="px-6 py-4 text-right font-semibold">
-                      {formatCurrency(Number(invoice.balance))}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span
-                        className={
-                          new Date(invoice.dueDate) < new Date() &&
-                          invoice.status === StatusSchema.enum.POSTED
-                            ? 'text-red-600 font-bold'
-                            : ''
-                        }
-                      >
-                        {formatDate(invoice.dueDate)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}
-                      >
-                        {invoice.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      {invoice.status === StatusSchema.enum.DRAFT && (
-                        <>
-                          <ActionButton
-                            onClick={() => handlePost(invoice.id)}
-                            variant="primary"
-                          >
-                            Post
-                          </ActionButton>
-                          <ActionButton
-                            onClick={() => handleVoid(invoice.id)}
-                            variant="danger"
-                          >
-                            Void
-                          </ActionButton>
-                        </>
-                      )}
-                      {invoice.status ===
-                        StatusSchema.enum.POSTED && (
-                        <ActionButton
-                          onClick={() => openPaymentModal(invoice)}
-                          variant="success"
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredInvoices.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
+                    No invoices found.
+                  </td>
+                </tr>
+              ) : (
+                filteredInvoices.map((invoice) => (
+                  <Fragment key={invoice.id}>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 font-mono text-sm">
+                        <Link
+                          to={`/invoices/${invoice.id}`}
+                          className="text-blue-600 hover:underline"
                         >
-                          Record Payment
+                          {invoice.invoiceNumber}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4">
+                        {invoice.partnerId || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {formatCurrency(Number(invoice.amount))}
+                      </td>
+                      <td className="px-6 py-4 text-right font-semibold">
+                        {formatCurrency(Number(invoice.balance))}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={
+                            new Date(invoice.dueDate) < new Date() &&
+                            invoice.status ===
+                              StatusSchema.enum.POSTED
+                              ? 'text-red-600 font-bold'
+                              : ''
+                          }
+                        >
+                          {formatDate(invoice.dueDate)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}
+                        >
+                          {invoice.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right space-x-2">
+                        {invoice.status ===
+                          StatusSchema.enum.DRAFT && (
+                          <>
+                            <ActionButton
+                              onClick={() => handlePost(invoice.id)}
+                              variant="primary"
+                            >
+                              Post
+                            </ActionButton>
+                            <ActionButton
+                              onClick={() => handleVoid(invoice.id)}
+                              variant="danger"
+                            >
+                              Void
+                            </ActionButton>
+                          </>
+                        )}
+                        {invoice.status ===
+                          StatusSchema.enum.POSTED && (
+                          <ActionButton
+                            onClick={() => openPaymentModal(invoice)}
+                            variant="success"
+                          >
+                            Record Payment
+                          </ActionButton>
+                        )}
+                        <ActionButton
+                          variant="secondary"
+                          onClick={() =>
+                            setShowHistory(
+                              showHistory === invoice.id
+                                ? null
+                                : invoice.id
+                            )
+                          }
+                        >
+                          {showHistory === invoice.id
+                            ? 'Hide History'
+                            : 'History'}
                         </ActionButton>
-                      )}
-                      <ActionButton
-                        variant="secondary"
-                        onClick={() =>
-                          setShowHistory(
-                            showHistory === invoice.id
-                              ? null
-                              : invoice.id
-                          )
-                        }
-                      >
-                        {showHistory === invoice.id
-                          ? 'Hide History'
-                          : 'History'}
-                      </ActionButton>
-                    </td>
-                  </tr>
-                  {showHistory === invoice.id && (
-                    <tr className="bg-gray-50">
-                      <td colSpan={7} className="px-6 py-4">
-                        <PaymentHistoryList
-                          invoiceId={invoice.id}
-                          totalAmount={Number(invoice.amount)}
-                        />
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                    {showHistory === invoice.id && (
+                      <tr className="bg-gray-50">
+                        <td colSpan={7} className="px-6 py-4">
+                          <PaymentHistoryList
+                            invoiceId={invoice.id}
+                            totalAmount={Number(invoice.amount)}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
     </div>
   );
 };

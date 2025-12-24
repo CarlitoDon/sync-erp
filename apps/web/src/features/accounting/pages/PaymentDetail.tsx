@@ -6,6 +6,13 @@ import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { BackButton } from '@/components/ui/BackButton';
+import { PageContainer } from '@/components/layout/PageLayout';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/Card';
 
 export default function PaymentDetail() {
   const { id } = useParams<{ id: string }>();
@@ -70,7 +77,7 @@ export default function PaymentDetail() {
   const documentPath = isBill ? 'bills' : 'invoices';
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -97,106 +104,115 @@ export default function PaymentDetail() {
       </div>
 
       {/* Payment Info Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">
-          Payment Information
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div>
-            <p className="text-sm text-gray-500">Amount</p>
-            <p className="text-xl font-bold text-gray-900">
-              {formatCurrency(Number(payment.amount))}
-            </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">Amount</p>
+              <p className="text-xl font-bold text-gray-900">
+                {formatCurrency(Number(payment.amount))}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Method</p>
+              <p className="font-medium capitalize">
+                {payment.method?.toLowerCase().replace('_', ' ') ||
+                  '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Date</p>
+              <p className="font-medium">
+                {formatDate(payment.createdAt)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Reference</p>
+              <p className="font-mono text-sm">
+                {payment.reference || '-'}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Method</p>
-            <p className="font-medium capitalize">
-              {payment.method?.toLowerCase().replace('_', ' ') || '-'}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Date</p>
-            <p className="font-medium">
-              {formatDate(payment.createdAt)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Reference</p>
-            <p className="font-mono text-sm">
-              {payment.reference || '-'}
-            </p>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Related Document Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">
-          Related {documentLabel}
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div>
-            <p className="text-sm text-gray-500">
-              {documentLabel} Number
-            </p>
-            <p className="font-medium">
-              {invoice?.invoiceNumber ? (
-                <Link
-                  to={`/${documentPath}/${payment.invoiceId}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline font-mono"
-                >
-                  {invoice.invoiceNumber}
-                </Link>
-              ) : (
-                <span className="text-gray-400">-</span>
-              )}
-            </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Related {documentLabel}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">
+                {documentLabel} Number
+              </p>
+              <p className="font-medium">
+                {invoice?.invoiceNumber ? (
+                  <Link
+                    to={`/${documentPath}/${payment.invoiceId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline font-mono"
+                  >
+                    {invoice.invoiceNumber}
+                  </Link>
+                ) : (
+                  <span className="text-gray-400">-</span>
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">
+                {isBill ? 'Supplier' : 'Customer'}
+              </p>
+              <p className="font-medium">
+                {invoice?.partnerId ? (
+                  <Link
+                    to={`/${isBill ? 'suppliers' : 'customers'}/${invoice.partnerId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {invoice.partner?.name || 'View Partner'}
+                  </Link>
+                ) : (
+                  <span className="text-gray-400">-</span>
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Type</p>
+              <p className="font-medium">
+                {isBill ? 'Bill Payment' : 'Invoice Receipt'}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">
-              {isBill ? 'Supplier' : 'Customer'}
-            </p>
-            <p className="font-medium">
-              {invoice?.partnerId ? (
-                <Link
-                  to={`/${isBill ? 'suppliers' : 'customers'}/${invoice.partnerId}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  {invoice.partner?.name || 'View Partner'}
-                </Link>
-              ) : (
-                <span className="text-gray-400">-</span>
-              )}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Type</p>
-            <p className="font-medium">
-              {isBill ? 'Bill Payment' : 'Invoice Receipt'}
-            </p>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Actions */}
       {!isVoided && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            <ActionButton variant="danger" onClick={handleVoid}>
-              Void Payment
-            </ActionButton>
-            <ActionButton
-              variant="secondary"
-              onClick={() =>
-                navigate(`/${documentPath}/${payment.invoiceId}`)
-              }
-            >
-              View {documentLabel}
-            </ActionButton>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              <ActionButton variant="danger" onClick={handleVoid}>
+                Void Payment
+              </ActionButton>
+              <ActionButton
+                variant="secondary"
+                onClick={() =>
+                  navigate(`/${documentPath}/${payment.invoiceId}`)
+                }
+              >
+                View {documentLabel}
+              </ActionButton>
+            </div>
+          </CardContent>
+        </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

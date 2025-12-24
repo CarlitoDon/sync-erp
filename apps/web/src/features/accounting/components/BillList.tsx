@@ -19,6 +19,7 @@ import {
   invoiceStatusFilterOptions,
 } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
+import { Card, CardContent } from '@/components/ui/Card';
 
 type Bill = RouterOutputs['bill']['list'][number];
 
@@ -270,43 +271,52 @@ export const BillList = ({ filter }: BillListProps) => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Total Bills
-          </p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">
-            {bills.length}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Unpaid Bills
-          </p>
-          <p className="text-3xl font-bold text-blue-600 mt-2">
-            {
-              bills.filter(
-                (b) => b.status === StatusSchema.enum.POSTED
-              ).length
-            }
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">Paid</p>
-          <p className="text-3xl font-bold text-green-600 mt-2">
-            {
-              bills.filter((b) => b.status === StatusSchema.enum.PAID)
-                .length
-            }
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Outstanding Amount
-          </p>
-          <p className="text-2xl font-bold text-red-600 mt-2">
-            {formatCurrency(outstandingAmount)}
-          </p>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">
+              Total Bills
+            </p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">
+              {bills.length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">
+              Unpaid Bills
+            </p>
+            <p className="text-3xl font-bold text-blue-600 mt-2">
+              {
+                bills.filter(
+                  (b) => b.status === StatusSchema.enum.POSTED
+                ).length
+              }
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">Paid</p>
+            <p className="text-3xl font-bold text-green-600 mt-2">
+              {
+                bills.filter(
+                  (b) => b.status === StatusSchema.enum.PAID
+                ).length
+              }
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">
+              Outstanding Amount
+            </p>
+            <p className="text-2xl font-bold text-red-600 mt-2">
+              {formatCurrency(outstandingAmount)}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -331,143 +341,145 @@ export const BillList = ({ filter }: BillListProps) => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Bill #
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Supplier
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Amount
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Balance
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                Due Date
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                Status
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {filteredBills.length === 0 ? (
+      <Card>
+        <CardContent className="p-0">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <td
-                  colSpan={7}
-                  className="px-6 py-12 text-center text-gray-500"
-                >
-                  No bills found.
-                </td>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Bill #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Supplier
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Balance
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                  Due Date
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
-            ) : (
-              filteredBills.map((bill) => (
-                <Fragment key={bill.id}>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-mono text-sm">
-                      <Link
-                        to={`/bills/${bill.id}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {bill.invoiceNumber}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Link
-                        to={`/suppliers/${bill.partnerId}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {bill.partner?.name || '-'}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {formatCurrency(Number(bill.amount))}
-                    </td>
-                    <td className="px-6 py-4 text-right font-semibold">
-                      {formatCurrency(Number(bill.balance))}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span
-                        className={
-                          new Date(bill.dueDate) < new Date() &&
-                          bill.status === StatusSchema.enum.POSTED
-                            ? 'text-red-600 font-bold'
-                            : ''
-                        }
-                      >
-                        {formatDate(bill.dueDate)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(bill.status)}`}
-                      >
-                        {bill.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      {bill.status === StatusSchema.enum.DRAFT && (
-                        <>
-                          <ActionButton
-                            variant="primary"
-                            onClick={() => handlePost(bill.id)}
-                          >
-                            Post
-                          </ActionButton>
-                          <ActionButton
-                            variant="danger"
-                            onClick={() => handleVoid(bill.id)}
-                          >
-                            Void
-                          </ActionButton>
-                        </>
-                      )}
-                      {bill.status === StatusSchema.enum.POSTED && (
-                        <ActionButton
-                          variant="success"
-                          onClick={() => openPaymentModal(bill)}
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredBills.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
+                    No bills found.
+                  </td>
+                </tr>
+              ) : (
+                filteredBills.map((bill) => (
+                  <Fragment key={bill.id}>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 font-mono text-sm">
+                        <Link
+                          to={`/bills/${bill.id}`}
+                          className="text-blue-600 hover:underline"
                         >
-                          Record Payment
+                          {bill.invoiceNumber}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Link
+                          to={`/suppliers/${bill.partnerId}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {bill.partner?.name || '-'}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {formatCurrency(Number(bill.amount))}
+                      </td>
+                      <td className="px-6 py-4 text-right font-semibold">
+                        {formatCurrency(Number(bill.balance))}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={
+                            new Date(bill.dueDate) < new Date() &&
+                            bill.status === StatusSchema.enum.POSTED
+                              ? 'text-red-600 font-bold'
+                              : ''
+                          }
+                        >
+                          {formatDate(bill.dueDate)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(bill.status)}`}
+                        >
+                          {bill.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right space-x-2">
+                        {bill.status === StatusSchema.enum.DRAFT && (
+                          <>
+                            <ActionButton
+                              variant="primary"
+                              onClick={() => handlePost(bill.id)}
+                            >
+                              Post
+                            </ActionButton>
+                            <ActionButton
+                              variant="danger"
+                              onClick={() => handleVoid(bill.id)}
+                            >
+                              Void
+                            </ActionButton>
+                          </>
+                        )}
+                        {bill.status === StatusSchema.enum.POSTED && (
+                          <ActionButton
+                            variant="success"
+                            onClick={() => openPaymentModal(bill)}
+                          >
+                            Record Payment
+                          </ActionButton>
+                        )}
+                        <ActionButton
+                          variant="secondary"
+                          onClick={() =>
+                            setShowHistory(
+                              showHistory === bill.id ? null : bill.id
+                            )
+                          }
+                        >
+                          {showHistory === bill.id
+                            ? 'Hide History'
+                            : 'History'}
                         </ActionButton>
-                      )}
-                      <ActionButton
-                        variant="secondary"
-                        onClick={() =>
-                          setShowHistory(
-                            showHistory === bill.id ? null : bill.id
-                          )
-                        }
-                      >
-                        {showHistory === bill.id
-                          ? 'Hide History'
-                          : 'History'}
-                      </ActionButton>
-                    </td>
-                  </tr>
-                  {showHistory === bill.id && (
-                    <tr className="bg-gray-50">
-                      <td colSpan={7} className="px-6 py-4">
-                        <PaymentHistoryList
-                          invoiceId={bill.id}
-                          totalAmount={Number(bill.amount)}
-                        />
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                    {showHistory === bill.id && (
+                      <tr className="bg-gray-50">
+                        <td colSpan={7} className="px-6 py-4">
+                          <PaymentHistoryList
+                            invoiceId={bill.id}
+                            totalAmount={Number(bill.amount)}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
     </div>
   );
 };

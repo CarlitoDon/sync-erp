@@ -9,6 +9,7 @@ import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
 import { toast } from 'react-hot-toast';
 import Select from '@/components/ui/Select';
+import { Card, CardContent } from '@/components/ui/Card';
 
 // Defining locally to avoid build issues
 interface CreateJournalLineInput {
@@ -191,67 +192,69 @@ export default function JournalEntries() {
       </div>
 
       {/* List */}
-      <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reference
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Memo
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Amount
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {journals.length === 0 ? (
+      <Card>
+        <CardContent className="p-0">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <td
-                  colSpan={4}
-                  className="px-6 py-12 text-center text-gray-500"
-                >
-                  No journal entries found.
-                </td>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Reference
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Memo
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
               </tr>
-            ) : (
-              journals.map((journal) => {
-                // Calculate total amount (sum of debits)
-                const total = journal.lines.reduce<number>(
-                  (sum, l) => sum + Number(l.debit),
-                  0
-                );
-                return (
-                  <tr key={journal.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(journal.date)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <Link
-                        to={`/journals/${journal.id}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {journal.reference || 'View Entry'}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-md truncate">
-                      {journal.memo || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                      {formatCurrency(total)}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {journals.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
+                    No journal entries found.
+                  </td>
+                </tr>
+              ) : (
+                journals.map((journal) => {
+                  // Calculate total amount (sum of debits)
+                  const total = journal.lines.reduce<number>(
+                    (sum, l) => sum + Number(l.debit),
+                    0
+                  );
+                  return (
+                    <tr key={journal.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDate(journal.date)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <Link
+                          to={`/journals/${journal.id}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {journal.reference || 'View Entry'}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 max-w-md truncate">
+                        {journal.memo || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
+                        {formatCurrency(total)}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
 
       {/* Modal */}
       <FormModal
