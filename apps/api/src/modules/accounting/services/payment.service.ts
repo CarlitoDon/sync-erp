@@ -12,12 +12,12 @@ import {
   CreatePaymentInput,
   BusinessDate,
   CorrelationId,
-  Money,
   DomainError,
   DomainErrorCodes,
 } from '@sync-erp/shared';
 import { IdempotencyService } from '../../common/services/idempotency.service';
 import { JournalService } from './journal.service';
+import { PaymentPolicy } from '../policies/payment.policy';
 
 export class PaymentService {
   private repository = new PaymentRepository();
@@ -58,35 +58,22 @@ export class PaymentService {
           // 1. Lock invoice row for concurrency safety
           await tx.$executeRaw`SELECT 1 FROM "Invoice" WHERE id = ${data.invoiceId} FOR UPDATE`;
 
-          // 2. Validate invoice exists and has sufficient balance
-          const invoice = await this.invoiceRepository.findById(
+          // 2. Validate invoice using PaymentPolicy
+          const invoiceOrNull = await this.invoiceRepository.findById(
             data.invoiceId,
             companyId,
             undefined,
             tx
           );
-          if (!invoice) {
-            throw new DomainError(
-              'Invoice not found',
-              404,
-              DomainErrorCodes.INVOICE_NOT_FOUND
-            );
-          }
-
-          // Phase 1 Guard: Block Multi-Currency
-          const currency =
-            (invoice as typeof invoice & { currency?: string })
-              .currency || 'IDR';
-          Money.from(0, currency).ensureBase();
+          PaymentPolicy.validateCreate(
+            invoiceOrNull,
+            data,
+            companyId
+          );
+          // After validation, invoice is guaranteed non-null
+          const invoice = invoiceOrNull!;
 
           const currentBalance = Number(invoice.balance);
-          if (data.amount > currentBalance) {
-            throw new DomainError(
-              `Payment amount ${data.amount} exceeds invoice balance ${currentBalance}`,
-              422,
-              DomainErrorCodes.INVOICE_INVALID_STATE
-            );
-          }
 
           // 3. Create payment record
           const payment = await this.repository.create(
