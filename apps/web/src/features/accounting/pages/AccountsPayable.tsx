@@ -1,3 +1,7 @@
+import {
+  PageContainer,
+  PageHeader,
+} from '@/components/layout/PageLayout';
 import { useCompany } from '@/contexts/CompanyContext';
 import { BillList } from '@/features/accounting/components/BillList';
 
@@ -13,19 +17,13 @@ export default function AccountsPayable() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bills</h1>
-          <p className="text-gray-500">
-            Accounts Payable - Supplier bills for{' '}
-            {currentCompany.name}
-          </p>
-        </div>
-        {/* Create button is now handled within BillList for context awareness */}
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Bills"
+        description={`Accounts Payable - Supplier bills for ${currentCompany.name}`}
+      />
 
       <BillList />
-    </div>
+    </PageContainer>
   );
 }

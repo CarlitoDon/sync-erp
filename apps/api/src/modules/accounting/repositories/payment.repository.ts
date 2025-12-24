@@ -27,10 +27,7 @@ export class PaymentRepository {
     });
   }
 
-  async findAll(
-    companyId: string,
-    invoiceId?: string
-  ): Promise<Payment[]> {
+  async findAll(companyId: string, invoiceId?: string) {
     return prisma.payment.findMany({
       where: {
         companyId,

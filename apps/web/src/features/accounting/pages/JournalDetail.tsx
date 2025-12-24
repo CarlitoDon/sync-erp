@@ -4,6 +4,13 @@ import { useCompany } from '@/contexts/CompanyContext';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { BackButton } from '@/components/ui/BackButton';
+import { PageContainer } from '@/components/layout/PageLayout';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/Card';
 
 // Source type display config
 const SOURCE_TYPE_CONFIG: Record<
@@ -96,7 +103,7 @@ export default function JournalDetail() {
       : null;
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -122,122 +129,128 @@ export default function JournalDetail() {
       </div>
 
       {/* Summary Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">
-          Journal Summary
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div>
-            <p className="text-sm text-gray-500">Reference</p>
-            <p className="font-mono font-medium">
-              {journal.reference || '-'}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Date</p>
-            <p className="font-medium">{formatDate(journal.date)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Total Amount</p>
-            <p className="text-xl font-bold text-gray-900">
-              {formatCurrency(totalDebit)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Source Document</p>
-            <p className="font-medium">
-              {sourceLink ? (
-                <Link
-                  to={sourceLink}
-                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  View {sourceConfig?.label.replace(' Posting', '')}
-                </Link>
-              ) : (
-                <span className="text-gray-400">Manual Entry</span>
-              )}
-            </p>
-          </div>
-        </div>
-        {journal.memo && (
-          <>
-            <hr className="my-4" />
+      <Card>
+        <CardHeader>
+          <CardTitle>Journal Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
-              <p className="text-sm text-gray-500">Memo</p>
-              <p className="text-gray-700">{journal.memo}</p>
+              <p className="text-sm text-gray-500">Reference</p>
+              <p className="font-mono font-medium">
+                {journal.reference || '-'}
+              </p>
             </div>
-          </>
-        )}
-      </div>
+            <div>
+              <p className="text-sm text-gray-500">Date</p>
+              <p className="font-medium">
+                {formatDate(journal.date)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total Amount</p>
+              <p className="text-xl font-bold text-gray-900">
+                {formatCurrency(totalDebit)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Source Document</p>
+              <p className="font-medium">
+                {sourceLink ? (
+                  <Link
+                    to={sourceLink}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    View {sourceConfig?.label.replace(' Posting', '')}
+                  </Link>
+                ) : (
+                  <span className="text-gray-400">Manual Entry</span>
+                )}
+              </p>
+            </div>
+          </div>
+          {journal.memo && (
+            <>
+              <hr className="my-4" />
+              <div>
+                <p className="text-sm text-gray-500">Memo</p>
+                <p className="text-gray-700">{journal.memo}</p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Journal Lines Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">Journal Lines</h2>
-        </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Account
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Debit
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Credit
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {journal.lines.map((line) => (
-              <tr key={line.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm text-gray-900">
-                  <div className="font-medium">
-                    <span className="text-gray-500 font-mono">
-                      {line.account?.code}
-                    </span>{' '}
-                    {line.account?.name}
-                  </div>
+      <Card>
+        <CardHeader className="border-b border-gray-200">
+          <CardTitle>Journal Lines</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Account
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Debit
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Credit
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {journal.lines.map((line) => (
+                <tr key={line.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    <div className="font-medium">
+                      <span className="text-gray-500 font-mono">
+                        {line.account?.code}
+                      </span>{' '}
+                      {line.account?.name}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-right text-gray-900 font-mono">
+                    {Number(line.debit) > 0
+                      ? formatCurrency(Number(line.debit))
+                      : '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-right text-gray-900 font-mono">
+                    {Number(line.credit) > 0
+                      ? formatCurrency(Number(line.credit))
+                      : '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-gray-50 font-bold">
+              <tr>
+                <td className="px-6 py-3 text-sm text-gray-900 text-right">
+                  Total
                 </td>
-                <td className="px-6 py-4 text-sm text-right text-gray-900 font-mono">
-                  {Number(line.debit) > 0
-                    ? formatCurrency(Number(line.debit))
-                    : '-'}
+                <td className="px-6 py-3 text-sm text-right text-gray-900 font-mono">
+                  {formatCurrency(totalDebit)}
                 </td>
-                <td className="px-6 py-4 text-sm text-right text-gray-900 font-mono">
-                  {Number(line.credit) > 0
-                    ? formatCurrency(Number(line.credit))
-                    : '-'}
+                <td className="px-6 py-3 text-sm text-right text-gray-900 font-mono">
+                  {formatCurrency(totalCredit)}
                 </td>
               </tr>
-            ))}
-          </tbody>
-          <tfoot className="bg-gray-50 font-bold">
-            <tr>
-              <td className="px-6 py-3 text-sm text-gray-900 text-right">
-                Total
-              </td>
-              <td className="px-6 py-3 text-sm text-right text-gray-900 font-mono">
-                {formatCurrency(totalDebit)}
-              </td>
-              <td className="px-6 py-3 text-sm text-right text-gray-900 font-mono">
-                {formatCurrency(totalCredit)}
-              </td>
-            </tr>
-            {totalDebit !== totalCredit && (
-              <tr className="bg-red-50">
-                <td
-                  colSpan={3}
-                  className="px-6 py-2 text-sm text-red-600 text-center"
-                >
-                  ⚠️ Imbalanced: Debit ≠ Credit
-                </td>
-              </tr>
-            )}
-          </tfoot>
-        </table>
-      </div>
-    </div>
+              {totalDebit !== totalCredit && (
+                <tr className="bg-red-50">
+                  <td
+                    colSpan={3}
+                    className="px-6 py-2 text-sm text-red-600 text-center"
+                  >
+                    ⚠️ Imbalanced: Debit ≠ Credit
+                  </td>
+                </tr>
+              )}
+            </tfoot>
+          </table>
+        </CardContent>
+      </Card>
+    </PageContainer>
   );
 }

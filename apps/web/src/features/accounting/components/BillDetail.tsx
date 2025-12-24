@@ -12,6 +12,13 @@ import { useState } from 'react';
 import { getBillStatusDisplay } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
 import { getPaymentTermLabel } from '@sync-erp/shared';
+import { PageContainer } from '@/components/layout/PageLayout';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/Card';
 
 export default function BillDetail() {
   const { id } = useParams<{ id: string }>();
@@ -101,7 +108,7 @@ export default function BillDetail() {
       />
 
       {/* Page Content */}
-      <div className="space-y-6">
+      <PageContainer>
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -132,120 +139,138 @@ export default function BillDetail() {
         </div>
 
         {/* Details Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Bill Details</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <p className="text-sm text-gray-500">Bill Number</p>
-              <p className="font-mono font-medium">
-                {bill.invoiceNumber}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Purchase Order</p>
-              <p className="font-medium">
-                {bill.orderId ? (
-                  <Link
-                    to={`/purchase-orders/${bill.orderId}`}
-                    className="text-blue-600 hover:text-blue-800 hover:underline font-mono"
-                  >
-                    {bill.order?.orderNumber || bill.orderId}
-                  </Link>
-                ) : (
-                  <span className="text-gray-400">-</span>
-                )}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Due Date</p>
-              <p
-                className={`font-medium ${
-                  new Date(bill.dueDate) < new Date() &&
-                  bill.status === 'POSTED'
-                    ? 'text-red-600'
-                    : ''
-                }`}
-              >
-                {formatDate(bill.dueDate)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Created</p>
-              <p className="font-medium">
-                {formatDate(bill.createdAt)}
-              </p>
-            </div>
-            {bill.paymentTermsString && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Bill Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <p className="text-sm text-gray-500">Payment Terms</p>
-                <p className="font-medium">
-                  {getPaymentTermLabel(bill.paymentTermsString)}
+                <p className="text-sm text-gray-500">Bill Number</p>
+                <p className="font-mono font-medium">
+                  {bill.invoiceNumber}
                 </p>
               </div>
-            )}
-          </div>
-
-          <hr className="my-6" />
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <p className="text-sm text-gray-500">Total Amount</p>
-              <p className="text-xl font-bold text-gray-900">
-                {formatCurrency(Number(bill.amount))}
-              </p>
+              <div>
+                <p className="text-sm text-gray-500">
+                  Purchase Order
+                </p>
+                <p className="font-medium">
+                  {bill.orderId ? (
+                    <Link
+                      to={`/purchase-orders/${bill.orderId}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline font-mono"
+                    >
+                      {bill.order?.orderNumber || bill.orderId}
+                    </Link>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Due Date</p>
+                <p
+                  className={`font-medium ${
+                    new Date(bill.dueDate) < new Date() &&
+                    bill.status === 'POSTED'
+                      ? 'text-red-600'
+                      : ''
+                  }`}
+                >
+                  {formatDate(bill.dueDate)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Created</p>
+                <p className="font-medium">
+                  {formatDate(bill.createdAt)}
+                </p>
+              </div>
+              {bill.paymentTermsString && (
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Payment Terms
+                  </p>
+                  <p className="font-medium">
+                    {getPaymentTermLabel(bill.paymentTermsString)}
+                  </p>
+                </div>
+              )}
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Balance Due</p>
-              <p
-                className={`text-xl font-bold ${
-                  Number(bill.balance) > 0
-                    ? 'text-red-600'
-                    : 'text-green-600'
-                }`}
-              >
-                {formatCurrency(Number(bill.balance))}
-              </p>
+
+            <hr className="my-6" />
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div>
+                <p className="text-sm text-gray-500">Total Amount</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {formatCurrency(Number(bill.amount))}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Balance Due</p>
+                <p
+                  className={`text-xl font-bold ${
+                    Number(bill.balance) > 0
+                      ? 'text-red-600'
+                      : 'text-green-600'
+                  }`}
+                >
+                  {formatCurrency(Number(bill.balance))}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            {bill.status === StatusSchema.enum.DRAFT && (
-              <>
-                <ActionButton variant="primary" onClick={handlePost}>
-                  Post Bill
-                </ActionButton>
-                <ActionButton variant="danger" onClick={handleVoid}>
-                  Void
-                </ActionButton>
-              </>
-            )}
-            {bill.status === StatusSchema.enum.POSTED &&
-              Number(bill.balance) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {bill.status === StatusSchema.enum.DRAFT && (
                 <>
                   <ActionButton
-                    variant="success"
-                    onClick={() => setShowPayment(true)}
+                    variant="primary"
+                    onClick={handlePost}
                   >
-                    Record Payment
+                    Post Bill
                   </ActionButton>
                   <ActionButton variant="danger" onClick={handleVoid}>
                     Void
                   </ActionButton>
                 </>
               )}
-            <ActionButton
-              variant="secondary"
-              onClick={() => setShowHistory(true)}
-            >
-              View Payment History
-            </ActionButton>
-          </div>
-        </div>
-      </div>
+              {bill.status === StatusSchema.enum.POSTED &&
+                Number(bill.balance) > 0 && (
+                  <>
+                    <ActionButton
+                      variant="success"
+                      onClick={() => setShowPayment(true)}
+                    >
+                      Record Payment
+                    </ActionButton>
+                    <ActionButton
+                      variant="danger"
+                      onClick={handleVoid}
+                    >
+                      Void
+                    </ActionButton>
+                  </>
+                )}
+              <ActionButton
+                variant="secondary"
+                onClick={() => setShowHistory(true)}
+              >
+                View Payment History
+              </ActionButton>
+            </div>
+          </CardContent>
+        </Card>
+      </PageContainer>
     </>
   );
 }

@@ -12,6 +12,11 @@ import { AccountType } from '@/types/api';
 import { AccountTypeSchema } from '@sync-erp/shared';
 import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
+import {
+  PageContainer,
+  PageHeader,
+} from '@/components/layout/PageLayout';
+import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 
 // Helper to check account type category
 const isDebitNormal = (type: string) =>
@@ -255,20 +260,14 @@ export default function Finance() {
   if (!currentCompany) return null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Finance
-          </h1>
-          <p className="text-gray-500">
-            Financial Management & Reporting
-          </p>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Finance"
+        description="Financial Management & Reporting"
+      />
 
       {/* Tabs Navigation */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 mb-6">
         <nav className="flex space-x-8">
           {[
             { id: 'overview', label: 'Overview & CoA' },
@@ -413,11 +412,8 @@ export default function Finance() {
                 (a) => a.type === type
               );
               return (
-                <div
-                  key={type}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200"
-                >
-                  <div className="px-6 py-4 border-b border-gray-200">
+                <Card key={type}>
+                  <CardHeader className="px-6 py-4 border-b border-gray-200">
                     <h3 className="font-semibold text-lg flex items-center gap-2">
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${getTypeColor(type)}`}
@@ -428,31 +424,33 @@ export default function Finance() {
                         ({typeAccounts.length})
                       </span>
                     </h3>
-                  </div>
-                  {typeAccounts.length > 0 ? (
-                    <ul className="divide-y divide-gray-100">
-                      {typeAccounts.map((acc) => (
-                        <li
-                          key={acc.id}
-                          className="px-6 py-3 flex items-center justify-between hover:bg-gray-50"
-                        >
-                          <div>
-                            <span className="font-mono text-sm text-gray-500 mr-3 w-16 inline-block">
-                              {acc.code}
-                            </span>
-                            <span className="font-medium">
-                              {acc.name}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="px-6 py-4 text-gray-400 text-sm">
-                      No accounts
-                    </p>
-                  )}
-                </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {typeAccounts.length > 0 ? (
+                      <ul className="divide-y divide-gray-100">
+                        {typeAccounts.map((acc) => (
+                          <li
+                            key={acc.id}
+                            className="px-6 py-3 flex items-center justify-between hover:bg-gray-50"
+                          >
+                            <div>
+                              <span className="font-mono text-sm text-gray-500 mr-3 w-16 inline-block">
+                                {acc.code}
+                              </span>
+                              <span className="font-medium">
+                                {acc.name}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="px-6 py-4 text-gray-400 text-sm">
+                        No accounts
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
@@ -504,6 +502,6 @@ export default function Finance() {
 
       {/* 3. JOURNAL ENTRIES */}
       {activeTab === 'journals' && <JournalEntries />}
-    </div>
+    </PageContainer>
   );
 }
