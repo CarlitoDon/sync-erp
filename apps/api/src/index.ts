@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { errorHandler } from './middlewares/errorHandler';
 import { optionalAuthMiddleware } from './middlewares/auth';
+import { correlationMiddleware } from './middlewares/correlation';
 
 import cookieParser from 'cookie-parser';
 
@@ -16,6 +17,7 @@ const PORT = process.env.PORT || 3001;
 
 // Global Middleware
 app.use(helmet());
+app.use(correlationMiddleware); // Request tracing
 app.use(cookieParser());
 app.use(
   cors({
