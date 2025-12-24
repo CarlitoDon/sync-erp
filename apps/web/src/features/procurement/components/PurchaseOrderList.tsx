@@ -4,7 +4,7 @@ import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
-import ActionButton from '@/components/ui/ActionButton';
+import PurchaseOrderActions from './PurchaseOrderActions';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import { formatCurrency } from '@/utils/format';
@@ -56,39 +56,6 @@ export default function PurchaseOrderList({
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getBillStatusBadge = (status: string, balance: number) => {
-    const formatCompact = (val: number) => {
-      if (val >= 1000000000)
-        return `${(val / 1000000000).toFixed(1)}B`;
-      if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-      if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
-      return val.toFixed(0);
-    };
-
-    switch (status) {
-      case 'PAID':
-        return {
-          color: 'bg-green-100 text-green-800',
-          label: '✓ Paid',
-        };
-      case 'POSTED':
-        return {
-          color: 'bg-yellow-100 text-yellow-800',
-          label:
-            balance > 0
-              ? `○ Rp ${formatCompact(balance)}`
-              : '○ Posted',
-        };
-      case 'VOID':
-        return { color: 'bg-red-100 text-red-800', label: '✕ Void' };
-      default:
-        return {
-          color: 'bg-gray-100 text-gray-600',
-          label: '◌ Draft',
-        };
     }
   };
 
@@ -195,73 +162,15 @@ export default function PurchaseOrderList({
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right space-x-2">
-                  {order.status === 'DRAFT' && (
-                    <>
-                      <ActionButton
-                        onClick={() => handleConfirm(order.id)}
-                        variant="primary"
-                      >
-                        Confirm
-                      </ActionButton>
-                      <ActionButton
-                        onClick={() => handleCancel(order.id)}
-                        variant="danger"
-                      >
-                        Cancel
-                      </ActionButton>
-                    </>
-                  )}
-                  {/* Receive Goods - blocked if UPFRONT and not PAID_UPFRONT */}
-                  {(order.status === 'CONFIRMED' ||
-                    order.status === 'PARTIALLY_RECEIVED') &&
-                    !(
-                      order.paymentTerms === 'UPFRONT' &&
-                      order.paymentStatus !== 'PAID_UPFRONT'
-                    ) && (
-                      <ActionButton
-                        onClick={() => handleGoodsReceipt(order.id)}
-                        variant="success"
-                      >
-                        Receive Goods
-                      </ActionButton>
-                    )}
-                  {(order.status === 'RECEIVED' ||
-                    order.status === 'PARTIALLY_RECEIVED' ||
-                    order.status === 'COMPLETED') &&
-                    (!order.invoices ||
-                      order.invoices.length === 0) && (
-                      <ActionButton
-                        onClick={() => handleCreateBill(order.id)}
-                        variant="primary"
-                      >
-                        Create Bill
-                      </ActionButton>
-                    )}
-                  {(order.status === 'RECEIVED' ||
-                    order.status === 'COMPLETED') &&
-                    order.invoices &&
-                    order.invoices.length > 0 && (
-                      <div className="flex flex-col items-end gap-1">
-                        <ActionButton
-                          onClick={() =>
-                            handleViewBill(order.invoices![0].id)
-                          }
-                          variant="secondary"
-                        >
-                          View Bill
-                        </ActionButton>
-                        <span
-                          className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${getBillStatusBadge(order.invoices![0].status, Number(order.invoices![0].balance)).color}`}
-                        >
-                          {
-                            getBillStatusBadge(
-                              order.invoices![0].status,
-                              Number(order.invoices![0].balance)
-                            ).label
-                          }
-                        </span>
-                      </div>
-                    )}
+                  <PurchaseOrderActions
+                    order={order}
+                    onConfirm={handleConfirm}
+                    onCancel={handleCancel}
+                    onReceiveGoods={handleGoodsReceipt}
+                    onCreateBill={handleCreateBill}
+                    onViewBill={handleViewBill}
+                    layout="list"
+                  />
                 </td>
               </tr>
             ))

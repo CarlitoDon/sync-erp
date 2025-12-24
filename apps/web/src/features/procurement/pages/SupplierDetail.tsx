@@ -6,6 +6,13 @@ import ActionButton from '@/components/ui/ActionButton';
 import PurchaseOrderList from '@/features/procurement/components/PurchaseOrderList';
 import { BillList } from '@/features/accounting/components/BillList';
 import { formatDate } from '@/utils/format';
+import { PageContainer } from '@/components/layout/PageLayout';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/Card';
 
 /* eslint-disable @sync-erp/no-hardcoded-enum */
 type Tab = 'orders' | 'bills' | 'payments';
@@ -50,7 +57,7 @@ export default function SupplierDetail() {
   if (!supplier) return null;
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <div className="flex items-center gap-4">
         <button
           onClick={() => window.history.back()}
@@ -75,64 +82,66 @@ export default function SupplierDetail() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Supplier Info Card */}
         <div className="md:col-span-1 space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Contact Information
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </label>
-                <div className="mt-1 text-sm text-gray-900">
-                  {supplier.email ? (
-                    <a
-                      href={`mailto:${supplier.email}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {supplier.email}
-                    </a>
-                  ) : (
-                    '-'
-                  )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Contact Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </label>
+                  <div className="mt-1 text-sm text-gray-900">
+                    {supplier.email ? (
+                      <a
+                        href={`mailto:${supplier.email}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {supplier.email}
+                      </a>
+                    ) : (
+                      '-'
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Phone
+                  </label>
+                  <div className="mt-1 text-sm text-gray-900">
+                    {supplier.phone || '-'}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Address
+                  </label>
+                  <div className="mt-1 text-sm text-gray-900 whitespace-pre-line">
+                    {supplier.address || '-'}
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
-                </label>
-                <div className="mt-1 text-sm text-gray-900">
-                  {supplier.phone || '-'}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Address
-                </label>
-                <div className="mt-1 text-sm text-gray-900 whitespace-pre-line">
-                  {supplier.address || '-'}
-                </div>
-              </div>
-            </div>
 
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              <ActionButton
-                onClick={() => {
-                  /* Edit Layout Placeholder */
-                }}
-                variant="secondary"
-                className="w-full justify-center"
-                disabled
-              >
-                Edit Supplier
-              </ActionButton>
-            </div>
-          </div>
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <ActionButton
+                  onClick={() => {
+                    /* Edit Layout Placeholder */
+                  }}
+                  variant="secondary"
+                  className="w-full justify-center"
+                  disabled
+                >
+                  Edit Supplier
+                </ActionButton>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Main Content Areas */}
         <div className="md:col-span-2">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[500px]">
+          <Card className="min-h-[500px] overflow-hidden">
             <div className="border-b border-gray-200">
               <nav className="flex -mb-px">
                 <button
@@ -166,9 +175,9 @@ export default function SupplierDetail() {
                 <BillList filter={{ partnerId: id }} />
               )}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

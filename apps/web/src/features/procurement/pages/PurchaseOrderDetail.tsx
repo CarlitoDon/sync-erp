@@ -5,6 +5,7 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
+import PurchaseOrderActions from '../components/PurchaseOrderActions';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import { BackButton } from '@/components/ui/BackButton';
@@ -18,6 +19,13 @@ import {
   PaymentTermsType,
   PaymentStatusType,
 } from '@sync-erp/shared';
+import { PageContainer } from '@/components/layout/PageLayout';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/Card';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -171,7 +179,8 @@ export default function PurchaseOrderDetail() {
       />
 
       {/* Page Content */}
-      <div className="space-y-6">
+      {/* Page Content */}
+      <PageContainer>
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -226,107 +235,117 @@ export default function PurchaseOrderDetail() {
           )}
 
         {/* Details Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">
-            Order Details
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <p className="text-sm text-gray-500">Order Number</p>
-              <p className="font-mono font-medium">
-                {order.orderNumber}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Supplier</p>
-              {order.partner ? (
-                <Link
-                  to={`/suppliers/${order.partnerId}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline"
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div>
+                <p className="text-sm text-gray-500">Order Number</p>
+                <p className="font-mono font-medium">
+                  {order.orderNumber}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Supplier</p>
+                {order.partner ? (
+                  <Link
+                    to={`/suppliers/${order.partnerId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {order.partner.name}
+                  </Link>
+                ) : (
+                  '-'
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Created</p>
+                <p className="font-medium">
+                  {formatDate(order.createdAt)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">
+                  Receipt Status
+                </p>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${receiptStatus.color}`}
                 >
-                  {order.partner.name}
-                </Link>
-              ) : (
-                '-'
-              )}
+                  {receiptStatus.label}
+                </span>
+              </div>
             </div>
+
+            <hr className="my-6" />
+
             <div>
-              <p className="text-sm text-gray-500">Created</p>
-              <p className="font-medium">
-                {formatDate(order.createdAt)}
+              <p className="text-sm text-gray-500 mb-2">
+                Total Amount
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {formatCurrency(Number(order.totalAmount))}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Receipt Status</p>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${receiptStatus.color}`}
-              >
-                {receiptStatus.label}
-              </span>
-            </div>
-          </div>
-
-          <hr className="my-6" />
-
-          <div>
-            <p className="text-sm text-gray-500 mb-2">Total Amount</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {formatCurrency(Number(order.totalAmount))}
-            </p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Items Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Order Items</h2>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Product
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Quantity
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Unit Price
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Total
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {order.items.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-3">
-                    {item.product ? (
-                      <Link
-                        to={`/products/${item.productId}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        {item.product.name}
-                      </Link>
-                    ) : (
-                      item.productId
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {item.quantity}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {formatCurrency(Number(item.price))}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium">
-                    {formatCurrency(
-                      item.quantity * Number(item.price)
-                    )}
-                  </td>
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Items</CardTitle>
+          </CardHeader>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Product
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Quantity
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Unit Price
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Total
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {order.items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-6 py-3">
+                      {item.product ? (
+                        <Link
+                          to={`/products/${item.productId}`}
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {item.product.name}
+                        </Link>
+                      ) : (
+                        item.productId
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-right">
+                      {item.quantity}
+                    </td>
+                    <td className="px-6 py-3 text-right">
+                      {formatCurrency(Number(item.price))}
+                    </td>
+                    <td className="px-6 py-3 text-right font-medium">
+                      {formatCurrency(
+                        item.quantity * Number(item.price)
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
 
         {/* Feature 036: UPFRONT Payment Info - Direct user to pay via Bill */}
         {isUpfrontOrder &&
@@ -356,64 +375,25 @@ export default function PurchaseOrderDetail() {
           )}
 
         {/* Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            {order.status === OrderStatusSchema.enum.DRAFT && (
-              <>
-                <ActionButton
-                  variant="primary"
-                  onClick={handleConfirm}
-                >
-                  Confirm Order
-                </ActionButton>
-                <ActionButton variant="danger" onClick={handleCancel}>
-                  Cancel Order
-                </ActionButton>
-              </>
-            )}
-            {(order.status === OrderStatusSchema.enum.CONFIRMED ||
-              order.status ===
-                OrderStatusSchema.enum.PARTIALLY_RECEIVED) &&
-              // Stage 3 Blocker: Disable if UPFRONT and NOT PAID_UPFRONT
-              !(
-                order.paymentTerms ===
-                  PaymentTermsSchema.enum.UPFRONT &&
-                order.paymentStatus !==
-                  PaymentStatusSchema.enum.PAID_UPFRONT
-              ) && (
-                <ActionButton
-                  variant="success"
-                  onClick={() => setGoodsReceiptId(order.id)}
-                >
-                  Receive Goods
-                </ActionButton>
-              )}
-            {(order.status === OrderStatusSchema.enum.RECEIVED ||
-              order.status ===
-                OrderStatusSchema.enum.PARTIALLY_RECEIVED ||
-              order.status === OrderStatusSchema.enum.COMPLETED) &&
-              (!order.invoices || order.invoices.length === 0) && (
-                <ActionButton
-                  variant="primary"
-                  onClick={handleCreateBill}
-                >
-                  Create Bill
-                </ActionButton>
-              )}
-            {order.invoices && order.invoices.length > 0 && (
-              <ActionButton
-                variant="secondary"
-                onClick={() =>
-                  navigate(`/bills/${order.invoices![0].id}`)
-                }
-              >
-                View Bill
-              </ActionButton>
-            )}
-          </div>
-        </div>
-      </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              <PurchaseOrderActions
+                order={order}
+                onConfirm={handleConfirm}
+                onCancel={handleCancel}
+                onReceiveGoods={() => setGoodsReceiptId(order.id)}
+                onCreateBill={handleCreateBill}
+                onViewBill={(billId) => navigate(`/bills/${billId}`)}
+                layout="detail"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </PageContainer>
     </>
   );
 }
