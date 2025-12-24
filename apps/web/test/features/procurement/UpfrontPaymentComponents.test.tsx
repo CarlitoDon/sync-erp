@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { PaymentTermsBadge } from '@/features/procurement/components/PaymentTermsBadge';
-import { PaymentStatusBadge } from '@/features/procurement/components/PaymentStatusBadge';
+import { PaymentTermsBadge } from '@/components/ui/PaymentTermsBadge';
+import { PaymentStatusBadge } from '@/components/ui/PaymentStatusBadge';
 import { UpfrontPaymentCard } from '@/features/procurement/components/UpfrontPaymentCard';
 
 describe('Cash Upfront Payment Components', () => {

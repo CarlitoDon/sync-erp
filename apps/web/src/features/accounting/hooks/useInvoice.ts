@@ -135,5 +135,3 @@ export function useInvoice(options: UseInvoiceOptions = {}) {
     voidInvoice,
   };
 }
-
-export default useInvoice;

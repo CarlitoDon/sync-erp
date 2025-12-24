@@ -3,19 +3,22 @@ import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
-import { useConfirm } from '@/components/ui/ConfirmModal';
-import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { ShipmentModal } from '@/features/inventory/components/ShipmentModal';
-import { BackButton } from '@/components/ui/BackButton';
 import CreateInvoiceModal from '@/features/accounting/components/CreateInvoiceModal';
 import { PageContainer } from '@/components/layout/PageLayout';
 import {
+  useConfirm,
+  ActionButton,
+  BackButton,
   Card,
   CardHeader,
   CardTitle,
   CardContent,
-} from '@/components/ui/Card';
+  StatusBadge,
+  LoadingState,
+  OrderItemsTable,
+} from '@/components/ui';
 
 export default function SalesOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -81,25 +84,6 @@ export default function SalesOrderDetail() {
     setIsInvoiceModalOpen(true);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'CONFIRMED':
-        return 'bg-blue-100 text-blue-800';
-      case 'PARTIALLY_SHIPPED':
-        return 'bg-amber-100 text-amber-800';
-      case 'SHIPPED':
-        return 'bg-teal-100 text-teal-800';
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800';
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const getShipmentStatus = (status: string) => {
     if (status === 'SHIPPED' || status === 'COMPLETED')
       return {
@@ -122,11 +106,7 @@ export default function SalesOrderDetail() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading order details...</div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (!order) {
@@ -186,11 +166,7 @@ export default function SalesOrderDetail() {
             </div>
           </div>
           <div className="flex gap-2">
-            <span
-              className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full items-center ${getStatusColor(order.status)}`}
-            >
-              {order.status}
-            </span>
+            <StatusBadge status={order.status} domain="order" />
           </div>
         </div>
 
@@ -258,55 +234,15 @@ export default function SalesOrderDetail() {
           <CardHeader>
             <CardTitle>Order Items</CardTitle>
           </CardHeader>
-          <CardContent>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Product
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Quantity
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Unit Price
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {order.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-3">
-                      {item.product ? (
-                        <Link
-                          to={`/products/${item.productId}`}
-                          className="text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          {item.product.name}
-                        </Link>
-                      ) : (
-                        item.productId
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {item.quantity}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {formatCurrency(Number(item.price))}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium">
-                      {formatCurrency(
-                        item.quantity * Number(item.price)
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
+          <OrderItemsTable
+            items={order.items.map((item) => ({
+              id: item.id,
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              product: item.product,
+            }))}
+          />
         </Card>
 
         {/* Actions */}

@@ -135,5 +135,3 @@ export function useBill(options: UseBillOptions = {}) {
     voidBill,
   };
 }
-
-export default useBill;
