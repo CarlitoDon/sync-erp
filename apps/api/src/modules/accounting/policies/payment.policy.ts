@@ -7,8 +7,8 @@ import {
   DomainError,
   DomainErrorCodes,
   CreatePaymentInput,
+  Money,
 } from '@sync-erp/shared';
-import { Decimal } from 'decimal.js';
 
 export class PaymentPolicy {
   /**
@@ -41,6 +41,12 @@ export class PaymentPolicy {
       );
     }
 
+    // Phase 1 Guard: Block Multi-Currency
+    const currency =
+      (invoice as typeof invoice & { currency?: string }).currency ||
+      'IDR';
+    Money.from(0, currency).ensureBase();
+
     // State Guard: Invoice must be POSTED
     if (invoice.status !== InvoiceStatus.POSTED) {
       throw new DomainError(
@@ -51,8 +57,7 @@ export class PaymentPolicy {
     }
 
     // Amount validation: must be positive
-    const amount = new Decimal(data.amount);
-    if (amount.lte(0)) {
+    if (data.amount <= 0) {
       throw new DomainError(
         'Payment amount must be positive',
         400,
@@ -61,12 +66,12 @@ export class PaymentPolicy {
     }
 
     // Amount validation: cannot exceed outstanding balance
-    const balance = new Decimal(invoice.balance);
-    if (amount.gt(balance)) {
+    const balance = Number(invoice.balance);
+    if (data.amount > balance) {
       throw new DomainError(
-        `Payment amount (${amount.toString()}) exceeds outstanding balance (${balance.toString()})`,
-        400,
-        DomainErrorCodes.OPERATION_NOT_ALLOWED
+        `Payment amount ${data.amount} exceeds invoice balance ${balance}`,
+        422,
+        DomainErrorCodes.INVOICE_INVALID_STATE
       );
     }
 
@@ -82,15 +87,12 @@ export class PaymentPolicy {
   }
 
   /**
-   * Check if invoice is fully paid
+   * Check if invoice is fully paid after payment
    */
   static isFullyPaid(
-    invoice: Invoice,
-    paymentAmount: Decimal
+    currentBalance: number,
+    paymentAmount: number
   ): boolean {
-    const newBalance = new Decimal(invoice.balance).minus(
-      paymentAmount
-    );
-    return newBalance.lte(0);
+    return currentBalance - paymentAmount <= 0;
   }
 }
