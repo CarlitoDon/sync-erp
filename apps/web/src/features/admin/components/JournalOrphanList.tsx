@@ -18,7 +18,7 @@ export function JournalOrphanList() {
 
   if (loading) {
     return (
-      <div className="animate-pulse">
+      <div className="animate-pulse p-6">
         <div className="h-8 bg-gray-200 rounded w-1/3 mb-4" />
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -31,43 +31,49 @@ export function JournalOrphanList() {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-600">Failed to load orphan journals</p>
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600">
+            Failed to load orphan journals
+          </p>
+        </div>
       </div>
     );
   }
 
   if (result.length === 0) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-        <p className="text-green-700 font-medium">
-          No orphan journals found
-        </p>
-        <p className="text-green-600 text-sm mt-1">
-          All journals have valid source references
-        </p>
+      <div className="p-6">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+          <p className="text-green-700 font-medium">
+            No orphan journals found
+          </p>
+          <p className="text-green-600 text-sm mt-1">
+            All journals have valid source references
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
               Date
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
               Source Type
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
               Source ID
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
               Memo
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
               Total
             </th>
           </tr>
@@ -85,27 +91,27 @@ export function JournalOrphanList() {
 
             return (
               <tr key={journal.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm">
+                <td className="px-6 py-3 text-sm text-gray-900">
                   {new Date(journal.date).toLocaleDateString()}
                 </td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-6 py-3 text-sm text-gray-900">
                   {journal.sourceType || (
                     <span className="text-yellow-600 font-medium">
                       MISSING
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 font-mono text-sm text-gray-500">
+                <td className="px-6 py-3 font-mono text-sm text-gray-500">
                   {journal.sourceId?.slice(0, 8) || (
                     <span className="text-yellow-600 font-medium">
                       MISSING
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
+                <td className="px-6 py-3 text-sm text-gray-600 max-w-xs truncate">
                   {journal.memo || '-'}
                 </td>
-                <td className="px-4 py-3 text-sm text-right">
+                <td className="px-6 py-3 text-sm text-right">
                   <span className="text-green-600">
                     {formatCurrency(totalDebit)}
                   </span>
