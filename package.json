@@ -27,6 +27,7 @@
     "db:studio": "npm run db:studio --workspace=@sync-erp/database",
     "db:test": "npm run db:test --workspace=@sync-erp/database",
     "db:reseed:full": "npm run db:reset && npm run db:seed && ./scripts/seed-via-api.sh",
+    "knip": "export $(cat packages/database/.env | xargs) && knip",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "engines": {
@@ -36,13 +37,14 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
+    "@sync-erp/eslint-plugin": "file:packages/eslint-plugin",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
-    "@sync-erp/eslint-plugin": "file:packages/eslint-plugin",
     "concurrently": "^9.2.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "knip": "^5.0.0",
     "prettier": "^3.2.0",
     "turbo": "^2.6.3",
     "typescript": "^5.9.3"
