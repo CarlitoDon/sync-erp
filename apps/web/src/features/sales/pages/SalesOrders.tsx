@@ -7,6 +7,10 @@ import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
 import SalesOrderList from '@/features/sales/components/SalesOrderList';
 import Select from '@/components/ui/Select';
+import {
+  PageContainer,
+  PageHeader,
+} from '@/components/layout/PageLayout';
 
 interface OrderItemForm {
   productId: string;
@@ -109,24 +113,19 @@ export default function SalesOrders() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Sales Orders
-          </h1>
-          <p className="text-gray-500">
-            Manage customer orders and deliveries for{' '}
-            {currentCompany.name}
-          </p>
-        </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          + Create SO
-        </button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Sales Orders"
+        description={`Manage customer orders and deliveries for ${currentCompany.name}`}
+        actions={
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            + Create SO
+          </button>
+        }
+      />
 
       {/* Modal Form */}
       <FormModal
@@ -365,6 +364,6 @@ export default function SalesOrders() {
       </FormModal>
 
       <SalesOrderList />
-    </div>
+    </PageContainer>
   );
 }

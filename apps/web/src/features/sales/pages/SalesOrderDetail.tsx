@@ -9,6 +9,13 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { ShipmentModal } from '@/features/inventory/components/ShipmentModal';
 import { BackButton } from '@/components/ui/BackButton';
 import CreateInvoiceModal from '@/features/accounting/components/CreateInvoiceModal';
+import { PageContainer } from '@/components/layout/PageLayout';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/Card';
 
 export default function SalesOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -164,7 +171,7 @@ export default function SalesOrderDetail() {
         }}
       />
 
-      <div className="space-y-6">
+      <PageContainer>
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -188,157 +195,174 @@ export default function SalesOrderDetail() {
         </div>
 
         {/* Details Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">
-            Order Details
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <p className="text-sm text-gray-500">Order Number</p>
-              <p className="font-mono font-medium">
-                {order.orderNumber}
-              </p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div>
+                <p className="text-sm text-gray-500">Order Number</p>
+                <p className="font-mono font-medium">
+                  {order.orderNumber}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Customer</p>
+                <p className="font-medium">
+                  {order.partner ? (
+                    <Link
+                      to={`/customers/${order.partnerId}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      {order.partner.name}
+                    </Link>
+                  ) : (
+                    '-'
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Created</p>
+                <p className="font-medium">
+                  {formatDate(order.createdAt)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">
+                  Shipment Status
+                </p>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${shipmentStatus.color}`}
+                >
+                  {shipmentStatus.label}
+                </span>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Customer</p>
-              <p className="font-medium">
-                {order.partner ? (
-                  <Link
-                    to={`/customers/${order.partnerId}`}
-                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                  >
-                    {order.partner.name}
-                  </Link>
-                ) : (
-                  '-'
-                )}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Created</p>
-              <p className="font-medium">
-                {formatDate(order.createdAt)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Shipment Status</p>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${shipmentStatus.color}`}
-              >
-                {shipmentStatus.label}
-              </span>
-            </div>
-          </div>
 
-          <hr className="my-6" />
+            <hr className="my-6" />
 
-          <div>
-            <p className="text-sm text-gray-500 mb-2">Total Amount</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {formatCurrency(Number(order.totalAmount))}
-            </p>
-          </div>
-        </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-2">
+                Total Amount
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {formatCurrency(Number(order.totalAmount))}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Items Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Order Items</h2>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Product
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Quantity
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Unit Price
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Total
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {order.items.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-3">
-                    {item.product ? (
-                      <Link
-                        to={`/products/${item.productId}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        {item.product.name}
-                      </Link>
-                    ) : (
-                      item.productId
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {item.quantity}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {formatCurrency(Number(item.price))}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium">
-                    {formatCurrency(
-                      item.quantity * Number(item.price)
-                    )}
-                  </td>
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Product
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Quantity
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Unit Price
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Total
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {order.items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-3">
+                      {item.product ? (
+                        <Link
+                          to={`/products/${item.productId}`}
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {item.product.name}
+                        </Link>
+                      ) : (
+                        item.productId
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {item.quantity}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {formatCurrency(Number(item.price))}
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium">
+                      {formatCurrency(
+                        item.quantity * Number(item.price)
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
 
         {/* Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            {order.status === 'DRAFT' && (
-              <>
-                <ActionButton
-                  variant="primary"
-                  onClick={handleConfirm}
-                >
-                  Confirm Order
-                </ActionButton>
-                <ActionButton variant="danger" onClick={handleCancel}>
-                  Cancel Order
-                </ActionButton>
-              </>
-            )}
-            {(order.status === 'CONFIRMED' ||
-              order.status === 'PARTIALLY_SHIPPED') && (
-              <ActionButton variant="success" onClick={handleShip}>
-                Ship Order
-              </ActionButton>
-            )}
-            {(order.status === 'SHIPPED' ||
-              order.status === 'PARTIALLY_SHIPPED' ||
-              order.status === 'COMPLETED') &&
-              (!order.invoices || order.invoices.length === 0) && (
-                <ActionButton
-                  variant="primary"
-                  onClick={handleCreateInvoice}
-                >
-                  Create Invoice
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {order.status === 'DRAFT' && (
+                <>
+                  <ActionButton
+                    variant="primary"
+                    onClick={handleConfirm}
+                  >
+                    Confirm Order
+                  </ActionButton>
+                  <ActionButton
+                    variant="danger"
+                    onClick={handleCancel}
+                  >
+                    Cancel Order
+                  </ActionButton>
+                </>
+              )}
+              {(order.status === 'CONFIRMED' ||
+                order.status === 'PARTIALLY_SHIPPED') && (
+                <ActionButton variant="success" onClick={handleShip}>
+                  Ship Order
                 </ActionButton>
               )}
-            {order.invoices && order.invoices.length > 0 && (
-              <ActionButton
-                variant="secondary"
-                onClick={() =>
-                  navigate(`/invoices/${order.invoices![0].id}`)
-                }
-              >
-                View Invoice
-              </ActionButton>
-            )}
-          </div>
-        </div>
-      </div>
+              {(order.status === 'SHIPPED' ||
+                order.status === 'PARTIALLY_SHIPPED' ||
+                order.status === 'COMPLETED') &&
+                (!order.invoices || order.invoices.length === 0) && (
+                  <ActionButton
+                    variant="primary"
+                    onClick={handleCreateInvoice}
+                  >
+                    Create Invoice
+                  </ActionButton>
+                )}
+              {order.invoices && order.invoices.length > 0 && (
+                <ActionButton
+                  variant="secondary"
+                  onClick={() =>
+                    navigate(`/invoices/${order.invoices![0].id}`)
+                  }
+                >
+                  View Invoice
+                </ActionButton>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </PageContainer>
     </>
   );
 }
