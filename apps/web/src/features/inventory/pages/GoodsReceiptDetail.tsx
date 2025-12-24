@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { BackButton } from '@/components/ui/BackButton';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
+import { PageContainer } from '@/components/layout/PageLayout';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/Card';
 
 export default function GoodsReceiptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -122,7 +129,7 @@ export default function GoodsReceiptDetail() {
   );
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -171,103 +178,113 @@ export default function GoodsReceiptDetail() {
       </div>
 
       {/* Details Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">
-          Receipt Details
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div>
-            <p className="text-sm text-gray-500">GRN Number</p>
-            <p className="font-mono font-medium">{receipt.number}</p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Receipt Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">GRN Number</p>
+              <p className="font-mono font-medium">
+                {receipt.number}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Purchase Order</p>
+              <p className="font-medium">
+                {receipt.purchaseOrder ? (
+                  <Link
+                    to={`/purchase-orders/${receipt.purchaseOrderId}`}
+                    className="text-blue-600 hover:underline"
+                  >
+                    {receipt.purchaseOrder.orderNumber}
+                  </Link>
+                ) : (
+                  '-'
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Date</p>
+              <p className="font-medium">
+                {formatDate(receipt.date)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total Value</p>
+              <p className="font-medium text-primary-600">
+                {formatCurrency(totalValue)}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Purchase Order</p>
-            <p className="font-medium">
-              {receipt.purchaseOrder ? (
-                <Link
-                  to={`/purchase-orders/${receipt.purchaseOrderId}`}
-                  className="text-blue-600 hover:underline"
-                >
-                  {receipt.purchaseOrder.orderNumber}
-                </Link>
-              ) : (
-                '-'
-              )}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Date</p>
-            <p className="font-medium">{formatDate(receipt.date)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Total Value</p>
-            <p className="font-medium text-primary-600">
-              {formatCurrency(totalValue)}
-            </p>
-          </div>
-        </div>
-        {receipt.notes && (
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-sm text-gray-500">Notes</p>
-            <p className="text-gray-700">{receipt.notes}</p>
-          </div>
-        )}
-      </div>
+          {receipt.notes && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-gray-500">Notes</p>
+              <p className="text-gray-700">{receipt.notes}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Items Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Received Items</h2>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Product
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Quantity
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Unit Cost
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Total
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {receipt.items.map((item) => (
-              <tr key={item.id}>
-                <td className="px-4 py-3">
-                  {item.product ? (
-                    <Link
-                      to={`/products/${item.productId}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {item.product.name}
-                    </Link>
-                  ) : (
-                    item.productId
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {Number(item.quantity)}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {formatCurrency(
-                    Number(item.purchaseOrderItem?.price || 0)
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right font-medium">
-                  {formatCurrency(
-                    Number(item.quantity) *
-                      Number(item.purchaseOrderItem?.price || 0)
-                  )}
-                </td>
+      <Card>
+        <CardHeader>
+          <CardTitle>Received Items</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Product
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Quantity
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Unit Cost
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Total
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {receipt.items.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-4 py-3">
+                    {item.product ? (
+                      <Link
+                        to={`/products/${item.productId}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {item.product.name}
+                      </Link>
+                    ) : (
+                      item.productId
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {Number(item.quantity)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {formatCurrency(
+                      Number(item.purchaseOrderItem?.price || 0)
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium">
+                    {formatCurrency(
+                      Number(item.quantity) *
+                        Number(item.purchaseOrderItem?.price || 0)
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
 
       {/* Bill Modal */}
       <CreateBillModal
@@ -279,6 +296,6 @@ export default function GoodsReceiptDetail() {
           navigate(`/bills/${billId}`);
         }}
       />
-    </div>
+    </PageContainer>
   );
 }
