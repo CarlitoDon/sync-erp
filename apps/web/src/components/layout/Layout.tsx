@@ -1,8 +1,11 @@
 import { Outlet, Link } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileMenuButton from '@/components/layout/MobileMenuButton';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 export default function Layout() {
+  const { isCollapsed } = useSidebar();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex">
       {/* Sidebar */}
@@ -12,7 +15,7 @@ export default function Layout() {
       <div
         className={`
         flex-1 flex flex-col min-h-screen transition-all duration-300
-        md:ml-64
+        ${isCollapsed ? 'md:ml-16' : 'md:ml-64'}
       `}
       >
         {/* Simplified Header (Mobile only shows hamburger) */}
