@@ -2,6 +2,11 @@ import { Link } from 'react-router-dom';
 import { formatDate } from '@/utils/format';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
+import {
+  PageContainer,
+  PageHeader,
+} from '@/components/layout/PageLayout';
+import { Card } from '@/components/ui/Card';
 
 export default function Shipments() {
   const { currentCompany } = useCompany();
@@ -30,19 +35,13 @@ export default function Shipments() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Shipments
-          </h1>
-          <p className="text-gray-500">
-            Delivery Notes / Shipments from Sales Orders
-          </p>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Shipments"
+        description="Delivery Notes / Shipments from Sales Orders"
+      />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <Card className="overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -108,7 +107,7 @@ export default function Shipments() {
             )}
           </tbody>
         </table>
-      </div>
-    </div>
+      </Card>
+    </PageContainer>
   );
 }

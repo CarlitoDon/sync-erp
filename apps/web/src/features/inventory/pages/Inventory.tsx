@@ -4,6 +4,11 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { StockAdjustmentModal } from '@/features/inventory/components/StockAdjustmentModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { useState } from 'react';
+import {
+  PageContainer,
+  PageHeader,
+} from '@/components/layout/PageLayout';
+import { Card, CardContent } from '@/components/ui/Card';
 
 export default function Inventory() {
   const { currentCompany } = useCompany();
@@ -50,52 +55,54 @@ export default function Inventory() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Inventory
-          </h1>
-          <p className="text-gray-500">
-            Stock levels and inventory value for {currentCompany.name}
-          </p>
-        </div>
-        <button
-          onClick={() => loadStockLevels()}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-        >
-          ↻ Refresh
-        </button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Inventory"
+        description={`Stock levels and inventory value for ${currentCompany.name}`}
+        actions={
+          <button
+            onClick={() => loadStockLevels()}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            ↻ Refresh
+          </button>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Total Products
-          </p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">
-            {stockLevels.length}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Total Units in Stock
-          </p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">
-            {stockLevels
-              .reduce((sum, item) => sum + item.stockQty, 0)
-              .toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 uppercase">
-            Total Inventory Value
-          </p>
-          <p className="text-3xl font-bold text-primary-600 mt-2">
-            {formatCurrency(getTotalValue())}
-          </p>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">
+              Total Products
+            </p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">
+              {stockLevels.length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">
+              Total Units in Stock
+            </p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">
+              {stockLevels
+                .reduce((sum, item) => sum + item.stockQty, 0)
+                .toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-500 uppercase">
+              Total Inventory Value
+            </p>
+            <p className="text-3xl font-bold text-primary-600 mt-2">
+              {formatCurrency(getTotalValue())}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Low Stock Alert */}
@@ -132,7 +139,7 @@ export default function Inventory() {
       )}
 
       {/* Stock Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <Card className="overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -238,7 +245,7 @@ export default function Inventory() {
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       {adjustingProductId && (
         <StockAdjustmentModal
@@ -248,6 +255,6 @@ export default function Inventory() {
           initialProductId={adjustingProductId}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

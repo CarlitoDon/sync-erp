@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { BackButton } from '@/components/ui/BackButton';
 import CreateInvoiceModal from '@/features/accounting/components/CreateInvoiceModal';
+import { PageContainer } from '@/components/layout/PageLayout';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/Card';
 
 export default function ShipmentDetail() {
   const { id } = useParams<{ id: string }>();
@@ -120,7 +127,7 @@ export default function ShipmentDetail() {
   );
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -169,101 +176,111 @@ export default function ShipmentDetail() {
       </div>
 
       {/* Details Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">
-          Shipment Details
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div>
-            <p className="text-sm text-gray-500">Shipment Number</p>
-            <p className="font-mono font-medium">{shipment.number}</p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Shipment Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">Shipment Number</p>
+              <p className="font-mono font-medium">
+                {shipment.number}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Sales Order</p>
+              <p className="font-medium">
+                {shipment.salesOrder ? (
+                  <Link
+                    to={`/sales-orders/${shipment.salesOrderId}`}
+                    className="text-blue-600 hover:underline"
+                  >
+                    {shipment.salesOrder.orderNumber}
+                  </Link>
+                ) : (
+                  '-'
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Date</p>
+              <p className="font-medium">
+                {formatDate(shipment.date)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total COGS</p>
+              <p className="font-medium text-primary-600">
+                {formatCurrency(totalCOGS)}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Sales Order</p>
-            <p className="font-medium">
-              {shipment.salesOrder ? (
-                <Link
-                  to={`/sales-orders/${shipment.salesOrderId}`}
-                  className="text-blue-600 hover:underline"
-                >
-                  {shipment.salesOrder.orderNumber}
-                </Link>
-              ) : (
-                '-'
-              )}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Date</p>
-            <p className="font-medium">{formatDate(shipment.date)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Total COGS</p>
-            <p className="font-medium text-primary-600">
-              {formatCurrency(totalCOGS)}
-            </p>
-          </div>
-        </div>
-        {shipment.notes && (
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-sm text-gray-500">Notes</p>
-            <p className="text-gray-700">{shipment.notes}</p>
-          </div>
-        )}
-      </div>
+          {shipment.notes && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-gray-500">Notes</p>
+              <p className="text-gray-700">{shipment.notes}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Items Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Shipped Items</h2>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Product
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Quantity
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Unit Cost (COGS)
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Total COGS
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {shipment.items.map((item) => (
-              <tr key={item.id}>
-                <td className="px-4 py-3">
-                  {item.product ? (
-                    <Link
-                      to={`/products/${item.productId}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {item.product.name}
-                    </Link>
-                  ) : (
-                    item.productId
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {Number(item.quantity)}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {formatCurrency(Number(item.costSnapshot || 0))}
-                </td>
-                <td className="px-4 py-3 text-right font-medium">
-                  {formatCurrency(
-                    Number(item.quantity) *
-                      Number(item.costSnapshot || 0)
-                  )}
-                </td>
+      <Card>
+        <CardHeader>
+          <CardTitle>Shipped Items</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Product
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Quantity
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Unit Cost (COGS)
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Total COGS
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {shipment.items.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-4 py-3">
+                    {item.product ? (
+                      <Link
+                        to={`/products/${item.productId}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {item.product.name}
+                      </Link>
+                    ) : (
+                      item.productId
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {Number(item.quantity)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {formatCurrency(Number(item.costSnapshot || 0))}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium">
+                    {formatCurrency(
+                      Number(item.quantity) *
+                        Number(item.costSnapshot || 0)
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
 
       {/* Invoice Modal */}
       <CreateInvoiceModal
@@ -275,6 +292,6 @@ export default function ShipmentDetail() {
           navigate(`/invoices/${invoiceId}`);
         }}
       />
-    </div>
+    </PageContainer>
   );
 }
