@@ -1,3 +1,5 @@
+import { Card, CardContent } from '@/components/ui/Card';
+
 interface StatCardProps {
   title: string;
   value: number | string;
@@ -31,22 +33,26 @@ export function StatCard({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
-        <div className="h-8 bg-gray-200 rounded w-3/4" />
-      </div>
+      <Card className="animate-pulse">
+        <CardContent>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
+          <div className="h-8 bg-gray-200 rounded w-3/4" />
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-      <p className="text-sm font-medium text-gray-500">{title}</p>
-      <p className="mt-2 text-2xl font-semibold text-gray-900">
-        {formattedValue}
-      </p>
-      {description && (
-        <p className="mt-1 text-sm text-gray-500">{description}</p>
-      )}
-    </div>
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent>
+        <p className="text-sm font-medium text-gray-500">{title}</p>
+        <p className="mt-2 text-2xl font-semibold text-gray-900">
+          {formattedValue}
+        </p>
+        {description && (
+          <p className="mt-1 text-sm text-gray-500">{description}</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
