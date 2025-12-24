@@ -4,6 +4,13 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import OnboardingGuide from '@/features/dashboard/components/OnboardingGuide';
 import PendingShapeBanner from '@/features/dashboard/components/PendingShapeBanner';
 import { DashboardKPIs } from '@/features/dashboard/components/DashboardKPIs';
+import { PageContainer } from '@/components/layout/PageLayout';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/Card';
 
 type DashboardMetrics = RouterOutputs['dashboard']['getMetrics'];
 type RecentTransaction =
@@ -23,52 +30,54 @@ export default function Dashboard() {
   // Loading state
   if (loading) {
     return (
-      <div className="space-y-8">
-        <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl animate-pulse">
-          <div className="h-8 bg-white/20 rounded w-64 mb-2" />
-          <div className="h-5 bg-white/10 rounded w-48" />
+      <PageContainer>
+        <div className="space-y-8">
+          <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl animate-pulse">
+            <div className="h-8 bg-white/20 rounded w-64 mb-2" />
+            <div className="h-5 bg-white/10 rounded w-48" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent>
+                  <div className="h-4 bg-gray-200 rounded w-20 mb-2" />
+                  <div className="h-8 bg-gray-200 rounded w-16" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-pulse"
-            >
-              <div className="h-4 bg-gray-200 rounded w-20 mb-2" />
-              <div className="h-8 bg-gray-200 rounded w-16" />
-            </div>
-          ))}
-        </div>
-      </div>
+      </PageContainer>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="space-y-8">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-          <p className="text-red-600">
-            Failed to load dashboard data
-          </p>
-          <p className="text-red-400 text-sm mt-1">{error.message}</p>
+      <PageContainer>
+        <div className="space-y-8">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+            <p className="text-red-600">
+              Failed to load dashboard data
+            </p>
+            <p className="text-red-400 text-sm mt-1">
+              {error.message}
+            </p>
+          </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <PageContainer>
       {/* PENDING Shape Banner - shows when setup incomplete */}
       <PendingShapeBanner
         businessShape={currentCompany?.businessShape}
       />
 
-      {/* Phase 1: Backend-sourced KPIs (FR-001, FR-002) */}
-      <DashboardKPIs />
-
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl">
+      {/* Hero Welcome Section */}
+      <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl p-8 text-white shadow-xl mb-8">
         <h1 className="text-3xl font-bold mb-2">
           Welcome to Sync ERP
         </h1>
@@ -79,8 +88,11 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Phase 1: Backend-sourced KPIs (FR-001, FR-002) */}
+      <DashboardKPIs />
+
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Accounts Receivable"
           value={formatCurrency(
@@ -125,16 +137,18 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <OnboardingGuide metrics={metrics ?? null} />
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card-hover">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Recent Activity
-          </h2>
-          <RecentActivityList
-            transactions={metrics?.recentTransactions || []}
-          />
-        </div>
+        <Card className="card-hover">
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RecentActivityList
+              transactions={metrics?.recentTransactions || []}
+            />
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }
 
@@ -147,21 +161,25 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon, color }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card-hover">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500 font-medium">{title}</p>
-          <p className="text-2xl font-bold text-gray-800 mt-1">
-            {value}
-          </p>
+    <Card className="card-hover">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-500 font-medium">
+              {title}
+            </p>
+            <p className="text-2xl font-bold text-gray-800 mt-1">
+              {value}
+            </p>
+          </div>
+          <div
+            className={`w-12 h-12 bg-gradient-to-br ${color} rounded-xl flex items-center justify-center text-2xl`}
+          >
+            {icon}
+          </div>
         </div>
-        <div
-          className={`w-12 h-12 bg-gradient-to-br ${color} rounded-xl flex items-center justify-center text-2xl`}
-        >
-          {icon}
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
