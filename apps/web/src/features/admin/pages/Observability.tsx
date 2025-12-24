@@ -1,4 +1,14 @@
 import { JournalOrphanList } from '@/features/admin/components/JournalOrphanList';
+import {
+  PageContainer,
+  PageHeader,
+} from '@/components/layout/PageLayout';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/Card';
 
 /**
  * Observability page for admin users.
@@ -10,25 +20,23 @@ import { JournalOrphanList } from '@/features/admin/components/JournalOrphanList
  */
 export default function Observability() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          System Observability
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Monitor saga failures and journal integrity
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="System Observability"
+        description="Monitor saga failures and journal integrity"
+      />
 
       {/* Saga Failures Section */}
 
       {/* Journal Orphans Section */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Orphan Journal Entries
-        </h2>
-        <JournalOrphanList />
-      </div>
-    </div>
+      <Card>
+        <CardHeader className="border-b border-gray-200">
+          <CardTitle>Orphan Journal Entries</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <JournalOrphanList />
+        </CardContent>
+      </Card>
+    </PageContainer>
   );
 }
