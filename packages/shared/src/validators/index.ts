@@ -225,6 +225,7 @@ export const CreatePaymentSchema = z.object({
   invoiceId: z.string().uuid(),
   amount: z.number().positive('Payment amount must be positive'),
   method: PaymentMethodSchema,
+  reference: z.string().optional(),
   businessDate: z.coerce.date().optional(), // G5: Explicit business date
   correlationId: z.string().uuid().optional(), // FR-010.1: Request tracing
 });
