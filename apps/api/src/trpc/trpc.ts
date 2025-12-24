@@ -1,6 +1,7 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import { Context } from './context';
 import superjson from 'superjson';
+import { BusinessShape } from '@sync-erp/database';
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson, // For Date serialization
@@ -51,6 +52,29 @@ export const protectedProcedure = t.procedure.use(
         ...ctx,
         userId: ctx.userId,
         companyId: ctx.companyId,
+      },
+    });
+  }
+);
+
+/**
+ * Shaped procedure - requires authentication, company, AND active business shape
+ * Blocks operations if company businessShape is PENDING
+ */
+export const shapedProcedure = protectedProcedure.use(
+  async ({ ctx, next }) => {
+    if (ctx.businessShape === BusinessShape.PENDING) {
+      throw new TRPCError({
+        code: 'PRECONDITION_FAILED',
+        message:
+          'Operations blocked until business shape is selected. Please complete company setup.',
+      });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        businessShape: ctx.businessShape as BusinessShape,
       },
     });
   }
