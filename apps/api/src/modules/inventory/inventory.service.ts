@@ -7,6 +7,12 @@ import {
   AuditLogAction,
   EntityType,
   FulfillmentType,
+  DocumentStatus,
+  OrderStatus,
+  PaymentTerms,
+  PaymentStatus,
+  InvoiceType,
+  InvoiceStatus,
 } from '@sync-erp/database';
 import { InventoryRepository } from './inventory.repository';
 import { ProductService } from '../product/product.service';
@@ -138,16 +144,59 @@ export class InventoryService {
     }
 
     // Policy: Order must be CONFIRMED or PARTIALLY_RECEIVED/PARTIALLY_SHIPPED
-    const allowedStatuses = [
-      'CONFIRMED',
-      'PARTIALLY_RECEIVED',
-      'PARTIALLY_SHIPPED',
+    const allowedStatuses: OrderStatus[] = [
+      OrderStatus.CONFIRMED,
+      OrderStatus.PARTIALLY_RECEIVED,
+      OrderStatus.PARTIALLY_SHIPPED,
     ];
-    if (!allowedStatuses.includes(order.status)) {
+    if (!allowedStatuses.includes(order.status as OrderStatus)) {
       throw new DomainError(
         `Cannot create fulfillment for order in status: ${order.status}`,
         400
       );
+    }
+
+    // For RECEIPT (GRN): Check DP Bill is paid if DP is required
+    if (data.type === FulfillmentType.RECEIPT) {
+      const hasDpRequired =
+        order.paymentTerms === PaymentTerms.UPFRONT ||
+        (order.dpAmount && Number(order.dpAmount) > 0);
+
+      if (hasDpRequired) {
+        // Allow if order has received any upfront payment (legacy flow)
+        // This supports both full and partial upfront payments
+        const paidAmount = Number(order.paidAmount || 0);
+        const isPaidViaUpfrontFlow =
+          order.paymentStatus === PaymentStatus.PAID_UPFRONT ||
+          paidAmount > 0;
+
+        if (!isPaidViaUpfrontFlow) {
+          // Check if DP Bill exists and is PAID (new DP Bill flow)
+          const db = tx || prisma;
+          const dpBill = await db.invoice.findFirst({
+            where: {
+              orderId: data.orderId,
+              companyId,
+              type: 'BILL',
+              notes: { contains: 'Down Payment' },
+            },
+          });
+
+          if (!dpBill) {
+            throw new DomainError(
+              'DP Bill not found. Please confirm the order first.',
+              400
+            );
+          }
+
+          if (dpBill.status !== InvoiceStatus.PAID) {
+            throw new DomainError(
+              'DP Bill must be paid before receiving goods. Please pay the DP Bill first.',
+              400
+            );
+          }
+        }
+      }
     }
 
     // Get already fulfilled quantities
@@ -284,9 +333,15 @@ export class InventoryService {
   async voidFulfillment(
     companyId: string,
     fulfillmentId: string,
+    reason: string,
     tx?: Prisma.TransactionClient,
     userId?: string
   ) {
+    // FR-024: Reason is mandatory
+    if (!reason || reason.trim().length === 0) {
+      throw new DomainError('Void reason is required', 400);
+    }
+
     const execute = async (t: Prisma.TransactionClient) => {
       const fulfillment = await this.repository.findFulfillmentById(
         fulfillmentId,
@@ -298,7 +353,7 @@ export class InventoryService {
         throw new DomainError('Fulfillment not found', 404);
       }
 
-      if (fulfillment.status !== 'POSTED') {
+      if (fulfillment.status !== DocumentStatus.POSTED) {
         throw new DomainError(
           `Cannot void fulfillment in status: ${fulfillment.status}`,
           400
@@ -306,7 +361,9 @@ export class InventoryService {
       }
 
       const isReceipt = fulfillment.type === FulfillmentType.RECEIPT;
-      const invoiceType = isReceipt ? 'BILL' : 'INVOICE';
+      const invoiceType = isReceipt
+        ? InvoiceType.BILL
+        : InvoiceType.INVOICE;
 
       // Check no invoice exists
       const invoiceCount =
@@ -381,7 +438,7 @@ export class InventoryService {
         );
       }
 
-      // Audit
+      // Audit with reason (FR-024)
       if (userId) {
         await recordAudit({
           companyId,
@@ -394,7 +451,11 @@ export class InventoryService {
             : EntityType.SHIPMENT,
           entityId: fulfillmentId,
           businessDate: new Date(),
-          payloadSnapshot: { number: fulfillment.number, totalValue },
+          payloadSnapshot: {
+            number: fulfillment.number,
+            totalValue,
+            reason,
+          },
         });
       }
 
@@ -472,10 +533,11 @@ export class InventoryService {
   async voidGRN(
     companyId: string,
     grnId: string,
+    reason: string,
     tx?: Prisma.TransactionClient,
     userId?: string
   ) {
-    return this.voidFulfillment(companyId, grnId, tx, userId);
+    return this.voidFulfillment(companyId, grnId, reason, tx, userId);
   }
 
   // ==========================================
@@ -524,9 +586,16 @@ export class InventoryService {
   async voidShipment(
     companyId: string,
     shipmentId: string,
+    reason: string,
     tx?: Prisma.TransactionClient,
     userId?: string
   ) {
-    return this.voidFulfillment(companyId, shipmentId, tx, userId);
+    return this.voidFulfillment(
+      companyId,
+      shipmentId,
+      reason,
+      tx,
+      userId
+    );
   }
 }

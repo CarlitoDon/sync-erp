@@ -73,4 +73,8 @@ export const DomainErrorCodes = {
   FEATURE_DISABLED_PHASE_1: 'FEATURE_DISABLED_PHASE_1',
   // Journal
   DUPLICATE_JOURNAL: 'DUPLICATE_JOURNAL',
+  // 3-Way Matching (FR-011, FR-020)
+  THREE_WAY_MATCH_FAILED: 'THREE_WAY_MATCH_FAILED',
+  // FR-013: Duplicate supplier invoice number
+  DUPLICATE_SUPPLIER_INVOICE: 'DUPLICATE_SUPPLIER_INVOICE',
 } as const;
