@@ -110,16 +110,10 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
     const deletePayments = prisma.payment.deleteMany({
       where: { invoice: { companyId: COMPANY_ID } },
     });
-    const deleteShipmentItems = prisma.shipmentItem.deleteMany({
-      where: { shipment: { companyId: COMPANY_ID } },
+    const deleteFulfillmentItems = prisma.fulfillmentItem.deleteMany({
+      where: { fulfillment: { companyId: COMPANY_ID } },
     });
-    const deleteShipments = prisma.shipment.deleteMany({
-      where: { companyId: COMPANY_ID },
-    });
-    const deleteGrnItems = prisma.goodsReceiptItem.deleteMany({
-      where: { goodsReceipt: { companyId: COMPANY_ID } },
-    });
-    const deleteGrns = prisma.goodsReceipt.deleteMany({
+    const deleteFulfillments = prisma.fulfillment.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     const deleteInvoices = prisma.invoice.deleteMany({
@@ -147,10 +141,8 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
     await prisma.$transaction([
       deleteJournals,
       deleteMovements,
-      deleteShipmentItems,
-      deleteShipments,
-      deleteGrnItems,
-      deleteGrns,
+      deleteFulfillmentItems,
+      deleteFulfillments,
       deletePayments, // Payments first because of FK
       deleteInvoices,
       deleteOrderItems,

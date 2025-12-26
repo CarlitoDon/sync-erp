@@ -38,10 +38,10 @@ describe('E2E: Cash Upfront Payment Flow', () => {
       prisma.inventoryMovement.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
-      prisma.goodsReceiptItem.deleteMany({
-        where: { goodsReceipt: { companyId: COMPANY_ID } },
+      prisma.fulfillmentItem.deleteMany({
+        where: { fulfillment: { companyId: COMPANY_ID } },
       }),
-      prisma.goodsReceipt.deleteMany({
+      prisma.fulfillment.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
       prisma.orderItem.deleteMany({

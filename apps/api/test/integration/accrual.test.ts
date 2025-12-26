@@ -89,11 +89,11 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     await prisma.invoice.deleteMany({
       where: { companyId: COMPANY_ID },
     });
-    // Delete GRN first
-    await prisma.goodsReceiptItem.deleteMany({
-      where: { goodsReceipt: { companyId: COMPANY_ID } },
+    // Delete Fulfillments first
+    await prisma.fulfillmentItem.deleteMany({
+      where: { fulfillment: { companyId: COMPANY_ID } },
     });
-    await prisma.goodsReceipt.deleteMany({
+    await prisma.fulfillment.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     await prisma.orderItem.deleteMany({

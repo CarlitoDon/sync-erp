@@ -101,17 +101,11 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
       prisma.inventoryMovement.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
-      // Delete GRN/Shipments first
-      prisma.goodsReceiptItem.deleteMany({
-        where: { goodsReceipt: { companyId: COMPANY_ID } },
+      // Delete Fulfillments first
+      prisma.fulfillmentItem.deleteMany({
+        where: { fulfillment: { companyId: COMPANY_ID } },
       }),
-      prisma.goodsReceipt.deleteMany({
-        where: { companyId: COMPANY_ID },
-      }),
-      prisma.shipmentItem.deleteMany({
-        where: { shipment: { companyId: COMPANY_ID } },
-      }),
-      prisma.shipment.deleteMany({
+      prisma.fulfillment.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
       // Then OrderItems
