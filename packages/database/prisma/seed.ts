@@ -257,7 +257,7 @@ async function main() {
       },
       {
         code: '2200',
-        name: 'Sales Tax Payable',
+        name: 'Customer Deposits', // Cash Upfront Sales: Liability for customer prepayments
         type: 'LIABILITY' as const,
       },
       {

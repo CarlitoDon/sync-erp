@@ -146,13 +146,9 @@ export const SagaLogScalarFieldEnumSchema = z.enum(['id','sagaType','entityId','
 
 export const AuditLogScalarFieldEnumSchema = z.enum(['id','companyId','actorId','action','entityType','entityId','businessDate','payloadSnapshot','correlationId','createdAt']);
 
-export const GoodsReceiptScalarFieldEnumSchema = z.enum(['id','companyId','purchaseOrderId','number','date','status','notes','receivedBy','version','createdAt','updatedAt']);
+export const FulfillmentScalarFieldEnumSchema = z.enum(['id','companyId','orderId','type','number','date','status','notes','receivedBy','version','createdAt','updatedAt']);
 
-export const GoodsReceiptItemScalarFieldEnumSchema = z.enum(['id','goodsReceiptId','productId','quantity','purchaseOrderItemId']);
-
-export const ShipmentScalarFieldEnumSchema = z.enum(['id','companyId','salesOrderId','number','date','status','notes','createdAt','updatedAt']);
-
-export const ShipmentItemScalarFieldEnumSchema = z.enum(['id','shipmentId','productId','quantity','salesOrderItemId','costSnapshot']);
+export const FulfillmentItemScalarFieldEnumSchema = z.enum(['id','fulfillmentId','productId','orderItemId','quantity','costSnapshot']);
 
 export const SortOrderSchema = z.enum(['asc','desc']);
 
@@ -217,6 +213,14 @@ export type PaymentTermsType = `${z.infer<typeof PaymentTermsSchema>}`
 export const PaymentStatusSchema = z.enum(['PENDING','PARTIAL','PAID_UPFRONT','SETTLED']);
 
 export type PaymentStatusType = `${z.infer<typeof PaymentStatusSchema>}`
+
+export const DocumentStatusSchema = z.enum(['DRAFT','POSTED','VOIDED']);
+
+export type DocumentStatusType = `${z.infer<typeof DocumentStatusSchema>}`
+
+export const FulfillmentTypeSchema = z.enum(['RECEIPT','SHIPMENT']);
+
+export type FulfillmentTypeType = `${z.infer<typeof FulfillmentTypeSchema>}`
 
 export const SequenceTypeSchema = z.enum(['PO','GRN','BILL','PAY','SO','INV','CN','JE']);
 
@@ -676,16 +680,17 @@ export const AuditLogSchema = z.object({
 export type AuditLog = z.infer<typeof AuditLogSchema>
 
 /////////////////////////////////////////
-// GOODS RECEIPT SCHEMA
+// FULFILLMENT SCHEMA
 /////////////////////////////////////////
 
-export const GoodsReceiptSchema = z.object({
+export const FulfillmentSchema = z.object({
+  type: FulfillmentTypeSchema,
+  status: DocumentStatusSchema,
   id: z.string(),
   companyId: z.string(),
-  purchaseOrderId: z.string(),
+  orderId: z.string(),
   number: z.string(),
   date: z.coerce.date(),
-  status: z.string(),
   notes: z.string().nullable(),
   receivedBy: z.string().nullable(),
   version: z.number(),
@@ -693,51 +698,19 @@ export const GoodsReceiptSchema = z.object({
   updatedAt: z.coerce.date(),
 })
 
-export type GoodsReceipt = z.infer<typeof GoodsReceiptSchema>
+export type Fulfillment = z.infer<typeof FulfillmentSchema>
 
 /////////////////////////////////////////
-// GOODS RECEIPT ITEM SCHEMA
+// FULFILLMENT ITEM SCHEMA
 /////////////////////////////////////////
 
-export const GoodsReceiptItemSchema = z.object({
+export const FulfillmentItemSchema = z.object({
   id: z.string(),
-  goodsReceiptId: z.string(),
+  fulfillmentId: z.string(),
   productId: z.string(),
-  quantity: z.instanceof(PrismaDecimal, { message: "Field 'quantity' must be a Decimal. Location: ['Models', 'GoodsReceiptItem']"}),
-  purchaseOrderItemId: z.string(),
+  orderItemId: z.string(),
+  quantity: z.instanceof(PrismaDecimal, { message: "Field 'quantity' must be a Decimal. Location: ['Models', 'FulfillmentItem']"}),
+  costSnapshot: z.instanceof(PrismaDecimal, { message: "Field 'costSnapshot' must be a Decimal. Location: ['Models', 'FulfillmentItem']"}).nullable(),
 })
 
-export type GoodsReceiptItem = z.infer<typeof GoodsReceiptItemSchema>
-
-/////////////////////////////////////////
-// SHIPMENT SCHEMA
-/////////////////////////////////////////
-
-export const ShipmentSchema = z.object({
-  id: z.string(),
-  companyId: z.string(),
-  salesOrderId: z.string(),
-  number: z.string(),
-  date: z.coerce.date(),
-  status: z.string(),
-  notes: z.string().nullable(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-})
-
-export type Shipment = z.infer<typeof ShipmentSchema>
-
-/////////////////////////////////////////
-// SHIPMENT ITEM SCHEMA
-/////////////////////////////////////////
-
-export const ShipmentItemSchema = z.object({
-  id: z.string(),
-  shipmentId: z.string(),
-  productId: z.string(),
-  quantity: z.instanceof(PrismaDecimal, { message: "Field 'quantity' must be a Decimal. Location: ['Models', 'ShipmentItem']"}),
-  salesOrderItemId: z.string(),
-  costSnapshot: z.instanceof(PrismaDecimal, { message: "Field 'costSnapshot' must be a Decimal. Location: ['Models', 'ShipmentItem']"}).nullable(),
-})
-
-export type ShipmentItem = z.infer<typeof ShipmentItemSchema>
+export type FulfillmentItem = z.infer<typeof FulfillmentItemSchema>
