@@ -8,6 +8,7 @@ import {
   Product,
   Partner,
   Invoice,
+  FulfillmentType,
 } from '@sync-erp/database';
 
 export class SalesOrderRepository {
@@ -54,9 +55,7 @@ export class SalesOrderRepository {
       items: (OrderItem & { product: Product })[];
       partner: Partner | null;
       invoices: Invoice[];
-      _count: {
-        shipments: number;
-      };
+      _count: { fulfillments: number };
     })[]
   > {
     return prisma.order.findMany({
@@ -69,43 +68,36 @@ export class SalesOrderRepository {
         items: { include: { product: true } },
         partner: true,
         invoices: true,
-        _count: {
-          select: { shipments: true },
-        },
+        _count: { select: { fulfillments: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  /**
-   * Get shipped quantities for a Sales Order (from POSTED Shipments)
-   */
   async getShippedQuantities(
     orderId: string,
     tx?: Prisma.TransactionClient
   ): Promise<Map<string, number>> {
     const db = tx || prisma;
-    const shipmentItems = await db.shipmentItem.findMany({
+    const items = await db.fulfillmentItem.findMany({
       where: {
-        shipment: {
-          salesOrderId: orderId,
+        fulfillment: {
+          orderId,
+          type: FulfillmentType.SHIPMENT,
           status: 'POSTED',
         },
       },
       select: { productId: true, quantity: true },
     });
 
-    const shippedMap = new Map<string, number>();
-    for (const item of shipmentItems) {
-      const current = shippedMap.get(item.productId) || 0;
-      shippedMap.set(item.productId, current + Number(item.quantity));
+    const map = new Map<string, number>();
+    for (const item of items) {
+      const current = map.get(item.productId) || 0;
+      map.set(item.productId, current + Number(item.quantity));
     }
-    return shippedMap;
+    return map;
   }
 
-  /**
-   * Update status with Optimistic Locking
-   */
   async updateStatus(
     id: string,
     status: OrderStatus,
@@ -114,17 +106,10 @@ export class SalesOrderRepository {
   ): Promise<Order> {
     const db = tx || prisma;
 
-    // If expectedVersion is provided, ensuring concurrency safety
     if (expectedVersion !== undefined) {
       const result = await db.order.updateMany({
-        where: {
-          id,
-          version: expectedVersion,
-        },
-        data: {
-          status,
-          version: { increment: 1 },
-        },
+        where: { id, version: expectedVersion },
+        data: { status, version: { increment: 1 } },
       });
 
       if (result.count === 0) {
@@ -133,7 +118,6 @@ export class SalesOrderRepository {
         );
       }
 
-      // Return the updated record
       return db.order.findUniqueOrThrow({
         where: { id },
         include: {
@@ -143,13 +127,9 @@ export class SalesOrderRepository {
       });
     }
 
-    // Standard update (if no version check needed)
     return db.order.update({
       where: { id },
-      data: {
-        status,
-        version: { increment: 1 },
-      },
+      data: { status, version: { increment: 1 } },
       include: {
         items: { include: { product: true } },
         partner: true,
@@ -186,28 +166,25 @@ export class SalesOrderRepository {
     });
   }
 
-  /**
-   * Count shipments for a Sales Order.
-   * Used for cancel validation.
-   */
-  async countShipments(orderId: string): Promise<number> {
-    return prisma.shipment.count({
-      where: { salesOrderId: orderId },
-    });
-  }
-
-  /**
-   * Count non-voided Shipments for a Sales Order.
-   * Used for recalculating SO status after voiding a Shipment.
-   */
-  async countValidShipments(
+  async countFulfillments(
     orderId: string,
     tx?: Prisma.TransactionClient
   ): Promise<number> {
     const db = tx || prisma;
-    return db.shipment.count({
+    return db.fulfillment.count({
+      where: { orderId, type: FulfillmentType.SHIPMENT },
+    });
+  }
+
+  async countValidFulfillments(
+    orderId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const db = tx || prisma;
+    return db.fulfillment.count({
       where: {
-        salesOrderId: orderId,
+        orderId,
+        type: FulfillmentType.SHIPMENT,
         status: { not: 'VOIDED' },
       },
     });

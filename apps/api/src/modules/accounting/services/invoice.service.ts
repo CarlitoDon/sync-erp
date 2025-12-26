@@ -9,6 +9,7 @@ import {
   AuditLogAction,
   EntityType,
   prisma,
+  PaymentTerms,
 } from '@sync-erp/database';
 import {
   DomainError,
@@ -34,6 +35,7 @@ import { DocumentNumberService } from '../../common/services/document-number.ser
 import { IdempotencyService } from '../../common/services/idempotency.service';
 import * as auditLogService from '../../common/audit/audit-log.service';
 import { InventoryService } from '../../inventory/inventory.service.js';
+import { CustomerDepositService } from '../../sales/customer-deposit.service';
 
 export class InvoiceService {
   private repository = new InvoiceRepository();
@@ -41,6 +43,7 @@ export class InvoiceService {
   private documentNumberService = new DocumentNumberService();
   private idempotencyService = new IdempotencyService();
   private inventoryService = new InventoryService();
+  private customerDepositService = new CustomerDepositService();
 
   async createFromSalesOrder(
     companyId: string,
@@ -283,8 +286,9 @@ export class InvoiceService {
           Money.from(0, currency).ensureBase();
 
           // 3. Stock OUT (if order-linked)
+          let order = null;
           if (invoice.orderId) {
-            const order = await this.repository.findOrderWithItems(
+            order = await this.repository.findOrderWithItems(
               invoice.orderId,
               companyId,
               tx
@@ -338,20 +342,72 @@ export class InvoiceService {
             businessDate
           );
 
-          return updatedInvoice;
+          // Return both invoice and order info for auto-settlement check
+          return { invoice: updatedInvoice, order };
         },
         { timeout: 60000 }
       );
+
+      // 6. Cash Upfront Sales: Auto-settle customer deposit if applicable
+      // Check if the linked order has UPFRONT payment terms
+      if (
+        result.order &&
+        result.order.paymentTerms === PaymentTerms.UPFRONT
+      ) {
+        try {
+          const depositInfo =
+            await this.customerDepositService.getDepositInfo(
+              companyId,
+              result.invoice.id
+            );
+
+          // If there's a deposit available, auto-settle
+          if (
+            depositInfo.hasDeposit &&
+            depositInfo.settlementAmount > 0
+          ) {
+            await this.customerDepositService.settleDeposit(
+              companyId,
+              result.invoice.id,
+              actorId || 'system'
+            );
+
+            // Audit log for auto-settlement
+            if (actorId) {
+              await auditLogService.recordAudit({
+                companyId,
+                actorId,
+                action: AuditLogAction.PAYMENT_RECORDED,
+                entityType: EntityType.INVOICE,
+                entityId: result.invoice.id,
+                businessDate: businessDate || new Date(),
+                payloadSnapshot: {
+                  type: 'AUTO_SETTLE_CUSTOMER_DEPOSIT',
+                  depositAmount: depositInfo.settlementAmount,
+                },
+                correlationId,
+              });
+            }
+          }
+        } catch (settleError) {
+          // Log settlement error but don't fail the invoice post
+          console.error(
+            'Auto-settlement failed for invoice:',
+            result.invoice.id,
+            settleError
+          );
+        }
+      }
 
       // Idempotency Complete
       if (idempotencyKey) {
         await this.idempotencyService.complete(
           idempotencyKey,
-          result
+          result.invoice
         );
       }
 
-      return result;
+      return result.invoice;
     } catch (error) {
       if (idempotencyKey) {
         await this.idempotencyService.fail(idempotencyKey);

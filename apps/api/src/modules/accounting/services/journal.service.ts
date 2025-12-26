@@ -717,4 +717,67 @@ export class JournalService {
       tx
     );
   }
+
+  // ==========================================
+  // Cash Upfront Sales - Customer Deposits
+  // ==========================================
+
+  /**
+   * Post Customer Deposit Journal (Sales Upfront)
+   * Dr Cash/Bank (Asset), Cr 2200 Customer Deposits (Liability)
+   */
+  async postCustomerDeposit(
+    companyId: string,
+    paymentId: string,
+    orderNumber: string,
+    amount: number,
+    method: string,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Customer Deposit: SO ${orderNumber}`,
+        memo: `Customer advance payment via ${method}`,
+        sourceType: JournalSourceType.PAYMENT,
+        sourceId: paymentId,
+        lines: [
+          { accountCode: cashAccount, debit: amount }, // Cash/Bank (Asset)
+          { accountCode: '2200', credit: amount }, // Customer Deposits (Liability)
+        ],
+        date: businessDate,
+      },
+      tx
+    );
+  }
+
+  /**
+   * Post Settlement of Customer Deposit against AR
+   * Dr 2200 (Customer Deposits), Cr 1300 (Accounts Receivable)
+   * Note: Uses unique sourceId to avoid conflict with deposit payment journal
+   */
+  async postSettleCustomerDeposit(
+    companyId: string,
+    paymentId: string,
+    invoiceNumber: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Settle Deposit: Invoice ${invoiceNumber}`,
+        memo: `Settlement of customer deposit against invoice`,
+        sourceType: JournalSourceType.PAYMENT,
+        sourceId: `${paymentId}:settlement`, // Unique ID for settlement
+        lines: [
+          { accountCode: '2200', debit: amount }, // Clear Customer Deposits
+          { accountCode: '1300', credit: amount }, // Reduce Accounts Receivable
+        ],
+      },
+      tx
+    );
+  }
 }

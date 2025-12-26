@@ -109,6 +109,7 @@ export const CreateOrderSchema = z.object({
 
 export const CreateSalesOrderSchema = CreateOrderSchema.extend({
   type: z.literal('SALES'),
+  paymentTerms: PaymentTermsSchema.optional(), // Cash Upfront Sales: Allow UPFRONT payment terms
 });
 
 // Feature 036: Add paymentTerms
@@ -131,6 +132,9 @@ export const InventoryCheckSchema = z.object({
   productId: z.string().uuid(),
   warehouseId: z.string().uuid().optional(),
 });
+
+// Note: GRN/Shipment status now uses DocumentStatusSchema from generated zod
+// (DRAFT, POSTED, VOIDED) - see schema.prisma DocumentStatus enum
 
 export const InventoryResponseSchema = z.object({
   productId: z.string().uuid(),

@@ -7,7 +7,12 @@
  * Pattern: Policy.ensure*() throws DomainError if constraint violated.
  */
 
-import { BusinessShape, OrderStatus } from '@sync-erp/database';
+import {
+  BusinessShape,
+  OrderStatus,
+  PaymentTerms,
+  PaymentStatus,
+} from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 /**
@@ -143,6 +148,89 @@ export class SalesOrderPolicy {
         'Cannot cancel order: Shipments have already been created',
         422,
         DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+  }
+
+  // ==========================================
+  // Cash Upfront Sales - Customer Deposit
+  // ==========================================
+
+  /**
+   * Validate SO can accept customer deposit registration.
+   * - SO must exist and be CONFIRMED or later (not DRAFT/CANCELLED)
+   * - SO must have paymentTerms = UPFRONT
+   */
+  static ensureCanRegisterDeposit(order: {
+    status: OrderStatus;
+    paymentTerms: PaymentTerms;
+    paymentStatus?: PaymentStatus | null;
+  }): void {
+    // Must be at least CONFIRMED
+    if (
+      order.status === OrderStatus.DRAFT ||
+      order.status === OrderStatus.CANCELLED
+    ) {
+      throw new DomainError(
+        `Cannot register deposit for order with status: ${order.status}`,
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    // Must be UPFRONT payment terms
+    if (order.paymentTerms !== PaymentTerms.UPFRONT) {
+      throw new DomainError(
+        'Deposit registration only allowed for UPFRONT payment terms',
+        400,
+        DomainErrorCodes.PAYMENT_INVALID_TYPE
+      );
+    }
+
+    // Cannot register more deposits if already settled
+    if (order.paymentStatus === PaymentStatus.SETTLED) {
+      throw new DomainError(
+        'Cannot register deposit: Order deposit is already settled',
+        422,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+  }
+
+  /**
+   * Validate deposit amount doesn't exceed remaining balance.
+   */
+  static ensureDepositWithinLimit(
+    order: {
+      totalAmount: number | { toNumber: () => number };
+      paidAmount: number | { toNumber: () => number };
+    },
+    depositAmount: number
+  ): void {
+    const totalAmount =
+      typeof order.totalAmount === 'object'
+        ? order.totalAmount.toNumber()
+        : order.totalAmount;
+    const paidAmount =
+      typeof order.paidAmount === 'object'
+        ? order.paidAmount.toNumber()
+        : order.paidAmount;
+
+    const remaining = totalAmount - paidAmount;
+
+    if (depositAmount <= 0) {
+      throw new DomainError(
+        'Deposit amount must be positive',
+        400,
+        DomainErrorCodes.PAYMENT_EXCEEDS_BALANCE
+      );
+    }
+
+    if (depositAmount > remaining) {
+      throw new DomainError(
+        `Deposit amount (${depositAmount}) exceeds remaining balance (${remaining})`,
+        400,
+        DomainErrorCodes.PAYMENT_EXCEEDS_BALANCE
       );
     }
   }

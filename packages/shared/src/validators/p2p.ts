@@ -196,3 +196,63 @@ export const SettlementResponseSchema = z.object({
 export type SettlementResponse = z.infer<
   typeof SettlementResponseSchema
 >;
+
+// ==========================================
+// Cash Upfront Sales - Customer Deposit Validators
+// ==========================================
+
+export const RegisterCustomerDepositSchema = z.object({
+  orderId: z.string().uuid(),
+  amount: z.number().positive(),
+  method: PaymentMethodSchema,
+  accountId: z.string().uuid().optional(),
+  reference: z.string().max(100).optional(),
+  businessDate: z.coerce.date().optional(),
+});
+export type RegisterCustomerDepositInput = z.infer<
+  typeof RegisterCustomerDepositSchema
+>;
+
+export const SettleCustomerDepositSchema = z.object({
+  invoiceId: z.string().uuid(),
+});
+export type SettleCustomerDepositInput = z.infer<
+  typeof SettleCustomerDepositSchema
+>;
+
+export const DepositInfoResponseSchema = z.object({
+  invoiceId: z.string().uuid(),
+  invoiceAmount: z.number(),
+  invoiceBalance: z.number(),
+  hasDeposit: z.boolean(),
+  deposit: z
+    .object({
+      paymentId: z.string().uuid(),
+      orderId: z.string().uuid(),
+      orderNumber: z.string().nullable(),
+      amount: z.number(),
+      paidAt: z.date(),
+    })
+    .nullable(),
+  settlementAmount: z.number(),
+  remainingAfterSettlement: z.number(),
+});
+export type DepositInfoResponse = z.infer<
+  typeof DepositInfoResponseSchema
+>;
+
+export const DepositSettlementResponseSchema = z.object({
+  invoice: z.object({
+    id: z.string().uuid(),
+    status: z.string(),
+    balance: z.number(),
+  }),
+  settlement: z.object({
+    amount: z.number(),
+    journalId: z.string().uuid(),
+    depositPaymentId: z.string().uuid(),
+  }),
+});
+export type DepositSettlementResponse = z.infer<
+  typeof DepositSettlementResponseSchema
+>;
