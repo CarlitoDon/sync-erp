@@ -46,9 +46,8 @@ model Company {
   idempotencyKeys   IdempotencyKey[]
   sagaLogs          SagaLog[]
   auditLogs         AuditLog[]
-  goodsReceipts     GoodsReceipt[]
-  shipments         Shipment[]
   documentSequences DocumentSequence[]
+  fulfillments      Fulfillment[]
 }
 
 model User {
@@ -124,13 +123,12 @@ model Product {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  category          ProductCategory?    @relation(fields: [categoryId], references: [id])
-  orderItems        OrderItem[]
-  movements         InventoryMovement[]
-  stockLayers       StockLayer[]
-  goodsReceiptItems GoodsReceiptItem[]
-  shipmentItems     ShipmentItem[]
+  company          Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category         ProductCategory?    @relation(fields: [categoryId], references: [id])
+  orderItems       OrderItem[]
+  movements        InventoryMovement[]
+  stockLayers      StockLayer[]
+  fulfillmentItems FulfillmentItem[]
 
   @@unique([companyId, sku])
   @@index([companyId])
@@ -160,13 +158,12 @@ model Order {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  partner         Partner        @relation(fields: [partnerId], references: [id])
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  partner         Partner       @relation(fields: [partnerId], references: [id])
   items           OrderItem[]
   invoices        Invoice[]
-  goodsReceipts   GoodsReceipt[]
-  shipments       Shipment[]
-  upfrontPayments Payment[]      @relation("OrderUpfrontPayments") // Feature 036
+  upfrontPayments Payment[]     @relation("OrderUpfrontPayments") // Feature 036
+  fulfillments    Fulfillment[]
 
   @@index([companyId])
   @@index([companyId, type])
@@ -184,8 +181,7 @@ model OrderItem {
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
 
-  goodsReceiptItems GoodsReceiptItem[]
-  shipmentItems     ShipmentItem[]
+  fulfillmentItems FulfillmentItem[]
 
   @@index([orderId])
 }
@@ -473,6 +469,19 @@ enum PaymentStatus {
   SETTLED // Prepaid cleared against bill
 }
 
+// GRN/Shipment Document Status
+enum DocumentStatus {
+  DRAFT
+  POSTED
+  VOIDED
+}
+
+// Fulfillment Type (unified model for GRN and Shipment)
+enum FulfillmentType {
+  RECEIPT // Goods Receipt (PO → Stock IN)
+  SHIPMENT // Shipment (SO → Stock OUT)
+}
+
 // ============================================
 // System Configuration
 // ============================================
@@ -703,70 +712,41 @@ enum SagaStep {
 }
 
 // ============================================
-// Features: 034-grn-fullstack (Inventory P2P/O2C)
+// Unified Fulfillment Model (replaces GoodsReceipt + Shipment)
 // ============================================
 
-model GoodsReceipt {
-  id              String   @id @default(uuid())
-  companyId       String
-  purchaseOrderId String
-  number          String
-  date            DateTime
-  status          String   @default("DRAFT") // DRAFT, POSTED, VOID
-  notes           String?
-  receivedBy      String? // P2P: User ID
-  version         Int      @default(1) // Optimistic Locking
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+model Fulfillment {
+  id         String          @id @default(uuid())
+  companyId  String
+  orderId    String
+  type       FulfillmentType
+  number     String
+  date       DateTime
+  status     DocumentStatus  @default(DRAFT)
+  notes      String?
+  receivedBy String? // Only for RECEIPT type
+  version    Int             @default(1)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 
-  company       Company            @relation(fields: [companyId], references: [id])
-  purchaseOrder Order              @relation(fields: [purchaseOrderId], references: [id])
-  items         GoodsReceiptItem[]
-
-  @@index([companyId])
-  @@index([purchaseOrderId])
-}
-
-model GoodsReceiptItem {
-  id                  String  @id @default(uuid())
-  goodsReceiptId      String
-  productId           String
-  quantity            Decimal @db.Decimal(10, 2)
-  purchaseOrderItemId String
-
-  goodsReceipt      GoodsReceipt @relation(fields: [goodsReceiptId], references: [id])
-  product           Product      @relation(fields: [productId], references: [id])
-  purchaseOrderItem OrderItem    @relation(fields: [purchaseOrderItemId], references: [id])
-}
-
-model Shipment {
-  id           String   @id @default(uuid())
-  companyId    String
-  salesOrderId String
-  number       String
-  date         DateTime
-  status       String   @default("DRAFT") // DRAFT, POSTED, VOID
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  company    Company        @relation(fields: [companyId], references: [id])
-  salesOrder Order          @relation(fields: [salesOrderId], references: [id])
-  items      ShipmentItem[]
+  company Company           @relation(fields: [companyId], references: [id])
+  order   Order             @relation(fields: [orderId], references: [id])
+  items   FulfillmentItem[]
 
   @@index([companyId])
-  @@index([salesOrderId])
+  @@index([orderId])
+  @@index([type])
 }
 
-model ShipmentItem {
-  id               String   @id @default(uuid())
-  shipmentId       String
-  productId        String
-  quantity         Decimal  @db.Decimal(10, 2)
-  salesOrderItemId String
-  costSnapshot     Decimal? @db.Decimal(15, 2) // COGS snapshot
+model FulfillmentItem {
+  id            String   @id @default(uuid())
+  fulfillmentId String
+  productId     String
+  orderItemId   String
+  quantity      Decimal  @db.Decimal(10, 2)
+  costSnapshot  Decimal? @db.Decimal(15, 2) // Only for SHIPMENT (COGS)
 
-  shipment       Shipment  @relation(fields: [shipmentId], references: [id])
-  product        Product   @relation(fields: [productId], references: [id])
-  salesOrderItem OrderItem @relation(fields: [salesOrderItemId], references: [id])
+  fulfillment Fulfillment @relation(fields: [fulfillmentId], references: [id])
+  product     Product     @relation(fields: [productId], references: [id])
+  orderItem   OrderItem   @relation(fields: [orderItemId], references: [id])
 }

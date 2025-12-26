@@ -47,6 +47,10 @@ export {
   // Feature 036: Cash Upfront Payment
   PaymentTerms,
   PaymentStatus,
+  // GRN/Shipment Document Status
+  DocumentStatus,
+  // Feature 038: Fulfillment
+  FulfillmentType,
 } from './generated/client/client.js';
 
 export { Prisma } from './generated/client/client.js';
