@@ -14,6 +14,7 @@ import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { RecordPaymentModal } from '@/features/accounting/components/RecordPaymentModal';
 import { PaymentHistoryModal } from '@/features/accounting/components/PaymentHistoryModal';
+import { InvoiceDepositInfo } from '@/features/accounting/components/InvoiceDepositInfo';
 import { BackButton } from '@/components/ui/BackButton';
 import { useState } from 'react';
 import { getInvoiceStatusDisplay } from '@/features/accounting/utils/financeEnums';
@@ -204,6 +205,9 @@ export default function InvoiceDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Cash Upfront: Deposit Info (if applicable) */}
+        <InvoiceDepositInfo invoiceId={invoice.id} />
 
         {/* Actions */}
         <Card>
