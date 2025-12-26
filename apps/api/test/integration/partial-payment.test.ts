@@ -152,4 +152,105 @@ describe('Partial Payment Flow', () => {
       )
     ).rejects.toThrow();
   });
+  describe('Edge Cases', () => {
+    it('should fail to pay negative amount', async () => {
+      const bill = await prisma.invoice.create({
+        data: {
+          companyId: testCompanyId,
+          partnerId: testPartnerId,
+          type: InvoiceType.BILL,
+          status: InvoiceStatus.POSTED,
+          invoiceNumber: `TEST-NEG-${Date.now()}`,
+          amount: 1000,
+          subtotal: 1000,
+          balance: 1000,
+          taxAmount: 0,
+          dueDate: new Date(),
+        },
+      });
+
+      await expect(
+        paymentService.create(testCompanyId, {
+          invoiceId: bill.id,
+          amount: -100,
+          method: PaymentMethod.CASH,
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should fail to pay zero amount', async () => {
+      const bill = await prisma.invoice.create({
+        data: {
+          companyId: testCompanyId,
+          partnerId: testPartnerId,
+          type: InvoiceType.BILL,
+          status: InvoiceStatus.POSTED,
+          invoiceNumber: `TEST-ZERO-${Date.now()}`,
+          amount: 1000,
+          subtotal: 1000,
+          balance: 1000,
+          taxAmount: 0,
+          dueDate: new Date(),
+        },
+      });
+
+      await expect(
+        paymentService.create(testCompanyId, {
+          invoiceId: bill.id,
+          amount: 0,
+          method: PaymentMethod.CASH,
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should fail to pay DRAFT invoice', async () => {
+      const bill = await prisma.invoice.create({
+        data: {
+          companyId: testCompanyId,
+          partnerId: testPartnerId,
+          type: InvoiceType.BILL,
+          status: InvoiceStatus.DRAFT,
+          invoiceNumber: `TEST-DRAFT-${Date.now()}`,
+          amount: 1000,
+          subtotal: 1000,
+          balance: 1000,
+          taxAmount: 0,
+          dueDate: new Date(),
+        },
+      });
+
+      await expect(
+        paymentService.create(testCompanyId, {
+          invoiceId: bill.id,
+          amount: 100,
+          method: PaymentMethod.CASH,
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should fail to pay already PAID invoice', async () => {
+      const bill = await prisma.invoice.create({
+        data: {
+          companyId: testCompanyId,
+          partnerId: testPartnerId,
+          type: InvoiceType.BILL,
+          status: InvoiceStatus.PAID,
+          invoiceNumber: `TEST-PAID-${Date.now()}`,
+          amount: 1000,
+          subtotal: 1000,
+          balance: 0,
+          taxAmount: 0,
+          dueDate: new Date(),
+        },
+      });
+
+      await expect(
+        paymentService.create(testCompanyId, {
+          invoiceId: bill.id,
+          amount: 100,
+          method: PaymentMethod.CASH,
+        })
+      ).rejects.toThrow();
+    });
+  });
 });

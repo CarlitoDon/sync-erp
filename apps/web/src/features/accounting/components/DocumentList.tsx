@@ -122,6 +122,14 @@ export function DocumentList({
   };
 
   const handleVoid = async (id: string) => {
+    // FR-024: Prompt for void reason
+    const reason = window.prompt(
+      `Please enter a reason for voiding this ${entityLabel.toLowerCase()}:`
+    );
+    if (!reason || reason.trim().length === 0) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: `Void ${entityLabel}`,
       message: `Are you sure you want to void this ${entityLabel.toLowerCase()}?`,
@@ -132,8 +140,8 @@ export function DocumentList({
     await apiAction(
       () =>
         isBill
-          ? voidBillMutation.mutateAsync({ id })
-          : voidInvoiceMutation.mutateAsync({ id }),
+          ? voidBillMutation.mutateAsync({ id, reason })
+          : voidInvoiceMutation.mutateAsync({ id, reason }),
       `${entityLabel} voided`
     );
   };
@@ -176,6 +184,7 @@ export function DocumentList({
   }
 
   const filteredDocs = documents.filter(
+    // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'ALL' is a UI filter constant, not a database enum
     (d) => filterStatus === 'ALL' || d.status === filterStatus
   );
 
@@ -344,6 +353,7 @@ export function DocumentList({
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           {invoiceStatusFilterOptions
+            // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'VOID' is a UI filter comparison
             .filter((o) => (isBill ? o.value !== 'VOID' : true))
             .map((opt) => (
               <button
@@ -355,6 +365,7 @@ export function DocumentList({
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
+                {/* eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'ALL' is a UI filter display label */}
                 {opt.value === 'ALL'
                   ? `All ${entityLabel}s`
                   : opt.label}

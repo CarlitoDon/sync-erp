@@ -8,6 +8,8 @@ import {
   AuditLogAction,
   EntityType,
   FulfillmentType,
+  PaymentTerms,
+  PaymentStatus,
 } from '@sync-erp/database';
 import { SalesOrderRepository } from './sales-order.repository';
 import { SalesOrderPolicy } from './sales-order.policy';
@@ -35,6 +37,24 @@ export class SalesOrderService {
   private documentNumberService = new DocumentNumberService();
   private inventoryRepository = new InventoryRepository();
   private journalService = new JournalService();
+
+  /**
+   * Calculate DP amount from percent or return manual amount.
+   * Priority: dpAmount (manual) > dpPercent (calculated)
+   */
+  private calculateDpAmount(
+    totalAmount: number,
+    dpPercent?: number,
+    dpAmount?: number
+  ): number | null {
+    if (dpAmount !== undefined && dpAmount > 0) {
+      return dpAmount;
+    }
+    if (dpPercent !== undefined && dpPercent > 0) {
+      return (totalAmount * dpPercent) / 100;
+    }
+    return null;
+  }
 
   /**
    * Create a new sales order.
@@ -82,7 +102,17 @@ export class SalesOrderService {
       totalAmount,
       taxRate: data.taxRate || 0,
       paymentTerms: paymentTerms,
-      paymentStatus: paymentTerms === 'UPFRONT' ? 'PENDING' : null,
+      paymentStatus:
+        paymentTerms === PaymentTerms.UPFRONT
+          ? PaymentStatus.PENDING
+          : null,
+      // Down Payment: Calculate amounts
+      dpPercent: data.dpPercent ?? null,
+      dpAmount: this.calculateDpAmount(
+        totalAmount,
+        data.dpPercent,
+        data.dpAmount
+      ),
       items: {
         create: data.items.map((item) => ({
           productId: item.productId,

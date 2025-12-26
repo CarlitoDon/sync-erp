@@ -108,13 +108,15 @@ export const PartnerScalarFieldEnumSchema = z.enum(['id','companyId','type','nam
 
 export const ProductScalarFieldEnumSchema = z.enum(['id','companyId','categoryId','sku','name','price','averageCost','stockQty','unitOfMeasure','costingMethod','isService','createdAt','updatedAt']);
 
-export const OrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','type','status','orderNumber','date','totalAmount','taxRate','paymentTerms','paymentStatus','paidAmount','notes','version','createdAt','updatedAt']);
+export const OrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','type','status','orderNumber','date','totalAmount','taxRate','paymentTerms','paymentStatus','paidAmount','dpPercent','dpAmount','notes','version','createdAt','updatedAt']);
 
 export const OrderItemScalarFieldEnumSchema = z.enum(['id','orderId','productId','quantity','price','cost']);
 
 export const InventoryMovementScalarFieldEnumSchema = z.enum(['id','companyId','productId','warehouseId','type','quantity','reference','date','createdAt']);
 
 export const InvoiceScalarFieldEnumSchema = z.enum(['id','companyId','orderId','partnerId','type','status','invoiceNumber','dueDate','amount','subtotal','taxAmount','taxRate','balance','supplierInvoiceNumber','paymentTermsString','notes','version','createdAt','updatedAt','relatedInvoiceId']);
+
+export const InvoiceItemScalarFieldEnumSchema = z.enum(['id','invoiceId','productId','description','quantity','price','amount']);
 
 export const PaymentScalarFieldEnumSchema = z.enum(['id','companyId','invoiceId','orderId','paymentType','settledAt','settlementBillId','amount','date','method','reference','accountId','version','createdAt']);
 
@@ -186,11 +188,11 @@ export const MovementTypeSchema = z.enum(['IN','OUT']);
 
 export type MovementTypeType = `${z.infer<typeof MovementTypeSchema>}`
 
-export const InvoiceTypeSchema = z.enum(['INVOICE','BILL','CREDIT_NOTE']);
+export const InvoiceTypeSchema = z.enum(['INVOICE','BILL','EXPENSE','CREDIT_NOTE']);
 
 export type InvoiceTypeType = `${z.infer<typeof InvoiceTypeSchema>}`
 
-export const InvoiceStatusSchema = z.enum(['DRAFT','POSTED','PAID','VOID']);
+export const InvoiceStatusSchema = z.enum(['DRAFT','POSTED','PARTIALLY_PAID','PAID','VOID']);
 
 export type InvoiceStatusType = `${z.infer<typeof InvoiceStatusSchema>}`
 
@@ -234,7 +236,7 @@ export const IdempotencyStatusSchema = z.enum(['PROCESSING','COMPLETED','FAILED'
 
 export type IdempotencyStatusType = `${z.infer<typeof IdempotencyStatusSchema>}`
 
-export const AuditLogActionSchema = z.enum(['INVOICE_POSTED','BILL_POSTED','PAYMENT_RECORDED','ORDER_CREATED','ORDER_CONFIRMED','ORDER_CANCELLED','GOODS_RECEIVED','SHIPMENT_CREATED','GRN_POSTED','GRN_VOIDED','SHIPMENT_VOIDED','PAYMENT_VOIDED']);
+export const AuditLogActionSchema = z.enum(['INVOICE_POSTED','INVOICE_VOIDED','BILL_POSTED','BILL_VOIDED','PAYMENT_RECORDED','ORDER_CREATED','ORDER_CONFIRMED','ORDER_CANCELLED','GOODS_RECEIVED','SHIPMENT_CREATED','GRN_POSTED','GRN_VOIDED','SHIPMENT_VOIDED','PAYMENT_VOIDED']);
 
 export type AuditLogActionType = `${z.infer<typeof AuditLogActionSchema>}`
 
@@ -368,6 +370,8 @@ export const OrderSchema = z.object({
   totalAmount: z.instanceof(PrismaDecimal, { message: "Field 'totalAmount' must be a Decimal. Location: ['Models', 'Order']"}),
   taxRate: z.instanceof(PrismaDecimal, { message: "Field 'taxRate' must be a Decimal. Location: ['Models', 'Order']"}),
   paidAmount: z.instanceof(PrismaDecimal, { message: "Field 'paidAmount' must be a Decimal. Location: ['Models', 'Order']"}),
+  dpPercent: z.instanceof(PrismaDecimal, { message: "Field 'dpPercent' must be a Decimal. Location: ['Models', 'Order']"}).nullable(),
+  dpAmount: z.instanceof(PrismaDecimal, { message: "Field 'dpAmount' must be a Decimal. Location: ['Models', 'Order']"}).nullable(),
   notes: z.string().nullable(),
   version: z.number(),
   createdAt: z.coerce.date(),
@@ -437,6 +441,22 @@ export const InvoiceSchema = z.object({
 })
 
 export type Invoice = z.infer<typeof InvoiceSchema>
+
+/////////////////////////////////////////
+// INVOICE ITEM SCHEMA
+/////////////////////////////////////////
+
+export const InvoiceItemSchema = z.object({
+  id: z.string(),
+  invoiceId: z.string(),
+  productId: z.string().nullable(),
+  description: z.string().nullable(),
+  quantity: z.number(),
+  price: z.instanceof(PrismaDecimal, { message: "Field 'price' must be a Decimal. Location: ['Models', 'InvoiceItem']"}),
+  amount: z.instanceof(PrismaDecimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'InvoiceItem']"}),
+})
+
+export type InvoiceItem = z.infer<typeof InvoiceItemSchema>
 
 /////////////////////////////////////////
 // PAYMENT SCHEMA

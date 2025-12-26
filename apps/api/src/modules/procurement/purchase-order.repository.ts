@@ -113,6 +113,22 @@ export class PurchaseOrderRepository {
     });
   }
 
+  async update(
+    id: string,
+    data: Prisma.OrderUpdateInput,
+    tx?: Prisma.TransactionClient
+  ): Promise<Order> {
+    const db = tx || prisma;
+    return db.order.update({
+      where: { id },
+      data,
+      include: {
+        items: { include: { product: true } },
+        partner: true,
+      },
+    });
+  }
+
   async count(companyId: string): Promise<number> {
     return prisma.order.count({
       where: { companyId, type: OrderType.PURCHASE },

@@ -19,6 +19,9 @@ import SalesOrderDetail from '@/features/sales/pages/SalesOrderDetail';
 import Invoices from '@/features/accounting/pages/Invoices';
 import InvoiceDetail from '@/features/accounting/pages/InvoiceDetail';
 import AccountsPayable from '@/features/accounting/pages/AccountsPayable';
+import ExpenseList from '@/features/accounting/pages/ExpenseList';
+import ExpenseForm from '@/features/accounting/pages/ExpenseForm';
+import ExpenseDetail from '@/features/accounting/pages/ExpenseDetail';
 import BillDetail from '@/features/accounting/components/BillDetail';
 import PaymentDetail from '@/features/accounting/pages/PaymentDetail';
 
@@ -84,6 +87,9 @@ export function AppRouter() {
           <Route path="quotations" element={<Quotations />} />
           <Route path="invoices" element={<Invoices />} />
           <Route path="invoices/:id" element={<InvoiceDetail />} />
+          <Route path="expenses" element={<ExpenseList />} />
+          <Route path="expenses/new" element={<ExpenseForm />} />
+          <Route path="expenses/:id" element={<ExpenseDetail />} />
           <Route path="bills" element={<AccountsPayable />} />
 
           <Route path="bills/:id" element={<BillDetail />} />

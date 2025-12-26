@@ -55,6 +55,15 @@ export default function InvoiceDetail() {
 
   const handleVoid = async () => {
     if (!invoice) return;
+
+    // FR-024: Prompt for void reason
+    const reason = window.prompt(
+      'Please enter a reason for voiding this invoice:'
+    );
+    if (!reason || reason.trim().length === 0) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: 'Void Invoice',
       message: 'Are you sure you want to void this invoice?',
@@ -63,7 +72,7 @@ export default function InvoiceDetail() {
     });
     if (!confirmed) return;
     await apiAction(
-      () => voidMutation.mutateAsync({ id: invoice.id }),
+      () => voidMutation.mutateAsync({ id: invoice.id, reason }),
       'Invoice voided'
     );
   };
@@ -155,7 +164,7 @@ export default function InvoiceDetail() {
                 <p
                   className={`font-medium ${
                     new Date(invoice.dueDate) < new Date() &&
-                    invoice.status === 'POSTED'
+                    invoice.status === StatusSchema.enum.POSTED
                       ? 'text-red-600'
                       : ''
                   }`}

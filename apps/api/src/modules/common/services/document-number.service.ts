@@ -156,7 +156,7 @@ export class DocumentNumberService {
     const yearEnd = new Date(year + 1, 0, 1);
 
     switch (docType) {
-      case 'SO':
+      case SequenceType.SO:
         return prisma.order.count({
           where: {
             companyId,
@@ -165,7 +165,7 @@ export class DocumentNumberService {
           },
         });
 
-      case 'INV':
+      case SequenceType.INV:
         return prisma.invoice.count({
           where: {
             companyId,
@@ -174,7 +174,7 @@ export class DocumentNumberService {
           },
         });
 
-      case 'CN':
+      case SequenceType.CN:
         return prisma.invoice.count({
           where: {
             companyId,
@@ -183,7 +183,7 @@ export class DocumentNumberService {
           },
         });
 
-      case 'JE':
+      case SequenceType.JE:
         return prisma.journalEntry.count({
           where: {
             companyId,

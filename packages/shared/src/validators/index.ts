@@ -110,6 +110,9 @@ export const CreateOrderSchema = z.object({
 export const CreateSalesOrderSchema = CreateOrderSchema.extend({
   type: z.literal('SALES'),
   paymentTerms: PaymentTermsSchema.optional(), // Cash Upfront Sales: Allow UPFRONT payment terms
+  // Down Payment (optional)
+  dpPercent: z.number().min(0).max(100).optional(), // 0-100%
+  dpAmount: z.number().min(0).optional(), // Manual amount
 });
 
 // Feature 036: Add paymentTerms
@@ -118,6 +121,9 @@ import { PaymentTermsSchema } from '../generated/zod/index.js';
 export const CreatePurchaseOrderSchema = CreateOrderSchema.extend({
   type: z.literal('PURCHASE'),
   paymentTerms: PaymentTermsSchema.optional().default('NET30'),
+  // Down Payment (optional)
+  dpPercent: z.number().min(0).max(100).optional(), // 0-100%
+  dpAmount: z.number().min(0).optional(), // Manual amount
 });
 
 // ============================================

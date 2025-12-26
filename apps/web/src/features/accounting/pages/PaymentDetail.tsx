@@ -36,6 +36,15 @@ export default function PaymentDetail() {
 
   const handleVoid = async () => {
     if (!payment) return;
+
+    // FR-024: Prompt for void reason
+    const reason = window.prompt(
+      'Please enter a reason for voiding this payment:'
+    );
+    if (!reason || reason.trim().length === 0) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: 'Void Payment',
       message:
@@ -45,7 +54,7 @@ export default function PaymentDetail() {
     });
     if (!confirmed) return;
     await apiAction(
-      () => voidMutation.mutateAsync({ id: payment.id }),
+      () => voidMutation.mutateAsync({ id: payment.id, reason }),
       'Payment voided'
     );
   };
@@ -72,6 +81,7 @@ export default function PaymentDetail() {
   const invoice = payment.invoice;
 
   const isVoided = payment.reference?.startsWith('[VOIDED]');
+  // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- InvoiceType comparison uses type from DB, but this is display logic
   const isBill = invoice?.type === 'BILL';
   const documentLabel = isBill ? 'Bill' : 'Invoice';
   const documentPath = isBill ? 'bills' : 'invoices';
@@ -99,6 +109,7 @@ export default function PaymentDetail() {
               : 'bg-green-100 text-green-800'
           }`}
         >
+          {/* eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI display labels, not database enum values */}
           {isVoided ? 'VOIDED' : 'COMPLETED'}
         </span>
       </div>
