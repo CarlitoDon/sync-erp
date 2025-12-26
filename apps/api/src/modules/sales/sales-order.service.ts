@@ -7,6 +7,7 @@ import {
   prisma,
   AuditLogAction,
   EntityType,
+  FulfillmentType,
 } from '@sync-erp/database';
 import { SalesOrderRepository } from './sales-order.repository';
 import { SalesOrderPolicy } from './sales-order.policy';
@@ -68,6 +69,9 @@ export class SalesOrderService {
     const taxAmount = (subtotal * taxRate) / 100;
     const totalAmount = subtotal + taxAmount;
 
+    // Payment terms handling (Cash Upfront Sales)
+    const paymentTerms = data.paymentTerms;
+
     // Prepare create data
     const createData: Prisma.OrderUncheckedCreateInput = {
       companyId,
@@ -77,6 +81,8 @@ export class SalesOrderService {
       orderNumber,
       totalAmount,
       taxRate: data.taxRate || 0,
+      paymentTerms: paymentTerms,
+      paymentStatus: paymentTerms === 'UPFRONT' ? 'PENDING' : null,
       items: {
         create: data.items.map((item) => ({
           productId: item.productId,
@@ -245,12 +251,13 @@ export class SalesOrderService {
           }
         }
 
-        // 4. Create Shipment document
-        const shipment =
-          await this.inventoryRepository.createShipment(
+        // 4. Create Fulfillment document (Shipment type)
+        const fulfillment =
+          await this.inventoryRepository.createFulfillment(
             {
               companyId,
-              salesOrderId: orderId,
+              orderId,
+              type: FulfillmentType.SHIPMENT,
               date: new Date(),
               notes:
                 reference ||
@@ -258,16 +265,16 @@ export class SalesOrderService {
               items: order.items.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
-                salesOrderItemId: item.id,
+                orderItemId: item.id,
               })),
             },
             tx
           );
 
-        // 5. Post Shipment (Stock OUT + COGS Snapshot + Status Update)
-        const postedShipment =
-          await this.inventoryRepository.postShipment(
-            shipment.id,
+        // 5. Post Fulfillment (Stock OUT + COGS Snapshot + Status Update)
+        const postedFulfillment =
+          await this.inventoryRepository.postFulfillment(
+            fulfillment.id,
             companyId,
             tx
           );
@@ -277,7 +284,7 @@ export class SalesOrderService {
 
         // 6. Calculate COGS for Journal
         let totalCogs = 0;
-        for (const item of postedShipment.items) {
+        for (const item of postedFulfillment.items) {
           const cost = Number(
             item.costSnapshot || item.product.averageCost || 0
           );
@@ -288,7 +295,7 @@ export class SalesOrderService {
         if (totalCogs > 0) {
           await this.journalService.postShipment(
             companyId,
-            `SHP:${postedShipment.number}`,
+            `SHP:${postedFulfillment.number}`,
             totalCogs,
             tx
           );
@@ -332,10 +339,11 @@ export class SalesOrderService {
       );
     }
 
-    // Count existing Shipments for this SO
-    const shipmentCount = await this.repository.countShipments(id);
+    // Count existing Fulfillments (Shipments) for this SO
+    const fulfillmentCount =
+      await this.repository.countFulfillments(id);
 
-    SalesOrderPolicy.validateCancel(order.status, shipmentCount);
+    SalesOrderPolicy.validateCancel(order.status, fulfillmentCount);
 
     const updated = await this.repository.updateStatus(
       id,
