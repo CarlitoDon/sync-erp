@@ -93,10 +93,10 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
       prisma.inventoryMovement.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
-      prisma.shipmentItem.deleteMany({
-        where: { shipment: { companyId: COMPANY_ID } },
+      prisma.fulfillmentItem.deleteMany({
+        where: { fulfillment: { companyId: COMPANY_ID } },
       }),
-      prisma.shipment.deleteMany({
+      prisma.fulfillment.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
       prisma.orderItem.deleteMany({
@@ -142,9 +142,7 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
     // Get the created shipment
     const shipments =
       await inventoryService.listShipments(COMPANY_ID);
-    const shipment = shipments.find(
-      (s) => s.salesOrderId === orderId
-    );
+    const shipment = shipments.find((s) => s.orderId === orderId);
     expect(shipment).toBeDefined();
     expect(shipment?.status).toBe('POSTED');
     shipmentId = shipment!.id;

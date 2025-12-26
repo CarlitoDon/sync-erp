@@ -114,16 +114,10 @@ describe('Feature 036: Canonical P2P Cash Upfront Flow', () => {
       prisma.inventoryMovement.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
-      prisma.goodsReceiptItem.deleteMany({
-        where: { goodsReceipt: { companyId: COMPANY_ID } },
+      prisma.fulfillmentItem.deleteMany({
+        where: { fulfillment: { companyId: COMPANY_ID } },
       }),
-      prisma.goodsReceipt.deleteMany({
-        where: { companyId: COMPANY_ID },
-      }),
-      prisma.shipmentItem.deleteMany({
-        where: { shipment: { companyId: COMPANY_ID } },
-      }),
-      prisma.shipment.deleteMany({
+      prisma.fulfillment.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
       prisma.orderItem.deleteMany({

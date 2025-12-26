@@ -100,16 +100,10 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     const deleteInvMov = prisma.inventoryMovement.deleteMany({
       where: { companyId: COMPANY_ID },
     });
-    const deleteShipmentItems = prisma.shipmentItem.deleteMany({
-      where: { shipment: { companyId: COMPANY_ID } },
+    const deleteFulfillmentItems = prisma.fulfillmentItem.deleteMany({
+      where: { fulfillment: { companyId: COMPANY_ID } },
     });
-    const deleteShipments = prisma.shipment.deleteMany({
-      where: { companyId: COMPANY_ID },
-    });
-    const deleteGrnItems = prisma.goodsReceiptItem.deleteMany({
-      where: { goodsReceipt: { companyId: COMPANY_ID } },
-    });
-    const deleteGrns = prisma.goodsReceipt.deleteMany({
+    const deleteFulfillments = prisma.fulfillment.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     const deleteInvoice = prisma.invoice.deleteMany({
@@ -137,10 +131,8 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     await prisma.$transaction([
       deleteJournal,
       deleteInvMov,
-      deleteShipmentItems,
-      deleteShipments,
-      deleteGrnItems,
-      deleteGrns,
+      deleteFulfillmentItems,
+      deleteFulfillments,
       deleteInvoice,
       deleteItems,
       deleteOrders,

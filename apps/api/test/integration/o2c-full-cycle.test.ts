@@ -102,17 +102,11 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       prisma.inventoryMovement.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
-      // Delete Shipments first
-      prisma.shipmentItem.deleteMany({
-        where: { shipment: { companyId: COMPANY_ID } },
+      // Delete Fulfillments first
+      prisma.fulfillmentItem.deleteMany({
+        where: { fulfillment: { companyId: COMPANY_ID } },
       }),
-      prisma.shipment.deleteMany({
-        where: { companyId: COMPANY_ID },
-      }),
-      prisma.goodsReceiptItem.deleteMany({
-        where: { goodsReceipt: { companyId: COMPANY_ID } },
-      }),
-      prisma.goodsReceipt.deleteMany({
+      prisma.fulfillment.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
       prisma.orderItem.deleteMany({

@@ -107,16 +107,10 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       prisma.inventoryMovement.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
-      prisma.goodsReceiptItem.deleteMany({
-        where: { goodsReceipt: { companyId: COMPANY_ID } },
+      prisma.fulfillmentItem.deleteMany({
+        where: { fulfillment: { companyId: COMPANY_ID } },
       }),
-      prisma.goodsReceipt.deleteMany({
-        where: { companyId: COMPANY_ID },
-      }),
-      prisma.shipmentItem.deleteMany({
-        where: { shipment: { companyId: COMPANY_ID } },
-      }),
-      prisma.shipment.deleteMany({
+      prisma.fulfillment.deleteMany({
         where: { companyId: COMPANY_ID },
       }),
       prisma.orderItem.deleteMany({
@@ -386,7 +380,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       });
 
       expect(grn).toBeDefined();
-      expect(grn.purchaseOrderId).toBe(order.id);
+      expect(grn.orderId).toBe(order.id);
 
       // 3. Post GRN and Verify Journal
       const postedGrn = await inventoryService.postGRN(
@@ -696,16 +690,10 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
         prisma.inventoryMovement.deleteMany({
           where: { companyId: COMPANY_ID_E2E },
         }),
-        prisma.goodsReceiptItem.deleteMany({
-          where: { goodsReceipt: { companyId: COMPANY_ID_E2E } },
+        prisma.fulfillmentItem.deleteMany({
+          where: { fulfillment: { companyId: COMPANY_ID_E2E } },
         }),
-        prisma.goodsReceipt.deleteMany({
-          where: { companyId: COMPANY_ID_E2E },
-        }),
-        prisma.shipmentItem.deleteMany({
-          where: { shipment: { companyId: COMPANY_ID_E2E } },
-        }),
-        prisma.shipment.deleteMany({
+        prisma.fulfillment.deleteMany({
           where: { companyId: COMPANY_ID_E2E },
         }),
         prisma.orderItem.deleteMany({

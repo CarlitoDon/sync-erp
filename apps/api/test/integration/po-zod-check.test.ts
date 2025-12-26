@@ -98,6 +98,6 @@ describe('Purchase Order Zod Integration', () => {
     expect(po.orderNumber).toContain('PO');
     expect(po.paymentTerms).toBe('NET30');
     expect(po.status).toBe(OrderStatus.DRAFT);
-    expect(po.totalAmount).toBe(550); // 5 * 100 + 10% tax
+    expect(Number(po.totalAmount)).toBe(550); // 5 * 100 + 10% tax
   });
 });
