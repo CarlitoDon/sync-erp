@@ -50,6 +50,14 @@ export function PaymentHistoryList({
   };
 
   const handleVoidPayment = async (paymentId: string) => {
+    // FR-024: Prompt for void reason
+    const reason = window.prompt(
+      'Please enter a reason for voiding this payment:'
+    );
+    if (!reason || reason.trim().length === 0) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: 'Void Payment',
       message:
@@ -60,7 +68,7 @@ export function PaymentHistoryList({
 
     if (confirmed) {
       try {
-        await voidMutation.mutateAsync({ id: paymentId });
+        await voidMutation.mutateAsync({ id: paymentId, reason });
       } catch (error) {
         console.error('Failed to void payment:', error);
       }

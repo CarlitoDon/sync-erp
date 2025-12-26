@@ -47,10 +47,14 @@ export class PaymentPolicy {
       'IDR';
     Money.from(0, currency).ensureBase();
 
-    // State Guard: Invoice must be POSTED
-    if (invoice.status !== InvoiceStatus.POSTED) {
+    // State Guard: Invoice must be POSTED or PARTIALLY_PAID (FR-016)
+    const payableStatuses: InvoiceStatus[] = [
+      InvoiceStatus.POSTED,
+      InvoiceStatus.PARTIALLY_PAID,
+    ];
+    if (!payableStatuses.includes(invoice.status)) {
       throw new DomainError(
-        `Cannot record payment: Invoice status is ${invoice.status}, must be POSTED`,
+        `Cannot record payment: Invoice status is ${invoice.status}, must be POSTED or PARTIALLY_PAID`,
         400,
         DomainErrorCodes.INVOICE_INVALID_STATE
       );

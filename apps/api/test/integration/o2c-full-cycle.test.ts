@@ -226,7 +226,7 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
     });
   });
 
-  describe('FR-012: Invoice Balance Invariant', () => {
+  describe('Edge Cases', () => {
     it('should prevent shipping unconfirmed order', async () => {
       const so = await salesOrderService.create(COMPANY_ID, {
         partnerId,
@@ -273,6 +273,54 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
           method: 'CASH' as const,
         })
       ).rejects.toThrow(/exceeds/i);
+    });
+
+    it('Should fail to confirm an already confirmed SO', async () => {
+      const order = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        type: 'SALES',
+        items: [{ productId, quantity: 1, price: 100 }],
+      });
+      await salesOrderService.confirm(order.id, COMPANY_ID);
+
+      await expect(
+        salesOrderService.confirm(order.id, COMPANY_ID)
+      ).rejects.toThrow();
+    });
+
+    it('Should fail to post an already posted Invoice', async () => {
+      const order = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        type: 'SALES',
+        items: [{ productId, quantity: 1, price: 100 }],
+      });
+      await salesOrderService.confirm(order.id, COMPANY_ID);
+      const invoice = await invoiceService.createFromSalesOrder(
+        COMPANY_ID,
+        { orderId: order.id }
+      );
+
+      await invoiceService.post(
+        invoice.id,
+        COMPANY_ID,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        ACTOR_ID
+      );
+
+      await expect(
+        invoiceService.post(
+          invoice.id,
+          COMPANY_ID,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          ACTOR_ID
+        )
+      ).rejects.toThrow();
     });
   });
 });

@@ -3,6 +3,7 @@ import {
   prisma,
   OrderStatus,
   InvoiceStatus,
+  JournalSourceType,
 } from '@sync-erp/database';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
@@ -195,7 +196,9 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
       // Step 5: Verify Journal entries (FR-011)
       const journals = await journalService.list(COMPANY_ID);
       const billJournal = journals.find(
-        (j: any) => j.sourceType === 'BILL' && j.sourceId === billId
+        (j: any) =>
+          j.sourceType === JournalSourceType.BILL &&
+          j.sourceId === billId
       ) as any;
       expect(billJournal).toBeDefined();
 
@@ -211,7 +214,7 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
     });
   });
 
-  describe('FR-001: Bill Creation Prerequisites', () => {
+  describe('Edge Cases', () => {
     it('Should fail to create Bill without GRN', async () => {
       // Create another PO without receiving goods
       const order2 = await procurementService.create(COMPANY_ID, {
@@ -232,6 +235,64 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
           orderId: order2.id,
         })
       ).rejects.toThrow(/goods.*received/i);
+    });
+
+    it('Should fail to confirm an already confirmed PO', async () => {
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        type: 'PURCHASE',
+        items: [{ productId, quantity: 1, price: 100 }],
+        paymentTerms: 'NET30',
+      });
+
+      await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        ACTOR_ID
+      );
+
+      // Try to confirm again
+      await expect(
+        procurementService.confirm(order.id, COMPANY_ID, ACTOR_ID)
+      ).rejects.toThrow();
+    });
+
+    it('Should fail to post an already posted Bill', async () => {
+      // Setup PO -> GRN -> Bill
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        type: 'PURCHASE',
+        items: [{ productId, quantity: 1, price: 100 }],
+        paymentTerms: 'NET30',
+      });
+      await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        ACTOR_ID
+      );
+      const grn = await inventoryService.createGRN(COMPANY_ID, {
+        purchaseOrderId: order.id,
+        items: [{ productId, quantity: 1 }],
+      });
+      await inventoryService.postGRN(COMPANY_ID, grn.id);
+
+      const bill = await billService.createFromPurchaseOrder(
+        COMPANY_ID,
+        { orderId: order.id }
+      );
+
+      // Post once
+      await billService.post(
+        bill.id,
+        COMPANY_ID,
+        undefined,
+        ACTOR_ID
+      );
+
+      // Post again
+      await expect(
+        billService.post(bill.id, COMPANY_ID, undefined, ACTOR_ID)
+      ).rejects.toThrow();
     });
   });
 });

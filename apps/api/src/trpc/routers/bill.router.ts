@@ -46,12 +46,22 @@ export const billRouter = router({
     }),
 
   /**
-   * Void bill
+   * Void bill (FR-024: requires reason)
    */
   void: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Void reason is required'),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
-      return billService.void(input.id, ctx.companyId);
+      return billService.void(
+        input.id,
+        ctx.companyId,
+        ctx.userId,
+        input.reason
+      );
     }),
 });
 

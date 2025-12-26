@@ -94,7 +94,7 @@ export function useBill(options: UseBillOptions = {}) {
     [currentCompany?.id, confirm, postBillMutation]
   );
 
-  // Void bill
+  // Void bill (FR-024: requires reason)
   const voidBillMutation = trpc.bill.void.useMutation({
     onSuccess: () => {
       loadData();
@@ -102,8 +102,16 @@ export function useBill(options: UseBillOptions = {}) {
   });
 
   const voidBill = useCallback(
-    async (id: string) => {
+    async (id: string, reason?: string) => {
       if (!currentCompany?.id) return;
+
+      // If no reason provided, prompt for one
+      const voidReason =
+        reason ||
+        window.prompt('Please enter a reason for voiding this bill:');
+      if (!voidReason || voidReason.trim().length === 0) {
+        return; // User cancelled
+      }
 
       const confirmed = await confirm({
         title: 'Void Bill',
@@ -116,7 +124,8 @@ export function useBill(options: UseBillOptions = {}) {
       if (!confirmed) return;
 
       const result = await apiAction(
-        async () => voidBillMutation.mutateAsync({ id }),
+        async () =>
+          voidBillMutation.mutateAsync({ id, reason: voidReason }),
         'Bill voided successfully!'
       );
 

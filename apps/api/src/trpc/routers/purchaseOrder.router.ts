@@ -39,6 +39,19 @@ export const purchaseOrderRouter = router({
     }),
 
   /**
+   * Update purchase order
+   */
+  update: protectedProcedure
+    .input(z.object({ id: z.string(), data: z.any() }))
+    .mutation(async ({ input, ctx }) => {
+      return purchaseOrderService.update(
+        input.id,
+        ctx.companyId,
+        input.data
+      );
+    }),
+
+  /**
    * Confirm purchase order
    */
   confirm: protectedProcedure
@@ -77,6 +90,27 @@ export const purchaseOrderRouter = router({
         );
       // Convert Map to array of [productId, quantity] for JSON serialization
       return Array.from(receivedMap.entries());
+    }),
+
+  /**
+   * Close PO explicitly (Gap 6)
+   * Transitions PO to RECEIVED status even if partially received.
+   * Requires reason for audit trail.
+   */
+  close: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Close reason is required'),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return purchaseOrderService.close(
+        input.id,
+        ctx.companyId,
+        ctx.userId,
+        input.reason
+      );
     }),
 });
 

@@ -8,6 +8,7 @@ import { useConfirm } from '@/components/ui/ConfirmModal';
 import { BackButton } from '@/components/ui/BackButton';
 import CreateInvoiceModal from '@/features/accounting/components/CreateInvoiceModal';
 import { PageContainer } from '@/components/layout/PageLayout';
+import { DocumentStatusSchema } from '@sync-erp/shared';
 import {
   Card,
   CardHeader,
@@ -63,6 +64,14 @@ export default function ShipmentDetail() {
   const handleVoid = async () => {
     if (!shipment) return;
 
+    // FR-024: Prompt for void reason
+    const reason = window.prompt(
+      'Please enter a reason for voiding this shipment:'
+    );
+    if (!reason || reason.trim().length === 0) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: 'Void Shipment',
       message:
@@ -73,7 +82,7 @@ export default function ShipmentDetail() {
 
     if (confirmed) {
       try {
-        await voidMutation.mutateAsync({ id: shipment.id });
+        await voidMutation.mutateAsync({ id: shipment.id, reason });
       } catch (error) {
         console.error('Failed to void Shipment:', error);
       }
@@ -150,7 +159,7 @@ export default function ShipmentDetail() {
         </div>
 
         <div className="flex gap-2">
-          {shipment.status === 'DRAFT' && (
+          {shipment.status === DocumentStatusSchema.enum.DRAFT && (
             <Button
               onClick={handlePost}
               disabled={postMutation.isPending}
@@ -158,7 +167,7 @@ export default function ShipmentDetail() {
               Post Shipment
             </Button>
           )}
-          {shipment.status === 'POSTED' && (
+          {shipment.status === DocumentStatusSchema.enum.POSTED && (
             <>
               <Button onClick={handleCreateInvoice} variant="outline">
                 Create Invoice

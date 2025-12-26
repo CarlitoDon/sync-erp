@@ -46,12 +46,22 @@ export const invoiceRouter = router({
     }),
 
   /**
-   * Void invoice
+   * Void invoice (FR-024: requires reason)
    */
   void: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Void reason is required'),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
-      return invoiceService.void(input.id, ctx.companyId);
+      return invoiceService.void(
+        input.id,
+        ctx.companyId,
+        ctx.userId,
+        input.reason
+      );
     }),
 });
 

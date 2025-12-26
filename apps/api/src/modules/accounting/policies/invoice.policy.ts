@@ -48,11 +48,29 @@ export class InvoicePolicy {
   }
 
   /**
+   * Validate invoice can be posted (must be DRAFT)
+   */
+  static validatePost(status: string): void {
+    if (status !== InvoiceStatus.DRAFT) {
+      throw new DomainError(
+        `Cannot post invoice with status ${status}`,
+        422,
+        DomainErrorCodes.INVOICE_INVALID_STATE
+      );
+    }
+  }
+
+  /**
    * Ensure the Sales Order is in a valid state for Invoice creation.
-   * SO must be CONFIRMED, SHIPPED, or COMPLETED.
+   * SO must be CONFIRMED, PARTIALLY_SHIPPED, SHIPPED, or COMPLETED.
    */
   static ensureOrderReadyForInvoice(order: { status: string }): void {
-    const validStatuses = ['CONFIRMED', 'SHIPPED', 'COMPLETED'];
+    const validStatuses = [
+      'CONFIRMED',
+      'PARTIALLY_SHIPPED',
+      'SHIPPED',
+      'COMPLETED',
+    ];
     if (!validStatuses.includes(order.status)) {
       throw new DomainError(
         `Cannot create invoice: SO status is ${order.status}, must be CONFIRMED or later`,

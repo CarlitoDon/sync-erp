@@ -261,4 +261,59 @@ describe('Cash Upfront Sales: Customer Deposits', () => {
       expect(summary.payments).toHaveLength(1);
     });
   });
+  describe('Edge Cases', () => {
+    it('Should fail to register deposit for non-UPFRONT order', async () => {
+      const order = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 1, price: 100 }],
+        type: 'SALES',
+        paymentTerms: 'NET30', // Not UPFRONT
+      });
+      await salesOrderService.confirm(order.id, COMPANY_ID, ACTOR_ID);
+
+      await expect(
+        customerDepositService.registerDeposit(
+          COMPANY_ID,
+          { orderId: order.id, amount: 100, method: 'CASH' },
+          ACTOR_ID
+        )
+      ).rejects.toThrow();
+    });
+
+    it('Should fail to register deposit for unconfirmed order', async () => {
+      const order = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 1, price: 100 }],
+        type: 'SALES',
+        paymentTerms: 'UPFRONT',
+      });
+      // Not confirmed
+
+      await expect(
+        customerDepositService.registerDeposit(
+          COMPANY_ID,
+          { orderId: order.id, amount: 100, method: 'CASH' },
+          ACTOR_ID
+        )
+      ).rejects.toThrow();
+    });
+
+    it('Should fail to register negative deposit', async () => {
+      const order = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 1, price: 100 }],
+        type: 'SALES',
+        paymentTerms: 'UPFRONT',
+      });
+      await salesOrderService.confirm(order.id, COMPANY_ID, ACTOR_ID);
+
+      await expect(
+        customerDepositService.registerDeposit(
+          COMPANY_ID,
+          { orderId: order.id, amount: -100, method: 'CASH' },
+          ACTOR_ID
+        )
+      ).rejects.toThrow();
+    });
+  });
 });

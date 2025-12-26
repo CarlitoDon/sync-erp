@@ -43,17 +43,20 @@ export class PaymentRepository {
   /**
    * Void a payment: mark as voided and restore invoice balance
    * This is a transactional operation to ensure consistency.
+   * FR-024: Optional reason for void operation
    */
   async voidPayment(
     id: string,
     invoiceId: string,
     amount: number,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    reason?: string
   ): Promise<Payment> {
     const execute = async (db: Prisma.TransactionClient) => {
       // 1. Get current reference to prepend [VOIDED]
       const current = await db.payment.findUnique({ where: { id } });
-      const voidedRef = `[VOIDED] ${current?.reference || 'Payment'}`;
+      const reasonSuffix = reason ? ` | Reason: ${reason}` : '';
+      const voidedRef = `[VOIDED] ${current?.reference || 'Payment'}${reasonSuffix}`;
 
       // 2. Mark payment as voided by updating reference
       const updated = await db.payment.update({

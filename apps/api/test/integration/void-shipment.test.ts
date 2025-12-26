@@ -148,7 +148,11 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
     shipmentId = shipment!.id;
 
     // 3. Void Shipment
-    await inventoryService.voidShipment(COMPANY_ID, shipmentId);
+    await inventoryService.voidShipment(
+      COMPANY_ID,
+      shipmentId,
+      'Test void reason'
+    );
 
     // 4. Verify Rollback
 
@@ -169,5 +173,47 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
       shipmentId
     );
     expect(voidedShipment?.status).toBe('VOIDED');
+  });
+  describe('Edge Cases', () => {
+    it('Should fail to void non-existent shipment', async () => {
+      await expect(
+        inventoryService.voidShipment(
+          COMPANY_ID,
+          '00000000-0000-0000-0000-000000000000',
+          'Test reason'
+        )
+      ).rejects.toThrow();
+    });
+
+    it('Should fail to void an already VOIDED shipment', async () => {
+      // Setup SO -> Ship -> Void
+      const order = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        items: [{ productId, quantity: 1, price: 100000 }],
+        type: 'SALES',
+      });
+      await salesOrderService.confirm(order.id, COMPANY_ID);
+      await salesOrderService.ship(COMPANY_ID, order.id);
+      const shipments =
+        await inventoryService.listShipments(COMPANY_ID);
+      const shipment = shipments.find((s) => s.orderId === order.id);
+
+      // Void once
+      await inventoryService.voidShipment(
+        COMPANY_ID,
+        shipment!.id,
+        'First void reason'
+      );
+
+      // Void again
+      await expect(
+        inventoryService.voidShipment(
+          COMPANY_ID,
+          shipment!.id,
+          'Second void reason'
+        )
+      ).rejects.toThrow('Cannot void fulfillment');
+      // Note: Exact message depends on implementation, but it should fail
+    });
   });
 });

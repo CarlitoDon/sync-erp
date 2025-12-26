@@ -3,6 +3,7 @@ import {
   InvoiceStatus,
   InvoiceType,
   OrderType,
+  OrderStatus,
   Prisma,
   BusinessShape,
   IdempotencyScope,
@@ -125,9 +126,15 @@ export class InvoiceService {
 
   async list(companyId: string, status?: string) {
     // Validate status if provided - only allow valid InvoiceStatus values
-    const validStatuses = ['DRAFT', 'POSTED', 'PAID', 'VOID'];
+    const validStatuses: InvoiceStatus[] = [
+      InvoiceStatus.DRAFT,
+      InvoiceStatus.POSTED,
+      InvoiceStatus.PARTIALLY_PAID,
+      InvoiceStatus.PAID,
+      InvoiceStatus.VOID,
+    ];
     const validatedStatus =
-      status && validStatuses.includes(status)
+      status && validStatuses.includes(status as InvoiceStatus)
         ? (status as InvoiceStatus)
         : undefined;
 
@@ -136,6 +143,94 @@ export class InvoiceService {
       InvoiceType.INVOICE,
       validatedStatus
     );
+  }
+
+  /**
+   * Create a Down Payment Invoice for UPFRONT Payment Terms.
+   * Called automatically when confirming a SO with UPFRONT terms.
+   * NOTE: This is for proforma invoice / deposit before delivery.
+   */
+  async createDownPaymentInvoice(
+    companyId: string,
+    orderId: string
+  ): Promise<Invoice> {
+    const order = await this.repository.findOrder(
+      orderId,
+      companyId,
+      OrderType.SALES
+    );
+
+    if (!order) {
+      throw new DomainError(
+        'Sales order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+
+    // Must be CONFIRMED for DP Invoice
+    if (order.status !== OrderStatus.CONFIRMED) {
+      throw new DomainError(
+        `Cannot create DP Invoice: SO status is ${order.status}, must be CONFIRMED`,
+        400,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    // Must be UPFRONT terms
+    if (order.paymentTerms !== PaymentTerms.UPFRONT) {
+      throw new DomainError(
+        'DP Invoice can only be created for UPFRONT payment terms',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    // Check if DP Invoice already exists for this SO
+    const existingInvoice = await this.repository.findByOrderId(
+      orderId,
+      companyId,
+      InvoiceType.INVOICE
+    );
+    if (existingInvoice) {
+      // Already exists, return it (idempotent)
+      return existingInvoice;
+    }
+
+    // Generate invoice number
+    const invoiceNumber = await this.documentNumberService.generate(
+      companyId,
+      'INV'
+    );
+
+    // Calculate subtotal from items (Net)
+    const subtotal = order.items.reduce(
+      (sum, item) => sum + Number(item.price) * item.quantity,
+      0
+    );
+
+    const taxRate = order.taxRate ? Number(order.taxRate) : 0;
+    const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
+    const taxAmount = subtotal * taxMultiplier;
+    const amount = subtotal + taxAmount;
+
+    const createData: Prisma.InvoiceUncheckedCreateInput = {
+      companyId,
+      orderId,
+      partnerId: order.partnerId,
+      type: InvoiceType.INVOICE,
+      status: InvoiceStatus.DRAFT,
+      invoiceNumber,
+      notes: `Down Payment Invoice for SO ${order.orderNumber || orderId}`,
+      amount,
+      subtotal,
+      taxAmount,
+      taxRate,
+      balance: amount,
+      dueDate: new Date(), // Immediate payment required for UPFRONT
+    };
+
+    return this.repository.create(createData);
   }
 
   async createCreditNote(
@@ -419,8 +514,34 @@ export class InvoiceService {
   /**
    * Void an Invoice atomically using Prisma transaction.
    * Policy: Cannot void if payments exist. If POSTED, reverse AR journal.
+   * FR-024: Requires mandatory reason field for audit trail.
    */
-  async void(id: string, companyId: string): Promise<Invoice> {
+  async void(
+    id: string,
+    companyId: string,
+    actorId: string,
+    reason: string
+  ): Promise<Invoice> {
+    // FR-024: Reason is mandatory
+    if (!reason || reason.trim().length === 0) {
+      throw new DomainError(
+        'Void reason is required',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    // FR-010.1: Record Audit Log with void reason
+    await auditLogService.recordAudit({
+      companyId,
+      actorId,
+      action: AuditLogAction.INVOICE_VOIDED,
+      entityType: EntityType.INVOICE,
+      entityId: id,
+      businessDate: new Date(),
+      payloadSnapshot: { reason },
+    });
+
     return prisma.$transaction(
       async (tx) => {
         // 1. Lock row for concurrency safety

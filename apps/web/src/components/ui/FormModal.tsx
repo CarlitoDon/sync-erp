@@ -64,8 +64,8 @@ export default function FormModal({
               {title}
             </h3>
 
-            {/* Content area - no overflow clipping to allow dropdowns to escape */}
-            <div className="max-h-[70vh] overflow-visible">
+            {/* Content area - scrollable when content exceeds max height */}
+            <div className="max-h-[70vh] overflow-y-auto">
               {children}
             </div>
           </div>

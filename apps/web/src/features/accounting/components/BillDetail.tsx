@@ -56,6 +56,15 @@ export default function BillDetail() {
 
   const handleVoid = async () => {
     if (!bill) return;
+
+    // FR-024: Prompt for void reason
+    const reason = window.prompt(
+      'Please enter a reason for voiding this bill:'
+    );
+    if (!reason || reason.trim().length === 0) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: 'Void Bill',
       message: 'Are you sure you want to void this bill?',
@@ -64,7 +73,7 @@ export default function BillDetail() {
     });
     if (!confirmed) return;
     await apiAction(
-      () => voidMutation.mutateAsync({ id: bill.id }),
+      () => voidMutation.mutateAsync({ id: bill.id, reason }),
       'Bill voided'
     );
   };
@@ -162,7 +171,7 @@ export default function BillDetail() {
                 <p
                   className={`font-medium ${
                     new Date(bill.dueDate) < new Date() &&
-                    bill.status === 'POSTED'
+                    bill.status === StatusSchema.enum.POSTED
                       ? 'text-red-600'
                       : ''
                   }`}

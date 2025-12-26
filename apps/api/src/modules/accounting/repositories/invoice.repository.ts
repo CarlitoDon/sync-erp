@@ -17,6 +17,7 @@ export class InvoiceRepository {
       include: {
         order: { include: { items: { include: { product: true } } } },
         partner: true,
+        items: { include: { product: true } },
       },
     });
   }
@@ -38,6 +39,7 @@ export class InvoiceRepository {
         order: { include: { items: { include: { product: true } } } },
         partner: true,
         payments: true,
+        items: { include: { product: true } },
       },
     });
   }
@@ -59,6 +61,7 @@ export class InvoiceRepository {
         partner: true,
         payments: true,
         order: true,
+        items: { include: { product: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -77,6 +80,7 @@ export class InvoiceRepository {
         partner: true,
         payments: true,
         order: true,
+        items: { include: { product: true } },
       },
     });
   }
@@ -120,6 +124,27 @@ export class InvoiceRepository {
         companyId,
         ...(type && { type }),
       },
+      include: {
+        partner: true,
+        order: true,
+      },
+    });
+  }
+
+  // Generic findFirst for flexible queries
+  async findFirst(
+    where: {
+      orderId?: string;
+      companyId?: string;
+      type?: InvoiceType;
+      status?: InvoiceStatus;
+      notes?: { contains: string };
+    },
+    tx?: Prisma.TransactionClient
+  ): Promise<Invoice | null> {
+    const db = tx || prisma;
+    return db.invoice.findFirst({
+      where,
       include: {
         partner: true,
         order: true,
@@ -172,6 +197,27 @@ export class InvoiceRepository {
     return db.payment.count({
       where: {
         invoiceId,
+      },
+    });
+  }
+
+  /**
+   * FR-013: Find Bill by supplier invoice number for duplicate check.
+   * Checks for duplicates per supplier (partnerId).
+   */
+  async findBySupplierInvoiceNumber(
+    companyId: string,
+    partnerId: string,
+    supplierInvoiceNumber: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<Invoice | null> {
+    const db = tx || prisma;
+    return db.invoice.findFirst({
+      where: {
+        companyId,
+        partnerId,
+        supplierInvoiceNumber,
+        type: InvoiceType.BILL,
       },
     });
   }

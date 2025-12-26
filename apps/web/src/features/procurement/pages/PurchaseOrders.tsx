@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import {
-  type PaymentTerms,
-  PaymentTermsSchema,
-} from '@sync-erp/shared';
+import { type PaymentTerms } from '@sync-erp/shared';
 import ActionButton from '@/components/ui/ActionButton';
 import Select from '@/components/ui/Select';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -15,6 +12,7 @@ import {
   PageContainer,
   PageHeader,
 } from '@/components/layout/PageLayout';
+import PaymentModeSelector from '@/components/forms/PaymentModeSelector';
 
 interface OrderItemForm {
   productId: string;
@@ -47,7 +45,16 @@ export default function PurchaseOrders() {
     partnerId: '',
     items: [] as OrderItemForm[],
     taxRate: 0,
-    paymentTerms: 'NET30', // Feature 036
+  });
+
+  // Payment mode state
+  const [paymentConfig, setPaymentConfig] = useState({
+    // eslint-disable-next-line @sync-erp/no-hardcoded-enum
+    mode: 'TEMPO' as 'TEMPO' | 'UPFRONT' | 'COD',
+    paymentTerms: 'NET30',
+    withDP: false,
+    dpPercent: 0,
+    dpAmount: 0,
   });
 
   const [currentItem, setCurrentItem] = useState<OrderItemForm>({
@@ -83,7 +90,13 @@ export default function PurchaseOrders() {
           partnerId: formData.partnerId,
           items: formData.items,
           taxRate: formData.taxRate,
-          paymentTerms: formData.paymentTerms as PaymentTerms, // Feature 036
+          paymentTerms: paymentConfig.paymentTerms as PaymentTerms,
+          dpPercent: paymentConfig.withDP
+            ? paymentConfig.dpPercent
+            : undefined,
+          dpAmount: paymentConfig.withDP
+            ? paymentConfig.dpAmount
+            : undefined,
         }),
       'Purchase order created!'
     );
@@ -97,7 +110,13 @@ export default function PurchaseOrders() {
       partnerId: '',
       items: [],
       taxRate: 0,
+    });
+    setPaymentConfig({
+      mode: 'TEMPO',
       paymentTerms: 'NET30',
+      withDP: false,
+      dpPercent: 0,
+      dpAmount: 0,
     });
     setCurrentItem({ productId: '', quantity: 1, price: 0 });
   };
@@ -115,6 +134,7 @@ export default function PurchaseOrders() {
     const taxRate = formData.taxRate || 0;
     const taxAmount = (subtotal * taxRate) / 100;
     const grandTotal = subtotal + taxAmount;
+
     return { subtotal, taxAmount, grandTotal, taxRate };
   };
 
@@ -171,63 +191,7 @@ export default function PurchaseOrders() {
             />
           </div>
 
-          {/* Feature 036: Payment Terms */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Terms
-            </label>
-            <Select
-              value={formData.paymentTerms}
-              onChange={(val) =>
-                setFormData({
-                  ...formData,
-                  paymentTerms: val,
-                })
-              }
-              groups={[
-                {
-                  label: 'Tunai / Bayar Langsung',
-                  options: [
-                    {
-                      value: PaymentTermsSchema.enum.UPFRONT,
-                      label: 'Cash Upfront (Bayar di Muka)',
-                    },
-                    {
-                      value: PaymentTermsSchema.enum.COD,
-                      label: 'Cash on Delivery',
-                    },
-                  ],
-                },
-                {
-                  label: 'Tempo / Kredit',
-                  options: [
-                    {
-                      value: PaymentTermsSchema.enum.NET7,
-                      label: 'Net 7 Hari',
-                    },
-                    {
-                      value: PaymentTermsSchema.enum.NET30,
-                      label: 'Net 30 Hari',
-                    },
-                    {
-                      value: PaymentTermsSchema.enum.NET60,
-                      label: 'Net 60 Hari',
-                    },
-                    {
-                      value: PaymentTermsSchema.enum.NET90,
-                      label: 'Net 90 Hari',
-                    },
-                    {
-                      value: PaymentTermsSchema.enum.EOM,
-                      label: 'End of Month',
-                    },
-                  ],
-                },
-              ]}
-              placeholder="Pilih syarat pembayaran"
-            />
-          </div>
-
+          {/* Tax Rate */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tax Rate
@@ -412,6 +376,13 @@ export default function PurchaseOrders() {
               </table>
             )}
           </div>
+
+          {/* Payment Mode Selector - After items */}
+          <PaymentModeSelector
+            totalAmount={calculateTotal().grandTotal}
+            value={paymentConfig}
+            onChange={setPaymentConfig}
+          />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button

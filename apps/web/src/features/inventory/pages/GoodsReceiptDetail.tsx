@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import { PageContainer } from '@/components/layout/PageLayout';
+import { DocumentStatusSchema } from '@sync-erp/shared';
 import {
   Card,
   CardHeader,
@@ -64,6 +65,14 @@ export default function GoodsReceiptDetail() {
   const handleVoid = async () => {
     if (!receipt) return;
 
+    // FR-024: Prompt for void reason
+    const reason = window.prompt(
+      'Please enter a reason for voiding this goods receipt:'
+    );
+    if (!reason || reason.trim().length === 0) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: 'Void Goods Receipt',
       message:
@@ -74,7 +83,7 @@ export default function GoodsReceiptDetail() {
 
     if (confirmed) {
       try {
-        await voidMutation.mutateAsync({ id: receipt.id });
+        await voidMutation.mutateAsync({ id: receipt.id, reason });
       } catch (error) {
         console.error('Failed to void GRN:', error);
       }
@@ -120,7 +129,7 @@ export default function GoodsReceiptDetail() {
         }
         actions={
           <>
-            {receipt.status === 'DRAFT' && (
+            {receipt.status === DocumentStatusSchema.enum.DRAFT && (
               <Button
                 onClick={handlePost}
                 disabled={postMutation.isPending}
@@ -128,7 +137,7 @@ export default function GoodsReceiptDetail() {
                 Post Receipt
               </Button>
             )}
-            {receipt.status === 'POSTED' && (
+            {receipt.status === DocumentStatusSchema.enum.POSTED && (
               <>
                 <Button onClick={handleCreateBill} variant="outline">
                   Create Bill

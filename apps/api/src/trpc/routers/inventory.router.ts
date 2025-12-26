@@ -120,25 +120,42 @@ export const inventoryRouter = router({
     }),
 
   /**
-   * Void GRN (reverse stock and journal)
+   * Void GRN (FR-024: requires reason)
    * Policy: Must be POSTED and no Bill exists for the PO
    */
   voidGRN: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Void reason is required'),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
-      return inventoryService.voidGRN(ctx.companyId!, input.id);
+      return inventoryService.voidGRN(
+        ctx.companyId!,
+        input.id,
+        input.reason,
+        undefined,
+        ctx.userId
+      );
     }),
 
   /**
-   * Void Shipment (reverse stock and journal)
+   * Void Shipment (FR-024: requires reason)
    * Policy: Must be POSTED and no Invoice exists for the SO
    */
   voidShipment: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Void reason is required'),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       return inventoryService.voidShipment(
         ctx.companyId!,
         input.id,
+        input.reason,
         undefined,
         ctx.userId
       );
