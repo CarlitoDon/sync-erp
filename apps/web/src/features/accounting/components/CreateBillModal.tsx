@@ -127,8 +127,8 @@ export default function CreateBillModal({
         try {
           const grn = await getReceipt(grnId);
           if (grn) {
-            setPoId(grn.purchaseOrderId);
-            setValue('orderId', grn.purchaseOrderId);
+            setPoId(grn.orderId);
+            setValue('orderId', grn.orderId);
           }
         } finally {
           setLoadingDetails(false);

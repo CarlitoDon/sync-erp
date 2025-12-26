@@ -2,14 +2,15 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { apiAction } from '@/hooks/useApiAction';
+import { useOrderMutations } from '@/hooks/useOrderMutations';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { ShipmentModal } from '@/features/inventory/components/ShipmentModal';
 import CreateInvoiceModal from '@/features/accounting/components/CreateInvoiceModal';
 import { PageContainer } from '@/components/layout/PageLayout';
+import SalesOrderActions from '../components/SalesOrderActions';
+import { CustomerDepositCard } from '../components/CustomerDepositCard';
+import { RegisterDepositModal } from '../components/RegisterDepositModal';
 import {
-  useConfirm,
-  ActionButton,
   BackButton,
   Card,
   CardHeader,
@@ -17,6 +18,8 @@ import {
   CardContent,
   StatusBadge,
   LoadingState,
+  EmptyState,
+  FulfillmentStatusBadge,
   OrderItemsTable,
 } from '@/components/ui';
 
@@ -25,9 +28,9 @@ export default function SalesOrderDetail() {
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
-  const confirm = useConfirm();
   const [shipmentModalOpen, setShipmentModalOpen] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
 
   const { data: order, isLoading: loading } =
     trpc.salesOrder.getById.useQuery(
@@ -35,89 +38,26 @@ export default function SalesOrderDetail() {
       { enabled: !!id && !!currentCompany?.id }
     );
 
-  const confirmMutation = trpc.salesOrder.confirm.useMutation({
+  const { handleConfirm, handleCancel } = useOrderMutations({
+    type: 'sales',
     onSuccess: () => utils.salesOrder.getById.invalidate({ id: id! }),
   });
 
-  const cancelMutation = trpc.salesOrder.cancel.useMutation({
-    onSuccess: () => utils.salesOrder.getById.invalidate({ id: id! }),
-  });
-
-  // TODO: Add ship mutation when available in router
-  // const shipMutation = trpc.salesOrder.ship.useMutation({
-  //   onSuccess: () => utils.salesOrder.getById.invalidate({ id: id! }),
-  // });
-
-  // Removed direct createInvoiceMutation in favor of Modal
-
-  const handleConfirm = async () => {
-    if (!order) return;
-    await apiAction(
-      () => confirmMutation.mutateAsync({ id: order.id }),
-      'Order confirmed!'
+  // Cash Upfront: Fetch deposit summary if order has UPFRONT terms
+  const isUpfront = order?.paymentTerms === 'UPFRONT';
+  const { data: depositSummary } =
+    trpc.customerDeposit.getDepositSummary.useQuery(
+      { orderId: id! },
+      { enabled: !!id && !!order && isUpfront }
     );
-  };
-
-  const handleCancel = async () => {
-    if (!order) return;
-    const confirmed = await confirm({
-      title: 'Cancel Order',
-      message: 'Are you sure you want to cancel this order?',
-      confirmText: 'Yes, Cancel',
-      variant: 'danger',
-    });
-    if (!confirmed) return;
-    await apiAction(
-      () => cancelMutation.mutateAsync({ id: order.id }),
-      'Order cancelled'
-    );
-  };
-
-  const handleShip = async () => {
-    if (!order) return;
-    // Open modal instead of direct mutation for partial shipping support
-    setShipmentModalOpen(true);
-  };
-
-  const handleCreateInvoice = () => {
-    if (!order) return;
-    setIsInvoiceModalOpen(true);
-  };
-
-  const getShipmentStatus = (status: string) => {
-    if (status === 'SHIPPED' || status === 'COMPLETED')
-      return {
-        label: 'Fully Shipped',
-        color: 'text-green-600 bg-green-50',
-      };
-    if (status === 'PARTIALLY_SHIPPED')
-      return {
-        label: 'Partial',
-        color: 'text-amber-600 bg-amber-50',
-      };
-    if (status === 'CONFIRMED')
-      return {
-        label: 'Pending',
-        color: 'text-blue-600 bg-blue-50',
-      };
-    if (status === 'CANCELLED')
-      return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
-    return { label: 'N/A', color: 'text-gray-400 bg-gray-50' };
-  };
 
   if (loading) {
     return <LoadingState />;
   }
 
   if (!order) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Order not found</div>
-      </div>
-    );
+    return <EmptyState message="Order not found" />;
   }
-
-  const shipmentStatus = getShipmentStatus(order.status);
 
   return (
     <>
@@ -146,10 +86,29 @@ export default function SalesOrderDetail() {
         orderId={order.id}
         onSuccess={(invoiceId) => {
           utils.salesOrder.getById.invalidate({ id: id! });
-          // Optionally navigate to invoice, or just let user see "View Invoice" button
           navigate(`/invoices/${invoiceId}`);
         }}
       />
+
+      {/* Cash Upfront: Deposit Registration Modal */}
+      {isUpfront && (
+        <RegisterDepositModal
+          isOpen={isDepositModalOpen}
+          onClose={() => setIsDepositModalOpen(false)}
+          orderId={order.id}
+          orderNumber={order.orderNumber || order.id}
+          maxAmount={
+            depositSummary?.remainingAmount ||
+            Number(order.totalAmount)
+          }
+          onSuccess={() => {
+            utils.customerDeposit.getDepositSummary.invalidate({
+              orderId: id!,
+            });
+            utils.salesOrder.getById.invalidate({ id: id! });
+          }}
+        />
+      )}
 
       <PageContainer>
         {/* Header */}
@@ -208,11 +167,10 @@ export default function SalesOrderDetail() {
                 <p className="text-sm text-gray-500">
                   Shipment Status
                 </p>
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${shipmentStatus.color}`}
-                >
-                  {shipmentStatus.label}
-                </span>
+                <FulfillmentStatusBadge
+                  status={order.status}
+                  type="shipment"
+                />
               </div>
             </div>
 
@@ -245,57 +203,38 @@ export default function SalesOrderDetail() {
           />
         </Card>
 
+        {/* Cash Upfront: Customer Deposit Card */}
+        {isUpfront && depositSummary && (
+          <CustomerDepositCard
+            totalAmount={depositSummary.totalAmount}
+            paidAmount={depositSummary.paidAmount}
+            remainingAmount={depositSummary.remainingAmount}
+            paymentStatus={depositSummary.paymentStatus}
+            onRegisterDeposit={() => setIsDepositModalOpen(true)}
+            canRegisterDeposit={
+              order.status === 'CONFIRMED' &&
+              depositSummary.remainingAmount > 0
+            }
+          />
+        )}
+
         {/* Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-3">
-              {order.status === 'DRAFT' && (
-                <>
-                  <ActionButton
-                    variant="primary"
-                    onClick={handleConfirm}
-                  >
-                    Confirm Order
-                  </ActionButton>
-                  <ActionButton
-                    variant="danger"
-                    onClick={handleCancel}
-                  >
-                    Cancel Order
-                  </ActionButton>
-                </>
-              )}
-              {(order.status === 'CONFIRMED' ||
-                order.status === 'PARTIALLY_SHIPPED') && (
-                <ActionButton variant="success" onClick={handleShip}>
-                  Ship Order
-                </ActionButton>
-              )}
-              {(order.status === 'SHIPPED' ||
-                order.status === 'PARTIALLY_SHIPPED' ||
-                order.status === 'COMPLETED') &&
-                (!order.invoices || order.invoices.length === 0) && (
-                  <ActionButton
-                    variant="primary"
-                    onClick={handleCreateInvoice}
-                  >
-                    Create Invoice
-                  </ActionButton>
-                )}
-              {order.invoices && order.invoices.length > 0 && (
-                <ActionButton
-                  variant="secondary"
-                  onClick={() =>
-                    navigate(`/invoices/${order.invoices![0].id}`)
-                  }
-                >
-                  View Invoice
-                </ActionButton>
-              )}
-            </div>
+            <SalesOrderActions
+              order={order}
+              onConfirm={handleConfirm}
+              onCancel={handleCancel}
+              onShip={() => setShipmentModalOpen(true)}
+              onCreateInvoice={() => setIsInvoiceModalOpen(true)}
+              onViewInvoice={(invoiceId) =>
+                navigate(`/invoices/${invoiceId}`)
+              }
+              layout="detail"
+            />
           </CardContent>
         </Card>
       </PageContainer>

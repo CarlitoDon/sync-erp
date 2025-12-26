@@ -5,7 +5,6 @@ import { trpc } from '@/lib/trpc';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
-import { BackButton } from '@/components/ui/BackButton';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import { PageContainer } from '@/components/layout/PageLayout';
 import {
@@ -13,7 +12,11 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
-} from '@/components/ui/Card';
+  PageHeader,
+  StatusBadge,
+  LoadingState,
+  EmptyState,
+} from '@/components/ui';
 
 export default function GoodsReceiptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -83,19 +86,6 @@ export default function GoodsReceiptDetail() {
     setIsBillModalOpen(true);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'POSTED':
-        return 'bg-green-100 text-green-800';
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'VOIDED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   if (error) {
     console.error('Failed to load goods receipt:', error);
     navigate('/receipts');
@@ -103,79 +93,58 @@ export default function GoodsReceiptDetail() {
   }
 
   if (loading || !currentCompany) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (!receipt) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">
-          Goods Receipt not found or access denied.
-        </div>
-      </div>
+      <EmptyState message="Goods Receipt not found or access denied." />
     );
   }
 
   const totalValue = receipt.items.reduce(
     (sum, item) =>
       sum +
-      Number(item.quantity) *
-        Number(item.purchaseOrderItem?.price || 0),
+      Number(item.quantity) * Number(item.orderItem?.price || 0),
     0
   );
 
   return (
     <PageContainer>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <BackButton />
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {receipt.number}
-              </h1>
-              <span
-                className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(receipt.status)}`}
-              >
-                {receipt.status}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500">
-              Goods Receipt Note
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          {receipt.status === 'DRAFT' && (
-            <Button
-              onClick={handlePost}
-              disabled={postMutation.isPending}
-            >
-              Post Receipt
-            </Button>
-          )}
-          {receipt.status === 'POSTED' && (
-            <>
-              <Button onClick={handleCreateBill} variant="outline">
-                Create Bill
-              </Button>
+      <PageHeader
+        title={receipt.number}
+        subtitle="Goods Receipt Note"
+        badges={
+          <StatusBadge status={receipt.status} domain="document" />
+        }
+        actions={
+          <>
+            {receipt.status === 'DRAFT' && (
               <Button
-                onClick={handleVoid}
-                variant="danger"
-                disabled={voidMutation.isPending}
+                onClick={handlePost}
+                disabled={postMutation.isPending}
               >
-                {voidMutation.isPending ? 'Voiding...' : 'Void'}
+                Post Receipt
               </Button>
-            </>
-          )}
-        </div>
-      </div>
+            )}
+            {receipt.status === 'POSTED' && (
+              <>
+                <Button onClick={handleCreateBill} variant="outline">
+                  Create Bill
+                </Button>
+                <Button
+                  onClick={handleVoid}
+                  variant="danger"
+                  disabled={voidMutation.isPending}
+                >
+                  {voidMutation.isPending ? 'Voiding...' : 'Void'}
+                </Button>
+              </>
+            )}
+          </>
+        }
+      />
 
       {/* Details Card */}
       <Card>
@@ -193,12 +162,12 @@ export default function GoodsReceiptDetail() {
             <div>
               <p className="text-sm text-gray-500">Purchase Order</p>
               <p className="font-medium">
-                {receipt.purchaseOrder ? (
+                {receipt.order ? (
                   <Link
-                    to={`/purchase-orders/${receipt.purchaseOrderId}`}
+                    to={`/purchase-orders/${receipt.orderId}`}
                     className="text-blue-600 hover:underline"
                   >
-                    {receipt.purchaseOrder.orderNumber}
+                    {receipt.order.orderNumber}
                   </Link>
                 ) : (
                   '-'
@@ -270,13 +239,13 @@ export default function GoodsReceiptDetail() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {formatCurrency(
-                      Number(item.purchaseOrderItem?.price || 0)
+                      Number(item.orderItem?.price || 0)
                     )}
                   </td>
                   <td className="px-4 py-3 text-right font-medium">
                     {formatCurrency(
                       Number(item.quantity) *
-                        Number(item.purchaseOrderItem?.price || 0)
+                        Number(item.orderItem?.price || 0)
                     )}
                   </td>
                 </tr>
