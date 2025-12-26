@@ -32,11 +32,13 @@ export interface CreateBillInput {
 import { DocumentNumberService } from '../../common/services/document-number.service';
 import { BillPolicy } from '../policies/bill.policy';
 import { InventoryRepository } from '../../inventory/inventory.repository.js';
+import { PurchaseOrderRepository } from '../../procurement/purchase-order.repository.js';
 import * as auditLogService from '../../common/audit/audit-log.service';
 
 export class BillService {
   private repository = new InvoiceRepository();
   private inventoryRepository = new InventoryRepository();
+  private purchaseOrderRepository = new PurchaseOrderRepository();
   private documentNumberService = new DocumentNumberService();
   private journalService = new JournalService();
 
@@ -75,6 +77,23 @@ export class BillService {
     // Note: passing undefined for tx implicitly as it's optional last arg
     BillPolicy.ensureGoodsReceived(grnCount);
 
+    // FR-013: Prevent duplicate supplier invoice numbers per supplier
+    if (data.supplierInvoiceNumber) {
+      const existingBill =
+        await this.repository.findBySupplierInvoiceNumber(
+          companyId,
+          order.partnerId,
+          data.supplierInvoiceNumber
+        );
+      if (existingBill) {
+        throw new DomainError(
+          `Supplier invoice number "${data.supplierInvoiceNumber}" already exists for this supplier`,
+          400,
+          DomainErrorCodes.DUPLICATE_SUPPLIER_INVOICE
+        );
+      }
+    }
+
     // Always auto-generate internal Bill number
     const invoiceNumber = await this.documentNumberService.generate(
       companyId,
@@ -95,7 +114,25 @@ export class BillService {
 
     const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
     const taxAmount = subtotal * taxMultiplier;
-    const amount = subtotal + taxAmount;
+    let amount = subtotal + taxAmount;
+
+    // Deduct DP amount if DP Bill was paid
+    const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
+    let dpDeducted = 0;
+    if (dpAmount > 0) {
+      // Verify DP Bill is PAID before deducting
+      const dpBill = await this.repository.findFirst({
+        orderId: data.orderId,
+        companyId,
+        type: InvoiceType.BILL,
+        status: InvoiceStatus.PAID,
+        notes: { contains: 'Down Payment' },
+      });
+      if (dpBill) {
+        dpDeducted = dpAmount;
+        amount = amount - dpDeducted;
+      }
+    }
 
     // Create lines from order items
     // Assuming Invoice has 'items' relation to InvoiceLine/BillLine
@@ -107,9 +144,20 @@ export class BillService {
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
       supplierInvoiceNumber: data.supplierInvoiceNumber, // External reference from supplier
+      notes:
+        dpDeducted > 0
+          ? `Final Bill (DP ${order.dpPercent || 0}% deducted: Rp ${dpDeducted.toLocaleString()})`
+          : undefined,
       amount,
-      subtotal,
-      taxAmount,
+      subtotal:
+        dpDeducted > 0
+          ? subtotal - dpDeducted / (1 + taxMultiplier)
+          : subtotal,
+      taxAmount:
+        dpDeducted > 0
+          ? taxAmount -
+            (dpDeducted - dpDeducted / (1 + taxMultiplier))
+          : taxAmount,
       taxRate,
       balance: amount,
       dueDate:
@@ -123,8 +171,10 @@ export class BillService {
   }
 
   /**
-   * Create a Down Payment Bill for UPFRONT Payment Terms.
-   * Called automatically when confirming a PO with UPFRONT terms.
+   * Create a Down Payment Bill for UPFRONT Payment Terms or Tempo+DP.
+   * Called automatically when confirming a PO with:
+   * - UPFRONT terms (100% DP)
+   * - Tempo terms with dpAmount > 0 (partial DP)
    * NOTE: This SKIPS the GRN requirement since payment is needed BEFORE delivery.
    */
   async createDownPaymentBill(
@@ -154,10 +204,13 @@ export class BillService {
       );
     }
 
-    // Must be UPFRONT terms
-    if (order.paymentTerms !== PaymentTerms.UPFRONT) {
+    // Must have DP requirement (UPFRONT or dpAmount > 0)
+    const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
+    const isUpfront = order.paymentTerms === PaymentTerms.UPFRONT;
+
+    if (!isUpfront && dpAmount <= 0) {
       throw new DomainError(
-        'DP Bill can only be created for UPFRONT payment terms',
+        'DP Bill can only be created for UPFRONT payment terms or orders with dpAmount > 0',
         400,
         DomainErrorCodes.OPERATION_NOT_ALLOWED
       );
@@ -179,16 +232,34 @@ export class BillService {
       'BILL'
     );
 
-    // Calculate subtotal from items (Net)
-    const subtotal = order.items.reduce(
-      (sum, item) => sum + Number(item.price) * item.quantity,
-      0
-    );
-
+    // Calculate amounts based on DP type
+    let amount: number;
+    let subtotal: number;
+    let taxAmount: number;
     const taxRate = order.taxRate ? Number(order.taxRate) : 0;
     const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
-    const taxAmount = subtotal * taxMultiplier;
-    const amount = subtotal + taxAmount;
+
+    if (isUpfront) {
+      // UPFRONT: 100% of order total
+      subtotal = order.items.reduce(
+        (sum, item) => sum + Number(item.price) * item.quantity,
+        0
+      );
+      taxAmount = subtotal * taxMultiplier;
+      amount = subtotal + taxAmount;
+    } else {
+      // Tempo+DP: Use dpAmount (already includes tax if calculated from grandTotal)
+      amount = dpAmount;
+      // Reverse calculate subtotal and tax from amount
+      subtotal = amount / (1 + taxMultiplier);
+      taxAmount = amount - subtotal;
+    }
+
+    const dpPercent = order.dpPercent
+      ? Number(order.dpPercent)
+      : isUpfront
+        ? 100
+        : 0;
 
     const createData: Prisma.InvoiceUncheckedCreateInput = {
       companyId,
@@ -197,14 +268,14 @@ export class BillService {
       type: InvoiceType.BILL,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
-      notes: `Down Payment Bill for PO ${order.orderNumber || orderId}`,
+      notes: `Down Payment Bill (${dpPercent}%) for PO ${order.orderNumber || orderId}`,
       amount,
       subtotal,
       taxAmount,
       taxRate,
       balance: amount,
-      dueDate: new Date(), // Immediate payment required for UPFRONT
-      paymentTermsString: 'UPFRONT',
+      dueDate: new Date(), // Immediate payment required for DP
+      paymentTermsString: isUpfront ? 'UPFRONT' : `DP ${dpPercent}%`,
     };
 
     return this.repository.create(createData);
@@ -216,9 +287,14 @@ export class BillService {
 
   async list(companyId: string, status?: string) {
     // Validate status if provided - only allow valid InvoiceStatus values
-    const validStatuses = ['DRAFT', 'POSTED', 'PAID', 'VOID'];
+    const validStatuses: InvoiceStatus[] = [
+      InvoiceStatus.DRAFT,
+      InvoiceStatus.POSTED,
+      InvoiceStatus.PAID,
+      InvoiceStatus.VOID,
+    ];
     const validatedStatus =
-      status && validStatuses.includes(status)
+      status && validStatuses.includes(status as InvoiceStatus)
         ? (status as InvoiceStatus)
         : undefined;
 
@@ -227,6 +303,79 @@ export class BillService {
       InvoiceType.BILL,
       validatedStatus
     );
+  }
+
+  /**
+   * Create a Vendor Credit Note (debit note equivalent) for Bill reversal.
+   * Used when receiving credit from vendor (returns, price adjustments).
+   * Similar to InvoiceService.createCreditNote but for AP.
+   */
+  async createVendorCreditNote(
+    companyId: string,
+    originalBillId: string,
+    _reason?: string
+  ): Promise<Invoice> {
+    const original = await this.repository.findById(
+      originalBillId,
+      companyId,
+      InvoiceType.BILL
+    );
+
+    if (!original) {
+      throw new DomainError(
+        'Original bill not found',
+        404,
+        DomainErrorCodes.BILL_NOT_FOUND
+      );
+    }
+
+    // Check status is reversible
+    if (
+      original.status !== InvoiceStatus.POSTED &&
+      original.status !== InvoiceStatus.PAID
+    ) {
+      throw new DomainError(
+        `Cannot reverse bill with status ${original.status}. Only POSTED or PAID bills can be credited.`,
+        422,
+        DomainErrorCodes.BILL_INVALID_STATE
+      );
+    }
+
+    // Generate Vendor Credit Note Number
+    const vcnNumber = await this.documentNumberService.generate(
+      companyId,
+      'CN' // Reuse CN sequence, or could be 'VCN' if preferred
+    );
+
+    // Create Vendor Credit Note (using CREDIT_NOTE type - schema neutral)
+    const vendorCreditNote = await this.repository.create({
+      companyId,
+      partnerId: original.partnerId,
+      type: InvoiceType.CREDIT_NOTE, // Vendor credit note uses same type
+      status: InvoiceStatus.POSTED, // Auto-post for reversal
+      invoiceNumber: vcnNumber,
+      relatedInvoiceId: original.id,
+      orderId: original.orderId,
+      amount: original.amount,
+      subtotal: original.subtotal,
+      taxAmount: original.taxAmount,
+      taxRate: original.taxRate,
+      balance: 0,
+      dueDate: new Date(),
+      notes: `Vendor Credit Note for Bill ${original.invoiceNumber || originalBillId}`,
+    });
+
+    // Post journal to reverse AP: Dr AP (2100), Cr Purchase Returns (5200) / Accrual (2105)
+    await this.journalService.postVendorCreditNote(
+      companyId,
+      vendorCreditNote.id,
+      vcnNumber,
+      Number(vendorCreditNote.amount),
+      Number(vendorCreditNote.subtotal),
+      Number(vendorCreditNote.taxAmount)
+    );
+
+    return vendorCreditNote;
   }
 
   /**
@@ -279,6 +428,37 @@ export class BillService {
         }
 
         BillPolicy.validatePost(bill.status);
+
+        // FR-011, FR-020: 3-Way Matching Validation
+        // Only for Bills linked to a PO (orderId exists)
+        if (bill.orderId) {
+          const order = await this.purchaseOrderRepository.findById(
+            bill.orderId,
+            companyId,
+            tx
+          );
+          if (order) {
+            const receivedQtyMap =
+              await this.purchaseOrderRepository.getReceivedQuantities(
+                bill.orderId,
+                tx
+              );
+            BillPolicy.validate3WayMatching(
+              {
+                amount: bill.amount,
+                subtotal: bill.subtotal,
+                notes: bill.notes,
+              },
+              {
+                items: order.items,
+                totalAmount: order.totalAmount,
+                dpAmount: order.dpAmount,
+                paymentTerms: order.paymentTerms,
+              },
+              receivedQtyMap
+            );
+          }
+        }
 
         // Phase 1 Guard: Block Multi-Currency
         const currency =
@@ -410,8 +590,34 @@ export class BillService {
   /**
    * Void a Bill atomically using Prisma transaction.
    * Policy: Cannot void if payments exist. If POSTED, reverse AP journal.
+   * FR-024: Requires mandatory reason field for audit trail.
    */
-  async void(id: string, companyId: string): Promise<Invoice> {
+  async void(
+    id: string,
+    companyId: string,
+    actorId: string,
+    reason: string
+  ): Promise<Invoice> {
+    // FR-024: Reason is mandatory
+    if (!reason || reason.trim().length === 0) {
+      throw new DomainError(
+        'Void reason is required',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    // FR-010.1: Record Audit Log with void reason
+    await auditLogService.recordAudit({
+      companyId,
+      actorId,
+      action: AuditLogAction.BILL_VOIDED,
+      entityType: EntityType.BILL,
+      entityId: id,
+      businessDate: new Date(),
+      payloadSnapshot: { reason },
+    });
+
     return prisma.$transaction(
       async (tx) => {
         // 1. Lock row for concurrency safety

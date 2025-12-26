@@ -1,6 +1,7 @@
 import {
   JournalEntry,
   JournalSourceType,
+  PaymentMethod,
   Prisma,
 } from '@sync-erp/database';
 import { BusinessDate } from '@sync-erp/shared';
@@ -86,12 +87,20 @@ export class JournalService {
     const lineData: Prisma.JournalLineUncheckedCreateWithoutJournalInput[] =
       [];
     for (const line of data.lines) {
-      // Logic: Account reading *could* be transactional, but for now we assume accounts are stable.
-      // If AccountService is not updated, we call it without tx.
-      const account = await this.accountService.getById(
-        line.accountId,
-        companyId
-      );
+      let account;
+      if (tx) {
+        account = await tx.account.findUnique({
+          where: { id: line.accountId },
+        });
+        if (account && account.companyId !== companyId)
+          account = null;
+      } else {
+        account = await this.accountService.getById(
+          line.accountId,
+          companyId
+        );
+      }
+
       if (!account) {
         throw new Error(`Account not found: ${line.accountId}`);
       }
@@ -143,7 +152,7 @@ export class JournalService {
   // Auto-Posting Helpers (Internal)
   // ============================================
 
-  private async resolveAndCreate(
+  public async resolveAndCreate(
     companyId: string,
     data: {
       reference: string;
@@ -161,10 +170,20 @@ export class JournalService {
   ) {
     const resolvedLines: CreateJournalLineInput[] = [];
     for (const line of data.lines) {
-      const acc = await this.accountService.getByCode(
-        companyId,
-        line.accountCode
-      );
+      let acc;
+      if (tx) {
+        acc = await tx.account.findUnique({
+          where: {
+            companyId_code: { companyId, code: line.accountCode },
+          },
+        });
+      } else {
+        acc = await this.accountService.getByCode(
+          companyId,
+          line.accountCode
+        );
+      }
+
       if (!acc) {
         throw new Error(
           `System Account code ${line.accountCode} not found. Please seed defaults.`
@@ -319,6 +338,53 @@ export class JournalService {
     );
   }
 
+  /**
+   * Post Vendor Credit Note Journal (P2P returns/credits)
+   * Mirrors postCreditNote but for Accounts Payable
+   * Dr 2100 (AP - reduce liability), Cr 2105 (Accrual) or 5200 (Purchase Returns)
+   */
+  async postVendorCreditNote(
+    companyId: string,
+    creditNoteId: string,
+    billNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const lines: {
+      accountCode: string;
+      debit?: number;
+      credit?: number;
+    }[] = [
+      { accountCode: '2100', debit: amount }, // Debit AP (reduce liability)
+    ];
+
+    if (taxAmount && taxAmount > 0) {
+      lines.push({
+        accountCode: '2105',
+        credit: subtotal || amount - taxAmount,
+      }); // Reverse Accrual
+      lines.push({ accountCode: '1500', credit: taxAmount }); // Reverse VAT Receivable
+    } else {
+      lines.push({ accountCode: '2105', credit: amount }); // Reverse Accrual
+    }
+
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference: `Vendor Credit Note: ${billNumber}`,
+        memo: `Credit from vendor for bill ${billNumber}`,
+        sourceType: JournalSourceType.CREDIT_NOTE,
+        sourceId: creditNoteId,
+        lines,
+        date: businessDate,
+      },
+      tx
+    );
+  }
+
   async postGoodsReceipt(
     companyId: string,
     reference: string,
@@ -442,7 +508,7 @@ export class JournalService {
         reference: `Bill Reversal: ${billNumber}`,
         memo: `Reversal of voided bill ${billNumber}`,
         sourceType: JournalSourceType.BILL,
-        sourceId: billId,
+        sourceId: `${billId}:reversal`,
         lines,
       },
       tx
@@ -458,7 +524,8 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100'; // Bank or Cash
+    const cashAccount =
+      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100'; // Bank or Cash
     return this.resolveAndCreate(
       companyId,
       {
@@ -488,7 +555,8 @@ export class JournalService {
     method: string,
     tx?: Prisma.TransactionClient
   ) {
-    const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
+    const cashAccount =
+      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
     return this.resolveAndCreate(
       companyId,
       {
@@ -517,7 +585,8 @@ export class JournalService {
     method: string,
     tx?: Prisma.TransactionClient
   ) {
-    const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
+    const cashAccount =
+      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
     return this.resolveAndCreate(
       companyId,
       {
@@ -542,7 +611,8 @@ export class JournalService {
     method: string,
     tx?: Prisma.TransactionClient
   ) {
-    const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
+    const cashAccount =
+      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
     return this.resolveAndCreate(
       companyId,
       {
@@ -672,7 +742,8 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
+    const cashAccount =
+      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
     return this.resolveAndCreate(
       companyId,
       {
@@ -735,7 +806,8 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const cashAccount = method === 'BANK_TRANSFER' ? '1200' : '1100';
+    const cashAccount =
+      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
     return this.resolveAndCreate(
       companyId,
       {
