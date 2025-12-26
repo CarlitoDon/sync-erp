@@ -231,10 +231,14 @@ export class PurchaseOrderService {
       );
     }
 
-    // Count existing GRNs for this PO
-    const grnCount = await this.repository.countGoodsReceipts(id);
+    // Count existing Fulfillments (GRNs) for this PO
+    const fulfillmentCount =
+      await this.repository.countFulfillments(id);
 
-    PurchaseOrderPolicy.validateCancel(order.status, grnCount);
+    PurchaseOrderPolicy.validateCancel(
+      order.status,
+      fulfillmentCount
+    );
 
     const updated = await this.repository.updateStatus(
       id,

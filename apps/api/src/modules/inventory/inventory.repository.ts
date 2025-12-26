@@ -3,6 +3,8 @@ import {
   prisma,
   InventoryMovement,
   MovementType,
+  FulfillmentType,
+  InvoiceType,
 } from '@sync-erp/database';
 
 export interface StockMovementInput {
@@ -12,7 +14,7 @@ export interface StockMovementInput {
   type: MovementType;
   quantity: number;
   reference?: string;
-  unitCost?: number; // Needed for IN cost averaging
+  unitCost?: number;
 }
 
 export class InventoryRepository {
@@ -26,7 +28,6 @@ export class InventoryRepository {
     data: StockMovementInput,
     tx: Prisma.TransactionClient
   ) {
-    // 1. Create Movement Log
     const movement = await tx.inventoryMovement.create({
       data: {
         companyId: data.companyId,
@@ -35,18 +36,11 @@ export class InventoryRepository {
         type: data.type,
         quantity: data.quantity,
         reference: data.reference,
-        // date defaults to now()
       },
     });
 
-    // 2. Calculate Stock Delta (IN = +qty, OUT = -qty)
     const delta =
       data.type === MovementType.IN ? data.quantity : -data.quantity;
-
-    // 3. Update Product Stock (and Average Cost if IN)
-    // We fetch first to calculate average cost if needed
-    // In a real high-concurrency system, we might need locking or DB-side math
-    // For this MVP, we use the passed transaction.
 
     const product = await tx.product.findUniqueOrThrow({
       where: { id: data.productId },
@@ -58,10 +52,7 @@ export class InventoryRepository {
       data.type === MovementType.IN &&
       data.unitCost !== undefined
     ) {
-      // Periodic Average Cost Formula:
-      // (OldValue + NewValue) / TotalQty
-      // But simpler: NewAvg = ((OldQty * OldAvg) + (InQty * InCost)) / (OldQty + InQty)
-      const oldQty = product.stockQty; // Should use stock at time? Assuming current
+      const oldQty = product.stockQty;
       const oldAvg = Number(product.averageCost);
       const inQty = data.quantity;
       const inCost = data.unitCost;
@@ -86,7 +77,7 @@ export class InventoryRepository {
   }
 
   // ==========================================
-  // Legacy Methods (preserved for compatibility)
+  // Movement Methods
   // ==========================================
 
   async createMovement(
@@ -94,9 +85,7 @@ export class InventoryRepository {
     tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement> {
     const db = tx || prisma;
-    return db.inventoryMovement.create({
-      data,
-    });
+    return db.inventoryMovement.create({ data });
   }
 
   async findMovements(
@@ -110,28 +99,19 @@ export class InventoryRepository {
         companyId,
         ...(productId && { productId }),
       },
-      include: {
-        product: true,
-      },
+      include: { product: true },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  // Helper to find one movement if needed
   async findById(
     id: string,
     tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement | null> {
     const db = tx || prisma;
-    return db.inventoryMovement.findUnique({
-      where: { id },
-    });
+    return db.inventoryMovement.findUnique({ where: { id } });
   }
 
-  /**
-   * Count GRN (IN) movements for a specific order.
-   * Used to verify goods have been received before creating Bill.
-   */
   async countByReferencePatterns(
     companyId: string,
     patterns: string[],
@@ -139,9 +119,7 @@ export class InventoryRepository {
     tx?: Prisma.TransactionClient
   ): Promise<number> {
     const db = tx || prisma;
-
     if (patterns.length === 0) return 0;
-
     return db.inventoryMovement.count({
       where: {
         companyId,
@@ -152,32 +130,8 @@ export class InventoryRepository {
   }
 
   // ==========================================
-  // Order Query Methods (for Service Layer purity)
+  // Order Query Methods
   // ==========================================
-
-  async findPurchaseOrderWithItems(
-    orderId: string,
-    companyId: string,
-    tx?: Prisma.TransactionClient
-  ) {
-    const db = tx || prisma;
-    return db.order.findFirst({
-      where: { id: orderId, companyId, type: 'PURCHASE' },
-      include: { items: true },
-    });
-  }
-
-  async findSalesOrderWithItems(
-    orderId: string,
-    companyId: string,
-    tx?: Prisma.TransactionClient
-  ) {
-    const db = tx || prisma;
-    return db.order.findFirst({
-      where: { id: orderId, companyId, type: 'SALES' },
-      include: { items: true },
-    });
-  }
 
   async findOrderWithItems(
     orderId: string,
@@ -204,256 +158,86 @@ export class InventoryRepository {
   }
 
   // ==========================================
-  // GRN Methods (034-grn-fullstack)
+  // Fulfillment Methods (Replaces GRN + Shipment)
   // ==========================================
 
-  async generateGrnNumber(
+  async generateFulfillmentNumber(
     companyId: string,
+    type: FulfillmentType,
     tx?: Prisma.TransactionClient
   ): Promise<string> {
     const db = tx || prisma;
     const year = new Date().getFullYear();
-    const count = await db.goodsReceipt.count({
-      where: { companyId },
+    const prefix = type === FulfillmentType.RECEIPT ? 'GRN' : 'SHP';
+    const count = await db.fulfillment.count({
+      where: { companyId, type },
     });
-    return `GRN-${year}-${String(count + 1).padStart(4, '0')}`;
+    return `${prefix}-${year}-${String(count + 1).padStart(4, '0')}`;
   }
 
-  /**
-   * Get already received quantities for a Purchase Order (from POSTED GRNs)
-   * Used to validate not over-receiving
-   */
-  async getReceivedQuantitiesForOrder(
+  async getFulfilledQuantitiesForOrder(
     orderId: string,
+    type: FulfillmentType,
     tx?: Prisma.TransactionClient
   ): Promise<Map<string, number>> {
     const db = tx || prisma;
-    const grnItems = await db.goodsReceiptItem.findMany({
+    const items = await db.fulfillmentItem.findMany({
       where: {
-        goodsReceipt: {
-          purchaseOrderId: orderId,
+        fulfillment: {
+          orderId,
+          type,
           status: 'POSTED',
         },
       },
       select: { productId: true, quantity: true },
     });
 
-    const receivedMap = new Map<string, number>();
-    for (const item of grnItems) {
-      const current = receivedMap.get(item.productId) || 0;
-      receivedMap.set(
-        item.productId,
-        current + Number(item.quantity)
-      );
+    const map = new Map<string, number>();
+    for (const item of items) {
+      const current = map.get(item.productId) || 0;
+      map.set(item.productId, current + Number(item.quantity));
     }
-    return receivedMap;
+    return map;
   }
 
-  async createGoodsReceipt(
+  async createFulfillment(
     data: {
       companyId: string;
-      purchaseOrderId: string;
+      orderId: string;
+      type: FulfillmentType;
       date: Date;
       notes?: string;
+      receivedBy?: string;
       items: {
         productId: string;
         quantity: number;
-        purchaseOrderItemId: string;
+        orderItemId: string;
       }[];
     },
     tx?: Prisma.TransactionClient
   ) {
     const db = tx || prisma;
-    const number = await this.generateGrnNumber(data.companyId, tx);
-
-    return db.goodsReceipt.create({
-      data: {
-        companyId: data.companyId,
-        purchaseOrderId: data.purchaseOrderId,
-        number,
-        date: data.date,
-        notes: data.notes,
-        status: 'DRAFT',
-        items: {
-          create: data.items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            purchaseOrderItemId: item.purchaseOrderItemId,
-          })),
-        },
-      },
-      include: { items: true },
-    });
-  }
-
-  async findGoodsReceiptById(
-    id: string,
-    companyId: string,
-    tx?: Prisma.TransactionClient
-  ) {
-    const db = tx || prisma;
-    return db.goodsReceipt.findFirst({
-      where: { id, companyId },
-      include: {
-        items: {
-          include: { product: true, purchaseOrderItem: true },
-        },
-        purchaseOrder: true,
-      },
-    });
-  }
-
-  async listGoodsReceipts(
-    companyId: string,
-    tx?: Prisma.TransactionClient
-  ) {
-    const db = tx || prisma;
-    return db.goodsReceipt.findMany({
-      where: { companyId },
-      include: { purchaseOrder: true },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  async postGoodsReceipt(
-    id: string,
-    companyId: string,
-    tx: Prisma.TransactionClient
-  ) {
-    // 1. Fetch GRN with items
-    const grn = await tx.goodsReceipt.findFirstOrThrow({
-      where: { id, companyId, status: 'DRAFT' },
-      include: {
-        items: {
-          include: { product: true, purchaseOrderItem: true },
-        },
-        purchaseOrder: true,
-      },
-    });
-
-    // 2. For each item: Stock IN + Cost Update
-    for (const item of grn.items) {
-      const unitCost = Number(item.purchaseOrderItem.price);
-      await this.createStockMovement(
-        {
-          companyId,
-          productId: item.productId,
-          type: MovementType.IN,
-          quantity: Number(item.quantity),
-          reference: `GRN:${grn.number} PO:${grn.purchaseOrder.orderNumber || grn.purchaseOrderId}`,
-          unitCost,
-        },
-        tx
-      );
-    }
-
-    // 3. Update GRN Status
-    const postedGrn = await tx.goodsReceipt.update({
-      where: { id },
-      data: { status: 'POSTED' },
-      include: {
-        items: {
-          include: { product: true, purchaseOrderItem: true },
-        },
-      },
-    });
-
-    // 4. Update Purchase Order Status to COMPLETED
-    await tx.order.update({
-      where: { id: grn.purchaseOrderId },
-      data: { status: 'COMPLETED' },
-    });
-
-    return postedGrn;
-  }
-
-  /**
-   * Count Bills linked to a Purchase Order
-   * Used to check if GRN can be voided
-   */
-  async countBillsForOrder(
-    orderId: string,
-    companyId: string,
-    tx?: Prisma.TransactionClient
-  ): Promise<number> {
-    const db = tx || prisma;
-    return db.invoice.count({
-      where: {
-        companyId,
-        orderId,
-        type: 'BILL',
-        status: { not: 'VOID' }, // Don't count voided bills
-      },
-    });
-  }
-
-  /**
-   * Void a Goods Receipt Note
-   * Just updates status to VOIDED - validation is in service layer
-   */
-  async voidGoodsReceipt(id: string, tx?: Prisma.TransactionClient) {
-    const db = tx || prisma;
-    return db.goodsReceipt.update({
-      where: { id },
-      data: { status: 'VOIDED' },
-      include: {
-        items: {
-          include: { product: true, purchaseOrderItem: true },
-        },
-        purchaseOrder: true,
-      },
-    });
-  }
-
-  // ==========================================
-  // Shipment Methods (034-grn-fullstack)
-  // ==========================================
-
-  async generateShipmentNumber(
-    companyId: string,
-    tx?: Prisma.TransactionClient
-  ): Promise<string> {
-    const db = tx || prisma;
-    const year = new Date().getFullYear();
-    const count = await db.shipment.count({
-      where: { companyId },
-    });
-    return `SHP-${year}-${String(count + 1).padStart(4, '0')}`;
-  }
-
-  async createShipment(
-    data: {
-      companyId: string;
-      salesOrderId: string;
-      date: Date;
-      notes?: string;
-      items: {
-        productId: string;
-        quantity: number;
-        salesOrderItemId: string;
-      }[];
-    },
-    tx?: Prisma.TransactionClient
-  ) {
-    const db = tx || prisma;
-    const number = await this.generateShipmentNumber(
+    const number = await this.generateFulfillmentNumber(
       data.companyId,
+      data.type,
       tx
     );
 
-    return db.shipment.create({
+    return db.fulfillment.create({
       data: {
         companyId: data.companyId,
-        salesOrderId: data.salesOrderId,
+        orderId: data.orderId,
+        type: data.type,
         number,
         date: data.date,
         notes: data.notes,
+        receivedBy: data.receivedBy,
         status: 'DRAFT',
         items: {
           create: data.items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
-            salesOrderItemId: item.salesOrderItemId,
+            orderItemId: item.orderItemId,
           })),
         },
       },
@@ -461,100 +245,114 @@ export class InventoryRepository {
     });
   }
 
-  async findShipmentById(
+  async findFulfillmentById(
     id: string,
     companyId: string,
     tx?: Prisma.TransactionClient
   ) {
     const db = tx || prisma;
-    return db.shipment.findFirst({
+    return db.fulfillment.findFirst({
       where: { id, companyId },
       include: {
-        items: { include: { product: true } },
-        salesOrder: true,
+        items: {
+          include: { product: true, orderItem: true },
+        },
+        order: true,
       },
     });
   }
 
-  async listShipments(
+  async listFulfillments(
     companyId: string,
+    type?: FulfillmentType,
     tx?: Prisma.TransactionClient
   ) {
     const db = tx || prisma;
-    return db.shipment.findMany({
-      where: { companyId },
-      include: { salesOrder: true },
+    return db.fulfillment.findMany({
+      where: { companyId, ...(type && { type }) },
+      include: { order: true },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async postShipment(
+  async postFulfillment(
     id: string,
     companyId: string,
     tx: Prisma.TransactionClient
   ) {
-    // 1. Fetch Shipment with items
-    const shipment = await tx.shipment.findFirstOrThrow({
+    const fulfillment = await tx.fulfillment.findFirstOrThrow({
       where: { id, companyId, status: 'DRAFT' },
-      include: { items: { include: { product: true } } },
-    });
-
-    // 2. For each item: Validate Stock + Stock OUT + Cost Snapshot
-    for (const item of shipment.items) {
-      const product = item.product;
-      const qty = Number(item.quantity);
-
-      // Validate Stock Floor
-      if (product.stockQty < qty) {
-        throw new Error(
-          `Insufficient stock for ${product.name}. Available: ${product.stockQty}, Required: ${qty}`
-        );
-      }
-
-      // Snapshot COGS
-      await tx.shipmentItem.update({
-        where: { id: item.id },
-        data: { costSnapshot: product.averageCost },
-      });
-
-      // Stock OUT
-      await this.createStockMovement(
-        {
-          companyId,
-          productId: item.productId,
-          type: MovementType.OUT,
-          quantity: qty,
-          reference: `SHP:${shipment.number}`,
-        },
-        tx
-      );
-    }
-
-    // 3. Update Shipment Status
-    const postedShipment = await tx.shipment.update({
-      where: { id },
-      data: { status: 'POSTED' },
       include: {
-        items: { include: { product: true } },
+        items: { include: { product: true, orderItem: true } },
+        order: true,
       },
     });
 
-    // 4. Update Sales Order Status to COMPLETED
+    for (const item of fulfillment.items) {
+      const qty = Number(item.quantity);
+
+      if (fulfillment.type === FulfillmentType.RECEIPT) {
+        // Stock IN with cost
+        const unitCost = Number(item.orderItem.price);
+        await this.createStockMovement(
+          {
+            companyId,
+            productId: item.productId,
+            type: MovementType.IN,
+            quantity: qty,
+            reference: `GRN:${fulfillment.number} PO:${fulfillment.order.orderNumber || fulfillment.orderId}`,
+            unitCost,
+          },
+          tx
+        );
+      } else {
+        // Stock OUT - validate + snapshot COGS
+        if (item.product.stockQty < qty) {
+          throw new Error(
+            `Insufficient stock for ${item.product.name}. Available: ${item.product.stockQty}, Required: ${qty}`
+          );
+        }
+
+        await tx.fulfillmentItem.update({
+          where: { id: item.id },
+          data: { costSnapshot: item.product.averageCost },
+        });
+
+        await this.createStockMovement(
+          {
+            companyId,
+            productId: item.productId,
+            type: MovementType.OUT,
+            quantity: qty,
+            reference: `SHP:${fulfillment.number}`,
+          },
+          tx
+        );
+      }
+    }
+
+    // Update fulfillment status
+    const posted = await tx.fulfillment.update({
+      where: { id },
+      data: { status: 'POSTED' },
+      include: {
+        items: { include: { product: true, orderItem: true } },
+      },
+    });
+
+    // Update order status to COMPLETED
     await tx.order.update({
-      where: { id: shipment.salesOrderId },
+      where: { id: fulfillment.orderId },
       data: { status: 'COMPLETED' },
     });
 
-    return postedShipment;
+    return posted;
   }
 
-  /**
-   * Count Invoices linked to a Sales Order
-   * Used to check if Shipment can be voided
-   */
   async countInvoicesForOrder(
     orderId: string,
     companyId: string,
+    type: InvoiceType,
     tx?: Prisma.TransactionClient
   ): Promise<number> {
     const db = tx || prisma;
@@ -562,24 +360,20 @@ export class InventoryRepository {
       where: {
         companyId,
         orderId,
-        type: 'INVOICE',
-        status: { not: 'VOID' }, // Don't count voided invoices
+        type,
+        status: { not: 'VOID' },
       },
     });
   }
 
-  /**
-   * Void a Shipment
-   * Just updates status to VOIDED
-   */
-  async voidShipment(id: string, tx?: Prisma.TransactionClient) {
+  async voidFulfillment(id: string, tx?: Prisma.TransactionClient) {
     const db = tx || prisma;
-    return db.shipment.update({
+    return db.fulfillment.update({
       where: { id },
       data: { status: 'VOIDED' },
       include: {
-        items: { include: { product: true } },
-        salesOrder: true,
+        items: { include: { product: true, orderItem: true } },
+        order: true,
       },
     });
   }
