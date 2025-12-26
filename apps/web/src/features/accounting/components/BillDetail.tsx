@@ -2,12 +2,9 @@ import { useParams, Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
-import { useConfirm } from '@/components/ui/ConfirmModal';
-import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { RecordPaymentModal } from '@/features/accounting/components/RecordPaymentModal';
 import { PaymentHistoryModal } from '@/features/accounting/components/PaymentHistoryModal';
-import { BackButton } from '@/components/ui/BackButton';
 import { useState } from 'react';
 import { getBillStatusDisplay } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
@@ -18,7 +15,12 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
-} from '@/components/ui/Card';
+  PageHeader,
+  ActionButton,
+  useConfirm,
+  LoadingState,
+  EmptyState,
+} from '@/components/ui';
 
 export default function BillDetail() {
   const { id } = useParams<{ id: string }>();
@@ -68,19 +70,11 @@ export default function BillDetail() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading bill details...</div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (!bill) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Bill not found</div>
-      </div>
-    );
+    return <EmptyState message="Bill not found" />;
   }
 
   const statusDisplay = getBillStatusDisplay(bill.status);
@@ -110,33 +104,28 @@ export default function BillDetail() {
       {/* Page Content */}
       <PageContainer>
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <BackButton />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Bill {bill.invoiceNumber}
-              </h1>
-              <p className="text-sm text-gray-500">
-                {bill.partnerId ? (
-                  <Link
-                    to={`/suppliers/${bill.partnerId}`}
-                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                  >
-                    {bill.partner?.name || 'View Supplier'}
-                  </Link>
-                ) : (
-                  'Unknown Supplier'
-                )}
-              </p>
-            </div>
-          </div>
-          <span
-            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${statusDisplay.color}`}
-          >
-            {statusDisplay.label}
-          </span>
-        </div>
+        <PageHeader
+          title={`Bill ${bill.invoiceNumber}`}
+          subtitle={
+            bill.partnerId ? (
+              <Link
+                to={`/suppliers/${bill.partnerId}`}
+                className="text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                {bill.partner?.name || 'View Supplier'}
+              </Link>
+            ) : (
+              'Unknown Supplier'
+            )
+          }
+          badges={
+            <span
+              className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${statusDisplay.color}`}
+            >
+              {statusDisplay.label}
+            </span>
+          }
+        />
 
         {/* Details Card */}
         <Card>

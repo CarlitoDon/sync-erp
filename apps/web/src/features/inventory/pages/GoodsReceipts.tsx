@@ -81,12 +81,12 @@ export default function GoodsReceipts() {
                     </Link>
                   </td>
                   <td className="px-6 py-4">
-                    {receipt.purchaseOrder ? (
+                    {receipt.order ? (
                       <Link
-                        to={`/purchase-orders/${receipt.purchaseOrderId}`}
+                        to={`/purchase-orders/${receipt.orderId}`}
                         className="text-blue-600 hover:underline"
                       >
-                        {receipt.purchaseOrder.orderNumber}
+                        {receipt.order.orderNumber}
                       </Link>
                     ) : (
                       '-'

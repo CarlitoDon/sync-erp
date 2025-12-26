@@ -2,7 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { apiAction } from '@/hooks/useApiAction';
+import { useOrderMutations } from '@/hooks/useOrderMutations';
 import PurchaseOrderActions from '../components/PurchaseOrderActions';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
@@ -16,7 +16,6 @@ import {
 } from '@sync-erp/shared';
 import { PageContainer } from '@/components/layout/PageLayout';
 import {
-  useConfirm,
   ActionButton,
   BackButton,
   Card,
@@ -27,6 +26,8 @@ import {
   PaymentStatusBadge,
   StatusBadge,
   LoadingState,
+  EmptyState,
+  FulfillmentStatusBadge,
   OrderItemsTable,
 } from '@/components/ui';
 
@@ -34,7 +35,6 @@ export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
-  const confirm = useConfirm();
   const utils = trpc.useUtils();
   const [goodsReceiptId, setGoodsReceiptId] = useState<string | null>(
     null
@@ -51,66 +51,15 @@ export default function PurchaseOrderDetail() {
   const isUpfrontOrder =
     order?.paymentTerms === PaymentTermsSchema.enum.UPFRONT;
 
-  const confirmMutation = trpc.purchaseOrder.confirm.useMutation({
+  const { handleConfirm, handleCancel } = useOrderMutations({
+    type: 'purchase',
     onSuccess: () =>
       utils.purchaseOrder.getById.invalidate({ id: id! }),
   });
-
-  const cancelMutation = trpc.purchaseOrder.cancel.useMutation({
-    onSuccess: () =>
-      utils.purchaseOrder.getById.invalidate({ id: id! }),
-  });
-
-  const handleConfirm = async () => {
-    if (!order) return;
-    await apiAction(
-      () => confirmMutation.mutateAsync({ id: order.id }),
-      'Order confirmed!'
-    );
-  };
-
-  const handleCancel = async () => {
-    if (!order) return;
-    const confirmed = await confirm({
-      title: 'Cancel Order',
-      message: 'Are you sure you want to cancel this order?',
-      confirmText: 'Yes, Cancel',
-      variant: 'danger',
-    });
-    if (!confirmed) return;
-    await apiAction(
-      () => cancelMutation.mutateAsync({ id: order.id }),
-      'Order cancelled'
-    );
-  };
 
   const handleCreateBill = () => {
     if (!order) return;
     setIsBillModalOpen(true);
-  };
-
-  const getReceiptStatus = (status: string) => {
-    if (
-      status === OrderStatusSchema.enum.RECEIVED ||
-      status === OrderStatusSchema.enum.COMPLETED
-    )
-      return {
-        label: 'Fully Received',
-        color: 'text-green-600 bg-green-50',
-      };
-    if (status === OrderStatusSchema.enum.PARTIALLY_RECEIVED)
-      return {
-        label: 'Partial',
-        color: 'text-amber-600 bg-amber-50',
-      };
-    if (status === OrderStatusSchema.enum.CONFIRMED)
-      return {
-        label: 'Pending',
-        color: 'text-blue-600 bg-blue-50',
-      };
-    if (status === OrderStatusSchema.enum.CANCELLED)
-      return { label: 'Cancelled', color: 'text-red-600 bg-red-50' };
-    return { label: 'N/A', color: 'text-gray-400 bg-gray-50' };
   };
 
   if (loading) {
@@ -118,14 +67,8 @@ export default function PurchaseOrderDetail() {
   }
 
   if (!order) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Order not found</div>
-      </div>
-    );
+    return <EmptyState message="Order not found" />;
   }
-
-  const receiptStatus = getReceiptStatus(order.status);
 
   return (
     <>
@@ -246,11 +189,10 @@ export default function PurchaseOrderDetail() {
                 <p className="text-sm text-gray-500">
                   Receipt Status
                 </p>
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${receiptStatus.color}`}
-                >
-                  {receiptStatus.label}
-                </span>
+                <FulfillmentStatusBadge
+                  status={order.status}
+                  type="receipt"
+                />
               </div>
             </div>
 

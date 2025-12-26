@@ -1,11 +1,11 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { useConfirm } from '@/components/ui/ConfirmModal';
+import { useOrderMutations } from '@/hooks/useOrderMutations';
 import { apiAction } from '@/hooks/useApiAction';
-import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency } from '@/utils/format';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import SalesOrderActions from './SalesOrderActions';
 
 interface SalesOrderListProps {
   filter?: { partnerId?: string; status?: string };
@@ -16,7 +16,7 @@ export default function SalesOrderList({
 }: SalesOrderListProps) {
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
-  const confirm = useConfirm();
+  const navigate = useNavigate();
 
   const { data: orders, isLoading: loading } =
     trpc.salesOrder.list.useQuery(filter, {
@@ -24,66 +24,23 @@ export default function SalesOrderList({
       initialData: [],
     });
 
-  const confirmMutation = trpc.salesOrder.confirm.useMutation({
+  const { handleConfirm, handleCancel } = useOrderMutations({
+    type: 'sales',
     onSuccess: () => utils.salesOrder.list.invalidate(),
   });
 
-  const cancelMutation = trpc.salesOrder.cancel.useMutation({
+  const shipMutation = trpc.salesOrder.ship.useMutation({
     onSuccess: () => utils.salesOrder.list.invalidate(),
   });
 
   const createInvoiceMutation = trpc.invoice.createFromSO.useMutation(
     {
       onSuccess: () => {
-        utils.salesOrder.list.invalidate(); // Updates status/invoices link
+        utils.salesOrder.list.invalidate();
         utils.invoice.list.invalidate();
       },
     }
   );
-
-  const getInvoiceStatusBadge = (status: string, balance: number) => {
-    const formatCompact = (val: number) => {
-      if (val >= 1000000000)
-        return `${(val / 1000000000).toFixed(1)}B`;
-      if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-      if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
-      return val.toFixed(0);
-    };
-
-    switch (status) {
-      case 'PAID':
-        return {
-          color: 'bg-green-100 text-green-800',
-          label: '✓ Paid',
-        };
-      case 'POSTED':
-        return {
-          color: 'bg-yellow-100 text-yellow-800',
-          label:
-            balance > 0
-              ? `○ Rp ${formatCompact(balance)}`
-              : '○ Posted',
-        };
-      case 'VOID':
-        return { color: 'bg-red-100 text-red-800', label: '✕ Void' };
-      default:
-        return {
-          color: 'bg-gray-100 text-gray-600',
-          label: '◌ Draft',
-        };
-    }
-  };
-
-  const handleConfirm = async (id: string) => {
-    await apiAction(
-      () => confirmMutation.mutateAsync({ id }),
-      'Order confirmed!'
-    );
-  };
-
-  const shipMutation = trpc.salesOrder.ship.useMutation({
-    onSuccess: () => utils.salesOrder.list.invalidate(),
-  });
 
   const handleShip = async (id: string) => {
     await apiAction(
@@ -100,22 +57,7 @@ export default function SalesOrderList({
   };
 
   const handleViewInvoice = (invoiceId: string) => {
-    window.location.href = `/invoices/${invoiceId}`;
-  };
-
-  const handleCancel = async (id: string) => {
-    const confirmed = await confirm({
-      title: 'Cancel Order',
-      message: 'Are you sure you want to cancel this order?',
-      confirmText: 'Yes, Cancel',
-      variant: 'danger',
-    });
-    if (!confirmed) return;
-
-    await apiAction(
-      () => cancelMutation.mutateAsync({ id }),
-      'Order cancelled'
-    );
+    navigate(`/invoices/${invoiceId}`);
   };
 
   if (loading && orders.length === 0) {
@@ -183,65 +125,16 @@ export default function SalesOrderList({
                 <td className="px-6 py-4 text-center">
                   <StatusBadge status={order.status} domain="order" />
                 </td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  {order.status === 'DRAFT' && (
-                    <>
-                      <ActionButton
-                        onClick={() => handleConfirm(order.id)}
-                        variant="primary"
-                      >
-                        Confirm
-                      </ActionButton>
-                      <ActionButton
-                        onClick={() => handleCancel(order.id)}
-                        variant="danger"
-                      >
-                        Cancel
-                      </ActionButton>
-                    </>
-                  )}
-                  {order.status === 'CONFIRMED' && (
-                    <ActionButton
-                      onClick={() => handleShip(order.id)}
-                      variant="success"
-                    >
-                      Ship
-                    </ActionButton>
-                  )}
-                  {order.status === 'COMPLETED' &&
-                    (!order.invoices ||
-                      order.invoices.length === 0) && (
-                      <ActionButton
-                        onClick={() => handleCreateInvoice(order.id)}
-                        variant="warning"
-                      >
-                        Inv (+Tax)
-                      </ActionButton>
-                    )}
-                  {order.status === 'COMPLETED' &&
-                    order.invoices &&
-                    order.invoices.length > 0 && (
-                      <div className="flex flex-col items-end gap-1">
-                        <ActionButton
-                          onClick={() =>
-                            handleViewInvoice(order.invoices![0].id)
-                          }
-                          variant="secondary"
-                        >
-                          View Invoice
-                        </ActionButton>
-                        <span
-                          className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${getInvoiceStatusBadge(order.invoices![0].status, Number(order.invoices![0].balance)).color}`}
-                        >
-                          {
-                            getInvoiceStatusBadge(
-                              order.invoices![0].status,
-                              Number(order.invoices![0].balance)
-                            ).label
-                          }
-                        </span>
-                      </div>
-                    )}
+                <td className="px-6 py-4 text-right">
+                  <SalesOrderActions
+                    order={order}
+                    onConfirm={handleConfirm}
+                    onCancel={handleCancel}
+                    onShip={handleShip}
+                    onCreateInvoice={handleCreateInvoice}
+                    onViewInvoice={handleViewInvoice}
+                    layout="list"
+                  />
                 </td>
               </tr>
             ))

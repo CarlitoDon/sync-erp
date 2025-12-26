@@ -81,12 +81,12 @@ export default function Shipments() {
                     </Link>
                   </td>
                   <td className="px-6 py-4">
-                    {shipment.salesOrder ? (
+                    {shipment.order ? (
                       <Link
-                        to={`/sales-orders/${shipment.salesOrderId}`}
+                        to={`/sales-orders/${shipment.orderId}`}
                         className="text-blue-600 hover:underline"
                       >
-                        {shipment.salesOrder.orderNumber}
+                        {shipment.order.orderNumber}
                       </Link>
                     ) : (
                       '-'

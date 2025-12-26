@@ -122,8 +122,8 @@ export default function CreateInvoiceModal({
             id: shipmentId,
           });
           if (shipment) {
-            setSoId(shipment.salesOrderId);
-            setValue('orderId', shipment.salesOrderId);
+            setSoId(shipment.orderId);
+            setValue('orderId', shipment.orderId);
           }
         } finally {
           setLoadingDetails(false);

@@ -191,12 +191,12 @@ export default function ShipmentDetail() {
             <div>
               <p className="text-sm text-gray-500">Sales Order</p>
               <p className="font-medium">
-                {shipment.salesOrder ? (
+                {shipment.order ? (
                   <Link
-                    to={`/sales-orders/${shipment.salesOrderId}`}
+                    to={`/sales-orders/${shipment.orderId}`}
                     className="text-blue-600 hover:underline"
                   >
-                    {shipment.salesOrder.orderNumber}
+                    {shipment.order.orderNumber}
                   </Link>
                 ) : (
                   '-'
