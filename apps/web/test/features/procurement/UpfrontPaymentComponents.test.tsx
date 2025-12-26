@@ -59,14 +59,14 @@ describe('Cash Upfront Payment Components', () => {
       expect(screen.getByText(/50% paid/)).toBeInTheDocument();
     });
 
-    it('shows Register Payment button when not fully paid', () => {
+    it('shows Record Payment button when not fully paid', () => {
       render(<UpfrontPaymentCard {...mockProps} />);
       expect(
-        screen.getByRole('button', { name: /register payment/i })
+        screen.getByRole('button', { name: /record payment/i })
       ).toBeInTheDocument();
     });
 
-    it('does NOT show Register Payment button when settled', () => {
+    it('does NOT show Record Payment button when settled', () => {
       const settledProps = {
         ...mockProps,
         paidAmount: 1000000,
@@ -75,7 +75,7 @@ describe('Cash Upfront Payment Components', () => {
       };
       render(<UpfrontPaymentCard {...settledProps} />);
       expect(
-        screen.queryByRole('button', { name: /register payment/i })
+        screen.queryByRole('button', { name: /record payment/i })
       ).not.toBeInTheDocument();
       expect(screen.getByText('Fully Paid')).toBeInTheDocument();
     });

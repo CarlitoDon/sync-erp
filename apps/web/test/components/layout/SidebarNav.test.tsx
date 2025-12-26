@@ -34,11 +34,15 @@ describe('SidebarNav', () => {
       expect(screen.getByText('Customers')).toBeInTheDocument();
       expect(screen.getByText('Products')).toBeInTheDocument();
       expect(screen.getByText('Purchase Orders')).toBeInTheDocument();
-      expect(screen.getByText('Bills')).toBeInTheDocument();
+      expect(screen.getByText('Vendor Bills')).toBeInTheDocument();
       expect(screen.getByText('Sales Orders')).toBeInTheDocument();
-      expect(screen.getByText('Inventory')).toBeInTheDocument();
-      expect(screen.getByText('Invoices')).toBeInTheDocument();
-      expect(screen.getByText('Finance')).toBeInTheDocument();
+      expect(screen.getByText('Stock Levels')).toBeInTheDocument();
+      expect(
+        screen.getByText('Customer Invoices')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Journal & Ledger')
+      ).toBeInTheDocument();
       expect(screen.getByText('Companies')).toBeInTheDocument();
     });
   });
@@ -84,11 +88,11 @@ describe('SidebarNav', () => {
       ).toHaveAttribute('href', '/purchase-orders');
     });
 
-    it('has correct link for Bills', () => {
+    it('has correct link for Vendor Bills', () => {
       renderComponent();
 
       expect(
-        screen.getByRole('link', { name: /bills/i })
+        screen.getByRole('link', { name: /vendor bills/i })
       ).toHaveAttribute('href', '/bills');
     });
 
@@ -100,27 +104,27 @@ describe('SidebarNav', () => {
       ).toHaveAttribute('href', '/sales-orders');
     });
 
-    it('has correct link for Inventory', () => {
+    it('has correct link for Stock Levels', () => {
       renderComponent();
 
       expect(
-        screen.getByRole('link', { name: /inventory/i })
+        screen.getByRole('link', { name: /stock levels/i })
       ).toHaveAttribute('href', '/inventory');
     });
 
-    it('has correct link for Invoices', () => {
+    it('has correct link for Customer Invoices', () => {
       renderComponent();
 
       expect(
-        screen.getByRole('link', { name: /invoices/i })
+        screen.getByRole('link', { name: /customer invoices/i })
       ).toHaveAttribute('href', '/invoices');
     });
 
-    it('has correct link for Finance', () => {
+    it('has correct link for Journal & Ledger', () => {
       renderComponent();
 
       expect(
-        screen.getByRole('link', { name: /finance/i })
+        screen.getByRole('link', { name: /journal & ledger/i })
       ).toHaveAttribute('href', '/finance');
     });
 
@@ -152,11 +156,11 @@ describe('SidebarNav', () => {
       expect(productsLink).toHaveClass('bg-primary-100');
     });
 
-    it('highlights Finance when on finance subpath', () => {
+    it('highlights Journal & Ledger when on finance subpath', () => {
       renderComponent('/finance/journal');
 
       const financeLink = screen.getByRole('link', {
-        name: /finance/i,
+        name: /journal & ledger/i,
       });
       expect(financeLink).toHaveClass('bg-primary-100');
     });
