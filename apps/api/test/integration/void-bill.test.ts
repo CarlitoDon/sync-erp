@@ -167,7 +167,8 @@ describe('P2P: Void Bill & Journal Reversal', () => {
       bill.id,
       COMPANY_ID,
       'test-user-id',
-      reason
+      reason,
+      ['*:*'] // Admin permissions for test
     );
 
     // 5. Verify Bill Status VOIDED
@@ -262,7 +263,8 @@ describe('P2P: Void Bill & Journal Reversal', () => {
         bill.id,
         COMPANY_ID,
         'test-user-id',
-        'Void paid bill'
+        'Void paid bill',
+        ['*:*'] // Admin permissions for test
       )
     ).rejects.toThrow();
   });

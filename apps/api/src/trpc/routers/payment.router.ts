@@ -56,7 +56,8 @@ export const paymentRouter = router({
         input.id,
         ctx.companyId,
         ctx.userId,
-        input.reason
+        input.reason,
+        ctx.userPermissions // FR-026: Granular RBAC
       );
     }),
 });

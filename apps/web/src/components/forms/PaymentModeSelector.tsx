@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PaymentTermsSchema } from '@sync-erp/shared';
 import { formatCurrency } from '@/utils/format';
+import Select from '@/components/ui/Select';
 
 // UI-level payment mode constants (not database enums)
 const PAYMENT_MODES = {
@@ -174,17 +175,12 @@ export default function PaymentModeSelector({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Jangka Waktu
             </label>
-            <select
+            <Select
               value={value.paymentTerms}
-              onChange={(e) => handleTempoChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              {TEMPO_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => handleTempoChange(val)}
+              options={TEMPO_OPTIONS}
+              placeholder="Pilih jangka waktu"
+            />
           </div>
 
           {/* DP Toggle */}
@@ -220,7 +216,7 @@ export default function PaymentModeSelector({
                         parseFloat(e.target.value) || 0
                       )
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -237,7 +233,7 @@ export default function PaymentModeSelector({
                         parseFloat(e.target.value) || 0
                       )
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -289,7 +285,7 @@ export default function PaymentModeSelector({
       )}
 
       {value.mode === PAYMENT_MODES.COD && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-4">
           <div className="flex items-start gap-3">
             <span className="text-2xl">🚚</span>
             <div className="flex-1">
@@ -299,20 +295,98 @@ export default function PaymentModeSelector({
               <p className="text-sm text-orange-700 mt-1">
                 Pembayaran dilakukan saat barang tiba (Goods Receipt).
               </p>
-              <div className="mt-3 text-sm">
-                <div className="flex justify-between text-orange-800">
-                  <span>Total Pesanan:</span>
-                  <span className="font-semibold">
-                    {formatCurrency(totalAmount)}
+            </div>
+          </div>
+
+          {/* DP Toggle for COD */}
+          <div className="flex items-center gap-2 pt-3 border-t border-orange-200">
+            <input
+              type="checkbox"
+              id="codWithDP"
+              checked={value.withDP}
+              onChange={(e) => handleDPToggle(e.target.checked)}
+              className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+            />
+            <label
+              htmlFor="codWithDP"
+              className="text-sm text-gray-700"
+            >
+              Dengan Uang Muka (DP)
+            </label>
+          </div>
+
+          {/* DP Inputs for COD */}
+          {value.withDP && (
+            <div className="bg-orange-100 border border-orange-300 rounded-lg p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    DP Persen (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    step={1}
+                    value={Math.round(localDpPercent)}
+                    onChange={(e) =>
+                      handleDpPercentChange(
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    DP Nominal
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={Math.round(localDpAmount)}
+                    onChange={(e) =>
+                      handleDpAmountChange(
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+              <div className="text-sm text-orange-800">
+                <div className="flex justify-between">
+                  <span>DP dibayar di muka:</span>
+                  <span className="font-medium">
+                    {formatCurrency(localDpAmount)}
                   </span>
                 </div>
-                <div className="flex justify-between text-orange-900 font-medium">
-                  <span>Dibayar saat GRN:</span>
-                  <span>{formatCurrency(totalAmount)}</span>
+                <div className="flex justify-between">
+                  <span>Sisa dibayar saat GRN:</span>
+                  <span className="font-medium">
+                    {formatCurrency(totalAmount - localDpAmount)}
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Payment breakdown - only show if no DP */}
+          {!value.withDP && (
+            <div className="text-sm">
+              <div className="flex justify-between text-orange-800">
+                <span>Total Pesanan:</span>
+                <span className="font-semibold">
+                  {formatCurrency(totalAmount)}
+                </span>
+              </div>
+              <div className="flex justify-between text-orange-900 font-medium">
+                <span>Dibayar saat GRN:</span>
+                <span>{formatCurrency(totalAmount)}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

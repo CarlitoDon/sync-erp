@@ -136,7 +136,8 @@ export const inventoryRouter = router({
         input.id,
         input.reason,
         undefined,
-        ctx.userId
+        ctx.userId,
+        ctx.userPermissions // FR-026: Granular RBAC
       );
     }),
 
@@ -157,7 +158,8 @@ export const inventoryRouter = router({
         input.id,
         input.reason,
         undefined,
-        ctx.userId
+        ctx.userId,
+        ctx.userPermissions // FR-026: Granular RBAC
       );
     }),
 });

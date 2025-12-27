@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import { PageContainer } from '@/components/layout/PageLayout';
-import { DocumentStatusSchema } from '@sync-erp/shared';
+import {
+  DocumentStatusSchema,
+  PaymentTermsSchema,
+} from '@sync-erp/shared';
 import {
   Card,
   CardHeader,
@@ -59,6 +62,19 @@ export default function GoodsReceiptDetail() {
 
     if (confirmed) {
       await postMutation.mutateAsync({ id: receipt.id });
+
+      // GAP-004: COD payment reminder
+      // Check if the linked order is COD - show payment reminder
+      const order = receipt.order;
+      if (order?.paymentTerms === PaymentTermsSchema.enum.COD) {
+        const goToPayment = window.confirm(
+          '🚚 COD Order - Payment due immediately!\n\nWould you like to view the order to record payment?'
+        );
+        if (goToPayment && order.id) {
+          // Navigate to PO detail which shows DP/Final Bills
+          navigate(`/purchase-orders/${order.id}`);
+        }
+      }
     }
   };
 

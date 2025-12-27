@@ -184,8 +184,24 @@ export class PaymentService {
     id: string,
     companyId: string,
     _actorId: string, // Reserved for future audit log integration
-    reason: string
+    reason: string,
+    userPermissions?: string[] // FR-026: Granular permissions array
   ): Promise<Payment> {
+    // FR-026: Void Payment requires 'payment:void' permission
+    const requiredPermission = 'payment:void';
+    const hasPermission =
+      userPermissions?.includes(requiredPermission) ||
+      userPermissions?.includes('payment:*') ||
+      userPermissions?.includes('*:*');
+
+    if (!hasPermission) {
+      throw new DomainError(
+        `Missing permission: ${requiredPermission}`,
+        403,
+        DomainErrorCodes.FORBIDDEN
+      );
+    }
+
     // FR-024: Reason is mandatory
     if (!reason || reason.trim().length === 0) {
       throw new DomainError(

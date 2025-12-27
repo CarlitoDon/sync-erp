@@ -60,8 +60,47 @@ export const billRouter = router({
         input.id,
         ctx.companyId,
         ctx.userId,
-        input.reason
+        input.reason,
+        ctx.userPermissions // FR-026: Granular RBAC
       );
+    }),
+
+  /**
+   * FR-051: Log acknowledged price variance
+   */
+  acknowledgePriceVariance: protectedProcedure
+    .input(
+      z.object({
+        billId: z.string().uuid(),
+        reason: z
+          .string()
+          .min(1, 'Acknowledgment reason is required'),
+        varianceAmount: z.number(),
+        variancePercent: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Import audit service dynamically to avoid circular deps
+      const { recordAudit } =
+        await import('../../modules/common/audit/audit-log.service');
+      const { AuditLogAction, EntityType } =
+        await import('@sync-erp/database');
+
+      await recordAudit({
+        companyId: ctx.companyId,
+        actorId: ctx.userId,
+        action: AuditLogAction.PRICE_VARIANCE_ACKNOWLEDGED,
+        entityType: EntityType.BILL,
+        entityId: input.billId,
+        businessDate: new Date(),
+        payloadSnapshot: {
+          reason: input.reason,
+          varianceAmount: input.varianceAmount,
+          variancePercent: input.variancePercent,
+        },
+      });
+
+      return { success: true };
     }),
 });
 

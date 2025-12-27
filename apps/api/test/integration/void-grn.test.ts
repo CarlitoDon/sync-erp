@@ -151,7 +151,8 @@ describe('P2P: Void GRN & Status Recalculation', () => {
       grn!.id,
       'Test void reason',
       undefined,
-      'test-user-id'
+      'test-user-id',
+      ['*:*'] // Admin permissions for test
     );
 
     // 6. Verify stock rolled back to 0
@@ -199,7 +200,8 @@ describe('P2P: Void GRN & Status Recalculation', () => {
       grn!.id,
       'First void',
       undefined,
-      'test-user-id'
+      'test-user-id',
+      ['*:*'] // Admin permissions for test
     );
 
     // 4. Attempt to void again - should fail
@@ -209,7 +211,8 @@ describe('P2P: Void GRN & Status Recalculation', () => {
         grn!.id,
         'Second void',
         undefined,
-        'test-user-id'
+        'test-user-id',
+        ['*:*'] // Admin permissions for test
       )
     ).rejects.toThrow();
   });

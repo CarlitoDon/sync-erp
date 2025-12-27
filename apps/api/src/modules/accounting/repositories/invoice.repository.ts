@@ -85,6 +85,53 @@ export class InvoiceRepository {
     });
   }
 
+  /**
+   * Update invoice status with optimistic locking (FR-027)
+   * Validates version to prevent concurrent modification conflicts.
+   */
+  async updateStatus(
+    id: string,
+    status: InvoiceStatus,
+    expectedVersion?: number,
+    tx?: Prisma.TransactionClient
+  ): Promise<Invoice> {
+    const db = tx || prisma;
+
+    if (expectedVersion !== undefined) {
+      const result = await db.invoice.updateMany({
+        where: { id, version: expectedVersion },
+        data: { status, version: { increment: 1 } },
+      });
+
+      if (result.count === 0) {
+        throw new Error(
+          'Concurrency Error: Invoice/Bill has been modified by another process'
+        );
+      }
+
+      return db.invoice.findUniqueOrThrow({
+        where: { id },
+        include: {
+          partner: true,
+          payments: true,
+          order: true,
+          items: { include: { product: true } },
+        },
+      });
+    }
+
+    return db.invoice.update({
+      where: { id },
+      data: { status, version: { increment: 1 } },
+      include: {
+        partner: true,
+        payments: true,
+        order: true,
+        items: { include: { product: true } },
+      },
+    });
+  }
+
   async count(
     companyId: string,
     type: InvoiceType,

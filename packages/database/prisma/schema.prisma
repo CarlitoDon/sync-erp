@@ -704,6 +704,7 @@ enum AuditLogAction {
   GRN_VOIDED
   SHIPMENT_VOIDED
   PAYMENT_VOIDED
+  PRICE_VARIANCE_ACKNOWLEDGED // FR-051: Log acknowledged price variances
 }
 
 enum EntityType {

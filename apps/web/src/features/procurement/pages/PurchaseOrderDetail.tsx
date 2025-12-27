@@ -63,6 +63,22 @@ export default function PurchaseOrderDetail() {
     setIsBillModalOpen(true);
   };
 
+  // GAP-001: Close PO mutation
+  const closeMutation = trpc.purchaseOrder.close.useMutation({
+    onSuccess: () => {
+      utils.purchaseOrder.getById.invalidate({ id: id! });
+    },
+  });
+
+  const handleClosePO = (orderId: string) => {
+    const reason = prompt(
+      'Please enter a reason for closing this PO:'
+    );
+    if (reason && reason.trim()) {
+      closeMutation.mutate({ id: orderId, reason: reason.trim() });
+    }
+  };
+
   if (loading) {
     return <LoadingState />;
   }
@@ -311,6 +327,7 @@ export default function PurchaseOrderDetail() {
                 onReceiveGoods={() => setGoodsReceiptId(order.id)}
                 onCreateBill={handleCreateBill}
                 onViewBill={(billId) => navigate(`/bills/${billId}`)}
+                onClosePO={handleClosePO}
                 layout="detail"
               />
             </div>
