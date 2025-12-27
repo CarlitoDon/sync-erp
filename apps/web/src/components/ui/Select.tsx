@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
 interface SelectOption {
@@ -36,14 +37,34 @@ export default function Select({
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] =
+    useState<React.CSSProperties>({});
 
-  // Close dropdown when clicking outside
+  // Calculate dropdown position when opening
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+  }, [isOpen]);
+
+  // Close dropdown when clicking outside (both container AND dropdown portal)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node;
+      const isInsideContainer =
+        containerRef.current?.contains(target);
+      const isInsideDropdown = dropdownRef.current?.contains(target);
+
+      if (!isInsideContainer && !isInsideDropdown) {
         setIsOpen(false);
       }
     };
@@ -53,6 +74,22 @@ export default function Select({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Close on external scroll (not dropdown internal scroll)
+  useEffect(() => {
+    if (isOpen) {
+      const handleScroll = (event: Event) => {
+        // Don't close if scrolling inside the dropdown itself
+        if (dropdownRef.current?.contains(event.target as Node)) {
+          return;
+        }
+        setIsOpen(false);
+      };
+      window.addEventListener('scroll', handleScroll, true);
+      return () =>
+        window.removeEventListener('scroll', handleScroll, true);
+    }
+  }, [isOpen]);
 
   // Get all options (flat or from groups) for finding selected option
   const allOptions: SelectOption[] = groups
@@ -98,6 +135,38 @@ export default function Select({
     </div>
   );
 
+  const dropdownContent = (
+    <div
+      ref={dropdownRef}
+      style={dropdownStyle}
+      className="bg-white shadow-lg max-h-60 rounded-md ring-1 ring-black ring-opacity-5 focus:outline-none"
+    >
+      <div className="py-1 text-base sm:text-sm max-h-60 overflow-y-auto rounded-md">
+        {allOptions.length === 0 ? (
+          <div className="cursor-default select-none relative py-2 px-4 text-gray-500">
+            No options available
+          </div>
+        ) : groups ? (
+          // Render grouped options
+          groups.map((group, groupIndex) => (
+            <div key={group.label}>
+              {groupIndex > 0 && (
+                <div className="border-t border-gray-200 my-1" />
+              )}
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                {group.label}
+              </div>
+              {group.options.map(renderOption)}
+            </div>
+          ))
+        ) : (
+          // Render flat options
+          options.map(renderOption)
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className={`relative ${className}`} ref={containerRef}>
       {label && (
@@ -107,6 +176,7 @@ export default function Select({
         </label>
       )}
       <button
+        ref={buttonRef}
         type="button"
         data-testid="select-trigger"
         onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -132,33 +202,8 @@ export default function Select({
         </span>
       </button>
 
-      {isOpen && (
-        <div className="absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md overflow-hidden ring-1 ring-black ring-opacity-5 focus:outline-none">
-          <div className="py-1 text-base sm:text-sm max-h-60 overflow-auto">
-            {allOptions.length === 0 ? (
-              <div className="cursor-default select-none relative py-2 px-4 text-gray-500">
-                No options available
-              </div>
-            ) : groups ? (
-              // Render grouped options
-              groups.map((group, groupIndex) => (
-                <div key={group.label}>
-                  {groupIndex > 0 && (
-                    <div className="border-t border-gray-200 my-1" />
-                  )}
-                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
-                    {group.label}
-                  </div>
-                  {group.options.map(renderOption)}
-                </div>
-              ))
-            ) : (
-              // Render flat options
-              options.map(renderOption)
-            )}
-          </div>
-        </div>
-      )}
+      {/* Render dropdown in portal to escape overflow containers */}
+      {isOpen && createPortal(dropdownContent, document.body)}
     </div>
   );
 }

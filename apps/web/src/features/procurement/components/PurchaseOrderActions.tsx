@@ -31,6 +31,7 @@ interface PurchaseOrderActionsProps {
   onReceiveGoods?: (id: string) => void;
   onCreateBill?: (id: string) => void;
   onViewBill?: (billId: string) => void;
+  onClosePO?: (id: string) => void; // GAP-001: Close partially received POs
   // eslint-disable-next-line
   layout?: 'list' | 'detail';
 }
@@ -42,6 +43,7 @@ export default function PurchaseOrderActions({
   onReceiveGoods,
   onCreateBill,
   onViewBill,
+  onClosePO,
   layout = 'list',
 }: PurchaseOrderActionsProps) {
   // Helper for Bill Status Badge (copied from List component logic)
@@ -175,6 +177,16 @@ export default function PurchaseOrderActions({
           variant="primary"
         >
           Create Bill
+        </ActionButton>
+      )}
+
+      {/* Close PO - GAP-001: Allow closing partially received POs */}
+      {(isConfirmed || isPartiallyReceived) && onClosePO && (
+        <ActionButton
+          onClick={() => onClosePO(order.id)}
+          variant="warning"
+        >
+          Close PO
         </ActionButton>
       )}
 

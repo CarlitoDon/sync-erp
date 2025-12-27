@@ -74,7 +74,8 @@ const DEFAULT_CONFIGS: Record<DocumentType, DocumentNumberConfig> = {
 export class DocumentNumberService {
   /**
    * Generate a new document number
-   * Format: PREFIX-YYYY-00001 or PREFIX-YY-00001
+   * FR-030 to FR-034: Format PREFIX-YYYYMM-00001 (e.g., PO-202412-00001)
+   * Sequence resets at the start of each month.
    */
   async generate(
     companyId: string,
@@ -85,11 +86,8 @@ export class DocumentNumberService {
     const year = now.getFullYear();
     const month = now.getMonth() + 1; // 1-12
 
-    // YY or YYYY string
-    const yearStr =
-      config.yearFormat === '4'
-        ? year.toString()
-        : year.toString().slice(-2);
+    // FR-030 to FR-034: YYYYMM format (e.g., 202412)
+    const yearMonthStr = `${year}${String(month).padStart(2, '0')}`;
 
     let sequence = 0;
 
@@ -127,7 +125,7 @@ export class DocumentNumberService {
       sequence = seq.lastSequence;
     } else {
       // Fallback for types not yet in SequenceType enum (SO, INV, etc.)
-      // This maintains backward compatibility until we migrate Sales/Finance to new sequence
+      // Note: These still use yearly sequence for backward compatibility
       sequence =
         (await this.getSequenceCount(companyId, docType, year)) + 1;
     }
@@ -137,9 +135,9 @@ export class DocumentNumberService {
       '0'
     );
 
-    // Build the document number
+    // Build the document number: PREFIX-YYYYMM-NNNNN
     if (config.includeYear) {
-      return `${config.prefix}${config.separator}${yearStr}${config.separator}${sequenceStr}`;
+      return `${config.prefix}${config.separator}${yearMonthStr}${config.separator}${sequenceStr}`;
     }
     return `${config.prefix}${config.separator}${sequenceStr}`;
   }

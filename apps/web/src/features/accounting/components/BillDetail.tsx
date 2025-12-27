@@ -10,6 +10,7 @@ import { getBillStatusDisplay } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
 import { getPaymentTermLabel } from '@sync-erp/shared';
 import { PageContainer } from '@/components/layout/PageLayout';
+import { PriceVarianceCard } from './PriceVarianceCard';
 import {
   Card,
   CardHeader,
@@ -221,6 +222,30 @@ export default function BillDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* FR-049: Price Variance Comparison */}
+        {bill.order && bill.items && bill.items.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Price Comparison (3-Way Match)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PriceVarianceCard
+                items={bill.items.map((billItem, idx) => {
+                  const poItem = bill.order?.items?.[idx];
+                  return {
+                    productName:
+                      billItem.product?.name || 'Unknown Product',
+                    poQuantity: poItem?.quantity || 0,
+                    poPrice: Number(poItem?.price || 0),
+                    billQuantity: billItem.quantity || 0,
+                    billPrice: Number(billItem.price || 0),
+                  };
+                })}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Actions */}
         <Card>

@@ -335,8 +335,23 @@ export class InventoryService {
     fulfillmentId: string,
     reason: string,
     tx?: Prisma.TransactionClient,
-    userId?: string
+    userId?: string,
+    userPermissions?: string[] // FR-026: Granular permissions array
   ) {
+    // FR-026: Void Fulfillment requires 'inventory:void' permission
+    const requiredPermission = 'inventory:void';
+    const hasPermission =
+      userPermissions?.includes(requiredPermission) ||
+      userPermissions?.includes('inventory:*') ||
+      userPermissions?.includes('*:*');
+
+    if (!hasPermission) {
+      throw new DomainError(
+        `Missing permission: ${requiredPermission}`,
+        403
+      );
+    }
+
     // FR-024: Reason is mandatory
     if (!reason || reason.trim().length === 0) {
       throw new DomainError('Void reason is required', 400);
@@ -535,9 +550,17 @@ export class InventoryService {
     grnId: string,
     reason: string,
     tx?: Prisma.TransactionClient,
-    userId?: string
+    userId?: string,
+    userPermissions?: string[] // FR-026: Granular RBAC
   ) {
-    return this.voidFulfillment(companyId, grnId, reason, tx, userId);
+    return this.voidFulfillment(
+      companyId,
+      grnId,
+      reason,
+      tx,
+      userId,
+      userPermissions
+    );
   }
 
   // ==========================================
@@ -588,14 +611,16 @@ export class InventoryService {
     shipmentId: string,
     reason: string,
     tx?: Prisma.TransactionClient,
-    userId?: string
+    userId?: string,
+    userPermissions?: string[] // FR-026: Granular RBAC
   ) {
     return this.voidFulfillment(
       companyId,
       shipmentId,
       reason,
       tx,
-      userId
+      userId,
+      userPermissions
     );
   }
 }

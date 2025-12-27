@@ -151,7 +151,10 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
     await inventoryService.voidShipment(
       COMPANY_ID,
       shipmentId,
-      'Test void reason'
+      'Test void reason',
+      undefined,
+      undefined,
+      ['*:*'] // Admin permissions for test
     );
 
     // 4. Verify Rollback
@@ -180,7 +183,10 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
         inventoryService.voidShipment(
           COMPANY_ID,
           '00000000-0000-0000-0000-000000000000',
-          'Test reason'
+          'Test reason',
+          undefined,
+          undefined,
+          ['*:*'] // Admin permissions for test
         )
       ).rejects.toThrow();
     });
@@ -202,7 +208,10 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
       await inventoryService.voidShipment(
         COMPANY_ID,
         shipment!.id,
-        'First void reason'
+        'First void reason',
+        undefined,
+        undefined,
+        ['*:*'] // Admin permissions for test
       );
 
       // Void again
@@ -210,7 +219,10 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
         inventoryService.voidShipment(
           COMPANY_ID,
           shipment!.id,
-          'Second void reason'
+          'Second void reason',
+          undefined,
+          undefined,
+          ['*:*'] // Admin permissions for test
         )
       ).rejects.toThrow('Cannot void fulfillment');
       // Note: Exact message depends on implementation, but it should fail

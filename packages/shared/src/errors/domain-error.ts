@@ -77,4 +77,6 @@ export const DomainErrorCodes = {
   THREE_WAY_MATCH_FAILED: 'THREE_WAY_MATCH_FAILED',
   // FR-013: Duplicate supplier invoice number
   DUPLICATE_SUPPLIER_INVOICE: 'DUPLICATE_SUPPLIER_INVOICE',
+  // FR-026: Role-based access control
+  FORBIDDEN: 'FORBIDDEN',
 } as const;

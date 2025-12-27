@@ -33,6 +33,7 @@ import { DocumentNumberService } from '../../common/services/document-number.ser
 import { BillPolicy } from '../policies/bill.policy';
 import { InventoryRepository } from '../../inventory/inventory.repository.js';
 import { PurchaseOrderRepository } from '../../procurement/purchase-order.repository.js';
+import { calculateDueDate } from '../../common/utils/payment-terms.utils';
 import * as auditLogService from '../../common/audit/audit-log.service';
 
 export class BillService {
@@ -162,7 +163,10 @@ export class BillService {
       balance: amount,
       dueDate:
         data.dueDate ||
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        calculateDueDate(
+          new Date(),
+          order.paymentTerms || PaymentTerms.NET30
+        ),
       paymentTermsString:
         order.paymentTerms || data.paymentTermsString || 'NET30', // Inherit from PO if exists
     };
@@ -596,8 +600,24 @@ export class BillService {
     id: string,
     companyId: string,
     actorId: string,
-    reason: string
+    reason: string,
+    userPermissions?: string[] // FR-026: Granular permissions array
   ): Promise<Invoice> {
+    // FR-026: Void Bill requires 'bill:void' permission
+    const requiredPermission = 'bill:void';
+    const hasPermission =
+      userPermissions?.includes(requiredPermission) ||
+      userPermissions?.includes('bill:*') ||
+      userPermissions?.includes('*:*');
+
+    if (!hasPermission) {
+      throw new DomainError(
+        `Missing permission: ${requiredPermission}`,
+        403,
+        DomainErrorCodes.FORBIDDEN
+      );
+    }
+
     // FR-024: Reason is mandatory
     if (!reason || reason.trim().length === 0) {
       throw new DomainError(
