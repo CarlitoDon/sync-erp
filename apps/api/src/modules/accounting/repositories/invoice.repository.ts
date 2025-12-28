@@ -5,6 +5,7 @@ import {
   InvoiceStatus,
   Prisma,
 } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export class InvoiceRepository {
   async create(
@@ -104,8 +105,10 @@ export class InvoiceRepository {
       });
 
       if (result.count === 0) {
-        throw new Error(
-          'Concurrency Error: Invoice/Bill has been modified by another process'
+        throw new DomainError(
+          'Concurrency Error: Invoice/Bill has been modified by another process',
+          409,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
         );
       }
 

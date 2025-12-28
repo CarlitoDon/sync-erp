@@ -10,6 +10,7 @@ import {
   Invoice,
   FulfillmentType,
 } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export class SalesOrderRepository {
   async create(
@@ -113,8 +114,10 @@ export class SalesOrderRepository {
       });
 
       if (result.count === 0) {
-        throw new Error(
-          'Concurrency Error: Order has been modified by another process'
+        throw new DomainError(
+          'Concurrency Error: Order has been modified by another process',
+          409,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
         );
       }
 

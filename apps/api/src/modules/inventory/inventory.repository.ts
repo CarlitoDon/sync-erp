@@ -5,7 +5,9 @@ import {
   MovementType,
   FulfillmentType,
   InvoiceType,
+  SequenceType,
 } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export interface StockMovementInput {
   companyId: string;
@@ -168,7 +170,10 @@ export class InventoryRepository {
   ): Promise<string> {
     const db = tx || prisma;
     const year = new Date().getFullYear();
-    const prefix = type === FulfillmentType.RECEIPT ? 'GRN' : 'SHP';
+    const prefix =
+      type === FulfillmentType.RECEIPT
+        ? SequenceType.GRN
+        : SequenceType.SHP;
     const count = await db.fulfillment.count({
       where: { companyId, type },
     });
@@ -308,8 +313,10 @@ export class InventoryRepository {
       } else {
         // Stock OUT - validate + snapshot COGS
         if (item.product.stockQty < qty) {
-          throw new Error(
-            `Insufficient stock for ${item.product.name}. Available: ${item.product.stockQty}, Required: ${qty}`
+          throw new DomainError(
+            `Insufficient stock for ${item.product.name}. Available: ${item.product.stockQty}, Required: ${qty}`,
+            422,
+            DomainErrorCodes.INSUFFICIENT_STOCK
           );
         }
 
