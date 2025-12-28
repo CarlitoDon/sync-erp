@@ -6,11 +6,13 @@ import {
   JournalSourceType,
 } from '@sync-erp/database';
 import { BillService } from '@modules/accounting/services/bill.service';
+import { PaymentService } from '@modules/accounting/services/payment.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
 const billService = new BillService();
+const paymentService = new PaymentService();
 const journalService = new JournalService();
 const procurementService = new PurchaseOrderService();
 const inventoryService = new InventoryService();
@@ -211,6 +213,38 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
         0
       );
       expect(totalDebit).toBeCloseTo(totalCredit, 2);
+
+      // Step 6: Make Payment and clear Bill balance (matching O2C)
+      const payment = await paymentService.create(COMPANY_ID, {
+        invoiceId: billId,
+        amount: 888000,
+        method: 'BANK_TRANSFER' as const,
+      });
+      expect(Number(payment.amount)).toBe(888000);
+
+      const updatedBill = await billService.getById(
+        billId,
+        COMPANY_ID
+      );
+      expect(Number(updatedBill?.balance)).toBe(0);
+      expect(updatedBill?.status).toBe(InvoiceStatus.PAID);
+
+      // Step 7: Verify Cash disbursement journal
+      const allJournals = await journalService.list(COMPANY_ID);
+      const paymentJournal = allJournals.find(
+        (j: any) => j.sourceType === JournalSourceType.PAYMENT
+      ) as any;
+      expect(paymentJournal).toBeDefined();
+
+      const paymentDebit = paymentJournal.lines.reduce(
+        (sum: number, l: any) => sum + Number(l.debit),
+        0
+      );
+      const paymentCredit = paymentJournal.lines.reduce(
+        (sum: number, l: any) => sum + Number(l.credit),
+        0
+      );
+      expect(paymentDebit).toBeCloseTo(paymentCredit, 2);
     });
   });
 
@@ -293,6 +327,75 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
       await expect(
         billService.post(bill.id, COMPANY_ID, undefined, ACTOR_ID)
       ).rejects.toThrow();
+    });
+
+    // GAP-2 Test: Block receive for UPFRONT PO without deposit (matching O2C)
+    it('Should block receive for UPFRONT PO without deposit', async () => {
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        type: 'PURCHASE',
+        items: [{ productId, quantity: 1, price: 100000 }],
+        paymentTerms: 'UPFRONT',
+      });
+      await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        ACTOR_ID
+      );
+
+      // Try to create GRN without paying - should fail
+      await expect(
+        inventoryService.createGRN(COMPANY_ID, {
+          purchaseOrderId: order.id,
+          items: [{ productId, quantity: 1 }],
+        })
+      ).rejects.toThrow(
+        /DP Bill must be paid|upfront payment required/i
+      );
+    });
+
+    it('Should prevent overpayment (balance cannot be negative)', async () => {
+      // Create PO -> GRN -> Bill flow
+      const order2 = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        type: 'PURCHASE',
+        items: [{ productId, quantity: 1, price: 100000 }],
+        paymentTerms: 'NET30',
+      });
+      await procurementService.confirm(
+        order2.id,
+        COMPANY_ID,
+        ACTOR_ID
+      );
+
+      const grn2 = await inventoryService.createGRN(COMPANY_ID, {
+        purchaseOrderId: order2.id,
+        items: [{ productId, quantity: 1 }],
+      });
+      await inventoryService.postGRN(COMPANY_ID, grn2.id);
+
+      const bill2 = await billService.createFromPurchaseOrder(
+        COMPANY_ID,
+        {
+          orderId: order2.id,
+        }
+      );
+
+      await billService.post(
+        bill2.id,
+        COMPANY_ID,
+        undefined,
+        ACTOR_ID
+      );
+
+      // Try to pay more than the balance
+      await expect(
+        paymentService.create(COMPANY_ID, {
+          invoiceId: bill2.id,
+          amount: 200000, // More than bill amount
+          method: 'CASH' as const,
+        })
+      ).rejects.toThrow(/exceeds/i);
     });
   });
 });

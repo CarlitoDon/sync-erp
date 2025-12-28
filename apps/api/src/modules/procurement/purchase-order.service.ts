@@ -19,44 +19,16 @@ import {
   DomainErrorCodes,
   CreatePurchaseOrderInput,
 } from '@sync-erp/shared';
-
-// Lazy-loaded to avoid circular dependency with InventoryService
-import type { InventoryService as InventoryServiceType } from '../inventory/inventory.service';
+import {
+  calculateDpAmount,
+  validateAndAuditClose,
+} from '../common/utils/order.utils';
+import { InventoryService } from '../inventory/inventory.service';
 
 export class PurchaseOrderService {
   private repository = new PurchaseOrderRepository();
   private documentNumberService = new DocumentNumberService();
-  private _inventoryService: InventoryServiceType | null = null;
-
-  // Lazy load InventoryService to break circular dependency
-  private async getInventoryService(): Promise<InventoryServiceType> {
-    if (!this._inventoryService) {
-      const { InventoryService } =
-        await import('../inventory/inventory.service');
-      this._inventoryService = new InventoryService();
-    }
-    return this._inventoryService!;
-  }
-
-  /**
-   * Calculate DP amount from percent or return manual amount.
-   * Priority: dpAmount (manual) > dpPercent (calculated)
-   */
-  private calculateDpAmount(
-    totalAmount: number,
-    dpPercent?: number,
-    dpAmount?: number
-  ): number | null {
-    // If manual amount provided, use it
-    if (dpAmount !== undefined && dpAmount > 0) {
-      return dpAmount;
-    }
-    // If percent provided, calculate from total
-    if (dpPercent !== undefined && dpPercent > 0) {
-      return (totalAmount * dpPercent) / 100;
-    }
-    return null;
-  }
+  private inventoryService = new InventoryService();
 
   /**
    * Create a new purchase order.
@@ -122,7 +94,7 @@ export class PurchaseOrderService {
       paidAmount: 0,
       // Down Payment: Calculate amounts
       dpPercent: data.dpPercent ?? null,
-      dpAmount: this.calculateDpAmount(
+      dpAmount: calculateDpAmount(
         totalAmount,
         data.dpPercent,
         data.dpAmount
@@ -397,8 +369,7 @@ export class PurchaseOrderService {
 
         // 3. Create GRN document
         const poItems = await this.repository.findItems(order.id, tx);
-        const inventoryService = await this.getInventoryService();
-        const grn = await inventoryService.createGRN(
+        const grn = await this.inventoryService.createGRN(
           companyId,
           {
             purchaseOrderId: orderId,
@@ -414,7 +385,7 @@ export class PurchaseOrderService {
         );
 
         // 4. Post GRN (Stock IN + Cost Update)
-        await inventoryService.postGRN(companyId, grn.id, tx);
+        await this.inventoryService.postGRN(companyId, grn.id, tx);
 
         // 5. Update PO status to COMPLETED
         await this.repository.updateStatus(
@@ -538,59 +509,27 @@ export class PurchaseOrderService {
     userId: string,
     reason: string
   ): Promise<Order> {
-    // FR-024: Reason is mandatory
-    if (!reason || reason.trim().length === 0) {
-      throw new DomainError(
-        'Close reason is required',
-        400,
-        DomainErrorCodes.OPERATION_NOT_ALLOWED
-      );
-    }
-
     const order = await this.getById(id, companyId);
-    if (!order) {
-      throw new DomainError(
-        'Purchase Order not found',
-        404,
-        DomainErrorCodes.ORDER_NOT_FOUND
-      );
-    }
 
-    // Only CONFIRMED or PARTIALLY_RECEIVED can be closed
-    const allowedStatuses: OrderStatus[] = [
-      OrderStatus.CONFIRMED,
-      OrderStatus.PARTIALLY_RECEIVED,
-    ];
-    if (!allowedStatuses.includes(order.status)) {
-      throw new DomainError(
-        `Cannot close PO in status ${order.status}. Must be CONFIRMED or PARTIALLY_RECEIVED.`,
-        400,
-        DomainErrorCodes.ORDER_INVALID_STATE
-      );
-    }
-
-    // Record audit with close reason
-    await recordAudit({
+    // Use shared validation and audit logic
+    await validateAndAuditClose(order, {
+      id,
       companyId,
-      actorId: userId,
-      action: AuditLogAction.ORDER_CANCELLED, // Using ORDER_CANCELLED for close action
-      entityType: EntityType.ORDER,
-      entityId: id,
-      businessDate: new Date(),
-      payloadSnapshot: {
-        previousStatus: order.status,
-        newStatus: 'RECEIVED',
-        action: 'CLOSE',
-        reason,
-      },
+      userId,
+      reason,
+      orderName: 'Purchase Order',
+      allowedStatuses: [
+        OrderStatus.CONFIRMED,
+        OrderStatus.PARTIALLY_RECEIVED,
+      ],
     });
 
     // Transition to COMPLETED status
     return this.repository.updateStatus(
       id,
       OrderStatus.COMPLETED,
-      undefined, // No optimistic lock version
-      undefined // No transaction
+      undefined,
+      undefined
     );
   }
 }
