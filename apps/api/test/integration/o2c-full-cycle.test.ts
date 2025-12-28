@@ -239,6 +239,22 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       ).rejects.toThrow();
     });
 
+    // GAP-2 Test: Block ship for UPFRONT SO without deposit
+    it('Should block ship for UPFRONT SO without deposit', async () => {
+      const order = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        type: 'SALES',
+        items: [{ productId, quantity: 1, price: 100000 }],
+        paymentTerms: 'UPFRONT',
+      });
+      await salesOrderService.confirm(order.id, COMPANY_ID);
+
+      // Try to ship without paying - should fail
+      await expect(
+        salesOrderService.ship(COMPANY_ID, order.id)
+      ).rejects.toThrow(/upfront payment required/i);
+    });
+
     it('Should prevent overpayment (balance cannot be negative)', async () => {
       // Create another invoice for this test
       const order2 = await salesOrderService.create(COMPANY_ID, {

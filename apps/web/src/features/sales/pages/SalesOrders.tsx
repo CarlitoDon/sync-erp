@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { type PaymentTerms } from '@sync-erp/shared';
 import { formatCurrency } from '@/utils/format';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -11,6 +12,7 @@ import {
   PageContainer,
   PageHeader,
 } from '@/components/layout/PageLayout';
+import PaymentModeSelector from '@/components/forms/PaymentModeSelector';
 
 interface OrderItemForm {
   productId: string;
@@ -45,6 +47,17 @@ export default function SalesOrders() {
     items: [] as OrderItemForm[],
     taxRate: 0,
   });
+
+  // Payment mode state
+  const [paymentConfig, setPaymentConfig] = useState({
+    // eslint-disable-next-line @sync-erp/no-hardcoded-enum
+    mode: 'TEMPO' as 'TEMPO' | 'UPFRONT' | 'COD',
+    paymentTerms: 'NET30',
+    withDP: false,
+    dpPercent: 0,
+    dpAmount: 0,
+  });
+
   const [currentItem, setCurrentItem] = useState<OrderItemForm>({
     productId: '',
     quantity: 1,
@@ -76,6 +89,13 @@ export default function SalesOrders() {
         createMutation.mutateAsync({
           ...formData,
           type: 'SALES',
+          paymentTerms: paymentConfig.paymentTerms as PaymentTerms,
+          dpPercent: paymentConfig.withDP
+            ? paymentConfig.dpPercent
+            : undefined,
+          dpAmount: paymentConfig.withDP
+            ? paymentConfig.dpAmount
+            : undefined,
         }),
       'Sales Order created!'
     );
@@ -85,6 +105,13 @@ export default function SalesOrders() {
   const handleClose = () => {
     setIsModalOpen(false);
     setFormData({ partnerId: '', items: [], taxRate: 0 });
+    setPaymentConfig({
+      mode: 'TEMPO',
+      paymentTerms: 'NET30',
+      withDP: false,
+      dpPercent: 0,
+      dpAmount: 0,
+    });
     setCurrentItem({ productId: '', quantity: 1, price: 0 });
   };
 
@@ -343,6 +370,13 @@ export default function SalesOrders() {
               </table>
             )}
           </div>
+
+          {/* Payment Mode Selector - After items */}
+          <PaymentModeSelector
+            totalAmount={calculateTotal().grandTotal}
+            value={paymentConfig}
+            onChange={setPaymentConfig}
+          />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button

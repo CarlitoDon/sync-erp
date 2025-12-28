@@ -224,6 +224,21 @@ export class SalesOrderService {
       });
     }
 
+    // GAP-1 Fix: Auto-create DP Invoice for:
+    // 1. UPFRONT payment terms (100% DP)
+    // 2. Tempo with DP (partial DP)
+    const hasDpRequired =
+      order.paymentTerms === PaymentTerms.UPFRONT ||
+      (order.dpAmount && Number(order.dpAmount) > 0);
+
+    if (hasDpRequired) {
+      // Lazy-load InvoiceService to avoid circular dependency
+      const { InvoiceService } =
+        await import('../accounting/services/invoice.service');
+      const invoiceService = new InvoiceService();
+      await invoiceService.createDownPaymentInvoice(companyId, id);
+    }
+
     return updated;
   }
 
@@ -263,6 +278,17 @@ export class SalesOrderService {
             422,
             DomainErrorCodes.ORDER_INVALID_STATE
           );
+        }
+
+        // GAP-2 Fix: UPFRONT payment must be complete before ship
+        if (order.paymentTerms === PaymentTerms.UPFRONT) {
+          if (order.paymentStatus !== PaymentStatus.PAID_UPFRONT) {
+            throw new DomainError(
+              'Cannot ship: Upfront payment required before delivery. Please complete payment first.',
+              400,
+              DomainErrorCodes.PAYMENT_REQUIRED
+            );
+          }
         }
 
         // 3. Validate stock availability
@@ -484,5 +510,69 @@ export class SalesOrderService {
     tx?: Prisma.TransactionClient
   ): Promise<Map<string, number>> {
     return this.repository.getShippedQuantities(orderId, tx);
+  }
+
+  /**
+   * GAP-O2C-002: Explicitly close a Sales Order even if partially shipped.
+   * This transitions the SO to SHIPPED status regardless of remaining quantities.
+   * Useful when customer cancels remaining items or order is abandoned.
+   *
+   * Policy: Only CONFIRMED or PARTIALLY_SHIPPED SOs can be closed.
+   */
+  async close(
+    id: string,
+    companyId: string,
+    userId: string,
+    reason: string
+  ): Promise<Order> {
+    // Reason is mandatory
+    if (!reason || reason.trim().length === 0) {
+      throw new DomainError(
+        'Close reason is required',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    const order = await this.getById(id, companyId);
+    if (!order) {
+      throw new DomainError(
+        'Sales Order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+
+    // Only CONFIRMED or PARTIALLY_SHIPPED can be closed
+    const allowedStatuses: OrderStatus[] = [
+      OrderStatus.CONFIRMED,
+      OrderStatus.PARTIALLY_SHIPPED,
+    ];
+    if (!allowedStatuses.includes(order.status)) {
+      throw new DomainError(
+        `Cannot close SO in status ${order.status}. Must be CONFIRMED or PARTIALLY_SHIPPED.`,
+        400,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    // Record audit with close reason
+    await recordAudit({
+      companyId,
+      actorId: userId,
+      action: AuditLogAction.ORDER_CANCELLED,
+      entityType: EntityType.ORDER,
+      entityId: id,
+      businessDate: new Date(),
+      payloadSnapshot: {
+        previousStatus: order.status,
+        newStatus: 'COMPLETED',
+        action: 'CLOSE',
+        reason,
+      },
+    });
+
+    // Transition to COMPLETED status
+    return this.repository.updateStatus(id, OrderStatus.COMPLETED);
   }
 }

@@ -1,9 +1,15 @@
-import { Invoice, InvoiceStatus } from '@sync-erp/database';
+import {
+  Invoice,
+  InvoiceStatus,
+  OrderStatus,
+  PaymentTerms,
+} from '@sync-erp/database';
 import {
   BusinessDate,
   DomainError,
   DomainErrorCodes,
 } from '@sync-erp/shared';
+import { Decimal } from 'decimal.js';
 
 export class InvoicePolicy {
   /**
@@ -66,17 +72,125 @@ export class InvoicePolicy {
    */
   static ensureOrderReadyForInvoice(order: { status: string }): void {
     const validStatuses = [
-      'CONFIRMED',
-      'PARTIALLY_SHIPPED',
-      'SHIPPED',
-      'COMPLETED',
+      OrderStatus.CONFIRMED,
+      OrderStatus.PARTIALLY_SHIPPED,
+      OrderStatus.SHIPPED,
+      OrderStatus.COMPLETED,
     ];
-    if (!validStatuses.includes(order.status)) {
+    if (
+      !validStatuses.includes(
+        order.status as (typeof validStatuses)[number]
+      )
+    ) {
       throw new DomainError(
         `Cannot create invoice: SO status is ${order.status}, must be CONFIRMED or later`,
         400,
         DomainErrorCodes.ORDER_INVALID_STATE
       );
+    }
+  }
+
+  /**
+   * Ensure shipment exists before allowing Invoice creation/posting.
+   * Mirrors BillPolicy.ensureGoodsReceived() for O2C.
+   */
+  static ensureShipmentExists(shipmentCount: number): void {
+    if (shipmentCount === 0) {
+      throw new DomainError(
+        'Cannot post invoice: Goods have not been shipped (no Shipment found)',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+  }
+
+  /**
+   * 3-Way Matching Validation for O2C
+   *
+   * Validates that Invoice qty/price matches SO and Shipment:
+   * - Invoice qty MUST equal Shipment delivered qty per product
+   * - Invoice subtotal MUST equal SO total (minus DP if applicable)
+   *
+   * SKIP conditions (no 3-way matching):
+   * - DP Invoices (notes contains "Down Payment") - created before Shipment
+   * - UPFRONT Invoices when no Shipment exists yet - pre-delivery payment
+   *
+   * @param invoice - The invoice being posted
+   * @param order - The linked sales order with items
+   * @param shippedQtyByProduct - Map of productId -> total shipped qty from Shipments
+   * @param isDpInvoice - Whether this is a Down Payment invoice
+   */
+  static validate3WayMatching(
+    invoice: {
+      amount: Decimal | number;
+      subtotal: Decimal | number;
+      notes?: string | null;
+    },
+    order: {
+      items: Array<{
+        productId: string;
+        quantity: number;
+        price: Decimal | number;
+      }>;
+      totalAmount: Decimal | number;
+      dpAmount?: Decimal | number | null;
+      paymentTerms?: string | null;
+    },
+    shippedQtyByProduct: Map<string, number>,
+    isDpInvoice: boolean = false
+  ): void {
+    // 1. Skip for DP Invoices (created before Shipment, no matching needed)
+    if (isDpInvoice || invoice.notes?.includes('Down Payment')) {
+      return;
+    }
+
+    // 2. Skip for UPFRONT with no Shipment yet (pre-delivery payment)
+    if (
+      order.paymentTerms === PaymentTerms.UPFRONT &&
+      shippedQtyByProduct.size === 0
+    ) {
+      return;
+    }
+
+    // 3. Enforce 3-way matching for Final Invoices
+    // Calculate expected subtotal from SO items (qty * price)
+    const soSubtotal = order.items.reduce(
+      (sum, item) => sum + item.quantity * Number(item.price),
+      0
+    );
+
+    // Deduct DP from expected subtotal if applicable
+    const dpPaid = order.dpAmount ? Number(order.dpAmount) : 0;
+
+    let expectedSubtotal = soSubtotal;
+    if (dpPaid > 0) {
+      // DP was paid, final invoice should have reduced subtotal
+      expectedSubtotal = soSubtotal - dpPaid;
+    }
+
+    const actualSubtotal = Number(invoice.subtotal);
+
+    // 3a. Subtotal Match (pre-tax comparison)
+    // Allow small tolerance for rounding (1 IDR)
+    const subtotalDiff = Math.abs(actualSubtotal - expectedSubtotal);
+    if (subtotalDiff > 1) {
+      throw new DomainError(
+        `3-way matching failed: Subtotal mismatch (Expected: ${expectedSubtotal.toLocaleString()}, Invoice: ${actualSubtotal.toLocaleString()})`,
+        422,
+        DomainErrorCodes.THREE_WAY_MATCH_FAILED
+      );
+    }
+
+    // 3b. Qty Match (Invoice qty must equal total Shipment qty per product)
+    for (const item of order.items) {
+      const shippedQty = shippedQtyByProduct.get(item.productId) || 0;
+      if (shippedQty !== item.quantity) {
+        throw new DomainError(
+          `3-way matching failed: Qty mismatch for product (Ordered: ${item.quantity}, Shipped: ${shippedQty})`,
+          422,
+          DomainErrorCodes.THREE_WAY_MATCH_FAILED
+        );
+      }
     }
   }
 }
