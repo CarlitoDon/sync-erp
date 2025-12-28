@@ -60,7 +60,8 @@ export const invoiceRouter = router({
         input.id,
         ctx.companyId,
         ctx.userId,
-        input.reason
+        input.reason,
+        ctx.userPermissions // GAP-4 Fix: FR-026 pass permissions
       );
     }),
 });

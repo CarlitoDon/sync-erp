@@ -37,6 +37,7 @@ import { IdempotencyService } from '../../common/services/idempotency.service';
 import * as auditLogService from '../../common/audit/audit-log.service';
 import { InventoryService } from '../../inventory/inventory.service.js';
 import { CustomerDepositService } from '../../sales/customer-deposit.service';
+import { calculateDueDate } from '../../common/utils/payment-terms.utils';
 
 export class InvoiceService {
   private repository = new InvoiceRepository();
@@ -110,7 +111,10 @@ export class InvoiceService {
       balance: amount,
       dueDate:
         data.dueDate ||
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
+        calculateDueDate(
+          new Date(),
+          order.paymentTerms || PaymentTerms.NET30
+        ),
     };
 
     return this.repository.create(createData);
@@ -146,8 +150,10 @@ export class InvoiceService {
   }
 
   /**
-   * Create a Down Payment Invoice for UPFRONT Payment Terms.
-   * Called automatically when confirming a SO with UPFRONT terms.
+   * Create a Down Payment Invoice for UPFRONT Payment Terms or Tempo+DP.
+   * Called automatically when confirming a SO with:
+   * - UPFRONT terms (100% DP)
+   * - Tempo terms with dpAmount > 0 (partial DP)
    * NOTE: This is for proforma invoice / deposit before delivery.
    */
   async createDownPaymentInvoice(
@@ -177,10 +183,13 @@ export class InvoiceService {
       );
     }
 
-    // Must be UPFRONT terms
-    if (order.paymentTerms !== PaymentTerms.UPFRONT) {
+    // GAP-3 Fix: Must have DP requirement (UPFRONT or dpAmount > 0)
+    const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
+    const isUpfront = order.paymentTerms === PaymentTerms.UPFRONT;
+
+    if (!isUpfront && dpAmount <= 0) {
       throw new DomainError(
-        'DP Invoice can only be created for UPFRONT payment terms',
+        'DP Invoice can only be created for UPFRONT payment terms or orders with dpAmount > 0',
         400,
         DomainErrorCodes.OPERATION_NOT_ALLOWED
       );
@@ -203,16 +212,34 @@ export class InvoiceService {
       'INV'
     );
 
-    // Calculate subtotal from items (Net)
-    const subtotal = order.items.reduce(
-      (sum, item) => sum + Number(item.price) * item.quantity,
-      0
-    );
-
+    // GAP-3 Fix: Calculate amounts based on DP type (mirrors BillService)
+    let amount: number;
+    let subtotal: number;
+    let taxAmount: number;
     const taxRate = order.taxRate ? Number(order.taxRate) : 0;
     const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
-    const taxAmount = subtotal * taxMultiplier;
-    const amount = subtotal + taxAmount;
+
+    if (isUpfront) {
+      // UPFRONT: 100% of order total
+      subtotal = order.items.reduce(
+        (sum, item) => sum + Number(item.price) * item.quantity,
+        0
+      );
+      taxAmount = subtotal * taxMultiplier;
+      amount = subtotal + taxAmount;
+    } else {
+      // Tempo+DP: Use dpAmount (already includes tax if calculated from grandTotal)
+      amount = dpAmount;
+      // Reverse calculate subtotal and tax from amount
+      subtotal = amount / (1 + taxMultiplier);
+      taxAmount = amount - subtotal;
+    }
+
+    const dpPercent = order.dpPercent
+      ? Number(order.dpPercent)
+      : isUpfront
+        ? 100
+        : 0;
 
     const createData: Prisma.InvoiceUncheckedCreateInput = {
       companyId,
@@ -221,13 +248,13 @@ export class InvoiceService {
       type: InvoiceType.INVOICE,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
-      notes: `Down Payment Invoice for SO ${order.orderNumber || orderId}`,
+      notes: `Down Payment Invoice (${dpPercent}%) for SO ${order.orderNumber || orderId}`,
       amount,
       subtotal,
       taxAmount,
       taxRate,
       balance: amount,
-      dueDate: new Date(), // Immediate payment required for UPFRONT
+      dueDate: new Date(), // Immediate payment required for DP
     };
 
     return this.repository.create(createData);
@@ -520,8 +547,24 @@ export class InvoiceService {
     id: string,
     companyId: string,
     actorId: string,
-    reason: string
+    reason: string,
+    userPermissions?: string[] // GAP-4 Fix: FR-026 Granular permissions
   ): Promise<Invoice> {
+    // GAP-4 Fix: FR-026 Void Invoice requires 'invoice:void' permission
+    const requiredPermission = 'invoice:void';
+    const hasPermission =
+      userPermissions?.includes(requiredPermission) ||
+      userPermissions?.includes('invoice:*') ||
+      userPermissions?.includes('*:*');
+
+    if (!hasPermission) {
+      throw new DomainError(
+        `Missing permission: ${requiredPermission}`,
+        403,
+        DomainErrorCodes.FORBIDDEN
+      );
+    }
+
     // FR-024: Reason is mandatory
     if (!reason || reason.trim().length === 0) {
       throw new DomainError(
