@@ -4,7 +4,11 @@ import {
   PaymentMethod,
   Prisma,
 } from '@sync-erp/database';
-import { BusinessDate } from '@sync-erp/shared';
+import {
+  BusinessDate,
+  DomainError,
+  DomainErrorCodes,
+} from '@sync-erp/shared';
 import { JournalRepository } from '../repositories/journal.repository';
 import { AccountService } from './account.service';
 
@@ -39,7 +43,11 @@ export class JournalService {
       tx
     );
     if (!original) {
-      throw new Error('Journal entry not found');
+      throw new DomainError(
+        'Journal entry not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
     }
 
     const reversalLines: CreateJournalLineInput[] =
@@ -78,8 +86,10 @@ export class JournalService {
 
     // Allow small floating point error
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      throw new Error(
-        `Journal entry is unbalanced. Debits: ${totalDebit}, Credits: ${totalCredit}`
+      throw new DomainError(
+        `Journal entry is unbalanced. Debits: ${totalDebit}, Credits: ${totalCredit}`,
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
       );
     }
 
@@ -102,7 +112,11 @@ export class JournalService {
       }
 
       if (!account) {
-        throw new Error(`Account not found: ${line.accountId}`);
+        throw new DomainError(
+          `Account not found: ${line.accountId}`,
+          404,
+          DomainErrorCodes.NOT_FOUND
+        );
       }
       lineData.push({
         accountId: account.id,
@@ -185,8 +199,10 @@ export class JournalService {
       }
 
       if (!acc) {
-        throw new Error(
-          `System Account code ${line.accountCode} not found. Please seed defaults.`
+        throw new DomainError(
+          `System Account code ${line.accountCode} not found. Please seed defaults.`,
+          404,
+          DomainErrorCodes.NOT_FOUND
         );
       }
       resolvedLines.push({

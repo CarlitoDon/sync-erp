@@ -1,5 +1,6 @@
 import { Account, AccountType } from '@sync-erp/database';
 import { AccountRepository } from '../repositories/account.repository';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export class AccountService {
   private repository = new AccountRepository();
@@ -44,7 +45,11 @@ export class AccountService {
   ): Promise<Account> {
     const existing = await this.repository.findById(id, companyId);
     if (!existing) {
-      throw new Error('Account not found');
+      throw new DomainError(
+        'Account not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
     }
     return this.repository.update(id, data);
   }

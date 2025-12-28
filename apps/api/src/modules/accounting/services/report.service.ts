@@ -6,6 +6,8 @@ import {
   TrialBalanceSummary,
   GeneralLedgerEntry,
   GeneralLedgerReport,
+  DomainError,
+  DomainErrorCodes,
 } from '@sync-erp/shared';
 
 export class ReportService {
@@ -75,7 +77,11 @@ export class ReportService {
       companyId
     );
     if (!account) {
-      throw new Error('Account not found');
+      throw new DomainError(
+        'Account not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
     }
 
     let openingBalance = 0;

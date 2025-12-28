@@ -38,6 +38,10 @@ import * as auditLogService from '../../common/audit/audit-log.service';
 import { InventoryService } from '../../inventory/inventory.service.js';
 import { CustomerDepositService } from '../../sales/customer-deposit.service';
 import { calculateDueDate } from '../../common/utils/payment-terms.utils';
+import {
+  validateAndAuditVoid,
+  validateCanVoid,
+} from '../../common/utils/document.utils';
 
 export class InvoiceService {
   private repository = new InvoiceRepository();
@@ -272,7 +276,11 @@ export class InvoiceService {
     );
 
     if (!original) {
-      throw new Error('Original invoice not found');
+      throw new DomainError(
+        'Original invoice not found',
+        404,
+        DomainErrorCodes.INVOICE_NOT_FOUND
+      );
     }
 
     // Apply Reversal Policy
@@ -449,7 +457,11 @@ export class InvoiceService {
           );
 
           if (!updatedInvoice.invoiceNumber) {
-            throw new Error(`Invoice ${id} has no invoice number`);
+            throw new DomainError(
+              `Invoice ${id} has no invoice number`,
+              500,
+              DomainErrorCodes.INVOICE_INVALID_STATE
+            );
           }
 
           // 5. Create AR journal entry
@@ -538,110 +550,64 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * Void an Invoice atomically using Prisma transaction.
-   * Policy: Cannot void if payments exist. If POSTED, reverse AR journal.
-   * FR-024: Requires mandatory reason field for audit trail.
-   */
   async void(
     id: string,
     companyId: string,
     actorId: string,
     reason: string,
-    userPermissions?: string[] // GAP-4 Fix: FR-026 Granular permissions
+    userPermissions?: string[]
   ): Promise<Invoice> {
-    // GAP-4 Fix: FR-026 Void Invoice requires 'invoice:void' permission
-    const requiredPermission = 'invoice:void';
-    const hasPermission =
-      userPermissions?.includes(requiredPermission) ||
-      userPermissions?.includes('invoice:*') ||
-      userPermissions?.includes('*:*');
-
-    if (!hasPermission) {
-      throw new DomainError(
-        `Missing permission: ${requiredPermission}`,
-        403,
-        DomainErrorCodes.FORBIDDEN
-      );
-    }
-
-    // FR-024: Reason is mandatory
-    if (!reason || reason.trim().length === 0) {
-      throw new DomainError(
-        'Void reason is required',
-        400,
-        DomainErrorCodes.OPERATION_NOT_ALLOWED
-      );
-    }
-
-    // FR-010.1: Record Audit Log with void reason
-    await auditLogService.recordAudit({
+    const voidConfig = {
+      id,
       companyId,
       actorId,
-      action: AuditLogAction.INVOICE_VOIDED,
+      reason,
+      documentName: 'Invoice',
+      requiredPermission: 'invoice:void',
+      userPermissions,
+      auditAction: AuditLogAction.INVOICE_VOIDED,
       entityType: EntityType.INVOICE,
-      entityId: id,
-      businessDate: new Date(),
-      payloadSnapshot: { reason },
-    });
+      notFoundErrorCode: DomainErrorCodes.INVOICE_NOT_FOUND,
+      invalidStateErrorCode: DomainErrorCodes.INVOICE_INVALID_STATE,
+      hasPaymentsErrorCode: DomainErrorCodes.INVOICE_HAS_PAYMENTS,
+    };
+
+    // Validate permission, reason, and record audit
+    await validateAndAuditVoid(voidConfig);
 
     return prisma.$transaction(
       async (tx) => {
-        // 1. Lock row for concurrency safety
+        // Lock row for concurrency safety
         await tx.$executeRaw`SELECT 1 FROM "Invoice" WHERE id = ${id} FOR UPDATE`;
 
-        // 2. Validate invoice exists
+        // Validate document
         const invoice = await this.repository.findById(
           id,
           companyId,
           InvoiceType.INVOICE,
           tx
         );
-        if (!invoice) {
-          throw new DomainError(
-            'Invoice not found',
-            404,
-            DomainErrorCodes.INVOICE_NOT_FOUND
-          );
-        }
-
-        // 3. Cannot void if already VOID
-        if (invoice.status === InvoiceStatus.VOID) {
-          throw new DomainError(
-            'Invoice is already voided',
-            422,
-            DomainErrorCodes.INVOICE_INVALID_STATE
-          );
-        }
-
-        // 4. Cannot void if any payments exist
         const paymentCount = await this.repository.countPayments(
           id,
           companyId,
           tx
         );
-        if (paymentCount > 0) {
-          throw new DomainError(
-            'Cannot void invoice: Payments have been recorded. Void the payments first.',
-            422,
-            DomainErrorCodes.INVOICE_HAS_PAYMENTS
-          );
-        }
+        validateCanVoid(invoice, paymentCount, voidConfig);
 
-        // 5. If POSTED, reverse the AR journal entry
-        if (invoice.status === InvoiceStatus.POSTED) {
+        // If POSTED, reverse the AR journal entry
+        if (invoice!.status === InvoiceStatus.POSTED) {
           await this.journalService.postInvoiceReversal(
             companyId,
-            invoice.id,
-            invoice.invoiceNumber || '',
-            Number(invoice.amount),
-            Number(invoice.subtotal) || undefined,
-            Number(invoice.taxAmount) || undefined,
+            invoice!.id,
+            invoice!.invoiceNumber || '',
+            Number(invoice!.amount),
+            Number(invoice!.subtotal) || undefined,
+            Number(invoice!.taxAmount) || undefined,
             tx
           );
         }
 
-        // 6. Update status to VOID
+        // Update status to VOID
         return this.repository.update(
           id,
           { status: InvoiceStatus.VOID },
@@ -680,7 +646,12 @@ export class InvoiceService {
     companyId: string
   ): Promise<number> {
     const invoice = await this.repository.findById(id, companyId); // Type optional here?
-    if (!invoice) throw new Error('Invoice not found');
+    if (!invoice)
+      throw new DomainError(
+        'Invoice not found',
+        404,
+        DomainErrorCodes.INVOICE_NOT_FOUND
+      );
 
     // We can rely on 'balance' field which we maintain?
     // Legacy PaymentService updates balance.

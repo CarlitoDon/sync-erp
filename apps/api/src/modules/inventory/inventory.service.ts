@@ -16,19 +16,39 @@ import {
 } from '@sync-erp/database';
 import { InventoryRepository } from './inventory.repository';
 import { ProductService } from '../product/product.service';
-import { PurchaseOrderService } from '../procurement/purchase-order.service';
-import { SalesOrderService } from '../sales/sales-order.service';
+// Lazy-loaded to avoid circular dependency
+import type { PurchaseOrderService as POServiceType } from '../procurement/purchase-order.service';
+import type { SalesOrderService as SOServiceType } from '../sales/sales-order.service';
 import { JournalService } from '../accounting/services/journal.service';
 import { InventoryPolicy } from './inventory.policy';
-import { StockAdjustmentInput, DomainError } from '@sync-erp/shared';
+import { StockAdjustmentInput, DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { recordAudit } from '../common/audit/audit-log.service';
 
 export class InventoryService {
   private repository = new InventoryRepository();
   private productService = new ProductService();
-  private purchaseOrderService = new PurchaseOrderService();
-  private salesOrderService = new SalesOrderService();
+  private _purchaseOrderService: POServiceType | null = null;
+  private _salesOrderService: SOServiceType | null = null;
   private journalService = new JournalService();
+
+  // Lazy load to break circular dependency
+  private async getPurchaseOrderService(): Promise<POServiceType> {
+    if (!this._purchaseOrderService) {
+      const { PurchaseOrderService } =
+        await import('../procurement/purchase-order.service');
+      this._purchaseOrderService = new PurchaseOrderService();
+    }
+    return this._purchaseOrderService!;
+  }
+
+  private async getSalesOrderService(): Promise<SOServiceType> {
+    if (!this._salesOrderService) {
+      const { SalesOrderService } =
+        await import('../sales/sales-order.service');
+      this._salesOrderService = new SalesOrderService();
+    }
+    return this._salesOrderService!;
+  }
 
   // ==========================================
   // Movement Methods
@@ -67,11 +87,18 @@ export class InventoryService {
       companyId,
       tx
     );
-    if (!product) throw new Error('Product not found');
+    if (!product)
+      throw new DomainError(
+        'Product not found',
+        404,
+        DomainErrorCodes.PRODUCT_NOT_FOUND
+      );
 
     if (isLoss && product.stockQty < absQty) {
-      throw new Error(
-        `Insufficient stock. Current: ${product.stockQty}, Check: ${absQty}`
+      throw new DomainError(
+        `Insufficient stock. Current: ${product.stockQty}, Check: ${absQty}`,
+        422,
+        DomainErrorCodes.INSUFFICIENT_STOCK
       );
     }
 
@@ -310,13 +337,15 @@ export class InventoryService {
 
       // Recalculate order status
       if (isReceipt) {
-        await this.purchaseOrderService.recalculateStatus(
+        const poService = await this.getPurchaseOrderService();
+        await poService.recalculateStatus(
           posted.orderId,
           companyId,
           t
         );
       } else {
-        await this.salesOrderService.recalculateStatus(
+        const soService = await this.getSalesOrderService();
+        await soService.recalculateStatus(
           posted.orderId,
           companyId,
           t
@@ -440,13 +469,15 @@ export class InventoryService {
 
       // Recalculate order status
       if (isReceipt) {
-        await this.purchaseOrderService.recalculateStatus(
+        const poService = await this.getPurchaseOrderService();
+        await poService.recalculateStatus(
           fulfillment.orderId,
           companyId,
           t
         );
       } else {
-        await this.salesOrderService.recalculateStatus(
+        const soService = await this.getSalesOrderService();
+        await soService.recalculateStatus(
           fulfillment.orderId,
           companyId,
           t

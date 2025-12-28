@@ -20,6 +20,10 @@ import {
   CreateSalesOrderInput,
 } from '@sync-erp/shared';
 import { recordAudit } from '../common/audit/audit-log.service';
+import {
+  calculateDpAmount,
+  validateAndAuditClose,
+} from '../common/utils/order.utils';
 
 // We define input interface if shared doesn't export strict DTO for internal use yet
 // Shared exports CreateSalesOrderInput (inferred from schema)
@@ -37,24 +41,6 @@ export class SalesOrderService {
   private documentNumberService = new DocumentNumberService();
   private inventoryRepository = new InventoryRepository();
   private journalService = new JournalService();
-
-  /**
-   * Calculate DP amount from percent or return manual amount.
-   * Priority: dpAmount (manual) > dpPercent (calculated)
-   */
-  private calculateDpAmount(
-    totalAmount: number,
-    dpPercent?: number,
-    dpAmount?: number
-  ): number | null {
-    if (dpAmount !== undefined && dpAmount > 0) {
-      return dpAmount;
-    }
-    if (dpPercent !== undefined && dpPercent > 0) {
-      return (totalAmount * dpPercent) / 100;
-    }
-    return null;
-  }
 
   /**
    * Create a new sales order.
@@ -108,7 +94,7 @@ export class SalesOrderService {
           : null,
       // Down Payment: Calculate amounts
       dpPercent: data.dpPercent ?? null,
-      dpAmount: this.calculateDpAmount(
+      dpAmount: calculateDpAmount(
         totalAmount,
         data.dpPercent,
         data.dpAmount
@@ -367,7 +353,11 @@ export class SalesOrderService {
   async complete(id: string, companyId: string) {
     const order = await this.repository.findById(id, companyId);
     if (!order) {
-      throw new Error('Sales order not found');
+      throw new DomainError(
+        'Sales order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
     }
 
     if (order.status !== OrderStatus.CONFIRMED) {
@@ -525,51 +515,19 @@ export class SalesOrderService {
     userId: string,
     reason: string
   ): Promise<Order> {
-    // Reason is mandatory
-    if (!reason || reason.trim().length === 0) {
-      throw new DomainError(
-        'Close reason is required',
-        400,
-        DomainErrorCodes.OPERATION_NOT_ALLOWED
-      );
-    }
-
     const order = await this.getById(id, companyId);
-    if (!order) {
-      throw new DomainError(
-        'Sales Order not found',
-        404,
-        DomainErrorCodes.ORDER_NOT_FOUND
-      );
-    }
 
-    // Only CONFIRMED or PARTIALLY_SHIPPED can be closed
-    const allowedStatuses: OrderStatus[] = [
-      OrderStatus.CONFIRMED,
-      OrderStatus.PARTIALLY_SHIPPED,
-    ];
-    if (!allowedStatuses.includes(order.status)) {
-      throw new DomainError(
-        `Cannot close SO in status ${order.status}. Must be CONFIRMED or PARTIALLY_SHIPPED.`,
-        400,
-        DomainErrorCodes.ORDER_INVALID_STATE
-      );
-    }
-
-    // Record audit with close reason
-    await recordAudit({
+    // Use shared validation and audit logic
+    await validateAndAuditClose(order, {
+      id,
       companyId,
-      actorId: userId,
-      action: AuditLogAction.ORDER_CANCELLED,
-      entityType: EntityType.ORDER,
-      entityId: id,
-      businessDate: new Date(),
-      payloadSnapshot: {
-        previousStatus: order.status,
-        newStatus: 'COMPLETED',
-        action: 'CLOSE',
-        reason,
-      },
+      userId,
+      reason,
+      orderName: 'Sales Order',
+      allowedStatuses: [
+        OrderStatus.CONFIRMED,
+        OrderStatus.PARTIALLY_SHIPPED,
+      ],
     });
 
     // Transition to COMPLETED status
