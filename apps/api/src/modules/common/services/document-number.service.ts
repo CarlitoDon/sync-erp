@@ -27,6 +27,13 @@ const DEFAULT_CONFIGS: Record<DocumentType, DocumentNumberConfig> = {
     yearFormat: '4',
     sequenceLength: 5,
   },
+  SHP: {
+    prefix: 'SHP',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
   SO: {
     prefix: 'SO',
     separator: '-',

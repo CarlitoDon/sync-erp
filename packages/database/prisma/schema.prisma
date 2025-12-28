@@ -543,6 +543,7 @@ model DocumentSequence {
 enum SequenceType {
   PO
   GRN
+  SHP
   BILL
   PAY
   SO

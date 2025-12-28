@@ -224,7 +224,7 @@ export const FulfillmentTypeSchema = z.enum(['RECEIPT','SHIPMENT']);
 
 export type FulfillmentTypeType = `${z.infer<typeof FulfillmentTypeSchema>}`
 
-export const SequenceTypeSchema = z.enum(['PO','GRN','BILL','PAY','SO','INV','CN','JE']);
+export const SequenceTypeSchema = z.enum(['PO','GRN','SHP','BILL','PAY','SO','INV','CN','JE']);
 
 export type SequenceTypeType = `${z.infer<typeof SequenceTypeSchema>}`
 
