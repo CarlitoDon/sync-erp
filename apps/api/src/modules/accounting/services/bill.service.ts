@@ -35,6 +35,10 @@ import { InventoryRepository } from '../../inventory/inventory.repository.js';
 import { PurchaseOrderRepository } from '../../procurement/purchase-order.repository.js';
 import { calculateDueDate } from '../../common/utils/payment-terms.utils';
 import * as auditLogService from '../../common/audit/audit-log.service';
+import {
+  validateAndAuditVoid,
+  validateCanVoid,
+} from '../../common/utils/document.utils';
 
 export class BillService {
   private repository = new InvoiceRepository();
@@ -477,7 +481,11 @@ export class BillService {
         );
 
         if (!updatedBill.invoiceNumber) {
-          throw new Error(`Bill ${id} has no bill number`);
+          throw new DomainError(
+            `Bill ${id} has no bill number`,
+            500,
+            DomainErrorCodes.BILL_INVALID_STATE
+          );
         }
 
         // 4. Create AP journal entry
@@ -591,110 +599,64 @@ export class BillService {
     );
   }
 
-  /**
-   * Void a Bill atomically using Prisma transaction.
-   * Policy: Cannot void if payments exist. If POSTED, reverse AP journal.
-   * FR-024: Requires mandatory reason field for audit trail.
-   */
   async void(
     id: string,
     companyId: string,
     actorId: string,
     reason: string,
-    userPermissions?: string[] // FR-026: Granular permissions array
+    userPermissions?: string[]
   ): Promise<Invoice> {
-    // FR-026: Void Bill requires 'bill:void' permission
-    const requiredPermission = 'bill:void';
-    const hasPermission =
-      userPermissions?.includes(requiredPermission) ||
-      userPermissions?.includes('bill:*') ||
-      userPermissions?.includes('*:*');
-
-    if (!hasPermission) {
-      throw new DomainError(
-        `Missing permission: ${requiredPermission}`,
-        403,
-        DomainErrorCodes.FORBIDDEN
-      );
-    }
-
-    // FR-024: Reason is mandatory
-    if (!reason || reason.trim().length === 0) {
-      throw new DomainError(
-        'Void reason is required',
-        400,
-        DomainErrorCodes.OPERATION_NOT_ALLOWED
-      );
-    }
-
-    // FR-010.1: Record Audit Log with void reason
-    await auditLogService.recordAudit({
+    const voidConfig = {
+      id,
       companyId,
       actorId,
-      action: AuditLogAction.BILL_VOIDED,
+      reason,
+      documentName: 'Bill',
+      requiredPermission: 'bill:void',
+      userPermissions,
+      auditAction: AuditLogAction.BILL_VOIDED,
       entityType: EntityType.BILL,
-      entityId: id,
-      businessDate: new Date(),
-      payloadSnapshot: { reason },
-    });
+      notFoundErrorCode: DomainErrorCodes.BILL_NOT_FOUND,
+      invalidStateErrorCode: DomainErrorCodes.BILL_INVALID_STATE,
+      hasPaymentsErrorCode: DomainErrorCodes.BILL_HAS_PAYMENTS,
+    };
+
+    // Validate permission, reason, and record audit
+    await validateAndAuditVoid(voidConfig);
 
     return prisma.$transaction(
       async (tx) => {
-        // 1. Lock row for concurrency safety
+        // Lock row for concurrency safety
         await tx.$executeRaw`SELECT 1 FROM "Invoice" WHERE id = ${id} FOR UPDATE`;
 
-        // 2. Validate bill exists
+        // Validate document
         const bill = await this.repository.findById(
           id,
           companyId,
           InvoiceType.BILL,
           tx
         );
-        if (!bill) {
-          throw new DomainError(
-            'Bill not found',
-            404,
-            DomainErrorCodes.BILL_NOT_FOUND
-          );
-        }
-
-        // 3. Cannot void if already VOID
-        if (bill.status === InvoiceStatus.VOID) {
-          throw new DomainError(
-            'Bill is already voided',
-            422,
-            DomainErrorCodes.BILL_INVALID_STATE
-          );
-        }
-
-        // 4. Cannot void if any payments exist
         const paymentCount = await this.repository.countPayments(
           id,
           companyId,
           tx
         );
-        if (paymentCount > 0) {
-          throw new DomainError(
-            'Cannot void bill: Payments have been recorded. Void the payments first.',
-            422,
-            DomainErrorCodes.BILL_HAS_PAYMENTS
-          );
-        }
+        validateCanVoid(bill, paymentCount, voidConfig);
 
-        // 5. If POSTED, reverse the AP journal entry
-        if (bill.status === InvoiceStatus.POSTED) {
+        // If POSTED, reverse the AP journal entry
+        if (bill!.status === InvoiceStatus.POSTED) {
           await this.journalService.postBillReversal(
             companyId,
-            bill.id,
-            bill.invoiceNumber || '',
-            Number(bill.amount),
-            Number(bill.subtotal) || undefined,
-            Number(bill.taxAmount) || undefined,
+            bill!.id,
+            bill!.invoiceNumber || '',
+            Number(bill!.amount),
+            Number(bill!.subtotal) || undefined,
+            Number(bill!.taxAmount) || undefined,
             tx
           );
         }
 
-        // 6. Update status to VOID
+        // Update status to VOID
         return this.repository.update(
           id,
           { status: InvoiceStatus.VOID },
@@ -718,7 +680,12 @@ export class BillService {
     companyId: string
   ): Promise<number> {
     const bill = await this.repository.findById(id, companyId);
-    if (!bill) throw new Error('Bill not found');
+    if (!bill)
+      throw new DomainError(
+        'Bill not found',
+        404,
+        DomainErrorCodes.BILL_NOT_FOUND
+      );
     return Number(bill.balance);
   }
 

@@ -3,6 +3,8 @@ import { ProductRepository } from './product.repository';
 import {
   CreateProductInput,
   UpdateProductInput,
+  DomainError,
+  DomainErrorCodes,
 } from '@sync-erp/shared';
 import { calculateNewAvgCost } from '../inventory/rules/stockRule';
 
@@ -58,7 +60,11 @@ export class ProductService {
   ): Promise<Product> {
     const existing = await this.getById(id, companyId, tx);
     if (!existing) {
-      throw new Error('Product not found');
+      throw new DomainError(
+        'Product not found',
+        404,
+        DomainErrorCodes.PRODUCT_NOT_FOUND
+      );
     }
     return this.repository.update(id, data, tx);
   }
@@ -70,7 +76,11 @@ export class ProductService {
   ): Promise<void> {
     const existing = await this.getById(id, companyId, tx);
     if (!existing) {
-      throw new Error('Product not found');
+      throw new DomainError(
+        'Product not found',
+        404,
+        DomainErrorCodes.PRODUCT_NOT_FOUND
+      );
     }
     await this.repository.delete(id, tx);
   }
@@ -97,9 +107,14 @@ export class ProductService {
     } catch (error) {
       if (
         (error as Prisma.PrismaClientKnownRequestError).code ===
+        // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- P2025 is Prisma's "Record not found" error code
         'P2025'
       ) {
-        throw new Error(`Insufficient stock or product not found`);
+        throw new DomainError(
+          'Insufficient stock or product not found',
+          422,
+          DomainErrorCodes.INSUFFICIENT_STOCK
+        );
       }
       throw error;
     }
@@ -117,7 +132,11 @@ export class ProductService {
   ): Promise<Product> {
     const product = await this.repository.findById(id, undefined, tx);
     if (!product) {
-      throw new Error('Product not found');
+      throw new DomainError(
+        'Product not found',
+        404,
+        DomainErrorCodes.PRODUCT_NOT_FOUND
+      );
     }
 
     // Use stockRule for AVG calculation (Constitution compliance)

@@ -2,7 +2,12 @@ import { Company, BusinessShape, prisma } from '@sync-erp/database';
 import { CompanyRepository } from './company.repository';
 import { CompanyPolicy } from './company.policy';
 import { InventoryPolicy } from '../inventory/inventory.policy';
-import { CreateCompanyDto, JoinCompanyDto } from '@sync-erp/shared';
+import {
+  CreateCompanyDto,
+  JoinCompanyDto,
+  DomainError,
+  DomainErrorCodes,
+} from '@sync-erp/shared';
 
 export class CompanyService {
   private repository = new CompanyRepository();
@@ -20,7 +25,11 @@ export class CompanyService {
     );
 
     if (!company) {
-      throw new Error('Invalid invite code');
+      throw new DomainError(
+        'Invalid invite code',
+        400,
+        DomainErrorCodes.NOT_FOUND
+      );
     }
 
     const membership = await this.repository.findMembership(
@@ -28,7 +37,11 @@ export class CompanyService {
       company.id
     );
     if (membership) {
-      throw new Error('User is already a member of this company');
+      throw new DomainError(
+        'User is already a member of this company',
+        409,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
     }
 
     await this.repository.addMember(userId, company.id);
