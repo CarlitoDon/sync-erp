@@ -69,6 +69,10 @@ export const DomainErrorCodes = {
   PAYMENT_REQUIRED: 'PAYMENT_REQUIRED', // Feature 036: Upfront payment required before receive
   // General
   NOT_FOUND: 'NOT_FOUND',
+  // Product
+  PRODUCT_NOT_FOUND: 'PRODUCT_NOT_FOUND',
+  // Partner
+  PARTNER_NOT_FOUND: 'PARTNER_NOT_FOUND',
   INVALID_DATE: 'INVALID_DATE',
   FEATURE_DISABLED_PHASE_1: 'FEATURE_DISABLED_PHASE_1',
   // Journal
