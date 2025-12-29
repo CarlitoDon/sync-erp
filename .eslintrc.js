@@ -40,18 +40,21 @@ module.exports = {
       },
     },
     {
+      // Seed data and scripts - legitimate hardcoded enum usage
+      files: ['**/seed*.ts', '**/scripts/**/*.ts', '**/prisma/**/*.ts'],
+      rules: {
+        '@sync-erp/no-hardcoded-enum': 'off',
+        'no-console': 'off',
+      },
+    },
+    {
       files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts'],
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
         '@typescript-eslint/no-unused-vars': 'off',
         'no-console': 'off',
-      },
-    },
-    {
-      files: ['**/scripts/**/*.ts', '**/seed*.ts'],
-      rules: {
-        'no-console': 'off',
+        '@sync-erp/no-hardcoded-enum': 'off',
       },
     },
   ],
