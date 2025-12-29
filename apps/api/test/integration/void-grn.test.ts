@@ -216,4 +216,17 @@ describe('P2P: Void GRN & Status Recalculation', () => {
       )
     ).rejects.toThrow();
   });
+
+  it('should fail to void non-existent GRN (matching O2C)', async () => {
+    await expect(
+      inventoryService.voidGRN(
+        COMPANY_ID,
+        '00000000-0000-0000-0000-000000000000',
+        'Test reason',
+        undefined,
+        'test-user-id',
+        ['*:*']
+      )
+    ).rejects.toThrow();
+  });
 });

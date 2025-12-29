@@ -268,4 +268,44 @@ describe('P2P: Void Bill & Journal Reversal', () => {
       )
     ).rejects.toThrow();
   });
+
+  it('should fail to void DRAFT bill (matching O2C)', async () => {
+    // Create PO -> GRN -> Bill (but don't post)
+    const order = await purchaseOrderService.create(COMPANY_ID, {
+      partnerId,
+      type: 'PURCHASE',
+      paymentTerms: 'NET30',
+      items: [{ productId, quantity: 2, price: 100000 }],
+    });
+    await purchaseOrderService.confirm(
+      order.id,
+      COMPANY_ID,
+      'test-user-id'
+    );
+    await purchaseOrderService.receive(order.id, COMPANY_ID);
+
+    const bill = await billService.createFromPurchaseOrder(
+      COMPANY_ID,
+      {
+        orderId: order.id,
+        businessDate: new Date(),
+        dueDate: new Date(),
+        supplierInvoiceNumber: `INV-DRAFT-${Date.now()}`,
+      }
+    );
+
+    // Bill should be DRAFT
+    expect(bill.status).toBe(InvoiceStatus.DRAFT);
+
+    // Try to void DRAFT bill - should fail
+    await expect(
+      billService.void(
+        bill.id,
+        COMPANY_ID,
+        'test-user-id',
+        'reason',
+        ['*:*']
+      )
+    ).rejects.toThrow();
+  });
 });
