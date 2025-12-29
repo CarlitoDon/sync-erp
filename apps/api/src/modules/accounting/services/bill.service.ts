@@ -41,11 +41,13 @@ import {
 } from '../../common/utils/document.utils';
 
 export class BillService {
-  private repository = new InvoiceRepository();
-  private inventoryRepository = new InventoryRepository();
-  private purchaseOrderRepository = new PurchaseOrderRepository();
-  private documentNumberService = new DocumentNumberService();
-  private journalService = new JournalService();
+  constructor(
+    private readonly repository: InvoiceRepository = new InvoiceRepository(),
+    private readonly inventoryRepository: InventoryRepository = new InventoryRepository(),
+    private readonly purchaseOrderRepository: PurchaseOrderRepository = new PurchaseOrderRepository(),
+    private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
+    private readonly journalService: JournalService = new JournalService()
+  ) {}
 
   async createFromPurchaseOrder(
     companyId: string,
@@ -124,6 +126,8 @@ export class BillService {
     // Deduct DP amount if DP Bill was paid
     const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
     let dpDeducted = 0;
+    let dpBillId: string | undefined;
+
     if (dpAmount > 0) {
       // Verify DP Bill is PAID before deducting
       const dpBill = await this.repository.findFirst({
@@ -131,11 +135,12 @@ export class BillService {
         companyId,
         type: InvoiceType.BILL,
         status: InvoiceStatus.PAID,
-        notes: { contains: 'Down Payment' },
+        isDownPayment: true, // Prefer explicit flag (backfilled)
       });
       if (dpBill) {
         dpDeducted = dpAmount;
         amount = amount - dpDeducted;
+        dpBillId = dpBill.id;
       }
     }
 
@@ -148,6 +153,7 @@ export class BillService {
       type: InvoiceType.BILL,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
+      dpBillId, // Feature: Link to DP Bill
       supplierInvoiceNumber: data.supplierInvoiceNumber, // External reference from supplier
       notes:
         dpDeducted > 0
@@ -284,6 +290,7 @@ export class BillService {
       balance: amount,
       dueDate: new Date(), // Immediate payment required for DP
       paymentTermsString: isUpfront ? 'UPFRONT' : `DP ${dpPercent}%`,
+      isDownPayment: true, // Feature: Explicit DP Linking
     };
 
     return this.repository.create(createData);
@@ -462,6 +469,7 @@ export class BillService {
                 totalAmount: order.totalAmount,
                 dpAmount: order.dpAmount,
                 paymentTerms: order.paymentTerms,
+                taxRate: order.taxRate, // For tax-adjusted DP deduction
               },
               receivedQtyMap
             );

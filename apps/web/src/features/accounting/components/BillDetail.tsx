@@ -223,6 +223,71 @@ export default function BillDetail() {
           </CardContent>
         </Card>
 
+        {/* Feature: Linked Documents (DP <-> Final) */}
+        {(bill.dpBill ||
+          (bill.finalBills && bill.finalBills.length > 0)) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Related Documents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Case 1: This is a Final Bill linked to a DP */}
+                {bill.dpBill && (
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">
+                      Less Down Payment
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                        DP
+                      </span>
+                      <Link
+                        to={`/bills/${bill.dpBill.id}`}
+                        className="text-blue-600 hover:underline font-mono font-medium"
+                      >
+                        {bill.dpBill.invoiceNumber}
+                      </Link>
+                      <span className="text-gray-500 text-sm">
+                        ({formatCurrency(Number(bill.dpBill.amount))})
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Case 2: This is a DP Bill linked to Final Bill(s) */}
+                {bill.finalBills && bill.finalBills.length > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">
+                      Applied to Final Bill(s)
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {bill.finalBills.map((finalBill) => (
+                        <div
+                          key={finalBill.id}
+                          className="flex items-center gap-2"
+                        >
+                          <Link
+                            to={`/bills/${finalBill.id}`}
+                            className="text-blue-600 hover:underline font-mono font-medium"
+                          >
+                            {finalBill.invoiceNumber}
+                          </Link>
+                          <span className="text-gray-500 text-sm">
+                            (
+                            {formatCurrency(Number(finalBill.amount))}
+                            )
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* FR-049: Price Variance Comparison */}
         {bill.order && bill.items && bill.items.length > 0 && (
           <Card>

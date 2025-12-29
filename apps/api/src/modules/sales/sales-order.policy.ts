@@ -178,14 +178,8 @@ export class SalesOrderPolicy {
       );
     }
 
-    // Must be UPFRONT payment terms
-    if (order.paymentTerms !== PaymentTerms.UPFRONT) {
-      throw new DomainError(
-        'Deposit registration only allowed for UPFRONT payment terms',
-        400,
-        DomainErrorCodes.PAYMENT_INVALID_TYPE
-      );
-    }
+    // GAP-3 Fix: Allow deposits for any payment terms (e.g. Tempo + DP)
+    // if (order.paymentTerms !== PaymentTerms.UPFRONT) { ... } -> Removed
 
     // Cannot register more deposits if already settled
     if (order.paymentStatus === PaymentStatus.SETTLED) {

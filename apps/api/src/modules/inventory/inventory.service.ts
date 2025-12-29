@@ -29,11 +29,14 @@ import {
 import { recordAudit } from '../common/audit/audit-log.service';
 
 export class InventoryService {
-  private repository = new InventoryRepository();
-  private productService = new ProductService();
   private _purchaseOrderService: POServiceType | null = null;
   private _salesOrderService: SOServiceType | null = null;
-  private journalService = new JournalService();
+
+  constructor(
+    private readonly repository: InventoryRepository = new InventoryRepository(),
+    private readonly productService: ProductService = new ProductService(),
+    private readonly journalService: JournalService = new JournalService()
+  ) {}
 
   // Lazy load to break circular dependency
   private async getPurchaseOrderService(): Promise<POServiceType> {

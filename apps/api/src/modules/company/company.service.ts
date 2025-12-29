@@ -10,7 +10,9 @@ import {
 } from '@sync-erp/shared';
 
 export class CompanyService {
-  private repository = new CompanyRepository();
+  constructor(
+    private readonly repository: CompanyRepository = new CompanyRepository()
+  ) {}
 
   async create(
     data: CreateCompanyDto,

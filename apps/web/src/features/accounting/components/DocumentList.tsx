@@ -424,6 +424,13 @@ export function DocumentList({
                         >
                           {doc.invoiceNumber}
                         </Link>
+                        {/* Feature: DP Badge */}
+                        {'isDownPayment' in doc &&
+                          doc.isDownPayment && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                              DP
+                            </span>
+                          )}
                       </td>
                       <td className="px-6 py-4">
                         <Link

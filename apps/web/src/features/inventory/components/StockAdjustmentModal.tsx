@@ -68,6 +68,7 @@ export function StockAdjustmentModal({
     await adjustMutation.mutateAsync({
       productId: data.productId,
       quantity:
+        // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type
         adjustmentType === 'DECREMENT'
           ? -Math.abs(data.quantity)
           : Math.abs(data.quantity),

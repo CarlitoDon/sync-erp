@@ -16,6 +16,7 @@ import { Decimal } from 'decimal.js';
 /**
  * Document type for contextual error messages
  */
+// eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local type alias for error messages, not database enum
 export type DocumentType = 'Bill' | 'Invoice';
 
 /**
@@ -59,6 +60,7 @@ export function validateOrderStatus(
   orderStatus: string,
   validStatuses: string[],
   docType: DocumentType,
+  // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local param type, not database enum
   orderType: 'PO' | 'SO'
 ): void {
   if (!validStatuses.includes(orderStatus)) {
@@ -76,9 +78,11 @@ export function validateOrderStatus(
 export function ensureFulfillmentExists(
   count: number,
   docType: DocumentType,
+  // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local param type, not database enum
   fulfillmentType: 'GRN' | 'Shipment'
 ): void {
   if (count === 0) {
+    // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local param comparison
     const action = fulfillmentType === 'GRN' ? 'received' : 'shipped';
     throw new DomainError(
       `Cannot ${docType === 'Bill' ? 'create bill' : 'post invoice'}: Goods have not been ${action} (no ${fulfillmentType} found)`,
@@ -109,6 +113,7 @@ export interface ThreeWayMatchOrder {
   totalAmount: Decimal | number;
   dpAmount?: Decimal | number | null;
   paymentTerms?: string | null;
+  taxRate?: Decimal | number | null; // For tax-adjusted DP deduction
 }
 
 /**
@@ -130,6 +135,7 @@ export function validate3WayMatching(
   order: ThreeWayMatchOrder,
   qtyByProduct: Map<string, number>,
   docType: DocumentType,
+  // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local param type, not database enum
   fulfillmentType: 'Received' | 'Shipped',
   isDownPayment: boolean = false
 ): void {
@@ -152,10 +158,15 @@ export function validate3WayMatching(
     0
   );
 
-  // Deduct DP if applicable
+  // Deduct DP if applicable (must use same tax-adjusted formula as Bill creation)
   const dpPaid = order.dpAmount ? Number(order.dpAmount) : 0;
-  const expectedSubtotal =
-    dpPaid > 0 ? orderSubtotal - dpPaid : orderSubtotal;
+  const taxRate = order.taxRate ? Number(order.taxRate) : 0;
+  // Convert percentage to multiplier if needed (e.g., 5 -> 0.05)
+  const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
+  // DP amount is gross (includes tax), so subtract only the subtotal portion
+  const dpSubtotalDeduction =
+    dpPaid > 0 ? dpPaid / (1 + taxMultiplier) : 0;
+  const expectedSubtotal = orderSubtotal - dpSubtotalDeduction;
   const actualSubtotal = Number(document.subtotal);
 
   // 3a. Subtotal Match (allow 1 IDR tolerance for rounding)

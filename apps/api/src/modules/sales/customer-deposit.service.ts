@@ -8,14 +8,11 @@
 import {
   Payment,
   PaymentStatus,
-  PaymentTerms,
 } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { SalesOrderPolicy } from './sales-order.policy';
 import { CustomerDepositRepository } from './customer-deposit.repository';
 import { JournalService } from '../accounting/services/journal.service';
-
-const journalService = new JournalService();
 
 interface RegisterDepositInput {
   orderId: string;
@@ -27,7 +24,10 @@ interface RegisterDepositInput {
 }
 
 export class CustomerDepositService {
-  private repository = new CustomerDepositRepository();
+  constructor(
+    private readonly repository: CustomerDepositRepository = new CustomerDepositRepository(),
+    private readonly journalService: JournalService = new JournalService()
+  ) {}
 
   /**
    * Register a customer deposit for a Sales Order.
@@ -106,7 +106,7 @@ export class CustomerDepositService {
         );
 
         // 5. Post journal entry: Dr Cash/Bank, Cr 2200 Customer Deposits
-        await journalService.postCustomerDeposit(
+        await this.journalService.postCustomerDeposit(
           companyId,
           payment.id,
           order.orderNumber || order.id,
@@ -202,8 +202,9 @@ export class CustomerDepositService {
     // Check if linked order has deposit
     const hasDeposit =
       invoice.order?.upfrontPayments &&
-      invoice.order.upfrontPayments.length > 0 &&
-      invoice.order.paymentTerms === PaymentTerms.UPFRONT;
+      invoice.order.upfrontPayments.length > 0;
+    // GAP-3 Fix: Allow for any payment terms
+    // && invoice.order.paymentTerms === PaymentTerms.UPFRONT;
 
     const depositPayment = hasDeposit
       ? invoice.order!.upfrontPayments[0]
@@ -294,7 +295,7 @@ export class CustomerDepositService {
 
         // 2. Post settlement journal (use paymentId to avoid duplicate)
         const journal =
-          await journalService.postSettleCustomerDeposit(
+          await this.journalService.postSettleCustomerDeposit(
             companyId,
             depositInfo.deposit.paymentId, // Use paymentId, not invoiceId
             invoice.invoiceNumber || invoiceId,

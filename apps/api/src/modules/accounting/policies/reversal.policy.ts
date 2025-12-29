@@ -1,4 +1,8 @@
-import { Invoice, InvoiceStatus } from '@sync-erp/database';
+import {
+  Invoice,
+  InvoiceStatus,
+  OrderStatus,
+} from '@sync-erp/database';
 
 /**
  * Reversal Policy
@@ -101,7 +105,7 @@ export class ReversalPolicy {
     orderStatus: string
   ): ReversalPolicyResult {
     // Rule 1: Only COMPLETED orders can have returns
-    if (orderStatus !== 'COMPLETED') {
+    if (orderStatus !== OrderStatus.COMPLETED) {
       return {
         allowed: false,
         reason: `Cannot process return for order with status ${orderStatus}. Only COMPLETED orders can be returned.`,
