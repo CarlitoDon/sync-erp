@@ -3,7 +3,9 @@
 > **Date:** December 29, 2025  
 > **Branch:** 038-feature-expenses  
 > **Status:** Analysis Complete  
-> **Spec:** [specs/039-frontend-improvements/](../specs/039-frontend-improvements/)
+> **Specs:** 
+> - [specs/039-frontend-improvements/](../specs/039-frontend-improvements/) - ✅ Implemented
+> - [specs/040-frontend-improvements-p2/](../specs/040-frontend-improvements-p2/) - 📋 Specified
 
 ---
 
@@ -11,17 +13,17 @@
 
 | Item | Priority | Status | Spec Reference |
 |------|----------|--------|----------------|
-| Missing Error Boundaries | 🔴 High | ✅ Covered | US1 (T003-T006) |
-| `window.prompt()` replacement | 🔴 High | ✅ Covered | US2 (T007-T018) |
-| Inline Loading Spinners | 🟠 Medium | ✅ Covered | US5 (T029-T034) |
-| Route-Level Code Splitting | 🟡 Lower | ✅ Covered | US3 (T019-T025) |
-| tRPC `staleTime` | 🟡 Lower | ✅ Covered | US4 (T026-T028) |
-| Suppliers/Customers duplication | 🟠 Medium | ❌ Out of Scope | - |
-| PurchaseOrders/SalesOrders form logic | 🟠 Medium | ❌ Out of Scope | - |
-| "Please select company" message | 🟠 Medium | ❌ Not Covered | Quick win |
-| Raw Input elements | 🟠 Medium | ❌ Not Covered | Quick win |
-| Consolidate PageHeader | 🟡 Lower | ❌ Out of Scope | - |
-| Limited Memoization | 🟡 Lower | ❌ Not Covered | Future |
+| Missing Error Boundaries | 🔴 High | ✅ Done | 039: US1 (T003-T006) |
+| `window.prompt()` replacement | 🔴 High | ✅ Done | 039: US2 (T007-T018) |
+| Inline Loading Spinners | 🟠 Medium | ✅ Done | 039: US5 (T029-T034) |
+| Route-Level Code Splitting | 🟡 Lower | ✅ Done | 039: US3 (T019-T025) |
+| tRPC `staleTime` | 🟡 Lower | ✅ Done | 039: US4 (T026-T028) |
+| Suppliers/Customers duplication | 🟠 Medium | 📋 Specified | 040: US1 (T025-T030) |
+| PurchaseOrders/SalesOrders form logic | 🟠 Medium | 📋 Specified | 040: US2 (T031-T037) |
+| "Please select company" message | 🟠 Medium | 📋 Specified | 040: US3 (T001-T013) |
+| Raw Input elements | 🟠 Medium | 📋 Specified | 040: US4 (T014-T018) |
+| Consolidate PageHeader | 🟡 Lower | 📋 Specified | 040: US5 (T019-T024) |
+| Limited Memoization | 🟡 Lower | 📋 Specified | 040: US6 (T038-T043) |
 | React Hook Form integration | 🟢 Future | ❌ Out of Scope | - |
 | DataTable component | 🟢 Future | ❌ Out of Scope | - |
 | Accessibility audit | 🟢 Future | ❌ Out of Scope | - |
