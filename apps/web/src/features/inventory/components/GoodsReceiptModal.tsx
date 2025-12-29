@@ -66,11 +66,17 @@ export function GoodsReceiptModal({
   );
 
   const createMutation = trpc.inventory.createGRN.useMutation({
-    onSuccess: () => utils.inventory.listGRN.invalidate(),
+    onSuccess: () => {
+      utils.inventory.listGRN.invalidate();
+      utils.purchaseOrder.list.invalidate(); // PO status may change
+    },
   });
 
   const postMutation = trpc.inventory.postGRN.useMutation({
-    onSuccess: () => utils.inventory.listGRN.invalidate(),
+    onSuccess: () => {
+      utils.inventory.listGRN.invalidate();
+      utils.purchaseOrder.list.invalidate(); // PO status may change
+    },
   });
 
   // Pre-fill items with remaining qty (ordered - received)
