@@ -7,7 +7,6 @@ import {
   InvoiceType,
   SequenceType,
 } from '@sync-erp/database';
-import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export interface StockMovementInput {
   companyId: string;
@@ -280,80 +279,48 @@ export class InventoryRepository {
     });
   }
 
-  async postFulfillment(
+  /**
+   * Get fulfillment by ID with all relations for posting
+   */
+  async getFulfillmentForPosting(
     id: string,
     companyId: string,
     tx: Prisma.TransactionClient
   ) {
-    const fulfillment = await tx.fulfillment.findFirstOrThrow({
+    return tx.fulfillment.findFirstOrThrow({
       where: { id, companyId, status: 'DRAFT' },
       include: {
         items: { include: { product: true, orderItem: true } },
         order: true,
       },
     });
+  }
 
-    for (const item of fulfillment.items) {
-      const qty = Number(item.quantity);
+  /**
+   * Snapshot COGS on fulfillment item (for shipments)
+   */
+  async snapshotCostOnItem(
+    itemId: string,
+    cost: Prisma.Decimal,
+    tx: Prisma.TransactionClient
+  ) {
+    return tx.fulfillmentItem.update({
+      where: { id: itemId },
+      data: { costSnapshot: cost },
+    });
+  }
 
-      if (fulfillment.type === FulfillmentType.RECEIPT) {
-        // Stock IN with cost
-        const unitCost = Number(item.orderItem.price);
-        await this.createStockMovement(
-          {
-            companyId,
-            productId: item.productId,
-            type: MovementType.IN,
-            quantity: qty,
-            reference: `GRN:${fulfillment.number} PO:${fulfillment.order.orderNumber || fulfillment.orderId}`,
-            unitCost,
-          },
-          tx
-        );
-      } else {
-        // Stock OUT - validate + snapshot COGS
-        if (item.product.stockQty < qty) {
-          throw new DomainError(
-            `Insufficient stock for ${item.product.name}. Available: ${item.product.stockQty}, Required: ${qty}`,
-            422,
-            DomainErrorCodes.INSUFFICIENT_STOCK
-          );
-        }
-
-        await tx.fulfillmentItem.update({
-          where: { id: item.id },
-          data: { costSnapshot: item.product.averageCost },
-        });
-
-        await this.createStockMovement(
-          {
-            companyId,
-            productId: item.productId,
-            type: MovementType.OUT,
-            quantity: qty,
-            reference: `SHP:${fulfillment.number}`,
-          },
-          tx
-        );
-      }
-    }
-
-    // Update fulfillment status
-    const posted = await tx.fulfillment.update({
+  /**
+   * Update fulfillment status to POSTED
+   */
+  async postFulfillment(id: string, tx: Prisma.TransactionClient) {
+    return tx.fulfillment.update({
       where: { id },
       data: { status: 'POSTED' },
       include: {
         items: { include: { product: true, orderItem: true } },
       },
     });
-
-    // Update order status to COMPLETED
-    await tx.order.update({
-      where: { id: fulfillment.orderId },
-      data: { status: 'COMPLETED' },
-    });
-
-    return posted;
   }
 
   async countInvoicesForOrder(

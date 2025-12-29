@@ -21,7 +21,11 @@ import type { PurchaseOrderService as POServiceType } from '../procurement/purch
 import type { SalesOrderService as SOServiceType } from '../sales/sales-order.service';
 import { JournalService } from '../accounting/services/journal.service';
 import { InventoryPolicy } from './inventory.policy';
-import { StockAdjustmentInput, DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import {
+  StockAdjustmentInput,
+  DomainError,
+  DomainErrorCodes,
+} from '@sync-erp/shared';
 import { recordAudit } from '../common/audit/audit-log.service';
 
 export class InventoryService {
@@ -283,70 +287,124 @@ export class InventoryService {
     userId?: string
   ) {
     const execute = async (t: Prisma.TransactionClient) => {
+      // 1. Get fulfillment with all relations
+      const fulfillment =
+        await this.repository.getFulfillmentForPosting(
+          fulfillmentId,
+          companyId,
+          t
+        );
+
+      const isReceipt = fulfillment.type === FulfillmentType.RECEIPT;
+
+      // 2. Process each item - stock movements + validation
+      for (const item of fulfillment.items) {
+        const qty = Number(item.quantity);
+
+        if (isReceipt) {
+          // GRN: Stock IN with cost (average cost update)
+          const unitCost = Number(item.orderItem.price);
+          await this.repository.createStockMovement(
+            {
+              companyId,
+              productId: item.productId,
+              type: MovementType.IN,
+              quantity: qty,
+              reference: `GRN:${fulfillment.number} PO:${fulfillment.order.orderNumber || fulfillment.orderId}`,
+              unitCost,
+            },
+            t
+          );
+        } else {
+          // Shipment: Validate stock, snapshot COGS, then OUT
+          InventoryPolicy.ensureSufficientStock(
+            item.product.name,
+            item.product.stockQty,
+            qty
+          );
+
+          // Snapshot COGS for FIFO/AVG costing
+          await this.repository.snapshotCostOnItem(
+            item.id,
+            item.product.averageCost,
+            t
+          );
+
+          await this.repository.createStockMovement(
+            {
+              companyId,
+              productId: item.productId,
+              type: MovementType.OUT,
+              quantity: qty,
+              reference: `SHP:${fulfillment.number}`,
+            },
+            t
+          );
+        }
+      }
+
+      // 3. Update fulfillment status to POSTED
       const posted = await this.repository.postFulfillment(
         fulfillmentId,
-        companyId,
         t
       );
 
-      const isReceipt = posted.type === FulfillmentType.RECEIPT;
-
-      // Calculate value for journal
-      const totalValue = posted.items.reduce((sum, item) => {
+      // 4. Calculate value for journal entry
+      const totalValue = fulfillment.items.reduce((sum, item) => {
         const unitValue = isReceipt
           ? Number(item.orderItem.price)
-          : Number(item.costSnapshot || 0);
+          : Number(item.product.averageCost);
         return sum + Number(item.quantity) * unitValue;
       }, 0);
 
-      // Post journal
+      // 5. Post journal
       if (totalValue > 0) {
         if (isReceipt) {
           await this.journalService.postGoodsReceipt(
             companyId,
-            `GRN:${posted.number}`,
+            `GRN:${fulfillment.number}`,
             totalValue,
             t
           );
         } else {
           await this.journalService.postShipment(
             companyId,
-            `SHP:${posted.number}`,
+            `SHP:${fulfillment.number}`,
             totalValue,
             t
           );
         }
       }
 
-      // Audit log
+      // 6. Audit log
       if (userId) {
         await recordAudit({
           companyId,
           actorId: userId,
           action: isReceipt
             ? AuditLogAction.GRN_POSTED
-            : AuditLogAction.GRN_POSTED, // Use GRN_POSTED for shipments too (or add dedicated enum if needed)
+            : AuditLogAction.SHIPMENT_CREATED,
           entityType: isReceipt
             ? EntityType.GOODS_RECEIPT
             : EntityType.SHIPMENT,
           entityId: fulfillmentId,
           businessDate: new Date(),
-          payloadSnapshot: { number: posted.number, totalValue },
+          payloadSnapshot: { number: fulfillment.number, totalValue },
         });
       }
 
-      // Recalculate order status
+      // 7. Recalculate order status
       if (isReceipt) {
         const poService = await this.getPurchaseOrderService();
         await poService.recalculateStatus(
-          posted.orderId,
+          fulfillment.orderId,
           companyId,
           t
         );
       } else {
         const soService = await this.getSalesOrderService();
         await soService.recalculateStatus(
-          posted.orderId,
+          fulfillment.orderId,
           companyId,
           t
         );

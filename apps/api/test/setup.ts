@@ -12,6 +12,10 @@ export enum OrderType {
 export enum OrderStatus {
   DRAFT = 'DRAFT',
   CONFIRMED = 'CONFIRMED',
+  PARTIALLY_RECEIVED = 'PARTIALLY_RECEIVED',
+  RECEIVED = 'RECEIVED',
+  PARTIALLY_SHIPPED = 'PARTIALLY_SHIPPED',
+  SHIPPED = 'SHIPPED',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
 }
@@ -69,6 +73,16 @@ export enum IdempotencyScope {
   PAYMENT_CREATE = 'PAYMENT_CREATE',
   INVOICE_POST = 'INVOICE_POST',
 }
+export enum PaymentTerms {
+  NET7 = 'NET7',
+  NET30 = 'NET30',
+  NET60 = 'NET60',
+  NET90 = 'NET90',
+  COD = 'COD',
+  EOM = 'EOM',
+  NET_30 = 'NET_30',
+  UPFRONT = 'UPFRONT',
+}
 
 // Only import and setup mocks for unit tests
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -111,6 +125,7 @@ vi.mock('@sync-erp/database', async (importOriginal) => {
       SagaType,
       SagaStep,
       IdempotencyScope,
+      PaymentTerms,
       Prisma: {},
     };
   }

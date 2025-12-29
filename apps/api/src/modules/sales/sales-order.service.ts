@@ -31,16 +31,14 @@ import {
 // CreateSalesOrderInput has { type: 'SALES', items: ... }
 
 import { DocumentNumberService } from '../common/services/document-number.service';
-// Direct Repository/Service usage to avoid circular dependency
-import { InventoryRepository } from '../inventory/inventory.repository';
-import { JournalService } from '../accounting/services/journal.service';
+// Use InventoryService instead of repository for proper service-to-service call
+import { InventoryService } from '../inventory/inventory.service';
 
 export class SalesOrderService {
   private repository = new SalesOrderRepository();
   private productService = new ProductService();
   private documentNumberService = new DocumentNumberService();
-  private inventoryRepository = new InventoryRepository();
-  private journalService = new JournalService();
+  private inventoryService = new InventoryService();
 
   /**
    * Create a new sales order.
@@ -293,55 +291,36 @@ export class SalesOrderService {
           }
         }
 
-        // 4. Create Fulfillment document (Shipment type)
+        // 4. Create Fulfillment document (Shipment type) using InventoryService
         const fulfillment =
-          await this.inventoryRepository.createFulfillment(
+          await this.inventoryService.createFulfillment(
+            companyId,
             {
-              companyId,
               orderId,
               type: FulfillmentType.SHIPMENT,
-              date: new Date(),
+              date: new Date().toISOString(),
               notes:
                 reference ||
                 `Shipment for Order ${order.orderNumber}`,
               items: order.items.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
-                orderItemId: item.id,
               })),
             },
             tx
           );
 
-        // 5. Post Fulfillment (Stock OUT + COGS Snapshot + Status Update)
-        const postedFulfillment =
-          await this.inventoryRepository.postFulfillment(
-            fulfillment.id,
-            companyId,
-            tx
-          );
-
-        // 5b. Update Order Status (Partial/Full Shipped)
-        await this.recalculateStatus(orderId, companyId, tx);
-
-        // 6. Calculate COGS for Journal
-        let totalCogs = 0;
-        for (const item of postedFulfillment.items) {
-          const cost = Number(
-            item.costSnapshot || item.product.averageCost || 0
-          );
-          totalCogs += Number(item.quantity) * cost;
-        }
-
-        // 7. Post COGS Journal
-        if (totalCogs > 0) {
-          await this.journalService.postShipment(
-            companyId,
-            `SHP:${postedFulfillment.number}`,
-            totalCogs,
-            tx
-          );
-        }
+        // 5. Post Fulfillment (Stock OUT + COGS Snapshot + Journal + Status Recalc)
+        // InventoryService.postFulfillment handles all business logic:
+        // - Stock validation & movements
+        // - COGS snapshot
+        // - Journal posting
+        // - Order status recalculation
+        await this.inventoryService.postFulfillment(
+          companyId,
+          fulfillment.id,
+          tx
+        );
 
         // Return empty movements array for backward compatibility
         return [];
