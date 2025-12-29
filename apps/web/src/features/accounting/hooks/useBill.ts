@@ -7,6 +7,7 @@ import { trpc } from '@/lib/trpc';
 // Export CreateBillInput for API - uses Date objects
 export interface CreateBillInput {
   orderId: string;
+  grnId?: string; // Feature: Link to specific GRN/Receipt
   supplierInvoiceNumber?: string; // External reference from supplier
   dueDate?: Date;
   taxRate?: number;
@@ -121,8 +122,7 @@ export function useBill(options: UseBillOptions = {}) {
       if (!confirmed) return;
 
       const result = await apiAction(
-        async () =>
-          voidBillMutation.mutateAsync({ id, reason }),
+        async () => voidBillMutation.mutateAsync({ id, reason }),
         'Bill voided successfully!'
       );
 

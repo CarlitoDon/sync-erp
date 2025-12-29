@@ -2,7 +2,12 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
-import { PrismaClient } from '../src/generated/client/client.js';
+import {
+  PrismaClient,
+  PermissionModule,
+  PermissionAction,
+  PermissionScope,
+} from '../src/generated/client/client.js';
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as pg from 'pg';
@@ -13,47 +18,53 @@ const adapter = new PrismaPg(pool);
 
 const prisma = new PrismaClient({ adapter });
 
-// Default RBAC Permissions
-const DEFAULT_PERMISSIONS = [
+// Default RBAC Permissions (using Prisma enums for type safety)
+const DEFAULT_PERMISSIONS: {
+  module: PermissionModule;
+  action: PermissionAction;
+  scope: PermissionScope;
+}[] = [
   // Company Module
-  { module: 'COMPANY', action: 'CREATE', scope: 'ALL' },
-  { module: 'COMPANY', action: 'READ', scope: 'ALL' },
-  { module: 'COMPANY', action: 'UPDATE', scope: 'ALL' },
-  { module: 'COMPANY', action: 'DELETE', scope: 'ALL' },
+  { module: PermissionModule.COMPANY, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.COMPANY, action: PermissionAction.READ, scope: PermissionScope.ALL },
+  { module: PermissionModule.COMPANY, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.COMPANY, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
 
   // Sales Module
-  { module: 'SALES', action: 'CREATE', scope: 'ALL' },
-  { module: 'SALES', action: 'READ', scope: 'ALL' },
-  { module: 'SALES', action: 'READ', scope: 'OWN' },
-  { module: 'SALES', action: 'UPDATE', scope: 'ALL' },
-  { module: 'SALES', action: 'DELETE', scope: 'ALL' },
-  { module: 'SALES', action: 'APPROVE', scope: 'ALL' },
+  { module: PermissionModule.SALES, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.SALES, action: PermissionAction.READ, scope: PermissionScope.ALL },
+  { module: PermissionModule.SALES, action: PermissionAction.READ, scope: PermissionScope.OWN },
+  { module: PermissionModule.SALES, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.SALES, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
+  { module: PermissionModule.SALES, action: PermissionAction.APPROVE, scope: PermissionScope.ALL },
 
   // Purchasing Module
-  { module: 'PURCHASING', action: 'CREATE', scope: 'ALL' },
-  { module: 'PURCHASING', action: 'READ', scope: 'ALL' },
-  { module: 'PURCHASING', action: 'UPDATE', scope: 'ALL' },
-  { module: 'PURCHASING', action: 'DELETE', scope: 'ALL' },
-  { module: 'PURCHASING', action: 'APPROVE', scope: 'ALL' },
+  { module: PermissionModule.PURCHASING, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.PURCHASING, action: PermissionAction.READ, scope: PermissionScope.ALL },
+  { module: PermissionModule.PURCHASING, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.PURCHASING, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
+  { module: PermissionModule.PURCHASING, action: PermissionAction.APPROVE, scope: PermissionScope.ALL },
 
   // Inventory Module
-  { module: 'INVENTORY', action: 'CREATE', scope: 'ALL' },
-  { module: 'INVENTORY', action: 'READ', scope: 'ALL' },
-  { module: 'INVENTORY', action: 'UPDATE', scope: 'ALL' },
-  { module: 'INVENTORY', action: 'DELETE', scope: 'ALL' },
+  { module: PermissionModule.INVENTORY, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.INVENTORY, action: PermissionAction.READ, scope: PermissionScope.ALL },
+  { module: PermissionModule.INVENTORY, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.INVENTORY, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
+  { module: PermissionModule.INVENTORY, action: PermissionAction.VOID, scope: PermissionScope.ALL },
 
   // Finance Module
-  { module: 'FINANCE', action: 'CREATE', scope: 'ALL' },
-  { module: 'FINANCE', action: 'READ', scope: 'ALL' },
-  { module: 'FINANCE', action: 'UPDATE', scope: 'ALL' },
-  { module: 'FINANCE', action: 'DELETE', scope: 'ALL' },
-  { module: 'FINANCE', action: 'APPROVE', scope: 'ALL' },
+  { module: PermissionModule.FINANCE, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.FINANCE, action: PermissionAction.READ, scope: PermissionScope.ALL },
+  { module: PermissionModule.FINANCE, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.FINANCE, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
+  { module: PermissionModule.FINANCE, action: PermissionAction.APPROVE, scope: PermissionScope.ALL },
+  { module: PermissionModule.FINANCE, action: PermissionAction.VOID, scope: PermissionScope.ALL },
 
   // Users Module
-  { module: 'USERS', action: 'CREATE', scope: 'ALL' },
-  { module: 'USERS', action: 'READ', scope: 'ALL' },
-  { module: 'USERS', action: 'UPDATE', scope: 'ALL' },
-  { module: 'USERS', action: 'DELETE', scope: 'ALL' },
+  { module: PermissionModule.USERS, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.USERS, action: PermissionAction.READ, scope: PermissionScope.ALL },
+  { module: PermissionModule.USERS, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
+  { module: PermissionModule.USERS, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
 ];
 
 async function main() {

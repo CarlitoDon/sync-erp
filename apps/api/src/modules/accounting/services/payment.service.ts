@@ -189,12 +189,17 @@ export class PaymentService {
     reason: string,
     userPermissions?: string[] // FR-026: Granular permissions array
   ): Promise<Payment> {
-    // FR-026: Void Payment requires 'payment:void' permission
-    const requiredPermission = 'payment:void';
+
+    // FR-026: Void Payment requires 'FINANCE:VOID' permission
+    // Note: Context builds permissions as UPPERCASE
+    const requiredPermission = 'FINANCE:VOID';
+    const normalizedPermissions = userPermissions?.map((p) =>
+      p.toUpperCase()
+    );
     const hasPermission =
-      userPermissions?.includes(requiredPermission) ||
-      userPermissions?.includes('payment:*') ||
-      userPermissions?.includes('*:*');
+      normalizedPermissions?.includes(requiredPermission) ||
+      normalizedPermissions?.includes('FINANCE:*') ||
+      normalizedPermissions?.includes('*:*');
 
     if (!hasPermission) {
       throw new DomainError(

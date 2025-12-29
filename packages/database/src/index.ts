@@ -51,6 +51,10 @@ export {
   DocumentStatus,
   // Feature 038: Fulfillment
   FulfillmentType,
+  // FR-026: Permission Enums
+  PermissionModule,
+  PermissionAction,
+  PermissionScope,
 } from './generated/client/client.js';
 
 export type { Fulfillment, FulfillmentItem } from './generated/client/client.js';

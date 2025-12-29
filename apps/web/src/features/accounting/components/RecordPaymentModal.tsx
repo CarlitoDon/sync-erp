@@ -55,7 +55,7 @@ export function RecordPaymentModal({
   const utils = trpc.useUtils();
 
   const paymentMutation = trpc.payment.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate relevant queries
       utils.payment.list.invalidate();
       if (documentType === 'bill') {
@@ -63,6 +63,8 @@ export function RecordPaymentModal({
         utils.bill.list.invalidate();
         // PO status may change (e.g., DP paid -> can receive goods)
         utils.purchaseOrder.list.invalidate();
+        // Ensure cache is updated even if PO list isn't currently mounted
+        await utils.purchaseOrder.list.refetch();
       } else {
         utils.invoice.getById.invalidate();
         utils.invoice.list.invalidate();

@@ -209,6 +209,7 @@ export const CreateManualBillSchema = z.object({
 // Bill Creation from Purchase Order (only requires orderId)
 export const CreateBillFromPOSchema = z.object({
   orderId: z.string().uuid(),
+  grnId: z.string().uuid().optional(), // Feature: Link to specific GRN/Receipt
   supplierInvoiceNumber: z.string().optional(), // External reference from supplier
   dueDate: z.coerce.date().optional(),
   taxRate: z.number().optional(),

@@ -251,7 +251,8 @@ export default function InvoiceDetail() {
                   </ActionButton>
                 </>
               )}
-              {invoice.status === StatusSchema.enum.POSTED &&
+              {(invoice.status === StatusSchema.enum.POSTED ||
+                invoice.status === StatusSchema.enum.PARTIALLY_PAID) &&
                 Number(invoice.balance) > 0 && (
                   <>
                     <ActionButton

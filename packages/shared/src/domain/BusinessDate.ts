@@ -28,15 +28,15 @@ export class BusinessDate {
   }
 
   /**
-   * Check if date is in future relative to NOW + tolerance (5 mins)
+   * Check if date is in future relative to NOW + tolerance (24h to handle timezones)
    */
-  isFuture(toleranceMs = 5 * 60 * 1000): boolean {
+  isFuture(toleranceMs = 24 * 60 * 60 * 1000): boolean {
     const now = new Date();
     return this._date.getTime() > now.getTime() + toleranceMs;
   }
 
   /**
-   * Ensure date is valid (not future). Throws if invalid.
+   * Ensure date is valid (not excessively in the future). Throws if invalid.
    */
   ensureValid(): void {
     if (this.isFuture()) {

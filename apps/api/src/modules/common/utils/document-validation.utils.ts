@@ -175,13 +175,18 @@ export function validate3WayMatching(
   const actualSubtotal = Number(document.subtotal);
 
   // 3a. Subtotal Match (allow 1 IDR tolerance for rounding)
-  const subtotalDiff = Math.abs(actualSubtotal - expectedSubtotal);
-  if (subtotalDiff > 1) {
-    throw new DomainError(
-      `3-way matching failed: Subtotal mismatch (Expected: ${expectedSubtotal.toLocaleString()}, ${docType}: ${actualSubtotal.toLocaleString()})`,
-      422,
-      DomainErrorCodes.THREE_WAY_MATCH_FAILED
-    );
+  // Skip subtotal matching for partial billing (when Bill subtotal < PO subtotal)
+  // This allows creating multiple bills from partial GRNs
+  const isPartialBill = actualSubtotal < orderSubtotal - 1;
+  if (!isPartialBill) {
+    const subtotalDiff = Math.abs(actualSubtotal - expectedSubtotal);
+    if (subtotalDiff > 1) {
+      throw new DomainError(
+        `3-way matching failed: Subtotal mismatch (Expected: ${expectedSubtotal.toLocaleString()}, ${docType}: ${actualSubtotal.toLocaleString()})`,
+        422,
+        DomainErrorCodes.THREE_WAY_MATCH_FAILED
+      );
+    }
   }
 
   // 3b. Qty Match per product

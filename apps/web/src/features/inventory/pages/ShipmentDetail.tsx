@@ -49,6 +49,13 @@ export default function ShipmentDetail() {
     },
   });
 
+  const deleteMutation = trpc.inventory.deleteShipment.useMutation({
+    onSuccess: () => {
+      utils.inventory.listShipments.invalidate();
+      navigate('/shipments');
+    },
+  });
+
   const handlePost = async () => {
     if (!shipment) return;
 
@@ -91,6 +98,26 @@ export default function ShipmentDetail() {
         await voidMutation.mutateAsync({ id: shipment.id, reason });
       } catch (error) {
         console.error('Failed to void Shipment:', error);
+      }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!shipment) return;
+
+    const confirmed = await confirm({
+      title: 'Delete Draft Shipment',
+      message:
+        'Are you sure you want to delete this draft shipment? This action cannot be undone.',
+      confirmText: 'Yes, Delete',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
+      try {
+        await deleteMutation.mutateAsync({ id: shipment.id });
+      } catch (error) {
+        console.error('Failed to delete Shipment:', error);
       }
     }
   };
@@ -162,12 +189,21 @@ export default function ShipmentDetail() {
 
         <div className="flex gap-2">
           {shipment.status === DocumentStatusSchema.enum.DRAFT && (
-            <Button
-              onClick={handlePost}
-              disabled={postMutation.isPending}
-            >
-              Post Shipment
-            </Button>
+            <>
+              <Button
+                onClick={handlePost}
+                disabled={postMutation.isPending}
+              >
+                Post Shipment
+              </Button>
+              <Button
+                onClick={handleDelete}
+                variant="danger"
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </Button>
+            </>
           )}
           {shipment.status === DocumentStatusSchema.enum.POSTED && (
             <>

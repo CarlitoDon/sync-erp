@@ -1,16 +1,41 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '@sync-erp/database';
+import {
+  prisma,
+  PermissionModule,
+  PermissionAction,
+  PermissionScope,
+} from '@sync-erp/database';
 import { ForbiddenError } from './errorHandler';
 
 /**
  * Permission structure: module:action
- * e.g., "orders:create", "invoices:approve", "finance:view"
+ * e.g., "SALES:CREATE", "FINANCE:APPROVE", "INVENTORY:VOID"
  */
 type Permission = string;
 
 interface RBACConfig {
   module: string;
   action: string;
+}
+
+/**
+ * Helper to check if permission matches (supports legacy wildcard '*' as string)
+ * Now enums don't have '*', so we cast to string for comparison
+ */
+function permissionMatches(
+  permModule: PermissionModule,
+  permAction: PermissionAction,
+  requiredModule: string,
+  requiredAction: string
+): boolean {
+  const moduleStr = String(permModule);
+  const actionStr = String(permAction);
+  // Match if exact match OR wildcard (legacy support via string cast)
+  const moduleMatch =
+    moduleStr === requiredModule || moduleStr === '*';
+  const actionMatch =
+    actionStr === requiredAction || actionStr === '*';
+  return moduleMatch && actionMatch;
 }
 
 /**
@@ -65,12 +90,13 @@ export function requirePermission(config: RBACConfig | Permission) {
       }
 
       // Check if role has required permission
-      const hasPermission = membership.role.permissions.some(
-        (rp) =>
-          (rp.permission.module === module ||
-            rp.permission.module === '*') &&
-          (rp.permission.action === action ||
-            rp.permission.action === '*')
+      const hasPermission = membership.role.permissions.some((rp) =>
+        permissionMatches(
+          rp.permission.module,
+          rp.permission.action,
+          module.toUpperCase(),
+          action.toUpperCase()
+        )
       );
 
       if (!hasPermission) {
@@ -130,12 +156,13 @@ export function requireAnyPermission(...permissions: Permission[]) {
 
       const hasAnyPermission = permissions.some((perm) => {
         const [module, action] = perm.split(':');
-        return membership.role!.permissions.some(
-          (rp) =>
-            (rp.permission.module === module ||
-              rp.permission.module === '*') &&
-            (rp.permission.action === action ||
-              rp.permission.action === '*')
+        return membership.role!.permissions.some((rp) =>
+          permissionMatches(
+            rp.permission.module,
+            rp.permission.action,
+            module.toUpperCase(),
+            action.toUpperCase()
+          )
         );
       });
 
@@ -202,33 +229,106 @@ export class RBACService {
 
   /**
    * Get or create default permissions
+   * NOTE: Uses Prisma enums - no wildcard '*' support in enums
    */
   async seedDefaultPermissions() {
-    const defaultPermissions = [
-      // Orders
-      { module: 'orders', action: 'view' },
-      { module: 'orders', action: 'create' },
-      { module: 'orders', action: 'approve' },
-      { module: 'orders', action: 'delete' },
+    const defaultPermissions: {
+      module: PermissionModule;
+      action: PermissionAction;
+    }[] = [
+      // Sales
+      {
+        module: PermissionModule.SALES,
+        action: PermissionAction.READ,
+      },
+      {
+        module: PermissionModule.SALES,
+        action: PermissionAction.CREATE,
+      },
+      {
+        module: PermissionModule.SALES,
+        action: PermissionAction.APPROVE,
+      },
+      {
+        module: PermissionModule.SALES,
+        action: PermissionAction.DELETE,
+      },
+      // Purchasing
+      {
+        module: PermissionModule.PURCHASING,
+        action: PermissionAction.READ,
+      },
+      {
+        module: PermissionModule.PURCHASING,
+        action: PermissionAction.CREATE,
+      },
+      {
+        module: PermissionModule.PURCHASING,
+        action: PermissionAction.APPROVE,
+      },
+      {
+        module: PermissionModule.PURCHASING,
+        action: PermissionAction.DELETE,
+      },
       // Inventory
-      { module: 'inventory', action: 'view' },
-      { module: 'inventory', action: 'adjust' },
+      {
+        module: PermissionModule.INVENTORY,
+        action: PermissionAction.READ,
+      },
+      {
+        module: PermissionModule.INVENTORY,
+        action: PermissionAction.CREATE,
+      },
+      {
+        module: PermissionModule.INVENTORY,
+        action: PermissionAction.UPDATE,
+      },
+      {
+        module: PermissionModule.INVENTORY,
+        action: PermissionAction.VOID,
+      },
       // Finance
-      { module: 'finance', action: 'view' },
-      { module: 'finance', action: 'create' },
-      { module: 'finance', action: 'approve' },
-      // Partners
-      { module: 'partners', action: 'view' },
-      { module: 'partners', action: 'create' },
-      { module: 'partners', action: 'edit' },
-      { module: 'partners', action: 'delete' },
-      // Products
-      { module: 'products', action: 'view' },
-      { module: 'products', action: 'create' },
-      { module: 'products', action: 'edit' },
-      { module: 'products', action: 'delete' },
-      // Admin
-      { module: '*', action: '*' }, // Super admin
+      {
+        module: PermissionModule.FINANCE,
+        action: PermissionAction.READ,
+      },
+      {
+        module: PermissionModule.FINANCE,
+        action: PermissionAction.CREATE,
+      },
+      {
+        module: PermissionModule.FINANCE,
+        action: PermissionAction.APPROVE,
+      },
+      {
+        module: PermissionModule.FINANCE,
+        action: PermissionAction.VOID,
+      },
+      // Users/Company
+      {
+        module: PermissionModule.USERS,
+        action: PermissionAction.READ,
+      },
+      {
+        module: PermissionModule.USERS,
+        action: PermissionAction.CREATE,
+      },
+      {
+        module: PermissionModule.USERS,
+        action: PermissionAction.UPDATE,
+      },
+      {
+        module: PermissionModule.USERS,
+        action: PermissionAction.DELETE,
+      },
+      {
+        module: PermissionModule.COMPANY,
+        action: PermissionAction.READ,
+      },
+      {
+        module: PermissionModule.COMPANY,
+        action: PermissionAction.UPDATE,
+      },
     ];
 
     for (const perm of defaultPermissions) {
@@ -237,11 +337,11 @@ export class RBACService {
           module_action_scope: {
             module: perm.module,
             action: perm.action,
-            scope: 'ALL',
+            scope: PermissionScope.ALL,
           },
         },
         update: {},
-        create: { ...perm, scope: 'ALL' },
+        create: { ...perm, scope: PermissionScope.ALL },
       });
     }
   }

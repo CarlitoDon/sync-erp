@@ -46,10 +46,12 @@ export default function Select({
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const scrollX = window.scrollX || window.pageXOffset;
+      const scrollY = window.scrollY || window.pageYOffset;
       setDropdownStyle({
-        position: 'fixed',
-        top: rect.bottom + 4,
-        left: rect.left,
+        position: 'absolute',
+        top: rect.bottom + scrollY + 4,
+        left: rect.left + scrollX,
         width: rect.width,
         zIndex: 9999,
       });

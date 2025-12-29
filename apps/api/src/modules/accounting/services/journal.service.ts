@@ -485,17 +485,24 @@ export class JournalService {
       debit?: number;
       credit?: number;
     }[] = [
-      { accountCode: '2100', credit: amount }, // Accounts Payable
+      { accountCode: '2100', credit: amount }, // Accounts Payable (Payable portion)
     ];
+
+    const grossItems = (subtotal || 0) + (taxAmount || 0);
+    const dpDeducted = Math.max(0, grossItems - amount);
+
+    if (dpDeducted > 0.01) {
+      lines.push({ accountCode: '1600', credit: dpDeducted }); // Clear Advances to Supplier
+    }
 
     if (taxAmount && taxAmount > 0) {
       lines.push({
         accountCode: '2105',
-        debit: subtotal || amount - taxAmount,
-      }); // Clear Accrual
-      lines.push({ accountCode: '1500', debit: taxAmount }); // VAT Receivable
+        debit: subtotal || 0,
+      }); // Clear Accrual for full value of items
+      lines.push({ accountCode: '1500', debit: taxAmount }); // VAT Receivable for full value
     } else {
-      lines.push({ accountCode: '2105', debit: amount }); // Clear Accrual
+      lines.push({ accountCode: '2105', debit: amount + dpDeducted }); // Clear Accrual
     }
 
     return this.resolveAndCreate(

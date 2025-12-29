@@ -41,6 +41,11 @@ export default function GoodsReceiptDetail() {
     { enabled: !!id && !!currentCompany?.id }
   );
 
+  const orderIdForBills = receipt?.orderId;
+  const { data: allBills = [] } = trpc.bill.list.useQuery(undefined, {
+    enabled: !!currentCompany?.id && !!orderIdForBills,
+  });
+
   const postMutation = trpc.inventory.postGRN.useMutation({
     onSuccess: () => utils.inventory.getGRN.invalidate({ id: id! }),
   });
@@ -49,6 +54,14 @@ export default function GoodsReceiptDetail() {
     onSuccess: () => {
       utils.inventory.getGRN.invalidate({ id: id! });
       utils.inventory.listGRN.invalidate();
+    },
+  });
+
+  const deleteMutation = trpc.inventory.deleteGRN.useMutation({
+    onSuccess: () => {
+      utils.inventory.listGRN.invalidate();
+      // Navigate back to receipts list after deletion
+      navigate('/receipts');
     },
   });
 
@@ -116,6 +129,26 @@ export default function GoodsReceiptDetail() {
     setIsBillModalOpen(true);
   };
 
+  const handleDelete = async () => {
+    if (!receipt) return;
+
+    const confirmed = await confirm({
+      title: 'Delete Draft GRN',
+      message:
+        'Are you sure you want to delete this draft goods receipt? This action cannot be undone.',
+      confirmText: 'Yes, Delete',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
+      try {
+        await deleteMutation.mutateAsync({ id: receipt.id });
+      } catch (error) {
+        console.error('Failed to delete GRN:', error);
+      }
+    }
+  };
+
   if (error) {
     console.error('Failed to load goods receipt:', error);
     navigate('/receipts');
@@ -139,6 +172,10 @@ export default function GoodsReceiptDetail() {
     0
   );
 
+  const relatedBills = allBills.filter(
+    (bill) => bill.orderId === orderIdForBills
+  );
+
   return (
     <PageContainer>
       {/* Header */}
@@ -152,12 +189,21 @@ export default function GoodsReceiptDetail() {
         actions={
           <>
             {receipt.status === DocumentStatusSchema.enum.DRAFT && (
-              <Button
-                onClick={handlePost}
-                disabled={postMutation.isPending}
-              >
-                Post Receipt
-              </Button>
+              <>
+                <Button
+                  onClick={handlePost}
+                  disabled={postMutation.isPending}
+                >
+                  Post Receipt
+                </Button>
+                <Button
+                  onClick={handleDelete}
+                  variant="danger"
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                </Button>
+              </>
             )}
             {receipt.status === DocumentStatusSchema.enum.POSTED && (
               <>
@@ -226,6 +272,44 @@ export default function GoodsReceiptDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Related Bills (helps resolve "Cannot void: A BILL exists" blocker) */}
+      {relatedBills.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Related Bills</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {relatedBills.map((bill) => (
+                <div
+                  key={bill.id}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <Link
+                      to={`/bills/${bill.id}`}
+                      className="text-blue-600 hover:underline font-mono font-medium"
+                    >
+                      {bill.invoiceNumber || bill.id}
+                    </Link>
+                    <div className="text-sm text-gray-500">
+                      Status: {bill.status} • Balance:{' '}
+                      {formatCurrency(Number(bill.balance || 0))}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/bills/${bill.id}`)}
+                  >
+                    View
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Items Card */}
       <Card>

@@ -87,7 +87,7 @@ export default function CreatePaymentModal({
   const documents = paymentType === 'INBOUND' ? invoices : bills;
 
   const createMutation = trpc.payment.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate payment and document lists
       utils.payment.list.invalidate();
       utils.bill.list.invalidate();
@@ -95,6 +95,8 @@ export default function CreatePaymentModal({
       // Order status may change after payment (e.g., DP paid)
       utils.purchaseOrder.list.invalidate();
       utils.salesOrder.list.invalidate();
+      // Ensure PO list cache updates even if not mounted
+      await utils.purchaseOrder.list.refetch();
       onSuccess();
       onClose();
       reset();

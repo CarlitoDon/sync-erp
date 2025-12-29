@@ -172,6 +172,18 @@ export const JournalSourceTypeSchema = z.enum(['INVOICE','BILL','PAYMENT','CREDI
 
 export type JournalSourceTypeType = `${z.infer<typeof JournalSourceTypeSchema>}`
 
+export const PermissionModuleSchema = z.enum(['COMPANY','SALES','PURCHASING','INVENTORY','FINANCE','USERS']);
+
+export type PermissionModuleType = `${z.infer<typeof PermissionModuleSchema>}`
+
+export const PermissionActionSchema = z.enum(['CREATE','READ','UPDATE','DELETE','APPROVE','VOID']);
+
+export type PermissionActionType = `${z.infer<typeof PermissionActionSchema>}`
+
+export const PermissionScopeSchema = z.enum(['ALL','OWN']);
+
+export type PermissionScopeType = `${z.infer<typeof PermissionScopeSchema>}`
+
 export const PartnerTypeSchema = z.enum(['CUSTOMER','SUPPLIER']);
 
 export type PartnerTypeType = `${z.infer<typeof PartnerTypeSchema>}`
@@ -549,10 +561,10 @@ export type Role = z.infer<typeof RoleSchema>
 /////////////////////////////////////////
 
 export const PermissionSchema = z.object({
+  module: PermissionModuleSchema,
+  action: PermissionActionSchema,
+  scope: PermissionScopeSchema,
   id: z.string(),
-  module: z.string(),
-  action: z.string(),
-  scope: z.string(),
 })
 
 export type Permission = z.infer<typeof PermissionSchema>
