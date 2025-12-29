@@ -4,6 +4,7 @@ import {
   PaymentTermsSchema,
   PaymentStatusSchema,
   InvoiceStatusSchema,
+  DocumentStatusSchema,
 } from '@sync-erp/shared';
 
 // Type for Prisma Decimal that can be number, string, or Decimal object
@@ -22,6 +23,11 @@ interface PurchaseOrder {
     notes?: string | null;
     balance: DecimalLike;
   }[];
+  fulfillments?: {
+    id: string;
+    status: string;
+    number: string;
+  }[];
 }
 
 interface PurchaseOrderActionsProps {
@@ -31,6 +37,7 @@ interface PurchaseOrderActionsProps {
   onReceiveGoods?: (id: string) => void;
   onCreateBill?: (id: string) => void;
   onViewBill?: (billId: string) => void;
+  onViewGRN?: (grnId: string) => void;
   onClosePO?: (id: string) => void; // GAP-001: Close partially received POs
   // eslint-disable-next-line
   layout?: 'list' | 'detail';
@@ -43,6 +50,7 @@ export default function PurchaseOrderActions({
   onReceiveGoods,
   onCreateBill,
   onViewBill,
+  onViewGRN,
   onClosePO,
   layout = 'list',
 }: PurchaseOrderActionsProps) {
@@ -115,11 +123,21 @@ export default function PurchaseOrderActions({
   );
   const isDpPaid = dpBill?.status === InvoiceStatusSchema.enum.PAID;
 
-  // Logic: Block receive if DP required and not paid
+  // Check for draft/posted GRNs
+  const draftGRN = order.fulfillments?.find(
+    (f) => f.status === DocumentStatusSchema.enum.DRAFT
+  );
+  const postedGRN = order.fulfillments?.find(
+    (f) => f.status === DocumentStatusSchema.enum.POSTED
+  );
+  const hasDraftGRN = !!draftGRN;
+
+  // Logic: Block receive if DP required and not paid, OR if there's already a draft GRN
   // Allow if: paid via upfront flow (paidAmount > 0) OR DP Bill is PAID
   const canReceiveGoods =
     (isConfirmed || isPartiallyReceived) &&
-    (!hasDpRequired || isPaidUpfront || paidAmount > 0 || isDpPaid);
+    (!hasDpRequired || isPaidUpfront || paidAmount > 0 || isDpPaid) &&
+    !hasDraftGRN; // Don't show "Receive Goods" if draft GRN exists
 
   // Only show Create Bill for final bill (after GRN), not DP Bill
   const finalBills = order.invoices?.filter(
@@ -167,6 +185,39 @@ export default function PurchaseOrderActions({
           variant="success"
         >
           Receive Goods
+        </ActionButton>
+      )}
+
+      {/* View Draft GRN - if exists, show button to continue */}
+      {draftGRN && onViewGRN && (
+        <div
+          className={
+            layout === 'list'
+              ? 'flex flex-col items-center gap-1'
+              : 'contents'
+          }
+        >
+          <ActionButton
+            onClick={() => onViewGRN(draftGRN.id)}
+            variant="warning"
+          >
+            Continue GRN
+          </ActionButton>
+          {layout === 'list' && (
+            <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
+              ◌ Draft
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* View Posted GRN - if exists */}
+      {postedGRN && onViewGRN && !draftGRN && (
+        <ActionButton
+          onClick={() => onViewGRN(postedGRN.id)}
+          variant="secondary"
+        >
+          View GRN
         </ActionButton>
       )}
 

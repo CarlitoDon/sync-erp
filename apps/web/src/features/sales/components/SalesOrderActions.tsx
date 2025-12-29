@@ -4,6 +4,7 @@ import {
   PaymentTermsSchema,
   PaymentStatusSchema,
   InvoiceStatusSchema,
+  DocumentStatusSchema,
 } from '@sync-erp/shared';
 
 // Type for Prisma Decimal that can be number, string, or Decimal object
@@ -22,6 +23,11 @@ interface SalesOrder {
     notes?: string | null;
     balance: DecimalLike;
   }[];
+  fulfillments?: {
+    id: string;
+    status: string;
+    number: string;
+  }[];
 }
 
 interface SalesOrderActionsProps {
@@ -31,6 +37,7 @@ interface SalesOrderActionsProps {
   onShip?: (id: string) => void;
   onCreateInvoice?: (id: string) => void;
   onViewInvoice?: (invoiceId: string) => void;
+  onViewShipment?: (shipmentId: string) => void;
   onCloseSO?: (id: string) => void; // GAP-003: Close partially shipped SOs
   // eslint-disable-next-line
   layout?: 'list' | 'detail';
@@ -43,6 +50,7 @@ export default function SalesOrderActions({
   onShip,
   onCreateInvoice,
   onViewInvoice,
+  onViewShipment,
   onCloseSO,
   layout = 'list',
 }: SalesOrderActionsProps) {
@@ -118,9 +126,19 @@ export default function SalesOrderActions({
 
   // Logic: Block ship if DP required and not paid
   // Allow if: paid via upfront flow (paidAmount > 0) OR DP Invoice is PAID
+  // Check for draft/posted Shipments
+  const draftShipment = order.fulfillments?.find(
+    (f) => f.status === DocumentStatusSchema.enum.DRAFT
+  );
+  const postedShipment = order.fulfillments?.find(
+    (f) => f.status === DocumentStatusSchema.enum.POSTED
+  );
+  const hasDraftShipment = !!draftShipment;
+
   const canShip =
     (isConfirmed || isPartiallyShipped) &&
-    (!hasDpRequired || isPaidUpfront || paidAmount > 0 || isDpPaid);
+    (!hasDpRequired || isPaidUpfront || paidAmount > 0 || isDpPaid) &&
+    !hasDraftShipment; // Don't show "Ship" if draft shipment exists
 
   // Only show Create Invoice for final invoice (after shipment), not DP Invoice
   const finalInvoices = order.invoices?.filter(
@@ -170,6 +188,39 @@ export default function SalesOrderActions({
           variant="success"
         >
           Ship
+        </ActionButton>
+      )}
+
+      {/* View Draft Shipment - if exists, show button to continue */}
+      {draftShipment && onViewShipment && (
+        <div
+          className={
+            layout === 'list'
+              ? 'flex flex-col items-center gap-1'
+              : 'contents'
+          }
+        >
+          <ActionButton
+            onClick={() => onViewShipment(draftShipment.id)}
+            variant="warning"
+          >
+            Continue Shipment
+          </ActionButton>
+          {layout === 'list' && (
+            <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
+              ◌ Draft
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* View Posted Shipment - if exists */}
+      {postedShipment && onViewShipment && !draftShipment && (
+        <ActionButton
+          onClick={() => onViewShipment(postedShipment.id)}
+          variant="secondary"
+        >
+          View Shipment
         </ActionButton>
       )}
 

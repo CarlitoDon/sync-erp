@@ -165,6 +165,7 @@ export default function PurchaseOrderList({
                     onReceiveGoods={handleGoodsReceipt}
                     onCreateBill={handleCreateBill}
                     onViewBill={handleViewBill}
+                    onViewGRN={(grnId) => navigate(`/receipts/${grnId}`)}
                     layout="list"
                   />
                 </td>

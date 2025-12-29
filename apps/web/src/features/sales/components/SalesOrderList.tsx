@@ -19,10 +19,9 @@ export default function SalesOrderList({
   const utils = trpc.useUtils();
   const navigate = useNavigate();
 
-  const { data: orders, isLoading: loading } =
+  const { data: orders = [], isLoading: loading } =
     trpc.salesOrder.list.useQuery(filter, {
       enabled: !!currentCompany?.id,
-      initialData: [],
     });
 
   const { handleConfirm, handleCancel } = useOrderMutations({
@@ -130,6 +129,7 @@ export default function SalesOrderList({
                     onShip={handleShip}
                     onCreateInvoice={handleCreateInvoice}
                     onViewInvoice={handleViewInvoice}
+                    onViewShipment={(shipmentId) => navigate(`/deliveries/${shipmentId}`)}
                     layout="list"
                   />
                 </td>
