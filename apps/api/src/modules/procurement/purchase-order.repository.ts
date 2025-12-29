@@ -9,6 +9,8 @@ import {
   Partner,
   Invoice,
   FulfillmentType,
+  Fulfillment,
+  DocumentStatus,
 } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
@@ -56,6 +58,7 @@ export class PurchaseOrderRepository {
       items: (OrderItem & { product: Product })[];
       partner: Partner | null;
       invoices: Invoice[];
+      fulfillments: Pick<Fulfillment, 'id' | 'status' | 'number'>[];
       _count: { fulfillments: number };
     })[]
   > {
@@ -69,6 +72,10 @@ export class PurchaseOrderRepository {
         items: { include: { product: true } },
         partner: true,
         invoices: true,
+        fulfillments: {
+          select: { id: true, status: true, number: true },
+          where: { type: FulfillmentType.RECEIPT },
+        },
         _count: { select: { fulfillments: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -168,7 +175,7 @@ export class PurchaseOrderRepository {
       where: {
         orderId,
         type: FulfillmentType.RECEIPT,
-        status: { not: 'VOIDED' },
+        status: { not: DocumentStatus.VOIDED },
       },
     });
   }
@@ -183,7 +190,7 @@ export class PurchaseOrderRepository {
         fulfillment: {
           orderId,
           type: FulfillmentType.RECEIPT,
-          status: 'POSTED',
+          status: DocumentStatus.POSTED,
         },
       },
       select: { productId: true, quantity: true },
