@@ -1,6 +1,7 @@
 // Shared Saga Mocks for all tests
 // This file provides mocks for all saga classes to prevent SagaType import issues
 import { vi } from 'vitest';
+import { InvoiceStatus } from '@sync-erp/database';
 
 // Generic success result for saga execution
 export const createMockSagaResult = (data: unknown) => ({
@@ -73,10 +74,16 @@ export const resetSagaMocks = () => {
 // Setup default success responses for all sagas
 export const setupDefaultSagaMocks = () => {
   mockInvoicePostingSaga.execute.mockResolvedValue(
-    createMockSagaResult({ id: 'inv-1', status: 'POSTED' })
+    createMockSagaResult({
+      id: 'inv-1',
+      status: InvoiceStatus.POSTED,
+    })
   );
   mockBillPostingSaga.execute.mockResolvedValue(
-    createMockSagaResult({ id: 'bill-1', status: 'POSTED' })
+    createMockSagaResult({
+      id: 'bill-1',
+      status: InvoiceStatus.POSTED,
+    })
   );
   mockPaymentPostingSaga.execute.mockResolvedValue(
     createMockSagaResult({ id: 'pay-1', amount: 100 })
