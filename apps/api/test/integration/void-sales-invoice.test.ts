@@ -18,6 +18,38 @@ describe('O2C: Void Sales Invoice & Journal Reversal', () => {
   let partnerId: string;
 
   beforeAll(async () => {
+    // Cleanup first to ensure clean state
+    await prisma.$transaction([
+      prisma.auditLog.deleteMany({
+        where: { companyId: COMPANY_ID },
+      }),
+      prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN (SELECT id FROM "JournalEntry" WHERE "companyId" = ${COMPANY_ID})`,
+      prisma.journalEntry.deleteMany({
+        where: { companyId: COMPANY_ID },
+      }),
+      prisma.payment.deleteMany({
+        where: { invoice: { companyId: COMPANY_ID } },
+      }),
+      prisma.invoice.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.inventoryMovement.deleteMany({
+        where: { companyId: COMPANY_ID },
+      }),
+      prisma.fulfillmentItem.deleteMany({
+        where: { fulfillment: { companyId: COMPANY_ID } },
+      }),
+      prisma.fulfillment.deleteMany({
+        where: { companyId: COMPANY_ID },
+      }),
+      prisma.orderItem.deleteMany({
+        where: { order: { companyId: COMPANY_ID } },
+      }),
+      prisma.order.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.product.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.partner.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.account.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.company.deleteMany({ where: { id: COMPANY_ID } }),
+    ]);
+
     // Setup Company
     await prisma.company.upsert({
       where: { id: COMPANY_ID },
