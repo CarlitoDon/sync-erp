@@ -33,3 +33,5 @@ export type { OrderItem } from './OrderItemsTable';
 // Modals & Dialogs
 export { default as FormModal } from './FormModal';
 export { useConfirm } from './ConfirmModal';
+export { usePrompt } from './PromptModal';
+export type { PromptOptions } from './PromptModal';

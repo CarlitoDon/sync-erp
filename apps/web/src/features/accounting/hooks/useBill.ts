@@ -102,15 +102,12 @@ export function useBill(options: UseBillOptions = {}) {
   });
 
   const voidBill = useCallback(
-    async (id: string, reason?: string) => {
+    async (id: string, reason: string) => {
       if (!currentCompany?.id) return;
 
-      // If no reason provided, prompt for one
-      const voidReason =
-        reason ||
-        window.prompt('Please enter a reason for voiding this bill:');
-      if (!voidReason || voidReason.trim().length === 0) {
-        return; // User cancelled
+      // Reason is required - callers should use usePrompt() before calling
+      if (!reason || reason.trim().length === 0) {
+        return; // Invalid reason
       }
 
       const confirmed = await confirm({
@@ -125,7 +122,7 @@ export function useBill(options: UseBillOptions = {}) {
 
       const result = await apiAction(
         async () =>
-          voidBillMutation.mutateAsync({ id, reason: voidReason }),
+          voidBillMutation.mutateAsync({ id, reason }),
         'Bill voided successfully!'
       );
 

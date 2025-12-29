@@ -7,6 +7,7 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { PaymentHistoryList } from '@/features/accounting/components/PaymentHistoryList';
 import {
   useConfirm,
+  usePrompt,
   ActionButton,
   FormModal,
   Select,
@@ -52,6 +53,7 @@ export function DocumentList({
   filter: _filter,
 }: DocumentListProps) {
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
 
@@ -123,11 +125,14 @@ export function DocumentList({
   };
 
   const handleVoid = async (id: string) => {
-    // FR-024: Prompt for void reason
-    const reason = window.prompt(
-      `Please enter a reason for voiding this ${entityLabel.toLowerCase()}:`
-    );
-    if (!reason || reason.trim().length === 0) {
+    // FR-024: Prompt for void reason (accessible modal)
+    const reason = await prompt({
+      title: `Void ${entityLabel}`,
+      message: `Please enter a reason for voiding this ${entityLabel.toLowerCase()}:`,
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+    if (!reason) {
       return; // User cancelled
     }
 
