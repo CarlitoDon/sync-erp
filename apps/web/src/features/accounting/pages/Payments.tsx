@@ -15,6 +15,7 @@ import {
 } from '@/components/layout/PageLayout';
 import { Card, CardContent } from '@/components/ui/Card';
 import CreatePaymentModal from '../components/CreatePaymentModal';
+import { InvoiceTypeSchema } from '@sync-erp/shared';
 
 // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local UI filter type, not database enum
 type FilterType = 'all' | 'inbound' | 'outbound';
@@ -37,7 +38,9 @@ export default function Payments() {
   // BILL = outbound (money out to vendor), INVOICE = inbound (money in from customer)
   const getPaymentDirection = (payment: (typeof payments)[0]) => {
     if (!payment.invoice) return 'unknown';
-    return payment.invoice.type === 'BILL' ? 'outbound' : 'inbound';
+    return payment.invoice.type === InvoiceTypeSchema.enum.BILL
+      ? 'outbound'
+      : 'inbound';
   };
 
   // Filter payments
