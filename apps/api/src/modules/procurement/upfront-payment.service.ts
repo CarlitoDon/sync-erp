@@ -15,8 +15,6 @@ import { PurchaseOrderPolicy } from './purchase-order.policy';
 import { UpfrontPaymentRepository } from './upfront-payment.repository';
 import { JournalService } from '../accounting/services/journal.service';
 
-const journalService = new JournalService();
-
 interface RegisterUpfrontPaymentInput {
   orderId: string;
   amount: number;
@@ -27,7 +25,10 @@ interface RegisterUpfrontPaymentInput {
 }
 
 export class UpfrontPaymentService {
-  private repository = new UpfrontPaymentRepository();
+  constructor(
+    private readonly repository: UpfrontPaymentRepository = new UpfrontPaymentRepository(),
+    private readonly journalService: JournalService = new JournalService()
+  ) {}
 
   /**
    * T031: Register an upfront payment for a PO.
@@ -106,7 +107,7 @@ export class UpfrontPaymentService {
         );
 
         // 5. Post journal entry (T028)
-        await journalService.postUpfrontPayment(
+        await this.journalService.postUpfrontPayment(
           companyId,
           payment.id,
           order.orderNumber || order.id,
@@ -290,7 +291,7 @@ export class UpfrontPaymentService {
         }
 
         // 2. Post settlement journal (use paymentId to avoid duplicate)
-        const journal = await journalService.postSettlePrepaid(
+        const journal = await this.journalService.postSettlePrepaid(
           companyId,
           prepaidInfo.prepaid.paymentId, // Use paymentId, not billId
           bill.invoiceNumber || billId,
