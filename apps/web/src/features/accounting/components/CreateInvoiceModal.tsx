@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import Select from '@/components/ui/Select';
 import FormModal from '@/components/ui/FormModal';
 import { PAYMENT_TERMS, calculateDueDate } from '@/types/api';
+import { PaymentTermsSchema } from '@sync-erp/shared';
 
 /**
  * Convert Date to yyyy-MM-dd string format required by HTML date input
@@ -62,7 +63,7 @@ export default function CreateInvoiceModal({
   const { register, handleSubmit, setValue, watch, control, reset } =
     useForm<InvoiceFormData>({
       defaultValues: {
-        paymentTermsString: 'NET30',
+        paymentTermsString: PaymentTermsSchema.enum.NET30,
         businessDate: toDateInputValue(new Date()), // Pre-fill today in yyyy-MM-dd format
       },
     });
@@ -184,7 +185,7 @@ export default function CreateInvoiceModal({
               control={control}
               render={({ field }) => (
                 <Select
-                  value={field.value ?? 'NET30'}
+                  value={field.value ?? PaymentTermsSchema.enum.NET30}
                   onChange={field.onChange}
                   options={PAYMENT_TERMS.map((term) => ({
                     value: term.code,

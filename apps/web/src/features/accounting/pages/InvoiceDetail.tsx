@@ -36,11 +36,19 @@ export default function InvoiceDetail() {
     );
 
   const postMutation = trpc.invoice.post.useMutation({
-    onSuccess: () => utils.invoice.getById.invalidate({ id: id! }),
+    onSuccess: () => {
+      utils.invoice.getById.invalidate({ id: id! });
+      utils.invoice.list.invalidate();
+      utils.salesOrder.list.invalidate(); // SO status may change
+    },
   });
 
   const voidMutation = trpc.invoice.void.useMutation({
-    onSuccess: () => utils.invoice.getById.invalidate({ id: id! }),
+    onSuccess: () => {
+      utils.invoice.getById.invalidate({ id: id! });
+      utils.invoice.list.invalidate();
+      utils.salesOrder.list.invalidate(); // SO status may change
+    },
   });
 
   // Modal State

@@ -4,16 +4,13 @@ import {
 } from '@/components/layout/PageLayout';
 import { useCompany } from '@/contexts/CompanyContext';
 import { InvoiceList } from '@/features/accounting/components/InvoiceList';
+import { NoCompanySelected } from '@/components/ui';
 
 export default function Invoices() {
   const { currentCompany } = useCompany();
 
   if (!currentCompany) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        Please select a company to view invoices.
-      </div>
-    );
+    return <NoCompanySelected message="Please select a company to view invoices." />;
   }
 
   return (

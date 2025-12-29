@@ -31,10 +31,9 @@ export default function Finance() {
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
 
-  const { data: accounts, isLoading: accountsLoading } =
+  const { data: accounts = [], isLoading: accountsLoading } =
     trpc.finance.listAccounts.useQuery(undefined, {
       enabled: !!currentCompany?.id,
-      initialData: [],
     });
 
   const { data: trialBalance, isLoading: tbLoading } =

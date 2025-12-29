@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { trpc, RouterOutputs } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -97,6 +97,9 @@ export function DocumentList({
       utils.bill.list.invalidate();
       utils.invoice.list.invalidate();
       utils.payment.list.invalidate();
+      // Order status may change after payment (e.g., DP paid)
+      utils.purchaseOrder.list.invalidate();
+      utils.salesOrder.list.invalidate();
     },
   });
 
@@ -189,14 +192,17 @@ export function DocumentList({
     return <LoadingState />;
   }
 
-  const filteredDocs = documents.filter(
-    // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'ALL' is a UI filter constant, not a database enum
-    (d) => filterStatus === 'ALL' || d.status === filterStatus
-  );
-
-  const outstandingAmount = documents
-    .filter((d) => d.status === StatusSchema.enum.POSTED)
-    .reduce((sum, d) => sum + Number(d.balance), 0);
+  // Memoize filtered docs and outstanding amount to avoid recalculation on every render
+  const { filteredDocs, outstandingAmount } = useMemo(() => {
+    const filtered = documents.filter(
+      // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'ALL' is a UI filter constant, not a database enum
+      (d) => filterStatus === 'ALL' || d.status === filterStatus
+    );
+    const outstanding = documents
+      .filter((d) => d.status === StatusSchema.enum.POSTED)
+      .reduce((sum, d) => sum + Number(d.balance), 0);
+    return { filteredDocs: filtered, outstandingAmount: outstanding };
+  }, [documents, filterStatus]);
 
   return (
     <div className="space-y-6">
