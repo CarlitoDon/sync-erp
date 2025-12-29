@@ -2,6 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import {
   InvoiceStatus,
   AuditLogAction,
+  PaymentMethod,
   prisma,
 } from '@sync-erp/database';
 import { InvoiceService } from '@modules/accounting/services/invoice.service';
@@ -143,10 +144,16 @@ describe('O2C: Void Sales Invoice & Journal Reversal', () => {
     await invoiceService.post(
       invoice.id,
       COMPANY_ID,
+      undefined,
+      undefined,
+      undefined,
       new Date(),
       'test-user-id'
     );
-    const postedInvoice = await invoiceService.getById(invoice.id, COMPANY_ID);
+    const postedInvoice = await invoiceService.getById(
+      invoice.id,
+      COMPANY_ID
+    );
     expect(postedInvoice?.status).toBe(InvoiceStatus.POSTED);
 
     // Verify Journal Exists (AR Recognition: Dr 1300, Cr 4100)
@@ -169,7 +176,10 @@ describe('O2C: Void Sales Invoice & Journal Reversal', () => {
     );
 
     // 5. Verify Invoice Status VOIDED
-    const voidedInvoice = await invoiceService.getById(invoice.id, COMPANY_ID);
+    const voidedInvoice = await invoiceService.getById(
+      invoice.id,
+      COMPANY_ID
+    );
     expect(voidedInvoice?.status).toBe(InvoiceStatus.VOID);
 
     // 6. Verify Reversal Journal Created
@@ -196,7 +206,9 @@ describe('O2C: Void Sales Invoice & Journal Reversal', () => {
       },
     });
     expect(auditLogs.length).toBeGreaterThan(0);
-    expect(auditLogs[auditLogs.length - 1].payloadSnapshot).toMatchObject({
+    expect(
+      auditLogs[auditLogs.length - 1].payloadSnapshot
+    ).toMatchObject({
       reason,
     });
   });
@@ -262,6 +274,9 @@ describe('O2C: Void Sales Invoice & Journal Reversal', () => {
     await invoiceService.post(
       invoice.id,
       COMPANY_ID,
+      undefined,
+      undefined,
+      undefined,
       new Date(),
       'test-user-id'
     );
@@ -272,8 +287,8 @@ describe('O2C: Void Sales Invoice & Journal Reversal', () => {
         companyId: COMPANY_ID,
         invoiceId: invoice.id,
         amount: 1000000,
-        paymentDate: new Date(),
-        status: 'COMPLETED',
+        date: new Date(),
+        method: PaymentMethod.CASH,
       },
     });
 
