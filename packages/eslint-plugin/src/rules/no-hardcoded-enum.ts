@@ -315,6 +315,23 @@ export const noHardcodedEnum = ESLintUtils.RuleCreator(
         }
       },
 
+      // { status: 'POSTED' } - object property with enum value
+      Property(node) {
+        // Only check shorthand: false properties (key: value)
+        if (node.shorthand || node.computed) {
+          return;
+        }
+
+        const value = getStringValue(node.value);
+        if (value && isKnownPrismaEnum(value)) {
+          context.report({
+            node: node.value,
+            messageId: 'hardcodedEnum',
+            data: { value },
+          });
+        }
+      },
+
       // type X = 'A' | 'B' - only flag if contains known enums
       TSUnionType(node) {
         if (node.types.length <= 1) {
