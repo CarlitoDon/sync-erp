@@ -62,6 +62,7 @@ export function errorHandler(
   // Handle Prisma known request errors (constraint violations, not found, etc.)
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     console.error('Prisma Error:', err.code, err.message);
+    // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Prisma error code, not database enum
     const statusCode = err.code === 'P2025' ? 404 : 400;
     return res.status(statusCode).json({
       success: false,

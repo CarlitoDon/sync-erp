@@ -3,6 +3,7 @@ import { trpc } from '@/lib/trpc';
 import { formatDate } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import { usePrompt } from '@/components/ui/PromptModal';
 
 interface PaymentHistoryListProps {
   invoiceId: string;
@@ -16,6 +17,7 @@ export function PaymentHistoryList({
   currency = 'IDR',
 }: PaymentHistoryListProps) {
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const utils = trpc.useUtils();
 
   // Filter payments client-side since we don't have getByInvoiceId endpoint
@@ -50,6 +52,17 @@ export function PaymentHistoryList({
   };
 
   const handleVoidPayment = async (paymentId: string) => {
+    // FR-024: Prompt for void reason (accessible modal)
+    const reason = await prompt({
+      title: 'Void Payment',
+      message: 'Please enter a reason for voiding this payment:',
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+    if (!reason) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: 'Void Payment',
       message:
@@ -60,7 +73,7 @@ export function PaymentHistoryList({
 
     if (confirmed) {
       try {
-        await voidMutation.mutateAsync({ id: paymentId });
+        await voidMutation.mutateAsync({ id: paymentId, reason });
       } catch (error) {
         console.error('Failed to void payment:', error);
       }

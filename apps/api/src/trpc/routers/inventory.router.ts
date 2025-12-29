@@ -1,4 +1,5 @@
 import { router, protectedProcedure } from '../trpc';
+import { container, ServiceKeys } from '../../modules/common/di';
 import { InventoryService } from '../../modules/inventory/inventory.service';
 import {
   CreateGoodsReceiptSchema,
@@ -6,7 +7,9 @@ import {
 } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const inventoryService = new InventoryService();
+const inventoryService = container.resolve<InventoryService>(
+  ServiceKeys.INVENTORY_SERVICE
+);
 
 export const inventoryRouter = router({
   /**
@@ -120,27 +123,46 @@ export const inventoryRouter = router({
     }),
 
   /**
-   * Void GRN (reverse stock and journal)
+   * Void GRN (FR-024: requires reason)
    * Policy: Must be POSTED and no Bill exists for the PO
    */
   voidGRN: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Void reason is required'),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
-      return inventoryService.voidGRN(ctx.companyId!, input.id);
+      return inventoryService.voidGRN(
+        ctx.companyId!,
+        input.id,
+        input.reason,
+        undefined,
+        ctx.userId,
+        ctx.userPermissions // FR-026: Granular RBAC
+      );
     }),
 
   /**
-   * Void Shipment (reverse stock and journal)
+   * Void Shipment (FR-024: requires reason)
    * Policy: Must be POSTED and no Invoice exists for the SO
    */
   voidShipment: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Void reason is required'),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       return inventoryService.voidShipment(
         ctx.companyId!,
         input.id,
+        input.reason,
         undefined,
-        ctx.userId
+        ctx.userId,
+        ctx.userPermissions // FR-026: Granular RBAC
       );
     }),
 });

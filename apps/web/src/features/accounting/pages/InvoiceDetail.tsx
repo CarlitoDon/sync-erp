@@ -10,6 +10,7 @@ import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import { usePrompt } from '@/components/ui/PromptModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { RecordPaymentModal } from '@/features/accounting/components/RecordPaymentModal';
@@ -25,6 +26,7 @@ export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const utils = trpc.useUtils();
 
   const { data: invoice, isLoading: loading } =
@@ -55,6 +57,18 @@ export default function InvoiceDetail() {
 
   const handleVoid = async () => {
     if (!invoice) return;
+
+    // FR-024: Prompt for void reason (accessible modal)
+    const reason = await prompt({
+      title: 'Void Invoice',
+      message: 'Please enter a reason for voiding this invoice:',
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+    if (!reason) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: 'Void Invoice',
       message: 'Are you sure you want to void this invoice?',
@@ -63,7 +77,7 @@ export default function InvoiceDetail() {
     });
     if (!confirmed) return;
     await apiAction(
-      () => voidMutation.mutateAsync({ id: invoice.id }),
+      () => voidMutation.mutateAsync({ id: invoice.id, reason }),
       'Invoice voided'
     );
   };
@@ -155,7 +169,7 @@ export default function InvoiceDetail() {
                 <p
                   className={`font-medium ${
                     new Date(invoice.dueDate) < new Date() &&
-                    invoice.status === 'POSTED'
+                    invoice.status === StatusSchema.enum.POSTED
                       ? 'text-red-600'
                       : ''
                   }`}

@@ -19,28 +19,18 @@ import {
   DomainErrorCodes,
   CreatePurchaseOrderInput,
 } from '@sync-erp/shared';
-
-// Lazy-loaded to avoid circular dependency with InventoryService
-import type { InventoryService as InventoryServiceType } from '../inventory/inventory.service';
+import {
+  calculateDpAmount,
+  validateAndAuditClose,
+} from '../common/utils/order.utils';
+import { InventoryService } from '../inventory/inventory.service';
 
 export class PurchaseOrderService {
-  private repository = new PurchaseOrderRepository();
-  private documentNumberService = new DocumentNumberService();
-  private _inventoryService: InventoryServiceType | null = null;
-
-  // Lazy load InventoryService to break circular dependency
-  private get inventoryService(): InventoryServiceType {
-    if (!this._inventoryService) {
-      // Dynamic import at runtime
-      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-      const {
-        InventoryService,
-      } = require('../inventory/inventory.service.js');
-      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-      this._inventoryService = new InventoryService();
-    }
-    return this._inventoryService!;
-  }
+  constructor(
+    private readonly repository: PurchaseOrderRepository = new PurchaseOrderRepository(),
+    private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
+    private readonly inventoryService: InventoryService = new InventoryService()
+  ) {}
 
   /**
    * Create a new purchase order.
@@ -99,8 +89,18 @@ export class PurchaseOrderService {
       taxRate: taxRate,
       paymentTerms: paymentTerms, // Strictly typed from Zod
       // If UPFRONT, set initial paymentStatus to PENDING
-      paymentStatus: paymentTerms === 'UPFRONT' ? 'PENDING' : null,
+      paymentStatus:
+        paymentTerms === PaymentTerms.UPFRONT
+          ? PaymentStatus.PENDING
+          : null,
       paidAmount: 0,
+      // Down Payment: Calculate amounts
+      dpPercent: data.dpPercent ?? null,
+      dpAmount: calculateDpAmount(
+        totalAmount,
+        data.dpPercent,
+        data.dpAmount
+      ),
       items: {
         create: data.items.map((item) => ({
           productId: item.productId,
@@ -140,6 +140,29 @@ export class PurchaseOrderService {
     return this.repository.findAll(companyId, status as OrderStatus);
   }
 
+  async update(
+    id: string,
+    companyId: string,
+    data: Prisma.OrderUpdateInput
+  ): Promise<Order> {
+    const order = await this.repository.findById(id, companyId);
+    if (!order) {
+      throw new DomainError(
+        'Purchase order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+
+    PurchaseOrderPolicy.validateUpdate(
+      order.status,
+      { orderNumber: data.orderNumber as string | undefined },
+      order.orderNumber || ''
+    );
+
+    return this.repository.update(id, data);
+  }
+
   async confirm(
     id: string,
     companyId: string,
@@ -175,8 +198,14 @@ export class PurchaseOrderService {
       },
     });
 
-    // Stage 1.3: Auto-create DP Bill for UPFRONT payment terms
-    if (order.paymentTerms === PaymentTerms.UPFRONT) {
+    // Auto-create DP Bill for:
+    // 1. UPFRONT payment terms (100% DP)
+    // 2. Tempo with DP (partial DP)
+    const hasDpRequired =
+      order.paymentTerms === PaymentTerms.UPFRONT ||
+      (order.dpAmount && Number(order.dpAmount) > 0);
+
+    if (hasDpRequired) {
       // Lazy-load BillService to avoid circular dependency
       const { BillService } =
         await import('../accounting/services/bill.service');
@@ -364,7 +393,7 @@ export class PurchaseOrderService {
         await this.repository.updateStatus(
           orderId,
           OrderStatus.COMPLETED,
-          undefined,
+          undefined, // No optimistic lock version
           tx
         );
 
@@ -467,5 +496,77 @@ export class PurchaseOrderService {
     tx?: Prisma.TransactionClient
   ): Promise<Map<string, number>> {
     return this.repository.getReceivedQuantities(orderId, tx);
+  }
+
+  /**
+   * Explicitly close a Purchase Order even if partially received (Gap 6).
+   * This transitions the PO to RECEIVED status regardless of remaining quantities.
+   * Useful when supplier cannot fulfill remaining quantities or order is abandoned.
+   *
+   * Policy: Only CONFIRMED or PARTIALLY_RECEIVED POs can be closed.
+   */
+  async close(
+    id: string,
+    companyId: string,
+    userId: string,
+    reason: string
+  ): Promise<Order> {
+    const order = await this.getById(id, companyId);
+
+    // Use shared validation and audit logic
+    await validateAndAuditClose(order, {
+      id,
+      companyId,
+      userId,
+      reason,
+      orderName: 'Purchase Order',
+      allowedStatuses: [
+        OrderStatus.CONFIRMED,
+        OrderStatus.PARTIALLY_RECEIVED,
+      ],
+    });
+
+    // Transition to COMPLETED status
+    return this.repository.updateStatus(
+      id,
+      OrderStatus.COMPLETED,
+      undefined,
+      undefined
+    );
+  }
+
+  /**
+   * Process a Purchase Return (partial or full)
+   * Creates a PURCHASE_RETURN fulfillment, decreases stock, and posts GRNI reversal journal.
+   * Mirrors SalesOrderService.returnOrder for O2C parity.
+   *
+   * @param companyId - Company ID
+   * @param orderId - Purchase Order ID
+   * @param items - Array of items to return with productId and quantity
+   * @param userId - Optional user ID for audit
+   * @returns Created return fulfillment
+   */
+  async returnToPo(
+    companyId: string,
+    orderId: string,
+    items: { productId: string; quantity: number }[],
+    userId?: string
+  ) {
+    // Create purchase return fulfillment
+    const returnDoc =
+      await this.inventoryService.createPurchaseReturn(companyId, {
+        purchaseOrderId: orderId,
+        items,
+      });
+
+    // Post the return (stock OUT + GRNI reversal journal)
+    const posted = await this.inventoryService.postPurchaseReturn(
+      companyId,
+      returnDoc.id,
+      undefined,
+      userId
+    );
+
+    return posted;
   }
 }

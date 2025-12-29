@@ -4,6 +4,7 @@ import {
   IdempotencyScope,
   IdempotencyStatus,
 } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 // Zombie lock timeout in milliseconds (5 minutes)
 const ZOMBIE_LOCK_TIMEOUT_MS = 5 * 60 * 1000;
@@ -33,14 +34,20 @@ export class IdempotencyService {
         console.warn(
           `[IDEMPOTENCY] Ownership mismatch: key=${key}, expected company=${companyId}, got=${existing.companyId}`
         );
-        throw new Error('Idempotency key ownership mismatch');
+        throw new DomainError(
+          'Idempotency key ownership mismatch',
+          403,
+          DomainErrorCodes.FORBIDDEN
+        );
       }
       if (existing.scope !== scope) {
         console.warn(
           `[IDEMPOTENCY] Scope mismatch: key=${key}, expected=${scope}, got=${existing.scope}`
         );
-        throw new Error(
-          `Idempotency key scope mismatch: expected ${scope}`
+        throw new DomainError(
+          `Idempotency key scope mismatch: expected ${scope}`,
+          400,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
         );
       }
       // T006: Entity ID validation - if existing key has entityId AND it differs, reject
@@ -48,8 +55,10 @@ export class IdempotencyService {
         console.warn(
           `[IDEMPOTENCY] Entity mismatch: key=${key}, expected entity=${entityId}, got=${existing.entityId}`
         );
-        throw new Error(
-          `Idempotency key entity mismatch: key is bound to entity ${existing.entityId}`
+        throw new DomainError(
+          `Idempotency key entity mismatch: key is bound to entity ${existing.entityId}`,
+          400,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
         );
       }
 
@@ -61,8 +70,10 @@ export class IdempotencyService {
           await prisma.idempotencyKey.delete({ where: { id: key } });
           // Fall through to create new lock
         } else {
-          throw new Error(
-            'Detailed conflict: Request with this key is currently processing. Please wait.'
+          throw new DomainError(
+            'Request with this key is currently processing. Please wait.',
+            409,
+            DomainErrorCodes.OPERATION_NOT_ALLOWED
           );
         }
       } else if (existing.status === IdempotencyStatus.COMPLETED) {
@@ -92,10 +103,13 @@ export class IdempotencyService {
     } catch (err) {
       // Handle race condition where another request created it just now
       if (
+        // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- P2002 is Prisma's unique constraint error code
         (err as Prisma.PrismaClientKnownRequestError).code === 'P2002'
       ) {
-        throw new Error(
-          'Concurrent conflict: Idempotency key created by another process.'
+        throw new DomainError(
+          'Concurrent conflict: Idempotency key created by another process.',
+          409,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
         );
       }
       throw err;

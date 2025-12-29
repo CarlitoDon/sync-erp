@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
+import { CurrencyInput } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/utils/format';
 import {
   PaymentMethod,
@@ -140,12 +141,10 @@ export function RecordPaymentModal({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Payment Amount *
           </label>
-          <input
-            type="number"
+          <CurrencyInput
             value={paymentAmount}
-            onChange={(e) => setPaymentAmount(Number(e.target.value))}
+            onChange={(val) => setPaymentAmount(val)}
             max={maxPayment}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
           <p className="text-xs text-gray-500 mt-1">
             Max: {formatCurrency(maxPayment)}

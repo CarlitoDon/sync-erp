@@ -5,21 +5,25 @@ import { trpc } from '@/lib/trpc';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import { usePrompt } from '@/components/ui/PromptModal';
 import { BackButton } from '@/components/ui/BackButton';
 import CreateInvoiceModal from '@/features/accounting/components/CreateInvoiceModal';
 import { PageContainer } from '@/components/layout/PageLayout';
+import { DocumentStatusSchema } from '@sync-erp/shared';
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
 } from '@/components/ui/Card';
+import { LoadingState } from '@/components/ui';
 
 export default function ShipmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const utils = trpc.useUtils();
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
@@ -63,6 +67,17 @@ export default function ShipmentDetail() {
   const handleVoid = async () => {
     if (!shipment) return;
 
+    // FR-024: Prompt for void reason (accessible modal)
+    const reason = await prompt({
+      title: 'Void Shipment',
+      message: 'Please enter a reason for voiding this shipment:',
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+    if (!reason) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: 'Void Shipment',
       message:
@@ -73,7 +88,7 @@ export default function ShipmentDetail() {
 
     if (confirmed) {
       try {
-        await voidMutation.mutateAsync({ id: shipment.id });
+        await voidMutation.mutateAsync({ id: shipment.id, reason });
       } catch (error) {
         console.error('Failed to void Shipment:', error);
       }
@@ -105,11 +120,7 @@ export default function ShipmentDetail() {
   }
 
   if (loading || !currentCompany) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (!shipment) {
@@ -150,7 +161,7 @@ export default function ShipmentDetail() {
         </div>
 
         <div className="flex gap-2">
-          {shipment.status === 'DRAFT' && (
+          {shipment.status === DocumentStatusSchema.enum.DRAFT && (
             <Button
               onClick={handlePost}
               disabled={postMutation.isPending}
@@ -158,7 +169,7 @@ export default function ShipmentDetail() {
               Post Shipment
             </Button>
           )}
-          {shipment.status === 'POSTED' && (
+          {shipment.status === DocumentStatusSchema.enum.POSTED && (
             <>
               <Button onClick={handleCreateInvoice} variant="outline">
                 Create Invoice

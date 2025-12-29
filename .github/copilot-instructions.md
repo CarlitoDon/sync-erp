@@ -6,9 +6,9 @@ Sync ERP is a **multi-tenant ERP system** built as a **Turborepo monorepo** with
 
 **Tech Stack:**
 
-- **Backend**: Express.js + Prisma (PostgreSQL) + Vitest
-- **Frontend**: React 18 + React Router + Tailwind CSS 4 + Vite
-- **Shared**: Zod validation schemas and TypeScript types
+- **Backend**: Express.js + **tRPC** + Prisma (PostgreSQL) + Vitest
+- **Frontend**: React 18 + React Router + **tRPC React Query** + Tailwind CSS 4 + Vite
+- **Shared**: Zod validation schemas (auto-generated from Prisma + manual), TypeScript types
 
 ## Architecture Fundamentals
 
@@ -17,104 +17,160 @@ Sync ERP is a **multi-tenant ERP system** built as a **Turborepo monorepo** with
 **ALL backend queries MUST be scoped by `companyId`:**
 
 ```typescript
-// Request headers contain: X-Company-Id
-const companyId = req.context.companyId; // Set by authMiddleware
+// tRPC context provides companyId from X-Company-Id header
+const { companyId } = ctx; // Set by tRPC context from auth middleware
 prisma.product.findMany({ where: { companyId } }); // ALWAYS filter
 ```
 
 **Auth flow:**
 
 - Session cookie (`sessionId`) validates user identity
-- `X-Company-Id` header (set by frontend) validates company membership
-- `authMiddleware` populates `req.context.userId` and `req.context.companyId`
-- Use `optionalAuthMiddleware` for routes like `/api/companies` (no companyId required)
+- `X-Company-Id` header (set by frontend TRPCProvider) validates company membership
+- tRPC context receives `userId`, `companyId`, and `businessShape`
+- Use `protectedProcedure` (requires auth + company) or `authenticatedProcedure` (auth only)
 
-### 2. Backend: 3-Layer Architecture
+### 2. Backend: tRPC + Service + Repository
 
-**Every domain follows Controller → Service → Repository:**
+**Backend uses tRPC routers that call services:**
 
 ```
-apps/api/src/modules/{domain}/
-├── {domain}.controller.ts   # HTTP handling, Zod validation
-├── {domain}.service.ts      # Business logic only
-└── {domain}.repository.ts   # Prisma data access only
+apps/api/src/
+├── trpc/
+│   ├── trpc.ts              # Base procedures (public, authenticated, protected, shaped)
+│   ├── router.ts            # Main router aggregating all domain routers
+│   ├── context.ts           # Request context with auth info
+│   └── routers/             # Domain-specific routers
+│       └── {domain}.router.ts
+├── modules/{domain}/
+│   ├── {domain}.service.ts      # Business logic only
+│   ├── {domain}.repository.ts   # Prisma data access only
+│   └── {domain}.policy.ts       # Business rules/constraints (optional)
 ```
 
-**Controller pattern:**
+**tRPC Router pattern** (uses DI container to resolve services):
 
 ```typescript
-create = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const companyId = req.context.companyId!;
-    const validated = CreatePartnerSchema.parse(req.body);
-    const result = await this.service.create(companyId, validated);
-    res.status(201).json({ success: true, data: result });
-  } catch (error) {
-    next(error); // Let errorHandler middleware respond
+// apps/api/src/trpc/routers/partner.router.ts
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const partnerService = container.resolve<PartnerService>(ServiceKeys.PARTNER_SERVICE);
+
+export const partnerRouter = router({
+  list: protectedProcedure
+    .input(z.object({ type: z.nativeEnum(PartnerType).optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      return partnerService.list(ctx.companyId, input?.type);
+    }),
+
+  create: protectedProcedure
+    .input(CreatePartnerSchema) // Zod schema from @sync-erp/shared
+    .mutation(async ({ ctx, input }) => {
+      return partnerService.create(ctx.companyId, input);
+    }),
+});
+```
+
+**Procedure types** (in [apps/api/src/trpc/trpc.ts](apps/api/src/trpc/trpc.ts)):
+- `publicProcedure` - No auth required (health, auth endpoints)
+- `authenticatedProcedure` - Requires userId only (user profile, company list)
+- `protectedProcedure` - Requires userId AND companyId (most business operations)
+- `shapedProcedure` - Protected + requires active businessShape (blocks PENDING companies)
+
+**Service pattern** (business logic, receives dependencies via constructor):
+
+```typescript
+// Services receive dependencies via DI - registered in register.ts
+export class PartnerService {
+  constructor(private readonly repository: PartnerRepository) {}
+  
+  async create(companyId: string, data: CreatePartnerInput): Promise<Partner> {
+    return this.repository.create({ ...data, companyId });
   }
-};
-```
-
-**Service pattern** (business logic, NO HTTP):
-
-```typescript
-async create(companyId: string, data: CreatePartnerDto): Promise<Partner> {
-  // Validate business rules
-  const existing = await this.repository.findByName(companyId, data.name);
-  if (existing) throw ConflictError('Partner name exists');
-  return this.repository.create({ ...data, companyId });
 }
 ```
 
-**Repository pattern** (ONLY Prisma calls):
+**DI Container** (lazy singleton, registered on app startup):
 
 ```typescript
-async findByName(companyId: string, name: string): Promise<Partner | null> {
-  return prisma.partner.findFirst({ where: { companyId, name } });
+// apps/api/src/modules/common/di/register.ts
+container.register(ServiceKeys.PARTNER_SERVICE, () => 
+  new PartnerService(container.resolve(ServiceKeys.PARTNER_REPOSITORY))
+);
+
+// In routers - resolve service instance
+const partnerService = container.resolve<PartnerService>(ServiceKeys.PARTNER_SERVICE);
+```
+
+**Policy pattern** (business constraints, used by services):
+
+```typescript
+// apps/api/src/modules/procurement/purchase-order.policy.ts
+static ensureCanPurchasePhysicalGoods(shape: BusinessShape): void {
+  if (shape === BusinessShape.SERVICE) {
+    throw new DomainError('Service companies cannot purchase physical goods', 400);
+  }
 }
 ```
 
-### 3. Frontend: Feature-Based Structure
+### 3. Frontend: tRPC + Feature-Based Structure
 
 ```
 apps/web/src/
-├── features/{domain}/        # Co-locate pages, components, services
-│   ├── pages/               # Domain-specific pages
-│   ├── components/          # Domain-specific components
-│   └── services/            # Axios API clients
-├── components/ui/           # Reusable UI atoms (no business logic)
-├── hooks/                   # Global hooks (useCompanyData, useApiAction)
-├── contexts/                # AuthContext, CompanyContext
-└── app/                     # AppRouter, AppProviders
+├── lib/trpc.ts              # tRPC client setup
+├── lib/trpcProvider.tsx     # TRPCProvider with QueryClient
+├── types/api.ts             # Re-exported types from tRPC inference
+├── features/{domain}/       # Co-locate pages, components
+│   ├── pages/              # Domain-specific pages
+│   └── components/         # Domain-specific components
+├── components/
+│   ├── ui/                 # Reusable atoms (StatusBadge, FormModal, etc.)
+│   ├── layout/             # PageLayout, PageHeader
+│   └── forms/              # Form components (PaymentModeSelector)
+├── hooks/                  # Global hooks (useApiAction)
+├── contexts/               # AuthContext, CompanyContext, SidebarContext
+├── utils/                  # formatCurrency, formatDate
+└── app/                    # AppRouter, AppProviders
 ```
 
-**Data fetching pattern** (auto-refreshes on company change):
+**Data fetching with tRPC** (auto-typed, auto-invalidates):
 
 ```typescript
-const { data, loading, refresh } = useCompanyData(
-  (companyId) => partnerService.list(companyId),
-  [] // initial value
+// Queries - always check company context
+const { data: partners, isLoading } = trpc.partner.list.useQuery(
+  { type: 'SUPPLIER' },
+  { enabled: !!currentCompany?.id }  // Disable when no company
 );
+
+// Mutations - invalidate on success
+const utils = trpc.useUtils();
+const createMutation = trpc.partner.create.useMutation({
+  onSuccess: () => utils.partner.list.invalidate(),
+});
 ```
 
-**API action with toast** (global error handling via Axios interceptor):
+**API action helper** (for error handling with toast):
 
 ```typescript
-const result = await apiAction(() => partnerService.create(data), {
-  successMessage: 'Partner created!',
-});
-if (result) refresh();
+import { apiAction } from '@/hooks/useApiAction';
+const result = await apiAction(() => createMutation.mutateAsync(data), 'Created!');
+```
+
+**Type imports** (prefer `@/types/api` over `@sync-erp/shared` for entities):
+
+```typescript
+// ✅ Good - types inferred from tRPC
+import type { Partner, Invoice, CreatePartnerInput } from '@/types/api';
+
+// ✅ Good - enums/schemas still from shared (not inferable)
+import { PaymentTermsSchema, OrderStatusSchema } from '@sync-erp/shared';
 ```
 
 **Confirmation dialogs** (never use `window.confirm`):
 
 ```typescript
+import { useConfirm } from '@/components/ui/ConfirmModal';
 const confirm = useConfirm();
-const proceed = await confirm.show({
-  title: 'Delete Partner?',
-  message: 'This cannot be undone.',
-  danger: true,
-});
+const proceed = await confirm({ message: 'Delete this?', variant: 'danger' });
 ```
 
 ## Developer Workflows
@@ -122,12 +178,12 @@ const proceed = await confirm.show({
 ### Database Commands
 
 ```bash
-# From repo root (delegates to @sync-erp/database)
-npm run db:generate   # Prisma client generation (after schema changes)
+npm run db:generate   # Prisma client + Zod schemas (REQUIRED after schema changes)
 npm run db:push       # Push schema to DB (dev only, no migrations)
 npm run db:migrate    # Create and apply migration (production-safe)
 npm run db:seed       # Seed database with test data
 npm run db:studio     # Open Prisma Studio GUI
+npm run db:reseed:full # Full reset + seed + API seed script
 ```
 
 ### Development
@@ -139,117 +195,155 @@ npm run dev:web       # Web only
 npm run typecheck     # Validate TypeScript across monorepo
 ```
 
-### Testing Strategy
-
-**Backend tests:**
-
-- **Unit tests** (`test/unit/**`): Mock repository layer, test services
-- **Integration tests** (`test/integration/**`): Real DB, test full flows
-- Run with separate configs: `npm run test:unit` / `npm run test:integration`
-
-**Frontend tests:**
-
-- **Component tests**: `@testing-library/react` with `renderWithContext` helper
-- **Hook tests**: `renderHook` from `@testing-library/react`
-- Mock contexts (AuthContext, CompanyContext) via `test/mocks/hooks.mock.ts`
+### Testing
 
 ```bash
-npm run test                              # All tests (uses Vitest)
+npm run test                              # All tests (Vitest)
 npm run test --workspace=@sync-erp/api    # Backend only
 npm run test --workspace=@sync-erp/web    # Frontend only
-npm run test:coverage                     # With coverage report
+npm run test:integration                  # Integration tests (real DB)
 ```
 
-### Test Mocking Patterns
-
-**Backend service tests** (mock repositories):
-
-```typescript
-vi.mock('../../../src/modules/product/product.repository', () => ({
-  ProductRepository: vi
-    .fn()
-    .mockImplementation(() => mockProductRepository),
-}));
-```
-
-**Frontend page tests** (mock contexts):
-
-```typescript
-vi.mock('../../../src/contexts/AuthContext', () => ({
-  useAuth: mockUseAuth,
-}));
-```
+**Backend test structure:**
+- `test/unit/` - Service tests with mocked repositories
+- `test/integration/` - Full flow tests with real DB (e.g., `p2p-full-cycle.test.ts`)
+- `test/e2e/` - End-to-end business flow tests
 
 ## Project-Specific Conventions
 
-### Validation
+### Validation & Types
 
-- Backend: Use **Zod schemas** in controllers (from `@sync-erp/shared`)
-- Frontend: Use **React Hook Form** + Zod resolver
-- Share schemas via `packages/shared/src/validators/`
+- **Zod schemas generated from Prisma** via `zod-prisma-types` → `packages/shared/src/generated/zod/`
+- **Manual validators** for API inputs → `packages/shared/src/validators/` (e.g., `p2p.ts`, `finance.ts`)
+- **Domain errors** with codes → `packages/shared/src/errors/domain-error.ts`
 
-### Error Handling
+```typescript
+// Using generated enum schemas
+import { PaymentTermsSchema } from '@sync-erp/shared';
+const input = z.object({ paymentTerms: PaymentTermsSchema.optional().default('NET30') });
 
-- Backend: Throw custom errors (`ConflictError`, `NotFoundError`) → caught by `errorHandler` middleware
-- Frontend: Axios interceptor shows toast for all errors → use `apiAction()` helper
+// Throwing domain errors
+throw new DomainError('Partner not found', 404, DomainErrorCodes.PARTNER_NOT_FOUND);
+```
 
-### Routing
+### BusinessShape Constraints
 
-- Backend: Routes in `apps/api/src/routes/` bind controllers
-- Frontend: Centralized in `apps/web/src/app/AppRouter.tsx` with `ProtectedRoute` wrapper
+Companies have a `businessShape` (PENDING, TRADING, SERVICE, HYBRID) that controls allowed operations:
+
+```typescript
+// Policy enforces shape constraints
+PurchaseOrderPolicy.ensureCanPurchasePhysicalGoods(shape);
+
+// Use shapedProcedure for operations requiring active shape
+export const purchaseRouter = router({
+  create: shapedProcedure.input(...).mutation(...), // Blocks PENDING companies
+});
+```
+
+### Document Numbering
+
+Auto-generated sequential numbers per company:
+
+```typescript
+const orderNumber = await this.documentNumberService.generate(companyId, 'PO'); // → "PO-0001"
+```
 
 ### State Management
 
-- **No Redux/Zustand**: Use React Context (`AuthContext`, `CompanyContext`)
-- **Company context** persists to `localStorage` (auto-restore on reload)
+- **React Context** for auth/company (`AuthContext`, `CompanyContext`)
+- **tRPC React Query** for server state (automatic caching/invalidation)
+- **Company context** persists to `localStorage`, invalidates all queries on change
 
 ### Styling
 
 - **Tailwind CSS 4** with `@tailwindcss/vite` plugin
-- No inline styles, use utility classes
 - Consistent spacing (`space-y-4`, `gap-4`) and colors (`primary-600`, `gray-500`)
+
+### UI Components
+
+Reusable components in [apps/web/src/components/ui/](apps/web/src/components/ui/):
+
+| Component | Usage |
+|-----------|-------|
+| `PageHeader` | Detail page headers with back button, title, badges, actions |
+| `StatusBadge` | Color-coded status for orders/invoices/documents |
+| `FormModal` | Modal wrapper with title and backdrop |
+| `ConfirmModal` + `useConfirm()` | Promise-based confirmation dialogs |
+| `LoadingState` / `EmptyState` | Loading spinner and empty list placeholders |
+| `OrderListTable` | Generic table for PO/SO lists with actions |
+
+**Page layout pattern:**
+
+```tsx
+import { PageContainer, PageHeader } from '@/components/layout/PageLayout';
+
+export default function MyPage() {
+  return (
+    <PageContainer>
+      <PageHeader 
+        title="Page Title" 
+        actions={<Button>Action</Button>} 
+      />
+      {/* content */}
+    </PageContainer>
+  );
+}
+```
+
+### Formatting Utilities
+
+Use `@/utils/format` for consistent display:
+
+```typescript
+import { formatCurrency, formatDate } from '@/utils/format';
+formatCurrency(100000); // "Rp 100.000" (IDR)
+formatDate(new Date()); // "29 Desember 2025"
+```
 
 ## Key Files Reference
 
-| Purpose            | File                                                                             |
-| ------------------ | -------------------------------------------------------------------------------- |
-| Auth middleware    | [apps/api/src/middlewares/auth.ts](apps/api/src/middlewares/auth.ts)             |
-| API entry point    | [apps/api/src/index.ts](apps/api/src/index.ts)                                   |
-| Prisma schema      | [packages/database/prisma/schema.prisma](packages/database/prisma/schema.prisma) |
-| Frontend router    | [apps/web/src/app/AppRouter.tsx](apps/web/src/app/AppRouter.tsx)                 |
-| Data fetching hook | [apps/web/src/hooks/useCompanyData.ts](apps/web/src/hooks/useCompanyData.ts)     |
-| Shared types       | [packages/shared/src/types/](packages/shared/src/types/)                         |
+| Purpose               | File                                                               |
+| --------------------- | ------------------------------------------------------------------ |
+| tRPC base procedures  | [apps/api/src/trpc/trpc.ts](apps/api/src/trpc/trpc.ts)             |
+| Main router           | [apps/api/src/trpc/router.ts](apps/api/src/trpc/router.ts)         |
+| tRPC context          | [apps/api/src/trpc/context.ts](apps/api/src/trpc/context.ts)       |
+| Auth middleware       | [apps/api/src/middlewares/auth.ts](apps/api/src/middlewares/auth.ts) |
+| Prisma schema         | [packages/database/prisma/schema.prisma](packages/database/prisma/schema.prisma) |
+| Shared validators     | [packages/shared/src/validators/](packages/shared/src/validators/) |
+| Frontend tRPC client  | [apps/web/src/lib/trpc.ts](apps/web/src/lib/trpc.ts)               |
+| Frontend router       | [apps/web/src/app/AppRouter.tsx](apps/web/src/app/AppRouter.tsx)   |
+| DI Container          | [apps/api/src/modules/common/di/](apps/api/src/modules/common/di/) |
 
 ## Common Pitfalls
 
 1. **Forgetting `companyId` filter** → Cross-tenant data leak (CRITICAL)
-2. **Direct Prisma in services** → Violates 3-layer architecture
-3. **Manual `try-catch` in frontend** → Use Axios interceptor + `apiAction()`
-4. **Using `window.confirm`** → Use `useConfirm()` hook instead
-5. **Forgetting `db:generate`** → After Prisma schema changes, must regenerate client
+2. **Using wrong procedure type** → `protectedProcedure` for most ops, `shapedProcedure` for inventory/orders
+3. **Forgetting `db:generate`** → After Prisma schema changes, regenerates client AND Zod schemas
+4. **Direct Prisma in services** → Use repository layer for data access
+5. **Not invalidating tRPC cache** → Call `utils.{router}.invalidate()` after mutations
 
 ## Feature Development Checklist
 
 **Backend:**
-
+- [ ] Add tRPC router in `apps/api/src/trpc/routers/{domain}.router.ts`
+- [ ] Register router in `apps/api/src/trpc/router.ts`
+- [ ] Create service with constructor DI for dependencies
+- [ ] Register service in `apps/api/src/modules/common/di/register.ts`
+- [ ] Add `ServiceKeys` constant in `container.ts`
+- [ ] Service methods receive `companyId` as first param
 - [ ] Repository methods filter by `companyId`
-- [ ] Service contains only business logic (no HTTP, no Prisma)
-- [ ] Controller validates with Zod schemas
-- [ ] Unit tests mock repository layer
-- [ ] Integration tests use real DB
+- [ ] Add Policy class if business rules needed
+- [ ] Integration tests in `test/integration/`
 
 **Frontend:**
-
-- [ ] Use `useCompanyData` for fetching
-- [ ] Use `apiAction()` for mutations
-- [ ] Use `useConfirm()` for destructive actions
+- [ ] Use `trpc.{router}.{method}.useQuery/useMutation()`
+- [ ] Invalidate cache on mutations via `utils.{router}.invalidate()`
 - [ ] Co-locate in `features/{domain}/`
-- [ ] Test with mocked contexts
+- [ ] Add route in `AppRouter.tsx`
 
 ## Spec-Driven Development
 
 Feature specs are in `specs/###-feature-name/`:
-
 - **spec.md**: User stories, requirements, edge cases
 - **data-model.md**: Prisma schema changes
 - **tasks.md**: Breakdown with parallel opportunities marked `[P]`

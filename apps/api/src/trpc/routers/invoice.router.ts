@@ -1,9 +1,12 @@
 import { router, protectedProcedure } from '../trpc';
+import { container, ServiceKeys } from '../../modules/common/di';
 import { InvoiceService } from '../../modules/accounting/services/invoice.service';
 import { CreateInvoiceFromSOSchema } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const invoiceService = new InvoiceService();
+const invoiceService = container.resolve<InvoiceService>(
+  ServiceKeys.INVOICE_SERVICE
+);
 
 export const invoiceRouter = router({
   /**
@@ -46,12 +49,23 @@ export const invoiceRouter = router({
     }),
 
   /**
-   * Void invoice
+   * Void invoice (FR-024: requires reason)
    */
   void: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Void reason is required'),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
-      return invoiceService.void(input.id, ctx.companyId);
+      return invoiceService.void(
+        input.id,
+        ctx.companyId,
+        ctx.userId,
+        input.reason,
+        ctx.userPermissions // GAP-4 Fix: FR-026 pass permissions
+      );
     }),
 });
 

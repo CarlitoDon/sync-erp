@@ -3,11 +3,12 @@ import {
   prisma,
   OrderStatus,
   InvoiceStatus,
+  JournalSourceType,
 } from '@sync-erp/database';
-import { InvoiceService } from '@modules/accounting/services/invoice.service';
-import { PaymentService } from '@modules/accounting/services/payment.service';
-import { JournalService } from '@modules/accounting/services/journal.service';
-import { SalesOrderService } from '@modules/sales/sales-order.service';
+import { InvoiceService } from '../../src/modules/accounting/services/invoice.service';
+import { PaymentService } from '../../src/modules/accounting/services/payment.service';
+import { JournalService } from '../../src/modules/accounting/services/journal.service';
+import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
 
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
@@ -178,7 +179,8 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       let journals = await journalService.list(COMPANY_ID);
       const invoiceJournal = journals.find(
         (j: any) =>
-          j.sourceType === 'INVOICE' && j.sourceId === invoiceId
+          j.sourceType === JournalSourceType.INVOICE &&
+          j.sourceId === invoiceId
       ) as any;
       expect(invoiceJournal).toBeDefined();
 
@@ -210,7 +212,7 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       // Step 6: Verify Cash receipt journal
       journals = await journalService.list(COMPANY_ID);
       const paymentJournal = journals.find(
-        (j: any) => j.sourceType === 'PAYMENT'
+        (j: any) => j.sourceType === JournalSourceType.PAYMENT
       ) as any;
       expect(paymentJournal).toBeDefined();
 
@@ -226,7 +228,7 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
     });
   });
 
-  describe('FR-012: Invoice Balance Invariant', () => {
+  describe('Edge Cases', () => {
     it('should prevent shipping unconfirmed order', async () => {
       const so = await salesOrderService.create(COMPANY_ID, {
         partnerId,
@@ -237,6 +239,22 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       await expect(
         salesOrderService.ship(COMPANY_ID, so.id)
       ).rejects.toThrow();
+    });
+
+    // GAP-2 Test: Block ship for UPFRONT SO without deposit
+    it('Should block ship for UPFRONT SO without deposit', async () => {
+      const order = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        type: 'SALES',
+        items: [{ productId, quantity: 1, price: 100000 }],
+        paymentTerms: 'UPFRONT',
+      });
+      await salesOrderService.confirm(order.id, COMPANY_ID);
+
+      // Try to ship without paying - should fail
+      await expect(
+        salesOrderService.ship(COMPANY_ID, order.id)
+      ).rejects.toThrow(/upfront payment required/i);
     });
 
     it('Should prevent overpayment (balance cannot be negative)', async () => {
@@ -273,6 +291,54 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
           method: 'CASH' as const,
         })
       ).rejects.toThrow(/exceeds/i);
+    });
+
+    it('Should fail to confirm an already confirmed SO', async () => {
+      const order = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        type: 'SALES',
+        items: [{ productId, quantity: 1, price: 100 }],
+      });
+      await salesOrderService.confirm(order.id, COMPANY_ID);
+
+      await expect(
+        salesOrderService.confirm(order.id, COMPANY_ID)
+      ).rejects.toThrow();
+    });
+
+    it('Should fail to post an already posted Invoice', async () => {
+      const order = await salesOrderService.create(COMPANY_ID, {
+        partnerId,
+        type: 'SALES',
+        items: [{ productId, quantity: 1, price: 100 }],
+      });
+      await salesOrderService.confirm(order.id, COMPANY_ID);
+      const invoice = await invoiceService.createFromSalesOrder(
+        COMPANY_ID,
+        { orderId: order.id }
+      );
+
+      await invoiceService.post(
+        invoice.id,
+        COMPANY_ID,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        ACTOR_ID
+      );
+
+      await expect(
+        invoiceService.post(
+          invoice.id,
+          COMPANY_ID,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          ACTOR_ID
+        )
+      ).rejects.toThrow();
     });
   });
 });

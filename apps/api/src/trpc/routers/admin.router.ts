@@ -1,8 +1,11 @@
 import { router, protectedProcedure } from '../trpc';
-import { AdminService } from '../../modules/admin/service';
+import { container, ServiceKeys } from '../../modules/common/di';
 import { z } from 'zod';
+import { AdminService } from '../../modules/admin/service';
 
-const adminService = new AdminService();
+const adminService = container.resolve<AdminService>(
+  ServiceKeys.ADMIN_SERVICE
+);
 
 export const adminRouter = router({
   /**

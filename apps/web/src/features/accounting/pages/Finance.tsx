@@ -462,19 +462,24 @@ export default function Finance() {
         <div className="space-y-6">
           <div className="flex gap-2 bg-gray-100 p-1 rounded-lg w-fit">
             <button
+              // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type
               onClick={() => setReportType('BS')}
+              // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${reportType === 'BS' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Balance Sheet
             </button>
             <button
+              // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type
               onClick={() => setReportType('IS')}
+              // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${reportType === 'IS' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Income Statement
             </button>
           </div>
 
+          {/* eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type */}
           {reportType === 'BS' ? (
             <FinancialReport
               title="Balance Sheet"

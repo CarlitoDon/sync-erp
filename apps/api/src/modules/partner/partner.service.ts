@@ -3,10 +3,14 @@ import { PartnerRepository } from './partner.repository';
 import {
   CreatePartnerInput,
   UpdatePartnerInput,
+  DomainError,
+  DomainErrorCodes,
 } from '@sync-erp/shared';
 
 export class PartnerService {
-  private repository = new PartnerRepository();
+  constructor(
+    private readonly repository: PartnerRepository = new PartnerRepository()
+  ) {}
 
   async create(
     companyId: string,
@@ -53,7 +57,11 @@ export class PartnerService {
   ): Promise<Partner> {
     const existing = await this.getById(id, companyId);
     if (!existing) {
-      throw new Error('Partner not found');
+      throw new DomainError(
+        'Partner not found',
+        404,
+        DomainErrorCodes.PARTNER_NOT_FOUND
+      );
     }
     return this.repository.update(id, data);
   }
@@ -61,7 +69,11 @@ export class PartnerService {
   async delete(id: string, companyId: string): Promise<void> {
     const existing = await this.getById(id, companyId);
     if (!existing) {
-      throw new Error('Partner not found');
+      throw new DomainError(
+        'Partner not found',
+        404,
+        DomainErrorCodes.PARTNER_NOT_FOUND
+      );
     }
     await this.repository.delete(id);
   }

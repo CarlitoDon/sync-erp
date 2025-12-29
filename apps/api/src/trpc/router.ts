@@ -12,6 +12,7 @@ import { companyRouter } from './routers/company.router';
 import { authRouter } from './routers/auth.router';
 import { adminRouter } from './routers/admin.router';
 import { healthRouter } from './routers/health.router';
+import { expenseRouter } from './routers/expense.router';
 import { inventoryRouter } from './routers/inventory.router';
 import { financeRouter } from './routers/finance.router';
 import { upfrontPaymentRouter } from './routers/upfrontPayment.router'; // Feature 036
@@ -40,6 +41,7 @@ export const appRouter = router({
 
   // Finance & Accounting
   finance: financeRouter,
+  expense: expenseRouter,
 
   // System
   dashboard: dashboardRouter,

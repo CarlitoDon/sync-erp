@@ -5,6 +5,7 @@ import {
   InvoiceStatus,
   Prisma,
 } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export class InvoiceRepository {
   async create(
@@ -17,6 +18,7 @@ export class InvoiceRepository {
       include: {
         order: { include: { items: { include: { product: true } } } },
         partner: true,
+        items: { include: { product: true } },
       },
     });
   }
@@ -38,6 +40,9 @@ export class InvoiceRepository {
         order: { include: { items: { include: { product: true } } } },
         partner: true,
         payments: true,
+        items: { include: { product: true } },
+        dpBill: true, // Include related DP Bill
+        finalBills: true, // Include related Final Bills if this is a DP
       },
     });
   }
@@ -59,6 +64,7 @@ export class InvoiceRepository {
         partner: true,
         payments: true,
         order: true,
+        items: { include: { product: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -77,6 +83,56 @@ export class InvoiceRepository {
         partner: true,
         payments: true,
         order: true,
+        items: { include: { product: true } },
+      },
+    });
+  }
+
+  /**
+   * Update invoice status with optimistic locking (FR-027)
+   * Validates version to prevent concurrent modification conflicts.
+   */
+  async updateStatus(
+    id: string,
+    status: InvoiceStatus,
+    expectedVersion?: number,
+    tx?: Prisma.TransactionClient
+  ): Promise<Invoice> {
+    const db = tx || prisma;
+
+    if (expectedVersion !== undefined) {
+      const result = await db.invoice.updateMany({
+        where: { id, version: expectedVersion },
+        data: { status, version: { increment: 1 } },
+      });
+
+      if (result.count === 0) {
+        throw new DomainError(
+          'Concurrency Error: Invoice/Bill has been modified by another process',
+          409,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
+        );
+      }
+
+      return db.invoice.findUniqueOrThrow({
+        where: { id },
+        include: {
+          partner: true,
+          payments: true,
+          order: true,
+          items: { include: { product: true } },
+        },
+      });
+    }
+
+    return db.invoice.update({
+      where: { id },
+      data: { status, version: { increment: 1 } },
+      include: {
+        partner: true,
+        payments: true,
+        order: true,
+        items: { include: { product: true } },
       },
     });
   }
@@ -127,6 +183,29 @@ export class InvoiceRepository {
     });
   }
 
+  // Generic findFirst for flexible queries
+  async findFirst(
+    where: {
+      orderId?: string;
+      companyId?: string;
+      type?: InvoiceType;
+      status?: InvoiceStatus;
+      notes?: { contains: string };
+      isDownPayment?: boolean;
+    },
+    tx?: Prisma.TransactionClient
+  ): Promise<Invoice | null> {
+    const db = tx || prisma;
+    return db.invoice.findFirst({
+      where,
+      include: {
+        partner: true,
+        order: true,
+        dpBill: true,
+      },
+    });
+  }
+
   async decreaseBalanceWithGuard(
     id: string,
     amount: number,
@@ -172,6 +251,27 @@ export class InvoiceRepository {
     return db.payment.count({
       where: {
         invoiceId,
+      },
+    });
+  }
+
+  /**
+   * FR-013: Find Bill by supplier invoice number for duplicate check.
+   * Checks for duplicates per supplier (partnerId).
+   */
+  async findBySupplierInvoiceNumber(
+    companyId: string,
+    partnerId: string,
+    supplierInvoiceNumber: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<Invoice | null> {
+    const db = tx || prisma;
+    return db.invoice.findFirst({
+      where: {
+        companyId,
+        partnerId,
+        supplierInvoiceNumber,
+        type: InvoiceType.BILL,
       },
     });
   }

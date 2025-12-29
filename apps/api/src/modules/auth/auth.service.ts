@@ -15,8 +15,10 @@ export interface AuthResult {
 }
 
 export class AuthService {
-  private repository = new AuthRepository();
-  private userService = new UserService();
+  constructor(
+    private readonly repository: AuthRepository = new AuthRepository(),
+    private readonly userService: UserService = new UserService()
+  ) {}
 
   async register(payload: RegisterPayload): Promise<AuthResult> {
     const { email, password, name } = payload;

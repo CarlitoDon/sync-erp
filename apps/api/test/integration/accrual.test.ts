@@ -198,4 +198,56 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     expect(Number(billVat?.debit)).toBe(55000);
     expect(Number(billAp?.credit)).toBe(555000);
   });
+  describe('Edge Cases', () => {
+    it('Should fail to post an already posted GRN', async () => {
+      // Create PO
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        type: 'PURCHASE',
+        paymentTerms: 'NET30',
+        items: [{ productId, quantity: 1, price: 100000 }],
+        taxRate: 11,
+      });
+      const confirmedOrder = await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        'test-user-id'
+      );
+
+      // Create GRN
+      const grn = await inventoryService.createGRN(COMPANY_ID, {
+        purchaseOrderId: confirmedOrder.id,
+        items: [{ productId, quantity: 1 }],
+      });
+
+      // Post once
+      await inventoryService.postGRN(COMPANY_ID, grn.id);
+
+      // Post again
+      await expect(
+        inventoryService.postGRN(COMPANY_ID, grn.id)
+      ).rejects.toThrow();
+    });
+
+    it('Should fail to create Bill for unreceived PO (Accrual Check)', async () => {
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        type: 'PURCHASE',
+        paymentTerms: 'NET30',
+        items: [{ productId, quantity: 1, price: 100000 }],
+      });
+      const confirmedOrder = await procurementService.confirm(
+        order.id,
+        COMPANY_ID,
+        'test-user-id'
+      );
+
+      // Try to create bill without GRN
+      await expect(
+        billService.createFromPurchaseOrder(COMPANY_ID, {
+          orderId: confirmedOrder.id,
+        })
+      ).rejects.toThrow(/goods.*received/i);
+    });
+  });
 });

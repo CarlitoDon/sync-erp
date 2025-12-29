@@ -14,7 +14,9 @@ import {
   PageHeader,
 } from '@/components/layout/PageLayout';
 import { Card, CardContent } from '@/components/ui/Card';
+import { LoadingState } from '@/components/ui';
 import CreatePaymentModal from '../components/CreatePaymentModal';
+import { InvoiceTypeSchema } from '@sync-erp/shared';
 
 // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local UI filter type, not database enum
 type FilterType = 'all' | 'inbound' | 'outbound';
@@ -37,7 +39,9 @@ export default function Payments() {
   // BILL = outbound (money out to vendor), INVOICE = inbound (money in from customer)
   const getPaymentDirection = (payment: (typeof payments)[0]) => {
     if (!payment.invoice) return 'unknown';
-    return payment.invoice.type === 'BILL' ? 'outbound' : 'inbound';
+    return payment.invoice.type === InvoiceTypeSchema.enum.BILL
+      ? 'outbound'
+      : 'inbound';
   };
 
   // Filter payments
@@ -191,9 +195,7 @@ export default function Payments() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
+            <LoadingState size="md" />
           ) : filteredPayments.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -293,7 +295,7 @@ export default function Payments() {
                           {isInbound ? '+' : '-'}
                           {formatCurrency(Number(payment.amount))}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 max-w-[200px] truncate">
+                        <td className="px-6 py-4 text-sm text-gray-500 max-w-50 truncate">
                           {payment.reference || '-'}
                         </td>
                       </tr>

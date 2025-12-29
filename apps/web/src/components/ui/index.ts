@@ -13,6 +13,8 @@ export { BackButton } from './BackButton';
 // Form Elements
 export { default as Select } from './Select';
 export { DatePicker } from './DatePicker';
+export { QuantityInput } from './QuantityInput';
+export { CurrencyInput } from './CurrencyInput';
 
 // Feedback
 export { StatusBadge } from './StatusBadge';
@@ -31,3 +33,5 @@ export type { OrderItem } from './OrderItemsTable';
 // Modals & Dialogs
 export { default as FormModal } from './FormModal';
 export { useConfirm } from './ConfirmModal';
+export { usePrompt } from './PromptModal';
+export type { PromptOptions } from './PromptModal';

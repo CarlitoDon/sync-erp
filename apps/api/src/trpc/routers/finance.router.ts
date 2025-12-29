@@ -1,4 +1,5 @@
 import { router, protectedProcedure } from '../trpc';
+import { container, ServiceKeys } from '../../modules/common/di';
 import { AccountService } from '../../modules/accounting/services/account.service';
 import { JournalService } from '../../modules/accounting/services/journal.service';
 import { ReportService } from '../../modules/accounting/services/report.service';
@@ -8,9 +9,15 @@ import {
 } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const accountService = new AccountService();
-const journalService = new JournalService();
-const reportService = new ReportService();
+const accountService = container.resolve<AccountService>(
+  ServiceKeys.ACCOUNT_SERVICE
+);
+const journalService = container.resolve<JournalService>(
+  ServiceKeys.JOURNAL_SERVICE
+);
+const reportService = container.resolve<ReportService>(
+  ServiceKeys.REPORT_SERVICE
+);
 
 export const financeRouter = router({
   /**

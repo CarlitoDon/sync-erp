@@ -10,6 +10,7 @@ import { getBillStatusDisplay } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
 import { getPaymentTermLabel } from '@sync-erp/shared';
 import { PageContainer } from '@/components/layout/PageLayout';
+import { PriceVarianceCard } from './PriceVarianceCard';
 import {
   Card,
   CardHeader,
@@ -18,6 +19,7 @@ import {
   PageHeader,
   ActionButton,
   useConfirm,
+  usePrompt,
   LoadingState,
   EmptyState,
 } from '@/components/ui';
@@ -26,6 +28,7 @@ export default function BillDetail() {
   const { id } = useParams<{ id: string }>();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const utils = trpc.useUtils();
 
   const { data: bill, isLoading: loading } =
@@ -56,6 +59,18 @@ export default function BillDetail() {
 
   const handleVoid = async () => {
     if (!bill) return;
+
+    // FR-024: Prompt for void reason (accessible modal)
+    const reason = await prompt({
+      title: 'Void Bill',
+      message: 'Please enter a reason for voiding this bill:',
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+    if (!reason) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: 'Void Bill',
       message: 'Are you sure you want to void this bill?',
@@ -64,7 +79,7 @@ export default function BillDetail() {
     });
     if (!confirmed) return;
     await apiAction(
-      () => voidMutation.mutateAsync({ id: bill.id }),
+      () => voidMutation.mutateAsync({ id: bill.id, reason }),
       'Bill voided'
     );
   };
@@ -162,7 +177,7 @@ export default function BillDetail() {
                 <p
                   className={`font-medium ${
                     new Date(bill.dueDate) < new Date() &&
-                    bill.status === 'POSTED'
+                    bill.status === StatusSchema.enum.POSTED
                       ? 'text-red-600'
                       : ''
                   }`}
@@ -212,6 +227,95 @@ export default function BillDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Feature: Linked Documents (DP <-> Final) */}
+        {(bill.dpBill ||
+          (bill.finalBills && bill.finalBills.length > 0)) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Related Documents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Case 1: This is a Final Bill linked to a DP */}
+                {bill.dpBill && (
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">
+                      Less Down Payment
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                        DP
+                      </span>
+                      <Link
+                        to={`/bills/${bill.dpBill.id}`}
+                        className="text-blue-600 hover:underline font-mono font-medium"
+                      >
+                        {bill.dpBill.invoiceNumber}
+                      </Link>
+                      <span className="text-gray-500 text-sm">
+                        ({formatCurrency(Number(bill.dpBill.amount))})
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Case 2: This is a DP Bill linked to Final Bill(s) */}
+                {bill.finalBills && bill.finalBills.length > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">
+                      Applied to Final Bill(s)
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {bill.finalBills.map((finalBill) => (
+                        <div
+                          key={finalBill.id}
+                          className="flex items-center gap-2"
+                        >
+                          <Link
+                            to={`/bills/${finalBill.id}`}
+                            className="text-blue-600 hover:underline font-mono font-medium"
+                          >
+                            {finalBill.invoiceNumber}
+                          </Link>
+                          <span className="text-gray-500 text-sm">
+                            (
+                            {formatCurrency(Number(finalBill.amount))}
+                            )
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* FR-049: Price Variance Comparison */}
+        {bill.order && bill.items && bill.items.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Price Comparison (3-Way Match)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PriceVarianceCard
+                items={bill.items.map((billItem, idx) => {
+                  const poItem = bill.order?.items?.[idx];
+                  return {
+                    productName:
+                      billItem.product?.name || 'Unknown Product',
+                    poQuantity: poItem?.quantity || 0,
+                    poPrice: Number(poItem?.price || 0),
+                    billQuantity: billItem.quantity || 0,
+                    billPrice: Number(billItem.price || 0),
+                  };
+                })}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Actions */}
         <Card>

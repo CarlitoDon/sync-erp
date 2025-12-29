@@ -17,6 +17,7 @@ export class JournalRepository {
     } catch (err) {
       // Handle unique constraint violation (P2002)
       if (
+        // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Prisma error code, not database enum
         (err as Prisma.PrismaClientKnownRequestError).code === 'P2002'
       ) {
         const sourceInfo =

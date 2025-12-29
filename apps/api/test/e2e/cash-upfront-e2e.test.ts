@@ -109,9 +109,34 @@ describe('E2E: Cash Upfront Payment Flow', () => {
   });
 
   afterAll(async () => {
-    await prisma.company
-      .delete({ where: { id: COMPANY_ID } })
-      .catch(() => {});
+    await prisma.$transaction([
+      prisma.auditLog.deleteMany({
+        where: { companyId: COMPANY_ID },
+      }),
+      prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN (SELECT id FROM "JournalEntry" WHERE "companyId" = ${COMPANY_ID})`,
+      prisma.journalEntry.deleteMany({
+        where: { companyId: COMPANY_ID },
+      }),
+      prisma.payment.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.invoice.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.inventoryMovement.deleteMany({
+        where: { companyId: COMPANY_ID },
+      }),
+      prisma.fulfillmentItem.deleteMany({
+        where: { fulfillment: { companyId: COMPANY_ID } },
+      }),
+      prisma.fulfillment.deleteMany({
+        where: { companyId: COMPANY_ID },
+      }),
+      prisma.orderItem.deleteMany({
+        where: { order: { companyId: COMPANY_ID } },
+      }),
+      prisma.order.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.product.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.account.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.partner.deleteMany({ where: { companyId: COMPANY_ID } }),
+      prisma.company.deleteMany({ where: { id: COMPANY_ID } }),
+    ]);
   });
 
   it('Complete P2P flow: PO -> Pay -> GRN -> Bill -> Auto Settle', async () => {

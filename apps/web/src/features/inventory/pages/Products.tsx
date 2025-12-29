@@ -8,6 +8,7 @@ import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
+import { CurrencyInput, LoadingState } from '@/components/ui';
 import {
   PageContainer,
   PageHeader,
@@ -81,11 +82,7 @@ export default function Products() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (!currentCompany) {
@@ -154,19 +151,15 @@ export default function Products() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Selling Price *
             </label>
-            <input
-              type="number"
-              required
-              min={0}
-              step={0.01}
+            <CurrencyInput
               value={formData.price}
-              onChange={(e) =>
+              onChange={(val) =>
                 setFormData({
                   ...formData,
-                  price: parseFloat(e.target.value) || 0,
+                  price: val,
                 })
               }
-              className="w-full px-3 py,2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              min={0}
             />
           </div>
           <div className="col-span-3 flex justify-end gap-3 pt-4 border-t border-gray-200">

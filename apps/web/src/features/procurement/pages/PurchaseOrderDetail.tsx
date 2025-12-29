@@ -11,6 +11,7 @@ import {
   PaymentTermsSchema,
   OrderStatusSchema,
   PaymentStatusSchema,
+  InvoiceStatusSchema,
   PaymentTermsType,
   PaymentStatusType,
 } from '@sync-erp/shared';
@@ -60,6 +61,22 @@ export default function PurchaseOrderDetail() {
   const handleCreateBill = () => {
     if (!order) return;
     setIsBillModalOpen(true);
+  };
+
+  // GAP-001: Close PO mutation
+  const closeMutation = trpc.purchaseOrder.close.useMutation({
+    onSuccess: () => {
+      utils.purchaseOrder.getById.invalidate({ id: id! });
+    },
+  });
+
+  const handleClosePO = (orderId: string) => {
+    const reason = prompt(
+      'Please enter a reason for closing this PO:'
+    );
+    if (reason && reason.trim()) {
+      closeMutation.mutate({ id: orderId, reason: reason.trim() });
+    }
   };
 
   if (loading) {
@@ -225,32 +242,76 @@ export default function PurchaseOrderDetail() {
           />
         </Card>
 
-        {/* Feature 036: UPFRONT Payment Info - Direct user to pay via Bill */}
-        {isUpfrontOrder &&
-          order.invoices &&
-          order.invoices.length > 0 && (
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+        {/* Feature 036: DP Payment Info - Show for UPFRONT or orders with dpAmount */}
+        {(() => {
+          const dpAmount = order.dpAmount
+            ? Number(order.dpAmount)
+            : 0;
+          const dpPercent = order.dpPercent
+            ? Number(order.dpPercent)
+            : 0;
+          const hasDpRequired = isUpfrontOrder || dpAmount > 0;
+          const dpBill = order.invoices?.find((inv) =>
+            inv.notes?.includes('Down Payment')
+          );
+          const isDpPaid =
+            dpBill?.status === InvoiceStatusSchema.enum.PAID;
+
+          if (!hasDpRequired) return null;
+
+          return (
+            <div
+              className={`border-l-4 p-4 rounded-lg ${
+                isDpPaid
+                  ? 'bg-green-50 border-green-500'
+                  : 'bg-blue-50 border-blue-500'
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-blue-800">
-                    Down Payment Bill Created
+                  <p
+                    className={`font-semibold ${
+                      isDpPaid ? 'text-green-800' : 'text-blue-800'
+                    }`}
+                  >
+                    {isDpPaid
+                      ? '✅ Down Payment Paid'
+                      : '💰 Down Payment Required'}
                   </p>
-                  <p className="text-sm text-blue-700">
-                    Please pay via the Bill to complete the upfront
-                    payment.
+                  <p
+                    className={`text-sm ${
+                      isDpPaid ? 'text-green-700' : 'text-blue-700'
+                    }`}
+                  >
+                    {isUpfrontOrder
+                      ? `Full upfront payment: ${formatCurrency(Number(order.totalAmount))}`
+                      : `DP ${dpPercent}%: ${formatCurrency(dpAmount)}`}
                   </p>
+                  {!isDpPaid && !isUpfrontOrder && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Sisa bayar setelah GRN:{' '}
+                      {formatCurrency(
+                        Number(order.totalAmount) - dpAmount
+                      )}
+                    </p>
+                  )}
                 </div>
-                <ActionButton
-                  variant="primary"
-                  onClick={() =>
-                    navigate(`/bills/${order.invoices![0].id}`)
-                  }
-                >
-                  Go to Bill →
-                </ActionButton>
+                {dpBill ? (
+                  <ActionButton
+                    variant={isDpPaid ? 'secondary' : 'primary'}
+                    onClick={() => navigate(`/bills/${dpBill.id}`)}
+                  >
+                    {isDpPaid ? 'View DP Bill' : '💳 Pay DP Bill →'}
+                  </ActionButton>
+                ) : (
+                  <span className="text-sm text-gray-500">
+                    Confirm PO to create DP Bill
+                  </span>
+                )}
               </div>
             </div>
-          )}
+          );
+        })()}
 
         {/* Actions */}
         <Card>
@@ -266,6 +327,7 @@ export default function PurchaseOrderDetail() {
                 onReceiveGoods={() => setGoodsReceiptId(order.id)}
                 onCreateBill={handleCreateBill}
                 onViewBill={(billId) => navigate(`/bills/${billId}`)}
+                onClosePO={handleClosePO}
                 layout="detail"
               />
             </div>

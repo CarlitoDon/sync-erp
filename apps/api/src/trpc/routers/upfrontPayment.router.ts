@@ -12,7 +12,12 @@ import {
 } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const upfrontPaymentService = new UpfrontPaymentService();
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const upfrontPaymentService =
+  container.resolve<UpfrontPaymentService>(
+    ServiceKeys.UPFRONT_PAYMENT_SERVICE
+  );
 
 export const upfrontPaymentRouter = router({
   /**

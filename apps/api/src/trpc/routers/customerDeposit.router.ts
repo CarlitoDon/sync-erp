@@ -5,14 +5,18 @@
  */
 
 import { router, protectedProcedure } from '../trpc';
-import { CustomerDepositService } from '../../modules/sales/customer-deposit.service';
+import { container, ServiceKeys } from '../../modules/common/di';
 import {
   RegisterCustomerDepositSchema,
   SettleCustomerDepositSchema,
 } from '@sync-erp/shared';
+import { CustomerDepositService } from '../../modules/sales/customer-deposit.service';
 import { z } from 'zod';
 
-const customerDepositService = new CustomerDepositService();
+const customerDepositService =
+  container.resolve<CustomerDepositService>(
+    ServiceKeys.CUSTOMER_DEPOSIT_SERVICE
+  );
 
 export const customerDepositRouter = router({
   /**

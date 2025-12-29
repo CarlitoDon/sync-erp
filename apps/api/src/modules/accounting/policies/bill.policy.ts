@@ -1,27 +1,41 @@
-import { Invoice, InvoiceStatus } from '@sync-erp/database';
+/**
+ * BillPolicy - P2P (Procure-to-Pay) Invoice Validation
+ *
+ * Domain-specific validation for Bills (supplier invoices).
+ * Uses shared utilities from document-validation.utils.ts.
+ */
+
 import {
-  BusinessDate,
-  DomainError,
-  DomainErrorCodes,
-} from '@sync-erp/shared';
+  Invoice,
+  InvoiceStatus,
+  OrderStatus,
+} from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
+import {
+  validateBusinessDate,
+  validateDraftStatus,
+  validateOrderStatus,
+  ensureFulfillmentExists,
+  validate3WayMatching,
+  type ThreeWayMatchDocument,
+  type ThreeWayMatchOrder,
+} from '../../common/utils/document-validation.utils';
+
+// Valid PO statuses for Bill creation
+const VALID_PO_STATUSES = [
+  OrderStatus.CONFIRMED,
+  OrderStatus.PARTIALLY_RECEIVED,
+  OrderStatus.RECEIVED,
+  OrderStatus.COMPLETED,
+];
 
 export class BillPolicy {
   /**
    * Validate creation rules
    */
-  static validateCreate(data: { businessDate?: Date }) {
-    if (data.businessDate) {
-      try {
-        BusinessDate.from(data.businessDate).ensureValid();
-      } catch (error) {
-        throw new DomainError(
-          'Invalid business date provided',
-          400,
-          DomainErrorCodes.INVALID_DATE
-        );
-      }
-    }
+  static validateCreate(data: { businessDate?: Date }): void {
+    validateBusinessDate(data.businessDate);
   }
 
   /**
@@ -35,7 +49,7 @@ export class BillPolicy {
       amount?: Decimal | number | string;
       memo?: string;
     }
-  ) {
+  ): void {
     if (existing.status !== InvoiceStatus.DRAFT) {
       throw new DomainError(
         'Bill is not in the correct state for this action',
@@ -63,46 +77,50 @@ export class BillPolicy {
    * Validate bill can be posted (must be DRAFT)
    */
   static validatePost(status: string): void {
-    if (status !== InvoiceStatus.DRAFT) {
-      throw new DomainError(
-        `Cannot post bill with status ${status}`,
-        422,
-        DomainErrorCodes.BILL_INVALID_STATE
-      );
-    }
+    validateDraftStatus(
+      status,
+      'Bill',
+      DomainErrorCodes.BILL_INVALID_STATE
+    );
   }
 
   /**
-   * Ensure the Purchase Order is in a valid state for Bill creation.
-   * PO must be CONFIRMED, PARTIALLY_RECEIVED, RECEIVED, or COMPLETED.
+   * Ensure PO is in valid state for Bill creation
    */
   static ensureOrderReadyForBill(order: { status: string }): void {
-    const validStatuses = [
-      'CONFIRMED',
-      'PARTIALLY_RECEIVED',
-      'RECEIVED',
-      'COMPLETED',
-    ];
-    if (!validStatuses.includes(order.status)) {
-      throw new DomainError(
-        `Cannot create bill: PO status is ${order.status}, must be CONFIRMED or later`,
-        400,
-        DomainErrorCodes.ORDER_INVALID_STATE
-      );
-    }
+    validateOrderStatus(
+      order.status,
+      VALID_PO_STATUSES,
+      'Bill',
+      'PO'
+    );
   }
 
   /**
-   * Ensure goods have been received (GRN exists) before creating Bill.
-   * This enforces the flow: PO → GRN → Bill
+   * Ensure GRN exists before Bill creation
    */
   static ensureGoodsReceived(grnCount: number): void {
-    if (grnCount === 0) {
-      throw new DomainError(
-        'Cannot create bill: Goods have not been received (no GRN found)',
-        400,
-        DomainErrorCodes.OPERATION_NOT_ALLOWED
-      );
-    }
+    ensureFulfillmentExists(grnCount, 'Bill', 'GRN');
+  }
+
+  /**
+   * FR-011, FR-020: 3-Way Matching Validation
+   *
+   * Validates that Bill qty/price matches PO and GRN.
+   */
+  static validate3WayMatching(
+    bill: ThreeWayMatchDocument,
+    order: ThreeWayMatchOrder,
+    receivedQtyByProduct: Map<string, number>,
+    isDpBill: boolean = false
+  ): void {
+    validate3WayMatching(
+      bill,
+      order,
+      receivedQtyByProduct,
+      'Bill',
+      'Received',
+      isDpBill
+    );
   }
 }

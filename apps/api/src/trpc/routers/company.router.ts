@@ -1,12 +1,15 @@
 import { router, authenticatedProcedure } from '../trpc';
-import { CompanyService } from '../../modules/company/company.service';
+import { container, ServiceKeys } from '../../modules/common/di';
 import {
   CreateCompanySchema,
   JoinCompanySchema,
 } from '@sync-erp/shared';
+import { CompanyService } from '../../modules/company/company.service';
 import { z } from 'zod';
 
-const companyService = new CompanyService();
+const companyService = container.resolve<CompanyService>(
+  ServiceKeys.COMPANY_SERVICE
+);
 
 export const companyRouter = router({
   /**

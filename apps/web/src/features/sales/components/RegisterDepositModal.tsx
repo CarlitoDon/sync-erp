@@ -6,6 +6,7 @@ import {
   paymentMethodOptions,
   defaultPaymentMethod,
 } from '@/features/accounting/utils/financeEnums';
+import { CurrencyInput } from '@/components/ui';
 
 interface RegisterDepositModalProps {
   isOpen: boolean;
@@ -24,7 +25,7 @@ export function RegisterDepositModal({
   maxAmount,
   onSuccess,
 }: RegisterDepositModalProps) {
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState<number>(0);
   const [method, setMethod] = useState<PaymentMethod>(
     defaultPaymentMethod
   );
@@ -35,7 +36,7 @@ export function RegisterDepositModal({
       onSuccess: () => {
         onSuccess();
         onClose();
-        setAmount('');
+        setAmount(0);
         setReference('');
       },
     });
@@ -44,8 +45,7 @@ export function RegisterDepositModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const amountNum = parseFloat(amount);
-    if (amountNum <= 0 || amountNum > maxAmount) {
+    if (amount <= 0 || amount > maxAmount) {
       alert(
         `Amount must be between 1 and ${formatCurrency(maxAmount)}`
       );
@@ -54,7 +54,7 @@ export function RegisterDepositModal({
 
     registerDeposit.mutate({
       orderId,
-      amount: amountNum,
+      amount: amount,
       method,
       reference: reference || undefined,
     });
@@ -76,16 +76,12 @@ export function RegisterDepositModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Deposit Amount
             </label>
-            <input
-              type="number"
+            <CurrencyInput
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(val) => setAmount(val)}
               max={maxAmount}
               min={1}
-              step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder={`Max: ${formatCurrency(maxAmount)}`}
-              required
             />
             <p className="text-xs text-gray-500 mt-1">
               Maximum: {formatCurrency(maxAmount)}

@@ -6,7 +6,11 @@ import {
 } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const paymentService = new PaymentService();
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const paymentService = container.resolve<PaymentService>(
+  ServiceKeys.PAYMENT_SERVICE
+);
 
 export const paymentRouter = router({
   /**
@@ -42,12 +46,23 @@ export const paymentRouter = router({
     }),
 
   /**
-   * Void payment (restore invoice balance)
+   * Void payment (FR-024: requires reason)
    */
   void: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Void reason is required'),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
-      return paymentService.void(input.id, ctx.companyId);
+      return paymentService.void(
+        input.id,
+        ctx.companyId,
+        ctx.userId,
+        input.reason,
+        ctx.userPermissions // FR-026: Granular RBAC
+      );
     }),
 });
 

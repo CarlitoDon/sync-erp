@@ -1,9 +1,33 @@
-import { Invoice, InvoiceStatus } from '@sync-erp/database';
+/**
+ * InvoicePolicy - O2C (Order-to-Cash) Invoice Validation
+ *
+ * Domain-specific validation for Invoices (customer invoices).
+ * Uses shared utilities from document-validation.utils.ts.
+ */
+
 import {
-  BusinessDate,
-  DomainError,
-  DomainErrorCodes,
-} from '@sync-erp/shared';
+  Invoice,
+  InvoiceStatus,
+  OrderStatus,
+} from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import {
+  validateBusinessDate,
+  validateDraftStatus,
+  validateOrderStatus,
+  ensureFulfillmentExists,
+  validate3WayMatching,
+  type ThreeWayMatchDocument,
+  type ThreeWayMatchOrder,
+} from '../../common/utils/document-validation.utils';
+
+// Valid SO statuses for Invoice creation
+const VALID_SO_STATUSES = [
+  OrderStatus.CONFIRMED,
+  OrderStatus.PARTIALLY_SHIPPED,
+  OrderStatus.SHIPPED,
+  OrderStatus.COMPLETED,
+];
 
 export class InvoicePolicy {
   /**
@@ -12,10 +36,8 @@ export class InvoicePolicy {
   static validateCreate(data: {
     businessDate?: Date;
     invoiceNumber?: string;
-  }) {
-    if (data.businessDate) {
-      BusinessDate.from(data.businessDate).ensureValid();
-    }
+  }): void {
+    validateBusinessDate(data.businessDate);
   }
 
   /**
@@ -26,7 +48,7 @@ export class InvoicePolicy {
   static validateUpdate(
     existing: Invoice,
     data: { invoiceNumber?: string; memo?: string }
-  ) {
+  ): void {
     if (existing.status !== InvoiceStatus.DRAFT) {
       throw new DomainError(
         'Invoice is not in the correct state for this action',
@@ -48,17 +70,53 @@ export class InvoicePolicy {
   }
 
   /**
-   * Ensure the Sales Order is in a valid state for Invoice creation.
-   * SO must be CONFIRMED, SHIPPED, or COMPLETED.
+   * Validate invoice can be posted (must be DRAFT)
+   */
+  static validatePost(status: string): void {
+    validateDraftStatus(
+      status,
+      'Invoice',
+      DomainErrorCodes.INVOICE_INVALID_STATE
+    );
+  }
+
+  /**
+   * Ensure SO is in valid state for Invoice creation
    */
   static ensureOrderReadyForInvoice(order: { status: string }): void {
-    const validStatuses = ['CONFIRMED', 'SHIPPED', 'COMPLETED'];
-    if (!validStatuses.includes(order.status)) {
-      throw new DomainError(
-        `Cannot create invoice: SO status is ${order.status}, must be CONFIRMED or later`,
-        400,
-        DomainErrorCodes.ORDER_INVALID_STATE
-      );
-    }
+    validateOrderStatus(
+      order.status,
+      VALID_SO_STATUSES,
+      'Invoice',
+      'SO'
+    );
+  }
+
+  /**
+   * Ensure Shipment exists before Invoice posting
+   */
+  static ensureShipmentExists(shipmentCount: number): void {
+    ensureFulfillmentExists(shipmentCount, 'Invoice', 'Shipment');
+  }
+
+  /**
+   * 3-Way Matching Validation for O2C
+   *
+   * Validates that Invoice qty/price matches SO and Shipment.
+   */
+  static validate3WayMatching(
+    invoice: ThreeWayMatchDocument,
+    order: ThreeWayMatchOrder,
+    shippedQtyByProduct: Map<string, number>,
+    isDpInvoice: boolean = false
+  ): void {
+    validate3WayMatching(
+      invoice,
+      order,
+      shippedQtyByProduct,
+      'Invoice',
+      'Shipped',
+      isDpInvoice
+    );
   }
 }
