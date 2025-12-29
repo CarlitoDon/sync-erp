@@ -47,10 +47,14 @@ apps/api/src/
 │   └── {domain}.policy.ts       # Business rules/constraints (optional)
 ```
 
-**tRPC Router pattern** (replaces controllers):
+**tRPC Router pattern** (uses DI container to resolve services):
 
 ```typescript
 // apps/api/src/trpc/routers/partner.router.ts
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const partnerService = container.resolve<PartnerService>(ServiceKeys.PARTNER_SERVICE);
+
 export const partnerRouter = router({
   list: protectedProcedure
     .input(z.object({ type: z.nativeEnum(PartnerType).optional() }).optional())
@@ -72,13 +76,29 @@ export const partnerRouter = router({
 - `protectedProcedure` - Requires userId AND companyId (most business operations)
 - `shapedProcedure` - Protected + requires active businessShape (blocks PENDING companies)
 
-**Service pattern** (business logic, NO HTTP, NO Prisma):
+**Service pattern** (business logic, receives dependencies via constructor):
 
 ```typescript
-async create(companyId: string, data: CreatePartnerInput): Promise<Partner> {
-  // Business rules enforced here
-  return this.repository.create({ ...data, companyId });
+// Services receive dependencies via DI - registered in register.ts
+export class PartnerService {
+  constructor(private readonly repository: PartnerRepository) {}
+  
+  async create(companyId: string, data: CreatePartnerInput): Promise<Partner> {
+    return this.repository.create({ ...data, companyId });
+  }
 }
+```
+
+**DI Container** (lazy singleton, registered on app startup):
+
+```typescript
+// apps/api/src/modules/common/di/register.ts
+container.register(ServiceKeys.PARTNER_SERVICE, () => 
+  new PartnerService(container.resolve(ServiceKeys.PARTNER_REPOSITORY))
+);
+
+// In routers - resolve service instance
+const partnerService = container.resolve<PartnerService>(ServiceKeys.PARTNER_SERVICE);
 ```
 
 **Policy pattern** (business constraints, used by services):
@@ -97,34 +117,60 @@ static ensureCanPurchasePhysicalGoods(shape: BusinessShape): void {
 ```
 apps/web/src/
 ├── lib/trpc.ts              # tRPC client setup
+├── lib/trpcProvider.tsx     # TRPCProvider with QueryClient
+├── types/api.ts             # Re-exported types from tRPC inference
 ├── features/{domain}/       # Co-locate pages, components
 │   ├── pages/              # Domain-specific pages
 │   └── components/         # Domain-specific components
-├── components/ui/          # Reusable UI atoms
+├── components/
+│   ├── ui/                 # Reusable atoms (StatusBadge, FormModal, etc.)
+│   ├── layout/             # PageLayout, PageHeader
+│   └── forms/              # Form components (PaymentModeSelector)
 ├── hooks/                  # Global hooks (useApiAction)
-├── contexts/               # AuthContext, CompanyContext
-└── app/                    # AppRouter, AppProviders, TRPCProvider
+├── contexts/               # AuthContext, CompanyContext, SidebarContext
+├── utils/                  # formatCurrency, formatDate
+└── app/                    # AppRouter, AppProviders
 ```
 
 **Data fetching with tRPC** (auto-typed, auto-invalidates):
 
 ```typescript
-// Queries
-const { data: partners, isLoading } = trpc.partner.list.useQuery({ type: 'SUPPLIER' });
+// Queries - always check company context
+const { data: partners, isLoading } = trpc.partner.list.useQuery(
+  { type: 'SUPPLIER' },
+  { enabled: !!currentCompany?.id }  // Disable when no company
+);
 
-// Mutations with optimistic updates
+// Mutations - invalidate on success
+const utils = trpc.useUtils();
 const createMutation = trpc.partner.create.useMutation({
-  onSuccess: () => {
-    utils.partner.list.invalidate(); // Invalidate cache
-    toast.success('Partner created!');
-  },
+  onSuccess: () => utils.partner.list.invalidate(),
 });
 ```
 
-**API action helper** (for error handling):
+**API action helper** (for error handling with toast):
 
 ```typescript
+import { apiAction } from '@/hooks/useApiAction';
 const result = await apiAction(() => createMutation.mutateAsync(data), 'Created!');
+```
+
+**Type imports** (prefer `@/types/api` over `@sync-erp/shared` for entities):
+
+```typescript
+// ✅ Good - types inferred from tRPC
+import type { Partner, Invoice, CreatePartnerInput } from '@/types/api';
+
+// ✅ Good - enums/schemas still from shared (not inferable)
+import { PaymentTermsSchema, OrderStatusSchema } from '@sync-erp/shared';
+```
+
+**Confirmation dialogs** (never use `window.confirm`):
+
+```typescript
+import { useConfirm } from '@/components/ui/ConfirmModal';
+const confirm = useConfirm();
+const proceed = await confirm({ message: 'Delete this?', variant: 'danger' });
 ```
 
 ## Developer Workflows
@@ -213,6 +259,47 @@ const orderNumber = await this.documentNumberService.generate(companyId, 'PO'); 
 - **Tailwind CSS 4** with `@tailwindcss/vite` plugin
 - Consistent spacing (`space-y-4`, `gap-4`) and colors (`primary-600`, `gray-500`)
 
+### UI Components
+
+Reusable components in [apps/web/src/components/ui/](apps/web/src/components/ui/):
+
+| Component | Usage |
+|-----------|-------|
+| `PageHeader` | Detail page headers with back button, title, badges, actions |
+| `StatusBadge` | Color-coded status for orders/invoices/documents |
+| `FormModal` | Modal wrapper with title and backdrop |
+| `ConfirmModal` + `useConfirm()` | Promise-based confirmation dialogs |
+| `LoadingState` / `EmptyState` | Loading spinner and empty list placeholders |
+| `OrderListTable` | Generic table for PO/SO lists with actions |
+
+**Page layout pattern:**
+
+```tsx
+import { PageContainer, PageHeader } from '@/components/layout/PageLayout';
+
+export default function MyPage() {
+  return (
+    <PageContainer>
+      <PageHeader 
+        title="Page Title" 
+        actions={<Button>Action</Button>} 
+      />
+      {/* content */}
+    </PageContainer>
+  );
+}
+```
+
+### Formatting Utilities
+
+Use `@/utils/format` for consistent display:
+
+```typescript
+import { formatCurrency, formatDate } from '@/utils/format';
+formatCurrency(100000); // "Rp 100.000" (IDR)
+formatDate(new Date()); // "29 Desember 2025"
+```
+
 ## Key Files Reference
 
 | Purpose               | File                                                               |
@@ -240,6 +327,9 @@ const orderNumber = await this.documentNumberService.generate(companyId, 'PO'); 
 **Backend:**
 - [ ] Add tRPC router in `apps/api/src/trpc/routers/{domain}.router.ts`
 - [ ] Register router in `apps/api/src/trpc/router.ts`
+- [ ] Create service with constructor DI for dependencies
+- [ ] Register service in `apps/api/src/modules/common/di/register.ts`
+- [ ] Add `ServiceKeys` constant in `container.ts`
 - [ ] Service methods receive `companyId` as first param
 - [ ] Repository methods filter by `companyId`
 - [ ] Add Policy class if business rules needed
