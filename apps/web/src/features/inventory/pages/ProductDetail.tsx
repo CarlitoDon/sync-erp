@@ -137,7 +137,7 @@ export default function ProductDetail() {
 
         {/* Main Content Areas */}
         <div className="md:col-span-2">
-          <Card className="overflow-hidden min-h-[500px]">
+          <Card className="overflow-hidden min-h-125">
             <div className="border-b border-gray-200">
               <nav className="flex -mb-px">
                 <button

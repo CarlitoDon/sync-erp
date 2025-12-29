@@ -295,7 +295,7 @@ export default function Payments() {
                           {isInbound ? '+' : '-'}
                           {formatCurrency(Number(payment.amount))}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 max-w-[200px] truncate">
+                        <td className="px-6 py-4 text-sm text-gray-500 max-w-50 truncate">
                           {payment.reference || '-'}
                         </td>
                       </tr>
