@@ -534,4 +534,39 @@ export class PurchaseOrderService {
       undefined
     );
   }
+
+  /**
+   * Process a Purchase Return (partial or full)
+   * Creates a PURCHASE_RETURN fulfillment, decreases stock, and posts GRNI reversal journal.
+   * Mirrors SalesOrderService.returnOrder for O2C parity.
+   *
+   * @param companyId - Company ID
+   * @param orderId - Purchase Order ID
+   * @param items - Array of items to return with productId and quantity
+   * @param userId - Optional user ID for audit
+   * @returns Created return fulfillment
+   */
+  async returnToPo(
+    companyId: string,
+    orderId: string,
+    items: { productId: string; quantity: number }[],
+    userId?: string
+  ) {
+    // Create purchase return fulfillment
+    const returnDoc =
+      await this.inventoryService.createPurchaseReturn(companyId, {
+        purchaseOrderId: orderId,
+        items,
+      });
+
+    // Post the return (stock OUT + GRNI reversal journal)
+    const posted = await this.inventoryService.postPurchaseReturn(
+      companyId,
+      returnDoc.id,
+      undefined,
+      userId
+    );
+
+    return posted;
+  }
 }

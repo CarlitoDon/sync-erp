@@ -514,4 +514,40 @@ export class SalesOrderService {
     // Transition to COMPLETED status
     return this.repository.updateStatus(id, OrderStatus.COMPLETED);
   }
+
+  /**
+   * Process a Sales Return (partial or full)
+   * Creates a RETURN fulfillment, increases stock, and posts COGS reversal journal.
+   *
+   * @param companyId - Company ID
+   * @param orderId - Sales Order ID
+   * @param items - Array of items to return with productId and quantity
+   * @param userId - Optional user ID for audit
+   * @returns Created return fulfillment
+   */
+  async returnOrder(
+    companyId: string,
+    orderId: string,
+    items: { productId: string; quantity: number }[],
+    userId?: string
+  ) {
+    // 1. Create Return Fulfillment
+    const returnDoc = await this.inventoryService.createReturn(
+      companyId,
+      {
+        salesOrderId: orderId,
+        items,
+      }
+    );
+
+    // 2. Post Return (Stock IN + COGS Reversal Journal)
+    const posted = await this.inventoryService.postReturn(
+      companyId,
+      returnDoc.id,
+      undefined,
+      userId
+    );
+
+    return posted;
+  }
 }
