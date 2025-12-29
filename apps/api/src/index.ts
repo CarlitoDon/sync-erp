@@ -1,3 +1,4 @@
+import './di-setup';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -11,6 +12,10 @@ import cookieParser from 'cookie-parser';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import { appRouter } from './trpc/router';
 import { createContext } from './trpc/context';
+
+// DI Container - register all services on startup
+import { registerServices } from './modules/common/di';
+registerServices();
 
 const app = express();
 const PORT = process.env.PORT || 3001;

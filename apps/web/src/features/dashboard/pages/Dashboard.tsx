@@ -11,6 +11,10 @@ import {
   CardTitle,
   CardContent,
 } from '@/components/ui/Card';
+import {
+  InvoiceTypeSchema,
+  JournalSourceTypeSchema,
+} from '@sync-erp/shared';
 
 type DashboardMetrics = RouterOutputs['dashboard']['getMetrics'];
 type RecentTransaction =
@@ -200,11 +204,11 @@ function RecentActivityList({
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'INVOICE':
+      case InvoiceTypeSchema.enum.INVOICE:
         return '📄';
-      case 'BILL':
+      case InvoiceTypeSchema.enum.BILL:
         return '🧾';
-      case 'PAYMENT':
+      case JournalSourceTypeSchema.enum.PAYMENT:
         return '💵';
       default:
         return '📝';
@@ -213,11 +217,11 @@ function RecentActivityList({
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'INVOICE':
+      case InvoiceTypeSchema.enum.INVOICE:
         return 'text-blue-600 bg-blue-50';
-      case 'BILL':
+      case InvoiceTypeSchema.enum.BILL:
         return 'text-red-600 bg-red-50';
-      case 'PAYMENT':
+      case JournalSourceTypeSchema.enum.PAYMENT:
         return 'text-green-600 bg-green-50';
       default:
         return 'text-gray-600 bg-gray-50';
@@ -247,9 +251,9 @@ function RecentActivityList({
             </div>
           </div>
           <p
-            className={`text-sm font-semibold ${tx.type === 'BILL' ? 'text-red-600' : 'text-gray-800'}`}
+            className={`text-sm font-semibold ${tx.type === InvoiceTypeSchema.enum.BILL ? 'text-red-600' : 'text-gray-800'}`}
           >
-            {tx.type === 'BILL' ? '-' : '+'}
+            {tx.type === InvoiceTypeSchema.enum.BILL ? '-' : '+'}
             {formatCurrency(Number(tx.amount))}
           </p>
         </li>

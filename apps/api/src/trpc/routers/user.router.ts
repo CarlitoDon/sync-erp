@@ -3,7 +3,11 @@ import { UserService } from '../../modules/user/user.service';
 import { CreateUserSchema } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const userService = new UserService();
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const userService = container.resolve<UserService>(
+  ServiceKeys.USER_SERVICE
+);
 
 export const userRouter = router({
   /**

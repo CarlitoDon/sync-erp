@@ -3,7 +3,11 @@ import { router, protectedProcedure } from '../trpc';
 import { SalesOrderService } from '../../modules/sales/sales-order.service';
 import { CreateSalesOrderSchema } from '@sync-erp/shared';
 
-const salesOrderService = new SalesOrderService();
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const salesOrderService = container.resolve<SalesOrderService>(
+  ServiceKeys.SALES_ORDER_SERVICE
+);
 
 export const salesOrderRouter = router({
   /**
@@ -107,6 +111,27 @@ export const salesOrderRouter = router({
       );
       // Convert Map to array of [productId, quantity] for JSON serialization
       return Array.from(shippedMap.entries());
+    }),
+
+  /**
+   * GAP-O2C-002: Close SO explicitly
+   * Transitions SO to COMPLETED status even if partially shipped.
+   * Requires reason for audit trail.
+   */
+  close: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Close reason is required'),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return salesOrderService.close(
+        input.id,
+        ctx.companyId,
+        ctx.userId,
+        input.reason
+      );
     }),
 });
 

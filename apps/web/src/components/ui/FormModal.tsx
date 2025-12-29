@@ -53,21 +53,19 @@ export default function FormModal({
         </span>
 
         <div
-          className={`relative z-10 inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:w-full ${maxWidthClasses[maxWidth]}`}
+          className={`relative z-10 inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:w-full max-h-[90vh] overflow-y-auto ${maxWidthClasses[maxWidth]}`}
         >
           {/* Header */}
           <div className="bg-white rounded-lg px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <h3
-              className="text-lg leading-6 font-medium text-gray-900 mb-4"
+              className="text-lg leading-6 font-medium text-gray-900 mb-4 sticky top-0 bg-white pb-2"
               id="modal-title"
             >
               {title}
             </h3>
 
-            {/* Content area - no overflow clipping to allow dropdowns to escape */}
-            <div className="max-h-[70vh] overflow-visible">
-              {children}
-            </div>
+            {/* Content area */}
+            <div>{children}</div>
           </div>
         </div>
       </div>

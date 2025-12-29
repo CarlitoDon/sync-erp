@@ -6,16 +6,21 @@ import {
   InvoiceStatusSchema,
 } from '@sync-erp/shared';
 
+// Type for Prisma Decimal that can be number, string, or Decimal object
+type DecimalLike = number | string | { toNumber(): number } | null;
+
 interface PurchaseOrder {
   id: string;
   status: string;
   paymentTerms?: string | null;
   paymentStatus?: string | null;
+  dpAmount?: DecimalLike;
+  paidAmount?: DecimalLike;
   invoices?: {
     id: string;
     status: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    balance: any; // Handle Prisma Decimal
+    notes?: string | null;
+    balance: DecimalLike;
   }[];
 }
 
@@ -26,6 +31,7 @@ interface PurchaseOrderActionsProps {
   onReceiveGoods?: (id: string) => void;
   onCreateBill?: (id: string) => void;
   onViewBill?: (billId: string) => void;
+  onClosePO?: (id: string) => void; // GAP-001: Close partially received POs
   // eslint-disable-next-line
   layout?: 'list' | 'detail';
 }
@@ -37,18 +43,20 @@ export default function PurchaseOrderActions({
   onReceiveGoods,
   onCreateBill,
   onViewBill,
+  onClosePO,
   layout = 'list',
 }: PurchaseOrderActionsProps) {
   // Helper for Bill Status Badge (copied from List component logic)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getBillStatusBadge = (status: string, balance: any) => {
+  const getBillStatusBadge = (
+    status: string,
+    balance: DecimalLike
+  ) => {
     // Handle Prisma Decimal or number/string
     const numBalance =
-    typeof balance === 'object' &&
-    balance !== null &&
-    'toNumber' in balance
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? (balance as any).toNumber()
+      typeof balance === 'object' &&
+      balance !== null &&
+      'toNumber' in balance
+        ? balance.toNumber()
         : Number(balance);
     const formatCompact = (val: number) => {
       if (val >= 1000000000)
@@ -96,22 +104,38 @@ export default function PurchaseOrderActions({
   const isPaidUpfront =
     order.paymentStatus === PaymentStatusSchema.enum.PAID_UPFRONT;
 
-  // Logic: Block receive if UPFRONT and not PAID_UPFRONT
+  // Check for Tempo+DP orders
+  const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
+  const paidAmount = order.paidAmount ? Number(order.paidAmount) : 0;
+  const hasDpRequired = isUpfront || dpAmount > 0;
+
+  // Find DP Bill and check if paid
+  const dpBill = order.invoices?.find((inv) =>
+    inv.notes?.includes('Down Payment')
+  );
+  const isDpPaid = dpBill?.status === InvoiceStatusSchema.enum.PAID;
+
+  // Logic: Block receive if DP required and not paid
+  // Allow if: paid via upfront flow (paidAmount > 0) OR DP Bill is PAID
   const canReceiveGoods =
     (isConfirmed || isPartiallyReceived) &&
-    !(isUpfront && !isPaidUpfront);
+    (!hasDpRequired || isPaidUpfront || paidAmount > 0 || isDpPaid);
 
+  // Only show Create Bill for final bill (after GRN), not DP Bill
+  const finalBills = order.invoices?.filter(
+    (inv) => !inv.notes?.includes('Down Payment')
+  );
+  const finalBill =
+    finalBills && finalBills.length > 0 ? finalBills[0] : null;
   const canCreateBill =
-    (isReceived || isPartiallyReceived || isCompleted) &&
-    (!order.invoices || order.invoices.length === 0);
-
-  const hasBill = order.invoices && order.invoices.length > 0;
-  const firstBill = hasBill ? order.invoices![0] : null;
+    (isReceived || isPartiallyReceived || isCompleted) && !finalBill;
 
   return (
     <div
       className={
-        layout === 'list' ? 'space-x-2' : 'flex flex-wrap gap-3'
+        layout === 'list'
+          ? 'flex items-start justify-end gap-3'
+          : 'flex flex-wrap gap-3'
       }
     >
       {/* Confirm & Cancel */}
@@ -156,17 +180,62 @@ export default function PurchaseOrderActions({
         </ActionButton>
       )}
 
-      {/* View Bill */}
-      {hasBill && onViewBill && firstBill && (
+      {/* Close PO - GAP-001: Allow closing partially received POs */}
+      {(isConfirmed || isPartiallyReceived) && onClosePO && (
+        <ActionButton
+          onClick={() => onClosePO(order.id)}
+          variant="warning"
+        >
+          Close PO
+        </ActionButton>
+      )}
+
+      {/* View DP Bill - if exists */}
+      {dpBill && onViewBill && (
         <div
           className={
             layout === 'list'
-              ? 'flex flex-col items-end gap-1 inline-flex align-middle'
+              ? 'flex flex-col items-center gap-1'
               : 'contents'
           }
         >
           <ActionButton
-            onClick={() => onViewBill(firstBill.id)}
+            onClick={() => onViewBill(dpBill.id)}
+            variant="warning"
+          >
+            View DP Bill
+          </ActionButton>
+          {layout === 'list' && (
+            <span
+              className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+                getBillStatusBadge(
+                  dpBill.status,
+                  Number(dpBill.balance)
+                ).color
+              }`}
+            >
+              {
+                getBillStatusBadge(
+                  dpBill.status,
+                  Number(dpBill.balance)
+                ).label
+              }
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* View Final Bill - if exists */}
+      {finalBill && onViewBill && (
+        <div
+          className={
+            layout === 'list'
+              ? 'flex flex-col items-center gap-1'
+              : 'contents'
+          }
+        >
+          <ActionButton
+            onClick={() => onViewBill(finalBill.id)}
             variant="secondary"
           >
             View Bill
@@ -175,15 +244,15 @@ export default function PurchaseOrderActions({
             <span
               className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
                 getBillStatusBadge(
-                  firstBill.status,
-                  Number(firstBill.balance)
+                  finalBill.status,
+                  Number(finalBill.balance)
                 ).color
               }`}
             >
               {
                 getBillStatusBadge(
-                  firstBill.status,
-                  Number(firstBill.balance)
+                  finalBill.status,
+                  Number(finalBill.balance)
                 ).label
               }
             </span>

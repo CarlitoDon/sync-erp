@@ -102,6 +102,11 @@ export default function SidebarNav() {
           icon={<WalletIcon />}
         />
         <SidebarItem
+          path="/expenses"
+          label="Expenses"
+          icon={<BanknotesIcon />}
+        />
+        <SidebarItem
           path="/finance"
           label="Journal & Ledger"
           icon={<BanknotesIcon />}

@@ -2,6 +2,7 @@ import {
   Payment,
   IdempotencyScope,
   InvoiceStatus,
+  InvoiceType,
   PaymentTerms,
   PaymentStatus,
   prisma,
@@ -20,10 +21,12 @@ import { JournalService } from './journal.service';
 import { PaymentPolicy } from '../policies/payment.policy';
 
 export class PaymentService {
-  private repository = new PaymentRepository();
-  private invoiceRepository = new InvoiceRepository();
-  private idempotencyService = new IdempotencyService();
-  private journalService = new JournalService();
+  constructor(
+    private readonly repository: PaymentRepository = new PaymentRepository(),
+    private readonly invoiceRepository: InvoiceRepository = new InvoiceRepository(),
+    private readonly idempotencyService: IdempotencyService = new IdempotencyService(),
+    private readonly journalService: JournalService = new JournalService()
+  ) {}
 
   /**
    * Create payment atomically using Prisma transaction.
@@ -86,29 +89,49 @@ export class PaymentService {
             tx
           );
 
-          // 4. Decrease invoice balance
+          // 4. Decrease invoice balance and update status (FR-016)
           const newBalance = currentBalance - data.amount;
+          let newStatus: InvoiceStatus | undefined;
+          if (newBalance <= 0) {
+            newStatus = InvoiceStatus.PAID;
+          } else if (
+            invoice.status === InvoiceStatus.POSTED &&
+            newBalance < Number(invoice.amount)
+          ) {
+            // Partial payment: transition from POSTED to PARTIALLY_PAID
+            newStatus = InvoiceStatus.PARTIALLY_PAID;
+          }
+
           await this.invoiceRepository.update(
             data.invoiceId,
             {
               balance: newBalance,
-              ...(newBalance <= 0
-                ? { status: InvoiceStatus.PAID }
-                : {}),
+              ...(newStatus ? { status: newStatus } : {}),
             },
             tx
           );
 
           // 5. Create cash journal
-          await this.journalService.postPaymentReceived(
-            companyId,
-            payment.id,
-            invoice.invoiceNumber || data.invoiceId,
-            data.amount,
-            data.method,
-            tx,
-            data.businessDate
-          );
+          if (invoice.type === InvoiceType.BILL) {
+            await this.journalService.postPaymentMade(
+              companyId,
+              payment.id,
+              invoice.invoiceNumber || data.invoiceId,
+              data.amount,
+              data.method,
+              tx
+            );
+          } else {
+            await this.journalService.postPaymentReceived(
+              companyId,
+              payment.id,
+              invoice.invoiceNumber || data.invoiceId,
+              data.amount,
+              data.method,
+              tx,
+              data.businessDate
+            );
+          }
 
           // 6. Feature 036: When Bill is fully paid, update linked UPFRONT PO.paymentStatus
           if (newBalance <= 0 && invoice.orderId) {
@@ -157,9 +180,39 @@ export class PaymentService {
   /**
    * Void a Payment atomically using Prisma transaction.
    * Effect: Restore invoice/bill balance + reverse journal entry
-   * Note: For MVP, we mark by prepending [VOIDED] to reference.
+   * FR-024: Requires mandatory reason field for audit trail.
    */
-  async void(id: string, companyId: string): Promise<Payment> {
+  async void(
+    id: string,
+    companyId: string,
+    _actorId: string, // Reserved for future audit log integration
+    reason: string,
+    userPermissions?: string[] // FR-026: Granular permissions array
+  ): Promise<Payment> {
+    // FR-026: Void Payment requires 'payment:void' permission
+    const requiredPermission = 'payment:void';
+    const hasPermission =
+      userPermissions?.includes(requiredPermission) ||
+      userPermissions?.includes('payment:*') ||
+      userPermissions?.includes('*:*');
+
+    if (!hasPermission) {
+      throw new DomainError(
+        `Missing permission: ${requiredPermission}`,
+        403,
+        DomainErrorCodes.FORBIDDEN
+      );
+    }
+
+    // FR-024: Reason is mandatory
+    if (!reason || reason.trim().length === 0) {
+      throw new DomainError(
+        'Void reason is required',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
     return prisma.$transaction(
       async (tx) => {
         // 1. Lock payment row for concurrency safety
@@ -213,7 +266,7 @@ export class PaymentService {
 
         // 5. Create journal reversal based on invoice type
         // INVOICE type = AR (payment received), BILL type = AP (payment made)
-        if (invoice.type === 'INVOICE') {
+        if (invoice.type === InvoiceType.INVOICE) {
           await this.journalService.postPaymentReceivedReversal(
             companyId,
             id,
@@ -222,7 +275,7 @@ export class PaymentService {
             payment.method,
             tx
           );
-        } else if (invoice.type === 'BILL') {
+        } else if (invoice.type === InvoiceType.BILL) {
           await this.journalService.postPaymentMadeReversal(
             companyId,
             id,
@@ -234,11 +287,13 @@ export class PaymentService {
         }
 
         // 6. Restore invoice balance and mark payment as voided
+        // Store reason in reference for audit (FR-024)
         return this.repository.voidPayment(
           id,
           payment.invoiceId,
           Number(payment.amount),
-          tx
+          tx,
+          reason
         );
       },
       { timeout: 60000 }

@@ -8,7 +8,9 @@ export interface CreateUserInput {
 }
 
 export class UserService {
-  private repository = new UserRepository();
+  constructor(
+    private readonly repository: UserRepository = new UserRepository()
+  ) {}
 
   async create(
     data: CreateUserInput,

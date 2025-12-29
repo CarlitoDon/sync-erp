@@ -5,6 +5,7 @@ import { useOrderMutations } from '@/hooks/useOrderMutations';
 import { apiAction } from '@/hooks/useApiAction';
 import { formatCurrency } from '@/utils/format';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { LoadingState } from '@/components/ui';
 import SalesOrderActions from './SalesOrderActions';
 
 interface SalesOrderListProps {
@@ -61,11 +62,7 @@ export default function SalesOrderList({
   };
 
   if (loading && orders.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState size="md" />;
   }
 
   return (

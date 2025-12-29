@@ -5,8 +5,13 @@ import { trpc } from '@/lib/trpc';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import { usePrompt } from '@/components/ui/PromptModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import { PageContainer } from '@/components/layout/PageLayout';
+import {
+  DocumentStatusSchema,
+  PaymentTermsSchema,
+} from '@sync-erp/shared';
 import {
   Card,
   CardHeader,
@@ -23,6 +28,7 @@ export default function GoodsReceiptDetail() {
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const utils = trpc.useUtils();
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
 
@@ -58,11 +64,35 @@ export default function GoodsReceiptDetail() {
 
     if (confirmed) {
       await postMutation.mutateAsync({ id: receipt.id });
+
+      // GAP-004: COD payment reminder
+      // Check if the linked order is COD - show payment reminder
+      const order = receipt.order;
+      if (order?.paymentTerms === PaymentTermsSchema.enum.COD) {
+        const goToPayment = window.confirm(
+          '🚚 COD Order - Payment due immediately!\n\nWould you like to view the order to record payment?'
+        );
+        if (goToPayment && order.id) {
+          // Navigate to PO detail which shows DP/Final Bills
+          navigate(`/purchase-orders/${order.id}`);
+        }
+      }
     }
   };
 
   const handleVoid = async () => {
     if (!receipt) return;
+
+    // FR-024: Prompt for void reason (accessible modal)
+    const reason = await prompt({
+      title: 'Void Goods Receipt',
+      message: 'Please enter a reason for voiding this goods receipt:',
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+    if (!reason) {
+      return; // User cancelled
+    }
 
     const confirmed = await confirm({
       title: 'Void Goods Receipt',
@@ -74,7 +104,7 @@ export default function GoodsReceiptDetail() {
 
     if (confirmed) {
       try {
-        await voidMutation.mutateAsync({ id: receipt.id });
+        await voidMutation.mutateAsync({ id: receipt.id, reason });
       } catch (error) {
         console.error('Failed to void GRN:', error);
       }
@@ -120,7 +150,7 @@ export default function GoodsReceiptDetail() {
         }
         actions={
           <>
-            {receipt.status === 'DRAFT' && (
+            {receipt.status === DocumentStatusSchema.enum.DRAFT && (
               <Button
                 onClick={handlePost}
                 disabled={postMutation.isPending}
@@ -128,7 +158,7 @@ export default function GoodsReceiptDetail() {
                 Post Receipt
               </Button>
             )}
-            {receipt.status === 'POSTED' && (
+            {receipt.status === DocumentStatusSchema.enum.POSTED && (
               <>
                 <Button onClick={handleCreateBill} variant="outline">
                   Create Bill

@@ -28,11 +28,9 @@ interface GetOrphanJournalsParams {
  * Part of Phase 1 Admin Observability (US5).
  */
 export class AdminService {
-  private repository: AdminRepository;
-
-  constructor() {
-    this.repository = new AdminRepository();
-  }
+  constructor(
+    private readonly repository: AdminRepository = new AdminRepository()
+  ) {}
 
   /**
    * Get saga logs filtered by step (FAILED, COMPENSATED, COMPENSATION_FAILED).

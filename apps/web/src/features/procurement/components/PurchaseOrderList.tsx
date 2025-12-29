@@ -8,7 +8,8 @@ import PurchaseOrderActions from './PurchaseOrderActions';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import { formatCurrency } from '@/utils/format';
-import { StatusBadge } from '@/components/ui/StatusBadge';
+import { StatusBadge, PaymentTermsBadge, LoadingState } from '@/components/ui';
+import { PaymentTermsType } from '@sync-erp/shared';
 
 interface PurchaseOrderListProps {
   filter?: { partnerId?: string; status?: string };
@@ -75,11 +76,7 @@ export default function PurchaseOrderList({
   };
 
   if (loading && orders.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState size="md" />;
   }
 
   return (
@@ -92,6 +89,9 @@ export default function PurchaseOrderList({
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
               Supplier
+            </th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+              Terms
             </th>
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
               Total
@@ -108,7 +108,7 @@ export default function PurchaseOrderList({
           {orders.length === 0 ? (
             <tr>
               <td
-                colSpan={5}
+                colSpan={6}
                 className="px-6 py-12 text-center text-gray-500"
               >
                 No purchase orders found.
@@ -116,8 +116,12 @@ export default function PurchaseOrderList({
             </tr>
           ) : (
             orders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-mono text-sm">
+              <tr
+                key={order.id}
+                className="hover:bg-gray-50"
+                style={{ verticalAlign: 'top' }}
+              >
+                <td className="px-6 py-4 font-mono text-sm align-top">
                   <Link
                     to={`/purchase-orders/${order.id}`}
                     className="text-blue-600 hover:underline"
@@ -125,7 +129,7 @@ export default function PurchaseOrderList({
                     {order.orderNumber}
                   </Link>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 align-top">
                   <Link
                     to={`/suppliers/${order.partnerId}`}
                     className="text-blue-600 hover:underline"
@@ -133,13 +137,27 @@ export default function PurchaseOrderList({
                     {order.partner?.name || '-'}
                   </Link>
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-6 py-4 text-center align-top">
+                  <div className="flex flex-col items-center gap-1">
+                    {order.paymentTerms && (
+                      <PaymentTermsBadge
+                        terms={order.paymentTerms as PaymentTermsType}
+                      />
+                    )}
+                    {order.dpAmount && Number(order.dpAmount) > 0 && (
+                      <span className="text-xs text-gray-500">
+                        DP {Number(order.dpPercent)}%
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-right align-top">
                   {formatCurrency(Number(order.totalAmount))}
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-6 py-4 text-center align-top">
                   <StatusBadge status={order.status} domain="order" />
                 </td>
-                <td className="px-6 py-4 text-right space-x-2">
+                <td className="px-6 py-4 text-right align-top">
                   <PurchaseOrderActions
                     order={order}
                     onConfirm={handleConfirm}

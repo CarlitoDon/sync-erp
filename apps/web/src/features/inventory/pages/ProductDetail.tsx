@@ -12,6 +12,8 @@ import {
   CardTitle,
   CardContent,
 } from '@/components/ui/Card';
+import { LoadingState } from '@/components/ui';
+import { MovementTypeSchema } from '@sync-erp/shared';
 
 type Tab = 'history';
 
@@ -39,11 +41,7 @@ export default function ProductDetail() {
     );
 
   if (loading && !product) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (error || (!loading && !product)) {
@@ -139,7 +137,7 @@ export default function ProductDetail() {
 
         {/* Main Content Areas */}
         <div className="md:col-span-2">
-          <Card className="overflow-hidden min-h-[500px]">
+          <Card className="overflow-hidden min-h-125">
             <div className="border-b border-gray-200">
               <nav className="flex -mb-px">
                 <button
@@ -159,9 +157,7 @@ export default function ProductDetail() {
               {activeTab === 'history' && (
                 <div className="overflow-x-auto">
                   {loadingMovements ? (
-                    <div className="flex justify-center p-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                    </div>
+                    <LoadingState size="md" />
                   ) : movements.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       No stock movements recorded.
@@ -193,7 +189,8 @@ export default function ProductDetail() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               <span
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  movement.type === 'IN'
+                                  movement.type ===
+                                  MovementTypeSchema.enum.IN
                                     ? 'bg-green-100 text-green-800'
                                     : 'bg-red-100 text-red-800'
                                 }`}
@@ -206,12 +203,16 @@ export default function ProductDetail() {
                             </td>
                             <td
                               className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
-                                movement.type === 'IN'
+                                movement.type ===
+                                MovementTypeSchema.enum.IN
                                   ? 'text-green-600'
                                   : 'text-red-600'
                               }`}
                             >
-                              {movement.type === 'IN' ? '+' : '-'}
+                              {movement.type ===
+                              MovementTypeSchema.enum.IN
+                                ? '+'
+                                : '-'}
                               {movement.quantity}
                             </td>
                           </tr>

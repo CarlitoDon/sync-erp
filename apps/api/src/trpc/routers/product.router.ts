@@ -6,7 +6,11 @@ import {
 } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const productService = new ProductService();
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const productService = container.resolve<ProductService>(
+  ServiceKeys.PRODUCT_SERVICE
+);
 
 export const productRouter = router({
   /**

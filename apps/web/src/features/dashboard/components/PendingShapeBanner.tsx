@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { BusinessShapeSchema } from '@sync-erp/shared';
 
 interface PendingShapeBannerProps {
   businessShape?: string;
@@ -11,7 +12,7 @@ interface PendingShapeBannerProps {
 export default function PendingShapeBanner({
   businessShape,
 }: PendingShapeBannerProps) {
-  if (businessShape !== 'PENDING') {
+  if (businessShape !== BusinessShapeSchema.enum.PENDING) {
     return null;
   }
 

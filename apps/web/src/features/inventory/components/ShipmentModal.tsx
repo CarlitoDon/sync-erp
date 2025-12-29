@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useCompany } from '@/contexts/CompanyContext';
 import { trpc } from '@/lib/trpc';
+import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -51,6 +52,19 @@ export function ShipmentModal({
   >('confirm');
   /* eslint-enable @sync-erp/no-hardcoded-enum */
 
+  // Fetch already shipped quantities
+  const { data: shippedData } =
+    trpc.salesOrder.getShippedQuantities.useQuery(
+      { orderId: salesOrderId },
+      { enabled: isOpen && !!salesOrderId }
+    );
+
+  // Convert to Map for easy lookup - memoized to prevent infinite loop
+  const shippedMap = React.useMemo(
+    () => new Map<string, number>(shippedData || []),
+    [shippedData]
+  );
+
   const createMutation = trpc.inventory.createShipment.useMutation({
     onSuccess: () => utils.inventory.listShipments.invalidate(),
   });
@@ -59,11 +73,19 @@ export function ShipmentModal({
     onSuccess: () => utils.inventory.listShipments.invalidate(),
   });
 
-  // Pre-fill items from SO
-  const defaultItems = orderItems.map((item) => ({
-    productId: item.productId,
-    quantity: item.quantity,
-  }));
+  // Pre-fill items with remaining qty (ordered - shipped)
+  const defaultItems = React.useMemo(
+    () =>
+      orderItems.map((item) => {
+        const shipped = shippedMap.get(item.productId) || 0;
+        const remaining = Math.max(0, item.quantity - shipped);
+        return {
+          productId: item.productId,
+          quantity: remaining,
+        };
+      }),
+    [orderItems, shippedMap]
+  );
 
   const {
     register,
@@ -79,9 +101,27 @@ export function ShipmentModal({
     },
   });
 
+  // Reset form when modal opens
+  React.useEffect(() => {
+    if (isOpen && shippedData !== undefined) {
+      const items = orderItems.map((item) => {
+        const shipped =
+          new Map<string, number>(shippedData || []).get(
+            item.productId
+          ) || 0;
+        const remaining = Math.max(0, item.quantity - shipped);
+        return {
+          productId: item.productId,
+          quantity: remaining,
+        };
+      });
+      reset({ notes: '', date: new Date(), items });
+    }
+  }, [isOpen, salesOrderId, shippedData, orderItems, reset]);
+
   const loading = createMutation.isPending || postMutation.isPending;
 
-  const onSubmit = async (data: FormData) => {
+  const onSave = async (data: FormData, shouldPost: boolean) => {
     if (!currentCompany) return;
     setStep('processing');
 
@@ -94,19 +134,34 @@ export function ShipmentModal({
         items: data.items.filter((item) => item.quantity > 0),
       });
 
-      // Step 2: Post Shipment (Stock OUT)
-      await postMutation.mutateAsync({ id: shipment.id });
+      // Step 2: Post Shipment (Stock OUT) if requested
+      if (shouldPost) {
+        await postMutation.mutateAsync({ id: shipment.id });
+        setStep('shipped');
+      } else {
+        // Just close if draft
+        onSuccess?.();
+        onClose();
+        reset();
+        setStep('confirm');
+        return;
+      }
 
-      setStep('shipped');
-
+      // Success toast shown by onSuccess callback
       onSuccess?.();
       setTimeout(() => {
         onClose();
         reset();
         setStep('confirm');
       }, 500);
-    } catch {
+    } catch (error: unknown) {
       setStep('confirm');
+      // Show error toast with message from backend
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to ship goods';
+      toast.error(message);
     }
   };
 
@@ -124,47 +179,102 @@ export function ShipmentModal({
         <DialogHeader>
           <DialogTitle>Ship Goods</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form className="space-y-4">
           <div className="grid gap-4 py-4">
             {/* Items List */}
             <div className="space-y-2">
               <Label>Items to Ship</Label>
               <div className="border rounded-md divide-y">
-                {orderItems.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-3"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        {item.product?.name || item.productId}
-                      </p>
-                      {item.product?.sku && (
-                        <p className="text-sm text-muted-foreground">
-                          SKU: {item.product.sku}
-                        </p>
+                {orderItems.map((item, index) => {
+                  const shipped = shippedMap.get(item.productId) || 0;
+                  const remaining = Math.max(
+                    0,
+                    item.quantity - shipped
+                  );
+                  const isFullyShipped = remaining === 0;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-3 ${isFullyShipped ? 'bg-green-50' : ''}`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="font-medium">
+                            {item.product?.name || item.productId}
+                          </p>
+                          {item.product?.sku && (
+                            <p className="text-sm text-muted-foreground">
+                              SKU: {item.product.sku}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right text-sm">
+                          <div className="text-muted-foreground">
+                            Ordered:{' '}
+                            <span className="font-medium text-gray-900">
+                              {item.quantity}
+                            </span>
+                          </div>
+                          <div className="text-muted-foreground">
+                            Shipped:{' '}
+                            <span className="font-medium text-blue-600">
+                              {shipped}
+                            </span>
+                          </div>
+                          <div
+                            className={`font-medium ${isFullyShipped ? 'text-green-600' : 'text-amber-600'}`}
+                          >
+                            {isFullyShipped
+                              ? '✓ Complete'
+                              : `Remaining: ${remaining}`}
+                          </div>
+                        </div>
+                      </div>
+                      {!isFullyShipped && (
+                        <div className="flex items-center gap-2">
+                          <Label
+                            htmlFor={`qty-${index}`}
+                            className="text-sm whitespace-nowrap"
+                          >
+                            Ship qty:
+                          </Label>
+                          <Input
+                            id={`qty-${index}`}
+                            type="number"
+                            className="w-24"
+                            min={0}
+                            max={remaining}
+                            selectOnFocus
+                            {...register(`items.${index}.quantity`, {
+                              valueAsNumber: true,
+                              max: remaining,
+                            })}
+                          />
+                          <input
+                            type="hidden"
+                            {...register(`items.${index}.productId`)}
+                          />
+                        </div>
+                      )}
+                      {isFullyShipped && (
+                        <>
+                          <input
+                            type="hidden"
+                            value={0}
+                            {...register(`items.${index}.quantity`, {
+                              valueAsNumber: true,
+                            })}
+                          />
+                          <input
+                            type="hidden"
+                            {...register(`items.${index}.productId`)}
+                          />
+                        </>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        Ordered: {item.quantity}
-                      </span>
-                      <Input
-                        type="number"
-                        className="w-20"
-                        min={0}
-                        max={item.quantity}
-                        {...register(`items.${index}.quantity`, {
-                          valueAsNumber: true,
-                        })}
-                      />
-                      <input
-                        type="hidden"
-                        {...register(`items.${index}.productId`)}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -209,7 +319,7 @@ export function ShipmentModal({
             {/* Status Message */}
             {step === 'processing' && (
               <p className="text-sm text-blue-600 text-center animate-pulse">
-                Creating shipment and updating stock...
+                Processing...
               </p>
             )}
             {step === 'shipped' && (
@@ -225,21 +335,32 @@ export function ShipmentModal({
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               onClick={handleClose}
               disabled={loading}
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={step !== 'confirm' || loading}
-            >
-              {loading ? 'Processing...' : 'Ship All'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSubmit((data) => onSave(data, false))}
+                disabled={step !== 'confirm' || loading}
+              >
+                Save Draft
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSubmit((data) => onSave(data, true))}
+                disabled={step !== 'confirm' || loading}
+              >
+                {loading ? 'Processing...' : 'Ship & Post'}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -3,6 +3,7 @@ import {
   InvoiceStatus,
   InvoiceType,
   OrderType,
+  OrderStatus,
   Prisma,
   BusinessShape,
   IdempotencyScope,
@@ -36,14 +37,23 @@ import { IdempotencyService } from '../../common/services/idempotency.service';
 import * as auditLogService from '../../common/audit/audit-log.service';
 import { InventoryService } from '../../inventory/inventory.service.js';
 import { CustomerDepositService } from '../../sales/customer-deposit.service';
+import { calculateDueDate } from '../../common/utils/payment-terms.utils';
+import {
+  validateAndAuditVoid,
+  validateCanVoid,
+} from '../../common/utils/document.utils';
+import { SalesOrderRepository } from '../../sales/sales-order.repository';
 
 export class InvoiceService {
-  private repository = new InvoiceRepository();
-  private journalService = new JournalService();
-  private documentNumberService = new DocumentNumberService();
-  private idempotencyService = new IdempotencyService();
-  private inventoryService = new InventoryService();
-  private customerDepositService = new CustomerDepositService();
+  constructor(
+    private readonly repository: InvoiceRepository = new InvoiceRepository(),
+    private readonly journalService: JournalService = new JournalService(),
+    private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
+    private readonly idempotencyService: IdempotencyService = new IdempotencyService(),
+    private readonly inventoryService: InventoryService = new InventoryService(),
+    private readonly customerDepositService: CustomerDepositService = new CustomerDepositService(),
+    private readonly salesOrderRepository: SalesOrderRepository = new SalesOrderRepository()
+  ) {}
 
   async createFromSalesOrder(
     companyId: string,
@@ -109,7 +119,10 @@ export class InvoiceService {
       balance: amount,
       dueDate:
         data.dueDate ||
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
+        calculateDueDate(
+          new Date(),
+          order.paymentTerms || PaymentTerms.NET30
+        ),
     };
 
     return this.repository.create(createData);
@@ -125,9 +138,15 @@ export class InvoiceService {
 
   async list(companyId: string, status?: string) {
     // Validate status if provided - only allow valid InvoiceStatus values
-    const validStatuses = ['DRAFT', 'POSTED', 'PAID', 'VOID'];
+    const validStatuses: InvoiceStatus[] = [
+      InvoiceStatus.DRAFT,
+      InvoiceStatus.POSTED,
+      InvoiceStatus.PARTIALLY_PAID,
+      InvoiceStatus.PAID,
+      InvoiceStatus.VOID,
+    ];
     const validatedStatus =
-      status && validStatuses.includes(status)
+      status && validStatuses.includes(status as InvoiceStatus)
         ? (status as InvoiceStatus)
         : undefined;
 
@@ -136,6 +155,117 @@ export class InvoiceService {
       InvoiceType.INVOICE,
       validatedStatus
     );
+  }
+
+  /**
+   * Create a Down Payment Invoice for UPFRONT Payment Terms or Tempo+DP.
+   * Called automatically when confirming a SO with:
+   * - UPFRONT terms (100% DP)
+   * - Tempo terms with dpAmount > 0 (partial DP)
+   * NOTE: This is for proforma invoice / deposit before delivery.
+   */
+  async createDownPaymentInvoice(
+    companyId: string,
+    orderId: string
+  ): Promise<Invoice> {
+    const order = await this.repository.findOrder(
+      orderId,
+      companyId,
+      OrderType.SALES
+    );
+
+    if (!order) {
+      throw new DomainError(
+        'Sales order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+
+    // Must be CONFIRMED for DP Invoice
+    if (order.status !== OrderStatus.CONFIRMED) {
+      throw new DomainError(
+        `Cannot create DP Invoice: SO status is ${order.status}, must be CONFIRMED`,
+        400,
+        DomainErrorCodes.ORDER_INVALID_STATE
+      );
+    }
+
+    // GAP-3 Fix: Must have DP requirement (UPFRONT or dpAmount > 0)
+    const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
+    const isUpfront = order.paymentTerms === PaymentTerms.UPFRONT;
+
+    if (!isUpfront && dpAmount <= 0) {
+      throw new DomainError(
+        'DP Invoice can only be created for UPFRONT payment terms or orders with dpAmount > 0',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    // Check if DP Invoice already exists for this SO
+    const existingInvoice = await this.repository.findByOrderId(
+      orderId,
+      companyId,
+      InvoiceType.INVOICE
+    );
+    if (existingInvoice) {
+      // Already exists, return it (idempotent)
+      return existingInvoice;
+    }
+
+    // Generate invoice number
+    const invoiceNumber = await this.documentNumberService.generate(
+      companyId,
+      'INV'
+    );
+
+    // GAP-3 Fix: Calculate amounts based on DP type (mirrors BillService)
+    let amount: number;
+    let subtotal: number;
+    let taxAmount: number;
+    const taxRate = order.taxRate ? Number(order.taxRate) : 0;
+    const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
+
+    if (isUpfront) {
+      // UPFRONT: 100% of order total
+      subtotal = order.items.reduce(
+        (sum, item) => sum + Number(item.price) * item.quantity,
+        0
+      );
+      taxAmount = subtotal * taxMultiplier;
+      amount = subtotal + taxAmount;
+    } else {
+      // Tempo+DP: Use dpAmount (already includes tax if calculated from grandTotal)
+      amount = dpAmount;
+      // Reverse calculate subtotal and tax from amount
+      subtotal = amount / (1 + taxMultiplier);
+      taxAmount = amount - subtotal;
+    }
+
+    const dpPercent = order.dpPercent
+      ? Number(order.dpPercent)
+      : isUpfront
+        ? 100
+        : 0;
+
+    const createData: Prisma.InvoiceUncheckedCreateInput = {
+      companyId,
+      orderId,
+      partnerId: order.partnerId,
+      type: InvoiceType.INVOICE,
+      status: InvoiceStatus.DRAFT,
+      invoiceNumber,
+      notes: `Down Payment Invoice (${dpPercent}%) for SO ${order.orderNumber || orderId}`,
+      amount,
+      subtotal,
+      taxAmount,
+      taxRate,
+      balance: amount,
+      dueDate: new Date(), // Immediate payment required for DP
+    };
+
+    return this.repository.create(createData);
   }
 
   async createCreditNote(
@@ -150,7 +280,11 @@ export class InvoiceService {
     );
 
     if (!original) {
-      throw new Error('Original invoice not found');
+      throw new DomainError(
+        'Original invoice not found',
+        404,
+        DomainErrorCodes.INVOICE_NOT_FOUND
+      );
     }
 
     // Apply Reversal Policy
@@ -279,13 +413,65 @@ export class InvoiceService {
             );
           }
 
+          InvoicePolicy.validatePost(invoice.status);
+
+          // FR-011: 3-Way Matching Validation (O2C Mirror)
+          // Only for Invoices linked to a SO (orderId exists)
+          // Only validate if order was MANUALLY shipped before invoice
+          // (auto-shipment during post matches order qty by design)
+          if (invoice.orderId) {
+            const order = await this.salesOrderRepository.findById(
+              invoice.orderId,
+              companyId,
+              tx
+            );
+            if (order) {
+              // Check if order was already shipped (manual shipment scenario)
+              const alreadyShippedStatuses: OrderStatus[] = [
+                OrderStatus.SHIPPED,
+                OrderStatus.PARTIALLY_SHIPPED,
+                OrderStatus.COMPLETED,
+              ];
+              const wasManuallyShipped =
+                alreadyShippedStatuses.includes(
+                  order.status as OrderStatus
+                );
+
+              // Only run 3-way matching for manual shipment scenarios
+              if (wasManuallyShipped) {
+                const shippedQtyMap =
+                  await this.salesOrderRepository.getShippedQuantities(
+                    invoice.orderId,
+                    tx
+                  );
+                InvoicePolicy.validate3WayMatching(
+                  {
+                    amount: invoice.amount,
+                    subtotal: invoice.subtotal,
+                    notes: invoice.notes,
+                    items: invoice.items,
+                  },
+                  {
+                    items: order.items,
+                    totalAmount: order.totalAmount,
+                    dpAmount: order.dpAmount,
+                    paymentTerms: order.paymentTerms,
+                    taxRate: order.taxRate,
+                  },
+                  shippedQtyMap,
+                  invoice.isDownPayment // Pass isDpInvoice flag
+                );
+              }
+            }
+          }
+
           // Phase 1 Guard: Block Multi-Currency
           const currency =
             (invoice as Invoice & { currency?: string }).currency ||
             'IDR';
           Money.from(0, currency).ensureBase();
 
-          // 3. Stock OUT (if order-linked)
+          // 3. Stock OUT (if order-linked and not already shipped)
           let order = null;
           if (invoice.orderId) {
             order = await this.repository.findOrderWithItems(
@@ -295,27 +481,39 @@ export class InvoiceService {
             );
 
             if (order) {
-              // Create Shipment document
-              const shipment =
-                await this.inventoryService.createShipment(
+              // Skip auto-shipment if order is already shipped (manual shipment before invoice)
+              const alreadyShippedStatuses: OrderStatus[] = [
+                OrderStatus.SHIPPED,
+                OrderStatus.PARTIALLY_SHIPPED,
+                OrderStatus.COMPLETED,
+              ];
+              const needsShipment = !alreadyShippedStatuses.includes(
+                order.status as OrderStatus
+              );
+
+              if (needsShipment) {
+                // Create Shipment document
+                const shipment =
+                  await this.inventoryService.createShipment(
+                    companyId,
+                    {
+                      salesOrderId: invoice.orderId,
+                      notes: `Shipment for Invoice ${invoice.invoiceNumber}`,
+                      items: order.items.map((item) => ({
+                        productId: item.productId,
+                        quantity: item.quantity,
+                      })),
+                    },
+                    tx
+                  );
+
+                // Post Shipment (Stock OUT + COGS Snapshot)
+                await this.inventoryService.postShipment(
                   companyId,
-                  {
-                    salesOrderId: invoice.orderId,
-                    notes: `Shipment for Invoice ${invoice.invoiceNumber}`,
-                    items: order.items.map((item) => ({
-                      productId: item.productId,
-                      quantity: item.quantity,
-                    })),
-                  },
+                  shipment.id,
                   tx
                 );
-
-              // Post Shipment (Stock OUT + COGS Snapshot)
-              await this.inventoryService.postShipment(
-                companyId,
-                shipment.id,
-                tx
-              );
+              }
             }
           }
 
@@ -327,7 +525,11 @@ export class InvoiceService {
           );
 
           if (!updatedInvoice.invoiceNumber) {
-            throw new Error(`Invoice ${id} has no invoice number`);
+            throw new DomainError(
+              `Invoice ${id} has no invoice number`,
+              500,
+              DomainErrorCodes.INVOICE_INVALID_STATE
+            );
           }
 
           // 5. Create AR journal entry
@@ -349,11 +551,8 @@ export class InvoiceService {
       );
 
       // 6. Cash Upfront Sales: Auto-settle customer deposit if applicable
-      // Check if the linked order has UPFRONT payment terms
-      if (
-        result.order &&
-        result.order.paymentTerms === PaymentTerms.UPFRONT
-      ) {
+      // GAP-3 Fix: Allow auto-settlement for any order with a deposit (Tempo + DP)
+      if (result.order) {
         try {
           const depositInfo =
             await this.customerDepositService.getDepositInfo(
@@ -416,68 +615,64 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * Void an Invoice atomically using Prisma transaction.
-   * Policy: Cannot void if payments exist. If POSTED, reverse AR journal.
-   */
-  async void(id: string, companyId: string): Promise<Invoice> {
+  async void(
+    id: string,
+    companyId: string,
+    actorId: string,
+    reason: string,
+    userPermissions?: string[]
+  ): Promise<Invoice> {
+    const voidConfig = {
+      id,
+      companyId,
+      actorId,
+      reason,
+      documentName: 'Invoice',
+      requiredPermission: 'invoice:void',
+      userPermissions,
+      auditAction: AuditLogAction.INVOICE_VOIDED,
+      entityType: EntityType.INVOICE,
+      notFoundErrorCode: DomainErrorCodes.INVOICE_NOT_FOUND,
+      invalidStateErrorCode: DomainErrorCodes.INVOICE_INVALID_STATE,
+      hasPaymentsErrorCode: DomainErrorCodes.INVOICE_HAS_PAYMENTS,
+    };
+
+    // Validate permission, reason, and record audit
+    await validateAndAuditVoid(voidConfig);
+
     return prisma.$transaction(
       async (tx) => {
-        // 1. Lock row for concurrency safety
+        // Lock row for concurrency safety
         await tx.$executeRaw`SELECT 1 FROM "Invoice" WHERE id = ${id} FOR UPDATE`;
 
-        // 2. Validate invoice exists
+        // Validate document
         const invoice = await this.repository.findById(
           id,
           companyId,
           InvoiceType.INVOICE,
           tx
         );
-        if (!invoice) {
-          throw new DomainError(
-            'Invoice not found',
-            404,
-            DomainErrorCodes.INVOICE_NOT_FOUND
-          );
-        }
-
-        // 3. Cannot void if already VOID
-        if (invoice.status === InvoiceStatus.VOID) {
-          throw new DomainError(
-            'Invoice is already voided',
-            422,
-            DomainErrorCodes.INVOICE_INVALID_STATE
-          );
-        }
-
-        // 4. Cannot void if any payments exist
         const paymentCount = await this.repository.countPayments(
           id,
           companyId,
           tx
         );
-        if (paymentCount > 0) {
-          throw new DomainError(
-            'Cannot void invoice: Payments have been recorded. Void the payments first.',
-            422,
-            DomainErrorCodes.INVOICE_HAS_PAYMENTS
-          );
-        }
+        validateCanVoid(invoice, paymentCount, voidConfig);
 
-        // 5. If POSTED, reverse the AR journal entry
-        if (invoice.status === InvoiceStatus.POSTED) {
+        // If POSTED, reverse the AR journal entry
+        if (invoice!.status === InvoiceStatus.POSTED) {
           await this.journalService.postInvoiceReversal(
             companyId,
-            invoice.id,
-            invoice.invoiceNumber || '',
-            Number(invoice.amount),
-            Number(invoice.subtotal) || undefined,
-            Number(invoice.taxAmount) || undefined,
+            invoice!.id,
+            invoice!.invoiceNumber || '',
+            Number(invoice!.amount),
+            Number(invoice!.subtotal) || undefined,
+            Number(invoice!.taxAmount) || undefined,
             tx
           );
         }
 
-        // 6. Update status to VOID
+        // Update status to VOID
         return this.repository.update(
           id,
           { status: InvoiceStatus.VOID },
@@ -516,7 +711,12 @@ export class InvoiceService {
     companyId: string
   ): Promise<number> {
     const invoice = await this.repository.findById(id, companyId); // Type optional here?
-    if (!invoice) throw new Error('Invoice not found');
+    if (!invoice)
+      throw new DomainError(
+        'Invoice not found',
+        404,
+        DomainErrorCodes.INVOICE_NOT_FOUND
+      );
 
     // We can rely on 'balance' field which we maintain?
     // Legacy PaymentService updates balance.

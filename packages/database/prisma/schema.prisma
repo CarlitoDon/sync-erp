@@ -129,6 +129,7 @@ model Product {
   movements        InventoryMovement[]
   stockLayers      StockLayer[]
   fulfillmentItems FulfillmentItem[]
+  invoiceItems     InvoiceItem[]
 
   @@unique([companyId, sku])
   @@index([companyId])
@@ -153,6 +154,9 @@ model Order {
   paymentTerms  PaymentTerms   @default(NET_30)
   paymentStatus PaymentStatus?
   paidAmount    Decimal        @default(0) @db.Decimal(15, 2)
+  // Feature: Down Payment (Partial)
+  dpPercent     Decimal?       @db.Decimal(5, 2) // 0-100%
+  dpAmount      Decimal?       @db.Decimal(15, 2) // Auto-calculated from percent or manual
   notes         String? // P2P: Notes
   version       Int            @default(1) // Optimistic Locking
   createdAt     DateTime       @default(now())
@@ -242,12 +246,35 @@ model Invoice {
   payments Payment[]
 
   relatedInvoiceId String?
-  relatedInvoice   Invoice?  @relation("CreditNotes", fields: [relatedInvoiceId], references: [id])
-  creditNotes      Invoice[] @relation("CreditNotes")
+  relatedInvoice   Invoice?      @relation("CreditNotes", fields: [relatedInvoiceId], references: [id])
+  creditNotes      Invoice[]     @relation("CreditNotes")
+  items            InvoiceItem[]
+
+  // Feature: Explicit DP Linking
+  isDownPayment Boolean   @default(false)
+  dpBillId      String?
+  dpBill        Invoice?  @relation("DpBills", fields: [dpBillId], references: [id])
+  finalBills    Invoice[] @relation("DpBills")
 
   @@index([companyId])
   @@index([companyId, type])
   @@index([companyId, status])
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  productId   String?
+  description String?
+  quantity    Int     @default(1)
+  price       Decimal @db.Decimal(15, 2)
+  amount      Decimal @db.Decimal(15, 2)
+
+  invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([invoiceId])
+  @@index([productId])
 }
 
 model Payment {
@@ -416,12 +443,15 @@ enum MovementType {
 enum InvoiceType {
   INVOICE
   BILL
+  EXPENSE
   CREDIT_NOTE
+  DEBIT_NOTE // P2P: Buyer claims credit from supplier (reduces AP)
 }
 
 enum InvoiceStatus {
   DRAFT
   POSTED
+  PARTIALLY_PAID
   PAID
   VOID
 }
@@ -476,10 +506,12 @@ enum DocumentStatus {
   VOIDED
 }
 
-// Fulfillment Type (unified model for GRN and Shipment)
+// Fulfillment Type (unified model for GRN, Shipment, and Return)
 enum FulfillmentType {
   RECEIPT // Goods Receipt (PO → Stock IN)
   SHIPMENT // Shipment (SO → Stock OUT)
+  RETURN // Sales Return (SO → Stock IN, COGS reversal)
+  PURCHASE_RETURN // Purchase Return (PO → Stock OUT, GRNI reversal)
 }
 
 // ============================================
@@ -520,12 +552,16 @@ model DocumentSequence {
 enum SequenceType {
   PO
   GRN
+  SHP
   BILL
   PAY
   SO
   INV
   CN
   JE
+  DN // Debit Note
+  RET // Sales Return
+  PRR // Purchase Return
 }
 
 // ============================================
@@ -668,7 +704,9 @@ model AuditLog {
 
 enum AuditLogAction {
   INVOICE_POSTED
+  INVOICE_VOIDED
   BILL_POSTED
+  BILL_VOIDED
   PAYMENT_RECORDED
   ORDER_CREATED
   ORDER_CONFIRMED
@@ -679,6 +717,7 @@ enum AuditLogAction {
   GRN_VOIDED
   SHIPMENT_VOIDED
   PAYMENT_VOIDED
+  PRICE_VARIANCE_ACKNOWLEDGED // FR-051: Log acknowledged price variances
 }
 
 enum EntityType {

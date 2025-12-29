@@ -4,17 +4,21 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { CompanyProvider } from '@/contexts/CompanyContext';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 import { ConfirmProvider } from '@/components/ui/ConfirmModal';
+import { PromptProvider } from '@/components/ui/PromptModal';
 import { TRPCProvider } from '@/lib/trpcProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <TRPCProvider>
-      <AuthProvider>
-        <CompanyProvider>
-          <SidebarProvider>
-            <ConfirmProvider>
-              {children}
-              <Toaster
+    <ErrorBoundary>
+      <TRPCProvider>
+        <AuthProvider>
+          <CompanyProvider>
+            <SidebarProvider>
+              <ConfirmProvider>
+                <PromptProvider>
+                  {children}
+                  <Toaster
                 position="top-right"
                 toastOptions={{
                   duration: 3000,
@@ -34,10 +38,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
                   },
                 }}
               />
+                </PromptProvider>
             </ConfirmProvider>
           </SidebarProvider>
         </CompanyProvider>
       </AuthProvider>
     </TRPCProvider>
+    </ErrorBoundary>
   );
 }

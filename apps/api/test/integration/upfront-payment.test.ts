@@ -987,5 +987,54 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       expect(Number(postedBill.balance)).toBe(0);
       expect(postedBill.status).toBe(InvoiceStatus.PAID);
     });
+    describe('Edge Cases', () => {
+      it('Should fail to register payment for non-UPFRONT PO', async () => {
+        const order = await procurementService.create(COMPANY_ID, {
+          partnerId,
+          items: [{ productId, quantity: 1, price: 100000 }],
+          type: 'PURCHASE',
+          paymentTerms: 'NET30',
+        });
+        await procurementService.confirm(
+          order.id,
+          COMPANY_ID,
+          ACTOR_ID
+        );
+
+        const { UpfrontPaymentService } =
+          await import('../../src/modules/procurement/upfront-payment.service');
+        const service = new UpfrontPaymentService();
+
+        await expect(
+          service.registerPayment(
+            COMPANY_ID,
+            { orderId: order.id, amount: 100, method: 'CASH' },
+            ACTOR_ID
+          )
+        ).rejects.toThrow();
+      });
+
+      it('Should fail to register payment for unconfirmed PO', async () => {
+        const order = await procurementService.create(COMPANY_ID, {
+          partnerId,
+          items: [{ productId, quantity: 1, price: 100000 }],
+          type: 'PURCHASE',
+          paymentTerms: 'UPFRONT',
+        });
+        // Not confirmed
+
+        const { UpfrontPaymentService } =
+          await import('../../src/modules/procurement/upfront-payment.service');
+        const service = new UpfrontPaymentService();
+
+        await expect(
+          service.registerPayment(
+            COMPANY_ID,
+            { orderId: order.id, amount: 100, method: 'CASH' },
+            ACTOR_ID
+          )
+        ).rejects.toThrow();
+      });
+    });
   });
 });

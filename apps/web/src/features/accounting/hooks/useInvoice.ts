@@ -94,7 +94,7 @@ export function useInvoice(options: UseInvoiceOptions = {}) {
     [currentCompany?.id, confirm, postInvoiceMutation]
   );
 
-  // Void invoice
+  // Void invoice (FR-024: requires reason)
   const voidInvoiceMutation = trpc.invoice.void.useMutation({
     onSuccess: () => {
       loadData();
@@ -102,8 +102,13 @@ export function useInvoice(options: UseInvoiceOptions = {}) {
   });
 
   const voidInvoice = useCallback(
-    async (id: string) => {
+    async (id: string, reason: string) => {
       if (!currentCompany?.id) return;
+
+      // Reason is required - callers should use usePrompt() before calling
+      if (!reason || reason.trim().length === 0) {
+        return; // Invalid reason
+      }
 
       const confirmed = await confirm({
         title: 'Void Invoice',
@@ -116,7 +121,8 @@ export function useInvoice(options: UseInvoiceOptions = {}) {
       if (!confirmed) return;
 
       const result = await apiAction(
-        async () => voidInvoiceMutation.mutateAsync({ id }),
+        async () =>
+          voidInvoiceMutation.mutateAsync({ id, reason }),
         'Invoice voided successfully!'
       );
 

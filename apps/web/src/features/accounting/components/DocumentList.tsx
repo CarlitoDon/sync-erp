@@ -7,6 +7,7 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { PaymentHistoryList } from '@/features/accounting/components/PaymentHistoryList';
 import {
   useConfirm,
+  usePrompt,
   ActionButton,
   FormModal,
   Select,
@@ -15,6 +16,7 @@ import {
   SummaryCards,
   StatusBadge,
   LoadingState,
+  CurrencyInput,
 } from '@/components/ui';
 
 import {
@@ -51,6 +53,7 @@ export function DocumentList({
   filter: _filter,
 }: DocumentListProps) {
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
 
@@ -122,6 +125,17 @@ export function DocumentList({
   };
 
   const handleVoid = async (id: string) => {
+    // FR-024: Prompt for void reason (accessible modal)
+    const reason = await prompt({
+      title: `Void ${entityLabel}`,
+      message: `Please enter a reason for voiding this ${entityLabel.toLowerCase()}:`,
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+    if (!reason) {
+      return; // User cancelled
+    }
+
     const confirmed = await confirm({
       title: `Void ${entityLabel}`,
       message: `Are you sure you want to void this ${entityLabel.toLowerCase()}?`,
@@ -132,8 +146,8 @@ export function DocumentList({
     await apiAction(
       () =>
         isBill
-          ? voidBillMutation.mutateAsync({ id })
-          : voidInvoiceMutation.mutateAsync({ id }),
+          ? voidBillMutation.mutateAsync({ id, reason })
+          : voidInvoiceMutation.mutateAsync({ id, reason }),
       `${entityLabel} voided`
     );
   };
@@ -176,6 +190,7 @@ export function DocumentList({
   }
 
   const filteredDocs = documents.filter(
+    // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'ALL' is a UI filter constant, not a database enum
     (d) => filterStatus === 'ALL' || d.status === filterStatus
   );
 
@@ -247,16 +262,11 @@ export function DocumentList({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Payment Amount *
               </label>
-              <input
-                type="number"
+              <CurrencyInput
                 min={0}
                 max={Number(selectedDoc.balance)}
-                step={0.01}
                 value={paymentAmount}
-                onChange={(e) =>
-                  setPaymentAmount(parseFloat(e.target.value) || 0)
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                onChange={(val) => setPaymentAmount(val)}
               />
               <p className="text-xs text-gray-500 mt-1">
                 Max: {formatCurrency(Number(selectedDoc.balance))}
@@ -344,6 +354,7 @@ export function DocumentList({
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           {invoiceStatusFilterOptions
+            // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'VOID' is a UI filter comparison
             .filter((o) => (isBill ? o.value !== 'VOID' : true))
             .map((opt) => (
               <button
@@ -355,6 +366,7 @@ export function DocumentList({
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
+                {/* eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'ALL' is a UI filter display label */}
                 {opt.value === 'ALL'
                   ? `All ${entityLabel}s`
                   : opt.label}
@@ -413,6 +425,13 @@ export function DocumentList({
                         >
                           {doc.invoiceNumber}
                         </Link>
+                        {/* Feature: DP Badge */}
+                        {'isDownPayment' in doc &&
+                          doc.isDownPayment && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                              DP
+                            </span>
+                          )}
                       </td>
                       <td className="px-6 py-4">
                         <Link

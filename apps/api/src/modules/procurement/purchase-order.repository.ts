@@ -10,6 +10,7 @@ import {
   Invoice,
   FulfillmentType,
 } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export class PurchaseOrderRepository {
   async create(
@@ -89,8 +90,10 @@ export class PurchaseOrderRepository {
       });
 
       if (result.count === 0) {
-        throw new Error(
-          'Concurrency Error: Order has been modified by another process'
+        throw new DomainError(
+          'Concurrency Error: Order has been modified by another process',
+          409,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
         );
       }
 
@@ -106,6 +109,22 @@ export class PurchaseOrderRepository {
     return db.order.update({
       where: { id },
       data: { status, version: { increment: 1 } },
+      include: {
+        items: { include: { product: true } },
+        partner: true,
+      },
+    });
+  }
+
+  async update(
+    id: string,
+    data: Prisma.OrderUpdateInput,
+    tx?: Prisma.TransactionClient
+  ): Promise<Order> {
+    const db = tx || prisma;
+    return db.order.update({
+      where: { id },
+      data,
       include: {
         items: { include: { product: true } },
         partner: true,

@@ -11,5 +11,6 @@
     ".specify/scripts/powershell/": true
   },
   "vitest.maximumConfigs": 10,
-  "vitest.configSearchPatternExclude": "**/node_modules/**"
+  "vitest.configSearchPatternExclude": "**/node_modules/**",
+  "chat.agent.maxRequests": 20000
 }

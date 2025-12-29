@@ -8,6 +8,8 @@ import {
   AuditLogAction,
   EntityType,
   FulfillmentType,
+  PaymentTerms,
+  PaymentStatus,
 } from '@sync-erp/database';
 import { SalesOrderRepository } from './sales-order.repository';
 import { SalesOrderPolicy } from './sales-order.policy';
@@ -18,6 +20,10 @@ import {
   CreateSalesOrderInput,
 } from '@sync-erp/shared';
 import { recordAudit } from '../common/audit/audit-log.service';
+import {
+  calculateDpAmount,
+  validateAndAuditClose,
+} from '../common/utils/order.utils';
 
 // We define input interface if shared doesn't export strict DTO for internal use yet
 // Shared exports CreateSalesOrderInput (inferred from schema)
@@ -25,16 +31,16 @@ import { recordAudit } from '../common/audit/audit-log.service';
 // CreateSalesOrderInput has { type: 'SALES', items: ... }
 
 import { DocumentNumberService } from '../common/services/document-number.service';
-// Direct Repository/Service usage to avoid circular dependency
-import { InventoryRepository } from '../inventory/inventory.repository';
-import { JournalService } from '../accounting/services/journal.service';
+// Use InventoryService instead of repository for proper service-to-service call
+import { InventoryService } from '../inventory/inventory.service';
 
 export class SalesOrderService {
-  private repository = new SalesOrderRepository();
-  private productService = new ProductService();
-  private documentNumberService = new DocumentNumberService();
-  private inventoryRepository = new InventoryRepository();
-  private journalService = new JournalService();
+  constructor(
+    private readonly repository: SalesOrderRepository = new SalesOrderRepository(),
+    private readonly productService: ProductService = new ProductService(),
+    private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
+    private readonly inventoryService: InventoryService = new InventoryService()
+  ) {}
 
   /**
    * Create a new sales order.
@@ -82,7 +88,17 @@ export class SalesOrderService {
       totalAmount,
       taxRate: data.taxRate || 0,
       paymentTerms: paymentTerms,
-      paymentStatus: paymentTerms === 'UPFRONT' ? 'PENDING' : null,
+      paymentStatus:
+        paymentTerms === PaymentTerms.UPFRONT
+          ? PaymentStatus.PENDING
+          : null,
+      // Down Payment: Calculate amounts
+      dpPercent: data.dpPercent ?? null,
+      dpAmount: calculateDpAmount(
+        totalAmount,
+        data.dpPercent,
+        data.dpAmount
+      ),
       items: {
         create: data.items.map((item) => ({
           productId: item.productId,
@@ -194,6 +210,21 @@ export class SalesOrderService {
       });
     }
 
+    // GAP-1 Fix: Auto-create DP Invoice for:
+    // 1. UPFRONT payment terms (100% DP)
+    // 2. Tempo with DP (partial DP)
+    const hasDpRequired =
+      order.paymentTerms === PaymentTerms.UPFRONT ||
+      (order.dpAmount && Number(order.dpAmount) > 0);
+
+    if (hasDpRequired) {
+      // Lazy-load InvoiceService to avoid circular dependency
+      const { InvoiceService } =
+        await import('../accounting/services/invoice.service');
+      const invoiceService = new InvoiceService();
+      await invoiceService.createDownPaymentInvoice(companyId, id);
+    }
+
     return updated;
   }
 
@@ -235,6 +266,17 @@ export class SalesOrderService {
           );
         }
 
+        // GAP-2 Fix: UPFRONT payment must be complete before ship
+        if (order.paymentTerms === PaymentTerms.UPFRONT) {
+          if (order.paymentStatus !== PaymentStatus.PAID_UPFRONT) {
+            throw new DomainError(
+              'Cannot ship: Upfront payment required before delivery. Please complete payment first.',
+              400,
+              DomainErrorCodes.PAYMENT_REQUIRED
+            );
+          }
+        }
+
         // 3. Validate stock availability
         for (const item of order.items) {
           const hasStock = await this.productService.checkStock(
@@ -251,55 +293,36 @@ export class SalesOrderService {
           }
         }
 
-        // 4. Create Fulfillment document (Shipment type)
+        // 4. Create Fulfillment document (Shipment type) using InventoryService
         const fulfillment =
-          await this.inventoryRepository.createFulfillment(
+          await this.inventoryService.createFulfillment(
+            companyId,
             {
-              companyId,
               orderId,
               type: FulfillmentType.SHIPMENT,
-              date: new Date(),
+              date: new Date().toISOString(),
               notes:
                 reference ||
                 `Shipment for Order ${order.orderNumber}`,
               items: order.items.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
-                orderItemId: item.id,
               })),
             },
             tx
           );
 
-        // 5. Post Fulfillment (Stock OUT + COGS Snapshot + Status Update)
-        const postedFulfillment =
-          await this.inventoryRepository.postFulfillment(
-            fulfillment.id,
-            companyId,
-            tx
-          );
-
-        // 5b. Update Order Status (Partial/Full Shipped)
-        await this.recalculateStatus(orderId, companyId, tx);
-
-        // 6. Calculate COGS for Journal
-        let totalCogs = 0;
-        for (const item of postedFulfillment.items) {
-          const cost = Number(
-            item.costSnapshot || item.product.averageCost || 0
-          );
-          totalCogs += Number(item.quantity) * cost;
-        }
-
-        // 7. Post COGS Journal
-        if (totalCogs > 0) {
-          await this.journalService.postShipment(
-            companyId,
-            `SHP:${postedFulfillment.number}`,
-            totalCogs,
-            tx
-          );
-        }
+        // 5. Post Fulfillment (Stock OUT + COGS Snapshot + Journal + Status Recalc)
+        // InventoryService.postFulfillment handles all business logic:
+        // - Stock validation & movements
+        // - COGS snapshot
+        // - Journal posting
+        // - Order status recalculation
+        await this.inventoryService.postFulfillment(
+          companyId,
+          fulfillment.id,
+          tx
+        );
 
         // Return empty movements array for backward compatibility
         return [];
@@ -311,7 +334,11 @@ export class SalesOrderService {
   async complete(id: string, companyId: string) {
     const order = await this.repository.findById(id, companyId);
     if (!order) {
-      throw new Error('Sales order not found');
+      throw new DomainError(
+        'Sales order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
     }
 
     if (order.status !== OrderStatus.CONFIRMED) {
@@ -454,5 +481,73 @@ export class SalesOrderService {
     tx?: Prisma.TransactionClient
   ): Promise<Map<string, number>> {
     return this.repository.getShippedQuantities(orderId, tx);
+  }
+
+  /**
+   * GAP-O2C-002: Explicitly close a Sales Order even if partially shipped.
+   * This transitions the SO to SHIPPED status regardless of remaining quantities.
+   * Useful when customer cancels remaining items or order is abandoned.
+   *
+   * Policy: Only CONFIRMED or PARTIALLY_SHIPPED SOs can be closed.
+   */
+  async close(
+    id: string,
+    companyId: string,
+    userId: string,
+    reason: string
+  ): Promise<Order> {
+    const order = await this.getById(id, companyId);
+
+    // Use shared validation and audit logic
+    await validateAndAuditClose(order, {
+      id,
+      companyId,
+      userId,
+      reason,
+      orderName: 'Sales Order',
+      allowedStatuses: [
+        OrderStatus.CONFIRMED,
+        OrderStatus.PARTIALLY_SHIPPED,
+      ],
+    });
+
+    // Transition to COMPLETED status
+    return this.repository.updateStatus(id, OrderStatus.COMPLETED);
+  }
+
+  /**
+   * Process a Sales Return (partial or full)
+   * Creates a RETURN fulfillment, increases stock, and posts COGS reversal journal.
+   *
+   * @param companyId - Company ID
+   * @param orderId - Sales Order ID
+   * @param items - Array of items to return with productId and quantity
+   * @param userId - Optional user ID for audit
+   * @returns Created return fulfillment
+   */
+  async returnOrder(
+    companyId: string,
+    orderId: string,
+    items: { productId: string; quantity: number }[],
+    userId?: string
+  ) {
+    // 1. Create Return Fulfillment
+    const returnDoc = await this.inventoryService.createReturn(
+      companyId,
+      {
+        salesOrderId: orderId,
+        items,
+      }
+    );
+
+    // 2. Post Return (Stock IN + COGS Reversal Journal)
+    const posted = await this.inventoryService.postReturn(
+      companyId,
+      returnDoc.id,
+      undefined,
+      userId
+    );
+
+    return posted;
   }
 }

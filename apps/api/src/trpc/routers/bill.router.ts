@@ -1,9 +1,12 @@
 import { router, protectedProcedure } from '../trpc';
-import { BillService } from '../../modules/accounting/services/bill.service';
+import { container, ServiceKeys } from '../../modules/common/di';
 import { CreateBillFromPOSchema } from '@sync-erp/shared';
 import { z } from 'zod';
+import { BillService } from '../../modules/accounting/services/bill.service';
 
-const billService = new BillService();
+const billService = container.resolve<BillService>(
+  ServiceKeys.BILL_SERVICE
+);
 
 export const billRouter = router({
   /**
@@ -46,12 +49,61 @@ export const billRouter = router({
     }),
 
   /**
-   * Void bill
+   * Void bill (FR-024: requires reason)
    */
   void: protectedProcedure
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().min(1, 'Void reason is required'),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
-      return billService.void(input.id, ctx.companyId);
+      return billService.void(
+        input.id,
+        ctx.companyId,
+        ctx.userId,
+        input.reason,
+        ctx.userPermissions // FR-026: Granular RBAC
+      );
+    }),
+
+  /**
+   * FR-051: Log acknowledged price variance
+   */
+  acknowledgePriceVariance: protectedProcedure
+    .input(
+      z.object({
+        billId: z.string().uuid(),
+        reason: z
+          .string()
+          .min(1, 'Acknowledgment reason is required'),
+        varianceAmount: z.number(),
+        variancePercent: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Import audit service dynamically to avoid circular deps
+      const { recordAudit } =
+        await import('../../modules/common/audit/audit-log.service');
+      const { AuditLogAction, EntityType } =
+        await import('@sync-erp/database');
+
+      await recordAudit({
+        companyId: ctx.companyId,
+        actorId: ctx.userId,
+        action: AuditLogAction.PRICE_VARIANCE_ACKNOWLEDGED,
+        entityType: EntityType.BILL,
+        entityId: input.billId,
+        businessDate: new Date(),
+        payloadSnapshot: {
+          reason: input.reason,
+          varianceAmount: input.varianceAmount,
+          variancePercent: input.variancePercent,
+        },
+      });
+
+      return { success: true };
     }),
 });
 
