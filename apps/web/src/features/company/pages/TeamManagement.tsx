@@ -3,6 +3,7 @@ import { UserPlusIcon } from '@heroicons/react/24/outline';
 import { UserList } from '@/features/company/components/UserList';
 import { InviteUserModal } from '@/features/company/components/InviteUserModal';
 import { useCompany } from '@/contexts/CompanyContext';
+import { NoCompanySelected } from '@/components/ui';
 
 export default function TeamManagement() {
   const { currentCompany } = useCompany();
@@ -17,11 +18,7 @@ export default function TeamManagement() {
   };
 
   if (!currentCompany) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        Please select a company to manage team.
-      </div>
-    );
+    return <NoCompanySelected message="Please select a company to manage team." />;
   }
 
   return (

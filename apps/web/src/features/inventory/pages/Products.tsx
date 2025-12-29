@@ -8,7 +8,7 @@ import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
-import { CurrencyInput, LoadingState } from '@/components/ui';
+import { CurrencyInput, LoadingState, NoCompanySelected, Input } from '@/components/ui';
 import {
   PageContainer,
   PageHeader,
@@ -86,11 +86,7 @@ export default function Products() {
   }
 
   if (!currentCompany) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        Please select a company to view products.
-      </div>
-    );
+    return <NoCompanySelected message="Please select a company to view products." />;
   }
 
   return (
@@ -118,35 +114,25 @@ export default function Products() {
           onSubmit={handleSubmit}
           className="grid grid-cols-3 gap-4"
         >
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              SKU *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.sku}
-              onChange={(e) =>
-                setFormData({ ...formData, sku: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="e.g., PROD-001"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-          </div>
+          <Input
+            label="SKU"
+            type="text"
+            required
+            value={formData.sku}
+            onChange={(e) =>
+              setFormData({ ...formData, sku: e.target.value })
+            }
+            placeholder="e.g., PROD-001"
+          />
+          <Input
+            label="Name"
+            type="text"
+            required
+            value={formData.name}
+            onChange={(e) =>
+              setFormData({ ...formData, name: e.target.value })
+            }
+          />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Selling Price *
