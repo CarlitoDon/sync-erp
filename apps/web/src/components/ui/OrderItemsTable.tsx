@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/utils/format';
 
@@ -15,6 +16,41 @@ export interface OrderItemsTableProps {
   items: OrderItem[];
   productLinkPrefix?: string;
 }
+
+/**
+ * Memoized table row component for order items.
+ * Prevents re-renders when parent table updates unrelated rows.
+ */
+const ItemRow = memo(function ItemRow({
+  item,
+  productLinkPrefix,
+}: {
+  item: OrderItem;
+  productLinkPrefix: string;
+}) {
+  const price = Number(item.price);
+  const total = item.quantity * price;
+
+  return (
+    <tr>
+      <td className="px-6 py-3">
+        {item.product ? (
+          <Link
+            to={`${productLinkPrefix}/${item.productId}`}
+            className="text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            {item.product.name}
+          </Link>
+        ) : (
+          item.productId
+        )}
+      </td>
+      <td className="px-6 py-3 text-right">{item.quantity}</td>
+      <td className="px-6 py-3 text-right">{formatCurrency(price)}</td>
+      <td className="px-6 py-3 text-right font-medium">{formatCurrency(total)}</td>
+    </tr>
+  );
+});
 
 /**
  * Shared order items table for PO/SO detail pages.
@@ -46,36 +82,13 @@ export function OrderItemsTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {items.map((item) => {
-            const price = Number(item.price);
-            const total = item.quantity * price;
-
-            return (
-              <tr key={item.id}>
-                <td className="px-6 py-3">
-                  {item.product ? (
-                    <Link
-                      to={`${productLinkPrefix}/${item.productId}`}
-                      className="text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      {item.product.name}
-                    </Link>
-                  ) : (
-                    item.productId
-                  )}
-                </td>
-                <td className="px-6 py-3 text-right">
-                  {item.quantity}
-                </td>
-                <td className="px-6 py-3 text-right">
-                  {formatCurrency(price)}
-                </td>
-                <td className="px-6 py-3 text-right font-medium">
-                  {formatCurrency(total)}
-                </td>
-              </tr>
-            );
-          })}
+          {items.map((item) => (
+            <ItemRow
+              key={item.id}
+              item={item}
+              productLinkPrefix={productLinkPrefix}
+            />
+          ))}
         </tbody>
       </table>
     </div>
