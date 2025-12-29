@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
-import { InvoiceService } from '@modules/accounting/services/invoice.service';
-import { JournalService } from '@modules/accounting/services/journal.service';
+import { InvoiceService } from '../../src/modules/accounting/services/invoice.service';
+import { JournalService } from '../../src/modules/accounting/services/journal.service';
 
 const invoiceService = new InvoiceService();
 const journalService = new JournalService();
