@@ -325,7 +325,7 @@ export class JournalService {
         reference: `Invoice Reversal: ${invoiceNumber}`,
         memo: `Reversal of voided invoice ${invoiceNumber}`,
         sourceType: JournalSourceType.INVOICE,
-        sourceId: invoiceId,
+        sourceId: `${invoiceId}:reversal`,
         lines,
       },
       tx
