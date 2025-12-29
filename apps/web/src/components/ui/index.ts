@@ -3,7 +3,8 @@
 
 // Layout & Container
 export { Card, CardHeader, CardTitle, CardContent } from './Card';
-export { PageHeader } from './PageHeader';
+export { PageHeader, type PageHeaderProps } from '../layout/PageHeader';
+export { NoCompanySelected } from './no-company-selected';
 
 // Buttons & Actions
 export { Button } from './button';
@@ -12,6 +13,7 @@ export { BackButton } from './BackButton';
 
 // Form Elements
 export { default as Select } from './Select';
+export { Input } from './input';
 export { DatePicker } from './DatePicker';
 export { QuantityInput } from './QuantityInput';
 export { CurrencyInput } from './CurrencyInput';
