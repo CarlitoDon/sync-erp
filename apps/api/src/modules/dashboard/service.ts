@@ -1,4 +1,10 @@
-import { prisma, InvoiceStatus } from '@sync-erp/database';
+import {
+  prisma,
+  InvoiceStatus,
+  InvoiceType,
+  OrderStatus,
+  OrderType,
+} from '@sync-erp/database';
 import { DashboardKPIs, DashboardMetrics } from '@sync-erp/shared';
 
 /**
@@ -47,7 +53,7 @@ export class DashboardService {
     const result = await prisma.invoice.aggregate({
       where: {
         companyId,
-        type: 'INVOICE', // Only sales invoices, not bills or credit notes
+        type: InvoiceType.INVOICE, // Only sales invoices, not bills or credit notes
         status: {
           in: [InvoiceStatus.POSTED, InvoiceStatus.PAID],
         },
@@ -67,7 +73,7 @@ export class DashboardService {
     const result = await prisma.invoice.aggregate({
       where: {
         companyId,
-        type: 'INVOICE', // Only sales invoices for AR
+        type: InvoiceType.INVOICE, // Only sales invoices for AR
         status: InvoiceStatus.POSTED,
         balance: {
           gt: 0,
@@ -89,7 +95,7 @@ export class DashboardService {
     const result = await prisma.invoice.aggregate({
       where: {
         companyId,
-        type: 'BILL', // Bills for AP
+        type: InvoiceType.BILL, // Bills for AP
         status: InvoiceStatus.POSTED,
         balance: {
           gt: 0,
@@ -151,15 +157,19 @@ export class DashboardService {
       prisma.order.count({
         where: {
           companyId,
-          type: 'SALES',
-          status: { notIn: ['COMPLETED', 'CANCELLED'] },
+          type: OrderType.SALES,
+          status: {
+            notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+          },
         },
       }),
-      prisma.order.count({ where: { companyId, type: 'SALES' } }),
+      prisma.order.count({
+        where: { companyId, type: OrderType.SALES },
+      }),
       prisma.invoice.count({
         where: {
           companyId,
-          type: 'INVOICE',
+          type: InvoiceType.INVOICE,
           status: InvoiceStatus.POSTED,
           balance: { gt: 0 },
         },
@@ -167,18 +177,18 @@ export class DashboardService {
       prisma.invoice.count({
         where: {
           companyId,
-          type: 'BILL',
+          type: InvoiceType.BILL,
           status: InvoiceStatus.POSTED,
           balance: { gt: 0 },
         },
       }),
       prisma.invoice.findMany({
-        where: { companyId, type: 'INVOICE' },
+        where: { companyId, type: InvoiceType.INVOICE },
         orderBy: { createdAt: 'desc' },
         take: 5,
       }),
       prisma.invoice.findMany({
-        where: { companyId, type: 'BILL' },
+        where: { companyId, type: InvoiceType.BILL },
         orderBy: { createdAt: 'desc' },
         take: 5,
       }),
