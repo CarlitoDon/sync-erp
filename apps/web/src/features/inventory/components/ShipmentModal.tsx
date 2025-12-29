@@ -245,6 +245,7 @@ export function ShipmentModal({
                             className="w-24"
                             min={0}
                             max={remaining}
+                            selectOnFocus
                             {...register(`items.${index}.quantity`, {
                               valueAsNumber: true,
                               max: remaining,

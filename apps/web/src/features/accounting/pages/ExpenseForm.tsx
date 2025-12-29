@@ -205,6 +205,7 @@ export default function ExpenseForm() {
                             <Input
                               type="number"
                               min="1"
+                              selectOnFocus
                               {...register(
                                 `items.${index}.quantity` as const,
                                 {
@@ -220,6 +221,7 @@ export default function ExpenseForm() {
                               type="number"
                               min="0"
                               step="0.01"
+                              selectOnFocus
                               {...register(
                                 `items.${index}.price` as const,
                                 {
