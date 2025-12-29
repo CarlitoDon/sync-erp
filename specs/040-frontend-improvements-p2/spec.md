@@ -120,7 +120,7 @@ As a user, I want list pages to render efficiently so that scrolling and interac
 **Partner Page Consolidation**
 - **FR-001**: System MUST provide `PartnerListPage` component accepting `type`, `label`, `labelPlural`, `basePath` props
 - **FR-002**: PartnerListPage MUST handle all CRUD operations for both Suppliers and Customers
-- **FR-003**: PartnerListPage MUST support partner search and filtering
+- **FR-003**: PartnerListPage SHOULD support partner search and filtering _(deferred to future enhancement)_
 
 **Order Form Consolidation**
 - **FR-004**: System MUST provide `useOrderForm<T>` hook for shared order form logic
@@ -210,3 +210,4 @@ As a user, I want list pages to render efficiently so that scrolling and interac
 - Full accessibility audit (separate initiative - 043)
 - List virtualization for large datasets
 - Advanced form validation beyond required fields
+- Partner search/filtering in PartnerListPage (future enhancement)

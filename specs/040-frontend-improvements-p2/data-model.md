@@ -78,7 +78,7 @@ interface OrderItemEditorProps {
 ### NoCompanySelected Props
 
 ```typescript
-// apps/web/src/components/ui/NoCompanySelected.tsx
+// apps/web/src/components/ui/no-company-selected.tsx
 interface NoCompanySelectedProps {
   message?: string;
   actionLabel?: string;

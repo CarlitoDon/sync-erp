@@ -63,7 +63,7 @@ npm run db:studio
 
 | File | Purpose |
 |------|---------|
-| `components/ui/NoCompanySelected.tsx` | Empty state for missing company |
+| `components/ui/no-company-selected.tsx` | Empty state for missing company |
 | `features/common/components/PartnerListPage.tsx` | Shared Partner list component |
 | `hooks/useOrderForm.ts` | Shared order form logic |
 | `components/forms/OrderItemEditor.tsx` | Shared item editor UI |
@@ -75,7 +75,7 @@ npm run db:studio
 ### NoCompanySelected Pattern
 
 ```tsx
-// apps/web/src/components/ui/NoCompanySelected.tsx
+// apps/web/src/components/ui/no-company-selected.tsx
 import { Building2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
