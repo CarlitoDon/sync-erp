@@ -130,6 +130,14 @@ export function validateCanVoid(
     );
   }
 
+  if (document.status === InvoiceStatus.DRAFT) {
+    throw new DomainError(
+      `Cannot void DRAFT ${config.documentName.toLowerCase()}. Delete it instead.`,
+      422,
+      config.invalidStateErrorCode
+    );
+  }
+
   if (paymentCount > 0) {
     throw new DomainError(
       `Cannot void ${config.documentName.toLowerCase()}: Payments have been recorded. Void the payments first.`,
