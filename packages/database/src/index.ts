@@ -53,4 +53,6 @@ export {
   FulfillmentType,
 } from './generated/client/client.js';
 
+export type { Fulfillment, FulfillmentItem } from './generated/client/client.js';
+
 export { Prisma } from './generated/client/client.js';
