@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -44,29 +44,20 @@ export default function Payments() {
       : 'inbound';
   };
 
-  // Filter payments
-  const filteredPayments =
-    filter === 'all'
-      ? payments
-      : payments.filter((p) => getPaymentDirection(p) === filter);
+  // Memoize filtered/grouped payments to avoid recalculation on every render
+  const { filteredPayments, inboundPayments, outboundPayments } = useMemo(() => {
+    const inbound = payments.filter((p) => getPaymentDirection(p) === 'inbound');
+    const outbound = payments.filter((p) => getPaymentDirection(p) === 'outbound');
+    const filtered = filter === 'all' ? payments : filter === 'inbound' ? inbound : outbound;
+    return { filteredPayments: filtered, inboundPayments: inbound, outboundPayments: outbound };
+  }, [payments, filter]);
 
-  // Calculate stats
-  const inboundPayments = payments.filter(
-    (p) => getPaymentDirection(p) === 'inbound'
-  );
-  const outboundPayments = payments.filter(
-    (p) => getPaymentDirection(p) === 'outbound'
-  );
-
-  const totalInbound = inboundPayments.reduce(
-    (sum, p) => sum + Number(p.amount),
-    0
-  );
-  const totalOutbound = outboundPayments.reduce(
-    (sum, p) => sum + Number(p.amount),
-    0
-  );
-  const netCashflow = totalInbound - totalOutbound;
+  // Memoize stats calculations
+  const { totalInbound, totalOutbound, netCashflow } = useMemo(() => {
+    const inTotal = inboundPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const outTotal = outboundPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    return { totalInbound: inTotal, totalOutbound: outTotal, netCashflow: inTotal - outTotal };
+  }, [inboundPayments, outboundPayments]);
 
   return (
     <PageContainer>

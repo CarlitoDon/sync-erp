@@ -3,13 +3,13 @@ import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { StockAdjustmentModal } from '@/features/inventory/components/StockAdjustmentModal';
 import ActionButton from '@/components/ui/ActionButton';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   PageContainer,
   PageHeader,
 } from '@/components/layout/PageLayout';
 import { Card, CardContent } from '@/components/ui/Card';
-import { LoadingState } from '@/components/ui';
+import { LoadingState, NoCompanySelected } from '@/components/ui';
 
 export default function Inventory() {
   const { currentCompany } = useCompany();
@@ -32,23 +32,26 @@ export default function Inventory() {
     }).format(value);
   };
 
-  const getTotalValue = () => {
-    return stockLevels.reduce(
+  // Memoize computed values to avoid recalculation on every render
+  const { totalValue, totalUnits, lowStockItems, outOfStockItems } = useMemo(() => {
+    const value = stockLevels.reduce(
       (sum, item) => sum + item.stockQty * Number(item.averageCost),
       0
     );
-  };
+    const units = stockLevels.reduce((sum, item) => sum + item.stockQty, 0);
+    const lowStock = stockLevels.filter(
+      (item) => item.stockQty < 10 && item.stockQty > 0
+    );
+    const outOfStock = stockLevels.filter((item) => item.stockQty <= 0);
+    return { totalValue: value, totalUnits: units, lowStockItems: lowStock, outOfStockItems: outOfStock };
+  }, [stockLevels]);
 
   if (loading) {
     return <LoadingState />;
   }
 
   if (!currentCompany) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        Please select a company to view inventory.
-      </div>
-    );
+    return <NoCompanySelected message="Please select a company to view inventory." />;
   }
 
   return (
@@ -84,9 +87,7 @@ export default function Inventory() {
               Total Units in Stock
             </p>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {stockLevels
-                .reduce((sum, item) => sum + item.stockQty, 0)
-                .toLocaleString()}
+              {totalUnits.toLocaleString()}
             </p>
           </CardContent>
         </Card>
@@ -96,41 +97,32 @@ export default function Inventory() {
               Total Inventory Value
             </p>
             <p className="text-3xl font-bold text-primary-600 mt-2">
-              {formatCurrency(getTotalValue())}
+              {formatCurrency(totalValue)}
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Low Stock Alert */}
-      {stockLevels.filter(
-        (item) => item.stockQty < 10 && item.stockQty > 0
-      ).length > 0 && (
+      {lowStockItems.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
           <h3 className="font-semibold text-yellow-800">
             ⚠️ Low Stock Warning
           </h3>
           <p className="text-yellow-700 text-sm mt-1">
-            {
-              stockLevels.filter(
-                (item) => item.stockQty < 10 && item.stockQty > 0
-              ).length
-            }{' '}
-            products have low stock levels (below 10 units)
+            {lowStockItems.length} products have low stock levels (below 10 units)
           </p>
         </div>
       )}
 
       {/* Out of Stock Alert */}
-      {stockLevels.filter((item) => item.stockQty <= 0).length >
-        0 && (
+      {outOfStockItems.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <h3 className="font-semibold text-red-800">
             🚨 Out of Stock
           </h3>
           <p className="text-red-700 text-sm mt-1">
-            {stockLevels.filter((item) => item.stockQty <= 0).length}{' '}
-            products are out of stock
+            {outOfStockItems.length} products are out of stock
           </p>
         </div>
       )}
