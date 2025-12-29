@@ -7,6 +7,7 @@ import { apiAction } from '@/hooks/useApiAction';
 import { formatCurrency, formatDate } from '@/utils/format';
 import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
+import { CurrencyInput } from '@/components/ui';
 import { toast } from 'react-hot-toast';
 import Select from '@/components/ui/Select';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -345,34 +346,24 @@ export default function JournalEntries() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <input
-                      type="number"
-                      min="0"
+                    <CurrencyInput
                       value={line.debit}
-                      onChange={(e) =>
-                        handleLineChange(
-                          idx,
-                          'debit',
-                          parseFloat(e.target.value) || 0
-                        )
+                      onChange={(val) =>
+                        handleLineChange(idx, 'debit', val)
                       }
-                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2 text-right"
-                      disabled={line.credit > 0} // Standard practice: cannot be both
+                      min={0}
+                      prefix=""
+                      disabled={line.credit > 0}
                     />
                   </div>
                   <div className="col-span-2">
-                    <input
-                      type="number"
-                      min="0"
+                    <CurrencyInput
                       value={line.credit}
-                      onChange={(e) =>
-                        handleLineChange(
-                          idx,
-                          'credit',
-                          parseFloat(e.target.value) || 0
-                        )
+                      onChange={(val) =>
+                        handleLineChange(idx, 'credit', val)
                       }
-                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border p-2 text-right"
+                      min={0}
+                      prefix=""
                       disabled={line.debit > 0}
                     />
                   </div>
