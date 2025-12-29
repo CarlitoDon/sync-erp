@@ -145,6 +145,15 @@ export const inventoryRouter = router({
     }),
 
   /**
+   * Delete Draft GRN
+   */
+  deleteGRN: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return inventoryService.deleteGRN(ctx.companyId!, input.id);
+    }),
+
+  /**
    * Void Shipment (FR-024: requires reason)
    * Policy: Must be POSTED and no Invoice exists for the SO
    */
@@ -163,6 +172,18 @@ export const inventoryRouter = router({
         undefined,
         ctx.userId,
         ctx.userPermissions // FR-026: Granular RBAC
+      );
+    }),
+
+  /**
+   * Delete Draft Shipment
+   */
+  deleteShipment: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return inventoryService.deleteShipment(
+        ctx.companyId!,
+        input.id
       );
     }),
 });

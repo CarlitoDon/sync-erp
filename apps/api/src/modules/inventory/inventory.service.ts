@@ -224,7 +224,7 @@ export class InventoryService {
             where: {
               orderId: data.orderId,
               companyId,
-              type: 'BILL',
+              type: InvoiceType.BILL,
               notes: { contains: 'Down Payment' },
             },
           });
@@ -606,6 +606,32 @@ export class InventoryService {
     );
   }
 
+  async deleteFulfillment(
+    companyId: string,
+    fulfillmentId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const db = tx || prisma;
+    const fulfillment = await this.repository.findFulfillmentById(
+      fulfillmentId,
+      companyId,
+      db
+    );
+
+    if (!fulfillment) {
+      throw new DomainError('Fulfillment not found', 404);
+    }
+
+    if (fulfillment.status !== DocumentStatus.DRAFT) {
+      throw new DomainError(
+        `Cannot delete fulfillment in status: ${fulfillment.status}. Only DRAFT can be deleted.`,
+        400
+      );
+    }
+
+    return this.repository.deleteFulfillment(fulfillmentId, db);
+  }
+
   // ==========================================
   // Legacy GRN Methods (Wrapper for backward compatibility)
   // ==========================================
@@ -668,6 +694,14 @@ export class InventoryService {
     );
   }
 
+  async deleteGRN(
+    companyId: string,
+    grnId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.deleteFulfillment(companyId, grnId, tx);
+  }
+
   // ==========================================
   // Legacy Shipment Methods (Wrapper for backward compatibility)
   // ==========================================
@@ -727,6 +761,14 @@ export class InventoryService {
       userId,
       userPermissions
     );
+  }
+
+  async deleteShipment(
+    companyId: string,
+    shipmentId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.deleteFulfillment(companyId, shipmentId, tx);
   }
 
   // ==========================================

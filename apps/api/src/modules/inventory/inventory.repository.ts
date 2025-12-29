@@ -6,6 +6,8 @@ import {
   FulfillmentType,
   InvoiceType,
   SequenceType,
+  DocumentStatus,
+  InvoiceStatus,
 } from '@sync-erp/database';
 
 export interface StockMovementInput {
@@ -196,7 +198,9 @@ export class InventoryRepository {
         fulfillment: {
           orderId,
           type,
-          status: 'POSTED',
+          status: {
+            in: [DocumentStatus.POSTED, DocumentStatus.DRAFT],
+          },
         },
       },
       select: { productId: true, quantity: true },
@@ -242,7 +246,7 @@ export class InventoryRepository {
         date: data.date,
         notes: data.notes,
         receivedBy: data.receivedBy,
-        status: 'DRAFT',
+        status: DocumentStatus.DRAFT,
         items: {
           create: data.items.map((item) => ({
             productId: item.productId,
@@ -294,7 +298,7 @@ export class InventoryRepository {
     tx: Prisma.TransactionClient
   ) {
     return tx.fulfillment.findFirstOrThrow({
-      where: { id, companyId, status: 'DRAFT' },
+      where: { id, companyId, status: DocumentStatus.DRAFT },
       include: {
         items: { include: { product: true, orderItem: true } },
         order: true,
@@ -322,7 +326,7 @@ export class InventoryRepository {
   async postFulfillment(id: string, tx: Prisma.TransactionClient) {
     return tx.fulfillment.update({
       where: { id },
-      data: { status: 'POSTED' },
+      data: { status: DocumentStatus.POSTED },
       include: {
         items: { include: { product: true, orderItem: true } },
       },
@@ -341,7 +345,7 @@ export class InventoryRepository {
         companyId,
         orderId,
         type,
-        status: { not: 'VOID' },
+        status: { not: InvoiceStatus.VOID },
       },
     });
   }
@@ -350,11 +354,25 @@ export class InventoryRepository {
     const db = tx || prisma;
     return db.fulfillment.update({
       where: { id },
-      data: { status: 'VOIDED' },
+      data: { status: DocumentStatus.VOIDED },
       include: {
         items: { include: { product: true, orderItem: true } },
         order: true,
       },
     });
+  }
+
+  async deleteFulfillment(id: string, tx?: Prisma.TransactionClient) {
+    const op = async (t: Prisma.TransactionClient) => {
+      await t.fulfillmentItem.deleteMany({
+        where: { fulfillmentId: id },
+      });
+      return t.fulfillment.delete({
+        where: { id },
+      });
+    };
+
+    if (tx) return op(tx);
+    return prisma.$transaction(op);
   }
 }
