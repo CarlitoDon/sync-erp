@@ -3,7 +3,11 @@ import { PurchaseOrderService } from '../../modules/procurement/purchase-order.s
 import { CreatePurchaseOrderSchema } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const purchaseOrderService = new PurchaseOrderService();
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const purchaseOrderService = container.resolve<PurchaseOrderService>(
+  ServiceKeys.PURCHASE_ORDER_SERVICE
+);
 
 export const purchaseOrderRouter = router({
   /**

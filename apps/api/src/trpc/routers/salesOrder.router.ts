@@ -3,7 +3,11 @@ import { router, protectedProcedure } from '../trpc';
 import { SalesOrderService } from '../../modules/sales/sales-order.service';
 import { CreateSalesOrderSchema } from '@sync-erp/shared';
 
-const salesOrderService = new SalesOrderService();
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const salesOrderService = container.resolve<SalesOrderService>(
+  ServiceKeys.SALES_ORDER_SERVICE
+);
 
 export const salesOrderRouter = router({
   /**

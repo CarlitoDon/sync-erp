@@ -1,9 +1,12 @@
 import { router, protectedProcedure } from '../trpc';
+import { container, ServiceKeys } from '../../modules/common/di';
 import { InvoiceService } from '../../modules/accounting/services/invoice.service';
 import { CreateInvoiceFromSOSchema } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const invoiceService = new InvoiceService();
+const invoiceService = container.resolve<InvoiceService>(
+  ServiceKeys.INVOICE_SERVICE
+);
 
 export const invoiceRouter = router({
   /**

@@ -6,7 +6,11 @@ import {
 } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const paymentService = new PaymentService();
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const paymentService = container.resolve<PaymentService>(
+  ServiceKeys.PAYMENT_SERVICE
+);
 
 export const paymentRouter = router({
   /**
