@@ -43,6 +43,8 @@ export interface VoidDocumentConfig {
 
 /**
  * Validate permission for void operation.
+ * Note: Permissions from context are UPPERCASE (e.g., 'FINANCE:VOID')
+ * but config may pass lowercase. We normalize both to uppercase.
  *
  * @param config - Void configuration
  * @throws DomainError if permission is missing
@@ -50,12 +52,16 @@ export interface VoidDocumentConfig {
 export function validateVoidPermission(
   config: VoidDocumentConfig
 ): void {
+  const normalizedUserPerms = config.userPermissions?.map((p) =>
+    p.toUpperCase()
+  );
+  const normalizedRequired = config.requiredPermission.toUpperCase();
+  const moduleWildcard = `${config.documentName.toUpperCase()}:*`;
+
   const hasPermission =
-    config.userPermissions?.includes(config.requiredPermission) ||
-    config.userPermissions?.includes(
-      `${config.documentName.toLowerCase()}:*`
-    ) ||
-    config.userPermissions?.includes('*:*');
+    normalizedUserPerms?.includes(normalizedRequired) ||
+    normalizedUserPerms?.includes(moduleWildcard) ||
+    normalizedUserPerms?.includes('*:*');
 
   if (!hasPermission) {
     throw new DomainError(

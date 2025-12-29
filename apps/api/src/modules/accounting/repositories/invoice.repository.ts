@@ -275,4 +275,42 @@ export class InvoiceRepository {
       },
     });
   }
+
+  /**
+   * Calculate total DP already deducted from Bills for this Order.
+   * This is used to prevent over-deducting DP in multi-bill scenarios.
+   */
+  async sumDeductedDpByOrderId(
+    orderId: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const db = tx || prisma;
+    const bills = await db.invoice.findMany({
+      where: {
+        orderId,
+        companyId,
+        type: InvoiceType.BILL,
+        isDownPayment: false,
+        status: { not: InvoiceStatus.VOID },
+        dpBillId: { not: null },
+      },
+      select: {
+        amount: true,
+        subtotal: true,
+        taxRate: true,
+      },
+    });
+
+    return bills.reduce((sum, bill) => {
+      const taxMultiplier =
+        Number(bill.taxRate) > 1
+          ? Number(bill.taxRate) / 100
+          : Number(bill.taxRate);
+      const grossBeforeDeduction =
+        Number(bill.subtotal) * (1 + taxMultiplier);
+      const dpDeducted = grossBeforeDeduction - Number(bill.amount);
+      return sum + (dpDeducted > 1 ? dpDeducted : 0); // Guard against tiny floating point errors
+    }, 0);
+  }
 }

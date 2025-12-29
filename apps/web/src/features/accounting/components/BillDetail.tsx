@@ -346,7 +346,8 @@ export default function BillDetail() {
                   </ActionButton>
                 </>
               )}
-              {bill.status === StatusSchema.enum.POSTED &&
+              {(bill.status === StatusSchema.enum.POSTED ||
+                bill.status === StatusSchema.enum.PARTIALLY_PAID) &&
                 Number(bill.balance) > 0 && (
                   <>
                     <ActionButton

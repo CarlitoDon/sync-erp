@@ -441,12 +441,16 @@ export class InventoryService {
     userId?: string,
     userPermissions?: string[] // FR-026: Granular permissions array
   ) {
-    // FR-026: Void Fulfillment requires 'inventory:void' permission
-    const requiredPermission = 'inventory:void';
+    // FR-026: Void Fulfillment requires 'INVENTORY:VOID' permission
+    // Context builds permissions as uppercase: '${module}:${action}'
+    const requiredPermission = 'INVENTORY:VOID';
+    const normalizedPermissions = userPermissions?.map((p) =>
+      p.toUpperCase()
+    );
     const hasPermission =
-      userPermissions?.includes(requiredPermission) ||
-      userPermissions?.includes('inventory:*') ||
-      userPermissions?.includes('*:*');
+      normalizedPermissions?.includes(requiredPermission) ||
+      normalizedPermissions?.includes('INVENTORY:*') ||
+      normalizedPermissions?.includes('*:*');
 
     if (!hasPermission) {
       throw new DomainError(

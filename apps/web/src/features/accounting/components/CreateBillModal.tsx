@@ -36,6 +36,7 @@ interface CreateBillModalProps {
 // Form-specific type with string dates (HTML input compatible)
 interface BillFormData {
   orderId: string;
+  grnId?: string;
   supplierInvoiceNumber?: string;
   dueDate?: string;
   taxRate?: number;
@@ -130,6 +131,7 @@ export default function CreateBillModal({
           if (grn) {
             setPoId(grn.orderId);
             setValue('orderId', grn.orderId);
+            setValue('grnId', grnId);
           }
         } finally {
           setLoadingDetails(false);
@@ -142,13 +144,18 @@ export default function CreateBillModal({
   const onSubmit = async (formData: BillFormData) => {
     // Convert form data to API format (string dates to Date objects)
     const apiData: CreateBillInput = {
-      ...formData,
+      orderId: formData.orderId,
+      grnId: formData.grnId || undefined, // Only include if set
+      supplierInvoiceNumber:
+        formData.supplierInvoiceNumber || undefined,
       businessDate: formData.businessDate
         ? new Date(formData.businessDate)
         : undefined,
       dueDate: formData.dueDate
         ? new Date(formData.dueDate)
         : undefined,
+      taxRate: formData.taxRate,
+      paymentTermsString: formData.paymentTermsString,
     };
 
     const result = await createFromPO(apiData);
@@ -173,8 +180,9 @@ export default function CreateBillModal({
       maxWidth="2xl"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Hidden Order ID */}
+        {/* Hidden Order ID & GRN ID */}
         <input type="hidden" {...register('orderId')} />
+        <input type="hidden" {...register('grnId')} />
 
         {(loadingDetails || (poId && !order)) && (
           <p className="text-sm text-gray-500">Loading details...</p>

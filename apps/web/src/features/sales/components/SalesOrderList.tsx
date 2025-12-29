@@ -5,6 +5,8 @@ import { useOrderMutations } from '@/hooks/useOrderMutations';
 import { apiAction } from '@/hooks/useApiAction';
 import { formatCurrency } from '@/utils/format';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { useConfirm } from '@/components/ui/ConfirmModal';
+import { usePrompt } from '@/components/ui/PromptModal';
 import { LoadingState } from '@/components/ui';
 import SalesOrderActions from './SalesOrderActions';
 
@@ -18,6 +20,8 @@ export default function SalesOrderList({
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
   const navigate = useNavigate();
+  const confirm = useConfirm();
+  const prompt = usePrompt();
 
   const { data: orders = [], isLoading: loading } =
     trpc.salesOrder.list.useQuery(filter, {
@@ -30,6 +34,10 @@ export default function SalesOrderList({
   });
 
   const shipMutation = trpc.salesOrder.ship.useMutation({
+    onSuccess: () => utils.salesOrder.list.invalidate(),
+  });
+
+  const closeMutation = trpc.salesOrder.close.useMutation({
     onSuccess: () => utils.salesOrder.list.invalidate(),
   });
 
@@ -58,6 +66,32 @@ export default function SalesOrderList({
 
   const handleViewInvoice = (invoiceId: string) => {
     navigate(`/invoices/${invoiceId}`);
+  };
+
+  const handleCloseSO = async (orderId: string) => {
+    const reason = await prompt({
+      title: 'Close Sales Order',
+      message: 'Please enter a reason for closing this SO:',
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+
+    if (!reason) return;
+
+    const confirmed = await confirm({
+      title: 'Close Sales Order',
+      message:
+        'This will close the sales order and prevent further shipment. Continue?',
+      confirmText: 'Yes, Close',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
+
+    await apiAction(
+      () => closeMutation.mutateAsync({ id: orderId, reason }),
+      'Sales order closed'
+    );
   };
 
   if (loading && orders.length === 0) {
@@ -129,6 +163,7 @@ export default function SalesOrderList({
                     onShip={handleShip}
                     onCreateInvoice={handleCreateInvoice}
                     onViewInvoice={handleViewInvoice}
+                    onCloseSO={handleCloseSO}
                     onViewShipment={(shipmentId) => navigate(`/deliveries/${shipmentId}`)}
                     layout="list"
                   />

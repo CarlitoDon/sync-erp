@@ -81,6 +81,7 @@ export const CreateP2PBillSchema = z.object({
 
 export const CreateBillFromPOSchema = z.object({
   orderId: z.string().uuid(),
+  grnId: z.string().uuid().optional(), // Feature: Link to specific GRN/Receipt
   supplierInvoiceNumber: z.string().optional(), // External reference from supplier's invoice
   dueDate: z.coerce.date().optional(),
   taxRate: z.number().optional(),

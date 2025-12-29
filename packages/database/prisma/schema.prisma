@@ -389,10 +389,10 @@ model Role {
 }
 
 model Permission {
-  id     String @id @default(uuid())
-  module String
-  action String
-  scope  String @default("ALL")
+  id     String           @id @default(uuid())
+  module PermissionModule
+  action PermissionAction
+  scope  PermissionScope  @default(ALL)
 
   roles RolePermission[]
 
@@ -413,6 +413,30 @@ model RolePermission {
 // ============================================
 // Enums
 // ============================================
+
+// Permission Enums (FR-026: Granular RBAC)
+enum PermissionModule {
+  COMPANY
+  SALES
+  PURCHASING
+  INVENTORY
+  FINANCE
+  USERS
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  APPROVE
+  VOID
+}
+
+enum PermissionScope {
+  ALL
+  OWN
+}
 
 enum PartnerType {
   CUSTOMER

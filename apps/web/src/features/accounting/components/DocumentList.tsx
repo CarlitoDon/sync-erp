@@ -93,13 +93,15 @@ export function DocumentList({
     onSuccess: () => utils.invoice.list.invalidate(),
   });
   const paymentMutation = trpc.payment.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       utils.bill.list.invalidate();
       utils.invoice.list.invalidate();
       utils.payment.list.invalidate();
       // Order status may change after payment (e.g., DP paid)
       utils.purchaseOrder.list.invalidate();
       utils.salesOrder.list.invalidate();
+      // Ensure PO list cache updates even if not mounted
+      await utils.purchaseOrder.list.refetch();
     },
   });
 

@@ -22,6 +22,7 @@ import { JournalService } from './journal.service';
 
 export interface CreateBillInput {
   orderId: string;
+  grnId?: string; // Feature: Link to specific GRN/Receipt
   supplierInvoiceNumber?: string; // External reference from supplier's invoice
   dueDate?: Date;
   taxRate?: number;
@@ -31,8 +32,8 @@ export interface CreateBillInput {
 
 import { DocumentNumberService } from '../../common/services/document-number.service';
 import { BillPolicy } from '../policies/bill.policy';
-import { InventoryRepository } from '../../inventory/inventory.repository.js';
-import { PurchaseOrderRepository } from '../../procurement/purchase-order.repository.js';
+import { InventoryRepository } from '../../inventory/inventory.repository';
+import { PurchaseOrderRepository } from '../../procurement/purchase-order.repository';
 import { calculateDueDate } from '../../common/utils/payment-terms.utils';
 import * as auditLogService from '../../common/audit/audit-log.service';
 import {
@@ -84,6 +85,30 @@ export class BillService {
     // Note: passing undefined for tx implicitly as it's optional last arg
     BillPolicy.ensureGoodsReceived(grnCount);
 
+    // Feature: Calculate subtotal from specific GRN items if provided
+    let grnItems: any[] = [];
+    if (data.grnId) {
+      const grn = await this.inventoryRepository.findFulfillmentById(
+        data.grnId,
+        companyId
+      );
+      if (!grn) {
+        throw new DomainError(
+          'Goods receipt not found',
+          404,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
+        );
+      }
+      if (grn.orderId !== data.orderId) {
+        throw new DomainError(
+          'Goods receipt does not belong to this order',
+          400,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
+        );
+      }
+      grnItems = grn.items;
+    }
+
     // FR-013: Prevent duplicate supplier invoice numbers per supplier
     if (data.supplierInvoiceNumber) {
       const existingBill =
@@ -107,11 +132,21 @@ export class BillService {
       'BILL'
     );
 
-    // Calculate subtotal from items (Net) avoiding double tax from order.totalAmount (Gross)
-    const subtotal = order.items.reduce(
-      (sum, item) => sum + Number(item.price) * item.quantity,
-      0
-    );
+    // Calculate subtotal from items (Net)
+    // If grnId is provided, use GRN items. Otherwise use PO items (legacy/full)
+    let subtotal = 0;
+    if (grnItems.length > 0) {
+      subtotal = grnItems.reduce(
+        (sum, item) =>
+          sum + Number(item.orderItem?.price || 0) * item.quantity,
+        0
+      );
+    } else {
+      subtotal = order.items.reduce(
+        (sum, item) => sum + Number(item.price) * item.quantity,
+        0
+      );
+    }
 
     let taxRate = data.taxRate;
     if (taxRate === undefined && order.taxRate !== null) {
@@ -125,27 +160,38 @@ export class BillService {
 
     // Deduct DP amount if DP Bill was paid
     const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
-    let dpDeducted = 0;
+    let dpDeductedNow = 0;
     let dpBillId: string | undefined;
 
     if (dpAmount > 0) {
-      // Verify DP Bill is PAID before deducting
+      // Find the PAID DP Bill
       const dpBill = await this.repository.findFirst({
         orderId: data.orderId,
         companyId,
         type: InvoiceType.BILL,
         status: InvoiceStatus.PAID,
-        isDownPayment: true, // Prefer explicit flag (backfilled)
+        isDownPayment: true,
       });
+
       if (dpBill) {
-        dpDeducted = dpAmount;
-        amount = amount - dpDeducted;
         dpBillId = dpBill.id;
+        // Calculate already deducted DP from previous bills
+        const alreadyDeducted =
+          await this.repository.sumDeductedDpByOrderId(
+            data.orderId,
+            companyId
+          );
+        const remainingDp = dpAmount - alreadyDeducted;
+
+        if (remainingDp > 0) {
+          // Deduct remaining DP, capped by current bill amount
+          dpDeductedNow = Math.min(remainingDp, amount);
+          amount = amount - dpDeductedNow;
+        }
       }
     }
 
     // Create lines from order items
-    // Assuming Invoice has 'items' relation to InvoiceLine/BillLine
     const createData: Prisma.InvoiceUncheckedCreateInput = {
       companyId,
       orderId: data.orderId,
@@ -154,21 +200,14 @@ export class BillService {
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
       dpBillId, // Feature: Link to DP Bill
-      supplierInvoiceNumber: data.supplierInvoiceNumber, // External reference from supplier
+      supplierInvoiceNumber: data.supplierInvoiceNumber,
       notes:
-        dpDeducted > 0
-          ? `Final Bill (DP ${order.dpPercent || 0}% deducted: Rp ${dpDeducted.toLocaleString()})`
+        dpDeductedNow > 0
+          ? `Final Bill (DP deducted: Rp ${dpDeductedNow.toLocaleString()})`
           : undefined,
       amount,
-      subtotal:
-        dpDeducted > 0
-          ? subtotal - dpDeducted / (1 + taxMultiplier)
-          : subtotal,
-      taxAmount:
-        dpDeducted > 0
-          ? taxAmount -
-            (dpDeducted - dpDeducted / (1 + taxMultiplier))
-          : taxAmount,
+      subtotal, // Keep original subtotal for journal and reconstruction
+      taxAmount, // Keep original tax for journal and reconstruction
       taxRate,
       balance: amount,
       dueDate:
@@ -178,7 +217,7 @@ export class BillService {
           order.paymentTerms || PaymentTerms.NET30
         ),
       paymentTermsString:
-        order.paymentTerms || data.paymentTermsString || 'NET30', // Inherit from PO if exists
+        order.paymentTerms || data.paymentTermsString || 'NET30',
     };
 
     return this.repository.create(createData);
