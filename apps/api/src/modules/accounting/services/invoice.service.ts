@@ -44,12 +44,14 @@ import {
 } from '../../common/utils/document.utils';
 
 export class InvoiceService {
-  private repository = new InvoiceRepository();
-  private journalService = new JournalService();
-  private documentNumberService = new DocumentNumberService();
-  private idempotencyService = new IdempotencyService();
-  private inventoryService = new InventoryService();
-  private customerDepositService = new CustomerDepositService();
+  constructor(
+    private readonly repository: InvoiceRepository = new InvoiceRepository(),
+    private readonly journalService: JournalService = new JournalService(),
+    private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
+    private readonly idempotencyService: IdempotencyService = new IdempotencyService(),
+    private readonly inventoryService: InventoryService = new InventoryService(),
+    private readonly customerDepositService: CustomerDepositService = new CustomerDepositService()
+  ) {}
 
   async createFromSalesOrder(
     companyId: string,
@@ -415,7 +417,7 @@ export class InvoiceService {
             'IDR';
           Money.from(0, currency).ensureBase();
 
-          // 3. Stock OUT (if order-linked)
+          // 3. Stock OUT (if order-linked and not already shipped)
           let order = null;
           if (invoice.orderId) {
             order = await this.repository.findOrderWithItems(
@@ -425,27 +427,40 @@ export class InvoiceService {
             );
 
             if (order) {
-              // Create Shipment document
-              const shipment =
-                await this.inventoryService.createShipment(
+              // Skip auto-shipment if order is already shipped (manual shipment before invoice)
+              const alreadyShippedStatuses: OrderStatus[] = [
+                OrderStatus.SHIPPED,
+                OrderStatus.PARTIALLY_SHIPPED,
+                OrderStatus.COMPLETED,
+              ];
+              const needsShipment = !alreadyShippedStatuses.includes(
+                order.status as OrderStatus
+              );
+
+              if (needsShipment) {
+                // Create Shipment document
+                const shipment =
+                  await this.inventoryService.createShipment(
+                    companyId,
+                    {
+                      salesOrderId: invoice.orderId,
+                      notes: `Shipment for Invoice ${invoice.invoiceNumber}`,
+                      items: order.items.map((item) => ({
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        
+                      })),
+                    },
+                    tx
+                  );
+
+                // Post Shipment (Stock OUT + COGS Snapshot)
+                await this.inventoryService.postShipment(
                   companyId,
-                  {
-                    salesOrderId: invoice.orderId,
-                    notes: `Shipment for Invoice ${invoice.invoiceNumber}`,
-                    items: order.items.map((item) => ({
-                      productId: item.productId,
-                      quantity: item.quantity,
-                    })),
-                  },
+                  shipment.id,
                   tx
                 );
-
-              // Post Shipment (Stock OUT + COGS Snapshot)
-              await this.inventoryService.postShipment(
-                companyId,
-                shipment.id,
-                tx
-              );
+              }
             }
           }
 
@@ -483,11 +498,8 @@ export class InvoiceService {
       );
 
       // 6. Cash Upfront Sales: Auto-settle customer deposit if applicable
-      // Check if the linked order has UPFRONT payment terms
-      if (
-        result.order &&
-        result.order.paymentTerms === PaymentTerms.UPFRONT
-      ) {
+      // GAP-3 Fix: Allow auto-settlement for any order with a deposit (Tempo + DP)
+      if (result.order) {
         try {
           const depositInfo =
             await this.customerDepositService.getDepositInfo(

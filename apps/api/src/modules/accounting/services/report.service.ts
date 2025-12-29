@@ -11,8 +11,10 @@ import {
 } from '@sync-erp/shared';
 
 export class ReportService {
-  private accountRepository = new AccountRepository();
-  private journalRepository = new JournalRepository();
+  constructor(
+    private readonly accountRepository: AccountRepository = new AccountRepository(),
+    private readonly journalRepository: JournalRepository = new JournalRepository()
+  ) {}
 
   async getTrialBalance(
     companyId: string,
