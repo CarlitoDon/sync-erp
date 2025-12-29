@@ -49,6 +49,7 @@ export default function CreatePaymentModal({
   onSuccess,
 }: CreatePaymentModalProps) {
   const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
   const [selectedDoc, setSelectedDoc] = useState<SelectedDoc | null>(
     null
   );
@@ -87,6 +88,13 @@ export default function CreatePaymentModal({
 
   const createMutation = trpc.payment.create.useMutation({
     onSuccess: () => {
+      // Invalidate payment and document lists
+      utils.payment.list.invalidate();
+      utils.bill.list.invalidate();
+      utils.invoice.list.invalidate();
+      // Order status may change after payment (e.g., DP paid)
+      utils.purchaseOrder.list.invalidate();
+      utils.salesOrder.list.invalidate();
       onSuccess();
       onClose();
       reset();

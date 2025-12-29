@@ -38,11 +38,19 @@ export default function BillDetail() {
     );
 
   const postMutation = trpc.bill.post.useMutation({
-    onSuccess: () => utils.bill.getById.invalidate({ id: id! }),
+    onSuccess: () => {
+      utils.bill.getById.invalidate({ id: id! });
+      utils.bill.list.invalidate();
+      utils.purchaseOrder.list.invalidate(); // PO status may change
+    },
   });
 
   const voidMutation = trpc.bill.void.useMutation({
-    onSuccess: () => utils.bill.getById.invalidate({ id: id! }),
+    onSuccess: () => {
+      utils.bill.getById.invalidate({ id: id! });
+      utils.bill.list.invalidate();
+      utils.purchaseOrder.list.invalidate(); // PO status may change
+    },
   });
 
   // Modal State
@@ -121,6 +129,7 @@ export default function BillDetail() {
         {/* Header */}
         <PageHeader
           title={`Bill ${bill.invoiceNumber}`}
+          showBackButton
           subtitle={
             bill.partnerId ? (
               <Link

@@ -61,9 +61,13 @@ export function RecordPaymentModal({
       if (documentType === 'bill') {
         utils.bill.getById.invalidate();
         utils.bill.list.invalidate();
+        // PO status may change (e.g., DP paid -> can receive goods)
+        utils.purchaseOrder.list.invalidate();
       } else {
         utils.invoice.getById.invalidate();
         utils.invoice.list.invalidate();
+        // SO status may change after payment
+        utils.salesOrder.list.invalidate();
       }
       onSuccess?.();
     },

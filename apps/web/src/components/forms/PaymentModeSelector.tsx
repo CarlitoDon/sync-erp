@@ -7,8 +7,8 @@ import { QuantityInput, CurrencyInput } from '@/components/ui';
 // UI-level payment mode constants (not database enums)
 const PAYMENT_MODES = {
   TEMPO: 'TEMPO',
-  UPFRONT: 'UPFRONT',
-  COD: 'COD',
+  UPFRONT: PaymentTermsSchema.enum.UPFRONT,
+  COD: PaymentTermsSchema.enum.COD,
 } as const;
 
 type PaymentMode = (typeof PAYMENT_MODES)[keyof typeof PAYMENT_MODES];

@@ -7,6 +7,7 @@ import {
 } from '@/features/accounting/hooks/useBill';
 import { useGoodsReceipt } from '@/features/procurement/hooks/useGoodsReceipt';
 import { trpc } from '@/lib/trpc';
+import { PaymentTermsSchema } from '@sync-erp/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,7 +68,7 @@ export default function CreateBillModal({
     useForm<BillFormData>({
       defaultValues: {
         supplierInvoiceNumber: '',
-        paymentTermsString: 'NET30',
+        paymentTermsString: PaymentTermsSchema.enum.NET30,
         businessDate: toDateInputValue(new Date()), // Pre-fill today in yyyy-MM-dd format
       },
     });
