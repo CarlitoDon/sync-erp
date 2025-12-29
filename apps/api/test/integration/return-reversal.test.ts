@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
-import { SalesOrderService } from '@modules/sales/sales-order.service';
-import { JournalService } from '@modules/accounting/services/journal.service';
+import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
+import { JournalService } from '../../src/modules/accounting/services/journal.service';
 
 const salesOrderService = new SalesOrderService();
 const journalService = new JournalService();
@@ -69,7 +69,14 @@ describe('US3: Sales Return Reversal', () => {
 
   afterAll(async () => {
     // Cleanup cascade
+    await prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN (SELECT id FROM "JournalEntry" WHERE "companyId" = ${COMPANY_ID})`;
     await prisma.journalEntry.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.fulfillmentItem.deleteMany({
+      where: { fulfillment: { companyId: COMPANY_ID } },
+    });
+    await prisma.fulfillment.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     await prisma.inventoryMovement.deleteMany({
@@ -93,7 +100,7 @@ describe('US3: Sales Return Reversal', () => {
     await prisma.company.delete({ where: { id: COMPANY_ID } });
   });
 
-  it.skip('should reverse COGS and increase stock when return is processed', async () => {
+  it('should reverse COGS and increase stock when return is processed', async () => {
     // 1. Create Sales Order
     const order = await salesOrderService.create(COMPANY_ID, {
       partnerId,
@@ -119,9 +126,9 @@ describe('US3: Sales Return Reversal', () => {
 
     // 3. Process Return for 1 item
     // Reversal: 1 * 150,000 = 150,000
-    /* await salesOrderService.returnOrder(COMPANY_ID, order.id, [
+    await salesOrderService.returnOrder(COMPANY_ID, order.id, [
       { productId, quantity: 1 },
-    ]); */
+    ]);
 
     // 4. Verify Stock Increased
     const returnedProduct = await prisma.product.findUnique({
@@ -132,9 +139,9 @@ describe('US3: Sales Return Reversal', () => {
     // 5. Verify Journals
     const journals = await journalService.list(COMPANY_ID);
 
-    // Find Return Journal
+    // Find Return Journal (reference format: RET:RET-...)
     const returnJournal = journals.find((j) =>
-      j.reference?.includes('Return for order')
+      j.reference?.includes('RET:')
     ) as any;
 
     expect(returnJournal).toBeDefined();
@@ -150,8 +157,9 @@ describe('US3: Sales Return Reversal', () => {
     expect(Number(assetLine?.debit)).toBe(150000);
     expect(Number(cogsLine?.credit)).toBe(150000);
   });
+
   describe('Edge Cases', () => {
-    it.skip('Should fail to return more than shipped quantity', async () => {
+    it('Should fail to return more than shipped quantity', async () => {
       const order = await salesOrderService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 1, price: 200000 }],
@@ -164,11 +172,11 @@ describe('US3: Sales Return Reversal', () => {
       });
       await salesOrderService.ship(COMPANY_ID, order.id);
 
-      /* await expect(
+      await expect(
         salesOrderService.returnOrder(COMPANY_ID, order.id, [
           { productId, quantity: 2 },
         ])
-      ).rejects.toThrow(); */
+      ).rejects.toThrow();
     });
   });
 });
