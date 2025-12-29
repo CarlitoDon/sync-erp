@@ -83,6 +83,20 @@ const DEFAULT_CONFIGS: Record<DocumentType, DocumentNumberConfig> = {
     yearFormat: '4',
     sequenceLength: 5,
   },
+  RET: {
+    prefix: 'RET',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
+  PRR: {
+    prefix: 'PRR',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
 };
 
 export class DocumentNumberService {
