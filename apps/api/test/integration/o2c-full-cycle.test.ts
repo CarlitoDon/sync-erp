@@ -3,11 +3,12 @@ import {
   prisma,
   OrderStatus,
   InvoiceStatus,
+  JournalSourceType,
 } from '@sync-erp/database';
-import { InvoiceService } from '@modules/accounting/services/invoice.service';
-import { PaymentService } from '@modules/accounting/services/payment.service';
-import { JournalService } from '@modules/accounting/services/journal.service';
-import { SalesOrderService } from '@modules/sales/sales-order.service';
+import { InvoiceService } from '../../src/modules/accounting/services/invoice.service';
+import { PaymentService } from '../../src/modules/accounting/services/payment.service';
+import { JournalService } from '../../src/modules/accounting/services/journal.service';
+import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
 
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
@@ -178,7 +179,8 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       let journals = await journalService.list(COMPANY_ID);
       const invoiceJournal = journals.find(
         (j: any) =>
-          j.sourceType === 'INVOICE' && j.sourceId === invoiceId
+          j.sourceType === JournalSourceType.INVOICE &&
+          j.sourceId === invoiceId
       ) as any;
       expect(invoiceJournal).toBeDefined();
 
@@ -210,7 +212,7 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       // Step 6: Verify Cash receipt journal
       journals = await journalService.list(COMPANY_ID);
       const paymentJournal = journals.find(
-        (j: any) => j.sourceType === 'PAYMENT'
+        (j: any) => j.sourceType === JournalSourceType.PAYMENT
       ) as any;
       expect(paymentJournal).toBeDefined();
 
