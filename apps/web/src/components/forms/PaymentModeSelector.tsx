@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { PaymentTermsSchema } from '@sync-erp/shared';
 import { formatCurrency } from '@/utils/format';
 import Select from '@/components/ui/Select';
+import { QuantityInput, CurrencyInput } from '@/components/ui';
 
 // UI-level payment mode constants (not database enums)
 const PAYMENT_MODES = {
@@ -205,35 +206,22 @@ export default function PaymentModeSelector({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     DP Persen (%)
                   </label>
-                  <input
-                    type="number"
+                  <QuantityInput
                     min={1}
                     max={99}
-                    step={1}
                     value={Math.round(localDpPercent)}
-                    onChange={(e) =>
-                      handleDpPercentChange(
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    onChange={(val) => handleDpPercentChange(val)}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     DP Nominal
                   </label>
-                  <input
-                    type="number"
+                  <CurrencyInput
                     min={0}
-                    step="any"
+                    max={totalAmount * 0.99}
                     value={Math.round(localDpAmount)}
-                    onChange={(e) =>
-                      handleDpAmountChange(
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    onChange={(val) => handleDpAmountChange(val)}
                   />
                 </div>
               </div>
@@ -323,35 +311,22 @@ export default function PaymentModeSelector({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     DP Persen (%)
                   </label>
-                  <input
-                    type="number"
+                  <QuantityInput
                     min={1}
                     max={99}
-                    step={1}
                     value={Math.round(localDpPercent)}
-                    onChange={(e) =>
-                      handleDpPercentChange(
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    onChange={(val) => handleDpPercentChange(val)}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     DP Nominal
                   </label>
-                  <input
-                    type="number"
+                  <CurrencyInput
                     min={0}
-                    step="any"
+                    max={totalAmount * 0.99}
                     value={Math.round(localDpAmount)}
-                    onChange={(e) =>
-                      handleDpAmountChange(
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    onChange={(val) => handleDpAmountChange(val)}
                   />
                 </div>
               </div>
