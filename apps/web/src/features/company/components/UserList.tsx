@@ -3,6 +3,7 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { trpc, RouterOutputs } from '@/lib/trpc';
 import ActionButton from '@/components/ui/ActionButton';
 import { AssignCompanyModal } from '@/features/company/components/AssignCompanyModal';
+import { NoCompanySelected } from '@/components/ui';
 
 type UserWithRoles = RouterOutputs['user']['listByCompany'][number];
 
@@ -29,11 +30,7 @@ export function UserList() {
   }
 
   if (!currentCompany) {
-    return (
-      <div className="p-8 text-center text-gray-500">
-        Please select a company.
-      </div>
-    );
+    return <NoCompanySelected />;
   }
 
   return (

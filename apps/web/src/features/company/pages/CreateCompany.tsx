@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { PageContainer } from '@/components/layout/PageLayout';
+import { Input } from '@/components/ui';
 import {
   Card,
   CardHeader,
@@ -56,29 +57,15 @@ export default function CreateCompany() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter company name"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  disabled={createMutation.isPending}
-                />
-              </div>
-
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                  {error}
-                </div>
-              )}
+              <Input
+                label="Company Name"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter company name"
+                disabled={createMutation.isPending}
+                error={error || undefined}
+              />
 
               <div className="flex space-x-4">
                 <button
@@ -92,7 +79,7 @@ export default function CreateCompany() {
                 <button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transition-all disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-linear-to-r from-primary-500 to-primary-600 text-white rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transition-all disabled:opacity-50"
                   // disabled:opacity-50 was already there
                 >
                   {createMutation.isPending
