@@ -188,7 +188,7 @@ export const MovementTypeSchema = z.enum(['IN','OUT']);
 
 export type MovementTypeType = `${z.infer<typeof MovementTypeSchema>}`
 
-export const InvoiceTypeSchema = z.enum(['INVOICE','BILL','EXPENSE','CREDIT_NOTE']);
+export const InvoiceTypeSchema = z.enum(['INVOICE','BILL','EXPENSE','CREDIT_NOTE','DEBIT_NOTE']);
 
 export type InvoiceTypeType = `${z.infer<typeof InvoiceTypeSchema>}`
 
@@ -224,7 +224,7 @@ export const FulfillmentTypeSchema = z.enum(['RECEIPT','SHIPMENT']);
 
 export type FulfillmentTypeType = `${z.infer<typeof FulfillmentTypeSchema>}`
 
-export const SequenceTypeSchema = z.enum(['PO','GRN','SHP','BILL','PAY','SO','INV','CN','JE']);
+export const SequenceTypeSchema = z.enum(['PO','GRN','SHP','BILL','PAY','SO','INV','CN','JE','DN']);
 
 export type SequenceTypeType = `${z.infer<typeof SequenceTypeSchema>}`
 

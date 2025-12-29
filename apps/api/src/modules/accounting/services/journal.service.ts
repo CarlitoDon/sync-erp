@@ -27,9 +27,22 @@ export interface CreateJournalEntryInput {
   lines: CreateJournalLineInput[];
 }
 
+/**
+ * JournalService - Central service for all journal entries
+ *
+ * Organized into sections:
+ * - Core Methods: create, reverse, getById, list, resolveAndCreate
+ * - O2C (Sales) Journals: invoice, creditNote, paymentReceived, shipment, customerDeposit
+ * - P2P (Procurement) Journals: bill, debitNote, paymentMade, goodsReceipt, upfrontPayment
+ * - Inventory Journals: adjustment
+ */
 export class JournalService {
   private repository = new JournalRepository();
   private accountService = new AccountService();
+
+  // ==========================================
+  // CORE METHODS
+  // ==========================================
 
   async reverse(
     companyId: string,
@@ -226,6 +239,11 @@ export class JournalService {
     );
   }
 
+  // ==========================================
+  // O2C (ORDER-TO-CASH) JOURNALS
+  // Invoice, Credit Note, Payment Received, Shipment
+  // ==========================================
+
   async postInvoice(
     companyId: string,
     invoiceId: string,
@@ -355,13 +373,13 @@ export class JournalService {
   }
 
   /**
-   * Post Vendor Credit Note Journal (P2P returns/credits)
-   * Mirrors postCreditNote but for Accounts Payable
+   * Post Debit Note Journal (P2P returns/credits)
+   * Issued by buyer to claim credit from supplier
    * Dr 2100 (AP - reduce liability), Cr 2105 (Accrual) or 5200 (Purchase Returns)
    */
-  async postVendorCreditNote(
+  async postDebitNote(
     companyId: string,
-    creditNoteId: string,
+    debitNoteId: string,
     billNumber: string,
     amount: number,
     subtotal?: number,
@@ -390,10 +408,10 @@ export class JournalService {
     return this.resolveAndCreate(
       companyId,
       {
-        reference: `Vendor Credit Note: ${billNumber}`,
-        memo: `Credit from vendor for bill ${billNumber}`,
+        reference: `Debit Note: ${billNumber}`,
+        memo: `Debit note for bill ${billNumber}`,
         sourceType: JournalSourceType.CREDIT_NOTE,
-        sourceId: creditNoteId,
+        sourceId: debitNoteId,
         lines,
         date: businessDate,
       },
@@ -444,6 +462,11 @@ export class JournalService {
       tx
     );
   }
+
+  // ==========================================
+  // P2P (PROCURE-TO-PAY) JOURNALS
+  // Bill, Debit Note, Payment Made, Goods Receipt
+  // ==========================================
 
   async postBill(
     companyId: string,
@@ -684,6 +707,11 @@ export class JournalService {
       tx
     );
   }
+
+  // ==========================================
+  // INVENTORY JOURNALS
+  // Stock Adjustments
+  // ==========================================
 
   async postAdjustment(
     companyId: string,

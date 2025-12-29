@@ -314,11 +314,11 @@ export class BillService {
   }
 
   /**
-   * Create a Vendor Credit Note (debit note equivalent) for Bill reversal.
-   * Used when receiving credit from vendor (returns, price adjustments).
-   * Similar to InvoiceService.createCreditNote but for AP.
+   * Create a Debit Note for Bill reversal (P2P returns/credits).
+   * Issued by buyer to claim credit from supplier.
+   * Similar to InvoiceService.createCreditNote but for AP (buyer's perspective).
    */
-  async createVendorCreditNote(
+  async createDebitNote(
     companyId: string,
     originalBillId: string,
     _reason?: string
@@ -349,19 +349,19 @@ export class BillService {
       );
     }
 
-    // Generate Vendor Credit Note Number
-    const vcnNumber = await this.documentNumberService.generate(
+    // Generate Debit Note Number
+    const dnNumber = await this.documentNumberService.generate(
       companyId,
-      'CN' // Reuse CN sequence, or could be 'VCN' if preferred
+      'DN'
     );
 
-    // Create Vendor Credit Note (using CREDIT_NOTE type - schema neutral)
-    const vendorCreditNote = await this.repository.create({
+    // Create Debit Note (using DEBIT_NOTE type - buyer's perspective)
+    const debitNote = await this.repository.create({
       companyId,
       partnerId: original.partnerId,
-      type: InvoiceType.CREDIT_NOTE, // Vendor credit note uses same type
+      type: InvoiceType.DEBIT_NOTE,
       status: InvoiceStatus.POSTED, // Auto-post for reversal
-      invoiceNumber: vcnNumber,
+      invoiceNumber: dnNumber,
       relatedInvoiceId: original.id,
       orderId: original.orderId,
       amount: original.amount,
@@ -370,20 +370,20 @@ export class BillService {
       taxRate: original.taxRate,
       balance: 0,
       dueDate: new Date(),
-      notes: `Vendor Credit Note for Bill ${original.invoiceNumber || originalBillId}`,
+      notes: `Debit Note for Bill ${original.invoiceNumber || originalBillId}`,
     });
 
     // Post journal to reverse AP: Dr AP (2100), Cr Purchase Returns (5200) / Accrual (2105)
-    await this.journalService.postVendorCreditNote(
+    await this.journalService.postDebitNote(
       companyId,
-      vendorCreditNote.id,
-      vcnNumber,
-      Number(vendorCreditNote.amount),
-      Number(vendorCreditNote.subtotal),
-      Number(vendorCreditNote.taxAmount)
+      debitNote.id,
+      dnNumber,
+      Number(debitNote.amount),
+      Number(debitNote.subtotal),
+      Number(debitNote.taxAmount)
     );
 
-    return vendorCreditNote;
+    return debitNote;
   }
 
   /**

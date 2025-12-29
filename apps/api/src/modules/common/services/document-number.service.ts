@@ -76,6 +76,13 @@ const DEFAULT_CONFIGS: Record<DocumentType, DocumentNumberConfig> = {
     yearFormat: '4',
     sequenceLength: 5,
   },
+  DN: {
+    prefix: 'DN',
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
 };
 
 export class DocumentNumberService {
@@ -83,6 +90,8 @@ export class DocumentNumberService {
    * Generate a new document number
    * FR-030 to FR-034: Format PREFIX-YYYYMM-00001 (e.g., PO-202412-00001)
    * Sequence resets at the start of each month.
+   *
+   * Uses atomic upsert for ALL document types to prevent race conditions.
    */
   async generate(
     companyId: string,
@@ -96,46 +105,31 @@ export class DocumentNumberService {
     // FR-030 to FR-034: YYYYMM format (e.g., 202412)
     const yearMonthStr = `${year}${String(month).padStart(2, '0')}`;
 
-    let sequence = 0;
+    // All SequenceType values use atomic upsert
+    // This prevents race conditions when generating concurrent documents
+    const type = docType as SequenceType;
 
-    // Supported types for atomic increment: PO, GRN, BILL, PAY
-    // We strictly check against the SequenceType values to ensure type safety
-    if (
-      docType === SequenceType.PO ||
-      docType === SequenceType.GRN ||
-      docType === SequenceType.BILL ||
-      docType === SequenceType.PAY
-    ) {
-      // Safe to cast because we verified it matches one of the SequenceType enum values
-      const type = docType as SequenceType;
-
-      const seq = await prisma.documentSequence.upsert({
-        where: {
-          companyId_type_year_month: {
-            companyId,
-            type,
-            year,
-            month,
-          },
-        },
-        create: {
+    const seq = await prisma.documentSequence.upsert({
+      where: {
+        companyId_type_year_month: {
           companyId,
           type,
           year,
           month,
-          lastSequence: 1,
         },
-        update: {
-          lastSequence: { increment: 1 },
-        },
-      });
-      sequence = seq.lastSequence;
-    } else {
-      // Fallback for types not yet in SequenceType enum (SO, INV, etc.)
-      // Note: These still use yearly sequence for backward compatibility
-      sequence =
-        (await this.getSequenceCount(companyId, docType, year)) + 1;
-    }
+      },
+      create: {
+        companyId,
+        type,
+        year,
+        month,
+        lastSequence: 1,
+      },
+      update: {
+        lastSequence: { increment: 1 },
+      },
+    });
+    const sequence = seq.lastSequence;
 
     const sequenceStr = String(sequence).padStart(
       config.sequenceLength,
@@ -147,58 +141,6 @@ export class DocumentNumberService {
       return `${config.prefix}${config.separator}${yearMonthStr}${config.separator}${sequenceStr}`;
     }
     return `${config.prefix}${config.separator}${sequenceStr}`;
-  }
-
-  /**
-   * Get current sequence count for a document type in a given year
-   */
-  private async getSequenceCount(
-    companyId: string,
-    docType: DocumentType,
-    year: number
-  ): Promise<number> {
-    const yearStart = new Date(year, 0, 1);
-    const yearEnd = new Date(year + 1, 0, 1);
-
-    switch (docType) {
-      case SequenceType.SO:
-        return prisma.order.count({
-          where: {
-            companyId,
-            type: 'SALES',
-            createdAt: { gte: yearStart, lt: yearEnd },
-          },
-        });
-
-      case SequenceType.INV:
-        return prisma.invoice.count({
-          where: {
-            companyId,
-            type: 'INVOICE', // Sales Invoice
-            createdAt: { gte: yearStart, lt: yearEnd },
-          },
-        });
-
-      case SequenceType.CN:
-        return prisma.invoice.count({
-          where: {
-            companyId,
-            type: { in: ['CREDIT_NOTE'] }, // Ensure correct enum usage
-            createdAt: { gte: yearStart, lt: yearEnd },
-          },
-        });
-
-      case SequenceType.JE:
-        return prisma.journalEntry.count({
-          where: {
-            companyId,
-            createdAt: { gte: yearStart, lt: yearEnd },
-          },
-        });
-
-      default:
-        return 0;
-    }
   }
 
   /**

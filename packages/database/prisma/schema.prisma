@@ -439,6 +439,7 @@ enum InvoiceType {
   BILL
   EXPENSE
   CREDIT_NOTE
+  DEBIT_NOTE // P2P: Buyer claims credit from supplier (reduces AP)
 }
 
 enum InvoiceStatus {
@@ -550,6 +551,7 @@ enum SequenceType {
   INV
   CN
   JE
+  DN // Debit Note
 }
 
 // ============================================
