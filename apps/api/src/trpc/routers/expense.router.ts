@@ -1,10 +1,13 @@
 import { router, protectedProcedure } from '../trpc';
-import { z } from 'zod';
+import { container, ServiceKeys } from '../../modules/common/di';
 import { ExpenseService } from '../../modules/accounting/services/expense.service';
+import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { DomainError } from '@sync-erp/shared';
 
-const service = new ExpenseService();
+const service = container.resolve<ExpenseService>(
+  ServiceKeys.EXPENSE_SERVICE
+);
 
 export const expenseRouter = router({
   create: protectedProcedure

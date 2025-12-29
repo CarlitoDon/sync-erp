@@ -1,7 +1,10 @@
 import { router, protectedProcedure } from '../trpc';
+import { container, ServiceKeys } from '../../modules/common/di';
 import { DashboardService } from '../../modules/dashboard/service';
 
-const dashboardService = new DashboardService();
+const dashboardService = container.resolve<DashboardService>(
+  ServiceKeys.DASHBOARD_SERVICE
+);
 
 export const dashboardRouter = router({
   /**

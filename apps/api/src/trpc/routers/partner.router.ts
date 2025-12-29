@@ -7,7 +7,11 @@ import {
 } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const partnerService = new PartnerService();
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const partnerService = container.resolve<PartnerService>(
+  ServiceKeys.PARTNER_SERVICE
+);
 
 export const partnerRouter = router({
   list: protectedProcedure

@@ -3,12 +3,15 @@ import {
   publicProcedure,
   authenticatedProcedure,
 } from '../trpc';
-import { AuthService } from '../../modules/auth/auth.service';
+import { container, ServiceKeys } from '../../modules/common/di';
+import { TRPCError } from '@trpc/server';
 import { registerSchema, loginSchema } from '@sync-erp/shared';
 import { z } from 'zod';
-import { TRPCError } from '@trpc/server';
+import { AuthService } from '../../modules/auth/auth.service';
 
-const authService = new AuthService();
+const authService = container.resolve<AuthService>(
+  ServiceKeys.AUTH_SERVICE
+);
 
 export const authRouter = router({
   /**

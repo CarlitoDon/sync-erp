@@ -1,9 +1,12 @@
 import { router, protectedProcedure } from '../trpc';
-import { BillService } from '../../modules/accounting/services/bill.service';
+import { container, ServiceKeys } from '../../modules/common/di';
 import { CreateBillFromPOSchema } from '@sync-erp/shared';
 import { z } from 'zod';
+import { BillService } from '../../modules/accounting/services/bill.service';
 
-const billService = new BillService();
+const billService = container.resolve<BillService>(
+  ServiceKeys.BILL_SERVICE
+);
 
 export const billRouter = router({
   /**

@@ -1,4 +1,5 @@
 import { router, protectedProcedure } from '../trpc';
+import { container, ServiceKeys } from '../../modules/common/di';
 import { InventoryService } from '../../modules/inventory/inventory.service';
 import {
   CreateGoodsReceiptSchema,
@@ -6,7 +7,9 @@ import {
 } from '@sync-erp/shared';
 import { z } from 'zod';
 
-const inventoryService = new InventoryService();
+const inventoryService = container.resolve<InventoryService>(
+  ServiceKeys.INVENTORY_SERVICE
+);
 
 export const inventoryRouter = router({
   /**
