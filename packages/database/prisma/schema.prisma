@@ -506,10 +506,12 @@ enum DocumentStatus {
   VOIDED
 }
 
-// Fulfillment Type (unified model for GRN and Shipment)
+// Fulfillment Type (unified model for GRN, Shipment, and Return)
 enum FulfillmentType {
   RECEIPT // Goods Receipt (PO → Stock IN)
   SHIPMENT // Shipment (SO → Stock OUT)
+  RETURN // Sales Return (SO → Stock IN, COGS reversal)
+  PURCHASE_RETURN // Purchase Return (PO → Stock OUT, GRNI reversal)
 }
 
 // ============================================
@@ -558,6 +560,8 @@ enum SequenceType {
   CN
   JE
   DN // Debit Note
+  RET // Sales Return
+  PRR // Purchase Return
 }
 
 // ============================================

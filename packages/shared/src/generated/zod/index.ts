@@ -220,11 +220,11 @@ export const DocumentStatusSchema = z.enum(['DRAFT','POSTED','VOIDED']);
 
 export type DocumentStatusType = `${z.infer<typeof DocumentStatusSchema>}`
 
-export const FulfillmentTypeSchema = z.enum(['RECEIPT','SHIPMENT']);
+export const FulfillmentTypeSchema = z.enum(['RECEIPT','SHIPMENT','RETURN','PURCHASE_RETURN']);
 
 export type FulfillmentTypeType = `${z.infer<typeof FulfillmentTypeSchema>}`
 
-export const SequenceTypeSchema = z.enum(['PO','GRN','SHP','BILL','PAY','SO','INV','CN','JE','DN']);
+export const SequenceTypeSchema = z.enum(['PO','GRN','SHP','BILL','PAY','SO','INV','CN','JE','DN','RET','PRR']);
 
 export type SequenceTypeType = `${z.infer<typeof SequenceTypeSchema>}`
 
