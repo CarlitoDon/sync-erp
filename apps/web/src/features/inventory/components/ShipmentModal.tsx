@@ -66,11 +66,17 @@ export function ShipmentModal({
   );
 
   const createMutation = trpc.inventory.createShipment.useMutation({
-    onSuccess: () => utils.inventory.listShipments.invalidate(),
+    onSuccess: () => {
+      utils.inventory.listShipments.invalidate();
+      utils.salesOrder.list.invalidate(); // SO status may change
+    },
   });
 
   const postMutation = trpc.inventory.postShipment.useMutation({
-    onSuccess: () => utils.inventory.listShipments.invalidate(),
+    onSuccess: () => {
+      utils.inventory.listShipments.invalidate();
+      utils.salesOrder.list.invalidate(); // SO status may change
+    },
   });
 
   // Pre-fill items with remaining qty (ordered - shipped)

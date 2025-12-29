@@ -144,6 +144,7 @@ export default function GoodsReceiptDetail() {
       {/* Header */}
       <PageHeader
         title={receipt.number}
+        showBackButton
         subtitle="Goods Receipt Note"
         badges={
           <StatusBadge status={receipt.status} domain="document" />
