@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
+import { PartnerTypeSchema } from '@sync-erp/shared';
 import type {
   OnboardingStep,
   OnboardingProgress,
@@ -69,9 +70,13 @@ export function useOnboardingProgress(
 ): UseOnboardingProgressResult {
   // Fetch additional data using tRPC hooks
   const { data: suppliers = [], isLoading: loadingSuppliers } =
-    trpc.partner.list.useQuery({ type: 'SUPPLIER' });
+    trpc.partner.list.useQuery({
+      type: PartnerTypeSchema.enum.SUPPLIER,
+    });
   const { data: customers = [], isLoading: loadingCustomers } =
-    trpc.partner.list.useQuery({ type: 'CUSTOMER' });
+    trpc.partner.list.useQuery({
+      type: PartnerTypeSchema.enum.CUSTOMER,
+    });
   const { data: accounts = [], isLoading: loadingAccounts } =
     trpc.finance.listAccounts.useQuery();
 
