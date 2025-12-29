@@ -15,6 +15,7 @@ import {
   SummaryCards,
   StatusBadge,
   LoadingState,
+  CurrencyInput,
 } from '@/components/ui';
 
 import {
@@ -256,16 +257,11 @@ export function DocumentList({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Payment Amount *
               </label>
-              <input
-                type="number"
+              <CurrencyInput
                 min={0}
                 max={Number(selectedDoc.balance)}
-                step={0.01}
                 value={paymentAmount}
-                onChange={(e) =>
-                  setPaymentAmount(parseFloat(e.target.value) || 0)
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                onChange={(val) => setPaymentAmount(val)}
               />
               <p className="text-xs text-gray-500 mt-1">
                 Max: {formatCurrency(Number(selectedDoc.balance))}
@@ -424,6 +420,13 @@ export function DocumentList({
                         >
                           {doc.invoiceNumber}
                         </Link>
+                        {/* Feature: DP Badge */}
+                        {'isDownPayment' in doc &&
+                          doc.isDownPayment && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                              DP
+                            </span>
+                          )}
                       </td>
                       <td className="px-6 py-4">
                         <Link
