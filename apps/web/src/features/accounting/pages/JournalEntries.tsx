@@ -29,17 +29,15 @@ export default function JournalEntries() {
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
 
-  const { data: journals, isLoading: loadingJournals } =
+  const { data: journals = [], isLoading: loadingJournals } =
     trpc.finance.listJournals.useQuery(undefined, {
       enabled: !!currentCompany?.id,
-      initialData: [],
     });
 
-  const { data: accounts } = trpc.finance.listAccounts.useQuery(
+  const { data: accounts = [] } = trpc.finance.listAccounts.useQuery(
     undefined,
     {
       enabled: !!currentCompany?.id,
-      initialData: [],
     }
   );
 
