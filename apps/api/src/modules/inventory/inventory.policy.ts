@@ -7,7 +7,11 @@
  * Pattern: Policy.ensure*() throws DomainError if constraint violated.
  */
 
-import { BusinessShape, Prisma } from '@sync-erp/database';
+import {
+  BusinessShape,
+  CostingMethod,
+  Prisma,
+} from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 /**
@@ -96,18 +100,18 @@ export class InventoryPolicy {
    */
   static getDefaultCostingMethod(
     shape: BusinessShape
-  ): 'AVG' | 'FIFO' | null {
+  ): CostingMethod | null {
     switch (shape) {
       case BusinessShape.RETAIL:
-        return 'AVG';
+        return CostingMethod.AVG;
       case BusinessShape.MANUFACTURING:
-        return 'FIFO';
+        return CostingMethod.FIFO;
       case BusinessShape.SERVICE:
         return null; // No inventory costing for service
       case BusinessShape.PENDING:
         return null;
       default:
-        return 'AVG';
+        return CostingMethod.AVG;
     }
   }
 

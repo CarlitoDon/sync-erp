@@ -8,7 +8,9 @@ import {
 } from '@sync-erp/shared';
 
 export class PartnerService {
-  private repository = new PartnerRepository();
+  constructor(
+    private readonly repository: PartnerRepository = new PartnerRepository()
+  ) {}
 
   async create(
     companyId: string,

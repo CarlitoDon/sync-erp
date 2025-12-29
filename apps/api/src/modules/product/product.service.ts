@@ -9,7 +9,9 @@ import {
 import { calculateNewAvgCost } from '../inventory/rules/stockRule';
 
 export class ProductService {
-  private repository = new ProductRepository();
+  constructor(
+    private readonly repository: ProductRepository = new ProductRepository()
+  ) {}
 
   async create(
     companyId: string,
