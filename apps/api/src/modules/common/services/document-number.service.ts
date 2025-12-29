@@ -13,57 +13,57 @@ interface DocumentNumberConfig {
 }
 
 const DEFAULT_CONFIGS: Record<DocumentType, DocumentNumberConfig> = {
-  PO: {
-    prefix: 'PO',
+  [SequenceType.PO]: {
+    prefix: SequenceType.PO,
     separator: '-',
     includeYear: true,
     yearFormat: '4',
     sequenceLength: 5,
   },
-  GRN: {
-    prefix: 'GRN',
+  [SequenceType.GRN]: {
+    prefix: SequenceType.GRN,
     separator: '-',
     includeYear: true,
     yearFormat: '4',
     sequenceLength: 5,
   },
-  SHP: {
-    prefix: 'SHP',
+  [SequenceType.SHP]: {
+    prefix: SequenceType.SHP,
     separator: '-',
     includeYear: true,
     yearFormat: '4',
     sequenceLength: 5,
   },
-  SO: {
-    prefix: 'SO',
+  [SequenceType.SO]: {
+    prefix: SequenceType.SO,
     separator: '-',
     includeYear: true,
     yearFormat: '4',
     sequenceLength: 5,
   },
-  INV: {
-    prefix: 'INV',
+  [SequenceType.INV]: {
+    prefix: SequenceType.INV,
     separator: '-',
     includeYear: true,
     yearFormat: '4',
     sequenceLength: 5,
   },
-  BILL: {
-    prefix: 'BILL',
+  [SequenceType.BILL]: {
+    prefix: SequenceType.BILL,
     separator: '-',
     includeYear: true,
     yearFormat: '4',
     sequenceLength: 5,
   },
-  PAY: {
-    prefix: 'PAY',
+  [SequenceType.PAY]: {
+    prefix: SequenceType.PAY,
     separator: '-',
     includeYear: true,
     yearFormat: '4',
     sequenceLength: 5,
   },
-  JE: {
-    prefix: 'JE',
+  [SequenceType.JE]: {
+    prefix: SequenceType.JE,
     separator: '-',
     includeYear: true,
     yearFormat: '4',

@@ -9,7 +9,10 @@ import {
   Payment,
   PaymentStatus,
   PaymentMethod,
+  PaymentTerms,
   InvoiceStatus,
+  InvoiceType,
+  OrderType,
   Prisma,
   prisma,
 } from '@sync-erp/database';
@@ -25,7 +28,7 @@ export class CustomerDepositRepository {
   ) {
     await tx.$executeRaw`SELECT 1 FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
     return tx.order.findFirst({
-      where: { id: orderId, companyId, type: 'SALES' },
+      where: { id: orderId, companyId, type: OrderType.SALES },
     });
   }
 
@@ -34,10 +37,10 @@ export class CustomerDepositRepository {
    */
   async findOrderWithDeposits(orderId: string, companyId: string) {
     return prisma.order.findFirst({
-      where: { id: orderId, companyId, type: 'SALES' },
+      where: { id: orderId, companyId, type: OrderType.SALES },
       include: {
         upfrontPayments: {
-          where: { paymentType: 'UPFRONT' },
+          where: { paymentType: PaymentTerms.UPFRONT },
           orderBy: { createdAt: 'desc' },
         },
       },
@@ -65,7 +68,7 @@ export class CustomerDepositRepository {
         invoiceId: null,
         amount: data.amount,
         method: data.method as PaymentMethod,
-        paymentType: 'UPFRONT',
+        paymentType: PaymentTerms.UPFRONT,
         reference: data.reference,
         date: data.date,
       },
@@ -95,13 +98,13 @@ export class CustomerDepositRepository {
    */
   async findInvoiceWithDeposit(invoiceId: string, companyId: string) {
     return prisma.invoice.findFirst({
-      where: { id: invoiceId, companyId, type: 'INVOICE' },
+      where: { id: invoiceId, companyId, type: InvoiceType.INVOICE },
       include: {
         order: {
           include: {
             upfrontPayments: {
               where: {
-                paymentType: 'UPFRONT',
+                paymentType: PaymentTerms.UPFRONT,
                 settledAt: null,
               },
               orderBy: { createdAt: 'asc' },

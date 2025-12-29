@@ -515,7 +515,7 @@ export class BillService {
             include: {
               upfrontPayments: {
                 where: {
-                  paymentType: 'UPFRONT',
+                  paymentType: PaymentTerms.UPFRONT,
                   settledAt: null, // Only unsettled payments
                 },
               },
