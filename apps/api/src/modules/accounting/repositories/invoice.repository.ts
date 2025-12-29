@@ -41,6 +41,8 @@ export class InvoiceRepository {
         partner: true,
         payments: true,
         items: { include: { product: true } },
+        dpBill: true, // Include related DP Bill
+        finalBills: true, // Include related Final Bills if this is a DP
       },
     });
   }
@@ -189,6 +191,7 @@ export class InvoiceRepository {
       type?: InvoiceType;
       status?: InvoiceStatus;
       notes?: { contains: string };
+      isDownPayment?: boolean;
     },
     tx?: Prisma.TransactionClient
   ): Promise<Invoice | null> {
@@ -198,6 +201,7 @@ export class InvoiceRepository {
       include: {
         partner: true,
         order: true,
+        dpBill: true,
       },
     });
   }

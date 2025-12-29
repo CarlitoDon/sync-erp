@@ -3,7 +3,9 @@ import { AccountRepository } from '../repositories/account.repository';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export class AccountService {
-  private repository = new AccountRepository();
+  constructor(
+    private readonly repository: AccountRepository = new AccountRepository()
+  ) {}
 
   async create(
     companyId: string,

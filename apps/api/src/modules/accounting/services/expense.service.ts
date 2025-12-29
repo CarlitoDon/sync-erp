@@ -25,9 +25,11 @@ export interface CreateExpenseInput {
 }
 
 export class ExpenseService {
-  private repository = new InvoiceRepository();
-  private documentNumberService = new DocumentNumberService();
-  private journalService = new JournalService();
+  constructor(
+    private readonly repository: InvoiceRepository = new InvoiceRepository(),
+    private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
+    private readonly journalService: JournalService = new JournalService()
+  ) {}
 
   async create(
     companyId: string,

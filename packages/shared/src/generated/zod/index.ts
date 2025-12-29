@@ -114,7 +114,7 @@ export const OrderItemScalarFieldEnumSchema = z.enum(['id','orderId','productId'
 
 export const InventoryMovementScalarFieldEnumSchema = z.enum(['id','companyId','productId','warehouseId','type','quantity','reference','date','createdAt']);
 
-export const InvoiceScalarFieldEnumSchema = z.enum(['id','companyId','orderId','partnerId','type','status','invoiceNumber','dueDate','amount','subtotal','taxAmount','taxRate','balance','supplierInvoiceNumber','paymentTermsString','notes','version','createdAt','updatedAt','relatedInvoiceId']);
+export const InvoiceScalarFieldEnumSchema = z.enum(['id','companyId','orderId','partnerId','type','status','invoiceNumber','dueDate','amount','subtotal','taxAmount','taxRate','balance','supplierInvoiceNumber','paymentTermsString','notes','version','createdAt','updatedAt','relatedInvoiceId','isDownPayment','dpBillId']);
 
 export const InvoiceItemScalarFieldEnumSchema = z.enum(['id','invoiceId','productId','description','quantity','price','amount']);
 
@@ -438,6 +438,8 @@ export const InvoiceSchema = z.object({
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   relatedInvoiceId: z.string().nullable(),
+  isDownPayment: z.boolean(),
+  dpBillId: z.string().nullable(),
 })
 
 export type Invoice = z.infer<typeof InvoiceSchema>

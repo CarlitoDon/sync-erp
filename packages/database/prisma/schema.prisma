@@ -250,6 +250,12 @@ model Invoice {
   creditNotes      Invoice[]     @relation("CreditNotes")
   items            InvoiceItem[]
 
+  // Feature: Explicit DP Linking
+  isDownPayment Boolean   @default(false)
+  dpBillId      String?
+  dpBill        Invoice?  @relation("DpBills", fields: [dpBillId], references: [id])
+  finalBills    Invoice[] @relation("DpBills")
+
   @@index([companyId])
   @@index([companyId, type])
   @@index([companyId, status])

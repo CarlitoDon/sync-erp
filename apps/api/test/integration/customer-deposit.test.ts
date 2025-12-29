@@ -262,7 +262,7 @@ describe('Cash Upfront Sales: Customer Deposits', () => {
     });
   });
   describe('Edge Cases', () => {
-    it('Should fail to register deposit for non-UPFRONT order', async () => {
+    it('Should allow register deposit for non-UPFRONT order (Tempo+DP)', async () => {
       const order = await salesOrderService.create(COMPANY_ID, {
         partnerId,
         items: [{ productId, quantity: 1, price: 100 }],
@@ -271,13 +271,14 @@ describe('Cash Upfront Sales: Customer Deposits', () => {
       });
       await salesOrderService.confirm(order.id, COMPANY_ID, ACTOR_ID);
 
-      await expect(
-        customerDepositService.registerDeposit(
-          COMPANY_ID,
-          { orderId: order.id, amount: 100, method: 'CASH' },
-          ACTOR_ID
-        )
-      ).rejects.toThrow();
+      const deposit = await customerDepositService.registerDeposit(
+        COMPANY_ID,
+        { orderId: order.id, amount: 50, method: 'CASH' },
+        ACTOR_ID
+      );
+
+      expect(Number(deposit.amount)).toBe(50);
+      expect(deposit.orderId).toBe(order.id);
     });
 
     it('Should fail to register deposit for unconfirmed order', async () => {

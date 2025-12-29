@@ -1,5 +1,6 @@
 import { formatCurrency } from '@/utils/format';
 import { PaymentStatusBadge } from '@/components/ui/PaymentStatusBadge';
+import { PaymentStatusSchema } from '@sync-erp/shared';
 
 interface CustomerDepositCardProps {
   totalAmount: number;
@@ -26,7 +27,8 @@ export function CustomerDepositCard({
   const progressPercent =
     totalAmount > 0 ? (paidAmount / totalAmount) * 100 : 0;
   const isPaidFull =
-    paymentStatus === 'PAID_UPFRONT' || paymentStatus === 'SETTLED';
+    paymentStatus === PaymentStatusSchema.enum.PAID_UPFRONT ||
+    paymentStatus === PaymentStatusSchema.enum.SETTLED;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

@@ -21,10 +21,12 @@ import { JournalService } from './journal.service';
 import { PaymentPolicy } from '../policies/payment.policy';
 
 export class PaymentService {
-  private repository = new PaymentRepository();
-  private invoiceRepository = new InvoiceRepository();
-  private idempotencyService = new IdempotencyService();
-  private journalService = new JournalService();
+  constructor(
+    private readonly repository: PaymentRepository = new PaymentRepository(),
+    private readonly invoiceRepository: InvoiceRepository = new InvoiceRepository(),
+    private readonly idempotencyService: IdempotencyService = new IdempotencyService(),
+    private readonly journalService: JournalService = new JournalService()
+  ) {}
 
   /**
    * Create payment atomically using Prisma transaction.

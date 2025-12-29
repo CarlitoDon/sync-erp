@@ -21,10 +21,12 @@ export const authRouter = router({
 
       if (!result.success) {
         throw new TRPCError({
+          /* eslint-disable @sync-erp/no-hardcoded-enum -- tRPC error codes, not database enum */
           code:
             result.error!.code === 'CONFLICT'
               ? 'CONFLICT'
               : 'BAD_REQUEST',
+          /* eslint-enable @sync-erp/no-hardcoded-enum */
           message: result.error!.message,
         });
       }

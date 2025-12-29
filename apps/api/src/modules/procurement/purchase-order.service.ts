@@ -26,9 +26,11 @@ import {
 import { InventoryService } from '../inventory/inventory.service';
 
 export class PurchaseOrderService {
-  private repository = new PurchaseOrderRepository();
-  private documentNumberService = new DocumentNumberService();
-  private inventoryService = new InventoryService();
+  constructor(
+    private readonly repository: PurchaseOrderRepository = new PurchaseOrderRepository(),
+    private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
+    private readonly inventoryService: InventoryService = new InventoryService()
+  ) {}
 
   /**
    * Create a new purchase order.

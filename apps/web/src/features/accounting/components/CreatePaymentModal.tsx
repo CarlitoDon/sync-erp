@@ -1,3 +1,4 @@
+/* eslint-disable @sync-erp/no-hardcoded-enum -- This file uses UI-local types (INBOUND/OUTBOUND) and query status params */
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
