@@ -35,10 +35,12 @@ import { DocumentNumberService } from '../common/services/document-number.servic
 import { InventoryService } from '../inventory/inventory.service';
 
 export class SalesOrderService {
-  private repository = new SalesOrderRepository();
-  private productService = new ProductService();
-  private documentNumberService = new DocumentNumberService();
-  private inventoryService = new InventoryService();
+  constructor(
+    private readonly repository: SalesOrderRepository = new SalesOrderRepository(),
+    private readonly productService: ProductService = new ProductService(),
+    private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
+    private readonly inventoryService: InventoryService = new InventoryService()
+  ) {}
 
   /**
    * Create a new sales order.
