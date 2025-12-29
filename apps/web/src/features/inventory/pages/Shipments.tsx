@@ -7,6 +7,7 @@ import {
   PageHeader,
 } from '@/components/layout/PageLayout';
 import { Card } from '@/components/ui/Card';
+import { LoadingState } from '@/components/ui';
 
 export default function Shipments() {
   const { currentCompany } = useCompany();
@@ -27,11 +28,7 @@ export default function Shipments() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (

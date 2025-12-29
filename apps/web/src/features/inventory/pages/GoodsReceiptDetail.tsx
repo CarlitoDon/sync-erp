@@ -5,6 +5,7 @@ import { trpc } from '@/lib/trpc';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import { usePrompt } from '@/components/ui/PromptModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import { PageContainer } from '@/components/layout/PageLayout';
 import {
@@ -27,6 +28,7 @@ export default function GoodsReceiptDetail() {
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const utils = trpc.useUtils();
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
 
@@ -81,11 +83,14 @@ export default function GoodsReceiptDetail() {
   const handleVoid = async () => {
     if (!receipt) return;
 
-    // FR-024: Prompt for void reason
-    const reason = window.prompt(
-      'Please enter a reason for voiding this goods receipt:'
-    );
-    if (!reason || reason.trim().length === 0) {
+    // FR-024: Prompt for void reason (accessible modal)
+    const reason = await prompt({
+      title: 'Void Goods Receipt',
+      message: 'Please enter a reason for voiding this goods receipt:',
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+    if (!reason) {
       return; // User cancelled
     }
 

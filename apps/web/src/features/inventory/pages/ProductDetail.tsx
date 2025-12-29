@@ -12,6 +12,7 @@ import {
   CardTitle,
   CardContent,
 } from '@/components/ui/Card';
+import { LoadingState } from '@/components/ui';
 import { MovementTypeSchema } from '@sync-erp/shared';
 
 type Tab = 'history';
@@ -40,11 +41,7 @@ export default function ProductDetail() {
     );
 
   if (loading && !product) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (error || (!loading && !product)) {
@@ -160,9 +157,7 @@ export default function ProductDetail() {
               {activeTab === 'history' && (
                 <div className="overflow-x-auto">
                   {loadingMovements ? (
-                    <div className="flex justify-center p-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                    </div>
+                    <LoadingState size="md" />
                   ) : movements.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       No stock movements recorded.

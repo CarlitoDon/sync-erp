@@ -8,7 +8,7 @@ import PurchaseOrderActions from './PurchaseOrderActions';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import { formatCurrency } from '@/utils/format';
-import { StatusBadge, PaymentTermsBadge } from '@/components/ui';
+import { StatusBadge, PaymentTermsBadge, LoadingState } from '@/components/ui';
 import { PaymentTermsType } from '@sync-erp/shared';
 
 interface PurchaseOrderListProps {
@@ -76,11 +76,7 @@ export default function PurchaseOrderList({
   };
 
   if (loading && orders.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState size="md" />;
   }
 
   return (

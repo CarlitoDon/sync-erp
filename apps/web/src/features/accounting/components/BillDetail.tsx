@@ -19,6 +19,7 @@ import {
   PageHeader,
   ActionButton,
   useConfirm,
+  usePrompt,
   LoadingState,
   EmptyState,
 } from '@/components/ui';
@@ -27,6 +28,7 @@ export default function BillDetail() {
   const { id } = useParams<{ id: string }>();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const utils = trpc.useUtils();
 
   const { data: bill, isLoading: loading } =
@@ -58,11 +60,14 @@ export default function BillDetail() {
   const handleVoid = async () => {
     if (!bill) return;
 
-    // FR-024: Prompt for void reason
-    const reason = window.prompt(
-      'Please enter a reason for voiding this bill:'
-    );
-    if (!reason || reason.trim().length === 0) {
+    // FR-024: Prompt for void reason (accessible modal)
+    const reason = await prompt({
+      title: 'Void Bill',
+      message: 'Please enter a reason for voiding this bill:',
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+    if (!reason) {
       return; // User cancelled
     }
 

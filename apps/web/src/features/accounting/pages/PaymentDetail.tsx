@@ -3,6 +3,7 @@ import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import { usePrompt } from '@/components/ui/PromptModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { BackButton } from '@/components/ui/BackButton';
@@ -18,6 +19,7 @@ export default function PaymentDetail() {
   const { id } = useParams<{ id: string }>();
   const { currentCompany } = useCompany();
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
 
@@ -37,11 +39,14 @@ export default function PaymentDetail() {
   const handleVoid = async () => {
     if (!payment) return;
 
-    // FR-024: Prompt for void reason
-    const reason = window.prompt(
-      'Please enter a reason for voiding this payment:'
-    );
-    if (!reason || reason.trim().length === 0) {
+    // FR-024: Prompt for void reason (accessible modal)
+    const reason = await prompt({
+      title: 'Void Payment',
+      message: 'Please enter a reason for voiding this payment:',
+      placeholder: 'Enter reason...',
+      required: true,
+    });
+    if (!reason) {
       return; // User cancelled
     }
 

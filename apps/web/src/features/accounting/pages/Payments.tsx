@@ -14,6 +14,7 @@ import {
   PageHeader,
 } from '@/components/layout/PageLayout';
 import { Card, CardContent } from '@/components/ui/Card';
+import { LoadingState } from '@/components/ui';
 import CreatePaymentModal from '../components/CreatePaymentModal';
 import { InvoiceTypeSchema } from '@sync-erp/shared';
 
@@ -194,9 +195,7 @@ export default function Payments() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
+            <LoadingState size="md" />
           ) : filteredPayments.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">

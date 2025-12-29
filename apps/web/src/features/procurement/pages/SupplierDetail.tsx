@@ -13,6 +13,7 @@ import {
   CardTitle,
   CardContent,
 } from '@/components/ui/Card';
+import { LoadingState } from '@/components/ui';
 
 /* eslint-disable @sync-erp/no-hardcoded-enum */
 type Tab = 'orders' | 'bills' | 'payments';
@@ -30,11 +31,7 @@ export default function SupplierDetail() {
   } = trpc.partner.getById.useQuery({ id: id! }, { enabled: !!id });
 
   if (loading && !supplier) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (error || (!loading && !supplier)) {
