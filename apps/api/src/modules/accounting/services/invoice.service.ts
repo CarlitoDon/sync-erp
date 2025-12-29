@@ -42,6 +42,7 @@ import {
   validateAndAuditVoid,
   validateCanVoid,
 } from '../../common/utils/document.utils';
+import { SalesOrderRepository } from '../../sales/sales-order.repository';
 
 export class InvoiceService {
   constructor(
@@ -50,7 +51,8 @@ export class InvoiceService {
     private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
     private readonly idempotencyService: IdempotencyService = new IdempotencyService(),
     private readonly inventoryService: InventoryService = new InventoryService(),
-    private readonly customerDepositService: CustomerDepositService = new CustomerDepositService()
+    private readonly customerDepositService: CustomerDepositService = new CustomerDepositService(),
+    private readonly salesOrderRepository: SalesOrderRepository = new SalesOrderRepository()
   ) {}
 
   async createFromSalesOrder(
@@ -411,6 +413,58 @@ export class InvoiceService {
             );
           }
 
+          InvoicePolicy.validatePost(invoice.status);
+
+          // FR-011: 3-Way Matching Validation (O2C Mirror)
+          // Only for Invoices linked to a SO (orderId exists)
+          // Only validate if order was MANUALLY shipped before invoice
+          // (auto-shipment during post matches order qty by design)
+          if (invoice.orderId) {
+            const order = await this.salesOrderRepository.findById(
+              invoice.orderId,
+              companyId,
+              tx
+            );
+            if (order) {
+              // Check if order was already shipped (manual shipment scenario)
+              const alreadyShippedStatuses: OrderStatus[] = [
+                OrderStatus.SHIPPED,
+                OrderStatus.PARTIALLY_SHIPPED,
+                OrderStatus.COMPLETED,
+              ];
+              const wasManuallyShipped =
+                alreadyShippedStatuses.includes(
+                  order.status as OrderStatus
+                );
+
+              // Only run 3-way matching for manual shipment scenarios
+              if (wasManuallyShipped) {
+                const shippedQtyMap =
+                  await this.salesOrderRepository.getShippedQuantities(
+                    invoice.orderId,
+                    tx
+                  );
+                InvoicePolicy.validate3WayMatching(
+                  {
+                    amount: invoice.amount,
+                    subtotal: invoice.subtotal,
+                    notes: invoice.notes,
+                    items: invoice.items,
+                  },
+                  {
+                    items: order.items,
+                    totalAmount: order.totalAmount,
+                    dpAmount: order.dpAmount,
+                    paymentTerms: order.paymentTerms,
+                    taxRate: order.taxRate,
+                  },
+                  shippedQtyMap,
+                  invoice.isDownPayment // Pass isDpInvoice flag
+                );
+              }
+            }
+          }
+
           // Phase 1 Guard: Block Multi-Currency
           const currency =
             (invoice as Invoice & { currency?: string }).currency ||
@@ -448,7 +502,6 @@ export class InvoiceService {
                       items: order.items.map((item) => ({
                         productId: item.productId,
                         quantity: item.quantity,
-                        
                       })),
                     },
                     tx

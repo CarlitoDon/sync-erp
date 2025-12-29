@@ -99,6 +99,11 @@ export interface ThreeWayMatchDocument {
   amount: Decimal | number;
   subtotal: Decimal | number;
   notes?: string | null;
+  items?: Array<{
+    productId?: string | null;
+    quantity: number;
+    price: Decimal | number;
+  }>;
 }
 
 /**
@@ -180,14 +185,37 @@ export function validate3WayMatching(
   }
 
   // 3b. Qty Match per product
-  for (const item of order.items) {
-    const fulfilledQty = qtyByProduct.get(item.productId) || 0;
-    if (fulfilledQty !== item.quantity) {
-      throw new DomainError(
-        `3-way matching failed: Qty mismatch for product (Ordered: ${item.quantity}, ${fulfillmentType}: ${fulfilledQty})`,
-        422,
-        DomainErrorCodes.THREE_WAY_MATCH_FAILED
-      );
+  // If document has items, validate them against fulfilled qty
+  if (document.items && document.items.length > 0) {
+    const invoiceQtyMap = new Map<string, number>();
+    for (const item of document.items) {
+      if (!item.productId) continue;
+      const current = invoiceQtyMap.get(item.productId) || 0;
+      invoiceQtyMap.set(item.productId, current + item.quantity);
+    }
+
+    for (const [productId, invoiceQty] of invoiceQtyMap) {
+      const fulfilledQty = qtyByProduct.get(productId) || 0;
+      if (invoiceQty > fulfilledQty) {
+        throw new DomainError(
+          `3-way matching failed: Invoice quantity exceeds ${fulfillmentType.toLowerCase()} quantity (Invoice: ${invoiceQty}, ${fulfillmentType}: ${fulfilledQty})`,
+          422,
+          DomainErrorCodes.THREE_WAY_MATCH_FAILED
+        );
+      }
+    }
+  } else {
+    // Fallback: Validate order qty against fulfilled qty
+    // This ensures we can't post an invoice for more than what was shipped
+    for (const item of order.items) {
+      const fulfilledQty = qtyByProduct.get(item.productId) || 0;
+      if (fulfilledQty < item.quantity) {
+        throw new DomainError(
+          `3-way matching failed: Qty mismatch for product (Ordered: ${item.quantity}, ${fulfillmentType}: ${fulfilledQty})`,
+          422,
+          DomainErrorCodes.THREE_WAY_MATCH_FAILED
+        );
+      }
     }
   }
 }
