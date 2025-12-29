@@ -8,6 +8,7 @@ import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
 import SalesOrderList from '@/features/sales/components/SalesOrderList';
 import Select from '@/components/ui/Select';
+import { QuantityInput, CurrencyInput } from '@/components/ui';
 import {
   PageContainer,
   PageHeader,
@@ -231,34 +232,27 @@ export default function SalesOrders() {
                 />
               </div>
               <div>
-                <input
-                  type="number"
-                  min={1}
+                <QuantityInput
                   placeholder="Qty"
                   value={currentItem.quantity}
-                  onChange={(e) =>
+                  onChange={(qty) =>
                     setCurrentItem({
                       ...currentItem,
-                      quantity: parseInt(e.target.value) || 1,
+                      quantity: qty,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
               <div>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  placeholder="Unit Price"
+                <CurrencyInput
+                  placeholder="0"
                   value={currentItem.price}
-                  onChange={(e) =>
+                  onChange={(price) =>
                     setCurrentItem({
                       ...currentItem,
-                      price: parseFloat(e.target.value) || 0,
+                      price: price,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
               <button
