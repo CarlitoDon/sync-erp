@@ -169,10 +169,16 @@ export class InventoryRepository {
   ): Promise<string> {
     const db = tx || prisma;
     const year = new Date().getFullYear();
-    const prefix =
-      type === FulfillmentType.RECEIPT
-        ? SequenceType.GRN
-        : SequenceType.SHP;
+    let prefix: string;
+    if (type === FulfillmentType.RECEIPT) {
+      prefix = SequenceType.GRN;
+    } else if (type === FulfillmentType.RETURN) {
+      prefix = SequenceType.RET;
+    } else if (type === FulfillmentType.PURCHASE_RETURN) {
+      prefix = SequenceType.PRR;
+    } else {
+      prefix = SequenceType.SHP;
+    }
     const count = await db.fulfillment.count({
       where: { companyId, type },
     });

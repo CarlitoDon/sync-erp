@@ -710,6 +710,31 @@ export class JournalService {
     );
   }
 
+  /**
+   * Post Purchase Return Journal Entry
+   * Reverses GRNI accrual: Dr 2105 (GRNI Accrued), Cr 1400 (Inventory)
+   * Called when goods are returned to supplier.
+   */
+  async postPurchaseReturn(
+    companyId: string,
+    reference: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.resolveAndCreate(
+      companyId,
+      {
+        reference,
+        memo: 'Auto-generated reversal from Purchase Return',
+        lines: [
+          { accountCode: '2105', debit: amount }, // Reduce GRNI accrual
+          { accountCode: '1400', credit: amount }, // Reduce Inventory
+        ],
+      },
+      tx
+    );
+  }
+
   // ==========================================
   // INVENTORY JOURNALS
   // Stock Adjustments
