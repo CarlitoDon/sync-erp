@@ -13,6 +13,8 @@ export { BackButton } from './BackButton';
 // Form Elements
 export { default as Select } from './Select';
 export { DatePicker } from './DatePicker';
+export { QuantityInput } from './QuantityInput';
+export { CurrencyInput } from './CurrencyInput';
 
 // Feedback
 export { StatusBadge } from './StatusBadge';
