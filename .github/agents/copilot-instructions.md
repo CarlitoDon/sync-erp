@@ -4,6 +4,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 
 ## Active Technologies
 - TypeScript 5.0+ (Node.js 20 LTS) + Express (Backend), Vite + React (Frontend), Prisma (ORM), Zod (Validation), Decimal.js (Finance) (035-procure-to-pay-p2p)
+- TypeScript 5.x, React 18.x + React, React Router, tRPC React Query, Tailwind CSS 4, Vite (040-frontend-improvements-p2)
+- N/A (frontend-only) (040-frontend-improvements-p2)
 
 - TypeScript 5.x (Node 20+) + Vitest, Prisma Clien (030-test-floor-phase1)
 - PostgreSQL (Test DB) with Seeded Scenarios (030-test-floor-phase1)
@@ -57,10 +59,10 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 040-frontend-improvements-p2: Added TypeScript 5.x, React 18.x + React, React Router, tRPC React Query, Tailwind CSS 4, Vite
 - 035-procure-to-pay-p2p: Added TypeScript 5.0+ (Node.js 20 LTS) + Express (Backend), Vite + React (Frontend), Prisma (ORM), Zod (Validation), Decimal.js (Finance)
 
 - 034-grn-fullstack: Added TypeScript 5.x (Node.js 18+) + Express, Prisma, React, Vitest, Zod
-- 030-test-floor-phase1: Added TypeScript 5.x (Node 20+) + Vitest, Prisma Clien
 
 
 <!-- MANUAL ADDITIONS START -->
