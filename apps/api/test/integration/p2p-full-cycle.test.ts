@@ -271,6 +271,23 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
       ).rejects.toThrow(/goods.*received/i);
     });
 
+    it('Should prevent receiving unconfirmed PO (matching O2C)', async () => {
+      const order = await procurementService.create(COMPANY_ID, {
+        partnerId,
+        type: 'PURCHASE',
+        items: [{ productId, quantity: 3, price: 100000 }],
+        paymentTerms: 'NET30',
+      });
+
+      // Try to receive without confirming - should fail
+      await expect(
+        inventoryService.createGRN(COMPANY_ID, {
+          purchaseOrderId: order.id,
+          items: [{ productId, quantity: 3 }],
+        })
+      ).rejects.toThrow(/confirmed|status/i);
+    });
+
     it('Should fail to confirm an already confirmed PO', async () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
