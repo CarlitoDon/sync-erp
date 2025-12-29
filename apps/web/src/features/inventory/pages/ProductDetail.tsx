@@ -12,6 +12,7 @@ import {
   CardTitle,
   CardContent,
 } from '@/components/ui/Card';
+import { MovementTypeSchema } from '@sync-erp/shared';
 
 type Tab = 'history';
 
@@ -193,7 +194,8 @@ export default function ProductDetail() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               <span
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  movement.type === 'IN'
+                                  movement.type ===
+                                  MovementTypeSchema.enum.IN
                                     ? 'bg-green-100 text-green-800'
                                     : 'bg-red-100 text-red-800'
                                 }`}
@@ -206,12 +208,16 @@ export default function ProductDetail() {
                             </td>
                             <td
                               className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
-                                movement.type === 'IN'
+                                movement.type ===
+                                MovementTypeSchema.enum.IN
                                   ? 'text-green-600'
                                   : 'text-red-600'
                               }`}
                             >
-                              {movement.type === 'IN' ? '+' : '-'}
+                              {movement.type ===
+                              MovementTypeSchema.enum.IN
+                                ? '+'
+                                : '-'}
                               {movement.quantity}
                             </td>
                           </tr>

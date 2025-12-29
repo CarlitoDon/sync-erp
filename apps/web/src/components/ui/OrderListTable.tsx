@@ -45,6 +45,7 @@ export function OrderListTable<T extends OrderData>({
   extraColumns = [],
 }: OrderListTableProps<T>) {
   const isPurchase = type === 'purchase';
+  // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type, not database enum
   const orderLabel = isPurchase ? 'PO' : 'SO';
   const partnerLabel = isPurchase ? 'Supplier' : 'Customer';
   const orderRoute = isPurchase ? 'purchase-orders' : 'sales-orders';
