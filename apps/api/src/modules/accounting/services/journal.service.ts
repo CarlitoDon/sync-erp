@@ -37,8 +37,10 @@ export interface CreateJournalEntryInput {
  * - Inventory Journals: adjustment
  */
 export class JournalService {
-  private repository = new JournalRepository();
-  private accountService = new AccountService();
+  constructor(
+    private readonly repository: JournalRepository = new JournalRepository(),
+    private readonly accountService: AccountService = new AccountService()
+  ) {}
 
   // ==========================================
   // CORE METHODS
