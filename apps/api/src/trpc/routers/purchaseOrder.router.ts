@@ -116,6 +116,30 @@ export const purchaseOrderRouter = router({
         input.reason
       );
     }),
+
+  /**
+   * Process a Purchase Return (tRPC layer)
+   */
+  returnToPo: protectedProcedure
+    .input(
+      z.object({
+        orderId: z.string().uuid(),
+        items: z.array(
+          z.object({
+            productId: z.string().uuid(),
+            quantity: z.number().int().positive(),
+          })
+        ),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return purchaseOrderService.returnToPo(
+        ctx.companyId,
+        input.orderId,
+        input.items,
+        ctx.userId
+      );
+    }),
 });
 
 export type PurchaseOrderRouter = typeof purchaseOrderRouter;

@@ -7,7 +7,7 @@ import { trpc } from '@/lib/trpc';
 // Export CreateBillInput for API - uses Date objects
 export interface CreateBillInput {
   orderId: string;
-  grnId?: string; // Feature: Link to specific GRN/Receipt
+  fulfillmentId?: string; // Feature 041: Link to specific GRN/Receipt
   supplierInvoiceNumber?: string; // External reference from supplier
   dueDate?: Date;
   taxRate?: number;

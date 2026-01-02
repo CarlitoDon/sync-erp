@@ -170,7 +170,7 @@ describe('PO Over-billing Bug Reproduction', () => {
       COMPANY_ID,
       {
         orderId: order.id,
-        grnId: grn1.id, // We'll update the service to accept this
+        fulfillmentId: grn1.id, // Feature 041: Changed from grnId
       }
     );
 
@@ -193,7 +193,7 @@ describe('PO Over-billing Bug Reproduction', () => {
       COMPANY_ID,
       {
         orderId: order.id,
-        grnId: grn2.id,
+        fulfillmentId: grn2.id, // Feature 041: Changed from grnId
       }
     );
 

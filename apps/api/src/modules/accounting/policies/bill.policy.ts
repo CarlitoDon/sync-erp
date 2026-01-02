@@ -123,4 +123,49 @@ export class BillPolicy {
       isDpBill
     );
   }
+
+  /**
+   * Feature 041: Validate not over-billing
+   * Prevents creating bills whose subtotal exceeds remaining unbilled order value.
+   * Note: DP is NOT subtracted here because DP is a pre-payment mechanism,
+   * not a restriction on what can be billed. The DP deduction is applied
+   * in the bill amount calculation, not in this validation.
+   */
+  static validateNotOverBilling(
+    newBillSubtotal: Decimal,
+    existingBilledTotal: Decimal,
+    orderSubtotal: Decimal
+  ): void {
+    const maxBillable = orderSubtotal.minus(existingBilledTotal);
+    // Allow 1 IDR tolerance for rounding
+    if (newBillSubtotal.greaterThan(maxBillable.plus(1))) {
+      throw new DomainError(
+        `Bill subtotal (${newBillSubtotal.toFixed(0)}) exceeds remaining unbilled value. Max billable: ${maxBillable.toFixed(0)}`,
+        400,
+        DomainErrorCodes.EXCEEDS_ORDER_VALUE
+      );
+    }
+  }
+
+  /**
+   * Feature 041: Validate fulfillment not already invoiced
+   * Prevents billing the same GRN twice (unless previous bill was voided).
+   */
+  static validateFulfillmentNotInvoiced(fulfillment: {
+    invoices?: { id: string; status: InvoiceStatus }[];
+  }): void {
+    // Filter out VOID invoices - allow re-billing if all linked invoices are voided
+    const activeInvoices =
+      fulfillment.invoices?.filter(
+        (inv) => inv.status !== InvoiceStatus.VOID
+      ) || [];
+
+    if (activeInvoices.length > 0) {
+      throw new DomainError(
+        'This GRN already has a bill linked to it',
+        400,
+        DomainErrorCodes.FULFILLMENT_ALREADY_INVOICED
+      );
+    }
+  }
 }

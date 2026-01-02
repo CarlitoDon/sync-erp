@@ -214,14 +214,30 @@ describe('InvoicePolicy', () => {
       ).not.toThrow();
     });
 
-    it('should throw on subtotal mismatch', () => {
-      const wrongInvoice = {
+    it('should allow partial invoicing when subtotal is less than order', () => {
+      // Feature 041: Partial invoicing is allowed (e.g., invoicing per Shipment)
+      const partialInvoice = {
         ...validInvoice,
-        subtotal: new Decimal(500000),
+        subtotal: new Decimal(500000), // Half of order subtotal
+      };
+      expect(() =>
+        InvoicePolicy.validate3WayMatching(
+          partialInvoice,
+          order,
+          fullShippedQty
+        )
+      ).not.toThrow();
+    });
+
+    it('should throw on subtotal mismatch when subtotal exceeds order', () => {
+      // Only throws when invoice subtotal is >= order subtotal but mismatched
+      const overInvoice = {
+        ...validInvoice,
+        subtotal: new Decimal(1100000), // Exceeds order subtotal (1M)
       };
       try {
         InvoicePolicy.validate3WayMatching(
-          wrongInvoice,
+          overInvoice,
           order,
           fullShippedQty
         );

@@ -15,6 +15,7 @@ import {
   OrderStatusSchema,
   PaymentStatusSchema,
   InvoiceStatusSchema,
+  DocumentStatusSchema,
   PaymentTermsType,
   PaymentStatusType,
 } from '@sync-erp/shared';
@@ -235,13 +236,53 @@ export default function SalesOrderDetail() {
 
             <hr className="my-6" />
 
-            <div>
-              <p className="text-sm text-gray-500 mb-2">
-                Total Amount
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(Number(order.totalAmount))}
-              </p>
+            {/* Feature 041: Total and Outstanding amounts */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div>
+                <p className="text-sm text-gray-500 mb-2">
+                  Total Amount
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(Number(order.totalAmount))}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-2">
+                  Total Invoiced
+                </p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(
+                    order.invoices?.reduce(
+                      (sum, inv) =>
+                        inv.isDownPayment
+                          ? sum
+                          : sum + Number(inv.subtotal || 0),
+                      0
+                    ) || 0
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-2">
+                  Outstanding
+                </p>
+                <p className="text-2xl font-bold text-amber-600">
+                  {formatCurrency(
+                    Math.max(
+                      0,
+                      Number(order.totalAmount) -
+                        (order.invoices?.reduce(
+                          (sum, inv) =>
+                            inv.isDownPayment
+                              ? sum
+                              : sum + Number(inv.subtotal || 0),
+                          0
+                        ) || 0) -
+                        (Number(order.dpAmount) || 0)
+                    )
+                  )}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -256,11 +297,93 @@ export default function SalesOrderDetail() {
               id: item.id,
               productId: item.productId,
               quantity: item.quantity,
+              fulfilledQuantity: (
+                item as typeof item & { shippedQuantity?: number }
+              ).shippedQuantity,
               price: item.price,
               product: item.product,
             }))}
+            showFulfilled={true}
+            fulfillmentLabel="Shipped"
           />
         </Card>
+
+        {/* Feature 041: Shipments Card - Show linked invoices */}
+        {order.fulfillments && order.fulfillments.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Shipments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">
+                        Shipment Number
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">
+                        Linked Invoice
+                      </th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-500">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {order.fulfillments.map((shipment) => {
+                      const linkedInvoice = shipment.invoices?.[0];
+                      return (
+                        <tr key={shipment.id}>
+                          <td className="px-4 py-3 font-mono">
+                            {shipment.number}
+                          </td>
+                          <td className="px-4 py-3">
+                            <StatusBadge
+                              status={shipment.status}
+                              domain="document"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            {linkedInvoice ? (
+                              <Link
+                                to={`/invoices/${linkedInvoice.id}`}
+                                className="text-blue-600 hover:text-blue-800 hover:underline font-mono"
+                              >
+                                {linkedInvoice.invoiceNumber}
+                              </Link>
+                            ) : (
+                              <span className="text-gray-400 italic">
+                                No invoice created
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {!linkedInvoice &&
+                              shipment.status ===
+                                DocumentStatusSchema.enum.POSTED && (
+                                <ActionButton
+                                  variant="primary"
+                                  onClick={() => {
+                                    /* TODO: Create invoice from shipment */
+                                  }}
+                                >
+                                  Create Invoice
+                                </ActionButton>
+                              )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Cash Upfront: Customer Deposit Card */}
         {isUpfrontOrder && depositSummary && (

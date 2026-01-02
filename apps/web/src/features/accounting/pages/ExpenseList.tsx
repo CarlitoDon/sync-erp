@@ -1,4 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import {
@@ -9,10 +10,11 @@ import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PlusIcon } from '@heroicons/react/24/outline';
+import CreateExpenseModal from '../components/CreateExpenseModal';
 
 export default function ExpenseList() {
   const { currentCompany } = useCompany();
-  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: expenses = [], isLoading } =
     trpc.expense.list.useQuery(undefined, {
@@ -26,13 +28,18 @@ export default function ExpenseList() {
         description={`Manage operating expenses for ${currentCompany?.name}`}
         actions={
           <Button
-            onClick={() => navigate('/expenses/new')}
+            onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2"
           >
             <PlusIcon className="w-4 h-4" />
             New Expense
           </Button>
         }
+      />
+
+      <CreateExpenseModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-6">

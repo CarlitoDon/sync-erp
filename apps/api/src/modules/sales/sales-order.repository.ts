@@ -36,6 +36,7 @@ export class SalesOrderRepository {
         items: (OrderItem & { product: Product })[];
         partner: Partner | null;
         invoices: Invoice[];
+        fulfillments: (Fulfillment & { invoices: Invoice[] })[];
       })
     | null
   > {
@@ -46,6 +47,11 @@ export class SalesOrderRepository {
         items: { include: { product: true } },
         partner: true,
         invoices: true,
+        // Feature 041: Include fulfillments with their linked invoices
+        fulfillments: {
+          where: { type: FulfillmentType.SHIPMENT },
+          include: { invoices: true },
+        },
       },
     });
   }

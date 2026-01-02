@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -166,57 +166,121 @@ export default function ProductDetail() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                             Date
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                             Type
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Reference
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            PO Reference
                           </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Fulfillment
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                             Qty
                           </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {movements.map((movement) => (
-                          <tr key={movement.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {formatDate(movement.date)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        {movements.map((movement) => {
+                          // Parse reference: "GRN:GRN-2025-0001 PO:PO-202512-00001"
+                          const ref = movement.reference || '';
+                          const grnMatch = ref.match(/GRN:([\w-]+)/);
+                          const shpMatch = ref.match(/SHP:([\w-]+)/);
+                          const poMatch = ref.match(/PO:([\w-]+)/);
+
+                          const fulfillmentNum =
+                            grnMatch?.[1] || shpMatch?.[1];
+                          const fulfillmentType = grnMatch
+                            ? 'GRN'
+                            : shpMatch
+                              ? 'SHP'
+                              : null;
+                          const poNum = poMatch?.[1];
+
+                          return (
+                            <tr key={movement.id}>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                {formatDate(movement.date)}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    movement.type ===
+                                    MovementTypeSchema.enum.IN
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}
+                                >
+                                  {movement.type}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                {poNum && movement.orderId ? (
+                                  <Link
+                                    to={`/purchase-orders/${movement.orderId}`}
+                                    className="font-mono text-blue-600 hover:underline"
+                                  >
+                                    {poNum}
+                                  </Link>
+                                ) : poNum ? (
+                                  <span className="font-mono text-gray-700">
+                                    {poNum}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">
+                                    -
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                {fulfillmentNum &&
+                                movement.fulfillmentId ? (
+                                  <Link
+                                    to={
+                                      grnMatch
+                                        ? `/receipts/${movement.fulfillmentId}`
+                                        : `/deliveries/${movement.fulfillmentId}`
+                                    }
+                                    className="font-mono text-blue-600 hover:underline"
+                                  >
+                                    <span className="text-xs text-gray-500 mr-1">
+                                      {fulfillmentType}
+                                    </span>
+                                    {fulfillmentNum}
+                                  </Link>
+                                ) : fulfillmentNum ? (
+                                  <span className="font-mono text-gray-700">
+                                    <span className="text-xs text-gray-500 mr-1">
+                                      {fulfillmentType}
+                                    </span>
+                                    {fulfillmentNum}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">
+                                    -
+                                  </span>
+                                )}
+                              </td>
+                              <td
+                                className={`px-4 py-3 whitespace-nowrap text-sm text-right font-medium ${
                                   movement.type ===
                                   MovementTypeSchema.enum.IN
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
+                                    ? 'text-green-600'
+                                    : 'text-red-600'
                                 }`}
                               >
-                                {movement.type}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {movement.reference || '-'}
-                            </td>
-                            <td
-                              className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
-                                movement.type ===
+                                {movement.type ===
                                 MovementTypeSchema.enum.IN
-                                  ? 'text-green-600'
-                                  : 'text-red-600'
-                              }`}
-                            >
-                              {movement.type ===
-                              MovementTypeSchema.enum.IN
-                                ? '+'
-                                : '-'}
-                              {movement.quantity}
-                            </td>
-                          </tr>
-                        ))}
+                                  ? '+'
+                                  : '-'}
+                                {movement.quantity}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   )}

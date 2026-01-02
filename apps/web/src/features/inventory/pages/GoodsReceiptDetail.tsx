@@ -99,7 +99,8 @@ export default function GoodsReceiptDetail() {
     // FR-024: Prompt for void reason (accessible modal)
     const reason = await prompt({
       title: 'Void Goods Receipt',
-      message: 'Please enter a reason for voiding this goods receipt:',
+      message:
+        'Please enter a reason for voiding this goods receipt:',
       placeholder: 'Enter reason...',
       required: true,
     });
@@ -172,8 +173,13 @@ export default function GoodsReceiptDetail() {
     0
   );
 
-  const relatedBills = allBills.filter(
-    (bill) => bill.orderId === orderIdForBills
+  // Fix: Use specific linked invoices from backend relationship (GRN -> Invoices)
+  // instead of broad PO-based matching which includes unrelated bills.
+  const linkedInvoiceIds =
+    receipt?.invoices?.map((inv) => inv.id) || [];
+
+  const relatedBills = allBills.filter((bill) =>
+    linkedInvoiceIds.includes(bill.id)
   );
 
   return (
@@ -201,7 +207,9 @@ export default function GoodsReceiptDetail() {
                   variant="danger"
                   disabled={deleteMutation.isPending}
                 >
-                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  {deleteMutation.isPending
+                    ? 'Deleting...'
+                    : 'Delete'}
                 </Button>
               </>
             )}
@@ -374,7 +382,7 @@ export default function GoodsReceiptDetail() {
       <CreateBillModal
         isOpen={isBillModalOpen}
         onClose={() => setIsBillModalOpen(false)}
-        grnId={receipt.id}
+        fulfillmentId={receipt.id} // Feature 041: Changed from grnId
         onSuccess={(billId) => {
           utils.inventory.getGRN.invalidate({ id: id! });
           navigate(`/bills/${billId}`);

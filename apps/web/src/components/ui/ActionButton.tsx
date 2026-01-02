@@ -47,7 +47,7 @@ export default function ActionButton({
       disabled={disabled || isLoading}
       title={title}
       className={`
-        px-3 py-1.5 text-sm font-medium rounded-md border transition-colors
+        inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-md border transition-colors
         ${variantStyles[variant]}
         ${disabled || isLoading ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}

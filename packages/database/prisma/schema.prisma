@@ -162,12 +162,13 @@ model Order {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  partner         Partner       @relation(fields: [partnerId], references: [id])
-  items           OrderItem[]
-  invoices        Invoice[]
-  upfrontPayments Payment[]     @relation("OrderUpfrontPayments") // Feature 036
-  fulfillments    Fulfillment[]
+  company            Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  partner            Partner             @relation(fields: [partnerId], references: [id])
+  items              OrderItem[]
+  invoices           Invoice[]
+  upfrontPayments    Payment[]           @relation("OrderUpfrontPayments") // Feature 036
+  fulfillments       Fulfillment[]
+  inventoryMovements InventoryMovement[]
 
   @@index([companyId])
   @@index([companyId, type])
@@ -195,24 +196,30 @@ model OrderItem {
 // ============================================
 
 model InventoryMovement {
-  id          String       @id @default(uuid())
-  companyId   String
-  productId   String
-  warehouseId String?
-  type        MovementType
-  quantity    Int
-  reference   String?
-  date        DateTime     @default(now())
-  createdAt   DateTime     @default(now())
+  id            String       @id @default(uuid())
+  companyId     String
+  productId     String
+  warehouseId   String?
+  orderId       String? // FK to Order (PO/SO)
+  fulfillmentId String? // FK to Fulfillment (GRN/Shipment)
+  type          MovementType
+  quantity      Int
+  reference     String?
+  date          DateTime     @default(now())
+  createdAt     DateTime     @default(now())
 
-  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  product   Product    @relation(fields: [productId], references: [id])
-  warehouse Warehouse? @relation(fields: [warehouseId], references: [id])
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id])
+  warehouse   Warehouse?   @relation(fields: [warehouseId], references: [id])
+  order       Order?       @relation(fields: [orderId], references: [id])
+  fulfillment Fulfillment? @relation(fields: [fulfillmentId], references: [id])
 
   @@index([companyId])
   @@index([productId])
   @@index([warehouseId])
   @@index([companyId, productId])
+  @@index([orderId])
+  @@index([fulfillmentId])
 }
 
 // ============================================
@@ -255,6 +262,10 @@ model Invoice {
   dpBillId      String?
   dpBill        Invoice?  @relation("DpBills", fields: [dpBillId], references: [id])
   finalBills    Invoice[] @relation("DpBills")
+
+  // Feature 041: Fulfillment Linking (GRN for Bills, Shipment for Invoices)
+  fulfillmentId String?
+  fulfillment   Fulfillment? @relation("FulfillmentInvoices", fields: [fulfillmentId], references: [id])
 
   @@index([companyId])
   @@index([companyId, type])
@@ -795,6 +806,12 @@ model Fulfillment {
   company Company           @relation(fields: [companyId], references: [id])
   order   Order             @relation(fields: [orderId], references: [id])
   items   FulfillmentItem[]
+
+  // Feature 041: Invoices/Bills linked to this Fulfillment
+  // - For RECEIPT (GRN): Bills (Invoice type=BILL)
+  // - For SHIPMENT: Invoices (Invoice type=INVOICE)
+  invoices           Invoice[]           @relation("FulfillmentInvoices")
+  inventoryMovements InventoryMovement[]
 
   @@index([companyId])
   @@index([orderId])

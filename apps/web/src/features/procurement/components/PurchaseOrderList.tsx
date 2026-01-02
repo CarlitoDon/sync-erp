@@ -7,12 +7,22 @@ import { useConfirm } from '@/components/ui/ConfirmModal';
 import PurchaseOrderActions from './PurchaseOrderActions';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
+import CreateDpBillModal from '@/features/accounting/components/CreateDpBillModal';
 import { formatCurrency } from '@/utils/format';
 import { StatusBadge, PaymentTermsBadge, LoadingState } from '@/components/ui';
 import { PaymentTermsType } from '@sync-erp/shared';
 
 interface PurchaseOrderListProps {
   filter?: { partnerId?: string; status?: string };
+}
+
+// Type for order data needed by DP Bill modal
+interface DpBillOrderData {
+  id: string;
+  orderNumber: string | null;
+  dpAmount: number;
+  dpPercent: number;
+  totalAmount: number;
 }
 
 export default function PurchaseOrderList({
@@ -28,6 +38,9 @@ export default function PurchaseOrderList({
   const [createBillOrderId, setCreateBillOrderId] = useState<
     string | null
   >(null);
+  const [dpBillOrderData, setDpBillOrderData] = useState<DpBillOrderData | null>(
+    null
+  );
 
   const { data: orders = [], isLoading: loading } =
     trpc.purchaseOrder.list.useQuery(filter, {
@@ -69,6 +82,18 @@ export default function PurchaseOrderList({
 
   const handleCreateBill = (orderId: string) => {
     setCreateBillOrderId(orderId);
+  };
+
+  const handleCreateDpBill = (orderId: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
+    setDpBillOrderData({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      dpAmount: Number(order.dpAmount || 0),
+      dpPercent: Number(order.dpPercent || 0),
+      totalAmount: Number(order.totalAmount || 0),
+    });
   };
 
   const handleViewBill = (billId: string) => {
@@ -164,6 +189,7 @@ export default function PurchaseOrderList({
                     onCancel={handleCancel}
                     onReceiveGoods={handleGoodsReceipt}
                     onCreateBill={handleCreateBill}
+                    onCreateDpBill={handleCreateDpBill}
                     onViewBill={handleViewBill}
                     onViewGRN={(grnId) => navigate(`/receipts/${grnId}`)}
                     layout="list"
@@ -203,6 +229,23 @@ export default function PurchaseOrderList({
           navigate(`/bills/${billId}`);
         }}
       />
+
+      {/* DP Bill Creation Modal */}
+      {dpBillOrderData && (
+        <CreateDpBillModal
+          isOpen={!!dpBillOrderData}
+          onClose={() => setDpBillOrderData(null)}
+          orderId={dpBillOrderData.id}
+          orderNumber={dpBillOrderData.orderNumber || undefined}
+          defaultDpAmount={dpBillOrderData.dpAmount}
+          dpPercent={dpBillOrderData.dpPercent}
+          orderTotal={dpBillOrderData.totalAmount}
+          onSuccess={(billId) => {
+            utils.purchaseOrder.list.invalidate();
+            navigate(`/bills/${billId}`);
+          }}
+        />
+      )}
     </div>
   );
 }

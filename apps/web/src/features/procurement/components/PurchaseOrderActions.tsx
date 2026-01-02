@@ -36,6 +36,7 @@ interface PurchaseOrderActionsProps {
   onCancel?: (id: string) => void;
   onReceiveGoods?: (id: string) => void;
   onCreateBill?: (id: string) => void;
+  onCreateDpBill?: (id: string) => void; // Feature 041: Manual DP Bill creation
   onViewBill?: (billId: string) => void;
   onViewGRN?: (grnId: string) => void;
   onClosePO?: (id: string) => void; // GAP-001: Close partially received POs
@@ -49,6 +50,7 @@ export default function PurchaseOrderActions({
   onCancel,
   onReceiveGoods,
   onCreateBill,
+  onCreateDpBill,
   onViewBill,
   onViewGRN,
   onClosePO,
@@ -238,6 +240,16 @@ export default function PurchaseOrderActions({
           variant="warning"
         >
           Close PO
+        </ActionButton>
+      )}
+
+      {/* Create DP Bill - if CONFIRMED, has DP requirement, and no DP Bill yet */}
+      {isConfirmed && hasDpRequired && !dpBill && onCreateDpBill && (
+        <ActionButton
+          onClick={() => onCreateDpBill(order.id)}
+          variant="primary"
+        >
+          Create DP Bill
         </ActionButton>
       )}
 
