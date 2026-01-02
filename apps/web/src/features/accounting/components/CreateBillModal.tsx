@@ -7,7 +7,11 @@ import {
 } from '@/features/accounting/hooks/useBill';
 import { useGoodsReceipt } from '@/features/procurement/hooks/useGoodsReceipt';
 import { trpc } from '@/lib/trpc';
-import { PaymentTermsSchema } from '@sync-erp/shared';
+import {
+  PaymentTermsSchema,
+  InvoiceStatusSchema,
+  InvoiceTypeSchema,
+} from '@sync-erp/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,14 +33,14 @@ interface CreateBillModalProps {
   isOpen: boolean;
   onClose: () => void;
   orderId?: string;
-  grnId?: string;
+  fulfillmentId?: string; // Feature 041: Renamed from grnId
   onSuccess?: (billId: string) => void;
 }
 
 // Form-specific type with string dates (HTML input compatible)
 interface BillFormData {
   orderId: string;
-  grnId?: string;
+  fulfillmentId?: string; // Feature 041: Renamed from grnId
   supplierInvoiceNumber?: string;
   dueDate?: string;
   taxRate?: number;
@@ -50,7 +54,7 @@ export default function CreateBillModal({
   isOpen,
   onClose,
   orderId,
-  grnId,
+  fulfillmentId, // Feature 041: Renamed from grnId
   onSuccess,
 }: CreateBillModalProps) {
   const { currentCompany } = useCompany();
@@ -63,6 +67,12 @@ export default function CreateBillModal({
   const { data: order } = trpc.purchaseOrder.getById.useQuery(
     { id: poId! },
     { enabled: !!poId && !!currentCompany?.id }
+  );
+
+  // Fetch GRN details if fulfillmentId is present (Feature 041 - Enhanced UX)
+  const { data: grn } = trpc.inventory.getGRN.useQuery(
+    { id: fulfillmentId! },
+    { enabled: !!fulfillmentId && !!currentCompany?.id }
   );
 
   const { register, handleSubmit, setValue, watch, reset } =
@@ -121,17 +131,23 @@ export default function CreateBillModal({
     async function loadData() {
       if (!currentCompany || !isOpen) return;
 
+      // Feature 041: If both orderId and fulfillmentId provided, set both
       if (orderId) {
         setPoId(orderId);
         setValue('orderId', orderId);
-      } else if (grnId) {
+        // Also set fulfillmentId if provided (from GRN table Create Bill button)
+        if (fulfillmentId) {
+          setValue('fulfillmentId', fulfillmentId);
+        }
+      } else if (fulfillmentId) {
+        // Only fulfillmentId provided - lookup orderId from GRN
         setLoadingDetails(true);
         try {
-          const grn = await getReceipt(grnId);
+          const grn = await getReceipt(fulfillmentId);
           if (grn) {
             setPoId(grn.orderId);
             setValue('orderId', grn.orderId);
-            setValue('grnId', grnId);
+            setValue('fulfillmentId', fulfillmentId);
           }
         } finally {
           setLoadingDetails(false);
@@ -139,13 +155,20 @@ export default function CreateBillModal({
       }
     }
     loadData();
-  }, [currentCompany, grnId, orderId, isOpen, setValue, getReceipt]);
+  }, [
+    currentCompany,
+    fulfillmentId,
+    orderId,
+    isOpen,
+    setValue,
+    getReceipt,
+  ]);
 
   const onSubmit = async (formData: BillFormData) => {
     // Convert form data to API format (string dates to Date objects)
     const apiData: CreateBillInput = {
       orderId: formData.orderId,
-      grnId: formData.grnId || undefined, // Only include if set
+      fulfillmentId: formData.fulfillmentId || undefined, // Feature 041: Only include if set
       supplierInvoiceNumber:
         formData.supplierInvoiceNumber || undefined,
       businessDate: formData.businessDate
@@ -172,87 +195,282 @@ export default function CreateBillModal({
     return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
   };
 
+  // Billing Summary Calculation
+  const isGrnBill = !!fulfillmentId;
+  const sourceNumber = isGrnBill ? grn?.number : order?.orderNumber;
+  const poNumber = order?.orderNumber;
+  const sourceLabel = isGrnBill ? 'Goods Receipt' : 'Purchase Order';
+
+  // Calculate items and total
+  const itemsToBill = isGrnBill
+    ? grn?.items.map((item) => ({
+        productName: item.product.name,
+        qty: Number(item.quantity),
+        price: Number(item.orderItem?.price || 0),
+        total:
+          Number(item.quantity) * Number(item.orderItem?.price || 0),
+      })) || []
+    : order?.items.map((item) => ({
+        productName: item.product.name,
+        qty: Number(item.quantity),
+        price: Number(item.price || 0),
+        total: Number(item.quantity) * Number(item.price || 0),
+      })) || [];
+
+  const subtotal = itemsToBill.reduce(
+    (sum, item) => sum + item.total,
+    0
+  );
+  const taxRate = Number(order?.taxRate || 0);
+  const taxAmount = (subtotal * taxRate) / 100;
+  const totalAmount = subtotal + taxAmount;
+
+  const formatMoney = (amount: number) =>
+    new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+
   return (
     <FormModal
       isOpen={isOpen}
       onClose={onClose}
       title="Create Bill"
-      maxWidth="2xl"
+      maxWidth="4xl"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Hidden Order ID & GRN ID */}
-        <input type="hidden" {...register('orderId')} />
-        <input type="hidden" {...register('grnId')} />
-
-        {(loadingDetails || (poId && !order)) && (
-          <p className="text-sm text-gray-500">Loading details...</p>
-        )}
-
-        <div className="grid gap-4">
-          <div>
-            <div className="flex items-center gap-1.5 mb-1">
-              <Label className="mb-0">
-                Supplier Invoice Ref (Optional)
-              </Label>
-              <div className="group relative">
-                <span className="flex items-center justify-center w-4 h-4 text-xs text-gray-500 bg-gray-200 rounded-full cursor-help hover:bg-gray-300 transition-colors">
-                  ?
-                </span>
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 text-xs text-white bg-gray-800 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-56 z-50">
-                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
-                  Nomor faktur/invoice dari supplier Anda. Field ini
-                  opsional untuk referensi. Bill Number akan
-                  di-generate otomatis.
+      <div className="space-y-6">
+        {/* Billing Summary Section */}
+        {(order || grn) && (
+          <div className="bg-slate-50 border rounded-lg p-6 mb-6 text-sm">
+            {/* Header / Context */}
+            <div className="flex items-center justify-between mb-4 border-b pb-3">
+              <div>
+                <div className="font-semibold text-slate-800">
+                  Transaction Analysis
+                </div>
+                <div className="text-slate-500 text-xs">
+                  {sourceLabel} <strong>{sourceNumber}</strong> • PO{' '}
+                  <strong>{poNumber}</strong>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-slate-500 uppercase tracking-wider">
+                  PO Total
+                </div>
+                <div className="font-bold text-slate-900">
+                  {formatMoney(Number(order?.totalAmount || 0))}
                 </div>
               </div>
             </div>
-            <Input
-              {...register('supplierInvoiceNumber')}
-              placeholder="e.g. FKT/2024/001"
-              autoFocus
-            />
+
+            <div className="space-y-4">
+              {/* 1. Previous History */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-slate-600">
+                  <span>Previously Billed</span>
+                  <span className="font-medium">
+                    {formatMoney(
+                      Number(order?.computed?.totalBilled || 0)
+                    )}
+                  </span>
+                </div>
+                {/* List of Previous Bills */}
+                {order?.invoices && order.invoices.length > 0 && (
+                  <div className="pl-3 border-l-2 border-slate-200 space-y-1 my-1">
+                    {order.invoices
+                      .filter(
+                        (inv) =>
+                          inv.status !==
+                            InvoiceStatusSchema.enum.VOID &&
+                          inv.type === InvoiceTypeSchema.enum.BILL
+                      )
+                      .map((inv) => (
+                        <div
+                          key={inv.id}
+                          className="flex justify-between text-xs text-slate-500"
+                        >
+                          <span>
+                            {inv.invoiceNumber} ({inv.status})
+                          </span>
+                          <span>
+                            {formatMoney(Number(inv.amount))}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+                <div className="flex justify-between text-slate-600 border-t border-dashed pt-2">
+                  <span>Current Outstanding</span>
+                  <span className="font-medium">
+                    {formatMoney(
+                      Number(order?.computed?.outstanding || 0)
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* 2. This Bill impact */}
+              <div className="bg-white border rounded p-3 space-y-2 shadow-sm">
+                <div className="font-semibold text-slate-800 border-b pb-1 mb-2 text-xs uppercase tracking-wider">
+                  Current Bill (Draft)
+                </div>
+                {/* Items List (Brief) */}
+                <div className="text-xs text-slate-500 mb-2 max-h-20 overflow-y-auto">
+                  {itemsToBill.map((item, idx) => (
+                    <div key={idx} className="flex justify-between">
+                      <span>
+                        {item.qty}x {item.productName}
+                      </span>
+                      <span>{formatMoney(item.total)}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* Subtotal + Tax + Total */}
+                <div className="text-xs border-t border-slate-200 pt-2 space-y-1">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Subtotal</span>
+                    <span>{formatMoney(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Tax ({taxRate}%)</span>
+                    <span>{formatMoney(taxAmount)}</span>
+                  </div>
+                  <div className="flex justify-between font-medium text-slate-800 pt-1 border-t border-dashed">
+                    <span>Bill Total</span>
+                    <span>{formatMoney(totalAmount)}</span>
+                  </div>
+                </div>
+
+                {/* DP Logic */}
+                {Number(order?.computed?.actualDpAmount || 0) > 0 && (
+                  <div className="flex justify-between text-green-700 text-xs">
+                    <span>Less: DP Allocation (Est.)</span>
+                    <span>
+                      -
+                      {formatMoney(
+                        (totalAmount /
+                          Number(order?.totalAmount || 1)) *
+                          Number(order?.computed?.actualDpAmount || 0)
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center bg-blue-50 p-2 rounded text-blue-800 font-bold">
+                  <span>Net Payable Amount</span>
+                  <span className="text-lg">
+                    {formatMoney(
+                      totalAmount -
+                        (Number(
+                          order?.computed?.actualDpAmount || 0
+                        ) > 0
+                          ? (totalAmount /
+                              Number(order?.totalAmount || 1)) *
+                            Number(
+                              order?.computed?.actualDpAmount || 0
+                            )
+                          : 0)
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. Forecast */}
+              <div className="flex justify-between text-slate-500 text-xs pt-1">
+                <span>Remaining Unbilled (Forecast)</span>
+                <span>
+                  {formatMoney(
+                    Math.max(
+                      0,
+                      Number(order?.computed?.outstanding || 0) -
+                        totalAmount
+                    )
+                  )}
+                </span>
+              </div>
+            </div>
           </div>
+        )}
 
-          {/* Tax Rate inherited from PO - no input needed */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Hidden Order ID & Fulfillment ID */}
+          <input type="hidden" {...register('orderId')} />
+          <input type="hidden" {...register('fulfillmentId')} />
 
-          {/* Payment Terms inherited from PO - no input needed */}
+          {(loadingDetails || (poId && !order)) && (
+            <p className="text-sm text-gray-500">
+              Loading details...
+            </p>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4">
             <div>
-              <Label>Bill Date *</Label>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Label className="mb-0">
+                  Supplier Invoice Ref (Optional)
+                </Label>
+                <div className="group relative">
+                  <span className="flex items-center justify-center w-4 h-4 text-xs text-gray-500 bg-gray-200 rounded-full cursor-help hover:bg-gray-300 transition-colors">
+                    ?
+                  </span>
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 text-xs text-white bg-gray-800 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-56 z-50">
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                    Nomor faktur/invoice dari supplier Anda. Field ini
+                    opsional untuk referensi. Bill Number akan
+                    di-generate otomatis.
+                  </div>
+                </div>
+              </div>
               <Input
-                type="date"
-                {...register('businessDate', {
-                  required: true,
-                })}
-                value={formatDateForInput(watch('businessDate'))}
+                {...register('supplierInvoiceNumber')}
+                placeholder="e.g. FKT/2024/001"
+                autoFocus
               />
             </div>
-            <div>
-              <Label>Due Date (Auto-calculated)</Label>
-              <Input
-                type="date"
-                {...register('dueDate')}
-                disabled
-                className="bg-gray-50"
-                value={formatDateForInput(watch('dueDate'))}
-              />
+
+            {/* Tax Rate inherited from PO - no input needed */}
+
+            {/* Payment Terms inherited from PO - no input needed */}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Bill Date *</Label>
+                <Input
+                  type="date"
+                  {...register('businessDate', {
+                    required: true,
+                  })}
+                  value={formatDateForInput(watch('businessDate'))}
+                />
+              </div>
+              <div>
+                <Label>Due Date (Auto-calculated)</Label>
+                <Input
+                  type="date"
+                  {...register('dueDate')}
+                  disabled
+                  className="bg-gray-50"
+                  value={formatDateForInput(watch('dueDate'))}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t mt-6">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={submitting || (!poId && !loadingDetails)}
-          >
-            {submitting ? 'Creating...' : 'Create Bill'}
-          </Button>
-        </div>
-      </form>
+          <div className="flex justify-end gap-3 pt-4 border-t mt-6">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={submitting || (!poId && !loadingDetails)}
+            >
+              {submitting ? 'Creating...' : 'Create Bill'}
+            </Button>
+          </div>
+        </form>
+      </div>
     </FormModal>
   );
 }

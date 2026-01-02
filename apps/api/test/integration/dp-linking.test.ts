@@ -176,7 +176,9 @@ describe('DP Bill Linking (Feature Implementation)', () => {
 
     // 6. Verify Linking
     expect(finalBill.dpBillId).toBe(dpBill!.id);
-    expect(Number(finalBill.subtotal)).toBe(1000000); // 2M - 1M DP
+    // Note: subtotal stays at original order value (2M), only amount is reduced by DP
+    expect(Number(finalBill.subtotal)).toBe(2000000); // Original order subtotal
+    expect(Number(finalBill.amount)).toBe(1000000); // 2M (no tax) - 1M DP = 1M
 
     // 7. Verify Repository Inclusion
     const fetchedBill = await billService.getById(

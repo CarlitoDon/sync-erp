@@ -14,3 +14,17 @@ export const formatDate = (date: string | Date) => {
     day: 'numeric',
   });
 };
+
+export const formatDateTime = (date: string | Date) => {
+  const d = new Date(date);
+  const dateStr = d.toLocaleDateString('id-ID', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+  const timeStr = d.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${dateStr}, ${timeStr}`;
+};

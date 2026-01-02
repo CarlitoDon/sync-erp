@@ -40,6 +40,24 @@ export const billRouter = router({
     }),
 
   /**
+   * Create Down Payment Bill for PO with DP requirement
+   */
+  createDpBill: protectedProcedure
+    .input(
+      z.object({
+        orderId: z.string().uuid(),
+        amount: z.number().positive().optional(), // Custom DP amount (optional)
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return billService.createDownPaymentBill(
+        ctx.companyId,
+        input.orderId,
+        input.amount
+      );
+    }),
+
+  /**
    * Post bill to ledger
    */
   post: protectedProcedure
@@ -66,6 +84,28 @@ export const billRouter = router({
         input.reason,
         ctx.userPermissions // FR-026: Granular RBAC
       );
+    }),
+
+  /**
+   * Delete DRAFT bill
+   */
+  delete: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      // FR-026: Granular RBAC Check
+      const hasPermission = ctx.userPermissions?.some((p) =>
+        [
+          'FINANCE:DELETE',
+          'BILL:DELETE',
+          '*:*',
+          'FINANCE:*',
+        ].includes(p.toUpperCase())
+      );
+      if (!hasPermission) {
+        throw new Error('Missing permission: finance:delete');
+      }
+
+      return billService.delete(input.id, ctx.companyId);
     }),
 
   /**

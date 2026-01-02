@@ -9,6 +9,7 @@ import {
   PaymentStatus,
   PaymentTerms,
   prisma,
+  InvoiceStatus,
 } from '@sync-erp/database';
 import { PurchaseOrderRepository } from './purchase-order.repository';
 import { PurchaseOrderPolicy } from './purchase-order.policy';
@@ -133,7 +134,69 @@ export class PurchaseOrderService {
     companyId: string,
     tx?: Prisma.TransactionClient
   ) {
-    return this.repository.findById(id, companyId, tx);
+    const order = await this.repository.findById(id, companyId, tx);
+    if (!order) return null;
+
+    // Get received quantities from POSTED GRNs
+    const receivedQtyMap =
+      await this.repository.getReceivedQuantities(id, tx);
+
+    // Map received quantities to items
+    const itemsWithReceived = order.items.map((item) => ({
+      ...item,
+      receivedQuantity: receivedQtyMap.get(item.productId) || 0,
+    }));
+
+    // Compute billing fields - all logic in backend, frontend just renders
+    const invoices = order.invoices || [];
+
+    // Find DP Bill (using isDownPayment flag, not notes parsing)
+    const dpBill = invoices.find((inv) => inv.isDownPayment);
+
+    // Calculate Total Billed (INCLUDING DP Bills - all bills count)
+    // Use `amount` (gross, includes tax) to match order.totalAmount
+    // Exclude VOID bills from calculation
+    const totalBilled = invoices
+      .filter((inv) => inv.status !== InvoiceStatus.VOID)
+      .reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
+
+    // Actual DP amount from DP Bill (or fallback to order.dpAmount)
+    const actualDpAmount = dpBill
+      ? Number(dpBill.amount)
+      : order.dpAmount
+        ? Number(order.dpAmount)
+        : 0;
+
+    // Actual DP percent (calculated from actual DP Bill amount)
+    const orderTotal = Number(order.totalAmount);
+    const actualDpPercent = dpBill
+      ? Math.round((Number(dpBill.amount) / orderTotal) * 100)
+      : order.dpPercent
+        ? Number(order.dpPercent)
+        : 0;
+
+    // Calculate Outstanding (simple: orderTotal - totalBilled)
+    const isDpPaid = dpBill?.status === InvoiceStatus.PAID;
+    const outstanding = Math.max(0, orderTotal - totalBilled);
+
+    // Return order with computed fields
+    return {
+      ...order,
+      items: itemsWithReceived,
+      // Computed billing fields - frontend renders these directly
+      computed: {
+        totalBilled,
+        outstanding,
+        actualDpAmount,
+        actualDpPercent,
+        isDpPaid,
+        dpBillId: dpBill?.id || null,
+        dpBillStatus: dpBill?.status || null,
+        hasDpRequired:
+          order.paymentTerms === PaymentTerms.UPFRONT ||
+          actualDpAmount > 0,
+      },
+    };
   }
 
   async list(companyId: string, status?: string) {
@@ -198,20 +261,8 @@ export class PurchaseOrderService {
       },
     });
 
-    // Auto-create DP Bill for:
-    // 1. UPFRONT payment terms (100% DP)
-    // 2. Tempo with DP (partial DP)
-    const hasDpRequired =
-      order.paymentTerms === PaymentTerms.UPFRONT ||
-      (order.dpAmount && Number(order.dpAmount) > 0);
-
-    if (hasDpRequired) {
-      // Lazy-load BillService to avoid circular dependency
-      const { BillService } =
-        await import('../accounting/services/bill.service');
-      const billService = new BillService();
-      await billService.createDownPaymentBill(companyId, id);
-    }
+    // Feature 041: DP Bill is now created manually by user via "Create DP Bill" button
+    // This gives user control over when to create the DP Bill
 
     return updated;
   }

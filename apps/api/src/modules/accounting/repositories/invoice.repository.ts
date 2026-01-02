@@ -43,6 +43,7 @@ export class InvoiceRepository {
         items: { include: { product: true } },
         dpBill: true, // Include related DP Bill
         finalBills: true, // Include related Final Bills if this is a DP
+        fulfillment: true, // Include linked GRN
       },
     });
   }
@@ -251,6 +252,11 @@ export class InvoiceRepository {
     return db.payment.count({
       where: {
         invoiceId,
+        NOT: {
+          reference: {
+            startsWith: '[VOIDED]',
+          },
+        },
       },
     });
   }
@@ -312,5 +318,32 @@ export class InvoiceRepository {
       const dpDeducted = grossBeforeDeduction - Number(bill.amount);
       return sum + (dpDeducted > 1 ? dpDeducted : 0); // Guard against tiny floating point errors
     }, 0);
+  }
+
+  /**
+   * Feature 041: Sum total invoiced/billed amount for an Order.
+   * Used for over-billing/over-invoicing prevention.
+   * Excludes VOID invoices and DP invoices (which are tracked separately).
+   */
+  async sumInvoicedByOrderId(
+    orderId: string,
+    companyId: string,
+    invoiceType: InvoiceType,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const db = tx || prisma;
+    const result = await db.invoice.aggregate({
+      where: {
+        orderId,
+        companyId,
+        type: invoiceType,
+        isDownPayment: false,
+        status: { not: InvoiceStatus.VOID },
+      },
+      _sum: {
+        subtotal: true,
+      },
+    });
+    return Number(result._sum.subtotal || 0);
   }
 }

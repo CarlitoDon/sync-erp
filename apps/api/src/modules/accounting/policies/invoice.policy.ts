@@ -11,6 +11,7 @@ import {
   OrderStatus,
 } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import { Decimal } from 'decimal.js';
 import {
   validateBusinessDate,
   validateDraftStatus,
@@ -118,5 +119,49 @@ export class InvoicePolicy {
       'Shipped',
       isDpInvoice
     );
+  }
+
+  /**
+   * Feature 041: Validate not over-invoicing
+   * Prevents creating invoices whose subtotal exceeds remaining uninvoiced order value.
+   * Note: DP is NOT subtracted here because DP is a pre-payment mechanism,
+   * not a restriction on what can be invoiced.
+   */
+  static validateNotOverInvoicing(
+    newInvoiceSubtotal: Decimal,
+    existingInvoicedTotal: Decimal,
+    orderSubtotal: Decimal
+  ): void {
+    const maxInvoiceable = orderSubtotal.minus(existingInvoicedTotal);
+    // Allow 1 IDR tolerance for rounding
+    if (newInvoiceSubtotal.greaterThan(maxInvoiceable.plus(1))) {
+      throw new DomainError(
+        `Invoice subtotal (${newInvoiceSubtotal.toFixed(0)}) exceeds remaining uninvoiced value. Max invoiceable: ${maxInvoiceable.toFixed(0)}`,
+        400,
+        DomainErrorCodes.EXCEEDS_ORDER_VALUE
+      );
+    }
+  }
+
+  /**
+   * Feature 041: Validate fulfillment not already invoiced
+   * Prevents invoicing the same Shipment twice (unless previous invoice was voided).
+   */
+  static validateFulfillmentNotInvoiced(fulfillment: {
+    invoices?: { id: string; status: InvoiceStatus }[];
+  }): void {
+    // Filter out VOID invoices - allow re-invoicing if all linked invoices are voided
+    const activeInvoices =
+      fulfillment.invoices?.filter(
+        (inv) => inv.status !== InvoiceStatus.VOID
+      ) || [];
+
+    if (activeInvoices.length > 0) {
+      throw new DomainError(
+        'This Shipment already has an invoice linked to it',
+        400,
+        DomainErrorCodes.FULFILLMENT_ALREADY_INVOICED
+      );
+    }
   }
 }

@@ -27,6 +27,8 @@ interface GoodsReceiptModalProps {
   isOpen: boolean;
   onClose: () => void;
   purchaseOrderId: string;
+  orderNumber?: string;
+  supplierName?: string;
   orderItems: OrderItem[];
   onSuccess?: () => void;
 }
@@ -41,6 +43,8 @@ export function GoodsReceiptModal({
   isOpen,
   onClose,
   purchaseOrderId,
+  orderNumber,
+  supplierName,
   orderItems,
   onSuccess,
 }: GoodsReceiptModalProps) {
@@ -187,6 +191,27 @@ export function GoodsReceiptModal({
         <DialogHeader>
           <DialogTitle>Receive Goods</DialogTitle>
         </DialogHeader>
+
+        {/* Context Summary */}
+        <div className="bg-slate-50 p-3 rounded-md text-sm grid grid-cols-2 gap-4 border border-slate-100">
+          <div>
+            <span className="text-gray-500 text-xs uppercase tracking-wider block mb-1">
+              Source Order
+            </span>
+            <span className="font-mono font-medium text-gray-900">
+              {orderNumber || purchaseOrderId}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-500 text-xs uppercase tracking-wider block mb-1">
+              Supplier
+            </span>
+            <span className="font-medium text-gray-900">
+              {supplierName || '-'}
+            </span>
+          </div>
+        </div>
+
         <form className="space-y-4">
           <div className="grid gap-4 py-4">
             {/* Items List */}
@@ -300,24 +325,23 @@ export function GoodsReceiptModal({
             </div>
 
             {/* Notes */}
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-[80px_1fr] items-center gap-4">
               <Label htmlFor="notes" className="text-right">
                 Notes
               </Label>
               <Input
                 id="notes"
-                className="col-span-3"
                 placeholder="Optional notes"
                 {...register('notes')}
               />
             </div>
 
             {/* Business Date */}
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-[80px_1fr] items-center gap-4">
               <Label htmlFor="date" className="text-right">
                 Date
               </Label>
-              <div className="col-span-3">
+              <div>
                 <Controller
                   name="date"
                   control={control}

@@ -324,6 +324,8 @@ export class InventoryService {
             {
               companyId,
               productId: item.productId,
+              orderId: fulfillment.orderId,
+              fulfillmentId: fulfillment.id,
               type: MovementType.IN,
               quantity: qty,
               reference: `GRN:${fulfillment.number} PO:${fulfillment.order.orderNumber || fulfillment.orderId}`,
@@ -350,6 +352,8 @@ export class InventoryService {
             {
               companyId,
               productId: item.productId,
+              orderId: fulfillment.orderId,
+              fulfillmentId: fulfillment.id,
               type: MovementType.OUT,
               quantity: qty,
               reference: `SHP:${fulfillment.number}`,
@@ -487,17 +491,17 @@ export class InventoryService {
         ? InvoiceType.BILL
         : InvoiceType.INVOICE;
 
-      // Check no invoice exists
+      // Check no invoice exists connected to this fulfillment
       const invoiceCount =
-        await this.repository.countInvoicesForOrder(
-          fulfillment.orderId,
+        await this.repository.countInvoicesForFulfillment(
+          fulfillment.id,
           companyId,
           invoiceType,
           t
         );
       if (invoiceCount > 0) {
         throw new DomainError(
-          `Cannot void: A ${invoiceType} exists for this order. Void it first.`,
+          `Cannot void: A ${invoiceType} exists linked to this document. Void it first.`,
           400
         );
       }

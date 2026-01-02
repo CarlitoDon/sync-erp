@@ -11,6 +11,7 @@ import {
   EntityType,
   prisma,
 } from '@sync-erp/database';
+import { Decimal } from 'decimal.js';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import {
   BusinessDate,
@@ -22,7 +23,7 @@ import { JournalService } from './journal.service';
 
 export interface CreateBillInput {
   orderId: string;
-  grnId?: string; // Feature: Link to specific GRN/Receipt
+  fulfillmentId?: string; // Feature 041: Link to specific GRN/Receipt (renamed from grnId)
   supplierInvoiceNumber?: string; // External reference from supplier's invoice
   dueDate?: Date;
   taxRate?: number;
@@ -85,28 +86,38 @@ export class BillService {
     // Note: passing undefined for tx implicitly as it's optional last arg
     BillPolicy.ensureGoodsReceived(grnCount);
 
-    // Feature: Calculate subtotal from specific GRN items if provided
-    let grnItems: any[] = [];
-    if (data.grnId) {
-      const grn = await this.inventoryRepository.findFulfillmentById(
-        data.grnId,
-        companyId
-      );
-      if (!grn) {
+    // Feature 041: Calculate subtotal from specific GRN items if provided
+    type FulfillmentItemWithRelations = {
+      quantity: Prisma.Decimal;
+      orderItem: { price: Prisma.Decimal } | null;
+    };
+    let grnItems: FulfillmentItemWithRelations[] = [];
+    let fulfillment: Awaited<
+      ReturnType<typeof this.inventoryRepository.findFulfillmentById>
+    > = null;
+    if (data.fulfillmentId) {
+      fulfillment =
+        await this.inventoryRepository.findFulfillmentById(
+          data.fulfillmentId,
+          companyId
+        );
+      if (!fulfillment) {
         throw new DomainError(
           'Goods receipt not found',
           404,
-          DomainErrorCodes.OPERATION_NOT_ALLOWED
+          DomainErrorCodes.FULFILLMENT_NOT_FOUND
         );
       }
-      if (grn.orderId !== data.orderId) {
+      if (fulfillment.orderId !== data.orderId) {
         throw new DomainError(
           'Goods receipt does not belong to this order',
           400,
-          DomainErrorCodes.OPERATION_NOT_ALLOWED
+          DomainErrorCodes.FULFILLMENT_NOT_FOR_ORDER
         );
       }
-      grnItems = grn.items;
+      // Feature 041: Validate GRN not already billed
+      BillPolicy.validateFulfillmentNotInvoiced(fulfillment);
+      grnItems = fulfillment.items;
     }
 
     // FR-013: Prevent duplicate supplier invoice numbers per supplier
@@ -133,18 +144,40 @@ export class BillService {
     );
 
     // Calculate subtotal from items (Net)
-    // If grnId is provided, use GRN items. Otherwise use PO items (legacy/full)
+    // If fulfillmentId is provided, use GRN items. Otherwise use PO items (legacy/full)
     let subtotal = 0;
     if (grnItems.length > 0) {
       subtotal = grnItems.reduce(
         (sum, item) =>
-          sum + Number(item.orderItem?.price || 0) * item.quantity,
+          sum +
+          Number(item.orderItem?.price || 0) * Number(item.quantity),
         0
       );
     } else {
       subtotal = order.items.reduce(
         (sum, item) => sum + Number(item.price) * item.quantity,
         0
+      );
+    }
+
+    // Feature 041: Validate not over-billing only when fulfillmentId is provided
+    // For legacy flow (no fulfillmentId), skip this validation to maintain backward compatibility
+    if (data.fulfillmentId) {
+      const existingBilledTotal =
+        await this.repository.sumInvoicedByOrderId(
+          data.orderId,
+          companyId,
+          InvoiceType.BILL
+        );
+      const orderSubtotal = order.items.reduce(
+        (sum, item) => sum + Number(item.price) * item.quantity,
+        0
+      );
+
+      BillPolicy.validateNotOverBilling(
+        new Decimal(subtotal),
+        new Decimal(existingBilledTotal),
+        new Decimal(orderSubtotal)
       );
     }
 
@@ -184,8 +217,17 @@ export class BillService {
         const remainingDp = dpAmount - alreadyDeducted;
 
         if (remainingDp > 0) {
-          // Deduct remaining DP, capped by current bill amount
-          dpDeductedNow = Math.min(remainingDp, amount);
+          // Calculate proportional DP allocation for this bill
+          // Formula: (billGross / poTotal) × dpAmount
+          const poTotal = Number(order.totalAmount) || 1; // Guard div by zero
+          const proportionalDp = (amount / poTotal) * dpAmount;
+
+          // Cap by remaining DP (in case previous bills already used some)
+          dpDeductedNow = Math.min(
+            proportionalDp,
+            remainingDp,
+            amount
+          );
           amount = amount - dpDeductedNow;
         }
       }
@@ -196,6 +238,7 @@ export class BillService {
       companyId,
       orderId: data.orderId,
       partnerId: order.partnerId,
+      fulfillmentId: data.fulfillmentId || null, // Feature 041: Link to specific GRN/Receipt
       type: InvoiceType.BILL,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
@@ -232,7 +275,8 @@ export class BillService {
    */
   async createDownPaymentBill(
     companyId: string,
-    orderId: string
+    orderId: string,
+    customAmount?: number // Feature 041: Allow user to override DP amount
   ): Promise<Invoice> {
     const order = await this.repository.findOrder(
       orderId,
@@ -257,11 +301,11 @@ export class BillService {
       );
     }
 
-    // Must have DP requirement (UPFRONT or dpAmount > 0)
+    // Must have DP requirement (UPFRONT or dpAmount > 0) OR customAmount provided
     const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
     const isUpfront = order.paymentTerms === PaymentTerms.UPFRONT;
 
-    if (!isUpfront && dpAmount <= 0) {
+    if (!isUpfront && dpAmount <= 0 && !customAmount) {
       throw new DomainError(
         'DP Bill can only be created for UPFRONT payment terms or orders with dpAmount > 0',
         400,
@@ -270,10 +314,11 @@ export class BillService {
     }
 
     // Check if DP Bill already exists for this PO
-    const existingBill = await this.repository.findByOrderId(
+    const existingBill = await this.repository.findFirst({
       orderId,
-      companyId
-    );
+      companyId,
+      isDownPayment: true,
+    });
     if (existingBill) {
       // Already exists, return it (idempotent)
       return existingBill;
@@ -292,27 +337,49 @@ export class BillService {
     const taxRate = order.taxRate ? Number(order.taxRate) : 0;
     const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
 
-    if (isUpfront) {
+    // Calculate order total (subtotal + tax)
+    const orderSubtotal = order.items.reduce(
+      (sum, item) => sum + Number(item.price) * item.quantity,
+      0
+    );
+    const orderTotal = orderSubtotal * (1 + taxMultiplier);
+
+    let dpPercent: number;
+
+    if (customAmount !== undefined) {
+      // Feature 041: User provided custom DP amount
+      amount = customAmount;
+      // Reverse calculate subtotal and tax from amount
+      subtotal = amount / (1 + taxMultiplier);
+      taxAmount = amount - subtotal;
+      // Calculate actual percent based on custom amount
+      dpPercent = Math.round((amount / orderTotal) * 100);
+    } else if (isUpfront) {
       // UPFRONT: 100% of order total
-      subtotal = order.items.reduce(
-        (sum, item) => sum + Number(item.price) * item.quantity,
-        0
-      );
+      subtotal = orderSubtotal;
       taxAmount = subtotal * taxMultiplier;
       amount = subtotal + taxAmount;
+      dpPercent = 100;
     } else {
       // Tempo+DP: Use dpAmount (already includes tax if calculated from grandTotal)
       amount = dpAmount;
       // Reverse calculate subtotal and tax from amount
       subtotal = amount / (1 + taxMultiplier);
       taxAmount = amount - subtotal;
+      dpPercent = order.dpPercent ? Number(order.dpPercent) : 0;
     }
 
-    const dpPercent = order.dpPercent
-      ? Number(order.dpPercent)
-      : isUpfront
-        ? 100
-        : 0;
+    // BUG FIX: Update Order.dpAmount and dpPercent to reflect actual DP Bill amount
+    // This ensures correct DP deduction when creating regular Bills later
+    if (customAmount !== undefined && customAmount !== dpAmount) {
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          dpAmount: amount,
+          dpPercent: dpPercent,
+        },
+      });
+    }
 
     const createData: Prisma.InvoiceUncheckedCreateInput = {
       companyId,
@@ -659,7 +726,8 @@ export class BillService {
       actorId,
       reason,
       documentName: 'Bill',
-      requiredPermission: 'bill:void',
+      // Use finance:void as per AP/AR module permission (FR-026)
+      requiredPermission: 'finance:void',
       userPermissions,
       auditAction: AuditLogAction.BILL_VOIDED,
       entityType: EntityType.BILL,
@@ -742,5 +810,28 @@ export class BillService {
       companyId,
       InvoiceType.BILL
     );
+  }
+
+  async delete(id: string, companyId: string): Promise<void> {
+    const bill = await this.repository.findById(id, companyId);
+    if (!bill) {
+      throw new DomainError(
+        'Bill not found',
+        404,
+        DomainErrorCodes.BILL_NOT_FOUND
+      );
+    }
+
+    if (bill.status !== InvoiceStatus.DRAFT) {
+      throw new DomainError(
+        'Only DRAFT bills can be deleted',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    await prisma.invoice.delete({
+      where: { id },
+    });
   }
 }

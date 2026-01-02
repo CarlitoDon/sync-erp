@@ -206,14 +206,30 @@ describe('BillPolicy', () => {
       ).not.toThrow();
     });
 
-    it('should throw on subtotal mismatch', () => {
-      const wrongBill = {
+    it('should allow partial billing when subtotal is less than order', () => {
+      // Feature 041: Partial billing is allowed (e.g., billing per GRN)
+      const partialBill = {
         ...validBill,
-        subtotal: new Decimal(500000),
+        subtotal: new Decimal(500000), // Half of order subtotal
+      };
+      expect(() =>
+        BillPolicy.validate3WayMatching(
+          partialBill,
+          order,
+          fullReceivedQty
+        )
+      ).not.toThrow();
+    });
+
+    it('should throw on subtotal mismatch when subtotal exceeds order', () => {
+      // Only throws when bill subtotal is >= order subtotal but mismatched
+      const overBill = {
+        ...validBill,
+        subtotal: new Decimal(1100000), // Exceeds order subtotal (1M)
       };
       try {
         BillPolicy.validate3WayMatching(
-          wrongBill,
+          overBill,
           order,
           fullReceivedQty
         );

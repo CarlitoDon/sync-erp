@@ -189,7 +189,6 @@ export class PaymentService {
     reason: string,
     userPermissions?: string[] // FR-026: Granular permissions array
   ): Promise<Payment> {
-
     // FR-026: Void Payment requires 'FINANCE:VOID' permission
     // Note: Context builds permissions as UPPERCASE
     const requiredPermission = 'FINANCE:VOID';
@@ -293,13 +292,46 @@ export class PaymentService {
 
         // 6. Restore invoice balance and mark payment as voided
         // Store reason in reference for audit (FR-024)
-        return this.repository.voidPayment(
+        const updatedPayment = await this.repository.voidPayment(
           id,
           payment.invoiceId,
           Number(payment.amount),
           tx,
           reason
         );
+
+        // 7. Update Invoice Status if necessary (FR-016 reversal logic)
+        // Fetch fresh invoice state after balance restoration
+        const updatedInvoice = await this.invoiceRepository.findById(
+          payment.invoiceId,
+          companyId,
+          undefined,
+          tx
+        );
+
+        if (updatedInvoice) {
+          const currentBalance = Number(updatedInvoice.balance);
+          const totalAmount = Number(updatedInvoice.amount);
+
+          let newStatus: InvoiceStatus | undefined;
+          if (currentBalance >= totalAmount) {
+            // Fully restored balance: return to POSTED
+            newStatus = InvoiceStatus.POSTED;
+          } else if (currentBalance > 0) {
+            // Still some balance: PARTIALLY_PAID
+            newStatus = InvoiceStatus.PARTIALLY_PAID;
+          }
+
+          if (newStatus && newStatus !== updatedInvoice.status) {
+            await this.invoiceRepository.update(
+              payment.invoiceId,
+              { status: newStatus },
+              tx
+            );
+          }
+        }
+
+        return updatedPayment;
       },
       { timeout: 60000 }
     );

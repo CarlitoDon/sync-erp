@@ -92,6 +92,9 @@ export function DocumentList({
   const voidInvoiceMutation = trpc.invoice.void.useMutation({
     onSuccess: () => utils.invoice.list.invalidate(),
   });
+  const deleteBillMutation = trpc.bill.delete.useMutation({
+    onSuccess: () => utils.bill.list.invalidate(),
+  });
   const paymentMutation = trpc.payment.create.useMutation({
     onSuccess: async () => {
       utils.bill.list.invalidate();
@@ -118,6 +121,18 @@ export function DocumentList({
     new Date().toISOString().split('T')[0]
   );
   const [showHistory, setShowHistory] = useState<string | null>(null);
+
+  // Memoize filtered docs and outstanding amount to avoid recalculation on every render
+  const { filteredDocs, outstandingAmount } = useMemo(() => {
+    const filtered = documents.filter(
+      // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'ALL' is a UI filter constant, not a database enum
+      (d) => filterStatus === 'ALL' || d.status === filterStatus
+    );
+    const outstanding = documents
+      .filter((d) => d.status === StatusSchema.enum.POSTED)
+      .reduce((sum, d) => sum + Number(d.balance), 0);
+    return { filteredDocs: filtered, outstandingAmount: outstanding };
+  }, [documents, filterStatus]);
 
   const handlePost = async (id: string) => {
     await apiAction(
@@ -157,6 +172,20 @@ export function DocumentList({
     );
   };
 
+  const handleDelete = async (id: string) => {
+    const confirmed = await confirm({
+      title: `Delete ${entityLabel}`,
+      message: `Are you sure you want to delete this draft ${entityLabel.toLowerCase()}? This action cannot be undone.`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    await apiAction(
+      () => deleteBillMutation.mutateAsync({ id }),
+      `${entityLabel} deleted`
+    );
+  };
+
   const openPaymentModal = (doc: Document) => {
     setSelectedDoc(doc);
     setPaymentAmount(Number(doc.balance));
@@ -193,18 +222,6 @@ export function DocumentList({
   if (loading && documents.length === 0) {
     return <LoadingState />;
   }
-
-  // Memoize filtered docs and outstanding amount to avoid recalculation on every render
-  const { filteredDocs, outstandingAmount } = useMemo(() => {
-    const filtered = documents.filter(
-      // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'ALL' is a UI filter constant, not a database enum
-      (d) => filterStatus === 'ALL' || d.status === filterStatus
-    );
-    const outstanding = documents
-      .filter((d) => d.status === StatusSchema.enum.POSTED)
-      .reduce((sum, d) => sum + Number(d.balance), 0);
-    return { filteredDocs: filtered, outstandingAmount: outstanding };
-  }, [documents, filterStatus]);
 
   return (
     <div className="space-y-6">
@@ -482,12 +499,21 @@ export function DocumentList({
                             >
                               Post
                             </ActionButton>
-                            <ActionButton
-                              variant="danger"
-                              onClick={() => handleVoid(doc.id)}
-                            >
-                              Void
-                            </ActionButton>
+                            {isBill ? (
+                              <ActionButton
+                                variant="danger"
+                                onClick={() => handleDelete(doc.id)}
+                              >
+                                Delete
+                              </ActionButton>
+                            ) : (
+                              <ActionButton
+                                variant="danger"
+                                onClick={() => handleVoid(doc.id)}
+                              >
+                                Void
+                              </ActionButton>
+                            )}
                           </>
                         )}
                         {doc.status === StatusSchema.enum.POSTED && (

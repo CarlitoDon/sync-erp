@@ -127,7 +127,23 @@ export class SalesOrderService {
   }
 
   async getById(id: string, companyId: string) {
-    return this.repository.findById(id, companyId);
+    const order = await this.repository.findById(id, companyId);
+    if (!order) return null;
+
+    // Get shipped quantities from POSTED shipments
+    const shippedQtyMap =
+      await this.repository.getShippedQuantities(id);
+
+    // Map shipped quantities to items
+    const itemsWithShipped = order.items.map((item) => ({
+      ...item,
+      shippedQuantity: shippedQtyMap.get(item.productId) || 0,
+    }));
+
+    return {
+      ...order,
+      items: itemsWithShipped,
+    };
   }
 
   async list(companyId: string, status?: string) {

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
@@ -43,15 +43,17 @@ export default function Select({
     useState<React.CSSProperties>({});
 
   // Calculate dropdown position when opening
-  useEffect(() => {
+  // useLayoutEffect runs synchronously before browser paint,
+  // ensuring position is calculated before the dropdown is visible
+  useLayoutEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      const scrollX = window.scrollX || window.pageXOffset;
-      const scrollY = window.scrollY || window.pageYOffset;
+      // Use fixed positioning with viewport-relative coordinates
+      // getBoundingClientRect() already returns viewport-relative values
       setDropdownStyle({
-        position: 'absolute',
-        top: rect.bottom + scrollY + 4,
-        left: rect.left + scrollX,
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
         width: rect.width,
         zIndex: 9999,
       });
@@ -141,9 +143,9 @@ export default function Select({
     <div
       ref={dropdownRef}
       style={dropdownStyle}
-      className="bg-white shadow-lg max-h-60 rounded-md ring-1 ring-black ring-opacity-5 focus:outline-none"
+      className="bg-white shadow-lg max-h-60 rounded-lg border border-gray-200 focus:outline-none overflow-hidden"
     >
-      <div className="py-1 text-base sm:text-sm max-h-60 overflow-y-auto rounded-md">
+      <div className="py-1 text-base sm:text-sm max-h-60 overflow-y-auto">
         {allOptions.length === 0 ? (
           <div className="cursor-default select-none relative py-2 px-4 text-gray-500">
             No options available
@@ -183,18 +185,18 @@ export default function Select({
         data-testid="select-trigger"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-left cursor-default focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm flex items-center justify-between ${
+        className={`w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-left cursor-default focus:outline-none focus:border-primary-500 sm:text-sm flex items-center justify-between ${
           disabled
             ? 'bg-gray-100 cursor-not-allowed'
             : 'hover:border-gray-400'
-        }`}
+        } ${isOpen ? 'border-primary-500' : ''}`}
       >
         <span
-          className={`block truncate ${!selectedOption ? 'text-gray-400' : 'text-gray-900'}`}
+          className={`block truncate flex-1 ${!selectedOption ? 'text-gray-400' : 'text-gray-900'}`}
         >
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <span className="pointer-events-none flex items-center pr-2">
+        <span className="pointer-events-none flex items-center ml-2">
           <ChevronDownIcon
             className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
               isOpen ? 'transform rotate-180' : ''

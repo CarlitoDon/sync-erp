@@ -175,10 +175,15 @@ export function validate3WayMatching(
   const actualSubtotal = Number(document.subtotal);
 
   // 3a. Subtotal Match (allow 1 IDR tolerance for rounding)
-  // Skip subtotal matching for partial billing (when Bill subtotal < PO subtotal)
-  // This allows creating multiple bills from partial GRNs
+  // Skip subtotal matching in these cases:
+  // 1. Partial billing: document subtotal < order subtotal (for GRN-based billing)
+  // 2. DP Bills: Full subtotal bills when DP was paid (DP deduction applied to amount, not subtotal)
+  //    In this case, actualSubtotal = orderSubtotal but expectedSubtotal = orderSubtotal - dpDeduction
   const isPartialBill = actualSubtotal < orderSubtotal - 1;
-  if (!isPartialBill) {
+  const hasUndeductedDpSubtotal =
+    dpSubtotalDeduction > 0 &&
+    Math.abs(actualSubtotal - orderSubtotal) <= 1;
+  if (!isPartialBill && !hasUndeductedDpSubtotal) {
     const subtotalDiff = Math.abs(actualSubtotal - expectedSubtotal);
     if (subtotalDiff > 1) {
       throw new DomainError(
@@ -212,14 +217,21 @@ export function validate3WayMatching(
   } else {
     // Fallback: Validate order qty against fulfilled qty
     // This ensures we can't post an invoice for more than what was shipped
-    for (const item of order.items) {
-      const fulfilledQty = qtyByProduct.get(item.productId) || 0;
-      if (fulfilledQty < item.quantity) {
-        throw new DomainError(
-          `3-way matching failed: Qty mismatch for product (Ordered: ${item.quantity}, ${fulfillmentType}: ${fulfilledQty})`,
-          422,
-          DomainErrorCodes.THREE_WAY_MATCH_FAILED
-        );
+    // 
+    // Feature 041: Skip this validation for partial bills (created from specific GRN)
+    // When a bill is created from a GRN with partial qty, the order qty won't match
+    // the fulfilled qty, but that's expected. The bill subtotal is already validated
+    // to not exceed the GRN value during bill creation.
+    if (!isPartialBill) {
+      for (const item of order.items) {
+        const fulfilledQty = qtyByProduct.get(item.productId) || 0;
+        if (fulfilledQty < item.quantity) {
+          throw new DomainError(
+            `3-way matching failed: Qty mismatch for product (Ordered: ${item.quantity}, ${fulfillmentType}: ${fulfilledQty})`,
+            422,
+            DomainErrorCodes.THREE_WAY_MATCH_FAILED
+          );
+        }
       }
     }
   }

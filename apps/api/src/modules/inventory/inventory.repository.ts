@@ -14,6 +14,8 @@ export interface StockMovementInput {
   companyId: string;
   productId: string;
   warehouseId?: string;
+  orderId?: string; // FK to Order (PO/SO)
+  fulfillmentId?: string; // FK to Fulfillment (GRN/Shipment)
   type: MovementType;
   quantity: number;
   reference?: string;
@@ -36,6 +38,8 @@ export class InventoryRepository {
         companyId: data.companyId,
         productId: data.productId,
         warehouseId: data.warehouseId,
+        orderId: data.orderId,
+        fulfillmentId: data.fulfillmentId,
         type: data.type,
         quantity: data.quantity,
         reference: data.reference,
@@ -272,6 +276,7 @@ export class InventoryRepository {
           include: { product: true, orderItem: true },
         },
         order: true,
+        invoices: { select: { id: true, status: true } }, // Feature 041: Include linked invoices with status
       },
     });
   }
@@ -344,6 +349,27 @@ export class InventoryRepository {
       where: {
         companyId,
         orderId,
+        type,
+        status: { not: InvoiceStatus.VOID },
+      },
+    });
+  }
+
+  /**
+   * Check if specific fulfillment has linked invoices/bills.
+   * Used for void validation (FR-041).
+   */
+  async countInvoicesForFulfillment(
+    fulfillmentId: string,
+    companyId: string,
+    type: InvoiceType,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const db = tx || prisma;
+    return db.invoice.count({
+      where: {
+        companyId,
+        fulfillmentId,
         type,
         status: { not: InvoiceStatus.VOID },
       },

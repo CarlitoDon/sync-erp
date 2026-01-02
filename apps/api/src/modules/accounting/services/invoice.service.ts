@@ -12,6 +12,7 @@ import {
   prisma,
   PaymentTerms,
 } from '@sync-erp/database';
+import { Decimal } from 'decimal.js';
 import {
   DomainError,
   DomainErrorCodes,
@@ -22,10 +23,12 @@ import { InvoiceRepository } from '../repositories/invoice.repository';
 import { JournalService } from './journal.service';
 import { ReversalPolicy } from '../policies/reversal.policy';
 import { InvoicePolicy } from '../policies/invoice.policy';
+import { InventoryRepository } from '../../inventory/inventory.repository';
 
 // Update Interface
 export interface CreateInvoiceInput {
   orderId: string;
+  fulfillmentId?: string; // Feature 041: Link to specific Shipment
   invoiceNumber?: string;
   dueDate?: Date;
   taxRate?: number;
@@ -52,7 +55,8 @@ export class InvoiceService {
     private readonly idempotencyService: IdempotencyService = new IdempotencyService(),
     private readonly inventoryService: InventoryService = new InventoryService(),
     private readonly customerDepositService: CustomerDepositService = new CustomerDepositService(),
-    private readonly salesOrderRepository: SalesOrderRepository = new SalesOrderRepository()
+    private readonly salesOrderRepository: SalesOrderRepository = new SalesOrderRepository(),
+    private readonly inventoryRepository: InventoryRepository = new InventoryRepository()
   ) {}
 
   async createFromSalesOrder(
@@ -78,6 +82,36 @@ export class InvoiceService {
     // FR-002: Validate SO status - must be CONFIRMED or later
     InvoicePolicy.ensureOrderReadyForInvoice(order);
 
+    // Feature 041: Validate fulfillment if provided
+    let shipmentItems: any[] = [];
+    let fulfillment: any = null;
+    if (data.fulfillmentId) {
+      fulfillment = await this.inventoryRepository.findFulfillmentById(
+        data.fulfillmentId,
+        companyId
+      );
+
+      if (!fulfillment) {
+        throw new DomainError(
+          'Shipment not found',
+          404,
+          DomainErrorCodes.FULFILLMENT_NOT_FOUND
+        );
+      }
+
+      if (fulfillment.orderId !== data.orderId) {
+        throw new DomainError(
+          'Shipment does not belong to this sales order',
+          400,
+          DomainErrorCodes.FULFILLMENT_NOT_FOR_ORDER
+        );
+      }
+
+      // Feature 041: Validate shipment not already invoiced
+      InvoicePolicy.validateFulfillmentNotInvoiced(fulfillment);
+      shipmentItems = fulfillment.items;
+    }
+
     // Generate invoice number if not provided
     let invoiceNumber = data.invoiceNumber;
     if (!invoiceNumber) {
@@ -88,11 +122,40 @@ export class InvoiceService {
     }
 
     // Calculate total with optional tax
-    // Fix: Recalculate subtotal from items to avoid double tax (order.totalAmount is Gross)
-    const subtotal = order.items.reduce(
-      (sum, item) => sum + Number(item.price) * item.quantity,
-      0
-    );
+    // If fulfillmentId is provided, use shipment items. Otherwise use SO items (legacy/full)
+    let subtotal = 0;
+    if (shipmentItems.length > 0) {
+      subtotal = shipmentItems.reduce(
+        (sum, item) =>
+          sum + Number(item.orderItem?.price || 0) * Number(item.quantity),
+        0
+      );
+    } else {
+      subtotal = order.items.reduce(
+        (sum, item) => sum + Number(item.price) * item.quantity,
+        0
+      );
+    }
+
+    // Feature 041: Validate not over-invoicing only when fulfillmentId is provided
+    // For legacy flow (no fulfillmentId), skip this validation to maintain backward compatibility
+    if (data.fulfillmentId) {
+      const existingInvoicedTotal = await this.repository.sumInvoicedByOrderId(
+        data.orderId,
+        companyId,
+        InvoiceType.INVOICE
+      );
+      const orderSubtotal = order.items.reduce(
+        (sum, item) => sum + Number(item.price) * item.quantity,
+        0
+      );
+
+      InvoicePolicy.validateNotOverInvoicing(
+        new Decimal(subtotal),
+        new Decimal(existingInvoicedTotal),
+        new Decimal(orderSubtotal)
+      );
+    }
 
     let taxRate = data.taxRate;
     if (taxRate === undefined && order.taxRate !== null) {
@@ -109,6 +172,7 @@ export class InvoiceService {
       companyId,
       orderId: data.orderId,
       partnerId: order.partnerId,
+      fulfillmentId: data.fulfillmentId || null, // Feature 041: Link to specific Shipment
       type: InvoiceType.INVOICE,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,

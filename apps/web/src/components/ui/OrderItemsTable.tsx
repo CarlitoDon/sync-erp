@@ -6,6 +6,7 @@ export interface OrderItem {
   id: string;
   productId: string;
   quantity: number;
+  fulfilledQuantity?: number;
   price: unknown; // Accepts Decimal, number, string - converted via Number()
   product?: {
     name: string;
@@ -15,6 +16,8 @@ export interface OrderItem {
 export interface OrderItemsTableProps {
   items: OrderItem[];
   productLinkPrefix?: string;
+  showFulfilled?: boolean;
+  fulfillmentLabel?: string;
 }
 
 /**
@@ -24,9 +27,11 @@ export interface OrderItemsTableProps {
 const ItemRow = memo(function ItemRow({
   item,
   productLinkPrefix,
+  showFulfilled,
 }: {
   item: OrderItem;
   productLinkPrefix: string;
+  showFulfilled: boolean;
 }) {
   const price = Number(item.price);
   const total = item.quantity * price;
@@ -46,8 +51,17 @@ const ItemRow = memo(function ItemRow({
         )}
       </td>
       <td className="px-6 py-3 text-right">{item.quantity}</td>
-      <td className="px-6 py-3 text-right">{formatCurrency(price)}</td>
-      <td className="px-6 py-3 text-right font-medium">{formatCurrency(total)}</td>
+      {showFulfilled && (
+        <td className="px-6 py-3 text-right">
+          {item.fulfilledQuantity || 0}
+        </td>
+      )}
+      <td className="px-6 py-3 text-right">
+        {formatCurrency(price)}
+      </td>
+      <td className="px-6 py-3 text-right font-medium">
+        {formatCurrency(total)}
+      </td>
     </tr>
   );
 });
@@ -61,6 +75,8 @@ const ItemRow = memo(function ItemRow({
 export function OrderItemsTable({
   items,
   productLinkPrefix = '/products',
+  showFulfilled = false,
+  fulfillmentLabel = 'Received',
 }: OrderItemsTableProps) {
   return (
     <div className="overflow-x-auto">
@@ -71,8 +87,13 @@ export function OrderItemsTable({
               Product
             </th>
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-              Quantity
+              Ordered
             </th>
+            {showFulfilled && (
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                {fulfillmentLabel}
+              </th>
+            )}
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
               Unit Price
             </th>
@@ -87,6 +108,7 @@ export function OrderItemsTable({
               key={item.id}
               item={item}
               productLinkPrefix={productLinkPrefix}
+              showFulfilled={showFulfilled}
             />
           ))}
         </tbody>
