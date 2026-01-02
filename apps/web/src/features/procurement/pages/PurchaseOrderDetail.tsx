@@ -4,11 +4,7 @@ import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useOrderMutations } from '@/hooks/useOrderMutations';
 import PurchaseOrderActions from '../components/PurchaseOrderActions';
-import {
-  formatCurrency,
-  formatDate,
-  formatDateTime,
-} from '@/utils/format';
+import { formatCurrency, formatDate } from '@/utils/format';
 import { GoodsReceiptModal } from '@/features/inventory/components/GoodsReceiptModal';
 import CreateBillModal from '@/features/accounting/components/CreateBillModal';
 import CreateDpBillModal from '@/features/accounting/components/CreateDpBillModal';
@@ -37,7 +33,7 @@ import {
   FulfillmentStatusBadge,
   OrderItemsTable,
 } from '@/components/ui';
-import { Timeline, TimelineEvent } from '@/components/ui/Timeline';
+import POTimelineMermaid from '../components/POTimelineMermaid';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -719,144 +715,10 @@ export default function PurchaseOrderDetail() {
                 <CardTitle>📋 PO Timeline</CardTitle>
               </CardHeader>
               <CardContent>
-                <Timeline
-                  events={(() => {
-                    const events: TimelineEvent[] = [];
-
-                    // Created
-                    events.push({
-                      id: 'created',
-                      title: 'Created',
-                      description: formatDateTime(order.createdAt),
-                      color: 'blue',
-                    });
-
-                    // Confirmed
-                    if (
-                      order.status !== OrderStatusSchema.enum.DRAFT
-                    ) {
-                      events.push({
-                        id: 'confirmed',
-                        title: 'Confirmed',
-                        description: `${formatDateTime(order.updatedAt)} • PO approved and sent to supplier`,
-                        color: 'green',
-                      });
-                    }
-
-                    // DP Paid
-                    if (
-                      order.computed?.hasDpRequired &&
-                      order.computed.isDpPaid
-                    ) {
-                      const dpBill = order.invoices?.find(
-                        (inv) => inv.isDownPayment
-                      );
-                      events.push({
-                        id: 'dp-paid',
-                        title: isUpfrontOrder
-                          ? 'Upfront Payment Received'
-                          : 'Down Payment Received',
-                        description: `${dpBill ? formatDateTime(dpBill.createdAt) : ''} • ${
-                          isUpfrontOrder
-                            ? `Full payment: ${formatCurrency(totalAmount)}`
-                            : `DP ${order.computed.actualDpPercent}%: ${formatCurrency(order.computed.actualDpAmount)}`
-                        }`,
-                        color: 'purple',
-                      });
-                    }
-
-                    // Partially Received
-                    if (
-                      order.status ===
-                      OrderStatusSchema.enum.PARTIALLY_RECEIVED
-                    ) {
-                      const firstGrn = order.fulfillments?.[0];
-                      events.push({
-                        id: 'partially-received',
-                        title: 'Partially Received',
-                        description: `${firstGrn ? formatDateTime(firstGrn.createdAt) : ''} • ${order.fulfillments?.length || 0} GRN(s) created`,
-                        color: 'amber',
-                      });
-                    }
-
-                    // Fully Received
-                    if (
-                      order.status === OrderStatusSchema.enum.RECEIVED
-                    ) {
-                      const lastGrn =
-                        order.fulfillments?.[
-                          order.fulfillments.length - 1
-                        ];
-                      events.push({
-                        id: 'received',
-                        title: 'Fully Received',
-                        description: `${lastGrn ? formatDateTime(lastGrn.createdAt) : ''} • All items have been received`,
-                        color: 'emerald',
-                      });
-                    }
-
-                    // Billed
-                    if (order.invoices && order.invoices.length > 0) {
-                      const regularBills = order.invoices.filter(
-                        (inv) => !inv.isDownPayment
-                      );
-                      const firstBill =
-                        regularBills[0] || order.invoices[0];
-                      events.push({
-                        id: 'billed',
-                        title: 'Billed',
-                        description: `${formatDateTime(firstBill.createdAt)} • ${order.invoices.length} bill(s) • Total: ${formatCurrency(order.computed?.totalBilled || 0)}`,
-                        color: 'blue',
-                      });
-                    }
-
-                    // Completed
-                    if (
-                      order.status ===
-                      OrderStatusSchema.enum.COMPLETED
-                    ) {
-                      events.push({
-                        id: 'completed',
-                        title: 'Completed',
-                        description: `${formatDateTime(order.updatedAt)} • PO has been completed`,
-                        color: 'gray',
-                      });
-                    }
-
-                    // Cancelled
-                    if (
-                      order.status ===
-                      OrderStatusSchema.enum.CANCELLED
-                    ) {
-                      events.push({
-                        id: 'cancelled',
-                        title: 'Cancelled',
-                        description: `${formatDateTime(order.updatedAt)} • PO has been cancelled`,
-                        color: 'red',
-                      });
-                    }
-
-                    // Outstanding
-                    if (
-                      order.status !==
-                        OrderStatusSchema.enum.COMPLETED &&
-                      order.status !==
-                        OrderStatusSchema.enum.CANCELLED &&
-                      (order.computed?.outstanding || 0) > 0
-                    ) {
-                      events.push({
-                        id: 'outstanding',
-                        title: 'Outstanding Balance',
-                        description: `${formatCurrency(order.computed?.outstanding || 0)} remaining to be billed/paid`,
-                        color: 'amber',
-                        isAnimated: true,
-                        titleClassName: 'text-amber-700',
-                        descriptionClassName: 'text-amber-600',
-                      });
-                    }
-
-                    return events;
-                  })()}
+                <POTimelineMermaid
+                  order={order}
+                  isUpfrontOrder={isUpfrontOrder}
+                  totalAmount={totalAmount}
                 />
               </CardContent>
             </Card>
