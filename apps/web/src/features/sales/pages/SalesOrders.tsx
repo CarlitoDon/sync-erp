@@ -9,6 +9,7 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useOrderForm } from '@/hooks/useOrderForm';
 import FormModal from '@/components/ui/FormModal';
+import { Button } from '@/components/ui/button';
 import { NoCompanySelected } from '@/components/ui';
 import SalesOrderList from '@/features/sales/components/SalesOrderList';
 import Select from '@/components/ui/Select';
@@ -171,20 +172,21 @@ export default function SalesOrders() {
           />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={handleClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={!isValid}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              isLoading={createMutation.isPending}
+              loadingText="Processing..."
             >
               Create Sales Order
-            </button>
+            </Button>
           </div>
         </form>
       </FormModal>
