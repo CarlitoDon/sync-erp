@@ -2,7 +2,10 @@ import Select from '@/components/ui/Select';
 import { QuantityInput, CurrencyInput } from '@/components/ui';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency } from '@/utils/format';
-import type { OrderItemForm, OrderTotals } from '@/hooks/useOrderForm';
+import type {
+  OrderItemForm,
+  OrderTotals,
+} from '@/hooks/useOrderForm';
 
 // Type for Prisma Decimal that can be number, string, or Decimal object
 type DecimalLike = number | string | { toNumber(): number } | null;
@@ -34,7 +37,7 @@ export interface OrderItemEditorProps {
 /**
  * Shared component for editing order line items.
  * Used by both Purchase Orders and Sales Orders.
- * 
+ *
  * Features:
  * - Product selection with auto-fill price
  * - Quantity and price inputs
@@ -67,7 +70,7 @@ export default function OrderItemEditor({
   return (
     <div className="border rounded-lg p-4 space-y-3">
       <h3 className="font-medium">Add Items</h3>
-      
+
       {/* Add Item Row */}
       <div className="grid grid-cols-4 gap-3">
         <div className="col-span-1">
@@ -108,7 +111,7 @@ export default function OrderItemEditor({
         <button
           type="button"
           onClick={onAddItem}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+          className="px-4 py-2 border border-gray-300 text-gray-900 rounded-lg hover:bg-gray-100"
         >
           Add
         </button>
@@ -121,7 +124,9 @@ export default function OrderItemEditor({
             <tr>
               <th className="px-4 py-2 text-left text-sm">Product</th>
               <th className="px-4 py-2 text-right text-sm">Qty</th>
-              <th className="px-4 py-2 text-right text-sm">Unit Price</th>
+              <th className="px-4 py-2 text-right text-sm">
+                Unit Price
+              </th>
               <th className="px-4 py-2 text-right text-sm">Total</th>
               <th className="px-4 py-2"></th>
             </tr>
@@ -129,8 +134,12 @@ export default function OrderItemEditor({
           <tbody>
             {items.map((item, index) => (
               <tr key={index} className="border-t">
-                <td className="px-4 py-2">{getProductName(item.productId)}</td>
-                <td className="px-4 py-2 text-right">{item.quantity}</td>
+                <td className="px-4 py-2">
+                  {getProductName(item.productId)}
+                </td>
+                <td className="px-4 py-2 text-right">
+                  {item.quantity}
+                </td>
                 <td className="px-4 py-2 text-right">
                   {formatCurrency(item.price)}
                 </td>
@@ -147,10 +156,13 @@ export default function OrderItemEditor({
                 </td>
               </tr>
             ))}
-            
+
             {/* Totals Summary */}
             <tr className="border-t">
-              <td colSpan={3} className="px-4 py-2 text-right text-gray-600">
+              <td
+                colSpan={3}
+                className="px-4 py-2 text-right text-gray-600"
+              >
                 Subtotal:
               </td>
               <td className="px-4 py-2 text-right">
@@ -160,7 +172,10 @@ export default function OrderItemEditor({
             </tr>
             {totals.taxRate > 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-2 text-right text-gray-600">
+                <td
+                  colSpan={3}
+                  className="px-4 py-2 text-right text-gray-600"
+                >
                   PPN ({totals.taxRate}%):
                 </td>
                 <td className="px-4 py-2 text-right">
@@ -171,7 +186,9 @@ export default function OrderItemEditor({
             )}
             <tr
               className={
-                totals.taxRate > 0 ? 'border-t-2 font-semibold' : 'font-semibold'
+                totals.taxRate > 0
+                  ? 'border-t-2 font-semibold'
+                  : 'font-semibold'
               }
             >
               <td colSpan={3} className="px-4 py-2 text-right">

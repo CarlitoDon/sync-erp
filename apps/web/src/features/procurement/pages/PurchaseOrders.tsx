@@ -174,9 +174,8 @@ export default function PurchaseOrders() {
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               onClick={handleClose}
-              className="bg-gray-100 text-gray-700 hover:bg-gray-200"
             >
               Cancel
             </Button>
