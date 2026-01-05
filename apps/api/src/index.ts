@@ -24,9 +24,56 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet());
 app.use(correlationMiddleware); // Request tracing
 app.use(cookieParser());
+// CORS origin configuration - supports multiple origins and Vercel previews
+const getCorsOrigin = ():
+  | string
+  | string[]
+  | ((
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void
+    ) => void) => {
+  const corsOrigin =
+    process.env.CORS_ORIGIN || 'http://localhost:5173';
+
+  // If comma-separated, split into array
+  const origins = corsOrigin.split(',').map((o) => o.trim());
+
+  // Custom origin checker function to support Vercel preview URLs
+  return (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void
+  ) => {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    // Check if origin matches any allowed origin
+    if (origins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    // Allow Vercel preview URLs (pattern: *-doncarlo31s-projects.vercel.app)
+    if (origin.endsWith('-doncarlo31s-projects.vercel.app')) {
+      callback(null, true);
+      return;
+    }
+
+    // Allow localhost for development
+    if (origin.startsWith('http://localhost:')) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  };
+};
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: getCorsOrigin(),
     credentials: true,
   })
 );
