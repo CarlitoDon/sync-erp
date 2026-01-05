@@ -4,7 +4,7 @@ import superjson from 'superjson';
 import { BusinessShape, IdempotencyScope } from '@sync-erp/database';
 import { IdempotencyService } from '../modules/idempotency/idempotency.service';
 
-interface Meta {
+export interface Meta {
   idempotencyScope?: IdempotencyScope;
 }
 
