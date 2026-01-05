@@ -7,8 +7,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@sync-erp/api": ["../api/src/index.ts"],
-      "@sync-erp/database": ["../../packages/database/src/index.ts"],
       "@sync-erp/shared": ["../../packages/shared/src/index.ts"]
     },
     "types": ["vitest/globals", "@testing-library/jest-dom"],
