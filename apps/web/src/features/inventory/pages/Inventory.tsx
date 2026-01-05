@@ -33,25 +33,38 @@ export default function Inventory() {
   };
 
   // Memoize computed values to avoid recalculation on every render
-  const { totalValue, totalUnits, lowStockItems, outOfStockItems } = useMemo(() => {
-    const value = stockLevels.reduce(
-      (sum, item) => sum + item.stockQty * Number(item.averageCost),
-      0
-    );
-    const units = stockLevels.reduce((sum, item) => sum + item.stockQty, 0);
-    const lowStock = stockLevels.filter(
-      (item) => item.stockQty < 10 && item.stockQty > 0
-    );
-    const outOfStock = stockLevels.filter((item) => item.stockQty <= 0);
-    return { totalValue: value, totalUnits: units, lowStockItems: lowStock, outOfStockItems: outOfStock };
-  }, [stockLevels]);
+  const { totalValue, totalUnits, lowStockItems, outOfStockItems } =
+    useMemo(() => {
+      const value = stockLevels.reduce(
+        (sum, item) => sum + item.stockQty * Number(item.averageCost),
+        0
+      );
+      const units = stockLevels.reduce(
+        (sum, item) => sum + item.stockQty,
+        0
+      );
+      const lowStock = stockLevels.filter(
+        (item) => item.stockQty < 10 && item.stockQty > 0
+      );
+      const outOfStock = stockLevels.filter(
+        (item) => item.stockQty <= 0
+      );
+      return {
+        totalValue: value,
+        totalUnits: units,
+        lowStockItems: lowStock,
+        outOfStockItems: outOfStock,
+      };
+    }, [stockLevels]);
 
   if (loading) {
     return <LoadingState />;
   }
 
   if (!currentCompany) {
-    return <NoCompanySelected message="Please select a company to view inventory." />;
+    return (
+      <NoCompanySelected message="Please select a company to view inventory." />
+    );
   }
 
   return (
@@ -62,7 +75,7 @@ export default function Inventory() {
         actions={
           <button
             onClick={() => loadStockLevels()}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            className="px-4 py-2 border border-gray-300 text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
           >
             ↻ Refresh
           </button>
@@ -110,7 +123,8 @@ export default function Inventory() {
             ⚠️ Low Stock Warning
           </h3>
           <p className="text-yellow-700 text-sm mt-1">
-            {lowStockItems.length} products have low stock levels (below 10 units)
+            {lowStockItems.length} products have low stock levels
+            (below 10 units)
           </p>
         </div>
       )}
