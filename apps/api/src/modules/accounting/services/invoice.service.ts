@@ -83,13 +83,20 @@ export class InvoiceService {
     InvoicePolicy.ensureOrderReadyForInvoice(order);
 
     // Feature 041: Validate fulfillment if provided
-    let shipmentItems: any[] = [];
-    let fulfillment: any = null;
+    type FulfillmentItemWithRelations = {
+      quantity: Prisma.Decimal;
+      orderItem: { price: Prisma.Decimal } | null;
+    };
+    let shipmentItems: FulfillmentItemWithRelations[] = [];
+    let fulfillment: Awaited<
+      ReturnType<typeof this.inventoryRepository.findFulfillmentById>
+    > = null;
     if (data.fulfillmentId) {
-      fulfillment = await this.inventoryRepository.findFulfillmentById(
-        data.fulfillmentId,
-        companyId
-      );
+      fulfillment =
+        await this.inventoryRepository.findFulfillmentById(
+          data.fulfillmentId,
+          companyId
+        );
 
       if (!fulfillment) {
         throw new DomainError(
@@ -127,7 +134,8 @@ export class InvoiceService {
     if (shipmentItems.length > 0) {
       subtotal = shipmentItems.reduce(
         (sum, item) =>
-          sum + Number(item.orderItem?.price || 0) * Number(item.quantity),
+          sum +
+          Number(item.orderItem?.price || 0) * Number(item.quantity),
         0
       );
     } else {
@@ -140,11 +148,12 @@ export class InvoiceService {
     // Feature 041: Validate not over-invoicing only when fulfillmentId is provided
     // For legacy flow (no fulfillmentId), skip this validation to maintain backward compatibility
     if (data.fulfillmentId) {
-      const existingInvoicedTotal = await this.repository.sumInvoicedByOrderId(
-        data.orderId,
-        companyId,
-        InvoiceType.INVOICE
-      );
+      const existingInvoicedTotal =
+        await this.repository.sumInvoicedByOrderId(
+          data.orderId,
+          companyId,
+          InvoiceType.INVOICE
+        );
       const orderSubtotal = order.items.reduce(
         (sum, item) => sum + Number(item.price) * item.quantity,
         0
@@ -165,7 +174,50 @@ export class InvoiceService {
 
     const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
     const taxAmount = subtotal * taxMultiplier;
-    const amount = subtotal + taxAmount;
+    let amount = subtotal + taxAmount;
+
+    // Deduct DP amount if DP Invoice was paid (O2C Optimization)
+    const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
+    let dpDeductedNow = 0;
+    let dpInvoiceId: string | undefined;
+
+    if (dpAmount > 0) {
+      // Find the PAID DP Invoice
+      const dpInvoice = await this.repository.findFirst({
+        orderId: data.orderId,
+        companyId,
+        type: InvoiceType.INVOICE,
+        status: InvoiceStatus.PAID,
+        isDownPayment: true,
+      });
+
+      if (dpInvoice) {
+        dpInvoiceId = dpInvoice.id;
+        // Calculate already deducted DP from previous invoices
+        const alreadyDeducted =
+          await this.repository.sumDeductedDpByOrderId(
+            data.orderId,
+            companyId,
+            InvoiceType.INVOICE
+          );
+        const remainingDp = dpAmount - alreadyDeducted;
+
+        if (remainingDp > 0) {
+          // Calculate proportional DP allocation for this invoice
+          // Formula: (invoiceGross / orderTotal) × dpAmount
+          const orderTotal = Number(order.totalAmount) || 1; // Guard div by zero
+          const proportionalDp = (amount / orderTotal) * dpAmount;
+
+          // Cap by remaining DP
+          dpDeductedNow = Math.min(
+            proportionalDp,
+            remainingDp,
+            amount
+          );
+          amount = amount - dpDeductedNow;
+        }
+      }
+    }
 
     // Create the invoice
     const createData: Prisma.InvoiceUncheckedCreateInput = {
@@ -176,6 +228,11 @@ export class InvoiceService {
       type: InvoiceType.INVOICE,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
+      dpBillId: dpInvoiceId, // Link to DP Invoice using same field as Bills
+      notes:
+        dpDeductedNow > 0
+          ? `Final Invoice (DP deducted: Rp ${dpDeductedNow.toLocaleString()})`
+          : undefined,
       amount,
       subtotal,
       taxAmount,
@@ -327,6 +384,7 @@ export class InvoiceService {
       taxRate,
       balance: amount,
       dueDate: new Date(), // Immediate payment required for DP
+      isDownPayment: true, // Feature: Explicit DP Linking
     };
 
     return this.repository.create(createData);

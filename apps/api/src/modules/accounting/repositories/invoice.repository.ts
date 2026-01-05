@@ -289,6 +289,7 @@ export class InvoiceRepository {
   async sumDeductedDpByOrderId(
     orderId: string,
     companyId: string,
+    invoiceType: InvoiceType,
     tx?: Prisma.TransactionClient
   ): Promise<number> {
     const db = tx || prisma;
@@ -296,7 +297,7 @@ export class InvoiceRepository {
       where: {
         orderId,
         companyId,
-        type: InvoiceType.BILL,
+        type: invoiceType,
         isDownPayment: false,
         status: { not: InvoiceStatus.VOID },
         dpBillId: { not: null },

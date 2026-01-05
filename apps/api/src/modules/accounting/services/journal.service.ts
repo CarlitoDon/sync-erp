@@ -264,6 +264,13 @@ export class JournalService {
       { accountCode: '1300', debit: amount }, // Accounts Receivable
     ];
 
+    const grossItems = (subtotal || 0) + (taxAmount || 0);
+    const dpDeducted = Math.max(0, grossItems - amount);
+
+    if (dpDeducted > 0.01) {
+      lines.push({ accountCode: '2200', debit: dpDeducted }); // Clear Customer Deposits
+    }
+
     if (taxAmount && taxAmount > 0) {
       lines.push({
         accountCode: '4100',
