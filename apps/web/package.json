@@ -30,8 +30,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@sync-erp/api": "*",
-    "@sync-erp/database": "*",
     "@tailwindcss/vite": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
