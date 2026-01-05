@@ -10,6 +10,7 @@ import {
   FulfillmentType,
   PaymentTerms,
   PaymentStatus,
+  InvoiceStatus,
 } from '@sync-erp/database';
 import { SalesOrderRepository } from './sales-order.repository';
 import { SalesOrderPolicy } from './sales-order.policy';
@@ -140,9 +141,52 @@ export class SalesOrderService {
       shippedQuantity: shippedQtyMap.get(item.productId) || 0,
     }));
 
+    // Compute billing fields - O2C Optimization (Parity with P2P)
+    const invoices = order.invoices || [];
+
+    // Find DP Invoice (using isDownPayment flag)
+    const dpInvoice = invoices.find((inv) => inv.isDownPayment);
+
+    // Calculate Total Invoiced (INCLUDING DP Invoices - all invoices count)
+    // Exclude VOID invoices from calculation
+    const totalInvoiced = invoices
+      .filter((inv) => inv.status !== InvoiceStatus.VOID)
+      .reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
+
+    // Actual DP amount from DP Invoice (or fallback to order.dpAmount)
+    const actualDpAmount = dpInvoice
+      ? Number(dpInvoice.amount)
+      : order.dpAmount
+        ? Number(order.dpAmount)
+        : 0;
+
+    // Actual DP percent
+    const orderTotal = Number(order.totalAmount);
+    const actualDpPercent = dpInvoice
+      ? Math.round((Number(dpInvoice.amount) / orderTotal) * 100)
+      : order.dpPercent
+        ? Number(order.dpPercent)
+        : 0;
+
+    // Calculate Outstanding
+    const isDpPaid = dpInvoice?.status === InvoiceStatus.PAID;
+    const outstanding = Math.max(0, orderTotal - totalInvoiced);
+
     return {
       ...order,
       items: itemsWithShipped,
+      computed: {
+        totalInvoiced,
+        outstanding,
+        actualDpAmount,
+        actualDpPercent,
+        isDpPaid,
+        dpInvoiceId: dpInvoice?.id || null,
+        dpInvoiceStatus: dpInvoice?.status || null,
+        hasDpRequired:
+          order.paymentTerms === PaymentTerms.UPFRONT ||
+          actualDpAmount > 0,
+      },
     };
   }
 

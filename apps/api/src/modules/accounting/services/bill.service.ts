@@ -208,11 +208,11 @@ export class BillService {
 
       if (dpBill) {
         dpBillId = dpBill.id;
-        // Calculate already deducted DP from previous bills
         const alreadyDeducted =
           await this.repository.sumDeductedDpByOrderId(
             data.orderId,
-            companyId
+            companyId,
+            InvoiceType.BILL
           );
         const remainingDp = dpAmount - alreadyDeducted;
 
