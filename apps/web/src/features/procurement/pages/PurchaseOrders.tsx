@@ -180,10 +180,12 @@ export default function PurchaseOrders() {
             </button>
             <button
               type="submit"
-              disabled={!isValid}
+              disabled={!isValid || createMutation.isPending}
               className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              Create Purchase Order
+              {createMutation.isPending
+                ? 'Processing...'
+                : 'Create Purchase Order'}
             </button>
           </div>
         </form>
