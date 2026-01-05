@@ -2,8 +2,10 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query';
-import { httpBatchLink } from '@trpc/client';
+import { httpBatchLink, TRPCLink } from '@trpc/client';
 import { trpc } from './trpc';
+import hash from 'object-hash';
+import { AppRouter } from '../../../api/src/trpc/router';
 import { ReactNode } from 'react';
 import superjson from 'superjson';
 
@@ -21,8 +23,24 @@ const queryClient = new QueryClient({
   },
 });
 
+const idempotencyLink: TRPCLink<AppRouter> = () => {
+  return ({ next, op }) => {
+    if (op.type === 'mutation') {
+      // Generate deterministic hash of input for idempotency
+      // Ignores order of keys in object
+      const inputHash = hash(op.input || {}, { algorithm: 'md5' });
+      op.context.headers = {
+        ...op.context.headers,
+        'idempotency-key': inputHash,
+      };
+    }
+    return next(op);
+  };
+};
+
 const trpcClient = trpc.createClient({
   links: [
+    idempotencyLink,
     httpBatchLink({
       url: `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/trpc`,
       // Include credentials for cookie auth

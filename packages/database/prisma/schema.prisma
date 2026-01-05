@@ -685,7 +685,11 @@ model IdempotencyKey {
 enum IdempotencyScope {
   INVOICE_POST
   PAYMENT_CREATE
-  // Add more as needed
+  BILL_CREATE
+  INVOICE_CREATE
+  GRN_CREATE
+  SHIPMENT_CREATE
+  ORDER_CREATE
 }
 
 enum IdempotencyStatus {

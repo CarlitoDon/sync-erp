@@ -69,6 +69,9 @@ export const createContext = async ({
     userId,
     companyId,
     correlationId,
+    idempotencyKey: req.headers['idempotency-key'] as
+      | string
+      | undefined, // Extract key
     businessShape,
     userRole,
     userPermissions, // Granular RBAC: ['bill:void', 'payment:void', ...]

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
 import { SalesOrderService } from '../../modules/sales/sales-order.service';
+import { IdempotencyScope } from '@sync-erp/database';
 import { CreateSalesOrderSchema } from '@sync-erp/shared';
 
 import { container, ServiceKeys } from '../../modules/common/di';
@@ -32,6 +33,7 @@ export const salesOrderRouter = router({
    * Create sales order
    */
   create: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.ORDER_CREATE })
     .input(CreateSalesOrderSchema)
     .mutation(async ({ ctx, input }) => {
       return salesOrderService.create(

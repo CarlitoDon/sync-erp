@@ -1,5 +1,6 @@
 import { router, protectedProcedure } from '../trpc';
 import { PaymentService } from '../../modules/accounting/services/payment.service';
+import { IdempotencyScope } from '@sync-erp/database';
 import {
   CreatePaymentSchema,
   asCorrelationId,
@@ -34,6 +35,7 @@ export const paymentRouter = router({
    * Uses correlationId for idempotency to allow multiple partial payments
    */
   create: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.PAYMENT_CREATE })
     .input(CreatePaymentSchema)
     .mutation(async ({ ctx, input }) => {
       return paymentService.create(

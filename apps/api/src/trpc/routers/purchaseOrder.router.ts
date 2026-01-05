@@ -1,5 +1,6 @@
 import { router, protectedProcedure } from '../trpc';
 import { PurchaseOrderService } from '../../modules/procurement/purchase-order.service';
+import { IdempotencyScope } from '@sync-erp/database';
 import { CreatePurchaseOrderSchema } from '@sync-erp/shared';
 import { z } from 'zod';
 
@@ -32,6 +33,7 @@ export const purchaseOrderRouter = router({
    * Create purchase order
    */
   create: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.ORDER_CREATE })
     .input(CreatePurchaseOrderSchema)
     .mutation(async ({ ctx, input }) => {
       return purchaseOrderService.create(

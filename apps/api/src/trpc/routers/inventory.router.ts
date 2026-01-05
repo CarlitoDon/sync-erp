@@ -1,5 +1,6 @@
 import { router, protectedProcedure } from '../trpc';
 import { container, ServiceKeys } from '../../modules/common/di';
+import { IdempotencyScope } from '@sync-erp/database';
 import { InventoryService } from '../../modules/inventory/inventory.service';
 import {
   CreateGoodsReceiptSchema,
@@ -53,6 +54,7 @@ export const inventoryRouter = router({
    * Create Goods Receipt Note
    */
   createGRN: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.GRN_CREATE })
     .input(CreateGoodsReceiptSchema)
     .mutation(async ({ ctx, input }) => {
       return inventoryService.createGRN(ctx.companyId!, input);
@@ -87,6 +89,7 @@ export const inventoryRouter = router({
    * Create Shipment
    */
   createShipment: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.SHIPMENT_CREATE })
     .input(CreateShipmentSchema)
     .mutation(async ({ ctx, input }) => {
       return inventoryService.createShipment(ctx.companyId!, input);
