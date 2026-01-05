@@ -36,6 +36,7 @@ describe('Expenses Flow', () => {
         },
         context: {
           userId: 'test-user-id',
+          idempotencyKey: undefined,
           companyId,
         },
       } as any,

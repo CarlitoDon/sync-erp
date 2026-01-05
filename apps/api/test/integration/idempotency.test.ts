@@ -11,7 +11,6 @@ const ACTOR_ID = 'test-user-idev-001';
 describe('Backend Idempotency Integration', () => {
   let productId: string;
   let partnerId: string;
-  let orderId: string;
 
   beforeAll(async () => {
     // Setup Company
@@ -85,7 +84,6 @@ describe('Backend Idempotency Integration', () => {
       items: [{ productId, quantity: 10, price: 100 }],
     });
     await procurementService.confirm(order.id, COMPANY_ID, ACTOR_ID);
-    orderId = order.id;
 
     const idempotencyKey = `key-seq-${Date.now()}`;
 
