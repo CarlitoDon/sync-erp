@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 
 /* eslint-disable @sync-erp/no-hardcoded-enum */
 type ActionButtonVariant =
@@ -10,7 +10,7 @@ type ActionButtonVariant =
 /* eslint-enable @sync-erp/no-hardcoded-enum */
 
 interface ActionButtonProps {
-  onClick: () => void;
+  onClick: () => void | Promise<void>;
   variant?: ActionButtonVariant;
   children: ReactNode;
   disabled?: boolean;
@@ -41,19 +41,39 @@ export default function ActionButton({
   isLoading = false,
   className = '',
 }: ActionButtonProps) {
+  const [isInternalLoading, setIsInternalLoading] = useState(false);
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click in tables
+    if (isLoading || isInternalLoading || disabled) return;
+
+    try {
+      setIsInternalLoading(true);
+      await onClick();
+    } catch (error) {
+      console.error('Action failed:', error);
+    } finally {
+      // Small delay to prevent flicker if action is too fast, and to show completion
+      // But mainly to clean up
+      setIsInternalLoading(false);
+    }
+  };
+
+  const showLoading = isLoading || isInternalLoading;
+
   return (
     <button
-      onClick={onClick}
-      disabled={disabled || isLoading}
+      onClick={handleClick}
+      disabled={disabled || showLoading}
       title={title}
       className={`
         inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-md border transition-colors
         ${variantStyles[variant]}
-        ${disabled || isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+        ${disabled || showLoading ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}
       `}
     >
-      {isLoading ? 'Loading...' : children}
+      {showLoading ? 'Processing...' : children}
     </button>
   );
 }
