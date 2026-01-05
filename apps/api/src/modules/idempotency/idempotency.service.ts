@@ -42,7 +42,8 @@ export class IdempotencyService {
         }
         throw new DomainError(
           'Request is currently being processed',
-          DomainErrorCodes.CONFLICT
+          409,
+          DomainErrorCodes.IDEMPOTENCY_CONFLICT
         );
       }
 

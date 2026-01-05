@@ -97,6 +97,7 @@ describe('Backend Idempotency Integration', () => {
       companyId: COMPANY_ID,
       businessShape: BusinessShape.RETAIL,
       userPermissions: ['*:*'],
+      userRole: 'ADMIN' as any,
       idempotencyKey,
       correlationId: undefined,
     };
@@ -149,6 +150,7 @@ describe('Backend Idempotency Integration', () => {
       companyId: COMPANY_ID,
       businessShape: BusinessShape.RETAIL,
       userPermissions: ['*:*'],
+      userRole: 'ADMIN' as any,
       idempotencyKey,
       correlationId: undefined,
     };

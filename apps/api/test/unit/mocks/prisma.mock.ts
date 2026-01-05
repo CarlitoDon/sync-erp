@@ -142,6 +142,12 @@ export const mockPrisma = {
     delete: vi.fn(),
     deleteMany: vi.fn(),
   },
+  idempotencyKey: {
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
   inventoryMovement: {
     create: vi.fn(),
     findMany: vi.fn(),

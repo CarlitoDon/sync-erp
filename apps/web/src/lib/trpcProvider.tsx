@@ -30,7 +30,7 @@ const idempotencyLink: TRPCLink<AppRouter> = () => {
       // Ignores order of keys in object
       const inputHash = hash(op.input || {}, { algorithm: 'md5' });
       op.context.headers = {
-        ...op.context.headers,
+        ...(op.context.headers as Record<string, unknown>),
         'idempotency-key': inputHash,
       };
     }
