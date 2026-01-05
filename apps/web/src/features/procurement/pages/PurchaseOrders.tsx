@@ -7,6 +7,7 @@ import {
 import Select from '@/components/ui/Select';
 import { NoCompanySelected } from '@/components/ui';
 import { useCompany } from '@/contexts/CompanyContext';
+import { Button } from '@/components/ui/button';
 import FormModal from '@/components/ui/FormModal';
 import PurchaseOrderList from '@/features/procurement/components/PurchaseOrderList';
 import { trpc } from '@/lib/trpc';
@@ -171,22 +172,23 @@ export default function PurchaseOrders() {
           />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={handleClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="bg-gray-100 text-gray-700 hover:bg-gray-200"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={!isValid || createMutation.isPending}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              disabled={!isValid}
+              isLoading={createMutation.isPending}
+              loadingText="Processing..."
+              className="px-6"
             >
-              {createMutation.isPending
-                ? 'Processing...'
-                : 'Create Purchase Order'}
-            </button>
+              Create Purchase Order
+            </Button>
           </div>
         </form>
       </FormModal>
