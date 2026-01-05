@@ -40,6 +40,11 @@ export const prisma =
       process.env.NODE_ENV === 'development'
         ? ['query', 'error', 'warn']
         : ['error'],
+    // Increase transaction timeout to handle Railway <-> Supabase latency
+    transactionOptions: {
+      maxWait: 10000, // Max wait time to acquire transaction: 10s
+      timeout: 30000, // Transaction operation timeout: 30s
+    },
   });
 
 if (process.env.NODE_ENV !== 'production') {
