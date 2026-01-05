@@ -29,6 +29,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
+  loadingText?: string;
 }
 /* eslint-enable @sync-erp/no-hardcoded-enum */
 
@@ -42,6 +43,7 @@ export const Button = React.forwardRef<
       variant = 'primary',
       size = 'md',
       isLoading = false,
+      loadingText,
       children,
       disabled,
       ...props
@@ -77,7 +79,7 @@ export const Button = React.forwardRef<
         {...props}
       >
         {isLoading && <Spinner />}
-        {children}
+        {isLoading && loadingText ? loadingText : children}
       </button>
     );
   }
