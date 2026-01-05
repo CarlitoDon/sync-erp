@@ -16,7 +16,12 @@ const createCaller = async (userId: string, companyId: string) => {
     res: {} as any,
     info: {} as any,
   });
-  return appRouter.createCaller(ctx);
+
+  return appRouter.createCaller({
+    ...ctx,
+    userPermissions: ['*:*'],
+    idempotencyKey: undefined,
+  });
 };
 
 describe('Purchase Order Zod Integration', () => {

@@ -30,6 +30,7 @@ const caller = appRouter.createCaller({
   correlationId: 'test-correlation',
   userRole: 'ADMIN' as any,
   userPermissions: ['*:*'],
+  idempotencyKey: undefined,
 });
 
 describe('P2P Partial Actions Edge Cases (tRPC)', () => {
