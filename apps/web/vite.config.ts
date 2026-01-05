@@ -12,6 +12,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      '@sync-erp/shared': resolve(
+        __dirname,
+        '../../packages/shared/src/index.ts'
+      ),
     },
   },
   server: {
