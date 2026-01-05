@@ -54,5 +54,5 @@ EXPOSE 3001
 ENV NODE_ENV=production
 ENV PORT=3001
 
-# Start with migration and then app
-CMD sh -c "cd packages/database && npx prisma migrate deploy && cd ../.. && tsx apps/api/src/index.ts"
+# Start app directly - migrations handled separately (database already baselined)
+CMD ["tsx", "apps/api/src/index.ts"]
