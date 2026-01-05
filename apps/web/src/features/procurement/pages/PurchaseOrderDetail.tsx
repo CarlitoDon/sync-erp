@@ -83,12 +83,15 @@ export default function PurchaseOrderDetail() {
     },
   });
 
-  const handleClosePO = (orderId: string) => {
+  const handleClosePO = async (orderId: string) => {
     const reason = prompt(
       'Please enter a reason for closing this PO:'
     );
     if (reason && reason.trim()) {
-      closeMutation.mutate({ id: orderId, reason: reason.trim() });
+      await closeMutation.mutateAsync({
+        id: orderId,
+        reason: reason.trim(),
+      });
     }
   };
 
