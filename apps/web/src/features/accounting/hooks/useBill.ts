@@ -139,5 +139,9 @@ export function useBill(options: UseBillOptions = {}) {
     createFromPO,
     postBill,
     voidBill,
+    // Expose mutation pending states for double-click prevention
+    isCreating: createBillMutation.isPending,
+    isPosting: postBillMutation.isPending,
+    isVoiding: voidBillMutation.isPending,
   };
 }

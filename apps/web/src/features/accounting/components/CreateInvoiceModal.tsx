@@ -49,7 +49,7 @@ export default function CreateInvoiceModal({
   onSuccess,
 }: CreateInvoiceModalProps) {
   const { currentCompany } = useCompany();
-  const { createFromSO, loading: submitting } = useInvoice();
+  const { createFromSO, isCreating } = useInvoice();
   const utils = trpc.useUtils();
   const [soId, setSoId] = useState<string | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -226,9 +226,11 @@ export default function CreateInvoiceModal({
           </Button>
           <Button
             type="submit"
-            disabled={submitting || (!soId && !loadingDetails)}
+            disabled={isCreating || (!soId && !loadingDetails)}
+            isLoading={isCreating}
+            loadingText="Creating..."
           >
-            {submitting ? 'Creating...' : 'Create Invoice'}
+            Create Invoice
           </Button>
         </div>
       </form>

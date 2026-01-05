@@ -58,7 +58,7 @@ export default function CreateBillModal({
   onSuccess,
 }: CreateBillModalProps) {
   const { currentCompany } = useCompany();
-  const { createFromPO, loading: submitting } = useBill();
+  const { createFromPO, isCreating } = useBill();
   const { getReceipt } = useGoodsReceipt();
   const [poId, setPoId] = useState<string | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -464,9 +464,11 @@ export default function CreateBillModal({
             </Button>
             <Button
               type="submit"
-              disabled={submitting || (!poId && !loadingDetails)}
+              disabled={isCreating || (!poId && !loadingDetails)}
+              isLoading={isCreating}
+              loadingText="Creating..."
             >
-              {submitting ? 'Creating...' : 'Create Bill'}
+              Create Bill
             </Button>
           </div>
         </form>

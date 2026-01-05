@@ -121,8 +121,7 @@ export function useInvoice(options: UseInvoiceOptions = {}) {
       if (!confirmed) return;
 
       const result = await apiAction(
-        async () =>
-          voidInvoiceMutation.mutateAsync({ id, reason }),
+        async () => voidInvoiceMutation.mutateAsync({ id, reason }),
         'Invoice voided successfully!'
       );
 
@@ -139,5 +138,9 @@ export function useInvoice(options: UseInvoiceOptions = {}) {
     createFromSO,
     postInvoice,
     voidInvoice,
+    // Expose mutation pending states for double-click prevention
+    isCreating: createInvoiceMutation.isPending,
+    isPosting: postInvoiceMutation.isPending,
+    isVoiding: voidInvoiceMutation.isPending,
   };
 }
