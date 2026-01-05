@@ -1,5 +1,6 @@
 import { router, protectedProcedure } from '../trpc';
 import { container, ServiceKeys } from '../../modules/common/di';
+import { IdempotencyScope } from '@sync-erp/database';
 import { CreateBillFromPOSchema } from '@sync-erp/shared';
 import { z } from 'zod';
 import { BillService } from '../../modules/accounting/services/bill.service';
@@ -31,6 +32,7 @@ export const billRouter = router({
    * Create bill from Purchase Order
    */
   createFromPO: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.BILL_CREATE })
     .input(CreateBillFromPOSchema)
     .mutation(async ({ ctx, input }) => {
       return billService.createFromPurchaseOrder(
@@ -61,6 +63,7 @@ export const billRouter = router({
    * Post bill to ledger
    */
   post: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.INVOICE_POST }) // Bills are posted as Invoices in ledger
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       return billService.post(input.id, ctx.companyId);

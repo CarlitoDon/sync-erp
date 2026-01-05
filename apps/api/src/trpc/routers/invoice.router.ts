@@ -1,5 +1,6 @@
 import { router, protectedProcedure } from '../trpc';
 import { container, ServiceKeys } from '../../modules/common/di';
+import { IdempotencyScope } from '@sync-erp/database';
 import { InvoiceService } from '../../modules/accounting/services/invoice.service';
 import { CreateInvoiceFromSOSchema } from '@sync-erp/shared';
 import { z } from 'zod';
@@ -31,6 +32,7 @@ export const invoiceRouter = router({
    * Create invoice from Sales Order
    */
   createFromSO: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.INVOICE_CREATE })
     .input(CreateInvoiceFromSOSchema)
     .mutation(async ({ ctx, input }) => {
       return invoiceService.createFromSalesOrder(
@@ -43,6 +45,7 @@ export const invoiceRouter = router({
    * Post invoice
    */
   post: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.INVOICE_POST })
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       return invoiceService.post(input.id, ctx.companyId);
