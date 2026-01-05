@@ -44,3 +44,4 @@ coverage/
 
 # Generated Prisma Client
 packages/database/src/generated/
+.vercel
