@@ -161,6 +161,17 @@
       "problemMatcher": []
     },
     {
+      "label": "DB: Reset",
+      "type": "shell",
+      "command": "npm run db:reset",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "DB: Studio",
       "type": "shell",
       "command": "npm run db:studio",
