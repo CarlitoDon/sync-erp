@@ -302,7 +302,9 @@ export class BillService {
     }
 
     // Must have DP requirement (UPFRONT or dpAmount > 0) OR customAmount provided
-    const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
+    const dpAmount = order.dpAmount
+      ? new Decimal(order.dpAmount).toNumber()
+      : 0;
     const isUpfront = order.paymentTerms === PaymentTerms.UPFRONT;
 
     if (!isUpfront && dpAmount <= 0 && !customAmount) {
@@ -334,12 +336,15 @@ export class BillService {
     let amount: number;
     let subtotal: number;
     let taxAmount: number;
-    const taxRate = order.taxRate ? Number(order.taxRate) : 0;
+    const taxRate = order.taxRate
+      ? new Decimal(order.taxRate).toNumber()
+      : 0;
     const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
 
     // Calculate order total (subtotal + tax)
     const orderSubtotal = order.items.reduce(
-      (sum, item) => sum + Number(item.price) * item.quantity,
+      (sum, item) =>
+        sum + new Decimal(item.price).toNumber() * item.quantity,
       0
     );
     const orderTotal = orderSubtotal * (1 + taxMultiplier);
@@ -366,7 +371,9 @@ export class BillService {
       // Reverse calculate subtotal and tax from amount
       subtotal = amount / (1 + taxMultiplier);
       taxAmount = amount - subtotal;
-      dpPercent = order.dpPercent ? Number(order.dpPercent) : 0;
+      dpPercent = order.dpPercent
+        ? new Decimal(order.dpPercent).toNumber()
+        : 0;
     }
 
     // BUG FIX: Update Order.dpAmount and dpPercent to reflect actual DP Bill amount
