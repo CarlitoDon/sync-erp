@@ -85,6 +85,7 @@ export const ServiceKeys = {
   PRODUCT_REPOSITORY: 'productRepository',
   PARTNER_REPOSITORY: 'partnerRepository',
   ACCOUNT_REPOSITORY: 'accountRepository',
+  CASH_BANK_REPOSITORY: 'cashBankRepository',
 
   // Services
   INVENTORY_SERVICE: 'inventoryService',
@@ -101,6 +102,7 @@ export const ServiceKeys = {
   IDEMPOTENCY_SERVICE: 'idempotencyService',
   CUSTOMER_DEPOSIT_SERVICE: 'customerDepositService',
   UPFRONT_PAYMENT_SERVICE: 'upfrontPaymentService',
+  CASH_BANK_SERVICE: 'cashBankService',
   COMPANY_SERVICE: 'companyService',
   AUTH_SERVICE: 'authService',
   USER_SERVICE: 'userService',

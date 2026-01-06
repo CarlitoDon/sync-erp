@@ -2,6 +2,7 @@ import {
   IdempotencyScope,
   IdempotencyStatus,
   prisma,
+  Prisma,
 } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
@@ -82,7 +83,7 @@ export class IdempotencyService {
       where: { id: key },
       data: {
         status: IdempotencyStatus.COMPLETED,
-        response: response as any, // Prisma Json type
+        response: response as Prisma.InputJsonValue,
       },
     });
   }
@@ -95,7 +96,7 @@ export class IdempotencyService {
       where: { id: key },
       data: {
         status: IdempotencyStatus.FAILED,
-        response: { error } as any,
+        response: { error: String(error) } as Prisma.InputJsonValue,
       },
     });
   }
