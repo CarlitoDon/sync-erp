@@ -22,6 +22,7 @@ interface SelectProps {
   required?: boolean;
   className?: string;
   disabled?: boolean;
+  portal?: boolean;
 }
 
 export default function Select({
@@ -34,6 +35,7 @@ export default function Select({
   required = false,
   className = '',
   disabled = false,
+  portal = true,
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -50,15 +52,26 @@ export default function Select({
       const rect = buttonRef.current.getBoundingClientRect();
       // Use fixed positioning with viewport-relative coordinates
       // getBoundingClientRect() already returns viewport-relative values
-      setDropdownStyle({
-        position: 'fixed',
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-        zIndex: 9999,
-      });
+      setDropdownStyle(
+        portal
+          ? {
+              position: 'fixed',
+              top: rect.bottom + 4,
+              left: rect.left,
+              width: rect.width,
+              zIndex: 9999,
+            }
+          : {
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              width: '100%',
+              marginTop: '0.25rem',
+              zIndex: 9999,
+            }
+      );
     }
-  }, [isOpen]);
+  }, [isOpen, portal]);
 
   // Close dropdown when clicking outside (both container AND dropdown portal)
   useEffect(() => {
@@ -207,7 +220,10 @@ export default function Select({
       </button>
 
       {/* Render dropdown in portal to escape overflow containers */}
-      {isOpen && createPortal(dropdownContent, document.body)}
+      {isOpen &&
+        (portal
+          ? createPortal(dropdownContent, document.body)
+          : dropdownContent)}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import type { User, LoginInput, RegisterInput } from '@/types/api';
 import { trpc } from '@/lib/trpc';
 
@@ -16,8 +17,15 @@ const AuthContext = createContext<AuthContextType | undefined>(
   undefined
 );
 
+// Public routes that don't need auth check
+const PUBLIC_ROUTES = ['/login', '/register'];
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const utils = trpc.useUtils();
+  const location = useLocation();
+
+  // Skip auth.me fetch on public routes to avoid unnecessary 401
+  const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname);
 
   const {
     data: user,
@@ -26,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
+    enabled: !isPublicRoute, // Don't fetch on login/register pages
   });
 
   const loginMutation = trpc.auth.login.useMutation({
