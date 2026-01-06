@@ -1,7 +1,27 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+// Load environment-specific .env file
+const envFile =
+  process.env.NODE_ENV === 'production'
+    ? '.env.production'
+    : process.env.NODE_ENV === 'test'
+      ? '.env.test'
+      : '.env.development';
+
+// Use process.cwd() to resolve .env file relative to the package root (where package.json and .env files are)
+const envPath = path.join(process.cwd(), envFile);
+// console.log('[Seeding] Loading env from:', envPath); // Keep commented for clean output
+
+const result = dotenv.config({ path: envPath });
+
+if (result.error) {
+  console.error(
+    `Failed to load environment from ${envPath}`,
+    result.error
+  );
+  process.exit(1);
+}
 import {
   PrismaClient,
   PermissionModule,
@@ -13,6 +33,11 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import * as pg from 'pg';
 
 const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('DATABASE_URL is not defined in environment');
+  process.exit(1);
+}
+
 const pool = new pg.Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 
@@ -25,46 +50,166 @@ const DEFAULT_PERMISSIONS: {
   scope: PermissionScope;
 }[] = [
   // Company Module
-  { module: PermissionModule.COMPANY, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.COMPANY, action: PermissionAction.READ, scope: PermissionScope.ALL },
-  { module: PermissionModule.COMPANY, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.COMPANY, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
+  {
+    module: PermissionModule.COMPANY,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.COMPANY,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.COMPANY,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.COMPANY,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
 
   // Sales Module
-  { module: PermissionModule.SALES, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.SALES, action: PermissionAction.READ, scope: PermissionScope.ALL },
-  { module: PermissionModule.SALES, action: PermissionAction.READ, scope: PermissionScope.OWN },
-  { module: PermissionModule.SALES, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.SALES, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
-  { module: PermissionModule.SALES, action: PermissionAction.APPROVE, scope: PermissionScope.ALL },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.READ,
+    scope: PermissionScope.OWN,
+  },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.APPROVE,
+    scope: PermissionScope.ALL,
+  },
 
   // Purchasing Module
-  { module: PermissionModule.PURCHASING, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.PURCHASING, action: PermissionAction.READ, scope: PermissionScope.ALL },
-  { module: PermissionModule.PURCHASING, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.PURCHASING, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
-  { module: PermissionModule.PURCHASING, action: PermissionAction.APPROVE, scope: PermissionScope.ALL },
+  {
+    module: PermissionModule.PURCHASING,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.PURCHASING,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.PURCHASING,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.PURCHASING,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.PURCHASING,
+    action: PermissionAction.APPROVE,
+    scope: PermissionScope.ALL,
+  },
 
   // Inventory Module
-  { module: PermissionModule.INVENTORY, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.INVENTORY, action: PermissionAction.READ, scope: PermissionScope.ALL },
-  { module: PermissionModule.INVENTORY, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.INVENTORY, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
-  { module: PermissionModule.INVENTORY, action: PermissionAction.VOID, scope: PermissionScope.ALL },
+  {
+    module: PermissionModule.INVENTORY,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.INVENTORY,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.INVENTORY,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.INVENTORY,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.INVENTORY,
+    action: PermissionAction.VOID,
+    scope: PermissionScope.ALL,
+  },
 
   // Finance Module
-  { module: PermissionModule.FINANCE, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.FINANCE, action: PermissionAction.READ, scope: PermissionScope.ALL },
-  { module: PermissionModule.FINANCE, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.FINANCE, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
-  { module: PermissionModule.FINANCE, action: PermissionAction.APPROVE, scope: PermissionScope.ALL },
-  { module: PermissionModule.FINANCE, action: PermissionAction.VOID, scope: PermissionScope.ALL },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.APPROVE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.VOID,
+    scope: PermissionScope.ALL,
+  },
 
   // Users Module
-  { module: PermissionModule.USERS, action: PermissionAction.CREATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.USERS, action: PermissionAction.READ, scope: PermissionScope.ALL },
-  { module: PermissionModule.USERS, action: PermissionAction.UPDATE, scope: PermissionScope.ALL },
-  { module: PermissionModule.USERS, action: PermissionAction.DELETE, scope: PermissionScope.ALL },
+  {
+    module: PermissionModule.USERS,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.USERS,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.USERS,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.USERS,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
 ];
 
 async function main() {
@@ -222,8 +367,36 @@ async function main() {
     console.warn('📊 Seeding Chart of Accounts...');
     const ACCOUNTS = [
       // Assets (1xxx)
-      { code: '1100', name: 'Cash on Hand', type: 'ASSET' as const },
-      { code: '1200', name: 'Bank Account', type: 'ASSET' as const },
+      {
+        code: '1100',
+        name: 'Cash',
+        type: 'ASSET' as const,
+        isGroup: true,
+      },
+      {
+        code: '1101',
+        name: 'Cash on Hand (Main)',
+        type: 'ASSET' as const,
+        parentCode: '1100',
+      },
+      {
+        code: '1102',
+        name: 'Petty Cash',
+        type: 'ASSET' as const,
+        parentCode: '1100',
+      },
+      {
+        code: '1200',
+        name: 'Bank',
+        type: 'ASSET' as const,
+        isGroup: true,
+      },
+      {
+        code: '1201',
+        name: 'BCA Corporate',
+        type: 'ASSET' as const,
+        parentCode: '1200',
+      },
       {
         code: '1210',
         name: 'Goods in Transit',
@@ -330,6 +503,27 @@ async function main() {
     ];
 
     for (const acc of ACCOUNTS) {
+      let parentId: string | undefined;
+
+      // Resolve Parent ID if parentCode is present
+      if ('parentCode' in acc && acc.parentCode) {
+        const parent = await prisma.account.findUnique({
+          where: {
+            companyId_code: {
+              companyId: demoCompany.id,
+              code: acc.parentCode,
+            },
+          },
+        });
+        if (parent) parentId = parent.id;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { parentCode, ...accData } =
+        acc as (typeof ACCOUNTS)[number] & {
+          parentCode?: string;
+        };
+
       await prisma.account.upsert({
         where: {
           companyId_code: {
@@ -337,10 +531,14 @@ async function main() {
             code: acc.code,
           },
         },
-        update: {},
+        update: {
+          ...accData,
+          parentId, // Update relation
+        },
         create: {
           companyId: demoCompany.id,
-          ...acc,
+          ...accData,
+          parentId,
         },
       });
     }
@@ -518,6 +716,58 @@ async function main() {
         },
       });
     }
+
+    // ==========================================
+    // 4. Seed Bank Accounts (Cash & Bank Feature)
+    // ==========================================
+    console.warn('🏦 Seeding Bank Accounts...');
+
+    // Map of GL codes to BankAccount Data
+    const BANK_ACCOUNTS = [
+      {
+        code: '1101',
+        bankName: 'Cash on Hand (Main)',
+        accountNumber: 'N/A',
+      },
+      { code: '1102', bankName: 'Petty Cash', accountNumber: 'N/A' },
+      {
+        code: '1201',
+        bankName: 'BCA Corporate',
+        accountNumber: '123-456-7890',
+      },
+    ];
+
+    for (const ba of BANK_ACCOUNTS) {
+      // Find the GL account first
+      const account = await prisma.account.findUnique({
+        where: {
+          companyId_code: {
+            companyId: demoCompany.id,
+            code: ba.code,
+          },
+        },
+      });
+
+      if (account) {
+        await prisma.bankAccount.upsert({
+          where: {
+            companyId_accountId: {
+              companyId: demoCompany.id,
+              accountId: account.id,
+            },
+          },
+          update: {},
+          create: {
+            companyId: demoCompany.id,
+            accountId: account.id,
+            bankName: ba.bankName,
+            accountNumber: ba.accountNumber,
+            currency: 'IDR',
+          },
+        });
+      }
+    }
+
     // ==========================================
     // NOTE: Transactions (SO, PO, Invoices, Bills, Payments)
     // are NOT seeded here to ensure proper business logic.
