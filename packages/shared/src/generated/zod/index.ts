@@ -120,7 +120,7 @@ export const InvoiceItemScalarFieldEnumSchema = z.enum(['id','invoiceId','produc
 
 export const PaymentScalarFieldEnumSchema = z.enum(['id','companyId','invoiceId','orderId','paymentType','settledAt','settlementBillId','amount','date','method','reference','accountId','version','createdAt']);
 
-export const AccountScalarFieldEnumSchema = z.enum(['id','companyId','code','name','type','isActive','createdAt','updatedAt']);
+export const AccountScalarFieldEnumSchema = z.enum(['id','companyId','parentId','code','name','type','isGroup','isActive','createdAt','updatedAt']);
 
 export const JournalEntryScalarFieldEnumSchema = z.enum(['id','companyId','reference','date','memo','sourceType','sourceId','createdAt']);
 
@@ -146,11 +146,17 @@ export const IdempotencyKeyScalarFieldEnumSchema = z.enum(['id','companyId','sco
 
 export const SagaLogScalarFieldEnumSchema = z.enum(['id','sagaType','entityId','companyId','step','stepData','error','correlationId','createdAt','updatedAt']);
 
-export const AuditLogScalarFieldEnumSchema = z.enum(['id','companyId','actorId','action','entityType','entityId','businessDate','payloadSnapshot','correlationId','createdAt']);
+export const AuditLogScalarFieldEnumSchema = z.enum(['id','companyId','actorId','action','entityType','entityId','businessDate','payloadSnapshot','correlationId','createdAt','cashTransactionId']);
 
 export const FulfillmentScalarFieldEnumSchema = z.enum(['id','companyId','orderId','type','number','date','status','notes','receivedBy','version','createdAt','updatedAt']);
 
 export const FulfillmentItemScalarFieldEnumSchema = z.enum(['id','fulfillmentId','productId','orderItemId','quantity','costSnapshot']);
+
+export const BankAccountScalarFieldEnumSchema = z.enum(['id','companyId','accountId','bankName','accountNumber','currency','isArchived','createdAt','updatedAt']);
+
+export const CashTransactionScalarFieldEnumSchema = z.enum(['id','companyId','type','status','date','reference','payee','description','amount','sourceBankAccountId','destinationBankAccountId','journalEntryId','createdAt','updatedAt']);
+
+export const CashTransactionItemScalarFieldEnumSchema = z.enum(['id','cashTransactionId','accountId','description','amount']);
 
 export const SortOrderSchema = z.enum(['asc','desc']);
 
@@ -168,7 +174,7 @@ export const AccountTypeSchema = z.enum(['ASSET','LIABILITY','EQUITY','REVENUE',
 
 export type AccountTypeType = `${z.infer<typeof AccountTypeSchema>}`
 
-export const JournalSourceTypeSchema = z.enum(['INVOICE','BILL','PAYMENT','CREDIT_NOTE','ADJUSTMENT']);
+export const JournalSourceTypeSchema = z.enum(['INVOICE','BILL','PAYMENT','CREDIT_NOTE','ADJUSTMENT','CASH_TRANSACTION']);
 
 export type JournalSourceTypeType = `${z.infer<typeof JournalSourceTypeSchema>}`
 
@@ -240,7 +246,7 @@ export const SequenceTypeSchema = z.enum(['PO','GRN','SHP','BILL','PAY','SO','IN
 
 export type SequenceTypeType = `${z.infer<typeof SequenceTypeSchema>}`
 
-export const IdempotencyScopeSchema = z.enum(['INVOICE_POST','PAYMENT_CREATE','BILL_CREATE','INVOICE_CREATE','GRN_CREATE','SHIPMENT_CREATE','ORDER_CREATE']);
+export const IdempotencyScopeSchema = z.enum(['INVOICE_POST','PAYMENT_CREATE','BILL_CREATE','INVOICE_CREATE','GRN_CREATE','SHIPMENT_CREATE','ORDER_CREATE','CASH_TRANSACTION_POST']);
 
 export type IdempotencyScopeType = `${z.infer<typeof IdempotencyScopeSchema>}`
 
@@ -248,11 +254,11 @@ export const IdempotencyStatusSchema = z.enum(['PROCESSING','COMPLETED','FAILED'
 
 export type IdempotencyStatusType = `${z.infer<typeof IdempotencyStatusSchema>}`
 
-export const AuditLogActionSchema = z.enum(['INVOICE_POSTED','INVOICE_VOIDED','BILL_POSTED','BILL_VOIDED','PAYMENT_RECORDED','ORDER_CREATED','ORDER_CONFIRMED','ORDER_CANCELLED','GOODS_RECEIVED','SHIPMENT_CREATED','GRN_POSTED','GRN_VOIDED','SHIPMENT_VOIDED','PAYMENT_VOIDED','PRICE_VARIANCE_ACKNOWLEDGED']);
+export const AuditLogActionSchema = z.enum(['INVOICE_POSTED','INVOICE_VOIDED','BILL_POSTED','BILL_VOIDED','PAYMENT_RECORDED','ORDER_CREATED','ORDER_CONFIRMED','ORDER_CANCELLED','GOODS_RECEIVED','SHIPMENT_CREATED','GRN_POSTED','GRN_VOIDED','SHIPMENT_VOIDED','PAYMENT_VOIDED','PRICE_VARIANCE_ACKNOWLEDGED','CASH_TRANSACTION_POSTED','CASH_TRANSACTION_VOIDED']);
 
 export type AuditLogActionType = `${z.infer<typeof AuditLogActionSchema>}`
 
-export const EntityTypeSchema = z.enum(['INVOICE','BILL','PAYMENT','ORDER','SHIPMENT','GOODS_RECEIPT']);
+export const EntityTypeSchema = z.enum(['INVOICE','BILL','PAYMENT','ORDER','SHIPMENT','GOODS_RECEIPT','BANK_ACCOUNT','CASH_TRANSACTION']);
 
 export type EntityTypeType = `${z.infer<typeof EntityTypeSchema>}`
 
@@ -263,6 +269,14 @@ export type SagaTypeType = `${z.infer<typeof SagaTypeSchema>}`
 export const SagaStepSchema = z.enum(['PENDING','STOCK_DONE','BALANCE_DONE','JOURNAL_DONE','COMPLETED','FAILED','COMPENSATION_FAILED']);
 
 export type SagaStepType = `${z.infer<typeof SagaStepSchema>}`
+
+export const CashTransactionTypeSchema = z.enum(['SPEND','RECEIVE','TRANSFER']);
+
+export type CashTransactionTypeType = `${z.infer<typeof CashTransactionTypeSchema>}`
+
+export const CashTransactionStatusSchema = z.enum(['DRAFT','POSTED','VOIDED']);
+
+export type CashTransactionStatusType = `${z.infer<typeof CashTransactionStatusSchema>}`
 
 /////////////////////////////////////////
 // MODELS
@@ -506,8 +520,10 @@ export const AccountSchema = z.object({
   type: AccountTypeSchema,
   id: z.string(),
   companyId: z.string(),
+  parentId: z.string().nullable(),
   code: z.string(),
   name: z.string(),
+  isGroup: z.boolean(),
   isActive: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
@@ -712,6 +728,7 @@ export const AuditLogSchema = z.object({
   payloadSnapshot: JsonValueSchema.nullable(),
   correlationId: z.string().nullable(),
   createdAt: z.coerce.date(),
+  cashTransactionId: z.string().nullable(),
 })
 
 export type AuditLog = z.infer<typeof AuditLogSchema>
@@ -751,3 +768,58 @@ export const FulfillmentItemSchema = z.object({
 })
 
 export type FulfillmentItem = z.infer<typeof FulfillmentItemSchema>
+
+/////////////////////////////////////////
+// BANK ACCOUNT SCHEMA
+/////////////////////////////////////////
+
+export const BankAccountSchema = z.object({
+  id: z.string(),
+  companyId: z.string(),
+  accountId: z.string(),
+  bankName: z.string(),
+  accountNumber: z.string().nullable(),
+  currency: z.string(),
+  isArchived: z.boolean(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type BankAccount = z.infer<typeof BankAccountSchema>
+
+/////////////////////////////////////////
+// CASH TRANSACTION SCHEMA
+/////////////////////////////////////////
+
+export const CashTransactionSchema = z.object({
+  type: CashTransactionTypeSchema,
+  status: CashTransactionStatusSchema,
+  id: z.string(),
+  companyId: z.string(),
+  date: z.coerce.date(),
+  reference: z.string().nullable(),
+  payee: z.string().nullable(),
+  description: z.string().nullable(),
+  amount: z.instanceof(PrismaDecimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'CashTransaction']"}),
+  sourceBankAccountId: z.string().nullable(),
+  destinationBankAccountId: z.string().nullable(),
+  journalEntryId: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type CashTransaction = z.infer<typeof CashTransactionSchema>
+
+/////////////////////////////////////////
+// CASH TRANSACTION ITEM SCHEMA
+/////////////////////////////////////////
+
+export const CashTransactionItemSchema = z.object({
+  id: z.string(),
+  cashTransactionId: z.string(),
+  accountId: z.string(),
+  description: z.string().nullable(),
+  amount: z.instanceof(PrismaDecimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'CashTransactionItem']"}),
+})
+
+export type CashTransactionItem = z.infer<typeof CashTransactionItemSchema>

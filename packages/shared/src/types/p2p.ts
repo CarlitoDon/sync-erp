@@ -1,11 +1,16 @@
-import { PaymentMethod } from '@sync-erp/database';
 import type { OrderItem } from '../generated/zod/index.js';
 
 // Re-export OrderStatus for convenience
 export type {
   OrderStatusType as OrderStatus,
   OrderTypeType as OrderType,
+  PaymentMethodType as PaymentMethod,
 } from '../generated/zod/index.js';
+
+// Local type alias for use in this file
+type PaymentMethod =
+  import('../generated/zod/index.js').PaymentMethodType;
+
 export type { InvoiceStatus, InvoiceType } from './finance.js';
 
 // ==========================================
