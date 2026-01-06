@@ -9,6 +9,7 @@ import {
 } from '@sync-erp/database';
 import { PaymentRepository } from '../repositories/payment.repository';
 import { InvoiceRepository } from '../repositories/invoice.repository';
+import { CashBankRepository } from '../../cash-bank/cash-bank.repository'; // Import from CashBank module
 import {
   CreatePaymentInput,
   BusinessDate,
@@ -25,7 +26,8 @@ export class PaymentService {
     private readonly repository: PaymentRepository = new PaymentRepository(),
     private readonly invoiceRepository: InvoiceRepository = new InvoiceRepository(),
     private readonly idempotencyService: IdempotencyService = new IdempotencyService(),
-    private readonly journalService: JournalService = new JournalService()
+    private readonly journalService: JournalService = new JournalService(),
+    private readonly cashBankRepository: CashBankRepository = new CashBankRepository()
   ) {}
 
   /**
@@ -76,6 +78,24 @@ export class PaymentService {
           // After validation, invoice is guaranteed non-null
           const invoice = invoiceOrNull!;
 
+          // Feature: Resolve Bank/Cash Account
+          let contraAccountCode: string | undefined;
+          if (data.bankAccountId) {
+            const bankAccount =
+              await this.cashBankRepository.getAccountById(
+                data.bankAccountId,
+                companyId
+              );
+            if (!bankAccount) {
+              throw new DomainError(
+                'Bank Account not found',
+                400,
+                DomainErrorCodes.INVALID_INPUT
+              );
+            }
+            contraAccountCode = bankAccount.account.code;
+          }
+
           const currentBalance = Number(invoice.balance);
 
           // 3. Create payment record
@@ -85,6 +105,7 @@ export class PaymentService {
               invoiceId: data.invoiceId,
               amount: data.amount,
               method: data.method,
+              accountId: data.bankAccountId,
             },
             tx
           );
@@ -119,6 +140,7 @@ export class PaymentService {
               invoice.invoiceNumber || data.invoiceId,
               data.amount,
               data.method,
+              contraAccountCode,
               tx
             );
           } else {
@@ -128,6 +150,7 @@ export class PaymentService {
               invoice.invoiceNumber || data.invoiceId,
               data.amount,
               data.method,
+              contraAccountCode,
               tx,
               data.businessDate
             );
@@ -268,6 +291,17 @@ export class PaymentService {
           );
         }
 
+        // Feature: Resolve Bank Account for Reversal
+        let contraAccountCode: string | undefined;
+        if (payment.accountId) {
+          const bankAccount =
+            await this.cashBankRepository.getAccountById(
+              payment.accountId,
+              companyId
+            );
+          contraAccountCode = bankAccount?.account?.code;
+        }
+
         // 5. Create journal reversal based on invoice type
         // INVOICE type = AR (payment received), BILL type = AP (payment made)
         if (invoice.type === InvoiceType.INVOICE) {
@@ -277,6 +311,7 @@ export class PaymentService {
             invoice.invoiceNumber || payment.invoiceId,
             Number(payment.amount),
             payment.method,
+            contraAccountCode,
             tx
           );
         } else if (invoice.type === InvoiceType.BILL) {
@@ -286,6 +321,7 @@ export class PaymentService {
             invoice.invoiceNumber || payment.invoiceId,
             Number(payment.amount),
             payment.method,
+            contraAccountCode,
             tx
           );
         }

@@ -9,14 +9,79 @@ export class AccountService {
 
   async create(
     companyId: string,
-    data: { code: string; name: string; type: AccountType }
+    data: {
+      code: string;
+      name: string;
+      type: AccountType;
+      parentId?: string;
+      isGroup?: boolean;
+    }
   ): Promise<Account> {
     return this.repository.create({
       company: { connect: { id: companyId } },
       code: data.code,
       name: data.name,
       type: data.type,
+      parent: data.parentId
+        ? { connect: { id: data.parentId } }
+        : undefined,
+      isGroup: data.isGroup || false,
     });
+  }
+
+  async createSubAccount(
+    companyId: string,
+    parentCode: string,
+    name: string
+  ): Promise<Account> {
+    // 1. Find Parent Account
+    const parentAccount = await this.getByCode(companyId, parentCode);
+    if (!parentAccount) {
+      throw new DomainError(
+        `Parent account ${parentCode} not found`,
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
+    // 2. Generate Next Code
+    const nextCode = await this.getNextSubAccountCode(
+      companyId,
+      parentCode
+    );
+
+    // 3. Create Sub-Account
+    return this.create(companyId, {
+      code: nextCode,
+      name,
+      type: parentAccount.type, // Inherit type from parent
+      parentId: parentAccount.id,
+    });
+  }
+
+  async getNextSubAccountCode(
+    companyId: string,
+    parentCode: string
+  ): Promise<string> {
+    // Assumption: Parent code is 4 digits (e.g., 1100, 1200)
+    // Sub-accounts share the first 2 digits prefix
+    const prefix = parentCode.substring(0, 2); // "11" or "12"
+
+    const maxCode = await this.repository.findMaxCodeByPrefix(
+      companyId,
+      prefix
+    );
+
+    // If no existing code (other than parent check inside repo), or maxCode is the parent itself
+    if (!maxCode || maxCode === parentCode) {
+      return `${prefix}01`;
+    }
+
+    // Parse numeric part and increment
+    // e.g., "1105" -> 1105. "1105" + 1 = 1106.
+    const currentNum = parseInt(maxCode, 10);
+    const nextNum = currentNum + 1;
+    return nextNum.toString();
   }
 
   async getById(
@@ -59,8 +124,18 @@ export class AccountService {
   async seedDefaultAccounts(companyId: string): Promise<Account[]> {
     const defaultAccounts = [
       // Assets (1xxx)
-      { code: '1100', name: 'Cash', type: AccountType.ASSET },
-      { code: '1200', name: 'Bank', type: AccountType.ASSET },
+      {
+        code: '1100',
+        name: 'Cash',
+        type: AccountType.ASSET,
+        isGroup: true,
+      },
+      {
+        code: '1200',
+        name: 'Bank',
+        type: AccountType.ASSET,
+        isGroup: true,
+      },
       {
         code: '1300',
         name: 'Accounts Receivable',
@@ -129,17 +204,17 @@ export class AccountService {
         code: '5000',
         name: 'Cost of Goods Sold',
         type: AccountType.EXPENSE,
-      }, // Added 5000 based on usage in JournalService
+      },
       {
         code: '5100',
         name: 'Operating Expenses',
         type: AccountType.EXPENSE,
-      }, // Generalized or specific
+      },
       {
         code: '5200',
         name: 'Inventory Adjustment',
         type: AccountType.EXPENSE,
-      }, // Added for stock adjustment
+      },
       {
         code: '5300',
         name: 'Rent Expense',

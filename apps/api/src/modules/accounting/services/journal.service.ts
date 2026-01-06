@@ -177,6 +177,20 @@ export class JournalService {
     return this.repository.findAll(companyId, startDate, endDate, tx);
   }
 
+  async getAccountBalance(
+    accountId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const sums = await this.repository.aggregateAccountSum(
+      accountId,
+      undefined,
+      tx
+    );
+    return (
+      (Number(sums._sum.debit) || 0) - (Number(sums._sum.credit) || 0)
+    );
+  }
+
   // ============================================
   // Auto-Posting Helpers (Internal)
   // ============================================
@@ -576,11 +590,13 @@ export class JournalService {
     invoiceNumber: string,
     amount: number,
     method: string,
+    contraAccountCode?: string,
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
     const cashAccount =
-      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100'; // Bank or Cash
+      contraAccountCode ||
+      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100'); // Bank or Cash
     return this.resolveAndCreate(
       companyId,
       {
@@ -608,10 +624,12 @@ export class JournalService {
     invoiceNumber: string,
     amount: number,
     method: string,
+    contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
     const cashAccount =
-      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
+      contraAccountCode ||
+      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100');
     return this.resolveAndCreate(
       companyId,
       {
@@ -638,10 +656,12 @@ export class JournalService {
     billNumber: string,
     amount: number,
     method: string,
+    contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
     const cashAccount =
-      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
+      contraAccountCode ||
+      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100');
     return this.resolveAndCreate(
       companyId,
       {
@@ -664,10 +684,12 @@ export class JournalService {
     billNumber: string,
     amount: number,
     method: string,
+    contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
     const cashAccount =
-      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
+      contraAccountCode ||
+      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100');
     return this.resolveAndCreate(
       companyId,
       {

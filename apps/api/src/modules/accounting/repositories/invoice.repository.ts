@@ -252,11 +252,16 @@ export class InvoiceRepository {
     return db.payment.count({
       where: {
         invoiceId,
-        NOT: {
-          reference: {
-            startsWith: '[VOIDED]',
+        OR: [
+          { reference: null },
+          {
+            reference: {
+              not: {
+                startsWith: '[VOIDED]',
+              },
+            },
           },
-        },
+        ],
       },
     });
   }

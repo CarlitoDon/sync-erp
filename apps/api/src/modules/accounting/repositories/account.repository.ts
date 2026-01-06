@@ -50,4 +50,30 @@ export class AccountRepository {
       data,
     });
   }
+
+  async findByParentId(
+    parentId: string,
+    companyId: string
+  ): Promise<Account[]> {
+    return prisma.account.findMany({
+      where: { parentId, companyId },
+      orderBy: { code: 'asc' },
+    });
+  }
+
+  async findMaxCodeByPrefix(
+    companyId: string,
+    prefix: string
+  ): Promise<string | null> {
+    const result = await prisma.account.findFirst({
+      where: {
+        companyId,
+        code: { startsWith: prefix },
+        NOT: { code: prefix }, // Exclude the parent itself if it matches the prefix exactly
+      },
+      orderBy: { code: 'desc' },
+      select: { code: true },
+    });
+    return result?.code || null;
+  }
 }
