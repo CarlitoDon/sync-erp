@@ -134,12 +134,15 @@ describe('PO Over-billing Bug Reproduction', () => {
 
     await procurementService.confirm(order.id, COMPANY_ID, ACTOR_ID);
 
+    // Feature 041: Manually create DP Bill
+    await billService.createDownPaymentBill(COMPANY_ID, order.id);
+
     // 2. Pay DP Bill
     const dpBill = await prisma.invoice.findFirst({
       where: { orderId: order.id, isDownPayment: true },
     });
-    expect(dpBill).toBeDefined();
-    expect(Number(dpBill?.amount)).toBe(55000);
+    expect(dpBill).not.toBeNull();
+    expect(Number(dpBill!.amount.toString())).toBe(55000);
 
     await billService.post(
       dpBill!.id,
@@ -174,7 +177,7 @@ describe('PO Over-billing Bug Reproduction', () => {
       }
     );
 
-    expect(Number(bill1.amount)).toBe(0);
+    expect(Number(bill1.amount.toString())).toBe(27500);
 
     // 5. Create GRN 2: Remaining half (5 units)
     const grn2 = await inventoryService.createGRN(COMPANY_ID, {
@@ -187,8 +190,8 @@ describe('PO Over-billing Bug Reproduction', () => {
     // GRN 2 Subtotal: 50,000
     // Tax: 5,000
     // Total: 55,000
-    // DP Deduction: 0 (Already fully deducted in Bill 1)
-    // Final Bill Amount: 55,000
+    // DP Deduction: 27,500 (Proportional)
+    // Final Bill Amount: 27,500
     const bill2 = await billService.createFromPurchaseOrder(
       COMPANY_ID,
       {
@@ -197,10 +200,12 @@ describe('PO Over-billing Bug Reproduction', () => {
       }
     );
 
-    expect(Number(bill2.amount)).toBe(55000);
+    expect(Number(bill2.amount.toString())).toBe(27500);
 
     const totalBilled =
-      55000 + Number(bill1.amount) + Number(bill2.amount);
+      55000 +
+      Number(bill1.amount.toString()) +
+      Number(bill2.amount.toString());
     expect(totalBilled).toBe(110000);
   });
 });

@@ -33,7 +33,7 @@ describe('ActionButton', () => {
       </ActionButton>
     );
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText('Processing...')).toBeInTheDocument();
     expect(screen.queryByText('Click Me')).not.toBeInTheDocument();
     expect(screen.getByRole('button')).toBeDisabled();
   });

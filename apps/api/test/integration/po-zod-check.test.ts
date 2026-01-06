@@ -9,6 +9,7 @@ const createCaller = async (userId: string, companyId: string) => {
       userId,
       companyId,
     },
+    headers: {},
   } as any;
 
   const ctx = await createContext({
