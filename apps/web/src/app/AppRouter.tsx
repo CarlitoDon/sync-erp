@@ -115,6 +115,7 @@ const JournalEntries = lazy(
 const JournalDetail = lazy(
   () => import('@/features/accounting/pages/JournalDetail')
 );
+const CashBankPage = lazy(() => import('@/features/cash-bank'));
 
 // Admin pages - lazy loaded
 const Observability = lazy(
@@ -346,6 +347,14 @@ export function AppRouter() {
             element={
               <LazyRoute>
                 <Finance />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="cash-bank"
+            element={
+              <LazyRoute>
+                <CashBankPage />
               </LazyRoute>
             }
           />
