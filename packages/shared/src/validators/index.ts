@@ -237,6 +237,7 @@ export const CreatePaymentSchema = z.object({
   amount: z.number().positive('Payment amount must be positive'),
   method: PaymentMethodSchema,
   reference: z.string().optional(),
+  bankAccountId: z.string().uuid().optional(), // Link to BankAccount (Cash/Bank)
   businessDate: z.coerce.date().optional(), // G5: Explicit business date
   correlationId: z.string().uuid().optional(), // FR-010.1: Request tracing
 });
@@ -332,3 +333,4 @@ export type AuditLogAction = z.infer<typeof AuditLogActionSchema>;
 export type SagaLogInput = z.infer<typeof SagaLogInputSchema>;
 export type SagaStatus = z.infer<typeof SagaStatusSchema>;
 export * from './p2p';
+export * from './cash-bank';
