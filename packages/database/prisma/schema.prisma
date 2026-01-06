@@ -48,6 +48,8 @@ model Company {
   auditLogs         AuditLog[]
   documentSequences DocumentSequence[]
   fulfillments      Fulfillment[]
+  bankAccounts      BankAccount[]
+  cashTransactions  CashTransaction[]
 }
 
 model User {
@@ -319,19 +321,26 @@ model Payment {
 model Account {
   id        String      @id @default(uuid())
   companyId String
-  code      String // e.g., "1100", "2100", "4100"
-  name      String // e.g., "Cash", "Accounts Payable", "Sales Revenue"
+  parentId  String? // Parent account for hierarchy (e.g., sub-accounts under 1200 Bank)
+  code      String // e.g., "1100", "1201", "4100"
+  name      String // e.g., "Cash", "BCA Checking", "Sales Revenue"
   type      AccountType
+  isGroup   Boolean     @default(false) // True for parent accounts (Cash, Bank)
   isActive  Boolean     @default(true)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  journalLines JournalLine[]
+  company              Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent               Account?              @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children             Account[]             @relation("AccountHierarchy")
+  journalLines         JournalLine[]
+  bankAccounts         BankAccount[]
+  cashTransactionItems CashTransactionItem[]
 
   @@unique([companyId, code])
   @@index([companyId])
   @@index([companyId, type])
+  @@index([parentId])
 }
 
 enum AccountType {
@@ -348,6 +357,7 @@ enum JournalSourceType {
   PAYMENT
   CREDIT_NOTE
   ADJUSTMENT
+  CASH_TRANSACTION
 }
 
 model JournalEntry {
@@ -360,8 +370,9 @@ model JournalEntry {
   sourceId   String? // Source document ID (nullable for backward compat)
   createdAt  DateTime           @default(now())
 
-  company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  lines   JournalLine[]
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lines           JournalLine[]
+  cashTransaction CashTransaction?
 
   @@unique([companyId, sourceType, sourceId]) // Prevent double-posting
   @@index([companyId])
@@ -690,6 +701,7 @@ enum IdempotencyScope {
   GRN_CREATE
   SHIPMENT_CREATE
   ORDER_CREATE
+  CASH_TRANSACTION_POST
 }
 
 enum IdempotencyStatus {
@@ -733,7 +745,9 @@ model AuditLog {
   correlationId   String?
   createdAt       DateTime       @default(now())
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company           Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  cashTransaction   CashTransaction? @relation(fields: [cashTransactionId], references: [id])
+  cashTransactionId String?
 
   @@index([companyId, action])
   @@index([entityId])
@@ -757,6 +771,8 @@ enum AuditLogAction {
   SHIPMENT_VOIDED
   PAYMENT_VOIDED
   PRICE_VARIANCE_ACKNOWLEDGED // FR-051: Log acknowledged price variances
+  CASH_TRANSACTION_POSTED
+  CASH_TRANSACTION_VOIDED
 }
 
 enum EntityType {
@@ -766,6 +782,8 @@ enum EntityType {
   ORDER
   SHIPMENT
   GOODS_RECEIPT
+  BANK_ACCOUNT
+  CASH_TRANSACTION
 }
 
 enum SagaType {
@@ -833,4 +851,89 @@ model FulfillmentItem {
   fulfillment Fulfillment @relation(fields: [fulfillmentId], references: [id])
   product     Product     @relation(fields: [productId], references: [id])
   orderItem   OrderItem   @relation(fields: [orderItemId], references: [id])
+}
+
+// ============================================
+// Feature 042: Cash and Bank
+// ============================================
+
+model BankAccount {
+  id            String   @id @default(uuid())
+  companyId     String
+  accountId     String // Link to GL Account
+  bankName      String // e.g. "BCA", "Petty Cash"
+  accountNumber String?
+  currency      String   @default("IDR")
+  isArchived    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id])
+
+  // Relations
+  outgoingTransactions CashTransaction[] @relation("SourceBank")
+  incomingTransactions CashTransaction[] @relation("DestinationBank")
+
+  @@unique([companyId, accountId])
+  @@index([companyId])
+}
+
+model CashTransaction {
+  id          String                @id @default(uuid())
+  companyId   String
+  type        CashTransactionType
+  status      CashTransactionStatus @default(DRAFT)
+  date        DateTime              @default(now())
+  reference   String? // e.g. "INV-001", "Check #123"
+  payee       String? // Name of person/company paid/received from
+  description String?
+  amount      Decimal               @db.Decimal(15, 2)
+
+  // Links
+  sourceBankAccountId      String? // For SPEND and TRANSFER
+  destinationBankAccountId String? // For RECEIVE and TRANSFER
+
+  journalEntryId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sourceBank      BankAccount?  @relation("SourceBank", fields: [sourceBankAccountId], references: [id])
+  destinationBank BankAccount?  @relation("DestinationBank", fields: [destinationBankAccountId], references: [id])
+  journalEntry    JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  items CashTransactionItem[] // Split lines for Spend/Receive
+
+  auditLogs AuditLog[] // Relation for AuditLog
+
+  @@index([companyId])
+  @@index([companyId, type])
+  @@index([date])
+}
+
+model CashTransactionItem {
+  id                String  @id @default(uuid())
+  cashTransactionId String
+  accountId         String // The allocation account (Expense/Revenue/etc)
+  description       String?
+  amount            Decimal @db.Decimal(15, 2) // Always positive, direction determined by Parent Type
+
+  transaction CashTransaction @relation(fields: [cashTransactionId], references: [id], onDelete: Cascade)
+  account     Account         @relation(fields: [accountId], references: [id])
+
+  @@index([cashTransactionId])
+}
+
+enum CashTransactionType {
+  SPEND
+  RECEIVE
+  TRANSFER
+}
+
+enum CashTransactionStatus {
+  DRAFT
+  POSTED
+  VOIDED
 }

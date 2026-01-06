@@ -22,6 +22,9 @@ export type {
   Account,
   SagaLog,
   AuditLog,
+  BankAccount,
+  CashTransaction,
+  CashTransactionItem,
 } from './generated/client/client.js';
 
 // Re-export enums as values (not just types)
@@ -55,8 +58,14 @@ export {
   PermissionModule,
   PermissionAction,
   PermissionScope,
+  // Feature 042: Cash and Bank
+  CashTransactionType,
+  CashTransactionStatus,
 } from './generated/client/client.js';
 
-export type { Fulfillment, FulfillmentItem } from './generated/client/client.js';
+export type {
+  Fulfillment,
+  FulfillmentItem,
+} from './generated/client/client.js';
 
 export { Prisma } from './generated/client/client.js';
