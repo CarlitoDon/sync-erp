@@ -1,4 +1,5 @@
 import { initTRPC, TRPCError } from '@trpc/server';
+import { middlewareMarker } from '@trpc/server/unstable-core-do-not-import';
 import { Context } from './context';
 import superjson from 'superjson';
 import { BusinessShape, IdempotencyScope } from '@sync-erp/database';
@@ -30,10 +31,12 @@ const idempotencyMiddleware = t.middleware(
 
         if (cachedResponse !== null) {
           // Return cached response (short-circuit)
+          // Use tRPC's middlewareMarker for proper typing
           return {
-            ok: true,
+            ok: true as const,
             data: cachedResponse,
-          } as any;
+            marker: middlewareMarker,
+          };
         }
       } catch (error) {
         if (error instanceof Error) {

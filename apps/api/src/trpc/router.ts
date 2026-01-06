@@ -17,6 +17,7 @@ import { inventoryRouter } from './routers/inventory.router';
 import { financeRouter } from './routers/finance.router';
 import { upfrontPaymentRouter } from './routers/upfrontPayment.router'; // Feature 036
 import { customerDepositRouter } from './routers/customerDeposit.router'; // Cash Upfront Sales
+import { cashBankRouter } from '../modules/cash-bank/cash-bank.router'; // Feature 042: Cash & Bank
 
 export const appRouter = router({
   // Public routes
@@ -42,6 +43,7 @@ export const appRouter = router({
   // Finance & Accounting
   finance: financeRouter,
   expense: expenseRouter,
+  cashBank: cashBankRouter,
 
   // System
   dashboard: dashboardRouter,
