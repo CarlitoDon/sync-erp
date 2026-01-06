@@ -5,7 +5,6 @@ import { CurrencyInput } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/utils/format';
 import {
   PaymentMethod,
-  paymentMethodOptions,
   defaultPaymentMethod,
 } from '@/features/accounting/utils/financeEnums';
 import { trpc } from '@/lib/trpc';
@@ -24,8 +23,6 @@ interface RecordPaymentModalProps {
   /** Callback after successful payment */
   onSuccess?: () => void;
 }
-/* eslint-enable @sync-erp/no-hardcoded-enum */
-
 export function RecordPaymentModal({
   isOpen,
   onClose,
@@ -37,9 +34,8 @@ export function RecordPaymentModal({
   onSuccess,
 }: RecordPaymentModalProps) {
   const [paymentAmount, setPaymentAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    defaultPaymentMethod
-  );
+  const [selectedAccountId, setSelectedAccountId] = useState('');
+
   // Stable correlationId per modal session to prevent accidental double-submit
   const correlationIdRef = useRef<string>('');
   const isSubmittingRef = useRef(false);
@@ -53,6 +49,17 @@ export function RecordPaymentModal({
   }, [isOpen]);
 
   const utils = trpc.useUtils();
+
+  // Fetch available bank/cash accounts
+  const { data: bankAccounts = [] } =
+    trpc.cashBank.listAccounts.useQuery(undefined, {
+      enabled: isOpen,
+    });
+
+  const accountOptions = bankAccounts.map((acc) => ({
+    value: acc.id,
+    label: `${acc.bankName} [${acc.account.code}]`,
+  }));
 
   const paymentMutation = trpc.payment.create.useMutation({
     onSuccess: async () => {
@@ -79,18 +86,32 @@ export function RecordPaymentModal({
     // Double-submit guard
     if (
       paymentAmount <= 0 ||
+      !selectedAccountId ||
       paymentMutation.isPending ||
       isSubmittingRef.current
     )
       return;
     isSubmittingRef.current = true;
 
+    // Derive Payment Method from Account
+    const selectedAccount = bankAccounts.find(
+      (a) => a.id === selectedAccountId
+    );
+    let method: PaymentMethod = defaultPaymentMethod;
+    if (selectedAccount) {
+      const code = selectedAccount.account.code;
+      if (code.startsWith('11')) method = 'CASH' as PaymentMethod;
+      else if (code.startsWith('12'))
+        method = 'BANK_TRANSFER' as PaymentMethod;
+    }
+
     await apiAction(
       () =>
         paymentMutation.mutateAsync({
           invoiceId,
           amount: paymentAmount,
-          method: paymentMethod,
+          method,
+          bankAccountId: selectedAccountId,
           businessDate: new Date(),
           correlationId: correlationIdRef.current,
         }),
@@ -101,7 +122,7 @@ export function RecordPaymentModal({
 
   const handleClose = () => {
     setPaymentAmount(0);
-    setPaymentMethod(defaultPaymentMethod);
+    setSelectedAccountId('');
     isSubmittingRef.current = false;
     onClose();
   };
@@ -157,15 +178,16 @@ export function RecordPaymentModal({
           </p>
         </div>
 
-        {/* Payment Method */}
+        {/* Payment Account Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Payment Method
+            {documentType === 'bill' ? 'Pay From' : 'Deposit To'} *
           </label>
           <Select
-            value={paymentMethod}
-            onChange={(val) => setPaymentMethod(val as PaymentMethod)}
-            options={paymentMethodOptions}
+            value={selectedAccountId}
+            onChange={(val) => setSelectedAccountId(val)}
+            options={accountOptions}
+            placeholder="Select Account"
           />
         </div>
 
@@ -184,6 +206,7 @@ export function RecordPaymentModal({
             disabled={
               paymentAmount <= 0 ||
               paymentAmount > maxPayment ||
+              !selectedAccountId ||
               paymentMutation.isPending
             }
             className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
