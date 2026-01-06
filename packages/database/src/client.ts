@@ -8,18 +8,34 @@ import pg from 'pg';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Try loading from package root (packages/database/.env)
-const pkgEnvPath = resolve(__dirname, '../.env');
+// Determine environment and load appropriate .env file
+// Priority: test > development > production
+function getEnvFile(): string {
+  const isTest =
+    process.env.NODE_ENV === 'test' || process.env.VITEST;
+  const isProd = process.env.NODE_ENV === 'production';
+
+  if (isTest) return '.env.test';
+  if (isProd) return '.env.production';
+  return '.env.development';
+}
+
+const envFile = getEnvFile();
+const pkgEnvPath = resolve(__dirname, `../${envFile}`);
+
+// eslint-disable-next-line no-console
+console.log(`[Database] Loading ${envFile} from ${pkgEnvPath}`);
+
 let result = dotenv.config({ path: pkgEnvPath });
 
 if (result.error) {
-  // Fallback to project root (.env)
-  const rootEnvPath = resolve(__dirname, '../../../.env');
-  result = dotenv.config({ path: rootEnvPath });
+  // Fallback to generic .env if specific file not found
+  const fallbackPath = resolve(__dirname, '../.env');
+  // eslint-disable-next-line no-console
+  console.log(`[Database] Fallback to ${fallbackPath}`);
+  result = dotenv.config({ path: fallbackPath });
   if (result.error) {
-    console.error(
-      `Failed to load .env from ${pkgEnvPath} and ${rootEnvPath}`
-    );
+    console.error(`Failed to load environment from ${pkgEnvPath}`);
   }
 }
 
