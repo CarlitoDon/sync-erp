@@ -1,27 +1,26 @@
 <!--
 SYNC IMPACT REPORT
-Version: 3.2.0 -> 3.3.0 (MINOR - Added Golden Flow & DB Encapsulation)
+Version: 3.3.0 -> 3.4.0 (MINOR - Added BusinessShape-Aware Feature Development)
 Modified Principles:
-- XXI. Anti-Method Bloat Rule (Renamed to Context-First & Anti-Method Bloat)
+- None
 Added Sections:
-- III-B. Database Error Encapsulation
-- XXII. The Golden Flow Standard
+- XXIII. BusinessShape-Aware Feature Development
 Removed Sections:
 - None
 Templates requiring updates:
-- plan-template.md ⚠
-- spec-template.md ⚠
-- tasks-template.md ⚠
+- spec-template.md ⚠ (add BusinessShape Integration section requirement)
+- plan-template.md ✓ (no changes needed)
+- tasks-template.md ✓ (no changes needed)
 Follow-up TODOs:
-- Update templates to reflect new Golden Flow terminology.
-Last Updated: 2025-12-19
+- Update spec-template.md to include BusinessShape Integration as standard section
+Last Updated: 2026-01-08
 -->
 
 # Sync ERP Constitution
 
 > "Simplicity is the ultimate sophistication."
 
-**Version**: 3.3.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2025-12-19
+**Version**: 3.4.0 | **Ratified**: 2025-12-08 | **Last Amended**: 2026-01-08
 
 ---
 
@@ -167,7 +166,7 @@ packages/shared ←── packages/shared ←── (Prisma types)
 ### III-B. Database Error Encapsulation
 
 1. Repository **HARUS** menangkap semua error database (Prisma Client errors).
-2. Repository **HARUS** melempar *application-specific error* (e.g., `RecordNotFound`, `ConstraintViolation`).
+2. Repository **HARUS** melempar _application-specific error_ (e.g., `RecordNotFound`, `ConstraintViolation`).
 3. Service **DILARANG** menangkap atau mengimport Prisma types/errors secara langsung.
 4. Raw database errors **DILARANG** bocor ke layer Service atau Controller.
 
@@ -472,6 +471,36 @@ Semua Business Flow (transaksi) **HARUS** mengikuti struktur 4-Tahap standar ini
    - Return clean DTO output.
 
 **Rule**: Service method yang menangani transaksi **HARUS** terlihat jelas memisahkan 4 tahap ini.
+
+### XXIII. BusinessShape-Aware Feature Development
+
+Features **HARUS** dirancang dengan kesadaran penuh terhadap Business Shape:
+
+1. **Universal Features**: Features yang logis untuk semua shapes (TRADING, SERVICE, HYBRID) **TIDAK BOLEH** di-gate.
+   - Contoh: Rental (bisa rental barang fisik atau tools untuk service)
+   - Contoh: Cash & Bank Management (semua bisnis butuh cash flow tracking)
+   - Contoh: Partner Management (supplier/customer universal)
+
+2. **Shape-Specific Features**: Features yang hanya masuk akal untuk shape tertentu **HARUS** di-gate dengan Policy check.
+   - Contoh: Inventory Management (requires TRADING or HYBRID, not SERVICE)
+   - Contoh: Service Ticketing (requires SERVICE or HYBRID, not pure TRADING)
+   - Policy **HARUS** throw error yang jelas jika shape tidak kompatibel
+
+3. **Adaptive UI**: Sidebar menu **HARUS** menyesuaikan berdasarkan businessShape dan data existence.
+   - Menu item muncul **hanya jika**: (a) shape kompatibel DAN (b) ada data (atau toggle aktif)
+   - Contoh: "Rental" menu muncul saat pertama kali rental item dibuat
+   - Contoh: "Inventory" menu tidak muncul untuk SERVICE shape
+
+4. **Shape-Aware Logic**: Service/Policy **HARUS** menggunakan businessShape untuk branching logic.
+   - ✅ BENAR: `if (shape === BusinessShape.TRADING) { validatePhysicalInventory() }`
+   - ❌ SALAH: Hardcode asumsi bahwa semua company punya inventory
+
+5. **Spec Documentation**: Feature specs **HARUS** mendokumentasikan:
+   - Bagaimana feature berinteraksi dengan setiap businessShape
+   - Apakah feature di-gate atau universal
+   - Sidebar placement dan visibility rules
+
+**Rationale**: Mencegah feature bloat dan kebingungan user dengan menampilkan hanya menu/fitur yang relevan untuk business model mereka. Memastikan ERP tetap fleksibel tanpa memaksa semua company menggunakan semua fitur.
 
 ---
 

@@ -7,6 +7,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-10
 - TypeScript 5.x, React 18.x + React, React Router, tRPC React Query, Tailwind CSS 4, Vite (040-frontend-improvements-p2)
 - N/A (frontend-only) (040-frontend-improvements-p2)
 - TypeScript / Node.js 18+ + Express, Prisma, Decimal.js, Zod (042-cash-and-bank)
+- TypeScript / Node.js 18+ (Backend), TypeScript / React 18 (Frontend) (043-rental-business)
+- PostgreSQL (via Prisma ORM) (043-rental-business)
 
 - TypeScript 5.x (Node 20+) + Vitest, Prisma Clien (030-test-floor-phase1)
 - PostgreSQL (Test DB) with Seeded Scenarios (030-test-floor-phase1)
@@ -60,9 +62,9 @@ npm test; npm run lint
 TypeScript 5.3+: Follow standard conventions
 
 ## Recent Changes
+- 043-rental-business: Added TypeScript / Node.js 18+ (Backend), TypeScript / React 18 (Frontend)
 - 042-cash-and-bank: Added TypeScript / Node.js 18+ + Express, Prisma, Decimal.js, Zod
 - 042-cash-and-bank: Added TypeScript / Node.js 18+ + Express, Prisma, Decimal.js, Zod
-- 040-frontend-improvements-p2: Added TypeScript 5.x, React 18.x + React, React Router, tRPC React Query, Tailwind CSS 4, Vite
 
 
 
