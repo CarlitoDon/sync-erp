@@ -4,19 +4,22 @@ trigger: model_decision
 
 <!--
 MEMORY SYNC REPORT
-Version: 1.5.1 -> 1.5.2 (Patch - Compression)
-Added Sections: None
+Version: 2.0.0 (MAJOR - Full Rewrite)
+Added Sections:
+- Reorganized Key Decisions with clearer categories
+- Updated Patterns with current tRPC usage
+- Added DI Container pattern
+- Added tRPC invalidation pattern
 Modified Sections:
-- Architecture: Merged tRPC and Layer Responsibility decisions
-- Issues: Removed resolved items
+- All sections rewritten for clarity
 Removed Sections:
-- Redundant table rows
-Last Updated: 2025-12-23
+- Obsolete useCompanyData pattern (replaced by tRPC hooks)
+Last Updated: 2026-01-08
 -->
 
 # Project Memory
 
-**Version**: 1.5.2 | **Last Updated**: 2025-12-23
+**Version**: 2.0.0 | **Last Updated**: 2026-01-08
 
 ## Overview
 
@@ -29,86 +32,193 @@ Last Updated: 2025-12-23
 
 ---
 
+## Key Decisions Log
+
+### [2026-01-08] DI Container for Service Resolution
+
+**Decision**: All services MUST be resolved via DI container in routers.
+**Pattern**:
+
+```typescript
+import { container, ServiceKeys } from '../../modules/common/di';
+const service = container.resolve<MyService>(ServiceKeys.MY_SERVICE);
+```
+
+**Rationale**: Enables testability and decouples router from service instantiation.
+**Reference**: Constitution III (Layered Architecture)
+
 ### [2025-12-23] No Hardcoded Enums
 
 **Decision**: Do NOT hardcode enum schemas in `validators/`. **Use generated schemas** from `packages/shared/src/generated/zod/index.ts`.
 **Examples**: ❌ `z.enum(['SALES'])` → ✅ `import { OrderTypeSchema } ...`
-**Rationale**: Single source of truth from Prisma schema (Principle IX).
+**Rationale**: Single source of truth from Prisma schema.
+**Reference**: Constitution II (Type System & Contracts)
 
-### [2025-12-23] Architecture: tRPC & Layer Boundaries
+### [2025-12-23] Architecture: 4-Layer Backend
 
-**Decision**: Replaced Express Controllers with tRPC Routers. Established strict 4-Layer Architecture:
+**Decision**: Strict 4-Layer Architecture with tRPC Routers replacing Express Controllers:
 
-| Layer       | Responsibility                    | Must NOT do                   |
-| ----------- | --------------------------------- | ----------------------------- |
-| **Router**  | tRPC procedures, Zod validation   | Business logic                |
-| **Service** | Use cases, state rules, policies  | SQL, direct DB access         |
-| **Policy**  | Pure business constraints         | DB access, transactions       |
-| **Repo**    | Usage of Prisma/SQL, optimization | State logic, intent branching |
+| Layer          | File              | Responsibility                  | MUST NOT Do                   |
+| -------------- | ----------------- | ------------------------------- | ----------------------------- |
+| **Router**     | `*.router.ts`     | tRPC procedures, Zod validation | Business logic, DB access     |
+| **Service**    | `*.service.ts`    | Orchestration, Policy checks    | Import `prisma`               |
+| **Policy**     | `*.policy.ts`     | Pure business constraints       | DB access, transactions       |
+| **Repository** | `*.repository.ts` | Prisma queries, locks           | State logic, intent branching |
 
-**Key Rules**:
-
-1. **Frontend**: Use tRPC hooks (`trpc.invoice.list.useQuery`) instead of custom fetchers.
-2. **Repo**: Knows _how_ to persist (SQL), not _why_ (Policy).
-3. **Service**: Purity is mandatory (no `prisma` imports).
+**Reference**: Constitution III-A (Dumb Controller / Dumb Repository)
 
 ### [2025-12-18] Business Flow Standards
 
-1. **Integration Priority**: MANDATORY for all business flows (Constitution XVII).
-2. **API Seeding**: Use `./scripts/seed-via-api.sh` for reliable side-effect testing.
-3. **Preconditions**: Documents must validate precursors (Bill needs GRN).
-4. **Data Integrity**: Validate reference data (e.g. Accounts) before writing.
+**Decision**: All business flows require:
+
+1. **Integration Tests**: MANDATORY, in single `it()` block (Constitution XVII)
+2. **API Seeding**: Use `./scripts/seed-via-api.sh` for side-effect testing
+3. **Preconditions**: Documents must validate precursors (Bill needs GRN)
+4. **Data Integrity**: Validate reference data (e.g., Accounts) before writing
+
+**Reference**: Constitution XVII (Integration Test as Tracked Tasks)
 
 ### [2025-12-16] Quality & Testing Safeguards
 
-1. **Saga Testing**: Mock the orchestrator in integration tests, not the repos.
-2. **Vitest**: Use `function() { return mockInstance }` for hoisting.
-3. **Imports**: Verify no "orphan" files after creation (Case A1 prevention).
+**Decision**:
+
+1. **Integration Testing**: Mock the orchestrator (Service), not repositories
+2. **Vitest Mocking**: Use `function() { return mockInstance }` for hoisting
+3. **Orphan Prevention**: Always grep for imports after creating new files
+
+**Reference**: Constitution XV (Test Contract Compliance)
 
 ---
 
 ## Known Issues & Workarounds
 
-| Issue                                       | Status | Workaround                             |
-| :------------------------------------------ | :----- | :------------------------------------- |
-| Old orders have subtotal-only `totalAmount` | KNOWN  | Only new orders include tax            |
-| IDE lint may be stale                       | KNOWN  | Trust `npx tsc --noEmit`               |
-| **Dev server always running**               | NOTE   | Do NOT start manually.                 |
-| **Orphan files (Case A1)**                  | KNOWN  | Grep imports after creating new files. |
+| Issue                                       | Status | Workaround                            |
+| :------------------------------------------ | :----- | :------------------------------------ |
+| Old orders have subtotal-only `totalAmount` | KNOWN  | Only new orders include tax           |
+| IDE lint may be stale                       | KNOWN  | Trust `npx tsc --noEmit`              |
+| Dev server always running                   | NOTE   | Do NOT start manually                 |
+| Orphan files (Case A1)                      | KNOWN  | Grep imports after creating new files |
 
 ---
 
 ## Frequently Used Patterns
 
-````carousel
+### apiAction (Frontend Mutations)
+
+Use for all API mutations with automatic toast feedback:
+
 ```typescript
-// Pattern: apiAction
-const ok = await apiAction(() => svc.create(data), 'Created!');
-if (ok) refresh();
+import { apiAction } from '@/hooks/useApiAction';
+
+const handleSubmit = async () => {
+  const result = await apiAction(
+    () => createMutation.mutateAsync(data),
+    'Created successfully!'
+  );
+  if (result) {
+    utils.myRouter.list.invalidate(); // Invalidate cache
+  }
+};
 ```
-<!-- slide -->
+
+### useConfirm (Confirmation Dialogs)
+
+**NEVER use `window.confirm()`**:
+
 ```typescript
-// Pattern: useCompanyData
-const { data, loading, refresh } = useCompanyData(() => svc.list(), []);
+import { useConfirm } from '@/components/ui/ConfirmModal';
+
+const confirm = useConfirm();
+
+const handleDelete = async () => {
+  const proceed = await confirm({
+    title: 'Delete Item',
+    message: 'This action cannot be undone.',
+    variant: 'danger',
+  });
+  if (proceed) {
+    await deleteMutation.mutateAsync(id);
+  }
+};
 ```
-<!-- slide -->
+
+### tRPC Query with Company Context
+
+Always check company context before enabling queries:
+
 ```typescript
-// Pattern: Vitest 4.x Mock
-vi.mock('../svc', () => ({ Svc: () => mockInstance }));
+const { data, isLoading } = trpc.partner.list.useQuery(
+  { type: 'SUPPLIER' },
+  { enabled: !!currentCompany?.id } // Disable when no company
+);
 ```
-<!-- slide -->
+
+### tRPC Mutation with Cache Invalidation
+
+Always invalidate related queries after mutations:
+
 ```typescript
-// Pattern: Policy Check in Service
-async createFromPO(id, data) {
-  const order = await this.repo.find(id);
-  BillPolicy.ensureOrderReady(order); // Logic here
-  return this.repo.create(data);
+const utils = trpc.useUtils();
+
+const createMutation = trpc.partner.create.useMutation({
+  onSuccess: () => {
+    utils.partner.list.invalidate(); // Invalidate list
+    utils.partner.get.invalidate(); // Invalidate detail
+  },
+});
+```
+
+### DI Container Resolution (Backend Router)
+
+Resolve services from container, never instantiate directly:
+
+```typescript
+import { container, ServiceKeys } from '../../modules/common/di';
+
+const partnerService = container.resolve<PartnerService>(
+  ServiceKeys.PARTNER_SERVICE
+);
+
+export const partnerRouter = router({
+  list: protectedProcedure
+    .input(
+      z.object({ type: PartnerTypeSchema.optional() }).optional()
+    )
+    .query(({ ctx, input }) =>
+      partnerService.list(ctx.companyId, input?.type)
+    ),
+});
+```
+
+### Policy Check in Service
+
+Services MUST check policies before repository operations:
+
+```typescript
+async createBill(ctx: Context, data: CreateBillInput) {
+  const order = await this.orderRepo.findById(data.orderId);
+  BillPolicy.ensureOrderConfirmed(order);   // 🔒 Policy
+  BillPolicy.ensureNotOverBilled(order);    // 🔒 Policy
+  return this.billRepo.create(data);         // 💾 Repository
 }
 ```
-````
+
+### Vitest Mock with Function Factory
+
+Use function factory for proper hoisting:
+
+```typescript
+vi.mock('../services/partner.service', () => ({
+  PartnerService: function () {
+    return mockPartnerService;
+  },
+}));
+```
+
+---
 
 ## Update Guidelines
 
-1. **Version Bump**: MAJOR.MINOR.PATCH
-2. **Add Decisions**: At TOP with date.
-3. **Sync**: Copy to `.agent/rules/memory.md` after edit.
+1. **Version Bump**: MAJOR (breaking), MINOR (new sections), PATCH (entries)
+2. **Add Decisions**: At TOP of Key Decisions Log with date `[YYYY-MM-DD]`
+3. **Sync Command**: `cp .github/memory.md .agent/rules/memory.md`
