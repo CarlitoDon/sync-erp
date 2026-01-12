@@ -281,6 +281,32 @@ export class InventoryRepository {
     });
   }
 
+  /**
+   * Feature 041: Find all POSTED receipts for an order that don't have active bills
+   * Used for auto-linking logic when creating a Bill
+   */
+  async findUnbilledFulfillmentsByOrderId(
+    companyId: string,
+    orderId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const db = tx || prisma;
+    return db.fulfillment.findMany({
+      where: {
+        companyId,
+        orderId,
+        type: FulfillmentType.RECEIPT,
+        status: DocumentStatus.POSTED,
+        invoices: {
+          none: {
+            status: { not: InvoiceStatus.VOID }, // Exclude if any active invoice exists
+          },
+        },
+      },
+      select: { id: true, number: true },
+    });
+  }
+
   async listFulfillments(
     companyId: string,
     type?: FulfillmentType,

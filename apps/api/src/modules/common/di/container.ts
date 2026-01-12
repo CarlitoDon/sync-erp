@@ -86,6 +86,7 @@ export const ServiceKeys = {
   PARTNER_REPOSITORY: 'partnerRepository',
   ACCOUNT_REPOSITORY: 'accountRepository',
   CASH_BANK_REPOSITORY: 'cashBankRepository',
+  RENTAL_REPOSITORY: 'rentalRepository',
 
   // Services
   INVENTORY_SERVICE: 'inventoryService',
@@ -119,6 +120,7 @@ export const ServiceKeys = {
   REPORT_SERVICE: 'reportService',
   EXPENSE_SERVICE: 'expenseService',
   ADMIN_REPOSITORY: 'adminRepository',
+  RENTAL_SERVICE: 'rentalService',
 } as const;
 
 export type ServiceKey =

@@ -2,6 +2,7 @@ import {
   InvoiceStatusSchema,
   OrderStatusSchema,
   DocumentStatusSchema,
+  RentalOrderStatus,
 } from '@sync-erp/shared';
 import type { z } from 'zod';
 
@@ -11,7 +12,9 @@ type OrderStatus = z.infer<typeof OrderStatusSchema>;
 type DocumentStatus = z.infer<typeof DocumentStatusSchema>;
 
 /* eslint-disable @sync-erp/no-hardcoded-enum */
-type StatusDomain = 'invoice' | 'order' | 'document';
+/* eslint-disable @sync-erp/no-hardcoded-enum */
+type StatusDomain = 'invoice' | 'order' | 'document' | 'rental';
+/* eslint-enable @sync-erp/no-hardcoded-enum */
 /* eslint-enable @sync-erp/no-hardcoded-enum */
 
 // Color mapping for invoice/bill statuses (exhaustive)
@@ -42,6 +45,15 @@ const documentStatusColors: Record<DocumentStatus, string> = {
   VOIDED: 'bg-red-100 text-red-800',
 };
 
+// Color mapping for rental statuses
+const rentalStatusColors: Record<RentalOrderStatus, string> = {
+  DRAFT: 'bg-gray-100 text-gray-800',
+  CONFIRMED: 'bg-blue-100 text-blue-800',
+  ACTIVE: 'bg-purple-100 text-purple-800',
+  COMPLETED: 'bg-green-100 text-green-800',
+  CANCELLED: 'bg-red-100 text-red-800',
+};
+
 export interface StatusBadgeProps {
   status: string;
   domain?: StatusDomain;
@@ -70,6 +82,12 @@ export function StatusBadge({
     if (domain === 'document') {
       return (
         documentStatusColors[status as DocumentStatus] ||
+        'bg-gray-100 text-gray-800'
+      );
+    }
+    if (domain === 'rental') {
+      return (
+        rentalStatusColors[status as RentalOrderStatus] ||
         'bg-gray-100 text-gray-800'
       );
     }
@@ -104,6 +122,12 @@ export function getStatusColorClass(
   if (domain === 'document') {
     return (
       documentStatusColors[status as DocumentStatus] ||
+      'bg-gray-100 text-gray-800'
+    );
+  }
+  if (domain === 'rental') {
+    return (
+      rentalStatusColors[status as RentalOrderStatus] ||
       'bg-gray-100 text-gray-800'
     );
   }

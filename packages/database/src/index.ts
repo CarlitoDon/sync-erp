@@ -25,6 +25,19 @@ export type {
   BankAccount,
   CashTransaction,
   CashTransactionItem,
+  // Feature 043: Rental Business
+  RentalItem,
+  RentalItemUnit,
+  RentalOrder,
+  RentalOrderItem,
+  RentalOrderUnitAssignment,
+  RentalDeposit,
+  RentalDepositAllocation,
+  RentalReturn,
+  ItemConditionLog,
+  CleaningLog,
+  CustomerRentalRisk,
+  RentalPolicy,
 } from './generated/client/client.js';
 
 // Re-export enums as values (not just types)
@@ -61,6 +74,17 @@ export {
   // Feature 042: Cash and Bank
   CashTransactionType,
   CashTransactionStatus,
+  // Feature 043: Rental Business
+  DepositPolicyType,
+  UnitCondition,
+  UnitStatus,
+  RentalOrderStatus,
+  DepositStatus,
+  ReturnStatus,
+  ConditionType,
+  DamageSeverity,
+  CleaningType,
+  RiskLevel,
 } from './generated/client/client.js';
 
 export type {

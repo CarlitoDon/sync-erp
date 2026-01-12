@@ -19,6 +19,7 @@ import {
   Cog6ToothIcon,
   ClipboardDocumentListIcon,
   WalletIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 
 export default function SidebarNav() {
@@ -130,6 +131,39 @@ export default function SidebarNav() {
           icon={<BuildingOfficeIcon />}
         />
         <SidebarItem path="/team" label="Team" icon={<UsersIcon />} />
+      </SidebarGroup>
+      {/* Rental feature */}
+      <SidebarGroup label="Rental" icon={<ArchiveBoxIcon />}>
+        <SidebarItem
+          path="/rental/items"
+          label="Items"
+          icon={<ArchiveBoxIcon />}
+        />
+        <SidebarItem
+          path="/rental/orders"
+          label="Orders"
+          icon={<ShoppingCartIcon />}
+        />
+        <SidebarItem
+          path="/rental/returns"
+          label="Returns"
+          icon={<DocumentTextIcon />}
+        />
+        <SidebarItem
+          path="/rental/overdue"
+          label="Overdue"
+          icon={<DocumentCheckIcon />}
+        />
+        <SidebarItem
+          path="/rental/scheduler"
+          label="Scheduler"
+          icon={<CalendarDaysIcon />}
+        />
+        <SidebarItem
+          path="/rental/settings"
+          label="Settings"
+          icon={<Cog6ToothIcon />}
+        />
       </SidebarGroup>
     </nav>
   );

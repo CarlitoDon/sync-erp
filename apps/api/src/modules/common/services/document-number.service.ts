@@ -97,6 +97,13 @@ const DEFAULT_CONFIGS: Record<DocumentType, DocumentNumberConfig> = {
     yearFormat: '4',
     sequenceLength: 5,
   },
+  [SequenceType.RNT]: {
+    prefix: SequenceType.RNT,
+    separator: '-',
+    includeYear: true,
+    yearFormat: '4',
+    sequenceLength: 5,
+  },
 };
 
 export class DocumentNumberService {

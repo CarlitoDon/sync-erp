@@ -9,9 +9,9 @@ const envFile =
       ? '.env.test'
       : '.env.development';
 
-// Use process.cwd() to resolve .env file relative to the package root (where package.json and .env files are)
+// Use process.cwd() to resolve .env file relative to the package root
 const envPath = path.join(process.cwd(), envFile);
-// console.log('[Seeding] Loading env from:', envPath); // Keep commented for clean output
+// console.log('[Seeding] Loading env from:', envPath);
 
 const result = dotenv.config({ path: envPath });
 
@@ -27,6 +27,7 @@ import {
   PermissionModule,
   PermissionAction,
   PermissionScope,
+  BusinessShape,
 } from '../src/generated/client/client.js';
 
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -43,7 +44,7 @@ const adapter = new PrismaPg(pool);
 
 const prisma = new PrismaClient({ adapter });
 
-// Default RBAC Permissions (using Prisma enums for type safety)
+// Default RBAC Permissions
 const DEFAULT_PERMISSIONS: {
   module: PermissionModule;
   action: PermissionAction;
@@ -235,11 +236,10 @@ async function main() {
     `✅ Created ${DEFAULT_PERMISSIONS.length} permissions`
   );
 
-  // Create demo company and admin user (for development)
+  // 1. Create Demo User
   if (process.env.NODE_ENV !== 'production') {
-    console.warn('👤 Creating demo data...');
+    console.warn('👤 Creating demo user...');
 
-    // Create demo user
     const demoUser = await prisma.user.upsert({
       where: { email: 'admin@sync-erp.local' },
       update: {},
@@ -251,80 +251,21 @@ async function main() {
       },
     });
 
-    // Create demo company
-    const demoCompany = await prisma.company.upsert({
-      where: { id: 'demo-company-001' },
-      update: {},
-      create: {
-        id: 'demo-company-001',
-        name: 'Demo Company',
+    // 2. Define Companies to seed
+    const COMPANIES = [
+      {
+        id: 'demo-company-rental',
+        name: 'Demo Rental',
+        businessShape: 'RENTAL',
+      },
+      {
+        id: 'demo-company-retail',
+        name: 'Demo Retail',
         businessShape: 'RETAIL',
       },
-    });
+    ];
 
-    // ... (rest of permission/role logic unchanged) ...
-
-    // Get all permissions for admin role
-    const allPermissions = await prisma.permission.findMany();
-
-    // Create admin role
-    const adminRole = await prisma.role.upsert({
-      where: {
-        companyId_name: {
-          companyId: demoCompany.id,
-          name: 'Administrator',
-        },
-      },
-      update: {},
-      create: {
-        name: 'Administrator',
-        companyId: demoCompany.id,
-      },
-    });
-
-    // Assign all permissions to admin role
-    for (const perm of allPermissions) {
-      await prisma.rolePermission.upsert({
-        where: {
-          roleId_permissionId: {
-            roleId: adminRole.id,
-            permissionId: perm.id,
-          },
-        },
-        update: {},
-        create: {
-          roleId: adminRole.id,
-          permissionId: perm.id,
-        },
-      });
-    }
-
-    // Assign user to company with admin role
-    await prisma.companyMember.upsert({
-      where: {
-        userId_companyId: {
-          userId: demoUser.id,
-          companyId: demoCompany.id,
-        },
-      },
-      update: { roleId: adminRole.id },
-      create: {
-        userId: demoUser.id,
-        companyId: demoCompany.id,
-        roleId: adminRole.id,
-      },
-    });
-
-    console.warn('✅ Demo data created');
-    console.warn(`   - User: ${demoUser.email}`);
-    console.warn(`   - Company: ${demoCompany.name}`);
-    console.warn(`   - Role: ${adminRole.name}`);
-    console.warn(`   - Shape: RETAIL`);
-
-    // ==========================================
-    // 1a. Seed System Config
-    // ==========================================
-    console.warn('⚙️ Seeding System Config...');
+    // Data Definitions
     const CONFIGS = [
       { key: 'inventory.enabled', value: true },
       { key: 'inventory.costing_method', value: 'AVG' },
@@ -332,39 +273,6 @@ async function main() {
       { key: 'inventory.wip_enabled', value: false },
     ];
 
-    for (const config of CONFIGS) {
-      const existing = await prisma.systemConfig.findFirst({
-        where: {
-          companyId: demoCompany.id,
-          key: config.key,
-        },
-      });
-
-      if (existing) {
-        await prisma.systemConfig.update({
-          where: { id: existing.id },
-          data: { value: config.value },
-        });
-      } else {
-        await prisma.systemConfig.create({
-          data: {
-            companyId: demoCompany.id,
-            key: config.key,
-            value: config.value,
-          },
-        });
-      }
-    }
-
-    // ==========================================
-    // 1. Seed Chart of Accounts
-    // JournalService expects these specific codes:
-    // Assets: 1100 Cash, 1200 Bank, 1300 AR, 1400 Inventory, 1500 VAT Receivable
-    // Liabilities: 2100 AP, 2105 GRNI Accrual, 2300 VAT Payable
-    // Revenue: 4100 Sales Revenue
-    // Expenses: 5000 COGS, 5200 Inventory Adjustment
-    // ==========================================
-    console.warn('📊 Seeding Chart of Accounts...');
     const ACCOUNTS = [
       // Assets (1xxx)
       {
@@ -416,10 +324,10 @@ async function main() {
         code: '1500',
         name: 'VAT Receivable (Input)',
         type: 'ASSET' as const,
-      }, // JournalService expects this
+      },
       {
         code: '1600',
-        name: 'Advances to Supplier', // Feature 036: Cash Upfront Payment
+        name: 'Advances to Supplier',
         type: 'ASSET' as const,
       },
       {
@@ -441,14 +349,19 @@ async function main() {
       },
       {
         code: '2200',
-        name: 'Customer Deposits', // Cash Upfront Sales: Liability for customer prepayments
+        name: 'Customer Deposits',
         type: 'LIABILITY' as const,
       },
       {
         code: '2300',
         name: 'VAT Payable (Output)',
         type: 'LIABILITY' as const,
-      }, // JournalService expects this
+      },
+      {
+        code: '2400',
+        name: 'Rental Deposits',
+        type: 'LIABILITY' as const,
+      }, // Fix: Added
 
       // Equity (3xxx)
       {
@@ -467,10 +380,10 @@ async function main() {
         code: '4100',
         name: 'Sales Revenue',
         type: 'REVENUE' as const,
-      }, // JournalService expects this
+      },
       {
         code: '4200',
-        name: 'Service Income',
+        name: 'Service & Rental Income',
         type: 'REVENUE' as const,
       },
 
@@ -479,7 +392,7 @@ async function main() {
         code: '5000',
         name: 'Cost of Goods Sold',
         type: 'EXPENSE' as const,
-      }, // JournalService expects this
+      },
       {
         code: '5200',
         name: 'Inventory Adjustment',
@@ -502,53 +415,7 @@ async function main() {
       },
     ];
 
-    for (const acc of ACCOUNTS) {
-      let parentId: string | undefined;
-
-      // Resolve Parent ID if parentCode is present
-      if ('parentCode' in acc && acc.parentCode) {
-        const parent = await prisma.account.findUnique({
-          where: {
-            companyId_code: {
-              companyId: demoCompany.id,
-              code: acc.parentCode,
-            },
-          },
-        });
-        if (parent) parentId = parent.id;
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { parentCode, ...accData } =
-        acc as (typeof ACCOUNTS)[number] & {
-          parentCode?: string;
-        };
-
-      await prisma.account.upsert({
-        where: {
-          companyId_code: {
-            companyId: demoCompany.id,
-            code: acc.code,
-          },
-        },
-        update: {
-          ...accData,
-          parentId, // Update relation
-        },
-        create: {
-          companyId: demoCompany.id,
-          ...accData,
-          parentId,
-        },
-      });
-    }
-
-    // ==========================================
-    // 2. Seed Partners
-    // ==========================================
-    console.warn('🤝 Seeding Partners...');
     const PARTNERS = [
-      // Customers
       {
         type: 'CUSTOMER' as const,
         name: 'Adi Santoso',
@@ -562,26 +429,6 @@ async function main() {
         address: 'Jl. Sudirman No. 45',
       },
       {
-        type: 'CUSTOMER' as const,
-        name: 'PT. Maju Jaya',
-        email: 'procurement@majujaya.com',
-        address: 'Kawasan Industri Pulogadung',
-      },
-      {
-        type: 'CUSTOMER' as const,
-        name: 'CV. Sejahtera',
-        email: 'admin@sejahtera.id',
-        address: 'Cikarang Barat',
-      },
-      {
-        type: 'CUSTOMER' as const,
-        name: 'Toko Elektronik Makmur',
-        email: 'tem@example.com',
-        address: 'Glodok Plaza',
-      },
-
-      // Suppliers
-      {
         type: 'SUPPLIER' as const,
         name: 'PT. Component Ind',
         email: 'sales@comp-ind.com',
@@ -593,136 +440,29 @@ async function main() {
         email: 'sales@globaltech.com',
         address: 'Jakarta Pusat',
       },
-      {
-        type: 'SUPPLIER' as const,
-        name: 'CV. Packaging Solusi',
-        email: 'order@packaging.com',
-        address: 'Tangerang',
-      },
-      {
-        type: 'SUPPLIER' as const,
-        name: 'Distributor A1',
-        email: 'sales@dist-a1.com',
-        address: 'Mangga Dua',
-      },
-      {
-        type: 'SUPPLIER' as const,
-        name: 'Logistics Partner',
-        email: 'ops@logistics.com',
-        address: 'Bandara Soetta',
-      },
     ];
 
-    for (const p of PARTNERS) {
-      await prisma.partner.create({
-        data: {
-          companyId: demoCompany.id,
-          ...p,
-        },
-      });
-    }
-
-    // ==========================================
-    // 3. Seed Products & Inventory
-    // ==========================================
-    console.warn('📦 Seeding Products...');
     const PRODUCTS = [
       {
         sku: 'LAP-001',
         name: 'Laptop Pro X1',
         price: 15000000,
         cost: 12000000,
-        stock: 10,
-      },
-      {
-        sku: 'MON-001',
-        name: 'Monitor 24 Inch',
-        price: 2500000,
-        cost: 1800000,
-        stock: 25,
-      },
-      {
-        sku: 'KEY-001',
-        name: 'Mechanical Keyboard',
-        price: 850000,
-        cost: 500000,
-        stock: 50,
-      },
-      {
-        sku: 'MOU-001',
-        name: 'Wireless Mouse',
-        price: 350000,
-        cost: 150000,
-        stock: 100,
-      },
-      {
-        sku: 'DSK-001',
-        name: 'Standing Desk',
-        price: 4500000,
-        cost: 2500000,
-        stock: 5,
       },
       {
         sku: 'CHA-001',
         name: 'Ergo Chair',
         price: 3200000,
         cost: 1800000,
-        stock: 8,
       },
       {
         sku: 'HDP-001',
         name: 'Noise Cancel Headphone',
         price: 1200000,
         cost: 750000,
-        stock: 30,
-      },
-      {
-        sku: 'CAB-001',
-        name: 'USB-C Cable 2m',
-        price: 150000,
-        cost: 50000,
-        stock: 200,
-      },
-      {
-        sku: 'HUB-001',
-        name: 'USB-C Hub Multi',
-        price: 750000,
-        cost: 400000,
-        stock: 40,
-      },
-      {
-        sku: 'CAM-001',
-        name: 'Webcam 1080p',
-        price: 950000,
-        cost: 600000,
-        stock: 15,
       },
     ];
 
-    for (const prod of PRODUCTS) {
-      // Create Product (no initial stock - will be added via GRN through API)
-      await prisma.product.upsert({
-        where: {
-          companyId_sku: { companyId: demoCompany.id, sku: prod.sku },
-        },
-        update: {},
-        create: {
-          companyId: demoCompany.id,
-          sku: prod.sku,
-          name: prod.name,
-          price: prod.price,
-          averageCost: prod.cost,
-          stockQty: 0, // No initial stock - will come from GRN via API
-        },
-      });
-    }
-
-    // ==========================================
-    // 4. Seed Bank Accounts (Cash & Bank Feature)
-    // ==========================================
-    console.warn('🏦 Seeding Bank Accounts...');
-
-    // Map of GL codes to BankAccount Data
     const BANK_ACCOUNTS = [
       {
         code: '1101',
@@ -737,47 +477,181 @@ async function main() {
       },
     ];
 
-    for (const ba of BANK_ACCOUNTS) {
-      // Find the GL account first
-      const account = await prisma.account.findUnique({
-        where: {
-          companyId_code: {
-            companyId: demoCompany.id,
-            code: ba.code,
-          },
+    // Loop through companies
+    for (const companyDef of COMPANIES) {
+      console.warn(
+        `🏢 Seeding Company: ${companyDef.name} (${companyDef.businessShape})...`
+      );
+
+      const company = await prisma.company.upsert({
+        where: { id: companyDef.id },
+        update: {
+          businessShape: companyDef.businessShape as BusinessShape,
+        },
+        create: {
+          id: companyDef.id,
+          name: companyDef.name,
+          businessShape: companyDef.businessShape as BusinessShape,
         },
       });
 
-      if (account) {
-        await prisma.bankAccount.upsert({
+      // Role & Member
+      const adminRole = await prisma.role.upsert({
+        where: {
+          companyId_name: {
+            companyId: company.id,
+            name: 'Administrator',
+          },
+        },
+        update: {},
+        create: { name: 'Administrator', companyId: company.id },
+      });
+
+      const allPermissions = await prisma.permission.findMany();
+      for (const perm of allPermissions) {
+        await prisma.rolePermission.upsert({
           where: {
-            companyId_accountId: {
-              companyId: demoCompany.id,
-              accountId: account.id,
+            roleId_permissionId: {
+              roleId: adminRole.id,
+              permissionId: perm.id,
             },
           },
           update: {},
+          create: { roleId: adminRole.id, permissionId: perm.id },
+        });
+      }
+
+      await prisma.companyMember.upsert({
+        where: {
+          userId_companyId: {
+            userId: demoUser.id,
+            companyId: company.id,
+          },
+        },
+        update: { roleId: adminRole.id },
+        create: {
+          userId: demoUser.id,
+          companyId: company.id,
+          roleId: adminRole.id,
+        },
+      });
+
+      // System Config
+      for (const config of CONFIGS) {
+        const existing = await prisma.systemConfig.findFirst({
+          where: { companyId: company.id, key: config.key },
+        });
+        if (existing) {
+          await prisma.systemConfig.update({
+            where: { id: existing.id },
+            data: { value: config.value },
+          });
+        } else {
+          await prisma.systemConfig.create({
+            data: {
+              companyId: company.id,
+              key: config.key,
+              value: config.value,
+            },
+          });
+        }
+      }
+
+      // Chart of Accounts
+      for (const acc of ACCOUNTS) {
+        let parentId: string | undefined;
+        if ('parentCode' in acc && acc.parentCode) {
+          const parent = await prisma.account.findUnique({
+            where: {
+              companyId_code: {
+                companyId: company.id,
+                code: acc.parentCode,
+              },
+            },
+          });
+          if (parent) parentId = parent.id;
+        }
+
+        const accTyped = acc as (typeof ACCOUNTS)[number];
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { parentCode, ...accData } = accTyped;
+        await prisma.account.upsert({
+          where: {
+            companyId_code: { companyId: company.id, code: acc.code },
+          },
+          update: { ...accData, parentId },
+          create: { companyId: company.id, ...accData, parentId },
+        });
+      }
+
+      // Partners
+      for (const p of PARTNERS) {
+        const existingPartner = await prisma.partner.findFirst({
+          where: { companyId: company.id, name: p.name },
+        });
+
+        if (existingPartner) {
+          await prisma.partner.update({
+            where: { id: existingPartner.id },
+            data: p,
+          });
+        } else {
+          await prisma.partner.create({
+            data: {
+              companyId: company.id,
+              ...p,
+            },
+          });
+        }
+      }
+
+      // Products
+      for (const prod of PRODUCTS) {
+        await prisma.product.upsert({
+          where: {
+            companyId_sku: { companyId: company.id, sku: prod.sku },
+          },
+          update: {},
           create: {
-            companyId: demoCompany.id,
-            accountId: account.id,
-            bankName: ba.bankName,
-            accountNumber: ba.accountNumber,
-            currency: 'IDR',
+            companyId: company.id,
+            sku: prod.sku,
+            name: prod.name,
+            price: prod.price,
+            averageCost: prod.cost,
+            stockQty: 0,
           },
         });
       }
+
+      // Bank Accounts
+      for (const ba of BANK_ACCOUNTS) {
+        const account = await prisma.account.findUnique({
+          where: {
+            companyId_code: { companyId: company.id, code: ba.code },
+          },
+        });
+        if (account) {
+          await prisma.bankAccount.upsert({
+            where: {
+              companyId_accountId: {
+                companyId: company.id,
+                accountId: account.id,
+              },
+            },
+            update: {},
+            create: {
+              companyId: company.id,
+              accountId: account.id,
+              bankName: ba.bankName,
+              accountNumber: ba.accountNumber,
+              currency: 'IDR',
+            },
+          });
+        }
+      }
     }
 
-    // ==========================================
-    // NOTE: Transactions (SO, PO, Invoices, Bills, Payments)
-    // are NOT seeded here to ensure proper business logic.
-    // Use ./scripts/seed-via-api.sh after base seed to create
-    // transactions through the API with proper:
-    // - Journal entries
-    // - Balance updates
-    // - Saga logs
-    // - Inventory movements
-    // ==========================================
+    console.warn('✅ Demo data created for multiple companies');
   }
 
   console.warn('🎉 Database seed completed!');

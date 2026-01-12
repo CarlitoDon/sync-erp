@@ -4,7 +4,6 @@ import type { OrderItem } from '../generated/zod/index.js';
 export type {
   OrderStatusType as OrderStatus,
   OrderTypeType as OrderType,
-  PaymentMethodType as PaymentMethod,
 } from '../generated/zod/index.js';
 
 // Local type alias for use in this file

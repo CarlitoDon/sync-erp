@@ -1,9 +1,13 @@
 import {
   Partner,
-  PartnerTypeType as PartnerType,
+  PartnerTypeType, // Use original name to avoid conflict with local const
+  PartnerTypeSchema,
 } from '../generated/zod/index.js';
 
-export type { Partner, PartnerType };
+export const PartnerType = PartnerTypeSchema.enum;
+export type PartnerType = PartnerTypeType;
+
+export type { Partner };
 
 export interface CreatePartnerDto {
   name: string;

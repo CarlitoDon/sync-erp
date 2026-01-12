@@ -23,6 +23,7 @@ import { CompanyRepository } from '../../company/company.repository';
 import { CustomerDepositRepository } from '../../sales/customer-deposit.repository';
 import { UpfrontPaymentRepository } from '../../procurement/upfront-payment.repository';
 import { CashBankRepository } from '../../cash-bank/cash-bank.repository'; // Feature 042
+import { RentalRepository } from '../../rental/rental.repository'; // Feature 043
 
 // Services
 import { ProductService } from '../../product/product.service';
@@ -48,6 +49,7 @@ import { AdminRepository } from '../../admin/repository';
 import { ReportService } from '../../accounting/services/report.service';
 import { ExpenseService } from '../../accounting/services/expense.service';
 import { CashBankService } from '../../cash-bank/cash-bank.service'; // Feature 042
+import { RentalService } from '../../rental/rental.service'; // Feature 043
 
 /**
  * Register all services with the DI container
@@ -115,6 +117,10 @@ export function registerServices(): void {
   container.register(
     ServiceKeys.CASH_BANK_REPOSITORY,
     () => new CashBankRepository()
+  );
+  container.register(
+    ServiceKeys.RENTAL_REPOSITORY,
+    () => new RentalRepository()
   );
 
   // ==========================================
@@ -309,6 +315,15 @@ export function registerServices(): void {
         container.resolve(ServiceKeys.CASH_BANK_REPOSITORY),
         container.resolve(ServiceKeys.ACCOUNT_SERVICE),
         container.resolve(ServiceKeys.JOURNAL_SERVICE)
+      )
+  );
+
+  container.register(
+    ServiceKeys.RENTAL_SERVICE,
+    () =>
+      new RentalService(
+        container.resolve(ServiceKeys.RENTAL_REPOSITORY),
+        container.resolve(ServiceKeys.DOCUMENT_NUMBER_SERVICE)
       )
   );
 }
