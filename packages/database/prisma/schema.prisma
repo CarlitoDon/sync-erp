@@ -51,6 +51,7 @@ model Company {
   sagaLogs              SagaLog[]
   configs               SystemConfig[]
   warehouses            Warehouse[]
+  rentalBundles         RentalBundle[]
 }
 
 model User {
@@ -605,27 +606,70 @@ model CashTransactionItem {
 }
 
 model RentalItem {
-  id                   String               @id @default(uuid())
+  id                   String                  @id @default(uuid())
   companyId            String
-  productId            String               @unique
-  dailyRate            Decimal              @db.Decimal(15, 2)
-  weeklyRate           Decimal              @db.Decimal(15, 2)
-  monthlyRate          Decimal              @db.Decimal(15, 2)
+  productId            String                  @unique
+  dailyRate            Decimal                 @db.Decimal(15, 2)
+  weeklyRate           Decimal                 @db.Decimal(15, 2)
+  monthlyRate          Decimal                 @db.Decimal(15, 2)
   depositPolicyType    DepositPolicyType
-  depositPercentage    Decimal?             @db.Decimal(5, 2)
-  depositPerUnit       Decimal?             @db.Decimal(15, 2)
-  isActive             Boolean              @default(true)
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  depositPercentage    Decimal?                @db.Decimal(5, 2)
+  depositPerUnit       Decimal?                @db.Decimal(15, 2)
+  isActive             Boolean                 @default(true)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
   rentalDamagePolicies RentalDamagePolicy[]
-  company              Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  product              Product              @relation(fields: [productId], references: [id])
+  company              Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product              Product                 @relation(fields: [productId], references: [id])
   units                RentalItemUnit[]
   orderItems           RentalOrderItem[]
+  bundleComponents     RentalBundleComponent[]
 
   @@index([companyId])
   @@index([companyId, isActive])
   @@index([productId])
+}
+
+// Rental Bundle - groups multiple rental items as a package (e.g., kasur + sprei + bantal + selimut)
+model RentalBundle {
+  id          String   @id @default(uuid())
+  companyId   String
+  externalId  String? // santi-living package ID (e.g., "package-single-standard")
+  name        String // "Single Standard (Paket)"
+  shortName   String? // "Single Standard (Pkt)"
+  description String? // "Kasur + Sprei + Bantal + Selimut"
+  dailyRate   Decimal  @db.Decimal(15, 2)
+  weeklyRate  Decimal? @db.Decimal(15, 2)
+  monthlyRate Decimal? @db.Decimal(15, 2)
+  dimensions  String? // "90 x 200 cm"
+  capacity    String? // "1 orang"
+  imagePath   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company    Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  components RentalBundleComponent[]
+  orderItems RentalOrderItem[]
+
+  @@unique([companyId, externalId])
+  @@index([companyId])
+  @@index([companyId, isActive])
+}
+
+// Bundle components - links bundles to individual rental items
+model RentalBundleComponent {
+  id             String @id @default(uuid())
+  bundleId       String
+  rentalItemId   String
+  quantity       Int    @default(1) // e.g., 2 bantal in Queen package
+  componentLabel String // "kasur busa", "sprei", "bantal", "selimut"
+
+  bundle     RentalBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  rentalItem RentalItem   @relation(fields: [rentalItemId], references: [id])
+
+  @@unique([bundleId, rentalItemId])
+  @@index([bundleId])
 }
 
 model RentalItemUnit {
@@ -739,17 +783,21 @@ model RentalOrderExtension {
 }
 
 model RentalOrderItem {
-  id            String      @id @default(uuid())
-  rentalOrderId String
-  rentalItemId  String
-  quantity      Int
-  unitPrice     Decimal     @db.Decimal(15, 2)
-  pricingTier   PricingTier
-  subtotal      Decimal     @db.Decimal(15, 2)
-  rentalItem    RentalItem  @relation(fields: [rentalItemId], references: [id])
-  rentalOrder   RentalOrder @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
+  id             String        @id @default(uuid())
+  rentalOrderId  String
+  rentalItemId   String? // NULL if ordering a bundle
+  rentalBundleId String? // NULL if ordering single item
+  quantity       Int
+  unitPrice      Decimal       @db.Decimal(15, 2)
+  pricingTier    PricingTier
+  subtotal       Decimal       @db.Decimal(15, 2)
+  rentalItem     RentalItem?   @relation(fields: [rentalItemId], references: [id])
+  rentalBundle   RentalBundle? @relation(fields: [rentalBundleId], references: [id])
+  rentalOrder    RentalOrder   @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
 
   @@index([rentalOrderId])
+  @@index([rentalItemId])
+  @@index([rentalBundleId])
 }
 
 model RentalOrderUnitAssignment {

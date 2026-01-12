@@ -948,6 +948,9 @@ export class RentalService {
       // Calculate extension amount based on items
       let additionalAmount = new Decimal(0);
       for (const item of order.items) {
+        // Skip bundle items - they don't have individual rental item rates
+        if (!item.rentalItem) continue;
+
         const tier = calculateOptimalTier(
           additionalDays,
           Number(item.rentalItem.dailyRate),

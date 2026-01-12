@@ -61,7 +61,8 @@ export class AuthService {
         success: false,
         error: {
           code: 'UNAUTHORIZED',
-          message: 'Invalid credentials',
+          message:
+            'Email tidak terdaftar. Silakan daftar akun baru atau periksa kembali email Anda.',
         },
       };
     }
@@ -75,7 +76,7 @@ export class AuthService {
         success: false,
         error: {
           code: 'UNAUTHORIZED',
-          message: 'Invalid credentials',
+          message: 'Password salah. Silakan coba lagi.',
         },
       };
     }

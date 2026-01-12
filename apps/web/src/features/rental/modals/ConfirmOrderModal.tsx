@@ -70,6 +70,7 @@ export default function ConfirmOrderModal({
     > = {};
 
     order?.items?.forEach((item) => {
+      if (!item.rentalItemId) return; // Skip bundle items
       const rentalItem = rentalItems.find(
         (ri) => ri.id === item.rentalItemId
       );
@@ -270,57 +271,68 @@ export default function ConfirmOrderModal({
               </p>
             </div>
 
-            {order.items?.map((item) => (
-              <div
-                key={item.rentalItemId}
-                className="border rounded-lg p-4"
-              >
-                <h4 className="font-medium text-gray-800 mb-3">
-                  {item.rentalItem?.product?.name} ({item.quantity}{' '}
-                  unit dibutuhkan)
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {availableUnitsByItem[item.rentalItemId]?.map(
-                    (unit) => {
-                      const isSelected = selectedUnits.includes(
-                        unit.id
-                      );
-                      return (
-                        <button
-                          key={unit.id}
-                          type="button"
-                          onClick={() => toggleUnit(unit.id)}
-                          className={`p-3 rounded-lg border-2 text-left transition-all ${
-                            isSelected
-                              ? 'border-primary-500 bg-primary-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono font-semibold">
-                              {unit.unitCode}
+            {order.items
+              ?.filter((item) => item.rentalItemId)
+              .map((item) => (
+                <div
+                  key={item.rentalItemId ?? item.id}
+                  className="border rounded-lg p-4"
+                >
+                  <h4 className="font-medium text-gray-800 mb-3">
+                    {item.rentalItem?.product?.name} ({item.quantity}{' '}
+                    unit dibutuhkan)
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {(
+                      (item.rentalItemId &&
+                        availableUnitsByItem[item.rentalItemId]) ||
+                      []
+                    ).map(
+                      (unit: {
+                        id: string;
+                        unitCode: string;
+                        condition: string;
+                      }) => {
+                        const isSelected = selectedUnits.includes(
+                          unit.id
+                        );
+                        return (
+                          <button
+                            key={unit.id}
+                            type="button"
+                            onClick={() => toggleUnit(unit.id)}
+                            className={`p-3 rounded-lg border-2 text-left transition-all ${
+                              isSelected
+                                ? 'border-primary-500 bg-primary-50'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono font-semibold">
+                                {unit.unitCode}
+                              </span>
+                              {isSelected && (
+                                <CheckIcon className="w-5 h-5 text-primary-600" />
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {unit.condition}
                             </span>
-                            {isSelected && (
-                              <CheckIcon className="w-5 h-5 text-primary-600" />
-                            )}
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {unit.condition}
-                          </span>
-                        </button>
-                      );
-                    }
-                  )}
-                  {(!availableUnitsByItem[item.rentalItemId] ||
-                    availableUnitsByItem[item.rentalItemId].length ===
-                      0) && (
-                    <p className="col-span-full text-sm text-red-600">
-                      Tidak ada unit tersedia untuk item ini
-                    </p>
-                  )}
+                          </button>
+                        );
+                      }
+                    )}
+                    {(!item.rentalItemId ||
+                      !availableUnitsByItem[item.rentalItemId] ||
+                      availableUnitsByItem[item.rentalItemId]
+                        .length === 0) && (
+                      <p className="col-span-full text-sm text-red-600">
+                        Tidak ada unit tersedia untuk item ini
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
             <div className="flex justify-between gap-3 pt-4 border-t">
               <button

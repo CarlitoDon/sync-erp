@@ -61,12 +61,13 @@ export default function UnitAssignmentModal({
 
     if (unitAssignments.length > 0) {
       order?.items?.forEach((item) => {
+        if (!item.rentalItemId) return; // Skip bundle items
         result[item.rentalItemId] = [];
       });
 
       unitAssignments.forEach((assignment) => {
         const unit = assignment.rentalItemUnit;
-        if (unit && result[unit.rentalItemId]) {
+        if (unit && unit.rentalItemId && result[unit.rentalItemId]) {
           result[unit.rentalItemId].push({
             id: unit.id,
             unitCode: unit.unitCode,
@@ -76,6 +77,7 @@ export default function UnitAssignmentModal({
       });
     } else {
       order?.items?.forEach((item) => {
+        if (!item.rentalItemId) return; // Skip bundle items
         const rentalItem = rentalItems.find(
           (ri) => ri.id === item.rentalItemId
         );
@@ -106,9 +108,13 @@ export default function UnitAssignmentModal({
       quantity: number;
     }[] = [];
     order?.items?.forEach((item) => {
+      if (!item.rentalItemId) return; // Skip bundle items
       result.push({
         itemId: item.rentalItemId,
-        itemName: item.rentalItem?.product?.name || 'Unknown',
+        itemName:
+          item.rentalItem?.product?.name ||
+          item.rentalBundle?.name ||
+          'Unknown',
         quantity: item.quantity,
       });
     });
