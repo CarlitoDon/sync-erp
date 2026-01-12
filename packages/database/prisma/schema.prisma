@@ -631,6 +631,7 @@ model RentalItem {
 }
 
 // Rental Bundle - groups multiple rental items as a package (e.g., kasur + sprei + bantal + selimut)
+// IMPORTANT: Bundles MUST have at least one component. Enforced in application layer.
 model RentalBundle {
   id          String   @id @default(uuid())
   companyId   String
@@ -649,6 +650,7 @@ model RentalBundle {
   updatedAt   DateTime @updatedAt
 
   company    Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  // Components are REQUIRED - bundles must have at least one component (enforced in application)
   components RentalBundleComponent[]
   orderItems RentalOrderItem[]
 
@@ -658,6 +660,7 @@ model RentalBundle {
 }
 
 // Bundle components - links bundles to individual rental items
+// Every bundle MUST have at least one component
 model RentalBundleComponent {
   id             String @id @default(uuid())
   bundleId       String
@@ -739,7 +742,7 @@ model RentalOrder {
   paymentMethod   String? // "qris" | "transfer"
   discountAmount  Decimal? @db.Decimal(15, 2)
   discountLabel   String?
-  orderSource     String?  @default("admin") // "website" | "admin"
+  orderSource     OrderSource @default(ADMIN)
 
   // Relations
   conditionLogs   ItemConditionLog[]
@@ -1247,6 +1250,11 @@ enum RentalOrderStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+enum OrderSource {
+  ADMIN
+  WEBSITE
 }
 
 enum PricingTier {
