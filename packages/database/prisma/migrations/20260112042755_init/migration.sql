@@ -2,10 +2,10 @@
 CREATE TYPE "AccountType" AS ENUM ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE');
 
 -- CreateEnum
-CREATE TYPE "JournalSourceType" AS ENUM ('INVOICE', 'BILL', 'PAYMENT', 'CREDIT_NOTE', 'ADJUSTMENT', 'CASH_TRANSACTION');
+CREATE TYPE "JournalSourceType" AS ENUM ('INVOICE', 'BILL', 'PAYMENT', 'CREDIT_NOTE', 'ADJUSTMENT', 'CASH_TRANSACTION', 'RENTAL_DEPOSIT', 'RENTAL_RETURN');
 
 -- CreateEnum
-CREATE TYPE "PermissionModule" AS ENUM ('COMPANY', 'SALES', 'PURCHASING', 'INVENTORY', 'FINANCE', 'USERS');
+CREATE TYPE "PermissionModule" AS ENUM ('COMPANY', 'SALES', 'PURCHASING', 'INVENTORY', 'FINANCE', 'USERS', 'RENTAL');
 
 -- CreateEnum
 CREATE TYPE "PermissionAction" AS ENUM ('CREATE', 'READ', 'UPDATE', 'DELETE', 'APPROVE', 'VOID');
@@ -26,7 +26,7 @@ CREATE TYPE "OrderStatus" AS ENUM ('DRAFT', 'CONFIRMED', 'PARTIALLY_RECEIVED', '
 CREATE TYPE "MovementType" AS ENUM ('IN', 'OUT');
 
 -- CreateEnum
-CREATE TYPE "InvoiceType" AS ENUM ('INVOICE', 'BILL', 'EXPENSE', 'CREDIT_NOTE', 'DEBIT_NOTE');
+CREATE TYPE "InvoiceType" AS ENUM ('INVOICE', 'BILL', 'EXPENSE', 'CREDIT_NOTE', 'DEBIT_NOTE', 'RENTAL');
 
 -- CreateEnum
 CREATE TYPE "InvoiceStatus" AS ENUM ('DRAFT', 'POSTED', 'PARTIALLY_PAID', 'PAID', 'VOID');
@@ -35,7 +35,7 @@ CREATE TYPE "InvoiceStatus" AS ENUM ('DRAFT', 'POSTED', 'PARTIALLY_PAID', 'PAID'
 CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'BANK_TRANSFER', 'CREDIT_CARD', 'CHECK', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "BusinessShape" AS ENUM ('PENDING', 'RETAIL', 'MANUFACTURING', 'SERVICE');
+CREATE TYPE "BusinessShape" AS ENUM ('PENDING', 'RETAIL', 'MANUFACTURING', 'SERVICE', 'RENTAL');
 
 -- CreateEnum
 CREATE TYPE "CostingMethod" AS ENUM ('AVG', 'FIFO');
@@ -53,7 +53,7 @@ CREATE TYPE "DocumentStatus" AS ENUM ('DRAFT', 'POSTED', 'VOIDED');
 CREATE TYPE "FulfillmentType" AS ENUM ('RECEIPT', 'SHIPMENT', 'RETURN', 'PURCHASE_RETURN');
 
 -- CreateEnum
-CREATE TYPE "SequenceType" AS ENUM ('PO', 'GRN', 'SHP', 'BILL', 'PAY', 'SO', 'INV', 'CN', 'JE', 'DN', 'RET', 'PRR');
+CREATE TYPE "SequenceType" AS ENUM ('PO', 'GRN', 'SHP', 'BILL', 'PAY', 'SO', 'INV', 'CN', 'JE', 'DN', 'RET', 'PRR', 'RNT');
 
 -- CreateEnum
 CREATE TYPE "IdempotencyScope" AS ENUM ('INVOICE_POST', 'PAYMENT_CREATE', 'BILL_CREATE', 'INVOICE_CREATE', 'GRN_CREATE', 'SHIPMENT_CREATE', 'ORDER_CREATE', 'CASH_TRANSACTION_POST');
@@ -62,10 +62,10 @@ CREATE TYPE "IdempotencyScope" AS ENUM ('INVOICE_POST', 'PAYMENT_CREATE', 'BILL_
 CREATE TYPE "IdempotencyStatus" AS ENUM ('PROCESSING', 'COMPLETED', 'FAILED');
 
 -- CreateEnum
-CREATE TYPE "AuditLogAction" AS ENUM ('INVOICE_POSTED', 'INVOICE_VOIDED', 'BILL_POSTED', 'BILL_VOIDED', 'PAYMENT_RECORDED', 'ORDER_CREATED', 'ORDER_CONFIRMED', 'ORDER_CANCELLED', 'GOODS_RECEIVED', 'SHIPMENT_CREATED', 'GRN_POSTED', 'GRN_VOIDED', 'SHIPMENT_VOIDED', 'PAYMENT_VOIDED', 'PRICE_VARIANCE_ACKNOWLEDGED', 'CASH_TRANSACTION_POSTED', 'CASH_TRANSACTION_VOIDED');
+CREATE TYPE "AuditLogAction" AS ENUM ('INVOICE_POSTED', 'INVOICE_VOIDED', 'BILL_POSTED', 'BILL_VOIDED', 'PAYMENT_RECORDED', 'ORDER_CREATED', 'ORDER_CONFIRMED', 'ORDER_CANCELLED', 'GOODS_RECEIVED', 'SHIPMENT_CREATED', 'GRN_POSTED', 'GRN_VOIDED', 'SHIPMENT_VOIDED', 'PAYMENT_VOIDED', 'PRICE_VARIANCE_ACKNOWLEDGED', 'CASH_TRANSACTION_POSTED', 'CASH_TRANSACTION_VOIDED', 'RENTAL_ITEM_CREATED', 'RENTAL_UNIT_ADDED', 'RENTAL_ORDER_CREATED', 'RENTAL_ORDER_CONFIRMED', 'RENTAL_ORDER_RELEASED', 'RENTAL_ORDER_CANCELLED', 'RENTAL_RETURN_PROCESSED', 'RENTAL_RETURN_SETTLED');
 
 -- CreateEnum
-CREATE TYPE "EntityType" AS ENUM ('INVOICE', 'BILL', 'PAYMENT', 'ORDER', 'SHIPMENT', 'GOODS_RECEIPT', 'BANK_ACCOUNT', 'CASH_TRANSACTION');
+CREATE TYPE "EntityType" AS ENUM ('INVOICE', 'BILL', 'PAYMENT', 'ORDER', 'SHIPMENT', 'GOODS_RECEIPT', 'BANK_ACCOUNT', 'CASH_TRANSACTION', 'RENTAL_ITEM', 'RENTAL_ITEM_UNIT', 'RENTAL_ORDER', 'RENTAL_RETURN', 'RENTAL_POLICY');
 
 -- CreateEnum
 CREATE TYPE "SagaType" AS ENUM ('INVOICE_POST', 'SHIPMENT', 'GOODS_RECEIPT', 'BILL_POST', 'PAYMENT_POST', 'CREDIT_NOTE', 'STOCK_TRANSFER', 'STOCK_RETURN');
@@ -78,6 +78,39 @@ CREATE TYPE "CashTransactionType" AS ENUM ('SPEND', 'RECEIVE', 'TRANSFER');
 
 -- CreateEnum
 CREATE TYPE "CashTransactionStatus" AS ENUM ('DRAFT', 'POSTED', 'VOIDED');
+
+-- CreateEnum
+CREATE TYPE "DepositPolicyType" AS ENUM ('PERCENTAGE', 'PER_UNIT', 'HYBRID');
+
+-- CreateEnum
+CREATE TYPE "UnitCondition" AS ENUM ('NEW', 'GOOD', 'FAIR', 'NEEDS_REPAIR');
+
+-- CreateEnum
+CREATE TYPE "UnitStatus" AS ENUM ('AVAILABLE', 'RESERVED', 'RENTED', 'RETURNED', 'CLEANING', 'MAINTENANCE', 'RETIRED');
+
+-- CreateEnum
+CREATE TYPE "RentalOrderStatus" AS ENUM ('DRAFT', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "PricingTier" AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY', 'CUSTOM');
+
+-- CreateEnum
+CREATE TYPE "DepositStatus" AS ENUM ('PENDING', 'COLLECTED', 'REFUNDED', 'FORFEITED', 'PARTIAL_REFUND');
+
+-- CreateEnum
+CREATE TYPE "ReturnStatus" AS ENUM ('DRAFT', 'SETTLED');
+
+-- CreateEnum
+CREATE TYPE "ConditionType" AS ENUM ('RELEASE', 'RETURN', 'INSPECTION', 'CLEANING');
+
+-- CreateEnum
+CREATE TYPE "DamageSeverity" AS ENUM ('MINOR', 'MAJOR', 'UNUSABLE');
+
+-- CreateEnum
+CREATE TYPE "CleaningType" AS ENUM ('STANDARD', 'DEEP', 'EMERGENCY');
+
+-- CreateEnum
+CREATE TYPE "RiskLevel" AS ENUM ('NORMAL', 'WATCHLIST', 'BLACKLISTED');
 
 -- CreateTable
 CREATE TABLE "Company" (
@@ -133,6 +166,14 @@ CREATE TABLE "Partner" (
     "email" TEXT,
     "phone" TEXT,
     "address" TEXT,
+    "street" TEXT,
+    "kelurahan" TEXT,
+    "kecamatan" TEXT,
+    "kota" TEXT,
+    "provinsi" TEXT,
+    "zip" TEXT,
+    "latitude" DECIMAL(10,8),
+    "longitude" DECIMAL(11,8),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -283,6 +324,8 @@ CREATE TABLE "Account" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "isGroup" BOOLEAN NOT NULL DEFAULT false,
+    "parentId" TEXT,
 
     CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
 );
@@ -526,6 +569,270 @@ CREATE TABLE "CashTransactionItem" (
     CONSTRAINT "CashTransactionItem_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "RentalItem" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "dailyRate" DECIMAL(15,2) NOT NULL,
+    "weeklyRate" DECIMAL(15,2) NOT NULL,
+    "monthlyRate" DECIMAL(15,2) NOT NULL,
+    "depositPolicyType" "DepositPolicyType" NOT NULL,
+    "depositPercentage" DECIMAL(5,2),
+    "depositPerUnit" DECIMAL(15,2),
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RentalItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalItemUnit" (
+    "id" TEXT NOT NULL,
+    "rentalItemId" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "unitCode" TEXT NOT NULL,
+    "condition" "UnitCondition" NOT NULL,
+    "status" "UnitStatus" NOT NULL DEFAULT 'AVAILABLE',
+    "totalRentalDays" INTEGER NOT NULL DEFAULT 0,
+    "totalRentalCount" INTEGER NOT NULL DEFAULT 0,
+    "lastDeepCleaningAt" TIMESTAMP(3),
+    "retiredAt" TIMESTAMP(3),
+    "retirementReason" TEXT,
+    "flaggedForRetirement" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RentalItemUnit_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalOrder" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "partnerId" TEXT NOT NULL,
+    "orderNumber" TEXT NOT NULL,
+    "rentalStartDate" TIMESTAMP(3) NOT NULL,
+    "rentalEndDate" TIMESTAMP(3) NOT NULL,
+    "dueDateTime" TIMESTAMP(3) NOT NULL,
+    "status" "RentalOrderStatus" NOT NULL DEFAULT 'DRAFT',
+    "subtotal" DECIMAL(15,2) NOT NULL,
+    "depositAmount" DECIMAL(15,2) NOT NULL,
+    "totalAmount" DECIMAL(15,2) NOT NULL,
+    "policySnapshot" JSONB NOT NULL,
+    "notes" TEXT,
+    "confirmedAt" TIMESTAMP(3),
+    "activatedAt" TIMESTAMP(3),
+    "completedAt" TIMESTAMP(3),
+    "cancelledAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdBy" TEXT NOT NULL,
+    "publicToken" TEXT,
+    "deliveryFee" DECIMAL(15,2),
+    "deliveryAddress" TEXT,
+    "street" TEXT,
+    "kelurahan" TEXT,
+    "kecamatan" TEXT,
+    "kota" TEXT,
+    "provinsi" TEXT,
+    "zip" TEXT,
+    "latitude" DECIMAL(10,8),
+    "longitude" DECIMAL(11,8),
+    "paymentMethod" TEXT,
+    "discountAmount" DECIMAL(15,2),
+    "discountLabel" TEXT,
+    "orderSource" TEXT DEFAULT 'admin',
+
+    CONSTRAINT "RentalOrder_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalOrderExtension" (
+    "id" TEXT NOT NULL,
+    "rentalOrderId" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "extensionNumber" INTEGER NOT NULL,
+    "previousEndDate" TIMESTAMP(3) NOT NULL,
+    "newEndDate" TIMESTAMP(3) NOT NULL,
+    "additionalDays" INTEGER NOT NULL,
+    "additionalAmount" DECIMAL(15,2) NOT NULL,
+    "additionalDeposit" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "reason" TEXT,
+    "isPaid" BOOLEAN NOT NULL DEFAULT false,
+    "paidAt" TIMESTAMP(3),
+    "paymentId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" TEXT NOT NULL,
+
+    CONSTRAINT "RentalOrderExtension_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalOrderItem" (
+    "id" TEXT NOT NULL,
+    "rentalOrderId" TEXT NOT NULL,
+    "rentalItemId" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "unitPrice" DECIMAL(15,2) NOT NULL,
+    "pricingTier" "PricingTier" NOT NULL,
+    "subtotal" DECIMAL(15,2) NOT NULL,
+
+    CONSTRAINT "RentalOrderItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalOrderUnitAssignment" (
+    "id" TEXT NOT NULL,
+    "rentalOrderId" TEXT NOT NULL,
+    "rentalItemUnitId" TEXT NOT NULL,
+    "lockedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lockedBy" TEXT NOT NULL,
+    "overriddenAt" TIMESTAMP(3),
+    "overriddenBy" TEXT,
+    "overrideReason" TEXT,
+
+    CONSTRAINT "RentalOrderUnitAssignment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalDeposit" (
+    "id" TEXT NOT NULL,
+    "rentalOrderId" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "amount" DECIMAL(15,2) NOT NULL,
+    "policyType" "DepositPolicyType" NOT NULL,
+    "status" "DepositStatus" NOT NULL,
+    "collectedAt" TIMESTAMP(3),
+    "refundedAt" TIMESTAMP(3),
+    "forfeitedAt" TIMESTAMP(3),
+    "paymentMethod" TEXT,
+    "paymentReference" TEXT,
+
+    CONSTRAINT "RentalDeposit_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalDepositAllocation" (
+    "id" TEXT NOT NULL,
+    "depositId" TEXT NOT NULL,
+    "unitId" TEXT NOT NULL,
+    "maxCoveredAmount" DECIMAL(15,2) NOT NULL,
+    "usedAmount" DECIMAL(15,2) NOT NULL DEFAULT 0,
+
+    CONSTRAINT "RentalDepositAllocation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalReturn" (
+    "id" TEXT NOT NULL,
+    "rentalOrderId" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "returnedAt" TIMESTAMP(3) NOT NULL,
+    "baseRentalFee" DECIMAL(15,2) NOT NULL,
+    "lateFee" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "damageCharges" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "cleaningFee" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "otherCharges" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "totalCharges" DECIMAL(15,2) NOT NULL,
+    "depositDeduction" DECIMAL(15,2) NOT NULL,
+    "additionalChargesDue" DECIMAL(15,2) NOT NULL,
+    "depositRefund" DECIMAL(15,2) NOT NULL,
+    "settlementStatus" "ReturnStatus" NOT NULL,
+    "settledAt" TIMESTAMP(3),
+    "settledBy" TEXT,
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "processedBy" TEXT NOT NULL,
+
+    CONSTRAINT "RentalReturn_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ItemConditionLog" (
+    "id" TEXT NOT NULL,
+    "rentalItemUnitId" TEXT NOT NULL,
+    "rentalOrderId" TEXT,
+    "recordedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "conditionType" "ConditionType" NOT NULL,
+    "condition" "UnitCondition" NOT NULL,
+    "damageSeverity" "DamageSeverity",
+    "beforePhotos" TEXT[],
+    "afterPhotos" TEXT[],
+    "notes" TEXT,
+    "assessedBy" TEXT NOT NULL,
+
+    CONSTRAINT "ItemConditionLog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CleaningLog" (
+    "id" TEXT NOT NULL,
+    "rentalItemUnitId" TEXT NOT NULL,
+    "cleanedAt" TIMESTAMP(3) NOT NULL,
+    "cleanedBy" TEXT NOT NULL,
+    "cleaningType" "CleaningType" NOT NULL,
+    "notes" TEXT NOT NULL,
+
+    CONSTRAINT "CleaningLog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CustomerRentalRisk" (
+    "id" TEXT NOT NULL,
+    "partnerId" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "riskLevel" "RiskLevel" NOT NULL,
+    "notes" TEXT,
+    "flaggedAt" TIMESTAMP(3),
+    "flaggedBy" TEXT,
+    "lastReviewedAt" TIMESTAMP(3),
+    "totalRentals" INTEGER NOT NULL DEFAULT 0,
+    "lateReturns" INTEGER NOT NULL DEFAULT 0,
+    "damageIncidents" INTEGER NOT NULL DEFAULT 0,
+    "depositForfeits" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "CustomerRentalRisk_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalPolicy" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "effectiveFrom" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "replacedAt" TIMESTAMP(3),
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "gracePeriodHours" INTEGER NOT NULL,
+    "cleaningFee" DECIMAL(15,2) NOT NULL,
+    "lateFeeDailyRate" DECIMAL(15,2) NOT NULL,
+    "defaultDepositPolicyType" "DepositPolicyType" NOT NULL,
+    "defaultDepositPercentage" DECIMAL(5,2),
+    "defaultDepositPerUnit" DECIMAL(15,2),
+    "pickupGracePeriodHours" INTEGER NOT NULL DEFAULT 24,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" TEXT NOT NULL,
+
+    CONSTRAINT "RentalPolicy_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalDamagePolicy" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "category" TEXT,
+    "rentalItemId" TEXT,
+    "severity" "DamageSeverity" NOT NULL,
+    "charge" DECIMAL(15,2) NOT NULL,
+    "description" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RentalDamagePolicy_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Company_inviteCode_key" ON "Company"("inviteCode");
 
@@ -543,6 +850,9 @@ CREATE INDEX "Partner_companyId_idx" ON "Partner"("companyId");
 
 -- CreateIndex
 CREATE INDEX "Partner_companyId_type_idx" ON "Partner"("companyId", "type");
+
+-- CreateIndex
+CREATE INDEX "Partner_kota_idx" ON "Partner"("kota");
 
 -- CreateIndex
 CREATE INDEX "Product_companyId_idx" ON "Product"("companyId");
@@ -615,6 +925,9 @@ CREATE INDEX "Account_companyId_idx" ON "Account"("companyId");
 
 -- CreateIndex
 CREATE INDEX "Account_companyId_type_idx" ON "Account"("companyId", "type");
+
+-- CreateIndex
+CREATE INDEX "Account_parentId_idx" ON "Account"("parentId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Account_companyId_code_key" ON "Account"("companyId", "code");
@@ -730,11 +1043,131 @@ CREATE INDEX "CashTransaction_date_idx" ON "CashTransaction"("date");
 -- CreateIndex
 CREATE INDEX "CashTransactionItem_cashTransactionId_idx" ON "CashTransactionItem"("cashTransactionId");
 
--- AddForeignKey
-ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalItem_productId_key" ON "RentalItem"("productId");
+
+-- CreateIndex
+CREATE INDEX "RentalItem_companyId_idx" ON "RentalItem"("companyId");
+
+-- CreateIndex
+CREATE INDEX "RentalItem_companyId_isActive_idx" ON "RentalItem"("companyId", "isActive");
+
+-- CreateIndex
+CREATE INDEX "RentalItem_productId_idx" ON "RentalItem"("productId");
+
+-- CreateIndex
+CREATE INDEX "RentalItemUnit_companyId_idx" ON "RentalItemUnit"("companyId");
+
+-- CreateIndex
+CREATE INDEX "RentalItemUnit_rentalItemId_status_idx" ON "RentalItemUnit"("rentalItemId", "status");
+
+-- CreateIndex
+CREATE INDEX "RentalItemUnit_companyId_status_idx" ON "RentalItemUnit"("companyId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalItemUnit_companyId_unitCode_key" ON "RentalItemUnit"("companyId", "unitCode");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalOrder_publicToken_key" ON "RentalOrder"("publicToken");
+
+-- CreateIndex
+CREATE INDEX "RentalOrder_companyId_idx" ON "RentalOrder"("companyId");
+
+-- CreateIndex
+CREATE INDEX "RentalOrder_companyId_status_idx" ON "RentalOrder"("companyId", "status");
+
+-- CreateIndex
+CREATE INDEX "RentalOrder_companyId_partnerId_idx" ON "RentalOrder"("companyId", "partnerId");
+
+-- CreateIndex
+CREATE INDEX "RentalOrder_dueDateTime_idx" ON "RentalOrder"("dueDateTime");
+
+-- CreateIndex
+CREATE INDEX "RentalOrder_orderSource_idx" ON "RentalOrder"("orderSource");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalOrder_companyId_orderNumber_key" ON "RentalOrder"("companyId", "orderNumber");
+
+-- CreateIndex
+CREATE INDEX "RentalOrderExtension_rentalOrderId_idx" ON "RentalOrderExtension"("rentalOrderId");
+
+-- CreateIndex
+CREATE INDEX "RentalOrderExtension_companyId_idx" ON "RentalOrderExtension"("companyId");
+
+-- CreateIndex
+CREATE INDEX "RentalOrderItem_rentalOrderId_idx" ON "RentalOrderItem"("rentalOrderId");
+
+-- CreateIndex
+CREATE INDEX "RentalOrderUnitAssignment_rentalItemUnitId_idx" ON "RentalOrderUnitAssignment"("rentalItemUnitId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalOrderUnitAssignment_rentalOrderId_rentalItemUnitId_key" ON "RentalOrderUnitAssignment"("rentalOrderId", "rentalItemUnitId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalDeposit_rentalOrderId_key" ON "RentalDeposit"("rentalOrderId");
+
+-- CreateIndex
+CREATE INDEX "RentalDeposit_companyId_idx" ON "RentalDeposit"("companyId");
+
+-- CreateIndex
+CREATE INDEX "RentalDeposit_companyId_status_idx" ON "RentalDeposit"("companyId", "status");
+
+-- CreateIndex
+CREATE INDEX "RentalDepositAllocation_depositId_idx" ON "RentalDepositAllocation"("depositId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalDepositAllocation_depositId_unitId_key" ON "RentalDepositAllocation"("depositId", "unitId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalReturn_rentalOrderId_key" ON "RentalReturn"("rentalOrderId");
+
+-- CreateIndex
+CREATE INDEX "RentalReturn_companyId_idx" ON "RentalReturn"("companyId");
+
+-- CreateIndex
+CREATE INDEX "RentalReturn_companyId_settlementStatus_idx" ON "RentalReturn"("companyId", "settlementStatus");
+
+-- CreateIndex
+CREATE INDEX "ItemConditionLog_rentalItemUnitId_recordedAt_idx" ON "ItemConditionLog"("rentalItemUnitId", "recordedAt");
+
+-- CreateIndex
+CREATE INDEX "ItemConditionLog_rentalOrderId_idx" ON "ItemConditionLog"("rentalOrderId");
+
+-- CreateIndex
+CREATE INDEX "CleaningLog_rentalItemUnitId_cleanedAt_idx" ON "CleaningLog"("rentalItemUnitId", "cleanedAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CustomerRentalRisk_partnerId_key" ON "CustomerRentalRisk"("partnerId");
+
+-- CreateIndex
+CREATE INDEX "CustomerRentalRisk_companyId_idx" ON "CustomerRentalRisk"("companyId");
+
+-- CreateIndex
+CREATE INDEX "CustomerRentalRisk_companyId_riskLevel_idx" ON "CustomerRentalRisk"("companyId", "riskLevel");
+
+-- CreateIndex
+CREATE INDEX "RentalPolicy_companyId_idx" ON "RentalPolicy"("companyId");
+
+-- CreateIndex
+CREATE INDEX "RentalPolicy_companyId_effectiveFrom_idx" ON "RentalPolicy"("companyId", "effectiveFrom");
+
+-- CreateIndex
+CREATE INDEX "RentalPolicy_companyId_isActive_idx" ON "RentalPolicy"("companyId", "isActive");
+
+-- CreateIndex
+CREATE INDEX "RentalDamagePolicy_companyId_idx" ON "RentalDamagePolicy"("companyId");
+
+-- CreateIndex
+CREATE INDEX "RentalDamagePolicy_companyId_isActive_idx" ON "RentalDamagePolicy"("companyId", "isActive");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalDamagePolicy_companyId_rentalItemId_severity_key" ON "RentalDamagePolicy"("companyId", "rentalItemId", "severity");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalDamagePolicy_companyId_category_severity_key" ON "RentalDamagePolicy"("companyId", "category", "severity");
 
 -- AddForeignKey
-ALTER TABLE "CompanyMember" ADD CONSTRAINT "CompanyMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CompanyMember" ADD CONSTRAINT "CompanyMember_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -743,13 +1176,16 @@ ALTER TABLE "CompanyMember" ADD CONSTRAINT "CompanyMember_companyId_fkey" FOREIG
 ALTER TABLE "CompanyMember" ADD CONSTRAINT "CompanyMember_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "CompanyMember" ADD CONSTRAINT "CompanyMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Partner" ADD CONSTRAINT "Partner_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Product" ADD CONSTRAINT "Product_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Product" ADD CONSTRAINT "Product_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "ProductCategory"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Product" ADD CONSTRAINT "Product_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "ProductCategory"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Product" ADD CONSTRAINT "Product_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Order" ADD CONSTRAINT "Order_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -767,19 +1203,25 @@ ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_productId_fkey" FOREIGN KEY ("
 ALTER TABLE "InventoryMovement" ADD CONSTRAINT "InventoryMovement_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "InventoryMovement" ADD CONSTRAINT "InventoryMovement_fulfillmentId_fkey" FOREIGN KEY ("fulfillmentId") REFERENCES "Fulfillment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "InventoryMovement" ADD CONSTRAINT "InventoryMovement_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "InventoryMovement" ADD CONSTRAINT "InventoryMovement_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "InventoryMovement" ADD CONSTRAINT "InventoryMovement_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "Warehouse"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "InventoryMovement" ADD CONSTRAINT "InventoryMovement_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "InventoryMovement" ADD CONSTRAINT "InventoryMovement_fulfillmentId_fkey" FOREIGN KEY ("fulfillmentId") REFERENCES "Fulfillment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_dpBillId_fkey" FOREIGN KEY ("dpBillId") REFERENCES "Invoice"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_fulfillmentId_fkey" FOREIGN KEY ("fulfillmentId") REFERENCES "Fulfillment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -789,12 +1231,6 @@ ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_partnerId_fkey" FOREIGN KEY ("part
 
 -- AddForeignKey
 ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_relatedInvoiceId_fkey" FOREIGN KEY ("relatedInvoiceId") REFERENCES "Invoice"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_dpBillId_fkey" FOREIGN KEY ("dpBillId") REFERENCES "Invoice"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_fulfillmentId_fkey" FOREIGN KEY ("fulfillmentId") REFERENCES "Fulfillment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "InvoiceItem" ADD CONSTRAINT "InvoiceItem_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "Invoice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -815,22 +1251,25 @@ ALTER TABLE "Payment" ADD CONSTRAINT "Payment_orderId_fkey" FOREIGN KEY ("orderI
 ALTER TABLE "Account" ADD CONSTRAINT "Account_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "JournalEntry" ADD CONSTRAINT "JournalEntry_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Account" ADD CONSTRAINT "Account_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "JournalLine" ADD CONSTRAINT "JournalLine_journalId_fkey" FOREIGN KEY ("journalId") REFERENCES "JournalEntry"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "JournalEntry" ADD CONSTRAINT "JournalEntry_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "JournalLine" ADD CONSTRAINT "JournalLine_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "JournalLine" ADD CONSTRAINT "JournalLine_journalId_fkey" FOREIGN KEY ("journalId") REFERENCES "JournalEntry"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Role" ADD CONSTRAINT "Role_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "Permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "Permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SystemConfig" ADD CONSTRAINT "SystemConfig_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -857,10 +1296,10 @@ ALTER TABLE "IdempotencyKey" ADD CONSTRAINT "IdempotencyKey_companyId_fkey" FORE
 ALTER TABLE "SagaLog" ADD CONSTRAINT "SagaLog_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_cashTransactionId_fkey" FOREIGN KEY ("cashTransactionId") REFERENCES "CashTransaction"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_cashTransactionId_fkey" FOREIGN KEY ("cashTransactionId") REFERENCES "CashTransaction"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Fulfillment" ADD CONSTRAINT "Fulfillment_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -872,22 +1311,19 @@ ALTER TABLE "Fulfillment" ADD CONSTRAINT "Fulfillment_orderId_fkey" FOREIGN KEY 
 ALTER TABLE "FulfillmentItem" ADD CONSTRAINT "FulfillmentItem_fulfillmentId_fkey" FOREIGN KEY ("fulfillmentId") REFERENCES "Fulfillment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FulfillmentItem" ADD CONSTRAINT "FulfillmentItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "FulfillmentItem" ADD CONSTRAINT "FulfillmentItem_orderItemId_fkey" FOREIGN KEY ("orderItemId") REFERENCES "OrderItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "BankAccount" ADD CONSTRAINT "BankAccount_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "FulfillmentItem" ADD CONSTRAINT "FulfillmentItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "BankAccount" ADD CONSTRAINT "BankAccount_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CashTransaction" ADD CONSTRAINT "CashTransaction_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "BankAccount" ADD CONSTRAINT "BankAccount_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CashTransaction" ADD CONSTRAINT "CashTransaction_sourceBankAccountId_fkey" FOREIGN KEY ("sourceBankAccountId") REFERENCES "BankAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CashTransaction" ADD CONSTRAINT "CashTransaction_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CashTransaction" ADD CONSTRAINT "CashTransaction_destinationBankAccountId_fkey" FOREIGN KEY ("destinationBankAccountId") REFERENCES "BankAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -896,7 +1332,88 @@ ALTER TABLE "CashTransaction" ADD CONSTRAINT "CashTransaction_destinationBankAcc
 ALTER TABLE "CashTransaction" ADD CONSTRAINT "CashTransaction_journalEntryId_fkey" FOREIGN KEY ("journalEntryId") REFERENCES "JournalEntry"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CashTransactionItem" ADD CONSTRAINT "CashTransactionItem_cashTransactionId_fkey" FOREIGN KEY ("cashTransactionId") REFERENCES "CashTransaction"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CashTransaction" ADD CONSTRAINT "CashTransaction_sourceBankAccountId_fkey" FOREIGN KEY ("sourceBankAccountId") REFERENCES "BankAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CashTransactionItem" ADD CONSTRAINT "CashTransactionItem_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CashTransactionItem" ADD CONSTRAINT "CashTransactionItem_cashTransactionId_fkey" FOREIGN KEY ("cashTransactionId") REFERENCES "CashTransaction"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalItem" ADD CONSTRAINT "RentalItem_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalItem" ADD CONSTRAINT "RentalItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalItemUnit" ADD CONSTRAINT "RentalItemUnit_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalItemUnit" ADD CONSTRAINT "RentalItemUnit_rentalItemId_fkey" FOREIGN KEY ("rentalItemId") REFERENCES "RentalItem"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalOrder" ADD CONSTRAINT "RentalOrder_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalOrder" ADD CONSTRAINT "RentalOrder_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalOrderExtension" ADD CONSTRAINT "RentalOrderExtension_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalOrderExtension" ADD CONSTRAINT "RentalOrderExtension_rentalOrderId_fkey" FOREIGN KEY ("rentalOrderId") REFERENCES "RentalOrder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalOrderItem" ADD CONSTRAINT "RentalOrderItem_rentalItemId_fkey" FOREIGN KEY ("rentalItemId") REFERENCES "RentalItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalOrderItem" ADD CONSTRAINT "RentalOrderItem_rentalOrderId_fkey" FOREIGN KEY ("rentalOrderId") REFERENCES "RentalOrder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalOrderUnitAssignment" ADD CONSTRAINT "RentalOrderUnitAssignment_rentalItemUnitId_fkey" FOREIGN KEY ("rentalItemUnitId") REFERENCES "RentalItemUnit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalOrderUnitAssignment" ADD CONSTRAINT "RentalOrderUnitAssignment_rentalOrderId_fkey" FOREIGN KEY ("rentalOrderId") REFERENCES "RentalOrder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalDeposit" ADD CONSTRAINT "RentalDeposit_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalDeposit" ADD CONSTRAINT "RentalDeposit_rentalOrderId_fkey" FOREIGN KEY ("rentalOrderId") REFERENCES "RentalOrder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalDepositAllocation" ADD CONSTRAINT "RentalDepositAllocation_depositId_fkey" FOREIGN KEY ("depositId") REFERENCES "RentalDeposit"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalDepositAllocation" ADD CONSTRAINT "RentalDepositAllocation_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "RentalItemUnit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalReturn" ADD CONSTRAINT "RentalReturn_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalReturn" ADD CONSTRAINT "RentalReturn_rentalOrderId_fkey" FOREIGN KEY ("rentalOrderId") REFERENCES "RentalOrder"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ItemConditionLog" ADD CONSTRAINT "ItemConditionLog_rentalItemUnitId_fkey" FOREIGN KEY ("rentalItemUnitId") REFERENCES "RentalItemUnit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ItemConditionLog" ADD CONSTRAINT "ItemConditionLog_rentalOrderId_fkey" FOREIGN KEY ("rentalOrderId") REFERENCES "RentalOrder"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CleaningLog" ADD CONSTRAINT "CleaningLog_rentalItemUnitId_fkey" FOREIGN KEY ("rentalItemUnitId") REFERENCES "RentalItemUnit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomerRentalRisk" ADD CONSTRAINT "CustomerRentalRisk_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomerRentalRisk" ADD CONSTRAINT "CustomerRentalRisk_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalPolicy" ADD CONSTRAINT "RentalPolicy_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalDamagePolicy" ADD CONSTRAINT "RentalDamagePolicy_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalDamagePolicy" ADD CONSTRAINT "RentalDamagePolicy_rentalItemId_fkey" FOREIGN KEY ("rentalItemId") REFERENCES "RentalItem"("id") ON DELETE SET NULL ON UPDATE CASCADE;

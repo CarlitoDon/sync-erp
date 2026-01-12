@@ -87,13 +87,24 @@ model CompanyMember {
 }
 
 model Partner {
-  id           String              @id @default(uuid())
-  companyId    String
-  type         PartnerType
-  name         String
-  email        String?
-  phone        String?
-  address      String?
+  id        String      @id @default(uuid())
+  companyId String
+  type      PartnerType
+  name      String
+  email     String?
+  phone     String?
+
+  // Address fields (separate columns for queryability)
+  address   String? // Full combined address (legacy/display)
+  street    String? // Jalan/nama jalan
+  kelurahan String?
+  kecamatan String?
+  kota      String? // Kabupaten/Kota
+  provinsi  String?
+  zip       String? // Kode pos
+  latitude  Decimal? @db.Decimal(10, 8)
+  longitude Decimal? @db.Decimal(11, 8)
+
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   rentalRisk   CustomerRentalRisk?
@@ -104,6 +115,7 @@ model Partner {
 
   @@index([companyId])
   @@index([companyId, type])
+  @@index([kota])
 }
 
 model Product {
@@ -645,26 +657,47 @@ model RentalItemUnit {
 }
 
 model RentalOrder {
-  id              String                      @id @default(uuid())
+  id              String            @id @default(uuid())
   companyId       String
   partnerId       String
   orderNumber     String
   rentalStartDate DateTime
   rentalEndDate   DateTime
   dueDateTime     DateTime
-  status          RentalOrderStatus           @default(DRAFT)
-  subtotal        Decimal                     @db.Decimal(15, 2)
-  depositAmount   Decimal                     @db.Decimal(15, 2)
-  totalAmount     Decimal                     @db.Decimal(15, 2)
+  status          RentalOrderStatus @default(DRAFT)
+  subtotal        Decimal           @db.Decimal(15, 2)
+  depositAmount   Decimal           @db.Decimal(15, 2)
+  totalAmount     Decimal           @db.Decimal(15, 2)
   policySnapshot  Json
   notes           String?
   confirmedAt     DateTime?
   activatedAt     DateTime?
   completedAt     DateTime?
   cancelledAt     DateTime?
-  createdAt       DateTime                    @default(now())
-  updatedAt       DateTime                    @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
   createdBy       String
+
+  // Public access token for customer tracking
+  publicToken String? @unique @default(uuid())
+
+  // Santi Living Integration Fields
+  deliveryFee     Decimal? @db.Decimal(15, 2)
+  deliveryAddress String?  @db.Text // Full combined address for display
+  street          String? // Jalan/nama jalan
+  kelurahan       String?
+  kecamatan       String?
+  kota            String? // Kabupaten/Kota
+  provinsi        String?
+  zip             String? // Kode pos
+  latitude        Decimal? @db.Decimal(10, 8)
+  longitude       Decimal? @db.Decimal(11, 8)
+  paymentMethod   String? // "qris" | "transfer"
+  discountAmount  Decimal? @db.Decimal(15, 2)
+  discountLabel   String?
+  orderSource     String?  @default("admin") // "website" | "admin"
+
+  // Relations
   conditionLogs   ItemConditionLog[]
   deposit         RentalDeposit?
   company         Company                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -679,6 +712,7 @@ model RentalOrder {
   @@index([companyId, status])
   @@index([companyId, partnerId])
   @@index([dueDateTime])
+  @@index([orderSource])
 }
 
 model RentalOrderExtension {

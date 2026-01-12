@@ -104,7 +104,7 @@ export const SessionScalarFieldEnumSchema = z.enum(['id','userId','expiresAt','c
 
 export const CompanyMemberScalarFieldEnumSchema = z.enum(['id','userId','companyId','roleId','createdAt']);
 
-export const PartnerScalarFieldEnumSchema = z.enum(['id','companyId','type','name','email','phone','address','createdAt','updatedAt']);
+export const PartnerScalarFieldEnumSchema = z.enum(['id','companyId','type','name','email','phone','address','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','createdAt','updatedAt']);
 
 export const ProductScalarFieldEnumSchema = z.enum(['id','companyId','categoryId','sku','name','price','averageCost','stockQty','unitOfMeasure','costingMethod','isService','createdAt','updatedAt']);
 
@@ -162,7 +162,7 @@ export const RentalItemScalarFieldEnumSchema = z.enum(['id','companyId','product
 
 export const RentalItemUnitScalarFieldEnumSchema = z.enum(['id','rentalItemId','companyId','unitCode','condition','status','totalRentalDays','totalRentalCount','lastDeepCleaningAt','retiredAt','retirementReason','flaggedForRetirement','createdAt','updatedAt']);
 
-export const RentalOrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','orderNumber','rentalStartDate','rentalEndDate','dueDateTime','status','subtotal','depositAmount','totalAmount','policySnapshot','notes','confirmedAt','activatedAt','completedAt','cancelledAt','createdAt','updatedAt','createdBy']);
+export const RentalOrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','orderNumber','rentalStartDate','rentalEndDate','dueDateTime','status','subtotal','depositAmount','totalAmount','policySnapshot','notes','confirmedAt','activatedAt','completedAt','cancelledAt','createdAt','updatedAt','createdBy','publicToken','deliveryFee','deliveryAddress','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','paymentMethod','discountAmount','discountLabel','orderSource']);
 
 export const RentalOrderExtensionScalarFieldEnumSchema = z.enum(['id','rentalOrderId','companyId','extensionNumber','previousEndDate','newEndDate','additionalDays','additionalAmount','additionalDeposit','reason','isPaid','paidAt','paymentId','createdAt','createdBy']);
 
@@ -423,6 +423,14 @@ export const PartnerSchema = z.object({
   email: z.string().nullable(),
   phone: z.string().nullable(),
   address: z.string().nullable(),
+  street: z.string().nullable(),
+  kelurahan: z.string().nullable(),
+  kecamatan: z.string().nullable(),
+  kota: z.string().nullable(),
+  provinsi: z.string().nullable(),
+  zip: z.string().nullable(),
+  latitude: z.instanceof(PrismaDecimal, { message: "Field 'latitude' must be a Decimal. Location: ['Models', 'Partner']"}).nullable(),
+  longitude: z.instanceof(PrismaDecimal, { message: "Field 'longitude' must be a Decimal. Location: ['Models', 'Partner']"}).nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })
@@ -965,6 +973,21 @@ export const RentalOrderSchema = z.object({
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   createdBy: z.string(),
+  publicToken: z.string().nullable(),
+  deliveryFee: z.instanceof(PrismaDecimal, { message: "Field 'deliveryFee' must be a Decimal. Location: ['Models', 'RentalOrder']"}).nullable(),
+  deliveryAddress: z.string().nullable(),
+  street: z.string().nullable(),
+  kelurahan: z.string().nullable(),
+  kecamatan: z.string().nullable(),
+  kota: z.string().nullable(),
+  provinsi: z.string().nullable(),
+  zip: z.string().nullable(),
+  latitude: z.instanceof(PrismaDecimal, { message: "Field 'latitude' must be a Decimal. Location: ['Models', 'RentalOrder']"}).nullable(),
+  longitude: z.instanceof(PrismaDecimal, { message: "Field 'longitude' must be a Decimal. Location: ['Models', 'RentalOrder']"}).nullable(),
+  paymentMethod: z.string().nullable(),
+  discountAmount: z.instanceof(PrismaDecimal, { message: "Field 'discountAmount' must be a Decimal. Location: ['Models', 'RentalOrder']"}).nullable(),
+  discountLabel: z.string().nullable(),
+  orderSource: z.string().nullable(),
 })
 
 export type RentalOrder = z.infer<typeof RentalOrderSchema>
