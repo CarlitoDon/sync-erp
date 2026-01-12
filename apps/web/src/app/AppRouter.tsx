@@ -84,6 +84,9 @@ const ShipmentDetail = lazy(
 const RentalItems = lazy(
   () => import('@/features/rental/pages/RentalItemsPage')
 );
+const RentalBundles = lazy(
+  () => import('@/features/rental/pages/RentalBundlesPage')
+);
 const RentalOrders = lazy(
   () => import('@/features/rental/pages/RentalOrdersPage')
 );
@@ -297,6 +300,14 @@ export function AppRouter() {
             element={
               <LazyRoute>
                 <RentalItems />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="rental/bundles"
+            element={
+              <LazyRoute>
+                <RentalBundles />
               </LazyRoute>
             }
           />
