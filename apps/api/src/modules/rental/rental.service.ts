@@ -408,15 +408,36 @@ export class RentalService {
       );
     }
 
-    // Fetch items to calculate pricing
-    const itemIds = data.items.map((i) => i.rentalItemId);
-    const items = await prisma.rentalItem.findMany({
-      where: { id: { in: itemIds }, companyId },
-    });
+    // List IDs
+    const rentalItemIds = data.items
+      .map((i) => i.rentalItemId)
+      .filter((id): id is string => !!id);
+    const rentalBundleIds = data.items
+      .map((i) => i.rentalBundleId)
+      .filter((id): id is string => !!id);
 
-    if (items.length !== itemIds.length) {
+    // Fetch items and bundles
+    const [items, bundles] = await Promise.all([
+      prisma.rentalItem.findMany({
+        where: { id: { in: rentalItemIds }, companyId },
+      }),
+      prisma.rentalBundle.findMany({
+        where: { id: { in: rentalBundleIds }, companyId },
+      }),
+    ]);
+
+    // Validate all found
+    if (items.length !== new Set(rentalItemIds).size) {
+      // Identify missing
       throw new DomainError(
         'Some rental items not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+    if (bundles.length !== new Set(rentalBundleIds).size) {
+      throw new DomainError(
+        'Some rental bundles not found',
         404,
         DomainErrorCodes.ORDER_NOT_FOUND
       );
@@ -436,22 +457,51 @@ export class RentalService {
       [];
 
     for (const orderItem of data.items) {
-      const item = items.find(
-        (i) => i.id === orderItem.rentalItemId
-      )!;
+      let dailyRate = 0;
+      let weeklyRate = 0;
+      let monthlyRate = 0;
+      let itemId: string | undefined;
+      let bundleId: string | undefined;
+
+      if (orderItem.rentalItemId) {
+        const item = items.find(
+          (i) => i.id === orderItem.rentalItemId
+        )!;
+        dailyRate = item.dailyRate.toNumber();
+        weeklyRate = item.weeklyRate.toNumber();
+        monthlyRate = item.monthlyRate.toNumber();
+        itemId = item.id;
+      } else if (orderItem.rentalBundleId) {
+        const bundle = bundles.find(
+          (b) => b.id === orderItem.rentalBundleId
+        )!;
+        dailyRate = bundle.dailyRate.toNumber();
+        weeklyRate = bundle.weeklyRate
+          ? bundle.weeklyRate.toNumber()
+          : dailyRate * 7;
+        monthlyRate = bundle.monthlyRate
+          ? bundle.monthlyRate.toNumber()
+          : dailyRate * 30;
+        bundleId = bundle.id;
+      } else {
+        continue; // Should be caught by validation
+      }
 
       const tier = calculateOptimalTier(
         rentalDays,
-        item.dailyRate.toNumber(),
-        item.weeklyRate.toNumber(),
-        item.monthlyRate.toNumber()
+        dailyRate,
+        weeklyRate,
+        monthlyRate
       );
 
       const itemTotal = tier.totalAmount.times(orderItem.quantity);
       subtotal = subtotal.plus(itemTotal);
 
       orderItems.push({
-        rentalItem: { connect: { id: item.id } },
+        rentalItem: itemId ? { connect: { id: itemId } } : undefined,
+        rentalBundle: bundleId
+          ? { connect: { id: bundleId } }
+          : undefined,
         quantity: orderItem.quantity,
         unitPrice: tier.ratePerDay,
         subtotal: itemTotal,
