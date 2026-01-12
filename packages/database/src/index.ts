@@ -79,6 +79,7 @@ export {
   UnitCondition,
   UnitStatus,
   RentalOrderStatus,
+  OrderSource,
   DepositStatus,
   ReturnStatus,
   ConditionType,

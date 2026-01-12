@@ -326,6 +326,10 @@ export const RentalOrderStatusSchema = z.enum(['DRAFT','CONFIRMED','ACTIVE','COM
 
 export type RentalOrderStatusType = `${z.infer<typeof RentalOrderStatusSchema>}`
 
+export const OrderSourceSchema = z.enum(['ADMIN','WEBSITE']);
+
+export type OrderSourceType = `${z.infer<typeof OrderSourceSchema>}`
+
 export const PricingTierSchema = z.enum(['DAILY','WEEKLY','MONTHLY','CUSTOM']);
 
 export type PricingTierType = `${z.infer<typeof PricingTierSchema>}`
@@ -996,6 +1000,7 @@ export type RentalItemUnit = z.infer<typeof RentalItemUnitSchema>
 
 export const RentalOrderSchema = z.object({
   status: RentalOrderStatusSchema,
+  orderSource: OrderSourceSchema,
   id: z.string(),
   companyId: z.string(),
   partnerId: z.string(),
@@ -1029,7 +1034,6 @@ export const RentalOrderSchema = z.object({
   paymentMethod: z.string().nullable(),
   discountAmount: z.instanceof(PrismaDecimal, { message: "Field 'discountAmount' must be a Decimal. Location: ['Models', 'RentalOrder']"}).nullable(),
   discountLabel: z.string().nullable(),
-  orderSource: z.string().nullable(),
 })
 
 export type RentalOrder = z.infer<typeof RentalOrderSchema>

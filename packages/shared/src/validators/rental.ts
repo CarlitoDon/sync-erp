@@ -6,6 +6,7 @@ import {
   PartnerSchema,
   RentalItemUnitSchema,
   RentalOrderStatusSchema,
+  OrderSourceSchema,
   UnitStatusSchema,
   UnitConditionSchema,
   DepositPolicyTypeSchema,
@@ -23,6 +24,9 @@ export const RentalOrderStatus = RentalOrderStatusSchema.enum;
 export type RentalOrderStatus = z.infer<
   typeof RentalOrderStatusSchema
 >;
+
+export const OrderSource = OrderSourceSchema.enum;
+export type OrderSource = z.infer<typeof OrderSourceSchema>;
 
 export const UnitStatus = UnitStatusSchema.enum;
 export type UnitStatus = z.infer<typeof UnitStatusSchema>;
@@ -62,6 +66,27 @@ export const RentalOrderWithRelationsSchema =
             id: z.string(),
             name: z.string(),
             shortName: z.string().nullable().optional(),
+            components: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  quantity: z.number(),
+                  rentalItem: z
+                    .object({
+                      id: z.string(),
+                      product: z
+                        .object({
+                          id: z.string(),
+                          name: z.string(),
+                        })
+                        .nullable()
+                        .optional(),
+                    })
+                    .nullable()
+                    .optional(),
+                })
+              )
+              .optional(),
           })
           .nullable()
           .optional(),
@@ -168,10 +193,15 @@ export const UpdateUnitStatusSchema = z.object({
 // Rental Orders
 // ==========================================
 
-const RentalOrderItemSchema = z.object({
-  rentalItemId: z.string().uuid(),
-  quantity: z.number().int().positive(),
-});
+const RentalOrderItemSchema = z
+  .object({
+    rentalItemId: z.string().uuid().optional(),
+    rentalBundleId: z.string().uuid().optional(),
+    quantity: z.number().int().positive(),
+  })
+  .refine((data) => !!data.rentalItemId || !!data.rentalBundleId, {
+    message: 'Either rentalItemId or rentalBundleId is required',
+  });
 
 export const CreateRentalOrderSchema = z
   .object({
