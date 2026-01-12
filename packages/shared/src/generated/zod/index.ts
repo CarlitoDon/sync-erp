@@ -160,13 +160,17 @@ export const CashTransactionItemScalarFieldEnumSchema = z.enum(['id','cashTransa
 
 export const RentalItemScalarFieldEnumSchema = z.enum(['id','companyId','productId','dailyRate','weeklyRate','monthlyRate','depositPolicyType','depositPercentage','depositPerUnit','isActive','createdAt','updatedAt']);
 
+export const RentalBundleScalarFieldEnumSchema = z.enum(['id','companyId','externalId','name','shortName','description','dailyRate','weeklyRate','monthlyRate','dimensions','capacity','imagePath','isActive','createdAt','updatedAt']);
+
+export const RentalBundleComponentScalarFieldEnumSchema = z.enum(['id','bundleId','rentalItemId','quantity','componentLabel']);
+
 export const RentalItemUnitScalarFieldEnumSchema = z.enum(['id','rentalItemId','companyId','unitCode','condition','status','totalRentalDays','totalRentalCount','lastDeepCleaningAt','retiredAt','retirementReason','flaggedForRetirement','createdAt','updatedAt']);
 
 export const RentalOrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','orderNumber','rentalStartDate','rentalEndDate','dueDateTime','status','subtotal','depositAmount','totalAmount','policySnapshot','notes','confirmedAt','activatedAt','completedAt','cancelledAt','createdAt','updatedAt','createdBy','publicToken','deliveryFee','deliveryAddress','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','paymentMethod','discountAmount','discountLabel','orderSource']);
 
 export const RentalOrderExtensionScalarFieldEnumSchema = z.enum(['id','rentalOrderId','companyId','extensionNumber','previousEndDate','newEndDate','additionalDays','additionalAmount','additionalDeposit','reason','isPaid','paidAt','paymentId','createdAt','createdBy']);
 
-export const RentalOrderItemScalarFieldEnumSchema = z.enum(['id','rentalOrderId','rentalItemId','quantity','unitPrice','pricingTier','subtotal']);
+export const RentalOrderItemScalarFieldEnumSchema = z.enum(['id','rentalOrderId','rentalItemId','rentalBundleId','quantity','unitPrice','pricingTier','subtotal']);
 
 export const RentalOrderUnitAssignmentScalarFieldEnumSchema = z.enum(['id','rentalOrderId','rentalItemUnitId','lockedAt','lockedBy','overriddenAt','overriddenBy','overrideReason']);
 
@@ -926,6 +930,44 @@ export const RentalItemSchema = z.object({
 export type RentalItem = z.infer<typeof RentalItemSchema>
 
 /////////////////////////////////////////
+// RENTAL BUNDLE SCHEMA
+/////////////////////////////////////////
+
+export const RentalBundleSchema = z.object({
+  id: z.string(),
+  companyId: z.string(),
+  externalId: z.string().nullable(),
+  name: z.string(),
+  shortName: z.string().nullable(),
+  description: z.string().nullable(),
+  dailyRate: z.instanceof(PrismaDecimal, { message: "Field 'dailyRate' must be a Decimal. Location: ['Models', 'RentalBundle']"}),
+  weeklyRate: z.instanceof(PrismaDecimal, { message: "Field 'weeklyRate' must be a Decimal. Location: ['Models', 'RentalBundle']"}).nullable(),
+  monthlyRate: z.instanceof(PrismaDecimal, { message: "Field 'monthlyRate' must be a Decimal. Location: ['Models', 'RentalBundle']"}).nullable(),
+  dimensions: z.string().nullable(),
+  capacity: z.string().nullable(),
+  imagePath: z.string().nullable(),
+  isActive: z.boolean(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type RentalBundle = z.infer<typeof RentalBundleSchema>
+
+/////////////////////////////////////////
+// RENTAL BUNDLE COMPONENT SCHEMA
+/////////////////////////////////////////
+
+export const RentalBundleComponentSchema = z.object({
+  id: z.string(),
+  bundleId: z.string(),
+  rentalItemId: z.string(),
+  quantity: z.number(),
+  componentLabel: z.string(),
+})
+
+export type RentalBundleComponent = z.infer<typeof RentalBundleComponentSchema>
+
+/////////////////////////////////////////
 // RENTAL ITEM UNIT SCHEMA
 /////////////////////////////////////////
 
@@ -1024,7 +1066,8 @@ export const RentalOrderItemSchema = z.object({
   pricingTier: PricingTierSchema,
   id: z.string(),
   rentalOrderId: z.string(),
-  rentalItemId: z.string(),
+  rentalItemId: z.string().nullable(),
+  rentalBundleId: z.string().nullable(),
   quantity: z.number(),
   unitPrice: z.instanceof(PrismaDecimal, { message: "Field 'unitPrice' must be a Decimal. Location: ['Models', 'RentalOrderItem']"}),
   subtotal: z.instanceof(PrismaDecimal, { message: "Field 'subtotal' must be a Decimal. Location: ['Models', 'RentalOrderItem']"}),

@@ -55,7 +55,16 @@ export const RentalOrderWithRelationsSchema =
   RentalOrderSchema.extend({
     items: z.array(
       GeneratedRentalOrderItemSchema.extend({
-        rentalItem: RentalItemWithRelationsSchema,
+        rentalItem:
+          RentalItemWithRelationsSchema.nullable().optional(),
+        rentalBundle: z
+          .object({
+            id: z.string(),
+            name: z.string(),
+            shortName: z.string().nullable().optional(),
+          })
+          .nullable()
+          .optional(),
       })
     ),
     partner: PartnerSchema,

@@ -51,6 +51,12 @@ export const publicRentalRouter = router({
                   },
                 },
               },
+              rentalBundle: {
+                select: {
+                  name: true,
+                  shortName: true,
+                },
+              },
             },
           },
         },
@@ -94,7 +100,10 @@ export const publicRentalRouter = router({
         // Relations
         partner: order.partner,
         items: order.items.map((item) => ({
-          name: item.rentalItem.product?.name || 'Unknown',
+          name:
+            item.rentalItem?.product?.name ||
+            item.rentalBundle?.name ||
+            'Unknown',
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           subtotal: item.subtotal,
@@ -109,7 +118,7 @@ export const publicRentalRouter = router({
   findOrCreatePartner: publicProcedure
     .input(
       z.object({
-        companyId: z.string().uuid(),
+        companyId: z.string().min(1),
         name: z.string().min(2),
         phone: z.string().min(10),
         email: z.string().email().optional(),
@@ -189,13 +198,13 @@ export const publicRentalRouter = router({
   createOrder: publicProcedure
     .input(
       z.object({
-        companyId: z.string().uuid(),
-        partnerId: z.string().uuid(),
+        companyId: z.string().min(1),
+        partnerId: z.string().min(1),
         rentalStartDate: z.coerce.date(),
         rentalEndDate: z.coerce.date(),
         items: z.array(
           z.object({
-            rentalItemId: z.string().uuid(),
+            rentalItemId: z.string().min(1),
             quantity: z.number().int().positive(),
           })
         ),
@@ -218,19 +227,62 @@ export const publicRentalRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      // Fetch rental items for pricing
-      const rentalItems = await prisma.rentalItem.findMany({
+      // Fetch rental items for pricing - try by ID first, then by name for santi-living
+      let rentalItems = await prisma.rentalItem.findMany({
         where: {
           id: { in: input.items.map((i) => i.rentalItemId) },
           companyId: input.companyId,
         },
       });
 
+      // If not found by ID, try by name (for santi-living integration)
       if (rentalItems.length !== input.items.length) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Some rental items not found',
+        // Try lookup by product name
+        const itemNames = input.items.map((i) => i.rentalItemId);
+        const rentalItemsByName = await prisma.rentalItem.findMany({
+          where: {
+            companyId: input.companyId,
+            product: {
+              name: { in: itemNames, mode: 'insensitive' },
+            },
+          },
+          include: { product: true },
         });
+
+        // If still not found, auto-create rental items for santi-living
+        if (rentalItemsByName.length === 0) {
+          // Create products and rental items on the fly for santi-living orders
+          const createdItems = [];
+          for (const item of input.items) {
+            // Create product
+            const product = await prisma.product.create({
+              data: {
+                companyId: input.companyId,
+                sku: `SL-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                name: item.rentalItemId, // Use the name as product name
+                price: 0,
+              },
+            });
+
+            // Create rental item linked to product
+            const rentalItem = await prisma.rentalItem.create({
+              data: {
+                companyId: input.companyId,
+                productId: product.id,
+                dailyRate: 30000, // Default daily rate
+                weeklyRate: 180000,
+                monthlyRate: 600000,
+                depositPolicyType: 'PERCENTAGE',
+                depositPercentage: 0,
+                isActive: true,
+              },
+            });
+            createdItems.push(rentalItem);
+          }
+          rentalItems = createdItems;
+        } else {
+          rentalItems = rentalItemsByName;
+        }
       }
 
       // Calculate duration and pricing
@@ -242,15 +294,28 @@ export const publicRentalRouter = router({
 
       // Calculate subtotal (simplified: daily rate * days * quantity)
       let subtotal = 0;
-      const orderItems = input.items.map((item) => {
-        const rentalItem = rentalItems.find(
+      const orderItems = input.items.map((item, index) => {
+        // Try to find by ID first, then by index (for auto-created items)
+        let rentalItem = rentalItems.find(
           (r) => r.id === item.rentalItemId
-        )!;
+        );
+        // If not found by ID, use index-based mapping (auto-created items)
+        if (!rentalItem && rentalItems[index]) {
+          rentalItem = rentalItems[index];
+        }
+
+        if (!rentalItem) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Rental item not found for: ${item.rentalItemId}`,
+          });
+        }
+
         const itemTotal =
           Number(rentalItem.dailyRate) * durationDays * item.quantity;
         subtotal += itemTotal;
         return {
-          rentalItemId: item.rentalItemId,
+          rentalItemId: rentalItem.id, // Use actual ID, not input ID
           quantity: item.quantity,
           unitPrice: rentalItem.dailyRate,
           subtotal: itemTotal,
