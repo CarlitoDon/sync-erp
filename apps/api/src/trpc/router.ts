@@ -19,14 +19,14 @@ import { upfrontPaymentRouter } from './routers/upfrontPayment.router'; // Featu
 import { customerDepositRouter } from './routers/customerDeposit.router'; // Cash Upfront Sales
 import { cashBankRouter } from '../modules/cash-bank/cash-bank.router'; // Feature 042: Cash & Bank
 import { rentalRouter } from './routers/rental.router'; // Feature 043: Rental Business
+import { publicRentalRouter } from './routers/public-rental.router'; // Santi Living Integration
 export { Prisma } from '@sync-erp/database';
 
 export const appRouter = router({
-  // Public routes
+  // Public routes (no auth required)
   auth: authRouter,
   health: healthRouter,
-
-  // Core business documents
+  publicRental: publicRentalRouter, // External client access (santi-living)
   bill: billRouter,
   purchaseOrder: purchaseOrderRouter,
   invoice: invoiceRouter,

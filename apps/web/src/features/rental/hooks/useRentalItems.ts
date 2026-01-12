@@ -1,25 +1,11 @@
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
-import { UnitStatus, UnitCondition } from '@sync-erp/shared';
+import { UnitStatus } from '@sync-erp/shared';
 import type {
   RentalItemWithRelations,
   CreateRentalItemInput,
 } from '@sync-erp/shared';
-
-interface AddUnitInput {
-  rentalItemId: string;
-  unitCode: string;
-  condition: UnitCondition;
-}
-
-interface BulkAddUnitsInput {
-  rentalItemId: string;
-  prefix: string;
-  quantity: number;
-  startNumber: number;
-  condition: UnitCondition;
-}
 
 interface ConvertStockInput {
   rentalItemId: string;
@@ -30,6 +16,7 @@ interface ConvertStockInput {
 
 /**
  * Hook for managing rental items - queries, mutations, and helper functions.
+ * NOTE: addUnit and bulkAddUnits removed - all units must be created via convertStock
  */
 export function useRentalItems() {
   const { currentCompany } = useCompany();
@@ -48,15 +35,6 @@ export function useRentalItems() {
   const createMutation = trpc.rental.items.create.useMutation({
     onSuccess: () => utils.rental.items.list.invalidate(),
   });
-
-  const addUnitMutation = trpc.rental.items.addUnit.useMutation({
-    onSuccess: () => utils.rental.items.list.invalidate(),
-  });
-
-  const bulkAddUnitsMutation =
-    trpc.rental.items.bulkAddUnits.useMutation({
-      onSuccess: () => utils.rental.items.list.invalidate(),
-    });
 
   const convertStockMutation =
     trpc.rental.items.convertStock.useMutation({
@@ -90,20 +68,6 @@ export function useRentalItems() {
     );
   };
 
-  const addUnit = async (input: AddUnitInput) => {
-    return apiAction(
-      () => addUnitMutation.mutateAsync(input),
-      'Unit berhasil ditambahkan'
-    );
-  };
-
-  const bulkAddUnits = async (input: BulkAddUnitsInput) => {
-    return apiAction(
-      () => bulkAddUnitsMutation.mutateAsync(input),
-      `Berhasil membuat ${input.quantity} unit baru`
-    );
-  };
-
   const convertStock = async (input: ConvertStockInput) => {
     return apiAction(
       () => convertStockMutation.mutateAsync(input),
@@ -118,8 +82,6 @@ export function useRentalItems() {
 
     // Actions
     createItem,
-    addUnit,
-    bulkAddUnits,
     convertStock,
     refetch,
 
@@ -129,8 +91,6 @@ export function useRentalItems() {
 
     // Loading states
     isCreating: createMutation.isPending,
-    isAddingUnit: addUnitMutation.isPending,
-    isBulkAdding: bulkAddUnitsMutation.isPending,
     isConverting: convertStockMutation.isPending,
   };
 }
