@@ -76,6 +76,19 @@
 
 ---
 
+## Phase 6: User Story 3 - Full Rental Cycle (Priority: P2)
+
+**Goal**: Verify the end-to-end lifecycle of rental assets (Buy -> Rent -> Return -> Sell).
+
+**Independent Test**: Run `npm run test:integration --workspace=@sync-erp/api -t "Rental Asset Lifecycle"`
+
+### Tests for User Story 3
+
+- [x] T021 [US3] Create integration test `apps/api/test/integration/rental-full-cycle.test.ts`
+- [x] T022 [US3] Ensure `RentalService` and `InventoryService` can handle the manual asset conversion workflow (Integration verification)
+
+---
+
 ## Dependencies & Execution Order
 
 1.  **Phase 1 & 2**: Mandatory sequence (Schema -> Repo -> Orchestrator).

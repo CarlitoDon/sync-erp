@@ -95,6 +95,19 @@ export class BillService {
     let fulfillment: Awaited<
       ReturnType<typeof this.inventoryRepository.findFulfillmentById>
     > = null;
+
+    // Auto-link logic: If no fulfillmentId provided, check if we can auto-link to a single available GRN
+    if (!data.fulfillmentId) {
+      const unbilledGrns =
+        await this.inventoryRepository.findUnbilledFulfillmentsByOrderId(
+          companyId,
+          data.orderId
+        );
+      if (unbilledGrns.length === 1) {
+        data.fulfillmentId = unbilledGrns[0].id; // Auto-assign
+      }
+    }
+
     if (data.fulfillmentId) {
       fulfillment =
         await this.inventoryRepository.findFulfillmentById(

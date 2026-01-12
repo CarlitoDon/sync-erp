@@ -1,7 +1,7 @@
 import {
   DomainError,
   DomainErrorCodes,
-} from '../errors/domain-error';
+} from '../errors/domain-error.js';
 
 export class BusinessDate {
   private readonly _date: Date;

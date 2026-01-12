@@ -10,13 +10,13 @@
 
 ### T-001: Add Rental Entities to Prisma Schema
 
-- [ ] Add 11 new models from `data-model.md` to `packages/database/prisma/schema.prisma`
-- [ ] Add 8 new enums (DepositPolicyType, UnitCondition, UnitStatus, etc.)
-- [ ] Add relation to Partner model: `rentalRisk CustomerRentalRisk?`
-- [ ] Add relation to Company model for all rental entities
-- [ ] Run `npx prisma migrate dev --name add-rental-entities`
-- [ ] Run `npx prisma generate`
-- [ ] Verify schema with `npx prisma studio`
+- [x] Add 11 new models from `data-model.md` to `packages/database/prisma/schema.prisma`
+- [x] Add 8 new enums (DepositPolicyType, UnitCondition, UnitStatus, etc.)
+- [x] Add relation to Partner model: `rentalRisk CustomerRentalRisk?`
+- [x] Add relation to Company model for all rental entities
+- [x] Run `npx prisma migrate dev --name add-rental-entities`
+- [x] Run `npx prisma generate`
+- [x] Verify schema with `npx prisma studio`
 
 **Dependencies**: None
 **Effort**: Medium
@@ -27,11 +27,11 @@
 
 ### T-002: Create Rental Zod Schemas
 
-- [ ] Create `packages/shared/src/validators/rental.ts`
-- [ ] Add schemas: `CreateRentalItemSchema`, `CreateRentalOrderSchema`, `ProcessReturnSchema`
-- [ ] Export types using `z.infer<typeof Schema>`
-- [ ] Add `export * from './rental'` to `validators/index.ts`
-- [ ] Rebuild: `cd packages/shared && npm run build`
+- [x] Create `packages/shared/src/validators/rental.ts`
+- [x] Add rental schemas for Item, Order, Return
+- [x] Add types for all API inputs/outputs
+- [x] Add `export * from './rental'` to `validators/index.ts`
+- [x] Rebuild: `cd packages/shared && npm run build`
 
 **Dependencies**: T-001
 **Effort**: Low
@@ -42,8 +42,11 @@
 
 ### T-003: Create Rental Repository
 
-- [ ] Create `apps/api/src/modules/rental/rental.repository.ts`
-- [ ] Implement methods:
+- [x] Create `apps/api/src/modules/rental/rental.repository.ts`
+- [x] Implement methods: `createRentalItem`, `listRentalItems`
+- [x] Implement methods: `createRentalOrder`, `findOrderById`
+- [x] Implement methods for Returns and Deposits
+- [x] Implement methods:
   - `findItems()`, `createItem()`, `addUnit()`
   - `findAvailableUnits()`, `updateUnitStatus()`
   - `createOrder()`, `confirmOrder()`, `releaseOrder()`
@@ -55,10 +58,11 @@
 
 ### T-004: Create Rental Policy
 
-- [ ] Create `apps/api/src/modules/rental/rental.policy.ts`
-- [ ] Implement validations:
-  - `validateAvailability(itemId, quantity, dateRange)`
-  - `validateStateTransition(from, to)`
+- [x] Create `apps/api/src/modules/rental/rental.policy.ts`
+- [x] Implement Validation:
+  - `ensureUnitsAvailable`
+  - `ensureDepositSufficient`
+  - `ensureCanRelease`, `ensureCanReturn`
   - `validateSettlement(returnId)`
   - `validateCustomerRisk(partnerId)`
 
@@ -67,38 +71,38 @@
 
 ### T-005: Create Rental Rules (Pure Logic)
 
-- [ ] Create `apps/api/src/modules/rental/rules/pricing.ts`
-- [ ] Create `apps/api/src/modules/rental/rules/deposit.ts`
-- [ ] Create `apps/api/src/modules/rental/rules/late-fee.ts`
-- [ ] All functions pure (no side effects, testable)
+- [X] Create `apps/api/src/modules/rental/rules/pricing.ts`
+- [X] Create `apps/api/src/modules/rental/rules/deposit.ts`
+- [X] Create `apps/api/src/modules/rental/rules/late-fee.ts`
+- [X] All functions pure (no side effects, testable)
 
 **Dependencies**: None
 **Effort**: Low
 
 ### T-006: Create Rental Service
 
-- [ ] Create `apps/api/src/modules/rental/rental.service.ts`
-- [ ] Inject Repository, Policy via constructor
-- [ ] Implement orchestration methods following 4-phase pattern (Prepare, Orchestrate, Execute, Post-Process)
-- [ ] Use transactions for multi-step operations
+- [X] Create `apps/api/src/modules/rental/rental.service.ts`
+- [X] Inject Repository, Policy via constructor
+- [X] Implement orchestration methods following 4-phase pattern (Prepare, Orchestrate, Execute, Post-Process)
+- [X] Use transactions for multi-step operations
 
 **Dependencies**: T-003, T-004, T-005
 **Effort**: High
 
 ### T-007: Register DI Container
 
-- [ ] Add `RENTAL_SERVICE`, `RENTAL_REPOSITORY` to `ServiceKeys` enum
-- [ ] Register in `apps/api/src/modules/common/di/register.ts`
+- [X] Add `RENTAL_SERVICE`, `RENTAL_REPOSITORY` to `ServiceKeys` enum
+- [X] Register in `apps/api/src/modules/common/di/register.ts`
 
 **Dependencies**: T-006
 **Effort**: Low
 
 ### T-008: Create Rental Router
 
-- [ ] Create `apps/api/src/trpc/routers/rental.router.ts`
-- [ ] Use `protectedProcedure` for all endpoints
-- [ ] Resolve service via DI container
-- [ ] Add to `apps/api/src/trpc/router.ts`: `rental: rentalRouter`
+- [X] Create `apps/api/src/trpc/routers/rental.router.ts`
+- [X] Use `protectedProcedure` for all endpoints
+- [X] Resolve service via DI container
+- [X] Add to `apps/api/src/trpc/router.ts`: `rental: rentalRouter`
 
 **Dependencies**: T-007
 **Effort**: Medium
@@ -109,46 +113,46 @@
 
 ### T-009: Create Feature Structure
 
-- [ ] Create `apps/web/src/features/rental/` folder structure
-- [ ] Add folders: `components/`, `hooks/`, `modals/`, `pages/`, `utils/`
-- [ ] Create `types.ts` for frontend types
+- [x] Create `apps/web/src/features/rental/` folder structure
+- [x] Add folders: `components/`, `hooks/`, `modals/`, `pages/`, `utils/`
+- [x] Create `types.ts` for frontend types
 
 **Dependencies**: T-008
 **Effort**: Low
 
 ### T-010: Create Rental Hooks
 
-- [ ] Create `hooks/useRentalMutations.ts` (apiAction + cache invalidation)
-- [ ] Create `hooks/useUnitAvailability.ts` (availability queries)
+- [x] Create `hooks/useRentalMutations.ts` (apiAction + cache invalidation)
+- [x] Create `hooks/useUnitAvailability.ts` (availability queries)
 
 **Dependencies**: T-008, T-009
 **Effort**: Medium
 
 ### T-011: Create Main Pages
 
-- [ ] Create `pages/RentalItemsPage.tsx` (list items, add units)
-- [ ] Create `pages/RentalOrdersPage.tsx` (list orders)
-- [ ] Create `pages/ReturnsPage.tsx` (process returns)
-- [ ] Create `pages/OverduePage.tsx` (overdue dashboard)
+- [x] Create `pages/RentalItemsPage.tsx` (list items, add units)
+- [x] Create `pages/RentalOrdersPage.tsx` (list orders)
+- [x] Create `pages/ReturnsPage.tsx` (process returns)
+- [x] Create `pages/OverduePage.tsx` (overdue dashboard)
 
 **Dependencies**: T-010
 **Effort**: High
 
 ### T-012: Create Modals
 
-- [ ] Create `modals/RentalOrderModal.tsx` (order wizard)
-- [ ] Create `modals/UnitAssignmentModal.tsx` (assign units with photos)
-- [ ] Create `modals/ReturnModal.tsx` (return + settlement)
-- [ ] Create `modals/UnitStatusModal.tsx` (status transitions)
+- [x] Create `modals/RentalOrderModal.tsx` (order wizard)
+- [x] Create `modals/UnitAssignmentModal.tsx` (assign units with photos)
+- [x] Create `modals/ReturnModal.tsx` (return + settlement)
+- [x] Create `modals/UnitStatusModal.tsx` (status transitions)
 
 **Dependencies**: T-010
 **Effort**: High
 
 ### T-013: Add Sidebar & Routing
 
-- [ ] Add rental routes to router configuration
-- [ ] Add "Rental" menu to sidebar (visible when rental items exist)
-- [ ] Follow existing sidebar patterns
+- [x] Add rental routes to router configuration
+- [x] Add "Rental" menu to sidebar (visible when rental items exist)
+- [x] Follow existing sidebar patterns
 
 **Dependencies**: T-011
 **Effort**: Low

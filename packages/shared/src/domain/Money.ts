@@ -2,7 +2,7 @@ import { Decimal } from 'decimal.js';
 import {
   DomainError,
   DomainErrorCodes,
-} from '../errors/domain-error';
+} from '../errors/domain-error.js';
 
 export class Money {
   private readonly _amount: Decimal;

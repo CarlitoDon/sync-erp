@@ -18,6 +18,8 @@ import { financeRouter } from './routers/finance.router';
 import { upfrontPaymentRouter } from './routers/upfrontPayment.router'; // Feature 036
 import { customerDepositRouter } from './routers/customerDeposit.router'; // Cash Upfront Sales
 import { cashBankRouter } from '../modules/cash-bank/cash-bank.router'; // Feature 042: Cash & Bank
+import { rentalRouter } from './routers/rental.router'; // Feature 043: Rental Business
+export { Prisma } from '@sync-erp/database';
 
 export const appRouter = router({
   // Public routes
@@ -39,6 +41,7 @@ export const appRouter = router({
   inventory: inventoryRouter,
   upfrontPayment: upfrontPaymentRouter, // Feature 036: Procurement
   customerDeposit: customerDepositRouter, // Cash Upfront Sales
+  rental: rentalRouter, // Feature 043: Rental Business
 
   // Finance & Accounting
   finance: financeRouter,

@@ -7,3 +7,8 @@ coverage/
 .next/
 out/
 **/src/generated/
+
+// Editor and OS
+.vscode/
+.idea/
+.DS_Store

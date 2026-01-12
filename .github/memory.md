@@ -34,6 +34,12 @@ Last Updated: 2026-01-08
 
 ## Key Decisions Log
 
+### [2026-01-09] Check TypeScript Watch for Type Errors
+
+**Decision**: Always check the `TypeScript: Watch` terminal (list process id first and then check the terminal) when needing to verify type correctness.
+**Rationale**: `npm run build` might not capture all type errors or might be slower. The watch terminal provides real-time feedback.
+**Reference**: Core Workflow
+
 ### [2026-01-08] DI Container for Service Resolution
 
 **Decision**: All services MUST be resolved via DI container in routers.

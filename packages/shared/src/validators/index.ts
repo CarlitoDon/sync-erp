@@ -16,6 +16,7 @@ export * from './auth.js';
 export * from './company.js';
 export * from './finance.js';
 export * from './user.js';
+export * from './rental.js';
 
 export const PaginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -116,6 +117,7 @@ export const CreateSalesOrderSchema = CreateOrderSchema.extend({
 });
 
 // Feature 036: Add paymentTerms
+// Re-export all generated Prisma/Zod schemas for consumers
 export * from '../generated/zod/index.js';
 import { PaymentTermsSchema } from '../generated/zod/index.js';
 export const CreatePurchaseOrderSchema = CreateOrderSchema.extend({
@@ -130,7 +132,7 @@ export const CreatePurchaseOrderSchema = CreateOrderSchema.extend({
 // Inventory Schemas
 // ============================================
 
-export * from './inventory';
+export * from './inventory.js';
 
 // MovementTypeSchema is exported from generated zod
 
@@ -294,8 +296,6 @@ export const AssignRoleSchema = z.object({
 // Type Exports (inferred from schemas)
 // ============================================
 
-export * from './company.js';
-
 export type CreatePartnerInput = z.infer<typeof CreatePartnerSchema>;
 export type UpdatePartnerInput = z.infer<typeof UpdatePartnerSchema>;
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;
@@ -332,5 +332,5 @@ export type CreateAuditLogInput = z.infer<
 export type AuditLogAction = z.infer<typeof AuditLogActionSchema>;
 export type SagaLogInput = z.infer<typeof SagaLogInputSchema>;
 export type SagaStatus = z.infer<typeof SagaStatusSchema>;
-export * from './p2p';
-export * from './cash-bank';
+export * from './p2p.js';
+export * from './cash-bank.js';

@@ -19,7 +19,7 @@ npm test && npm run lint
 
 ## Code Style
 
-TypeScript / Node.js 18+: Follow standard conventions
+TypeScript / Node.js 18+: Follow standard conventions. DO NOT USE "ANY" TYPES. Use strict typing.
 
 ## Recent Changes
 

@@ -80,6 +80,28 @@ const Shipments = lazy(
 const ShipmentDetail = lazy(
   () => import('@/features/inventory/pages/ShipmentDetail')
 );
+// Rental pages - lazy loaded (new)
+const RentalItems = lazy(
+  () => import('@/features/rental/pages/RentalItemsPage')
+);
+const RentalOrders = lazy(
+  () => import('@/features/rental/pages/RentalOrdersPage')
+);
+const RentalOrderDetail = lazy(
+  () => import('@/features/rental/pages/RentalOrderDetail')
+);
+const RentalReturns = lazy(
+  () => import('@/features/rental/pages/ReturnsPage')
+);
+const RentalOverdue = lazy(
+  () => import('@/features/rental/pages/OverduePage')
+);
+const RentalSettings = lazy(
+  () => import('@/features/rental/pages/RentalSettingsPage')
+);
+const RentalScheduler = lazy(
+  () => import('@/features/rental/pages/RentalSchedulerPage')
+);
 
 // Accounting pages - lazy loaded
 const Finance = lazy(
@@ -267,6 +289,71 @@ export function AppRouter() {
             element={
               <LazyRoute>
                 <ShipmentDetail />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="rental/items"
+            element={
+              <LazyRoute>
+                <RentalItems />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="rental/orders"
+            element={
+              <LazyRoute>
+                <RentalOrders />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="rental/orders/:id"
+            element={
+              <LazyRoute>
+                <RentalOrderDetail />
+              </LazyRoute>
+            }
+          />
+
+          <Route
+            path="rental/orders/:id/release"
+            element={
+              <LazyRoute>
+                <RentalOrders />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="rental/returns"
+            element={
+              <LazyRoute>
+                <RentalReturns />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="rental/overdue"
+            element={
+              <LazyRoute>
+                <RentalOverdue />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="rental/settings"
+            element={
+              <LazyRoute>
+                <RentalSettings />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="rental/scheduler"
+            element={
+              <LazyRoute>
+                <RentalScheduler />
               </LazyRoute>
             }
           />

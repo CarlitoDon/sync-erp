@@ -46,6 +46,27 @@ As a business, I want to process a supplier purchase from order to goods receipt
 - **Partial Payments**: Invoice/Bill balance must decrement correctly by the payment amount, and state only transitions to PAID when balance reaches zero.
 - **Saga Mid-Flight Failure**: System MUST handle failures at any step of the Posting/Payment Saga, ensuring either full completion or full compensation.
 
+---
+
+### User Story 3 - Full Rental Asset Lifecycle (Priority: P2)
+
+As a business owner, I want to manage the complete lifecycle of a rental asset: acquiring stock, converting it to rental units, renting it out, processing returns, and retiring/selling suboptimal units.
+
+**Why this priority**: Validates the interaction between Inventory, Rental, and Sales modules, ensuring assets are tracked correctly across their lifespan.
+
+**Integration Scenario**:
+
+1. **Acquisition (P2P)**: Buy Mattresses (Product). Stock IN.
+2. **Asset Activation**: Convert Inventory Stock to Rental Units. Stock OUT, Rental Unit CREATED.
+3. **Rental Cycle**: Rent out units -> Return units with condition check.
+4. **Disposal (O2C)**: Retire "Suboptimal" units -> Convert back to Inventory (Used Product) -> Sell.
+
+**Acceptance Scenarios**:
+
+1. **Given** purchased inventory, **When** mapped to rental units, **Then** Inventory decreases and Rental Units increase.
+2. **Given** an active rental, **When** returned with "Needs Repair" condition, **Then** unit status reflects condition.
+3. **Given** a retired rental unit, **When** sold as used stock, **Then** unit is archived and Sales Revenue is recorded.
+
 ## Requirements _(mandatory)_
 
 ### Functional Requirements
@@ -86,7 +107,9 @@ As a business, I want to process a supplier purchase from order to goods receipt
 - **SC-004**: Zero Journal entries exist for documents while they are in DRAFT state.
 - **SC-005**: Database invariants (StockQty >= 0, Invoice.balance >= 0) are enforceable at the system level and verifiable via SQL.
 - **SC-006**: 100% of state-changing commands include a `correlationId` traceable in Audit Logs and SagaLogs.
+- **SC-006**: 100% of state-changing commands include a `correlationId` traceable in Audit Logs and SagaLogs.
 - **SC-007**: Retrying an identical command (same `correlationId`) results in zero additional side effects (Idempotency).
+- **SC-008**: Rental Units track distinct lifecycle states (Available -> Rented -> Returned -> Retired).
 
 ## Constitution Compliance _(mandatory for frontend features)_
 

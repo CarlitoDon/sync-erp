@@ -3,14 +3,17 @@ import { z } from 'zod';
 // ============================================
 // Core Finance Types
 // ============================================
-
 import {
   InvoiceTypeType as InvoiceType,
   InvoiceStatusType as InvoiceStatus,
+  PaymentMethodType,
+  PaymentMethodSchema,
   JournalEntry,
   JournalLine,
 } from '../generated/zod/index.js';
 
+export const PaymentMethod = PaymentMethodSchema.enum;
+export type PaymentMethod = PaymentMethodType;
 export type { InvoiceType, InvoiceStatus };
 
 export const TAX_RATES = [

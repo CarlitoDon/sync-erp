@@ -56,10 +56,7 @@ export interface ApiResponse<T> {
 // Create/Update DTOs
 // ============================================
 
-// Create properties removed effectively by using the export below
 export * from './company.js';
-
-// CreatePartnerDto moved to partner.ts
 
 export interface CreateProductDto {
   sku: string;
@@ -78,7 +75,7 @@ export interface CreateOrderItemDto {
   quantity: number;
   price: number;
 }
-export * from './p2p';
+export * from './p2p.js';
 export * from './report.js';
 export * from './dashboard.js';
 export * from './admin.js';
