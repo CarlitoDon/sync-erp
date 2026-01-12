@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { DepositPolicyType } from '@sync-erp/shared';
 
 interface OrderItem {
-  rentalItemId: string;
+  rentalItemId?: string;
+  rentalBundleId?: string;
   quantity: number;
 }
 
@@ -14,6 +15,14 @@ interface RentalItem {
   depositPolicyType: DepositPolicyType;
   depositPercentage?: unknown;
   depositPerUnit?: unknown;
+}
+
+interface RentalBundle {
+  id: string;
+  dailyRate: unknown;
+  weeklyRate: unknown;
+  monthlyRate: unknown;
+  // Bundles assume default deposit policy for now (50%)
 }
 
 interface PricingResult {
@@ -28,29 +37,64 @@ interface PricingResult {
 export function useRentalPricing(
   items: OrderItem[],
   rentalItems: RentalItem[],
-  rentalDays: number
+  rentalDays: number,
+  rentalBundles: RentalBundle[] = []
 ): PricingResult {
   return useMemo(() => {
     let subtotal = 0;
     let depositRequired = 0;
 
     items.forEach((item) => {
-      const rentalItem = rentalItems.find(
-        (ri) => ri.id === item.rentalItemId
-      );
-      if (!rentalItem) return;
+      let dailyRate = 0;
+      let weeklyRate = 0;
+      let monthlyRate = 0;
+      let depositPolicy: {
+        type: DepositPolicyType;
+        percentage?: number;
+        perUnit?: number;
+      } = { type: DepositPolicyType.PERCENTAGE, percentage: 50 };
+
+      if (item.rentalItemId) {
+        const rentalItem = rentalItems.find(
+          (ri) => ri.id === item.rentalItemId
+        );
+        if (rentalItem) {
+          dailyRate = Number(rentalItem.dailyRate);
+          weeklyRate = Number(rentalItem.weeklyRate);
+          monthlyRate = Number(rentalItem.monthlyRate);
+          depositPolicy = {
+            type: rentalItem.depositPolicyType,
+            percentage: Number(rentalItem.depositPercentage),
+            perUnit: Number(rentalItem.depositPerUnit),
+          };
+        }
+      } else if (item.rentalBundleId) {
+        const bundle = rentalBundles.find(
+          (b) => b.id === item.rentalBundleId
+        );
+        if (bundle) {
+          dailyRate = Number(bundle.dailyRate);
+          weeklyRate = Number(bundle.weeklyRate);
+          monthlyRate = Number(bundle.monthlyRate);
+          // Default deposit for bundles
+          depositPolicy = {
+            type: DepositPolicyType.PERCENTAGE,
+            percentage: 50,
+          };
+        }
+      } else {
+        return;
+      }
 
       // Calculate pricing tier - use the best rate for customer
-      let unitPrice = Number(rentalItem.dailyRate) * rentalDays;
+      let unitPrice = dailyRate * rentalDays;
 
-      if (rentalDays >= 30) {
-        const monthlyPrice = Number(rentalItem.monthlyRate);
-        if (monthlyPrice < unitPrice) {
-          unitPrice = monthlyPrice;
+      if (rentalDays >= 30 && monthlyRate) {
+        if (monthlyRate < unitPrice) {
+          unitPrice = monthlyRate;
         }
-      } else if (rentalDays >= 7) {
-        const weeklyPrice =
-          Number(rentalItem.weeklyRate) * Math.ceil(rentalDays / 7);
+      } else if (rentalDays >= 7 && weeklyRate) {
+        const weeklyPrice = weeklyRate * Math.ceil(rentalDays / 7);
         if (weeklyPrice < unitPrice) {
           unitPrice = weeklyPrice;
         }
@@ -60,30 +104,24 @@ export function useRentalPricing(
       subtotal += lineTotal;
 
       // Calculate deposit based on policy type
-      if (
-        rentalItem.depositPolicyType === DepositPolicyType.PERCENTAGE
-      ) {
+      if (depositPolicy.type === DepositPolicyType.PERCENTAGE) {
         depositRequired +=
-          (lineTotal * Number(rentalItem.depositPercentage || 50)) /
-          100;
-      } else if (
-        rentalItem.depositPolicyType === DepositPolicyType.PER_UNIT
-      ) {
+          (lineTotal * Number(depositPolicy.percentage || 50)) / 100;
+      } else if (depositPolicy.type === DepositPolicyType.PER_UNIT) {
         depositRequired +=
-          Number(rentalItem.depositPerUnit || 0) * item.quantity;
+          Number(depositPolicy.perUnit || 0) * item.quantity;
       } else {
         // HYBRID: max of both
         const pctDeposit =
-          (lineTotal * Number(rentalItem.depositPercentage || 50)) /
-          100;
+          (lineTotal * Number(depositPolicy.percentage || 50)) / 100;
         const unitDeposit =
-          Number(rentalItem.depositPerUnit || 0) * item.quantity;
+          Number(depositPolicy.perUnit || 0) * item.quantity;
         depositRequired += Math.max(pctDeposit, unitDeposit);
       }
     });
 
     return { subtotal, depositRequired };
-  }, [items, rentalItems, rentalDays]);
+  }, [items, rentalItems, rentalBundles, rentalDays]);
 }
 
 /**

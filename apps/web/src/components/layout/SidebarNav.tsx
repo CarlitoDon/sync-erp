@@ -140,6 +140,11 @@ export default function SidebarNav() {
           icon={<ArchiveBoxIcon />}
         />
         <SidebarItem
+          path="/rental/bundles"
+          label="Bundles"
+          icon={<CubeIcon />}
+        />
+        <SidebarItem
           path="/rental/orders"
           label="Orders"
           icon={<ShoppingCartIcon />}

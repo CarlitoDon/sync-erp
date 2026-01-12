@@ -18,7 +18,9 @@ import {
 } from '../hooks';
 
 interface OrderItem {
-  rentalItemId: string;
+  type: 'item' | 'bundle';
+  rentalItemId?: string;
+  rentalBundleId?: string;
   quantity: number;
 }
 
@@ -45,6 +47,11 @@ export default function CreateOrderModal({
     trpc.partner.list.useQuery(undefined, {
       enabled: isOpen && !!currentCompany?.id,
     });
+  const { data: rentalBundles = [] } =
+    trpc.rentalBundle.list.useQuery(
+      { companyId: currentCompany?.id || '' },
+      { enabled: isOpen && !!currentCompany?.id }
+    );
 
   const isLoadingData = isLoadingItems || isLoadingPartners;
 
@@ -58,6 +65,7 @@ export default function CreateOrderModal({
   });
 
   // Form state
+  // Trigger re-compile
   const [orderForm, setOrderForm] = useState({
     partnerId: '',
     rentalStartDate: new Date().toISOString().split('T')[0],
@@ -76,7 +84,8 @@ export default function CreateOrderModal({
   const { subtotal, depositRequired } = useRentalPricing(
     orderForm.items,
     rentalItems,
-    rentalDays
+    rentalDays,
+    rentalBundles
   );
 
   const resetForm = () => {
@@ -98,14 +107,17 @@ export default function CreateOrderModal({
   const addItem = () => {
     setOrderForm({
       ...orderForm,
-      items: [...orderForm.items, { rentalItemId: '', quantity: 1 }],
+      items: [
+        ...orderForm.items,
+        { type: 'item', rentalItemId: '', quantity: 1 },
+      ],
     });
   };
 
   const updateItem = (
     idx: number,
     field: keyof OrderItem,
-    value: string | number
+    value: string | number | 'item' | 'bundle'
   ) => {
     const newItems = [...orderForm.items];
     newItems[idx] = { ...newItems[idx], [field]: value };
@@ -147,9 +159,18 @@ export default function CreateOrderModal({
           ).toISOString(),
           dueDateTime: dueDateTime.toISOString(),
           notes: orderForm.notes || undefined,
-          items: orderForm.items.filter(
-            (i) => i.rentalItemId && i.quantity > 0
-          ),
+          items: orderForm.items
+            .filter(
+              (i) =>
+                (i.rentalItemId || i.rentalBundleId) && i.quantity > 0
+            )
+            .map((i) => ({
+              rentalItemId:
+                i.type === 'item' ? i.rentalItemId : undefined,
+              rentalBundleId:
+                i.type === 'bundle' ? i.rentalBundleId : undefined,
+              quantity: i.quantity,
+            })),
         }),
       'Order berhasil dibuat'
     );
@@ -286,48 +307,121 @@ export default function CreateOrderModal({
                 ) : (
                   <div className="space-y-3">
                     {orderForm.items.map((item, idx) => {
-                      const rentalItem = rentalItems.find(
-                        (ri) => ri.id === item.rentalItemId
-                      );
-                      const availableUnits = getAvailableUnits(
-                        item.rentalItemId
-                      );
+                      const rentalItem =
+                        item.type === 'item'
+                          ? rentalItems.find(
+                              (ri) => ri.id === item.rentalItemId
+                            )
+                          : null;
+                      const rentalBundle =
+                        item.type === 'bundle'
+                          ? rentalBundles.find(
+                              (rb) => rb.id === item.rentalBundleId
+                            )
+                          : null;
+
+                      const availableUnits =
+                        item.type === 'item' && item.rentalItemId
+                          ? getAvailableUnits(item.rentalItemId)
+                          : 999; // Bundles treated as unlimited for now (or calculate based on component availability - separate task)
 
                       return (
                         <div
                           key={idx}
                           className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
                         >
-                          <div className="flex-1">
+                          {/* Type Selector */}
+                          <div className="w-24">
                             <select
-                              value={item.rentalItemId}
-                              onChange={(e) =>
-                                updateItem(
-                                  idx,
-                                  'rentalItemId',
-                                  e.target.value
-                                )
-                              }
-                              className="w-full px-3 py-2 border rounded-lg text-sm"
-                              required
+                              value={item.type}
+                              onChange={(e) => {
+                                // Reset selection when type changes
+                                const newItems = [...orderForm.items];
+                                newItems[idx] = {
+                                  ...newItems[idx],
+                                  type: e.target.value as
+                                    | 'item'
+                                    | 'bundle',
+                                  rentalItemId: '',
+                                  rentalBundleId: '',
+                                };
+                                setOrderForm({
+                                  ...orderForm,
+                                  items: newItems,
+                                });
+                              }}
+                              className="w-full px-2 py-2 border rounded-lg text-sm bg-white"
                             >
-                              <option value="">Pilih item...</option>
-                              {rentalItems.map((ri) => (
-                                <option key={ri.id} value={ri.id}>
-                                  {ri.product?.name} (
-                                  {ri.units?.filter(
-                                    (u) =>
-                                      u.status ===
-                                      UnitStatus.AVAILABLE
-                                  ).length || 0}{' '}
-                                  tersedia)
-                                </option>
-                              ))}
+                              <option value="item">Item</option>
+                              <option value="bundle">Bundle</option>
                             </select>
-                            {rentalItem && (
+                          </div>
+
+                          <div className="flex-1">
+                            {item.type === 'item' ? (
+                              <select
+                                value={item.rentalItemId || ''}
+                                onChange={(e) =>
+                                  updateItem(
+                                    idx,
+                                    'rentalItemId',
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-3 py-2 border rounded-lg text-sm"
+                                required
+                              >
+                                <option value="">
+                                  Pilih item...
+                                </option>
+                                {rentalItems.map((ri) => (
+                                  <option key={ri.id} value={ri.id}>
+                                    {ri.product?.name} (
+                                    {ri.units?.filter(
+                                      (u) =>
+                                        u.status ===
+                                        UnitStatus.AVAILABLE
+                                    ).length || 0}{' '}
+                                    tersedia)
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <select
+                                value={item.rentalBundleId || ''}
+                                onChange={(e) =>
+                                  updateItem(
+                                    idx,
+                                    'rentalBundleId',
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-3 py-2 border rounded-lg text-sm"
+                                required
+                              >
+                                <option value="">
+                                  Pilih bundle...
+                                </option>
+                                {rentalBundles.map((rb) => (
+                                  <option key={rb.id} value={rb.id}>
+                                    {rb.name} (
+                                    {formatCurrency(
+                                      Number(rb.dailyRate)
+                                    )}
+                                    /hari)
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+
+                            {(rentalItem || rentalBundle) && (
                               <p className="text-xs text-gray-500 mt-1">
                                 {formatCurrency(
-                                  Number(rentalItem.dailyRate)
+                                  Number(
+                                    rentalItem?.dailyRate ||
+                                      rentalBundle?.dailyRate ||
+                                      0
+                                  )
                                 )}
                                 /hari
                               </p>

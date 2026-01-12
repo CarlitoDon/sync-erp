@@ -16,8 +16,10 @@ import {
   CheckCircleIcon,
   TruckIcon,
   ArrowUturnLeftIcon,
+  GlobeAltIcon,
+  ComputerDesktopIcon,
 } from '@heroicons/react/24/outline';
-import { RentalOrderStatus } from '@sync-erp/shared';
+import { RentalOrderStatus, OrderSource } from '@sync-erp/shared';
 import type { RentalOrderWithRelations } from '@sync-erp/shared';
 import UnitAssignmentModal from '../modals/UnitAssignmentModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
@@ -199,12 +201,25 @@ export default function RentalOrdersPage() {
               {filteredOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
-                    <Link
-                      to={`/rental/orders/${order.id}`}
-                      className="font-medium text-primary-600 hover:underline"
-                    >
-                      {order.orderNumber}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/rental/orders/${order.id}`}
+                        className="font-medium text-primary-600 hover:underline"
+                      >
+                        {order.orderNumber}
+                      </Link>
+                      {order.orderSource === OrderSource.WEBSITE ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 text-blue-700" title="Order dari Santi Living">
+                          <GlobeAltIcon className="w-3 h-3" />
+                          Website
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-600" title="Order dibuat manual">
+                          <ComputerDesktopIcon className="w-3 h-3" />
+                          Manual
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-gray-900">
                     {order.partner?.name || '-'}

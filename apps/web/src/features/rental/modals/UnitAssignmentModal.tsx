@@ -1,9 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import FormModal from '@/components/ui/FormModal';
 import { apiAction } from '@/hooks/useApiAction';
-import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { UnitStatus } from '@sync-erp/shared';
 import type { RentalOrderWithRelations } from '@sync-erp/shared';
 import { PhotoUploader } from '../components';
 import { CONDITION_OPTIONS } from '../constants';
@@ -12,6 +10,7 @@ interface UnitAssignment {
   unitId: string;
   unitCode: string;
   condition: string;
+  productName: string;
   beforePhotos: string[];
   notes: string;
 }
@@ -23,6 +22,13 @@ interface Props {
   onSuccess: () => void;
 }
 
+/**
+ * UnitAssignmentModal - Serah Terima Unit
+ *
+ * Modal ini digunakan untuk menyerahkan unit ke customer setelah order CONFIRMED.
+ * Unit yang ditampilkan adalah unit yang sudah di-reserve saat konfirmasi order.
+ * User hanya perlu menambah foto kondisi dan klik serahkan.
+ */
 export default function UnitAssignmentModal({
   isOpen,
   onClose,
@@ -31,126 +37,51 @@ export default function UnitAssignmentModal({
 }: Props) {
   const utils = trpc.useUtils();
 
-  // Fetch available units for each item in the order
-  const { data: rentalItems = [] } = trpc.rental.items.list.useQuery(
-    undefined,
-    { enabled: isOpen }
-  );
-
   const releaseMutation = trpc.rental.orders.release.useMutation({
     onSuccess: () => {
       utils.rental.orders.list.invalidate();
+      utils.rental.orders.getById.invalidate();
       onSuccess();
       onClose();
     },
   });
 
-  // State for unit assignments
-  const [assignments, setAssignments] = useState<UnitAssignment[]>(
-    []
-  );
-
-  // Get RESERVED units from order assignments (for release flow)
-  const reservedUnitsByItem = useMemo(() => {
-    const result: Record<
-      string,
-      { id: string; unitCode: string; condition: string }[]
-    > = {};
-
-    const unitAssignments = order?.unitAssignments || [];
-
-    if (unitAssignments.length > 0) {
-      order?.items?.forEach((item) => {
-        if (!item.rentalItemId) return; // Skip bundle items
-        result[item.rentalItemId] = [];
-      });
-
-      unitAssignments.forEach((assignment) => {
-        const unit = assignment.rentalItemUnit;
-        if (unit && unit.rentalItemId && result[unit.rentalItemId]) {
-          result[unit.rentalItemId].push({
-            id: unit.id,
-            unitCode: unit.unitCode,
-            condition: unit.condition,
-          });
-        }
-      });
-    } else {
-      order?.items?.forEach((item) => {
-        if (!item.rentalItemId) return; // Skip bundle items
-        const rentalItem = rentalItems.find(
-          (ri) => ri.id === item.rentalItemId
-        );
-        if (rentalItem?.units) {
-          result[item.rentalItemId] = rentalItem.units
-            .filter(
-              (u) =>
-                u.status === UnitStatus.AVAILABLE ||
-                u.status === UnitStatus.RESERVED
-            )
-            .map((u) => ({
-              id: u.id,
-              unitCode: u.unitCode,
-              condition: u.condition,
-            }));
-        }
-      });
-    }
-
-    return result;
-  }, [order, rentalItems]);
-
-  // Calculate required units per item
-  const requiredUnits = useMemo(() => {
-    const result: {
-      itemId: string;
-      itemName: string;
-      quantity: number;
-    }[] = [];
-    order?.items?.forEach((item) => {
-      if (!item.rentalItemId) return; // Skip bundle items
-      result.push({
-        itemId: item.rentalItemId,
-        itemName:
-          item.rentalItem?.product?.name ||
-          item.rentalBundle?.name ||
-          'Unknown',
-        quantity: item.quantity,
-      });
-    });
-    return result;
+  // Get reserved units from order (already assigned during confirm)
+  const reservedUnits = useMemo(() => {
+    if (!order?.unitAssignments) return [];
+    return order.unitAssignments
+      .filter((a) => a.rentalItemUnit)
+      .map((assignment) => ({
+        unitId: assignment.rentalItemUnit!.id,
+        unitCode: assignment.rentalItemUnit!.unitCode,
+        condition: assignment.rentalItemUnit!.condition,
+        productName:
+          assignment.rentalItemUnit?.rentalItem?.product?.name || 'Unknown',
+      }));
   }, [order]);
 
-  // Check if all units are assigned
-  const allUnitsAssigned = useMemo(() => {
-    const totalRequired = requiredUnits.reduce(
-      (sum, r) => sum + r.quantity,
-      0
-    );
-    return assignments.length >= totalRequired;
-  }, [assignments, requiredUnits]);
+  // State for photo uploads per unit
+  const [assignments, setAssignments] = useState<UnitAssignment[]>([]);
 
-  const toggleUnitSelection = (unit: {
-    id: string;
-    unitCode: string;
-    condition: string;
-  }) => {
-    const existing = assignments.find((a) => a.unitId === unit.id);
-    if (existing) {
-      setAssignments(assignments.filter((a) => a.unitId !== unit.id));
-    } else {
-      setAssignments([
-        ...assignments,
-        {
-          unitId: unit.id,
-          unitCode: unit.unitCode,
-          condition: unit.condition,
+  // Initialize assignments from reserved units when modal opens
+  useEffect(() => {
+    if (isOpen && reservedUnits.length > 0 && assignments.length === 0) {
+      setAssignments(
+        reservedUnits.map((u) => ({
+          unitId: u.unitId,
+          unitCode: u.unitCode,
+          condition: u.condition,
+          productName: u.productName,
           beforePhotos: [],
           notes: '',
-        },
-      ]);
+        }))
+      );
     }
-  };
+    // Reset when modal closes
+    if (!isOpen) {
+      setAssignments([]);
+    }
+  }, [isOpen, reservedUnits]);
 
   const handleAddPhoto = (unitId: string, base64: string) => {
     setAssignments((prev) =>
@@ -168,9 +99,7 @@ export default function UnitAssignmentModal({
         a.unitId === unitId
           ? {
               ...a,
-              beforePhotos: a.beforePhotos.filter(
-                (_, i) => i !== photoIndex
-              ),
+              beforePhotos: a.beforePhotos.filter((_, i) => i !== photoIndex),
             }
           : a
       )
@@ -186,14 +115,8 @@ export default function UnitAssignmentModal({
       unitAssignments: assignments.map((a) => ({
         unitId: a.unitId,
         beforePhotos:
-          a.beforePhotos.length > 0
-            ? a.beforePhotos
-            : ['placeholder-photo'],
-        condition: a.condition as
-          | 'NEW'
-          | 'GOOD'
-          | 'FAIR'
-          | 'NEEDS_REPAIR',
+          a.beforePhotos.length > 0 ? a.beforePhotos : ['placeholder-photo'],
+        condition: a.condition as 'NEW' | 'GOOD' | 'FAIR' | 'NEEDS_REPAIR',
         notes: a.notes || undefined,
       })),
     };
@@ -205,6 +128,32 @@ export default function UnitAssignmentModal({
   };
 
   if (!order) return null;
+
+  // If no reserved units, show error
+  if (reservedUnits.length === 0) {
+    return (
+      <FormModal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={`Serah Terima Unit - ${order.orderNumber}`}
+      >
+        <div className="p-6 text-center">
+          <p className="text-red-600 mb-4">
+            Tidak ada unit yang ter-reserve untuk order ini.
+          </p>
+          <p className="text-gray-500 text-sm">
+            Pastikan order sudah dikonfirmasi dan unit sudah dipilih.
+          </p>
+          <button
+            onClick={onClose}
+            className="mt-4 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Tutup
+          </button>
+        </div>
+      </FormModal>
+    );
+  }
 
   return (
     <FormModal
@@ -223,129 +172,57 @@ export default function UnitAssignmentModal({
             <span className="font-medium">{order.partner?.name}</span>
           </div>
           <div className="text-sm text-gray-600">
-            Unit yang dibutuhkan:
-            {requiredUnits.map((r) => (
-              <span
-                key={r.itemId}
-                className="ml-2 px-2 py-0.5 bg-gray-200 rounded"
-              >
-                {r.quantity}x {r.itemName}
-              </span>
-            ))}
+            Unit yang akan diserahkan:{' '}
+            <span className="font-semibold">{reservedUnits.length} unit</span>
           </div>
         </div>
 
-        {/* Unit Selection */}
+        {/* Reserved Units - Ready for Release */}
         <div className="border-t pt-4">
           <h4 className="text-sm font-medium text-gray-700 mb-3">
-            Pilih Unit yang Akan Diserahkan
+            Unit Ter-reserve ({reservedUnits.length}) - Tambah Foto Kondisi
           </h4>
+          <div className="space-y-3">
+            {assignments.map((assignment) => {
+              const conditionOption = CONDITION_OPTIONS.find(
+                (c) => c.value === assignment.condition
+              );
 
-          {requiredUnits.map((req) => (
-            <div key={req.itemId} className="mb-4">
-              <h5 className="text-sm font-medium text-gray-600 mb-2">
-                {req.itemName} ({req.quantity} unit dibutuhkan)
-              </h5>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {reservedUnitsByItem[req.itemId]?.map((unit) => {
-                  const isSelected = assignments.some(
-                    (a) => a.unitId === unit.id
-                  );
-                  const conditionStyle =
-                    CONDITION_OPTIONS.find(
-                      (c) => c.value === unit.condition
-                    )?.color || 'bg-gray-100';
-
-                  return (
-                    <button
-                      key={unit.id}
-                      type="button"
-                      onClick={() => toggleUnitSelection(unit)}
-                      className={`p-3 rounded-lg border-2 text-left transition-all ${
-                        isSelected
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-semibold">
-                          {unit.unitCode}
-                        </span>
-                        {isSelected && (
-                          <CheckIcon className="w-5 h-5 text-primary-600" />
-                        )}
-                      </div>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded ${conditionStyle}`}
-                      >
-                        {
-                          CONDITION_OPTIONS.find(
-                            (c) => c.value === unit.condition
-                          )?.label
-                        }
-                      </span>
-                    </button>
-                  );
-                })}
-                {(!reservedUnitsByItem[req.itemId] ||
-                  reservedUnitsByItem[req.itemId].length === 0) && (
-                  <p className="col-span-full text-sm text-red-600">
-                    Tidak ada unit tersedia untuk item ini
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Selected Units Details with Photo Upload */}
-        {assignments.length > 0 && (
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">
-              Unit Terpilih ({assignments.length}) - Tambah Foto
-              Kondisi
-            </h4>
-            <div className="space-y-3">
-              {assignments.map((assignment) => (
+              return (
                 <div
                   key={assignment.unitId}
-                  className="p-3 bg-primary-50 rounded-lg"
+                  className="p-4 bg-green-50 border border-green-200 rounded-lg"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono font-semibold">
-                      {assignment.unitCode}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        toggleUnitSelection({
-                          id: assignment.unitId,
-                          unitCode: assignment.unitCode,
-                          condition: assignment.condition,
-                        })
-                      }
-                      className="text-red-600 hover:text-red-700"
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <span className="font-mono font-semibold text-lg">
+                        {assignment.unitCode}
+                      </span>
+                      <span className="ml-2 text-sm text-gray-500">
+                        {assignment.productName}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-xs px-2 py-1 rounded ${conditionOption?.color || 'bg-gray-100'}`}
                     >
-                      <XMarkIcon className="w-4 h-4" />
-                    </button>
+                      {conditionOption?.label || assignment.condition}
+                    </span>
                   </div>
 
                   {/* Photo Upload Section */}
                   <PhotoUploader
                     photos={assignment.beforePhotos}
-                    onAdd={(base64) =>
-                      handleAddPhoto(assignment.unitId, base64)
-                    }
+                    onAdd={(base64) => handleAddPhoto(assignment.unitId, base64)}
                     onRemove={(photoIdx) =>
                       handleRemovePhoto(assignment.unitId, photoIdx)
                     }
                     label="Tambah foto kondisi unit sebelum diserahkan"
                   />
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t">
@@ -358,7 +235,7 @@ export default function UnitAssignmentModal({
           </button>
           <button
             type="submit"
-            disabled={!allUnitsAssigned || releaseMutation.isPending}
+            disabled={releaseMutation.isPending}
             className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
           >
             {releaseMutation.isPending

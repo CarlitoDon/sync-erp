@@ -18,11 +18,13 @@ import {
 import UnitAssignmentModal from '../modals/UnitAssignmentModal';
 import CancelOrderModal from '../modals/CancelOrderModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
-import { RentalOrderStatus } from '@sync-erp/shared';
+import { RentalOrderStatus, OrderSource } from '@sync-erp/shared';
 import {
   UserIcon,
   TruckIcon,
   CheckCircleIcon,
+  GlobeAltIcon,
+  ComputerDesktopIcon,
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 
@@ -59,10 +61,16 @@ export default function RentalOrderDetail() {
   // Assignments Logic - order already has correct type from TRPC
   const assignments = order.unitAssignments ?? [];
   const assignedUnitsCount = assignments.length;
-  const totalUnitsRequired = order.items.reduce(
-    (sum, item) => sum + item.quantity,
-    0
-  );
+  
+  // For bundle orders, count component units needed, not just item quantity
+  const totalUnitsRequired = order.items.reduce((sum, item) => {
+    if (item.rentalBundleId && item.rentalBundle?.components) {
+      // Bundle: count each component * bundle quantity
+      return sum + item.rentalBundle.components.length * item.quantity;
+    }
+    // Regular item: just quantity
+    return sum + item.quantity;
+  }, 0);
 
   return (
     <>
@@ -112,6 +120,17 @@ export default function RentalOrderDetail() {
             </div>
           </div>
           <div className="flex gap-2 items-center">
+            {order.orderSource === OrderSource.WEBSITE ? (
+              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700" title="Order dari Santi Living">
+                <GlobeAltIcon className="w-3.5 h-3.5" />
+                Website
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600" title="Order dibuat manual">
+                <ComputerDesktopIcon className="w-3.5 h-3.5" />
+                Manual
+              </span>
+            )}
             <StatusBadge status={order.status} domain="rental" />
           </div>
         </div>
@@ -177,9 +196,18 @@ export default function RentalOrderDetail() {
                           <td className="px-4 py-3">
                             <div>
                               <p className="font-medium text-gray-900">
-                                {item.rentalItem?.product?.name ||
+                                {item.rentalBundle?.name ||
+                                  item.rentalItem?.product?.name ||
                                   'Unknown Product'}
                               </p>
+                              {item.rentalBundle && (
+                                <p className="text-sm text-gray-500">
+                                  {item.rentalBundle.components
+                                    ?.map((c) => c.rentalItem?.product?.name)
+                                    .filter(Boolean)
+                                    .join(', ')}
+                                </p>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right">

@@ -28,6 +28,8 @@ export interface OrderItemEditorProps {
   onAddItem: () => void;
   /** Handler for removing item at index */
   onRemoveItem: (index: number) => void;
+  /** Handler for updating existing item (optional, enables inline editing) */
+  onUpdateItem?: (index: number, item: OrderItemForm) => void;
   /** List of items already added */
   items: OrderItemForm[];
   /** Calculated totals for display */
@@ -50,6 +52,7 @@ export default function OrderItemEditor({
   onCurrentItemChange,
   onAddItem,
   onRemoveItem,
+  onUpdateItem,
   items,
   totals,
 }: OrderItemEditorProps) {
@@ -66,6 +69,9 @@ export default function OrderItemEditor({
       price: product?.price ? Number(product.price) : 0,
     });
   };
+
+  // Check if any item has zero price
+  const hasZeroPriceItems = items.some((item) => item.price <= 0);
 
   return (
     <div className="border rounded-lg p-4 space-y-3">
@@ -119,43 +125,61 @@ export default function OrderItemEditor({
 
       {/* Items Table */}
       {items.length > 0 && (
-        <table className="w-full mt-4">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-2 text-left text-sm">Product</th>
-              <th className="px-4 py-2 text-right text-sm">Qty</th>
-              <th className="px-4 py-2 text-right text-sm">
-                Unit Price
-              </th>
-              <th className="px-4 py-2 text-right text-sm">Total</th>
-              <th className="px-4 py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, index) => (
-              <tr key={index} className="border-t">
-                <td className="px-4 py-2">
-                  {getProductName(item.productId)}
-                </td>
-                <td className="px-4 py-2 text-right">
-                  {item.quantity}
-                </td>
-                <td className="px-4 py-2 text-right">
-                  {formatCurrency(item.price)}
-                </td>
-                <td className="px-4 py-2 text-right">
-                  {formatCurrency(item.quantity * item.price)}
-                </td>
-                <td className="px-4 py-2 text-right">
-                  <ActionButton
-                    onClick={() => onRemoveItem(index)}
-                    variant="danger"
-                  >
-                    Remove
-                  </ActionButton>
-                </td>
+        <>
+          {hasZeroPriceItems && (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              ⚠️ Ada item dengan harga Rp 0. Silakan isi harga terlebih dahulu.
+            </div>
+          )}
+          <table className="w-full mt-4">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-sm">Product</th>
+                <th className="px-4 py-2 text-right text-sm">Qty</th>
+                <th className="px-4 py-2 text-right text-sm">
+                  Unit Price
+                </th>
+                <th className="px-4 py-2 text-right text-sm">Total</th>
+                <th className="px-4 py-2"></th>
               </tr>
-            ))}
+            </thead>
+            <tbody>
+              {items.map((item, index) => (
+                <tr key={index} className={`border-t ${item.price <= 0 ? 'bg-amber-50' : ''}`}>
+                  <td className="px-4 py-2">
+                    {getProductName(item.productId)}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    {item.quantity}
+                  </td>
+                  <td className="px-4 py-2">
+                    {onUpdateItem ? (
+                      <div className="flex justify-end">
+                        <CurrencyInput
+                          value={item.price}
+                          onChange={(price) =>
+                            onUpdateItem(index, { ...item, price })
+                          }
+                          className={`w-32 text-right ${item.price <= 0 ? 'border-amber-400 bg-amber-50' : ''}`}
+                        />
+                      </div>
+                    ) : (
+                      <span className="block text-right">{formatCurrency(item.price)}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    {formatCurrency(item.quantity * item.price)}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <ActionButton
+                      onClick={() => onRemoveItem(index)}
+                      variant="danger"
+                    >
+                      Remove
+                    </ActionButton>
+                  </td>
+                </tr>
+              ))}
 
             {/* Totals Summary */}
             <tr className="border-t">
@@ -201,6 +225,7 @@ export default function OrderItemEditor({
             </tr>
           </tbody>
         </table>
+        </>
       )}
     </div>
   );

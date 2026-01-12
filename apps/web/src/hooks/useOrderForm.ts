@@ -57,6 +57,7 @@ export interface UseOrderFormReturn {
   partnerId: string;
   setPartnerId: (id: string) => void;
   items: OrderItemForm[];
+  setItems: React.Dispatch<React.SetStateAction<OrderItemForm[]>>;
   taxRate: number;
   setTaxRate: (rate: number) => void;
   paymentConfig: PaymentConfig;
@@ -70,6 +71,7 @@ export interface UseOrderFormReturn {
 
   // Actions
   addItem: () => void;
+  updateItem: (index: number, item: OrderItemForm) => void;
   removeItem: (index: number) => void;
   resetForm: () => void;
 
@@ -161,6 +163,11 @@ export function useOrderForm(
     setCurrentItem(DEFAULT_ITEM);
   }, [currentItem]);
 
+  // Action: Update item at index
+  const updateItem = useCallback((index: number, item: OrderItemForm) => {
+    setItems((prev) => prev.map((it, i) => (i === index ? item : it)));
+  }, []);
+
   // Action: Remove item at index
   const removeItem = useCallback((index: number) => {
     setItems((prev) => prev.filter((_, i) => i !== index));
@@ -178,16 +185,19 @@ export function useOrderForm(
     setCurrentItem(DEFAULT_ITEM);
   }, [defaultTaxRate, defaultPaymentTerms]);
 
-  // Validation: form is valid if partner selected and at least one item
+  // Validation: form is valid if partner selected, has items, and all items have price > 0
   const isValid = useMemo(() => {
-    return partnerId !== '' && items.length > 0;
-  }, [partnerId, items.length]);
+    const hasItems = items.length > 0;
+    const allHavePrice = items.every((item) => item.price > 0);
+    return partnerId !== '' && hasItems && allHavePrice;
+  }, [partnerId, items]);
 
   return {
     // State
     partnerId,
     setPartnerId,
     items,
+    setItems,
     taxRate,
     setTaxRate,
     paymentConfig,
@@ -197,6 +207,7 @@ export function useOrderForm(
 
     // Actions
     addItem,
+    updateItem,
     removeItem,
     resetForm,
 

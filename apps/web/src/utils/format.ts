@@ -28,3 +28,27 @@ export const formatDateTime = (date: string | Date) => {
   });
   return `${dateStr}, ${timeStr}`;
 };
+
+/**
+ * Get Santi Living asset URL (images, etc)
+ * In development: uses localhost:4321 (Astro dev server)
+ * In production: uses santiliving.com
+ */
+export const getSantiLivingAssetUrl = (path: string): string => {
+  if (!path) return '';
+
+  // If already a full URL, return as-is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+
+  const isDev = import.meta.env.DEV;
+  const baseUrl = isDev
+    ? 'http://localhost:4321'
+    : 'https://santiliving.com';
+
+  // Ensure path starts with /
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  return `${baseUrl}${normalizedPath}`;
+};
