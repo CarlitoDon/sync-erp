@@ -168,6 +168,19 @@ export class RentalRepository {
                 units: true,
               },
             },
+            rentalBundle: {
+              include: {
+                components: {
+                  include: {
+                    rentalItem: {
+                      include: {
+                        product: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
         partner: true,
