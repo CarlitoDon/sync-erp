@@ -82,9 +82,12 @@ export default function GoodsReceiptDetail() {
       // Check if the linked order is COD - show payment reminder
       const order = receipt.order;
       if (order?.paymentTerms === PaymentTermsSchema.enum.COD) {
-        const goToPayment = window.confirm(
-          '🚚 COD Order - Payment due immediately!\n\nWould you like to view the order to record payment?'
-        );
+        const goToPayment = await confirm({
+          title: 'COD Order - Pembayaran Jatuh Tempo',
+          message: 'Order ini COD dan pembayaran harus segera diterima. Mau lihat detail order untuk mencatat pembayaran?',
+          confirmText: 'Lihat Order',
+          cancelText: 'Nanti',
+        });
         if (goToPayment && order.id) {
           // Navigate to PO detail which shows DP/Final Bills
           navigate(`/purchase-orders/${order.id}`);

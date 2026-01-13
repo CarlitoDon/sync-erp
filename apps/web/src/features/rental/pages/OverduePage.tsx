@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -16,7 +16,8 @@ import {
   ArrowUturnLeftIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
-import { RentalOrderStatus } from '@sync-erp/shared';
+import { RentalOrderStatus, RentalOrderWithRelations } from '@sync-erp/shared';
+import ReturnModal from '../modals/ReturnModal';
 
 export default function OverduePage() {
   const { currentCompany } = useCompany();
@@ -27,6 +28,10 @@ export default function OverduePage() {
       enabled: !!currentCompany?.id,
     });
   const orders = ordersData?.items ?? [];
+
+  // State for return modal
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<RentalOrderWithRelations | null>(null);
 
   // Calculate overdue orders
   const overdueOrders = useMemo(() => {
@@ -223,13 +228,16 @@ export default function OverduePage() {
                         <PhoneIcon className="w-4 h-4" />
                       </a>
                     )}
-                    <Link
-                      to={`/rental/returns?orderId=${order.id}`}
+                    <button
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setIsReturnModalOpen(true);
+                      }}
                       className="inline-flex items-center gap-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                     >
                       <ArrowUturnLeftIcon className="w-4 h-4" />
                       Proses Return
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -246,6 +254,20 @@ export default function OverduePage() {
           ))}
         </div>
       )}
+
+      {/* Return Modal */}
+      <ReturnModal
+        isOpen={isReturnModalOpen}
+        onClose={() => {
+          setIsReturnModalOpen(false);
+          setSelectedOrder(null);
+        }}
+        order={selectedOrder}
+        onSuccess={() => {
+          setIsReturnModalOpen(false);
+          setSelectedOrder(null);
+        }}
+      />
     </PageContainer>
   );
 }

@@ -10,6 +10,7 @@ import {
   NoCompanySelected,
   Button,
 } from '@/components/ui';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency, getSantiLivingAssetUrl } from '@/utils/format';
 import {
@@ -21,6 +22,7 @@ import { toast } from 'react-hot-toast';
 export default function RentalBundlesPage() {
   const { currentCompany } = useCompany();
   const [isSyncing, setIsSyncing] = useState(false);
+  const confirm = useConfirm();
 
   const {
     data: bundles = [],
@@ -56,10 +58,12 @@ export default function RentalBundlesPage() {
   // Hardcoded bundle data from santi-living for sync (in a real app this might come from an API or file)
   // For now, we'll just trigger the sync with the known data structure
   const handleSync = async () => {
-    if (
-      !confirm('Sinkronisasi bundle dari master data Santi Living?')
-    )
-      return;
+    const proceed = await confirm({
+      title: 'Sinkronisasi Bundle',
+      message: 'Sinkronisasi bundle dari master data Santi Living?',
+      confirmText: 'Sinkronisasi',
+    });
+    if (!proceed) return;
 
     setIsSyncing(true);
 

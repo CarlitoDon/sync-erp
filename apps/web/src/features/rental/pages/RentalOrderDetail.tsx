@@ -18,6 +18,7 @@ import {
 import UnitAssignmentModal from '../modals/UnitAssignmentModal';
 import CancelOrderModal from '../modals/CancelOrderModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
+import ReturnModal from '../modals/ReturnModal';
 import { RentalOrderStatus, OrderSource } from '@sync-erp/shared';
 import {
   UserIcon,
@@ -35,6 +36,7 @@ export default function RentalOrderDetail() {
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
 
   const { data: order, isLoading } =
     trpc.rental.orders.getById.useQuery(
@@ -90,6 +92,16 @@ export default function RentalOrderDetail() {
         orderId={order.id}
         orderNumber={order.orderNumber}
         onSuccess={() => setIsCancelModalOpen(false)}
+      />
+
+      <ReturnModal
+        isOpen={isReturnModalOpen}
+        onClose={() => setIsReturnModalOpen(false)}
+        order={order}
+        onSuccess={() => {
+          utils.rental.orders.getById.invalidate({ id: id! });
+          setIsReturnModalOpen(false);
+        }}
       />
 
       <ConfirmOrderModal
@@ -324,10 +336,7 @@ export default function RentalOrderDetail() {
                   <ActionButton
                     variant="primary"
                     className="w-full"
-                    onClick={() => {
-                      // Return flow requires modal
-                      toast('Return functionality coming soon');
-                    }}
+                    onClick={() => setIsReturnModalOpen(true)}
                   >
                     Return Units (Kembalikan)
                   </ActionButton>

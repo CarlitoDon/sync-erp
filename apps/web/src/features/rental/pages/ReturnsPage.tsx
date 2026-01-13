@@ -180,7 +180,7 @@ export default function ReturnsPage() {
     }));
 
     if (units.length === 0) {
-      alert('Minimal satu unit harus dikembalikan.');
+      toast.error('Minimal satu unit harus dikembalikan.');
       return;
     }
 

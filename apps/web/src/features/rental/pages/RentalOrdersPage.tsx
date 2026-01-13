@@ -24,6 +24,7 @@ import type { RentalOrderWithRelations } from '@sync-erp/shared';
 import UnitAssignmentModal from '../modals/UnitAssignmentModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
 import CreateOrderModal from '../modals/CreateOrderModal';
+import ReturnModal from '../modals/ReturnModal';
 import { OrderStatusFilter, SearchInput } from '../components';
 import {
   ORDER_STATUS_COLORS,
@@ -53,6 +54,7 @@ export default function RentalOrdersPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isReleaseOpen, setIsReleaseOpen] = useState(false);
+  const [isReturnOpen, setIsReturnOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<
     string | null
   >(null);
@@ -275,13 +277,16 @@ export default function RentalOrdersPage() {
                         </button>
                       )}
                       {order.status === RentalOrderStatus.ACTIVE && (
-                        <Link
-                          to={`/rental/returns?orderId=${order.id}`}
+                        <button
+                          onClick={() => {
+                            setSelectedOrderId(order.id);
+                            setIsReturnOpen(true);
+                          }}
                           className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-purple-50 text-purple-700 rounded hover:bg-purple-100"
                         >
                           <ArrowUturnLeftIcon className="w-4 h-4" />
                           Proses Return
-                        </Link>
+                        </button>
                       )}
                     </div>
                   </td>
@@ -302,6 +307,21 @@ export default function RentalOrdersPage() {
         order={selectedOrder || null}
         onSuccess={() => {
           setIsReleaseOpen(false);
+          setSelectedOrderId(null);
+          utils.rental.orders.list.invalidate();
+        }}
+      />
+
+      {/* Return Modal */}
+      <ReturnModal
+        isOpen={isReturnOpen}
+        onClose={() => {
+          setIsReturnOpen(false);
+          setSelectedOrderId(null);
+        }}
+        order={selectedOrder || null}
+        onSuccess={() => {
+          setIsReturnOpen(false);
           setSelectedOrderId(null);
           utils.rental.orders.list.invalidate();
         }}
