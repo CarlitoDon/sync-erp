@@ -8,7 +8,6 @@ import {
   BanknotesIcon,
   CubeIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon,
   XCircleIcon,
   PlusIcon,
 } from '@heroicons/react/24/outline';
@@ -64,9 +63,7 @@ export default function ConfirmOrderModal({
 
   // Get bundle IDs from order items
   const bundleItems = useMemo(() => {
-    return (
-      order?.items?.filter((item) => item.rentalBundleId) ?? []
-    );
+    return order?.items?.filter((item) => item.rentalBundleId) ?? [];
   }, [order]);
 
   // Get first bundle ID for single query (handles most common case)
@@ -89,35 +86,31 @@ export default function ConfirmOrderModal({
     return [bundleAvailabilityData];
   }, [bundleAvailabilityData]);
 
-  // Check if any bundle has shortage
-  const hasBundleShortage = useMemo(() => {
-    return bundleAvailabilities.some((b) => b.hasAnyShortage);
-  }, [bundleAvailabilities]);
+  // NOTE: hasBundleShortage removed - we now use unified allShortages display
 
-  // Collect all shortages for QuickAddUnitsModal
+  // Collect all shortages for QuickAddUnitsModal - SUM shortages for same item
   const allShortages = useMemo(() => {
-    const shortages: {
-      rentalItemId: string;
-      productName: string;
-      productSku: string;
-      shortage: number;
-    }[] = [];
+    const shortageMap = new Map<
+      string,
+      {
+        rentalItemId: string;
+        productName: string;
+        productSku: string;
+        shortage: number;
+      }
+    >();
 
+    // Bundle component shortages
     bundleAvailabilities.forEach((bundle) => {
       bundle.components
         .filter((c) => c.hasShortage)
         .forEach((c) => {
-          // Avoid duplicates if same item in multiple bundles
-          const existing = shortages.find(
-            (s) => s.rentalItemId === c.rentalItemId
-          );
+          const existing = shortageMap.get(c.rentalItemId);
           if (existing) {
-            existing.shortage = Math.max(
-              existing.shortage,
-              c.shortage
-            );
+            // SUM the shortages from multiple sources
+            existing.shortage += c.shortage;
           } else {
-            shortages.push({
+            shortageMap.set(c.rentalItemId, {
               rentalItemId: c.rentalItemId,
               productName: c.productName,
               productSku: c.productSku,
@@ -127,8 +120,40 @@ export default function ConfirmOrderModal({
         });
     });
 
-    return shortages;
-  }, [bundleAvailabilities]);
+    // Non-bundle item shortages
+    order?.items
+      ?.filter((item) => item.rentalItemId && !item.rentalBundleId)
+      .forEach((item) => {
+        const rentalItem = rentalItems.find(
+          (ri) => ri.id === item.rentalItemId
+        );
+        const availableCount =
+          rentalItem?.units?.filter(
+            (u) => u.status === UnitStatus.AVAILABLE
+          ).length ?? 0;
+        const needed = item.quantity;
+        if (availableCount < needed) {
+          const itemShortage = needed - availableCount;
+          const existing = shortageMap.get(item.rentalItemId!);
+          if (existing) {
+            // SUM the shortages from multiple sources
+            existing.shortage += itemShortage;
+          } else {
+            shortageMap.set(item.rentalItemId!, {
+              rentalItemId: item.rentalItemId!,
+              productName:
+                rentalItem?.product?.name ??
+                item.rentalItem?.product?.name ??
+                'Unknown',
+              productSku: rentalItem?.product?.sku ?? '',
+              shortage: itemShortage,
+            });
+          }
+        }
+      });
+
+    return Array.from(shortageMap.values());
+  }, [bundleAvailabilities, order, rentalItems]);
 
   const confirmMutation = trpc.rental.orders.confirm.useMutation({
     onSuccess: () => {
@@ -186,7 +211,12 @@ export default function ConfirmOrderModal({
   const bundleComponentUnits = useMemo(() => {
     const result: Record<
       string,
-      { id: string; unitCode: string; condition: string; productName: string }[]
+      {
+        id: string;
+        unitCode: string;
+        condition: string;
+        productName: string;
+      }[]
     > = {};
 
     // For each bundle availability component, find available units
@@ -234,14 +264,7 @@ export default function ConfirmOrderModal({
   // Check if enough units selected
   const canConfirm = selectedUnits.length >= requiredUnits;
 
-  // Check if enough units available (for regular items only)
-  const totalAvailable = useMemo(() => {
-    let count = 0;
-    Object.values(availableUnitsByItem).forEach((units) => {
-      count += units.length;
-    });
-    return count;
-  }, [availableUnitsByItem]);
+  // NOTE: totalAvailable removed - we now use allShortages for availability check
 
   const toggleUnit = (unitId: string) => {
     if (selectedUnits.includes(unitId)) {
@@ -305,17 +328,54 @@ export default function ConfirmOrderModal({
         {/* Step 1: Deposit */}
         {step === 1 && (
           <>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex justify-between mb-2">
+            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+              <div className="flex justify-between">
                 <span className="text-gray-500">Customer:</span>
                 <span className="font-medium">
                   {order.partner?.name}
                 </span>
               </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-500">Total Order:</span>
-                <span className="font-semibold">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Subtotal:</span>
+                <span className="font-medium">
                   Rp {Number(order.subtotal).toLocaleString('id-ID')}
+                </span>
+              </div>
+              {Number(order.discountAmount) > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>
+                    Diskon{' '}
+                    {order.discountLabel
+                      ? `(${order.discountLabel})`
+                      : ''}
+                  </span>
+                  <span className="font-medium">
+                    -Rp{' '}
+                    {Number(order.discountAmount).toLocaleString(
+                      'id-ID'
+                    )}
+                  </span>
+                </div>
+              )}
+              {Number(order.deliveryFee) > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Ongkir:</span>
+                  <span className="font-medium">
+                    Rp{' '}
+                    {Number(order.deliveryFee).toLocaleString(
+                      'id-ID'
+                    )}
+                  </span>
+                </div>
+              )}
+              <hr className="my-1" />
+              <div className="flex justify-between">
+                <span className="text-gray-700 font-semibold">
+                  Total Order:
+                </span>
+                <span className="font-bold">
+                  Rp{' '}
+                  {Number(order.totalAmount).toLocaleString('id-ID')}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -328,89 +388,56 @@ export default function ConfirmOrderModal({
               </div>
             </div>
 
-            {/* Check availability first - Bundle Component Breakdown */}
-            {hasBundleShortage && (
+            {/* Unified Shortage Display - shows ALL items that are short */}
+            {allShortages.length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex items-start gap-2 mb-3">
                   <ExclamationTriangleIcon className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-red-800">
-                      Unit Tidak Cukup untuk Bundle
+                      Unit Tidak Cukup!
                     </p>
                     <p className="text-sm text-red-600 mt-1">
-                      Beberapa komponen bundle tidak memiliki unit yang
-                      tersedia. Tambahkan unit terlebih dahulu.
+                      Beberapa komponen tidak memiliki unit yang
+                      cukup. Tambahkan unit terlebih dahulu.
                     </p>
                   </div>
                 </div>
 
-                {/* Bundle Component Breakdown */}
-                {bundleAvailabilities.map((bundle) => (
-                  <div key={bundle.bundleId} className="mt-3">
-                    <p className="text-sm font-medium text-gray-800 mb-2 flex items-center gap-1">
-                      <CubeIcon className="w-4 h-4" />
-                      {bundle.bundleName} ({bundle.orderQuantity}x)
-                    </p>
-                    <div className="space-y-1.5 ml-5">
-                      {bundle.components.map((comp) => (
-                        <div
-                          key={comp.rentalItemId}
-                          className="flex items-center justify-between text-sm"
-                        >
-                          <div className="flex items-center gap-2">
-                            {comp.hasShortage ? (
-                              <XCircleIcon className="w-4 h-4 text-red-500" />
-                            ) : (
-                              <CheckCircleIcon className="w-4 h-4 text-green-500" />
-                            )}
-                            <span
-                              className={
-                                comp.hasShortage
-                                  ? 'text-red-700'
-                                  : 'text-gray-700'
-                              }
-                            >
-                              {comp.componentLabel || comp.productName}
-                            </span>
-                          </div>
-                          <span
-                            className={`text-xs ${comp.hasShortage ? 'text-red-600 font-medium' : 'text-gray-500'}`}
-                          >
-                            {comp.availableQty}/{comp.requiredQty}{' '}
-                            tersedia
-                            {comp.hasShortage && (
-                              <span className="ml-1 text-red-700">
-                                [-{comp.shortage}]
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      ))}
+                {/* Unified shortage list - all components regardless of bundle/standalone */}
+                <div className="space-y-1.5 ml-7 mb-4">
+                  {allShortages.map((shortage) => (
+                    <div
+                      key={shortage.rentalItemId}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <XCircleIcon className="w-4 h-4 text-red-500" />
+                        <span className="text-red-700">
+                          {shortage.productName}
+                        </span>
+                      </div>
+                      <span className="text-xs text-red-600 font-medium">
+                        Kurang {shortage.shortage} unit
+                      </span>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
 
                 {/* Quick Add Units Button */}
                 <button
                   type="button"
                   onClick={() => setShowQuickAddModal(true)}
-                  className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                 >
                   <PlusIcon className="w-4 h-4" />
-                  Tambah {allShortages.reduce((s, i) => s + i.shortage, 0)} Unit yang Kurang
+                  Tambah{' '}
+                  {allShortages.reduce(
+                    (s, i) => s + i.shortage,
+                    0
+                  )}{' '}
+                  Unit yang Kurang
                 </button>
-              </div>
-            )}
-
-            {/* Regular item shortage (non-bundle) - only show if order has non-bundle items */}
-            {!hasBundleShortage && bundleItems.length === 0 && totalAvailable < requiredUnits && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-                <p className="font-medium">⚠️ Unit Tidak Cukup!</p>
-                <p className="text-sm mt-1">
-                  Dibutuhkan {requiredUnits} unit, tapi hanya{' '}
-                  {totalAvailable} unit tersedia. Tambahkan unit
-                  terlebih dahulu.
-                </p>
               </div>
             )}
 
@@ -457,7 +484,7 @@ export default function ConfirmOrderModal({
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                disabled={hasBundleShortage || (bundleItems.length === 0 && totalAvailable < requiredUnits)}
+                disabled={allShortages.length > 0}
                 className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
                 Lanjut Pilih Unit →
@@ -480,24 +507,94 @@ export default function ConfirmOrderModal({
             </div>
 
             {/* Bundle order: show components */}
-            {bundleItems.length > 0 && bundleAvailabilities.map((bundle) => (
-              <div key={bundle.bundleId} className="space-y-4">
-                <h4 className="font-medium text-gray-800">
-                  {bundle.bundleName} - Pilih unit untuk setiap komponen:
-                </h4>
-                {bundle.components.map((comp) => {
-                  const units = bundleComponentUnits[comp.rentalItemId] || [];
-                  return (
-                    <div
-                      key={comp.rentalItemId}
-                      className="border rounded-lg p-4"
-                    >
-                      <h5 className="font-medium text-gray-700 mb-3">
-                        {comp.productName} ({comp.requiredQty} unit dibutuhkan)
-                      </h5>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {units.map((unit) => {
-                          const isSelected = selectedUnits.includes(unit.id);
+            {bundleItems.length > 0 &&
+              bundleAvailabilities.map((bundle) => (
+                <div key={bundle.bundleId} className="space-y-4">
+                  <h4 className="font-medium text-gray-800">
+                    {bundle.bundleName} - Pilih unit untuk setiap
+                    komponen:
+                  </h4>
+                  {bundle.components.map((comp) => {
+                    const units =
+                      bundleComponentUnits[comp.rentalItemId] || [];
+                    return (
+                      <div
+                        key={comp.rentalItemId}
+                        className="border rounded-lg p-4"
+                      >
+                        <h5 className="font-medium text-gray-700 mb-3">
+                          {comp.productName} ({comp.requiredQty} unit
+                          dibutuhkan)
+                        </h5>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {units.map((unit) => {
+                            const isSelected = selectedUnits.includes(
+                              unit.id
+                            );
+                            return (
+                              <button
+                                key={unit.id}
+                                type="button"
+                                onClick={() => toggleUnit(unit.id)}
+                                className={`p-3 rounded-lg border-2 text-left transition-all ${
+                                  isSelected
+                                    ? 'border-primary-500 bg-primary-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-mono font-semibold text-sm">
+                                    {unit.unitCode}
+                                  </span>
+                                  {isSelected && (
+                                    <CheckIcon className="w-5 h-5 text-primary-600" />
+                                  )}
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  {unit.condition}
+                                </span>
+                              </button>
+                            );
+                          })}
+                          {units.length === 0 && (
+                            <p className="col-span-full text-sm text-red-600">
+                              Tidak ada unit tersedia
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+
+            {/* Regular order: show items */}
+            {bundleItems.length === 0 &&
+              order.items
+                ?.filter((item) => item.rentalItemId)
+                .map((item) => (
+                  <div
+                    key={item.rentalItemId ?? item.id}
+                    className="border rounded-lg p-4"
+                  >
+                    <h4 className="font-medium text-gray-800 mb-3">
+                      {item.rentalItem?.product?.name} (
+                      {item.quantity} unit dibutuhkan)
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {(
+                        (item.rentalItemId &&
+                          availableUnitsByItem[item.rentalItemId]) ||
+                        []
+                      ).map(
+                        (unit: {
+                          id: string;
+                          unitCode: string;
+                          condition: string;
+                        }) => {
+                          const isSelected = selectedUnits.includes(
+                            unit.id
+                          );
                           return (
                             <button
                               key={unit.id}
@@ -510,7 +607,7 @@ export default function ConfirmOrderModal({
                               }`}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="font-mono font-semibold text-sm">
+                                <span className="font-mono font-semibold">
                                   {unit.unitCode}
                                 </span>
                                 {isSelected && (
@@ -522,82 +619,19 @@ export default function ConfirmOrderModal({
                               </span>
                             </button>
                           );
-                        })}
-                        {units.length === 0 && (
-                          <p className="col-span-full text-sm text-red-600">
-                            Tidak ada unit tersedia
-                          </p>
-                        )}
-                      </div>
+                        }
+                      )}
+                      {(!item.rentalItemId ||
+                        !availableUnitsByItem[item.rentalItemId] ||
+                        availableUnitsByItem[item.rentalItemId]
+                          .length === 0) && (
+                        <p className="col-span-full text-sm text-red-600">
+                          Tidak ada unit tersedia untuk item ini
+                        </p>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            ))}
-
-            {/* Regular order: show items */}
-            {bundleItems.length === 0 && order.items
-              ?.filter((item) => item.rentalItemId)
-              .map((item) => (
-                <div
-                  key={item.rentalItemId ?? item.id}
-                  className="border rounded-lg p-4"
-                >
-                  <h4 className="font-medium text-gray-800 mb-3">
-                    {item.rentalItem?.product?.name} ({item.quantity}{' '}
-                    unit dibutuhkan)
-                  </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {(
-                      (item.rentalItemId &&
-                        availableUnitsByItem[item.rentalItemId]) ||
-                      []
-                    ).map(
-                      (unit: {
-                        id: string;
-                        unitCode: string;
-                        condition: string;
-                      }) => {
-                        const isSelected = selectedUnits.includes(
-                          unit.id
-                        );
-                        return (
-                          <button
-                            key={unit.id}
-                            type="button"
-                            onClick={() => toggleUnit(unit.id)}
-                            className={`p-3 rounded-lg border-2 text-left transition-all ${
-                              isSelected
-                                ? 'border-primary-500 bg-primary-50'
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-mono font-semibold">
-                                {unit.unitCode}
-                              </span>
-                              {isSelected && (
-                                <CheckIcon className="w-5 h-5 text-primary-600" />
-                              )}
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {unit.condition}
-                            </span>
-                          </button>
-                        );
-                      }
-                    )}
-                    {(!item.rentalItemId ||
-                      !availableUnitsByItem[item.rentalItemId] ||
-                      availableUnitsByItem[item.rentalItemId]
-                        .length === 0) && (
-                      <p className="col-span-full text-sm text-red-600">
-                        Tidak ada unit tersedia untuk item ini
-                      </p>
-                    )}
                   </div>
-                </div>
-              ))}
+                ))}
 
             <div className="flex justify-between gap-3 pt-4 border-t">
               <button
