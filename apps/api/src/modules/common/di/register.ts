@@ -50,6 +50,7 @@ import { ReportService } from '../../accounting/services/report.service';
 import { ExpenseService } from '../../accounting/services/expense.service';
 import { CashBankService } from '../../cash-bank/cash-bank.service'; // Feature 042
 import { RentalService } from '../../rental/rental.service'; // Feature 043
+import { RentalWebhookService } from '../../rental/rental-webhook.service'; // Feature 043 - Notifications
 
 /**
  * Register all services with the DI container
@@ -318,12 +319,19 @@ export function registerServices(): void {
       )
   );
 
+  // Register webhook service before rental service (it's a dependency)
+  container.register(
+    ServiceKeys.RENTAL_WEBHOOK_SERVICE,
+    () => new RentalWebhookService()
+  );
+
   container.register(
     ServiceKeys.RENTAL_SERVICE,
     () =>
       new RentalService(
         container.resolve(ServiceKeys.RENTAL_REPOSITORY),
-        container.resolve(ServiceKeys.DOCUMENT_NUMBER_SERVICE)
+        container.resolve(ServiceKeys.DOCUMENT_NUMBER_SERVICE),
+        container.resolve(ServiceKeys.RENTAL_WEBHOOK_SERVICE)
       )
   );
 }

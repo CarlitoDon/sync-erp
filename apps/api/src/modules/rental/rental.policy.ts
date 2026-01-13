@@ -54,7 +54,7 @@ export class RentalPolicy {
   /**
    * Ensure order is in valid status for modification.
    */
-  static ensureIsDraft(order: RentalOrder): void {
+  static ensureIsDraft(order: Pick<RentalOrder, 'status'>): void {
     if (order.status !== RentalOrderStatus.DRAFT) {
       throw new DomainError(
         `Order cannot be modified in status ${order.status}`,
@@ -67,7 +67,7 @@ export class RentalPolicy {
   /**
    * Ensure order can be confirmed (must be DRAFT).
    */
-  static ensureCanConfirm(order: RentalOrder): void {
+  static ensureCanConfirm(order: Pick<RentalOrder, 'status'>): void {
     if (order.status !== RentalOrderStatus.DRAFT) {
       throw new DomainError(
         `Only DRAFT orders can be confirmed. Current status: ${order.status}`,
@@ -96,7 +96,7 @@ export class RentalPolicy {
   /**
    * Ensure order can be released (must be CONFIRMED).
    */
-  static ensureCanRelease(order: RentalOrder): void {
+  static ensureCanRelease(order: Pick<RentalOrder, 'status'>): void {
     if (order.status !== RentalOrderStatus.CONFIRMED) {
       throw new DomainError(
         `Only CONFIRMED orders can be released. Current status: ${order.status}`,
@@ -153,7 +153,7 @@ export class RentalPolicy {
   /**
    * Ensure order can be returned (must be ACTIVE).
    */
-  static ensureCanReturn(order: RentalOrder): void {
+  static ensureCanReturn(order: Pick<RentalOrder, 'status'>): void {
     if (order.status !== RentalOrderStatus.ACTIVE) {
       throw new DomainError(
         `Only ACTIVE orders can be returned. Current status: ${order.status}`,
@@ -166,7 +166,7 @@ export class RentalPolicy {
   /**
    * Ensure order can be cancelled (DRAFT or CONFIRMED).
    */
-  static ensureCanCancel(order: RentalOrder): void {
+  static ensureCanCancel(order: Pick<RentalOrder, 'status'>): void {
     if (
       order.status !== RentalOrderStatus.DRAFT &&
       order.status !== RentalOrderStatus.CONFIRMED

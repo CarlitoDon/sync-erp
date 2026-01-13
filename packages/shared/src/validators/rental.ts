@@ -6,6 +6,7 @@ import {
   PartnerSchema,
   RentalItemUnitSchema,
   RentalOrderStatusSchema,
+  RentalPaymentStatusSchema,
   OrderSourceSchema,
   UnitStatusSchema,
   UnitConditionSchema,
@@ -17,12 +18,17 @@ import {
 } from '../generated/zod/index.js';
 
 // Re-export generated schemas for use in other packages
-export { RentalItemSchema, RentalOrderSchema };
+export { RentalItemSchema, RentalOrderSchema, RentalPaymentStatusSchema };
 
 // Export runtime Enums and Types
 export const RentalOrderStatus = RentalOrderStatusSchema.enum;
 export type RentalOrderStatus = z.infer<
   typeof RentalOrderStatusSchema
+>;
+
+export const RentalPaymentStatus = RentalPaymentStatusSchema.enum;
+export type RentalPaymentStatus = z.infer<
+  typeof RentalPaymentStatusSchema
 >;
 
 export const OrderSource = OrderSourceSchema.enum;
