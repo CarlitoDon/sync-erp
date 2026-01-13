@@ -1,0 +1,79 @@
+import { lazy, Suspense } from 'react';
+import { Route } from 'react-router-dom';
+import { LoadingState } from '@/components/ui';
+
+// Inventory pages - lazy loaded
+const Products = lazy(() => import('./pages/Products'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const GoodsReceipts = lazy(() => import('./pages/GoodsReceipts'));
+const GoodsReceiptDetail = lazy(
+  () => import('./pages/GoodsReceiptDetail')
+);
+const Shipments = lazy(() => import('./pages/Shipments'));
+const ShipmentDetail = lazy(() => import('./pages/ShipmentDetail'));
+
+function LazyRoute({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<LoadingState />}>{children}</Suspense>;
+}
+
+export const InventoryRoutes = (
+  <>
+    <Route
+      path="products"
+      element={
+        <LazyRoute>
+          <Products />
+        </LazyRoute>
+      }
+    />
+    <Route
+      path="products/:id"
+      element={
+        <LazyRoute>
+          <ProductDetail />
+        </LazyRoute>
+      }
+    />
+    <Route
+      path="inventory"
+      element={
+        <LazyRoute>
+          <Inventory />
+        </LazyRoute>
+      }
+    />
+    <Route
+      path="receipts"
+      element={
+        <LazyRoute>
+          <GoodsReceipts />
+        </LazyRoute>
+      }
+    />
+    <Route
+      path="receipts/:id"
+      element={
+        <LazyRoute>
+          <GoodsReceiptDetail />
+        </LazyRoute>
+      }
+    />
+    <Route
+      path="shipments"
+      element={
+        <LazyRoute>
+          <Shipments />
+        </LazyRoute>
+      }
+    />
+    <Route
+      path="shipments/:id"
+      element={
+        <LazyRoute>
+          <ShipmentDetail />
+        </LazyRoute>
+      }
+    />
+  </>
+);
