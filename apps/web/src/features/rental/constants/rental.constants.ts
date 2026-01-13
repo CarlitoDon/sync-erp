@@ -1,5 +1,6 @@
 import {
   RentalOrderStatus,
+  RentalPaymentStatus,
   UnitStatus,
   UnitCondition,
   PaymentMethod,
@@ -105,3 +106,21 @@ export const PAYMENT_METHOD_OPTIONS = [
   { value: PaymentMethod.BANK_TRANSFER, label: 'Transfer Bank' },
   { value: PaymentMethod.CREDIT_CARD, label: 'Kartu Kredit' },
 ] as const;
+
+// ============================================
+// Rental Payment Status
+// ============================================
+
+export const PAYMENT_STATUS_COLORS: Record<RentalPaymentStatus, string> = {
+  [RentalPaymentStatus.PENDING]: 'bg-gray-100 text-gray-700',
+  [RentalPaymentStatus.AWAITING_CONFIRM]: 'bg-yellow-100 text-yellow-800',
+  [RentalPaymentStatus.CONFIRMED]: 'bg-green-100 text-green-800',
+  [RentalPaymentStatus.FAILED]: 'bg-red-100 text-red-800',
+};
+
+export const PAYMENT_STATUS_LABELS: Record<RentalPaymentStatus, string> = {
+  [RentalPaymentStatus.PENDING]: 'Belum Bayar',
+  [RentalPaymentStatus.AWAITING_CONFIRM]: 'Menunggu Verifikasi',
+  [RentalPaymentStatus.CONFIRMED]: 'Lunas',
+  [RentalPaymentStatus.FAILED]: 'Gagal',
+};

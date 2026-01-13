@@ -18,17 +18,21 @@ import {
   ArrowUturnLeftIcon,
   GlobeAltIcon,
   ComputerDesktopIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
-import { RentalOrderStatus, OrderSource } from '@sync-erp/shared';
+import { RentalOrderStatus, RentalPaymentStatus, OrderSource } from '@sync-erp/shared';
 import type { RentalOrderWithRelations } from '@sync-erp/shared';
 import UnitAssignmentModal from '../modals/UnitAssignmentModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
 import CreateOrderModal from '../modals/CreateOrderModal';
 import ReturnModal from '../modals/ReturnModal';
+import VerifyPaymentModal from '../modals/VerifyPaymentModal';
 import { OrderStatusFilter, SearchInput } from '../components';
 import {
   ORDER_STATUS_COLORS,
   ORDER_STATUS_LABELS,
+  PAYMENT_STATUS_COLORS,
+  PAYMENT_STATUS_LABELS,
 } from '../constants';
 
 const PAGE_SIZE = 50;
@@ -55,11 +59,15 @@ export default function RentalOrdersPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isReleaseOpen, setIsReleaseOpen] = useState(false);
   const [isReturnOpen, setIsReturnOpen] = useState(false);
+  const [isVerifyPaymentOpen, setIsVerifyPaymentOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<
     string | null
   >(null);
   const [statusFilter, setStatusFilter] = useState<
     RentalOrderStatus | 'ALL'
+  >('ALL');
+  const [paymentFilter, setPaymentFilter] = useState<
+    RentalPaymentStatus | 'ALL'
   >('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -71,6 +79,9 @@ export default function RentalOrdersPage() {
     if (statusFilter !== 'ALL') {
       result = result.filter((o) => o.status === statusFilter);
     }
+    if (paymentFilter !== 'ALL') {
+      result = result.filter((o) => o.rentalPaymentStatus === paymentFilter);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -80,11 +91,23 @@ export default function RentalOrdersPage() {
       );
     }
     return result;
-  }, [orders, statusFilter, searchQuery]);
+  }, [orders, statusFilter, paymentFilter, searchQuery]);
+
+  // Count orders awaiting payment verification
+  const awaitingVerificationCount = useMemo(() => {
+    return orders.filter(
+      (o) => o.rentalPaymentStatus === RentalPaymentStatus.AWAITING_CONFIRM
+    ).length;
+  }, [orders]);
 
   const openConfirmModal = (order: RentalOrderWithRelations) => {
     setSelectedOrderId(order.id);
     setIsConfirmOpen(true);
+  };
+
+  const openVerifyPaymentModal = (order: RentalOrderWithRelations) => {
+    setSelectedOrderId(order.id);
+    setIsVerifyPaymentOpen(true);
   };
 
   const handleCancelOrder = async (orderId: string) => {
@@ -141,6 +164,41 @@ export default function RentalOrdersPage() {
         }}
       />
 
+      {/* Verify Payment Modal */}
+      <VerifyPaymentModal
+        isOpen={isVerifyPaymentOpen}
+        onClose={() => {
+          setIsVerifyPaymentOpen(false);
+          setSelectedOrderId(null);
+        }}
+        order={selectedOrder || null}
+        onSuccess={() => {
+          setIsVerifyPaymentOpen(false);
+          setSelectedOrderId(null);
+        }}
+      />
+
+      {/* Payment Verification Alert */}
+      {awaitingVerificationCount > 0 && (
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
+          <CurrencyDollarIcon className="w-6 h-6 text-yellow-600 shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium text-yellow-800">
+              {awaitingVerificationCount} pembayaran menunggu verifikasi
+            </p>
+            <p className="text-sm text-yellow-700">
+              Klik tombol "Verifikasi" pada order untuk mengkonfirmasi pembayaran
+            </p>
+          </div>
+          <button
+            onClick={() => setPaymentFilter(RentalPaymentStatus.AWAITING_CONFIRM)}
+            className="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200"
+          >
+            Lihat
+          </button>
+        </div>
+      )}
+
       {/* Search and Status Filter */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="w-full sm:w-64">
@@ -154,6 +212,18 @@ export default function RentalOrdersPage() {
           value={statusFilter}
           onChange={setStatusFilter}
         />
+        {/* Payment Status Filter */}
+        <select
+          value={paymentFilter}
+          onChange={(e) => setPaymentFilter(e.target.value as RentalPaymentStatus | 'ALL')}
+          className="px-3 py-2 border rounded-lg text-sm"
+        >
+          <option value="ALL">Semua Pembayaran</option>
+          <option value={RentalPaymentStatus.PENDING}>Belum Bayar</option>
+          <option value={RentalPaymentStatus.AWAITING_CONFIRM}>Menunggu Verifikasi</option>
+          <option value={RentalPaymentStatus.CONFIRMED}>Lunas</option>
+          <option value={RentalPaymentStatus.FAILED}>Gagal</option>
+        </select>
       </div>
 
       {/* Orders List */}
@@ -193,6 +263,9 @@ export default function RentalOrdersPage() {
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                   Status
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                  Pembayaran
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                   Aksi
@@ -241,8 +314,29 @@ export default function RentalOrdersPage() {
                         order.status}
                     </span>
                   </td>
+                  <td className="px-6 py-4 text-center">
+                    {order.rentalPaymentStatus && (
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${PAYMENT_STATUS_COLORS[order.rentalPaymentStatus] || 'bg-gray-100 text-gray-700'}`}
+                      >
+                        {PAYMENT_STATUS_LABELS[order.rentalPaymentStatus] ||
+                          order.rentalPaymentStatus}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
+                      {/* Verify Payment Button - highest priority for website orders */}
+                      {order.rentalPaymentStatus === RentalPaymentStatus.AWAITING_CONFIRM && (
+                        <button
+                          onClick={() => openVerifyPaymentModal(order)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100 animate-pulse"
+                          title="Verifikasi Pembayaran"
+                        >
+                          <CurrencyDollarIcon className="w-4 h-4" />
+                          Verifikasi
+                        </button>
+                      )}
                       {order.status === RentalOrderStatus.DRAFT && (
                         <>
                           <button

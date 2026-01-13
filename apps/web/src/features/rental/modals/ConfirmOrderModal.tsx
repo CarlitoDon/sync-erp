@@ -8,6 +8,7 @@ import {
   BanknotesIcon,
   CubeIcon,
   ExclamationTriangleIcon,
+  CheckCircleIcon,
   XCircleIcon,
   PlusIcon,
 } from '@heroicons/react/24/outline';
@@ -23,25 +24,7 @@ interface Props {
   onSuccess: () => void;
 }
 
-interface ComponentAvailability {
-  rentalItemId: string;
-  componentLabel: string;
-  productName: string;
-  productSku: string;
-  requiredQty: number;
-  availableQty: number;
-  shortage: number;
-  hasShortage: boolean;
-}
-
-interface BundleAvailability {
-  bundleId: string;
-  bundleName: string;
-  orderQuantity: number;
-  components: ComponentAvailability[];
-  hasAnyShortage: boolean;
-  totalShortage: number;
-}
+// BundleAvailability interface removed as unused
 
 export default function ConfirmOrderModal({
   isOpen,
@@ -66,94 +49,113 @@ export default function ConfirmOrderModal({
     return order?.items?.filter((item) => item.rentalBundleId) ?? [];
   }, [order]);
 
-  // Get first bundle ID for single query (handles most common case)
-  const firstBundleId = bundleItems[0]?.rentalBundleId;
-  const firstBundleQty = bundleItems[0]?.quantity ?? 1;
-
-  // Fetch availability for the first bundle (single query, not in loop)
-  const { data: bundleAvailabilityData } =
-    trpc.rentalBundle.getComponentAvailability.useQuery(
-      {
-        bundleId: firstBundleId!,
-        orderQuantity: firstBundleQty,
-      },
-      { enabled: isOpen && !!firstBundleId }
+  // Get standalone (non-bundle) items
+  const standaloneItems = useMemo(() => {
+    return (
+      order?.items?.filter(
+        (item) => item.rentalItemId && !item.rentalBundleId
+      ) ?? []
     );
+  }, [order]);
 
-  // Wrap in array for consistency with UI
-  const bundleAvailabilities: BundleAvailability[] = useMemo(() => {
-    if (!bundleAvailabilityData) return [];
-    return [bundleAvailabilityData];
-  }, [bundleAvailabilityData]);
+  // Build unified component/item requirements from ALL order items
+  // This replaces the per-bundle query approach
+  const allRequiredItems = useMemo(() => {
+    const requirements: {
+      key: string; // unique key for grouping
+      rentalItemId: string;
+      productName: string;
+      requiredQty: number;
+      sourceLabel: string; // "King (Pkt)" or "Bantal"
+      isBundle: boolean;
+    }[] = [];
+
+    // Process bundle items - each bundle has components
+    bundleItems.forEach((item) => {
+      const bundle = item.rentalBundle;
+      if (!bundle?.components) return;
+
+      bundle.components.forEach((comp) => {
+        const compRentalItemId = comp.rentalItem?.id;
+        if (!compRentalItemId) return;
+
+        const existing = requirements.find(
+          (r) => r.rentalItemId === compRentalItemId
+        );
+        if (existing) {
+          existing.requiredQty += comp.quantity * item.quantity;
+        } else {
+          requirements.push({
+            key: `bundle-${item.id}-${compRentalItemId}`,
+            rentalItemId: compRentalItemId,
+            productName: comp.rentalItem?.product?.name ?? 'Unknown', // componentLabel might not be on prisma type, safest is product name
+            requiredQty: comp.quantity * item.quantity,
+            sourceLabel: bundle.name,
+            isBundle: true,
+          });
+        }
+      });
+    });
+
+    // Process standalone items
+    standaloneItems.forEach((item) => {
+      if (!item.rentalItemId) return;
+      const existing = requirements.find(
+        (r) => r.rentalItemId === item.rentalItemId
+      );
+      if (existing) {
+        existing.requiredQty += item.quantity;
+      } else {
+        requirements.push({
+          key: `item-${item.id}`,
+          rentalItemId: item.rentalItemId,
+          productName: item.rentalItem?.product?.name ?? 'Unknown',
+          requiredQty: item.quantity,
+          sourceLabel: item.rentalItem?.product?.name ?? 'Item',
+          isBundle: false,
+        });
+      }
+    });
+
+    return requirements;
+  }, [bundleItems, standaloneItems]);
+
+  // Build availability info for each required item from fetched rental items
+  const itemAvailabilities = useMemo(() => {
+    return allRequiredItems.map((req) => {
+      const rentalItem = rentalItems.find(
+        (ri) => ri.id === req.rentalItemId
+      );
+      const availableUnits =
+        rentalItem?.units?.filter(
+          (u) => u.status === UnitStatus.AVAILABLE
+        ) ?? [];
+      return {
+        ...req,
+        availableQty: availableUnits.length,
+        shortage: Math.max(
+          0,
+          req.requiredQty - availableUnits.length
+        ),
+        hasShortage: availableUnits.length < req.requiredQty,
+        units: availableUnits,
+      };
+    });
+  }, [allRequiredItems, rentalItems]);
 
   // NOTE: hasBundleShortage removed - we now use unified allShortages display
 
-  // Collect all shortages for QuickAddUnitsModal - SUM shortages for same item
+  // Collect all shortages for QuickAddUnitsModal
   const allShortages = useMemo(() => {
-    const shortageMap = new Map<
-      string,
-      {
-        rentalItemId: string;
-        productName: string;
-        productSku: string;
-        shortage: number;
-      }
-    >();
-
-    // Bundle component shortages
-    bundleAvailabilities.forEach((bundle) => {
-      bundle.components
-        .filter((c) => c.hasShortage)
-        .forEach((c) => {
-          const existing = shortageMap.get(c.rentalItemId);
-          if (existing) {
-            // SUM the shortages from multiple sources
-            existing.shortage += c.shortage;
-          } else {
-            shortageMap.set(c.rentalItemId, {
-              rentalItemId: c.rentalItemId,
-              productName: c.productName,
-              productSku: c.productSku,
-              shortage: c.shortage,
-            });
-          }
-        });
-    });
-
-    // Non-bundle item shortages
-    order?.items
-      ?.filter((item) => item.rentalItemId && !item.rentalBundleId)
-      .forEach((item) => {
-        const rentalItem = rentalItems.find(
-          (ri) => ri.id === item.rentalItemId
-        );
-        const availableCount =
-          rentalItem?.units?.filter(
-            (u) => u.status === UnitStatus.AVAILABLE
-          ).length ?? 0;
-        const needed = item.quantity;
-        if (availableCount < needed) {
-          const itemShortage = needed - availableCount;
-          const existing = shortageMap.get(item.rentalItemId!);
-          if (existing) {
-            // SUM the shortages from multiple sources
-            existing.shortage += itemShortage;
-          } else {
-            shortageMap.set(item.rentalItemId!, {
-              rentalItemId: item.rentalItemId!,
-              productName:
-                rentalItem?.product?.name ??
-                item.rentalItem?.product?.name ??
-                'Unknown',
-              productSku: rentalItem?.product?.sku ?? '',
-              shortage: itemShortage,
-            });
-          }
-        }
-      });
-
-    return Array.from(shortageMap.values());
-  }, [bundleAvailabilities, order, rentalItems]);
+    return itemAvailabilities
+      .filter((item) => item.hasShortage)
+      .map((item) => ({
+        rentalItemId: item.rentalItemId,
+        productName: item.productName,
+        productSku: '',
+        shortage: item.shortage,
+      }));
+  }, [itemAvailabilities]);
 
   const confirmMutation = trpc.rental.orders.confirm.useMutation({
     onSuccess: () => {
@@ -181,34 +183,10 @@ export default function ConfirmOrderModal({
     }
   }, [isOpen, order]);
 
-  // Get available units for items in the order
-  const availableUnitsByItem = useMemo(() => {
-    const result: Record<
-      string,
-      { id: string; unitCode: string; condition: string }[]
-    > = {};
+  // NOTE: availableUnitsByItem removed - unified requiredItemUnits used instead
 
-    order?.items?.forEach((item) => {
-      if (!item.rentalItemId) return; // Skip bundle items - handled separately
-      const rentalItem = rentalItems.find(
-        (ri) => ri.id === item.rentalItemId
-      );
-      if (rentalItem?.units) {
-        result[item.rentalItemId] = rentalItem.units
-          .filter((u) => u.status === UnitStatus.AVAILABLE)
-          .map((u) => ({
-            id: u.id,
-            unitCode: u.unitCode,
-            condition: u.condition,
-          }));
-      }
-    });
-
-    return result;
-  }, [order, rentalItems]);
-
-  // Get available units for bundle components
-  const bundleComponentUnits = useMemo(() => {
+  // Get available units for ALL required items (bundled or standalone)
+  const requiredItemUnits = useMemo(() => {
     const result: Record<
       string,
       {
@@ -219,47 +197,32 @@ export default function ConfirmOrderModal({
       }[]
     > = {};
 
-    // For each bundle availability component, find available units
-    bundleAvailabilities.forEach((bundle) => {
-      bundle.components.forEach((comp) => {
-        const rentalItem = rentalItems.find(
-          (ri) => ri.id === comp.rentalItemId
-        );
-        if (rentalItem?.units) {
-          result[comp.rentalItemId] = rentalItem.units
-            .filter((u) => u.status === UnitStatus.AVAILABLE)
-            .map((u) => ({
-              id: u.id,
-              unitCode: u.unitCode,
-              condition: u.condition,
-              productName: comp.productName,
-            }));
-        }
-      });
+    allRequiredItems.forEach((req) => {
+      const rentalItem = rentalItems.find(
+        (ri) => ri.id === req.rentalItemId
+      );
+      if (rentalItem?.units) {
+        result[req.rentalItemId] = rentalItem.units
+          .filter((u) => u.status === UnitStatus.AVAILABLE)
+          .map((u) => ({
+            id: u.id,
+            unitCode: u.unitCode,
+            condition: u.condition,
+            productName: req.productName,
+          }));
+      }
     });
 
     return result;
-  }, [bundleAvailabilities, rentalItems]);
+  }, [allRequiredItems, rentalItems]);
 
-  // Calculate required units - for bundle, count components * quantity
+  // Calculate total required units
   const requiredUnits = useMemo(() => {
-    if (bundleItems.length > 0) {
-      // Bundle order: count total components needed
-      let total = 0;
-      bundleAvailabilities.forEach((bundle) => {
-        bundle.components.forEach((comp) => {
-          total += comp.requiredQty;
-        });
-      });
-      return total;
-    }
-    // Regular order
-    let total = 0;
-    order?.items?.forEach((item) => {
-      total += item.quantity;
-    });
-    return total;
-  }, [order, bundleItems, bundleAvailabilities]);
+    return allRequiredItems.reduce(
+      (sum, req) => sum + req.requiredQty,
+      0
+    );
+  }, [allRequiredItems]);
 
   // Check if enough units selected
   const canConfirm = selectedUnits.length >= requiredUnits;
@@ -506,132 +469,79 @@ export default function ConfirmOrderModal({
               </p>
             </div>
 
-            {/* Bundle order: show components */}
-            {bundleItems.length > 0 &&
-              bundleAvailabilities.map((bundle) => (
-                <div key={bundle.bundleId} className="space-y-4">
-                  <h4 className="font-medium text-gray-800">
-                    {bundle.bundleName} - Pilih unit untuk setiap
-                    komponen:
-                  </h4>
-                  {bundle.components.map((comp) => {
-                    const units =
-                      bundleComponentUnits[comp.rentalItemId] || [];
-                    return (
-                      <div
-                        key={comp.rentalItemId}
-                        className="border rounded-lg p-4"
-                      >
-                        <h5 className="font-medium text-gray-700 mb-3">
-                          {comp.productName} ({comp.requiredQty} unit
-                          dibutuhkan)
-                        </h5>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {units.map((unit) => {
-                            const isSelected = selectedUnits.includes(
-                              unit.id
-                            );
-                            return (
-                              <button
-                                key={unit.id}
-                                type="button"
-                                onClick={() => toggleUnit(unit.id)}
-                                className={`p-3 rounded-lg border-2 text-left transition-all ${
-                                  isSelected
-                                    ? 'border-primary-500 bg-primary-50'
-                                    : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-mono font-semibold text-sm">
-                                    {unit.unitCode}
-                                  </span>
-                                  {isSelected && (
-                                    <CheckIcon className="w-5 h-5 text-primary-600" />
-                                  )}
-                                </div>
-                                <span className="text-xs text-gray-500">
-                                  {unit.condition}
-                                </span>
-                              </button>
-                            );
-                          })}
-                          {units.length === 0 && (
-                            <p className="col-span-full text-sm text-red-600">
-                              Tidak ada unit tersedia
-                            </p>
-                          )}
-                        </div>
+            <div className="space-y-6">
+              {allRequiredItems.map((item, idx) => (
+                <div key={`${item.key}-${idx}`}>
+                  <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                    {item.isBundle ? (
+                      <CubeIcon className="w-5 h-5 text-gray-500" />
+                    ) : (
+                      <CheckCircleIcon className="w-5 h-5 text-gray-500" />
+                    )}
+                    {item.productName} ({item.requiredQty} unit
+                    dibutuhkan)
+                    {item.isBundle && (
+                      <span className="text-xs text-gray-500 font-normal">
+                        — dari {item.sourceLabel}
+                      </span>
+                    )}
+                  </h3>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {/* Render available units for this item */}
+                    {(requiredItemUnits[item.rentalItemId] || []).map(
+                      (unit) => {
+                        const isSelected = selectedUnits.includes(
+                          unit.id
+                        );
+                        const isAssignedToOther =
+                          order.unitAssignments?.some(
+                            (ua) => ua.rentalItemUnitId === unit.id
+                          );
+
+                        if (isAssignedToOther) return null;
+
+                        return (
+                          <button
+                            key={unit.id}
+                            type="button"
+                            onClick={() => toggleUnit(unit.id)}
+                            className={`p-3 rounded-lg border text-left transition-all ${
+                              isSelected
+                                ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500'
+                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-mono font-medium text-gray-900">
+                                {unit.unitCode}
+                              </span>
+                              {isSelected && (
+                                <CheckIcon className="w-5 h-5 text-primary-600" />
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {unit.condition}
+                            </div>
+                          </button>
+                        );
+                      }
+                    )}
+
+                    {/* Empty state if no units available */}
+                    {(!requiredItemUnits[item.rentalItemId] ||
+                      requiredItemUnits[item.rentalItemId].length ===
+                        0) && (
+                      <div className="col-span-full py-8 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <p className="text-gray-500 text-sm">
+                          Tidak ada unit tersedia untuk komponen ini
+                        </p>
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
                 </div>
               ))}
-
-            {/* Regular order: show items */}
-            {bundleItems.length === 0 &&
-              order.items
-                ?.filter((item) => item.rentalItemId)
-                .map((item) => (
-                  <div
-                    key={item.rentalItemId ?? item.id}
-                    className="border rounded-lg p-4"
-                  >
-                    <h4 className="font-medium text-gray-800 mb-3">
-                      {item.rentalItem?.product?.name} (
-                      {item.quantity} unit dibutuhkan)
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {(
-                        (item.rentalItemId &&
-                          availableUnitsByItem[item.rentalItemId]) ||
-                        []
-                      ).map(
-                        (unit: {
-                          id: string;
-                          unitCode: string;
-                          condition: string;
-                        }) => {
-                          const isSelected = selectedUnits.includes(
-                            unit.id
-                          );
-                          return (
-                            <button
-                              key={unit.id}
-                              type="button"
-                              onClick={() => toggleUnit(unit.id)}
-                              className={`p-3 rounded-lg border-2 text-left transition-all ${
-                                isSelected
-                                  ? 'border-primary-500 bg-primary-50'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-mono font-semibold">
-                                  {unit.unitCode}
-                                </span>
-                                {isSelected && (
-                                  <CheckIcon className="w-5 h-5 text-primary-600" />
-                                )}
-                              </div>
-                              <span className="text-xs text-gray-500">
-                                {unit.condition}
-                              </span>
-                            </button>
-                          );
-                        }
-                      )}
-                      {(!item.rentalItemId ||
-                        !availableUnitsByItem[item.rentalItemId] ||
-                        availableUnitsByItem[item.rentalItemId]
-                          .length === 0) && (
-                        <p className="col-span-full text-sm text-red-600">
-                          Tidak ada unit tersedia untuk item ini
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
+            </div>
 
             <div className="flex justify-between gap-3 pt-4 border-t">
               <button
