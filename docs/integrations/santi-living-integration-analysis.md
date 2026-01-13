@@ -171,6 +171,8 @@ DRAFT → CONFIRMED (+ deposit + unit assignment) → ACTIVE (release) → COMPL
 | 5   | **Admin Notification**    | Tidak ada alert untuk admin                       | Order bisa terlewat                                        | 🟡 High     |
 | 6   | **Payment Proof Upload**  | Customer hanya open wa.me (manual)                | Bukti bayar di WhatsApp, bukan sistem                      | 🟢 Medium   |
 | 7   | **Auto Payment Matching** | Tidak ada                                         | Semua manual verification                                  | 🟢 Medium   |
+| 8   | **Missing Middleware**    | `erp-sync-service` (port 3002) is missing in repo | Architecture mismatch, cannot execute integration          | 🔴 Critical |
+| 9   | **Missing REST Endpoint** | `apps/api` has no `POST /api/orders`              | Frontend cannot submit orders (Protocol Mismatch)          | 🔴 Critical |
 
 ### 6.3 Status Flow Mismatch
 
@@ -336,6 +338,7 @@ Ini memungkinkan santi-living mengirim order tanpa perlu setup katalog dulu di s
 - [ ] Add payment-related fields to `RentalOrder`
 - [ ] Create `publicRental.confirmPayment` endpoint
 - [ ] Update tracking page to show payment status
+- [ ] **[FIX] Implement REST Adapter in `apps/api` (`POST /api/orders`) to replace missing `erp-sync-service`**
 
 ### Short-term (Sprint 2)
 
