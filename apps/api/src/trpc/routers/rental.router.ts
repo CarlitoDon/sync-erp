@@ -2,6 +2,7 @@ import { router, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import {
   RentalOrderStatus,
+  RentalPaymentStatus,
   UnitStatus,
   UnitCondition,
   DepositPolicyType,
@@ -12,6 +13,7 @@ import {
 
 export {
   RentalOrderStatus,
+  RentalPaymentStatus,
   UnitStatus,
   UnitCondition,
   DepositPolicyType,
@@ -189,6 +191,26 @@ export const rentalRouter = router({
           ctx.companyId,
           input,
           ctx.userId
+        );
+      }),
+
+    verifyPayment: protectedProcedure
+      .input(
+        z.object({
+          orderId: z.string().uuid(),
+          action: z.enum(['confirm', 'reject']),
+          paymentReference: z.string().optional(),
+          failReason: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return rentalService.verifyPayment(
+          ctx.companyId,
+          input.orderId,
+          input.action,
+          ctx.userId,
+          input.paymentReference,
+          input.failReason
         );
       }),
   }),

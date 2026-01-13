@@ -121,6 +121,7 @@ export const ServiceKeys = {
   EXPENSE_SERVICE: 'expenseService',
   ADMIN_REPOSITORY: 'adminRepository',
   RENTAL_SERVICE: 'rentalService',
+  RENTAL_WEBHOOK_SERVICE: 'rentalWebhookService',
 } as const;
 
 export type ServiceKey =

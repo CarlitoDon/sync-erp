@@ -744,6 +744,15 @@ model RentalOrder {
   discountLabel   String?
   orderSource     OrderSource @default(ADMIN)
 
+  // Payment tracking (for website orders)
+  rentalPaymentStatus RentalPaymentStatus @default(PENDING)
+  paymentClaimedAt    DateTime?     // When customer clicked "I've paid"
+  paymentConfirmedAt  DateTime?     // When admin verified payment
+  paymentConfirmedBy  String?       // User ID who confirmed
+  paymentReference    String?       // Bank reference / transaction ID
+  paymentFailedAt     DateTime?     // When payment was rejected/failed
+  paymentFailReason   String?       // Reason for failure
+
   // Relations
   conditionLogs   ItemConditionLog[]
   deposit         RentalDeposit?
@@ -760,6 +769,7 @@ model RentalOrder {
   @@index([companyId, partnerId])
   @@index([dueDateTime])
   @@index([orderSource])
+  @@index([companyId, rentalPaymentStatus]) // For filtering orders awaiting payment verification
 }
 
 model RentalOrderExtension {
@@ -1250,6 +1260,13 @@ enum RentalOrderStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+enum RentalPaymentStatus {
+  PENDING           // Order created, awaiting payment
+  AWAITING_CONFIRM  // Customer claimed payment, awaiting admin verification
+  CONFIRMED         // Admin confirmed payment received
+  FAILED            // Payment rejected/expired
 }
 
 enum OrderSource {

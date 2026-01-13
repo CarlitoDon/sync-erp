@@ -166,7 +166,7 @@ export const RentalBundleComponentScalarFieldEnumSchema = z.enum(['id','bundleId
 
 export const RentalItemUnitScalarFieldEnumSchema = z.enum(['id','rentalItemId','companyId','unitCode','condition','status','totalRentalDays','totalRentalCount','lastDeepCleaningAt','retiredAt','retirementReason','flaggedForRetirement','createdAt','updatedAt']);
 
-export const RentalOrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','orderNumber','rentalStartDate','rentalEndDate','dueDateTime','status','subtotal','depositAmount','totalAmount','policySnapshot','notes','confirmedAt','activatedAt','completedAt','cancelledAt','createdAt','updatedAt','createdBy','publicToken','deliveryFee','deliveryAddress','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','paymentMethod','discountAmount','discountLabel','orderSource']);
+export const RentalOrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','orderNumber','rentalStartDate','rentalEndDate','dueDateTime','status','subtotal','depositAmount','totalAmount','policySnapshot','notes','confirmedAt','activatedAt','completedAt','cancelledAt','createdAt','updatedAt','createdBy','publicToken','deliveryFee','deliveryAddress','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','paymentMethod','discountAmount','discountLabel','orderSource','rentalPaymentStatus','paymentClaimedAt','paymentConfirmedAt','paymentConfirmedBy','paymentReference','paymentFailedAt','paymentFailReason']);
 
 export const RentalOrderExtensionScalarFieldEnumSchema = z.enum(['id','rentalOrderId','companyId','extensionNumber','previousEndDate','newEndDate','additionalDays','additionalAmount','additionalDeposit','reason','isPaid','paidAt','paymentId','createdAt','createdBy']);
 
@@ -325,6 +325,10 @@ export type UnitStatusType = `${z.infer<typeof UnitStatusSchema>}`
 export const RentalOrderStatusSchema = z.enum(['DRAFT','CONFIRMED','ACTIVE','COMPLETED','CANCELLED']);
 
 export type RentalOrderStatusType = `${z.infer<typeof RentalOrderStatusSchema>}`
+
+export const RentalPaymentStatusSchema = z.enum(['PENDING','AWAITING_CONFIRM','CONFIRMED','FAILED']);
+
+export type RentalPaymentStatusType = `${z.infer<typeof RentalPaymentStatusSchema>}`
 
 export const OrderSourceSchema = z.enum(['ADMIN','WEBSITE']);
 
@@ -1001,6 +1005,7 @@ export type RentalItemUnit = z.infer<typeof RentalItemUnitSchema>
 export const RentalOrderSchema = z.object({
   status: RentalOrderStatusSchema,
   orderSource: OrderSourceSchema,
+  rentalPaymentStatus: RentalPaymentStatusSchema,
   id: z.string(),
   companyId: z.string(),
   partnerId: z.string(),
@@ -1034,6 +1039,12 @@ export const RentalOrderSchema = z.object({
   paymentMethod: z.string().nullable(),
   discountAmount: z.instanceof(PrismaDecimal, { message: "Field 'discountAmount' must be a Decimal. Location: ['Models', 'RentalOrder']"}).nullable(),
   discountLabel: z.string().nullable(),
+  paymentClaimedAt: z.coerce.date().nullable(),
+  paymentConfirmedAt: z.coerce.date().nullable(),
+  paymentConfirmedBy: z.string().nullable(),
+  paymentReference: z.string().nullable(),
+  paymentFailedAt: z.coerce.date().nullable(),
+  paymentFailReason: z.string().nullable(),
 })
 
 export type RentalOrder = z.infer<typeof RentalOrderSchema>
