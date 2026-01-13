@@ -19,13 +19,23 @@ import UnitAssignmentModal from '../modals/UnitAssignmentModal';
 import CancelOrderModal from '../modals/CancelOrderModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
 import ReturnModal from '../modals/ReturnModal';
-import { RentalOrderStatus, OrderSource } from '@sync-erp/shared';
+import VerifyPaymentModal from '../modals/VerifyPaymentModal';
+import {
+  RentalOrderStatus,
+  RentalPaymentStatus,
+  OrderSource,
+} from '@sync-erp/shared';
+import {
+  PAYMENT_STATUS_COLORS,
+  PAYMENT_STATUS_LABELS,
+} from '../constants';
 import {
   UserIcon,
   TruckIcon,
   CheckCircleIcon,
   GlobeAltIcon,
   ComputerDesktopIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 
@@ -37,6 +47,8 @@ export default function RentalOrderDetail() {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [isVerifyPaymentOpen, setIsVerifyPaymentOpen] =
+    useState(false);
 
   const { data: order, isLoading } =
     trpc.rental.orders.getById.useQuery(
@@ -59,16 +71,21 @@ export default function RentalOrderDetail() {
   const isConfirmed = order.status === RentalOrderStatus.CONFIRMED;
   const isActive = order.status === RentalOrderStatus.ACTIVE;
   const isDraft = order.status === RentalOrderStatus.DRAFT;
+  const isAwaitingPaymentVerification =
+    order.rentalPaymentStatus ===
+    RentalPaymentStatus.AWAITING_CONFIRM;
 
   // Assignments Logic - order already has correct type from TRPC
   const assignments = order.unitAssignments ?? [];
   const assignedUnitsCount = assignments.length;
-  
+
   // For bundle orders, count component units needed, not just item quantity
   const totalUnitsRequired = order.items.reduce((sum, item) => {
     if (item.rentalBundleId && item.rentalBundle?.components) {
       // Bundle: count each component * bundle quantity
-      return sum + item.rentalBundle.components.length * item.quantity;
+      return (
+        sum + item.rentalBundle.components.length * item.quantity
+      );
     }
     // Regular item: just quantity
     return sum + item.quantity;
@@ -114,6 +131,16 @@ export default function RentalOrderDetail() {
         }}
       />
 
+      <VerifyPaymentModal
+        isOpen={isVerifyPaymentOpen}
+        onClose={() => setIsVerifyPaymentOpen(false)}
+        order={order}
+        onSuccess={() => {
+          utils.rental.orders.getById.invalidate({ id: id! });
+          setIsVerifyPaymentOpen(false);
+        }}
+      />
+
       <PageContainer>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -133,12 +160,18 @@ export default function RentalOrderDetail() {
           </div>
           <div className="flex gap-2 items-center">
             {order.orderSource === OrderSource.WEBSITE ? (
-              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700" title="Order dari Santi Living">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700"
+                title="Order dari Santi Living"
+              >
                 <GlobeAltIcon className="w-3.5 h-3.5" />
                 Website
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600" title="Order dibuat manual">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600"
+                title="Order dibuat manual"
+              >
                 <ComputerDesktopIcon className="w-3.5 h-3.5" />
                 Manual
               </span>
@@ -215,7 +248,10 @@ export default function RentalOrderDetail() {
                               {item.rentalBundle && (
                                 <p className="text-sm text-gray-500">
                                   {item.rentalBundle.components
-                                    ?.map((c) => c.rentalItem?.product?.name)
+                                    ?.map(
+                                      (c) =>
+                                        c.rentalItem?.product?.name
+                                    )
                                     .filter(Boolean)
                                     .join(', ')}
                                 </p>
@@ -299,6 +335,89 @@ export default function RentalOrderDetail() {
 
           {/* Sidebar - Right Col */}
           <div className="space-y-6">
+            {/* Payment Status Card - Show for website orders */}
+            {order.orderSource === OrderSource.WEBSITE &&
+              order.rentalPaymentStatus && (
+                <Card
+                  className={
+                    isAwaitingPaymentVerification
+                      ? 'ring-2 ring-yellow-400'
+                      : ''
+                  }
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CurrencyDollarIcon className="w-5 h-5" />
+                      Status Pembayaran
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">
+                        Status
+                      </span>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${PAYMENT_STATUS_COLORS[order.rentalPaymentStatus] || 'bg-gray-100 text-gray-700'}`}
+                      >
+                        {PAYMENT_STATUS_LABELS[
+                          order.rentalPaymentStatus
+                        ] || order.rentalPaymentStatus}
+                      </span>
+                    </div>
+
+                    {order.paymentClaimedAt && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Diklaim</span>
+                        <span>
+                          {formatDateTime(order.paymentClaimedAt)}
+                        </span>
+                      </div>
+                    )}
+
+                    {order.paymentConfirmedAt && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">
+                          Dikonfirmasi
+                        </span>
+                        <span>
+                          {formatDateTime(order.paymentConfirmedAt)}
+                        </span>
+                      </div>
+                    )}
+
+                    {order.paymentReference && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">
+                          Referensi
+                        </span>
+                        <span className="font-mono text-xs">
+                          {order.paymentReference}
+                        </span>
+                      </div>
+                    )}
+
+                    {order.paymentFailReason && (
+                      <div className="p-2 bg-red-50 rounded text-sm text-red-700">
+                        <span className="font-medium">
+                          Alasan gagal:
+                        </span>{' '}
+                        {order.paymentFailReason}
+                      </div>
+                    )}
+
+                    {isAwaitingPaymentVerification && (
+                      <ActionButton
+                        variant="primary"
+                        className="w-full mt-2"
+                        onClick={() => setIsVerifyPaymentOpen(true)}
+                      >
+                        Verifikasi Pembayaran
+                      </ActionButton>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
             {/* Actions */}
             <Card>
               <CardHeader>
@@ -372,9 +491,45 @@ export default function RentalOrderDetail() {
                 <CardTitle>Financial Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
+                {/* Subtotal */}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Subtotal</span>
+                  <span className="font-medium">
+                    {formatCurrency(Number(order.subtotal))}
+                  </span>
+                </div>
+
+                {/* Discount (if any) */}
+                {Number(order.discountAmount) > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>
+                      Diskon{' '}
+                      {order.discountLabel
+                        ? `(${order.discountLabel})`
+                        : ''}
+                    </span>
+                    <span className="font-medium">
+                      -{formatCurrency(Number(order.discountAmount))}
+                    </span>
+                  </div>
+                )}
+
+                {/* Delivery Fee (if any) */}
+                {Number(order.deliveryFee) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Ongkir</span>
+                    <span className="font-medium">
+                      {formatCurrency(Number(order.deliveryFee))}
+                    </span>
+                  </div>
+                )}
+
+                <hr className="my-2" />
+
+                {/* Total */}
                 <div className="flex justify-between">
                   <span className="text-gray-500">Total Amount</span>
-                  <span className="font-medium">
+                  <span className="font-semibold">
                     {formatCurrency(Number(order.totalAmount))}
                   </span>
                 </div>
@@ -391,9 +546,11 @@ export default function RentalOrderDetail() {
                   <span className="font-semibold text-gray-700">
                     Net Outstanding
                   </span>
-                  {/* Simple placeholder logic for outstanding */}
                   <span className="font-bold text-gray-900">
-                    {formatCurrency(Number(order.totalAmount))}
+                    {formatCurrency(
+                      Number(order.totalAmount) -
+                        Number(order.depositAmount)
+                    )}
                   </span>
                 </div>
               </CardContent>
