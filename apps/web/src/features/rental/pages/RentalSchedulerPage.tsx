@@ -193,7 +193,7 @@ export default function RentalSchedulerPage() {
         <Card className="overflow-hidden">
           {/* Horizontal scroll container for mobile */}
           <div className="overflow-x-auto">
-            <div className="min-w-[800px]">
+            <div className="min-w-200">
               {/* Timeline Header */}
               <div className="flex border-b bg-gray-50">
                 <div className="w-48 shrink-0 p-3 font-medium text-gray-700 border-r">

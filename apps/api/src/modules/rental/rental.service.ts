@@ -1239,6 +1239,15 @@ export class RentalService {
         },
       });
 
+      // Update order status to COMPLETED
+      await tx.rentalOrder.update({
+        where: { id: order.id },
+        data: {
+          status: RentalOrderStatus.COMPLETED,
+          completedAt: new Date(),
+        },
+      });
+
       // Phase 4: Post-Process
       await recordAudit({
         companyId,

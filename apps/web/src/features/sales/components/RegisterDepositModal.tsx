@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
+import { toast } from 'react-hot-toast';
 import { formatCurrency } from '@/utils/format';
 import {
   PaymentMethod,
@@ -46,8 +47,8 @@ export function RegisterDepositModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (amount <= 0 || amount > maxAmount) {
-      alert(
-        `Amount must be between 1 and ${formatCurrency(maxAmount)}`
+      toast.error(
+        `Jumlah harus antara 1 dan ${formatCurrency(maxAmount)}`
       );
       return;
     }

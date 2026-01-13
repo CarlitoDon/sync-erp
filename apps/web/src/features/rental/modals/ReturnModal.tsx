@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import FormModal from '@/components/ui/FormModal';
 import { apiAction } from '@/hooks/useApiAction';
+import { toast } from 'react-hot-toast';
 import {
   RentalOrderWithRelations,
   UnitCondition,
@@ -131,7 +132,7 @@ export default function ReturnModal({
     }));
 
     if (unitsPayload.length === 0) {
-      alert('Tidak ada unit yang di-assign untuk order ini.');
+      toast.error('Tidak ada unit yang di-assign untuk order ini.');
       return;
     }
 

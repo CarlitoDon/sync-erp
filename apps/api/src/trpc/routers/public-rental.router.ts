@@ -4,10 +4,24 @@ import {
   prisma,
   PartnerType,
   RentalOrderStatus,
+  RentalPaymentStatus,
   OrderSource,
   Prisma,
 } from '@sync-erp/database';
 import { TRPCError } from '@trpc/server';
+import { container, ServiceKeys } from '../../modules/common/di';
+import type { RentalWebhookService } from '../../modules/rental/rental-webhook.service';
+
+// Lazy resolve webhook service
+const getWebhookService = (): RentalWebhookService | null => {
+  try {
+    return container.resolve<RentalWebhookService>(
+      ServiceKeys.RENTAL_WEBHOOK_SERVICE
+    );
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Public Rental Router
@@ -98,6 +112,14 @@ export const publicRentalRouter = router({
         discountAmount: order.discountAmount,
         discountLabel: order.discountLabel,
         orderSource: order.orderSource,
+
+        // Payment status fields (for customer tracking)
+        rentalPaymentStatus: order.rentalPaymentStatus,
+        paymentClaimedAt: order.paymentClaimedAt,
+        paymentConfirmedAt: order.paymentConfirmedAt,
+        paymentReference: order.paymentReference,
+        paymentFailedAt: order.paymentFailedAt,
+        paymentFailReason: order.paymentFailReason,
 
         // Relations
         partner: order.partner,
@@ -282,48 +304,16 @@ export const publicRentalRouter = router({
           include: { product: true },
         });
 
-        // If still not found, auto-create rental items for santi-living
-        if (rentalItemsByName.length === 0) {
-          // Create products and rental items on the fly for santi-living orders
-          const createdItems = [];
-          for (const item of itemsWithRentalItemId) {
-            // Create product
-            const product = await prisma.product.create({
-              data: {
-                companyId: input.companyId,
-                sku: `SL-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                name: item.rentalItemId,
-                price: 0,
-              },
-            });
-
-            // Create rental item linked to product
-            const rentalItem = await prisma.rentalItem.create({
-              data: {
-                companyId: input.companyId,
-                productId: product.id,
-                dailyRate: 30000, // Default daily rate
-                weeklyRate: 180000,
-                monthlyRate: 600000,
-                depositPolicyType: 'PERCENTAGE',
-                depositPercentage: 0,
-                isActive: true,
-              },
-            });
-            createdItems.push(rentalItem);
-          }
-          rentalItems = createdItems;
-        } else {
+        // Merge with existing results - auto-creation will be handled
+        // in the main loop with component-based matching
+        if (rentalItemsByName.length > 0) {
           rentalItems = rentalItemsByName;
         }
+        // NOTE: Removed early auto-create here - the main loop (line 480+)
+        // handles auto-creation with proper component SKU matching
       }
 
-      // Fetch all rental items with product info for SKU-based lookup
-      // This is used to find existing kasur items by component SKU (e.g., "SL-kasur-busa-180x200")
-      const rentalItemsFull = await prisma.rentalItem.findMany({
-        where: { companyId: input.companyId },
-        include: { product: true },
-      });
+      // NOTE: rentalItemsFull lookup removed - we now use fresh queries inside the loop
 
       // Calculate duration and pricing
       const durationDays = Math.ceil(
@@ -354,7 +344,7 @@ export const publicRentalRouter = router({
             console.log(
               `[Auto-Create] Creating bundle: ${item.rentalBundleId} - ${item.name}`
             );
-            
+
             // Create bundle with components in a transaction
             bundle = await prisma.$transaction(async (tx) => {
               // 1. Create the bundle
@@ -378,16 +368,24 @@ export const publicRentalRouter = router({
 
                 for (const componentLabel of item.components) {
                   // Parse quantity from label (e.g., "2 bantal" -> quantity: 2, label: "bantal")
-                  const quantityMatch = componentLabel.match(/^(\d+)\s+(.+)$/);
-                  const quantity = quantityMatch ? parseInt(quantityMatch[1], 10) : 1;
-                  const label = quantityMatch ? quantityMatch[2] : componentLabel;
+                  const quantityMatch =
+                    componentLabel.match(/^(\d+)\s+(.+)$/);
+                  const quantity = quantityMatch
+                    ? parseInt(quantityMatch[1], 10)
+                    : 1;
+                  const label = quantityMatch
+                    ? quantityMatch[2]
+                    : componentLabel;
 
                   // Find or create the rental item for this component
                   let rentalItem = await tx.rentalItem.findFirst({
                     where: {
                       companyId: input.companyId,
                       product: {
-                        name: { contains: label, mode: 'insensitive' },
+                        name: {
+                          contains: label,
+                          mode: 'insensitive',
+                        },
                       },
                     },
                   });
@@ -398,7 +396,9 @@ export const publicRentalRouter = router({
                       data: {
                         companyId: input.companyId,
                         sku: `SL-${label.toLowerCase().replace(/\s+/g, '-')}`,
-                        name: label.charAt(0).toUpperCase() + label.slice(1),
+                        name:
+                          label.charAt(0).toUpperCase() +
+                          label.slice(1),
                         price: 0,
                       },
                     });
@@ -452,7 +452,9 @@ export const publicRentalRouter = router({
           });
         } else if (item.rentalItemId) {
           // Regular item order - try by ID first, then by name
-          let rentalItem: { id: string; dailyRate: Prisma.Decimal } | undefined = rentalItems.find(
+          let rentalItem:
+            | { id: string; dailyRate: Prisma.Decimal }
+            | undefined = rentalItems.find(
             (r) => r.id === item.rentalItemId
           );
           // If not found by ID, try product name
@@ -468,15 +470,51 @@ export const publicRentalRouter = router({
 
           // For mattress-only items with components, try to find by component SKU
           // This allows mattress-king to reuse "kasur busa 180x200" from package-king
+          // FRESH query to handle items created earlier in the same order (e.g., bundle first)
           if (!rentalItem && item.components?.[0]) {
             const componentSku = `SL-${item.components[0].toLowerCase().replace(/\s+/g, '-')}`;
-            rentalItem = rentalItemsFull.find(
-              (r) => r.product?.sku?.toLowerCase() === componentSku.toLowerCase()
+            console.log(
+              `[DEBUG] Mattress-only lookup - componentSku: ${componentSku}, rentalItemId: ${item.rentalItemId}`
             );
-            if (rentalItem) {
+            const freshLookup = await prisma.rentalItem.findFirst({
+              where: {
+                companyId: input.companyId,
+                product: { sku: componentSku },
+              },
+              include: { product: true },
+            });
+            console.log(
+              `[DEBUG] Fresh lookup result: ${freshLookup ? `Found ${freshLookup.id} - ${freshLookup.product?.name}` : 'NOT FOUND'}`
+            );
+            if (freshLookup) {
+              rentalItem = freshLookup;
               console.log(
                 `[Lookup] Found existing rental item by component SKU: ${componentSku}`
               );
+
+              // Update dailyRate if mattress-only price is higher than bundle component price
+              // This ensures standalone kasur uses correct price (e.g., 20000) not component price (5000)
+              if (
+                item.pricePerDay &&
+                item.pricePerDay > Number(freshLookup.dailyRate)
+              ) {
+                console.log(
+                  `[Price Update] Updating ${freshLookup.product?.name} from ${freshLookup.dailyRate} to ${item.pricePerDay}`
+                );
+                await prisma.rentalItem.update({
+                  where: { id: freshLookup.id },
+                  data: {
+                    dailyRate: item.pricePerDay,
+                    weeklyRate: item.pricePerDay * 6,
+                    monthlyRate: item.pricePerDay * 25,
+                  },
+                });
+                // Update the reference so pricing calculation uses new rate
+                rentalItem = {
+                  ...freshLookup,
+                  dailyRate: new Prisma.Decimal(item.pricePerDay),
+                };
+              }
             }
           }
 
@@ -486,7 +524,8 @@ export const publicRentalRouter = router({
             // so it matches the kasur component from packages
             const componentName = item.components?.[0];
             const productName = componentName
-              ? componentName.charAt(0).toUpperCase() + componentName.slice(1)
+              ? componentName.charAt(0).toUpperCase() +
+                componentName.slice(1)
               : item.name;
             const productSku = componentName
               ? `SL-${componentName.toLowerCase().replace(/\s+/g, '-')}`
@@ -517,12 +556,13 @@ export const publicRentalRouter = router({
             }
 
             // Check if rental item exists for this product
-            const existingRentalItem = await prisma.rentalItem.findFirst({
-              where: {
-                companyId: input.companyId,
-                productId: product.id,
-              },
-            });
+            const existingRentalItem =
+              await prisma.rentalItem.findFirst({
+                where: {
+                  companyId: input.companyId,
+                  productId: product.id,
+                },
+              });
 
             if (existingRentalItem) {
               rentalItem = existingRentalItem;
@@ -544,20 +584,6 @@ export const publicRentalRouter = router({
                 },
               });
             }
-
-            // Create rental item linked to product
-            rentalItem = await prisma.rentalItem.create({
-              data: {
-                companyId: input.companyId,
-                productId: product.id,
-                dailyRate: item.pricePerDay,
-                weeklyRate: item.pricePerDay * 6,
-                monthlyRate: item.pricePerDay * 25,
-                depositPolicyType: 'PERCENTAGE',
-                depositPercentage: 0,
-                isActive: true,
-              },
-            });
           }
 
           if (!rentalItem) {
@@ -631,8 +657,30 @@ export const publicRentalRouter = router({
         },
         include: {
           items: true,
+          partner: {
+            select: { name: true, phone: true },
+          },
         },
       });
+
+      // Fire webhook notification to admin (async, non-blocking)
+      const webhookService = getWebhookService();
+      if (webhookService && order.publicToken) {
+        webhookService
+          .notifyNewOrder({
+            token: order.publicToken,
+            orderNumber: order.orderNumber,
+            customerName: order.partner.name,
+            customerPhone: order.partner.phone || '',
+            totalAmount: Number(order.totalAmount),
+          })
+          .catch((err) => {
+            console.error(
+              '[PublicRental] New order webhook failed:',
+              err
+            );
+          });
+      }
 
       return {
         id: order.id,
@@ -640,6 +688,88 @@ export const publicRentalRouter = router({
         publicToken: order.publicToken || order.id,
         status: order.status,
         createdAt: order.createdAt,
+      };
+    }),
+
+  /**
+   * Confirm payment - called when customer clicks "I've paid"
+   * Updates order payment status to AWAITING_CONFIRM
+   */
+  confirmPayment: publicProcedure
+    .input(
+      z.object({
+        token: z.string().uuid(),
+        paymentMethod: z.enum(['qris', 'transfer']),
+        reference: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // Find order by token
+      const order = await prisma.rentalOrder.findFirst({
+        where: { publicToken: input.token },
+        select: {
+          id: true,
+          orderNumber: true,
+          rentalPaymentStatus: true,
+          status: true,
+        },
+      });
+
+      if (!order) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Order not found',
+        });
+      }
+
+      // Validate current status - only PENDING can transition to AWAITING_CONFIRM
+      if (order.rentalPaymentStatus !== RentalPaymentStatus.PENDING) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Cannot confirm payment. Current status: ${order.rentalPaymentStatus}`,
+        });
+      }
+
+      // Update payment status
+      const updatedOrder = await prisma.rentalOrder.update({
+        where: { id: order.id },
+        data: {
+          rentalPaymentStatus: RentalPaymentStatus.AWAITING_CONFIRM,
+          paymentClaimedAt: new Date(),
+          paymentMethod: input.paymentMethod,
+          paymentReference: input.reference || null,
+        },
+        select: {
+          orderNumber: true,
+          rentalPaymentStatus: true,
+          paymentClaimedAt: true,
+          paymentMethod: true,
+          paymentReference: true,
+        },
+      });
+
+      // Fire webhook notification to admin (async, non-blocking)
+      const webhookService = getWebhookService();
+      if (webhookService) {
+        webhookService
+          .notifyPaymentStatus({
+            token: input.token,
+            action: 'claimed',
+            paymentMethod: input.paymentMethod,
+          })
+          .catch((err) => {
+            console.error(
+              '[PublicRental] Payment claimed webhook failed:',
+              err
+            );
+          });
+      }
+
+      return {
+        success: true,
+        orderNumber: updatedOrder.orderNumber,
+        rentalPaymentStatus: updatedOrder.rentalPaymentStatus,
+        paymentClaimedAt: updatedOrder.paymentClaimedAt,
       };
     }),
 });
