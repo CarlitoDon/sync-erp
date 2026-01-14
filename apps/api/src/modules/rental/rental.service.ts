@@ -72,6 +72,23 @@ function parsePolicySnapshot(json: unknown): RentalPolicySnapshot {
   return result.success ? result.data : DEFAULT_POLICY;
 }
 
+/**
+ * Generate a unique unit code with format: [SKU_PREFIX]-[RANDOM_6_CHAR]
+ * Example: KASUR90-A7X9K2
+ */
+function generateUniqueUnitCode(productSku: string): string {
+  const prefix = productSku
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .substring(0, 8)
+    .toUpperCase();
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No O,0,1,I to avoid confusion
+  let random = '';
+  for (let i = 0; i < 6; i++) {
+    random += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `${prefix}-${random}`;
+}
+
 import { RentalWebhookService } from './rental-webhook.service';
 
 export class RentalService {
@@ -209,9 +226,7 @@ export class RentalService {
   async convertStockToUnits(
     companyId: string,
     itemId: string,
-    prefix: string,
     quantity: number,
-    startNumber: number,
     userId: string
   ): Promise<number> {
     const item = await this.repository.findRentalItemById(itemId);
@@ -238,39 +253,44 @@ export class RentalService {
       );
     }
 
-    // 2. Prepare units
-    const unitsToCreate: Prisma.RentalItemUnitCreateManyInput[] = [];
-    const unitCodes = new Set<string>();
-
-    for (let i = 0; i < quantity; i++) {
-      const num = startNumber + i;
-      const unitCode = `${prefix}-${num.toString().padStart(3, '0')}`;
-      unitCodes.add(unitCode);
-      unitsToCreate.push({
-        rentalItemId: itemId,
-        companyId,
-        unitCode,
-        condition: UnitCondition.NEW,
-        status: UnitStatus.AVAILABLE,
-      });
-    }
-
-    // 3. Execute Transaction: Move Stock OUT + Create Units
+    // 2. Execute Transaction: Move Stock OUT + Create Units with auto-generated codes
+    const createdCodes: string[] = [];
     const count = await prisma.$transaction(async (tx) => {
-      // Check duplicates
-      const existing = await tx.rentalItemUnit.findMany({
-        where: {
-          companyId,
-          unitCode: { in: Array.from(unitCodes) },
-        },
-      });
+      // Generate unique unit codes with retry
+      const unitsToCreate: Prisma.RentalItemUnitCreateManyInput[] =
+        [];
 
-      if (existing.length > 0) {
-        throw new DomainError(
-          `Duplicate unit codes found: ${existing.map((u) => u.unitCode).join(', ')}`,
-          400,
-          DomainErrorCodes.ALREADY_EXISTS
-        );
+      for (let i = 0; i < quantity; i++) {
+        let unitCode: string;
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        // Retry loop to ensure uniqueness
+        do {
+          unitCode = generateUniqueUnitCode(product.sku);
+          const exists = await tx.rentalItemUnit.findUnique({
+            where: { companyId_unitCode: { companyId, unitCode } },
+          });
+          if (!exists) break;
+          attempts++;
+        } while (attempts < maxAttempts);
+
+        if (attempts >= maxAttempts) {
+          throw new DomainError(
+            'Failed to generate unique unit code. Please try again.',
+            500,
+            DomainErrorCodes.ALREADY_EXISTS
+          );
+        }
+
+        createdCodes.push(unitCode);
+        unitsToCreate.push({
+          rentalItemId: itemId,
+          companyId,
+          unitCode,
+          condition: UnitCondition.NEW,
+          status: UnitStatus.AVAILABLE,
+        });
       }
 
       // Decrease Stock
@@ -281,9 +301,9 @@ export class RentalService {
         companyId,
         {
           productId: item.productId,
-          quantity: -quantity, // Direct reduction
+          quantity: -quantity,
           costPerUnit: Number(product.averageCost),
-          reference: `Capitalization to Rental Units (${prefix})`,
+          reference: `Capitalization to Rental Units`,
         },
         undefined,
         undefined,
@@ -307,8 +327,8 @@ export class RentalService {
       businessDate: new Date(),
       payloadSnapshot: {
         source: 'INVENTORY_STOCK',
-        prefix,
         quantity,
+        unitCodes: createdCodes,
       },
     });
 
@@ -604,44 +624,95 @@ export class RentalService {
         );
       }
 
-      // CRITICAL: Validate unitAssignments is not empty
-      if (
-        !input.unitAssignments ||
-        input.unitAssignments.length === 0
-      ) {
-        throw new DomainError(
-          'Unit assignments required for order confirmation. Please select units to reserve.',
-          400,
-          DomainErrorCodes.INVALID_INPUT
-        );
-      }
-
-      // Validate total units >= total order quantity
+      // AUTO-ASSIGN UNITS if not provided
+      // Get order items with their rental item info
       const orderItems = await tx.rentalOrderItem.findMany({
         where: { rentalOrderId: order.id },
+        include: {
+          rentalItem: true,
+          rentalBundle: {
+            include: {
+              components: {
+                include: { rentalItem: true },
+              },
+            },
+          },
+        },
       });
-      const totalQuantityRequired = orderItems.reduce(
-        (sum: number, item) => sum + item.quantity,
-        0
-      );
-      if (input.unitAssignments.length < totalQuantityRequired) {
-        throw new DomainError(
-          `Need ${totalQuantityRequired} units but only ${input.unitAssignments.length} provided`,
-          400,
-          DomainErrorCodes.INVALID_INPUT
-        );
+
+      // Build list of required units per rentalItemId
+      const requiredUnits: Map<string, number> = new Map();
+      for (const item of orderItems) {
+        if (item.rentalBundleId && item.rentalBundle?.components) {
+          // Bundle: need units for each component
+          for (const comp of item.rentalBundle.components) {
+            if (comp.rentalItemId) {
+              const current =
+                requiredUnits.get(comp.rentalItemId) || 0;
+              requiredUnits.set(
+                comp.rentalItemId,
+                current + comp.quantity * item.quantity
+              );
+            }
+          }
+        } else if (item.rentalItemId) {
+          // Standalone item
+          const current = requiredUnits.get(item.rentalItemId) || 0;
+          requiredUnits.set(
+            item.rentalItemId,
+            current + item.quantity
+          );
+        }
       }
 
-      // Validate units availability (Optimistic Locking Preparation)
-      const unitIds = input.unitAssignments.map((a) => a.unitId);
+      const totalQuantityRequired = Array.from(
+        requiredUnits.values()
+      ).reduce((a, b) => a + b, 0);
 
-      // We will perform the reservation ATOMICALLY in the Execute phase.
-      // But we still fetch them here for deposit calculation and validation of existence.
-      const units = await prisma.rentalItemUnit.findMany({
+      // Use provided unitAssignments or auto-assign
+      let unitIds: string[];
+      if (input.unitAssignments && input.unitAssignments.length > 0) {
+        // Manual assignment provided
+        unitIds = input.unitAssignments.map((a) => a.unitId);
+        if (unitIds.length < totalQuantityRequired) {
+          throw new DomainError(
+            `Need ${totalQuantityRequired} units but only ${unitIds.length} provided`,
+            400,
+            DomainErrorCodes.INVALID_INPUT
+          );
+        }
+      } else {
+        // AUTO-ASSIGN: Find available units for each required rental item
+        unitIds = [];
+        for (const [rentalItemId, qty] of requiredUnits.entries()) {
+          const availableUnits = await tx.rentalItemUnit.findMany({
+            where: {
+              rentalItemId,
+              companyId,
+              status: UnitStatus.AVAILABLE,
+            },
+            take: qty,
+            orderBy: { unitCode: 'asc' },
+          });
+
+          if (availableUnits.length < qty) {
+            throw new DomainError(
+              `Insufficient available units for rental item. Need ${qty}, found ${availableUnits.length}`,
+              400,
+              DomainErrorCodes.INSUFFICIENT_STOCK
+            );
+          }
+
+          unitIds.push(...availableUnits.map((u) => u.id));
+        }
+      }
+
+      // Validate units exist
+      const units = await tx.rentalItemUnit.findMany({
         where: { id: { in: unitIds }, companyId },
       });
 
-      if (units.length !== (unitIds.length as number)) {
+      if (units.length !== unitIds.length) {
         throw new DomainError(
           'One or more units not found',
           400,
@@ -649,7 +720,7 @@ export class RentalService {
         );
       }
 
-      // Pre-check status (optional, but good for error messaging)
+      // Pre-check status
       Policy.ensureUnitsAvailable(units, unitIds);
 
       // Phase 2: Orchestrate
@@ -672,16 +743,25 @@ export class RentalService {
         });
       }
 
-      // Calculate deposit
-      const depositAmount = new Decimal(input.depositAmount);
+      // Use pre-calculated deposit from order (set during order creation)
+      const depositAmount = order.depositAmount
+        ? new Decimal(order.depositAmount.toString())
+        : new Decimal(0);
 
-      // Create deposit allocations
-      const allocations = input.unitAssignments.map((assignment) => {
-        const unit = units.find((u) => u.id === assignment.unitId)!;
-        const perUnitAmount = depositAmount.dividedBy(unitIds.length);
+      // PaymentMethod: use from order or default to BANK_TRANSFER
+      const paymentMethodStr =
+        input.paymentMethod ||
+        order.paymentMethod ||
+        PaymentMethod.BANK_TRANSFER;
+
+      // Create deposit allocations (using unitIds - either provided or auto-assigned)
+      const allocations = unitIds.map((unitId) => {
+        const perUnitAmount = depositAmount.dividedBy(
+          unitIds.length || 1
+        );
         return {
-          unitId: unit.id,
-          maxCoveredAmount: perUnitAmount, // Equal split for now
+          unitId,
+          maxCoveredAmount: perUnitAmount,
         };
       });
 
@@ -695,18 +775,18 @@ export class RentalService {
           policyType: policy.defaultDepositPolicyType,
           status: DepositStatus.COLLECTED,
           collectedAt: new Date(),
-          paymentMethod: input.paymentMethod,
+          paymentMethod: paymentMethodStr,
           allocations: {
             create: allocations,
           },
         },
       });
 
-      // Create unit assignments
+      // Create unit assignments (using unitIds)
       await tx.rentalOrderUnitAssignment.createMany({
-        data: input.unitAssignments.map((a) => ({
+        data: unitIds.map((unitId) => ({
           rentalOrderId: order.id,
-          rentalItemUnitId: a.unitId,
+          rentalItemUnitId: unitId,
           lockedBy: userId,
         })),
       });
@@ -749,7 +829,7 @@ export class RentalService {
         deposit.id,
         order.orderNumber!,
         Number(depositAmount),
-        input.paymentMethod,
+        paymentMethodStr,
         tx
       );
 
@@ -951,8 +1031,9 @@ export class RentalService {
     paymentReference?: string,
     failReason?: string
   ): Promise<RentalOrder> {
-    const { RentalPaymentStatus, OrderSource } = await import('@sync-erp/database');
-    
+    const { RentalPaymentStatus, OrderSource } =
+      await import('@sync-erp/database');
+
     return prisma.$transaction(async (tx) => {
       const order = await tx.rentalOrder.findUnique({
         where: { id: orderId },
@@ -967,7 +1048,10 @@ export class RentalService {
       }
 
       // Only AWAITING_CONFIRM payments can be verified
-      if (order.rentalPaymentStatus !== RentalPaymentStatus.AWAITING_CONFIRM) {
+      if (
+        order.rentalPaymentStatus !==
+        RentalPaymentStatus.AWAITING_CONFIRM
+      ) {
         throw new DomainError(
           'Only payments with AWAITING_CONFIRM status can be verified',
           400,
@@ -999,7 +1083,8 @@ export class RentalService {
           : {
               rentalPaymentStatus: RentalPaymentStatus.FAILED,
               paymentFailedAt: new Date(),
-              paymentFailReason: failReason || 'Payment verification failed',
+              paymentFailReason:
+                failReason || 'Payment verification failed',
             };
 
       const updated = await tx.rentalOrder.update({
@@ -1035,7 +1120,10 @@ export class RentalService {
             failReason,
           })
           .catch((err) => {
-            console.error('[RentalService] Webhook notification failed:', err);
+            console.error(
+              '[RentalService] Webhook notification failed:',
+              err
+            );
           });
       }
 

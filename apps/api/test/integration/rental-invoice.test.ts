@@ -155,13 +155,11 @@ describe('Rental Invoice Integration', () => {
       data: { stockQty: 1, averageCost: 1000000 },
     });
 
-    // Convert stock to rental unit
+    // Convert stock to rental unit (simplified: no prefix/startNumber)
     const count = await rentalService.convertStockToUnits(
       COMPANY_ID,
       item.id,
-      'CAM',
-      1,
-      1,
+      1, // quantity
       ACTOR_ID
     );
     expect(count).toBe(1);

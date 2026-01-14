@@ -374,13 +374,11 @@ describe('US3: Full Rental Asset Lifecycle', () => {
       undefined
     );
 
-    // Now convert stock to rental units
+    // Now convert stock to rental units (simplified: no prefix/startNumber)
     const convertedCount = await rentalService.convertStockToUnits(
       COMPANY_ID,
       rentalItemId,
-      'R',
-      2,
-      1,
+      2, // quantity
       ACTOR_ID
     );
 
