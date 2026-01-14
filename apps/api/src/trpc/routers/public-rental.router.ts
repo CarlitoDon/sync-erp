@@ -341,10 +341,6 @@ export const publicRentalRouter = router({
 
           // Auto-create bundle if not found and metadata provided
           if (!bundle && item.name && item.pricePerDay) {
-            console.log(
-              `[Auto-Create] Creating bundle: ${item.rentalBundleId} - ${item.name}`
-            );
-
             // Create bundle with components in a transaction
             bundle = await prisma.$transaction(async (tx) => {
               // 1. Create the bundle
@@ -362,10 +358,6 @@ export const publicRentalRouter = router({
 
               // 2. Create components if provided
               if (item.components && item.components.length > 0) {
-                console.log(
-                  `[Auto-Create] Creating ${item.components.length} bundle components: ${item.components.join(', ')}`
-                );
-
                 for (const componentLabel of item.components) {
                   // Parse quantity from label (e.g., "2 bantal" -> quantity: 2, label: "bantal")
                   const quantityMatch =
@@ -473,9 +465,7 @@ export const publicRentalRouter = router({
           // FRESH query to handle items created earlier in the same order (e.g., bundle first)
           if (!rentalItem && item.components?.[0]) {
             const componentSku = `SL-${item.components[0].toLowerCase().replace(/\s+/g, '-')}`;
-            console.log(
-              `[DEBUG] Mattress-only lookup - componentSku: ${componentSku}, rentalItemId: ${item.rentalItemId}`
-            );
+
             const freshLookup = await prisma.rentalItem.findFirst({
               where: {
                 companyId: input.companyId,
@@ -483,14 +473,9 @@ export const publicRentalRouter = router({
               },
               include: { product: true },
             });
-            console.log(
-              `[DEBUG] Fresh lookup result: ${freshLookup ? `Found ${freshLookup.id} - ${freshLookup.product?.name}` : 'NOT FOUND'}`
-            );
+
             if (freshLookup) {
               rentalItem = freshLookup;
-              console.log(
-                `[Lookup] Found existing rental item by component SKU: ${componentSku}`
-              );
 
               // Update dailyRate if mattress-only price is higher than bundle component price
               // This ensures standalone kasur uses correct price (e.g., 20000) not component price (5000)
@@ -498,9 +483,6 @@ export const publicRentalRouter = router({
                 item.pricePerDay &&
                 item.pricePerDay > Number(freshLookup.dailyRate)
               ) {
-                console.log(
-                  `[Price Update] Updating ${freshLookup.product?.name} from ${freshLookup.dailyRate} to ${item.pricePerDay}`
-                );
                 await prisma.rentalItem.update({
                   where: { id: freshLookup.id },
                   data: {
@@ -530,10 +512,6 @@ export const publicRentalRouter = router({
             const productSku = componentName
               ? `SL-${componentName.toLowerCase().replace(/\s+/g, '-')}`
               : `SL-${item.rentalItemId}`;
-
-            console.log(
-              `[Auto-Create] Creating rental item: ${item.rentalItemId} - ${productName} (sku: ${productSku})`
-            );
 
             // Check if product with this SKU already exists (e.g., kasur from a package)
             let product = await prisma.product.findFirst({
@@ -566,9 +544,6 @@ export const publicRentalRouter = router({
 
             if (existingRentalItem) {
               rentalItem = existingRentalItem;
-              console.log(
-                `[Auto-Create] Found existing rental item for product: ${productName}`
-              );
             } else {
               // Create rental item linked to product
               rentalItem = await prisma.rentalItem.create({
@@ -627,6 +602,8 @@ export const publicRentalRouter = router({
           rentalStartDate: input.rentalStartDate,
           rentalEndDate: input.rentalEndDate,
           dueDateTime: input.rentalEndDate,
+          // Explicitly generate publicToken to ensure it matches returned value
+          publicToken: crypto.randomUUID(),
           // Website orders start as DRAFT with PENDING payment status
           // Admin confirms after verifying payment → moves to CONFIRMED
           status: RentalOrderStatus.DRAFT,
@@ -692,6 +669,45 @@ export const publicRentalRouter = router({
         status: order.status,
         createdAt: order.createdAt,
       };
+    }),
+
+  /**
+   * Delete order by ID (Internal/Rollback Use)
+   * Used by santi-living to rollback invalid orders
+   */
+  deleteOrder: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ input }) => {
+      // Find order first
+      const order = await prisma.rentalOrder.findUnique({
+        where: { id: input.id },
+      });
+
+      if (!order) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Order not found',
+        });
+      }
+
+      // Check restricted deletion if necessary (e.g. only DRAFT)
+      if (order.status !== RentalOrderStatus.DRAFT) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Cannot delete order that is not DRAFT',
+        });
+      }
+
+      // Manually delete items first to avoid foreign key constraint errors
+      await prisma.rentalOrderItem.deleteMany({
+        where: { rentalOrderId: input.id },
+      });
+
+      await prisma.rentalOrder.delete({
+        where: { id: input.id },
+      });
+
+      return { success: true };
     }),
 
   /**
