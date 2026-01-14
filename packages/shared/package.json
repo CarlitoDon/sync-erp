@@ -22,6 +22,10 @@
     "./constants": {
       "types": "./dist/constants/index.d.ts",
       "import": "./dist/constants/index.js"
+    },
+    "./trpc": {
+      "types": "./dist/trpc/index.d.ts",
+      "import": "./dist/trpc/index.js"
     }
   },
   "scripts": {
@@ -32,9 +36,11 @@
   },
   "dependencies": {
     "@prisma/client": "^7.1.0",
+    "@sync-erp/database": "*",
+    "@trpc/server": "^11.5.0",
     "decimal.js": "^10.6.0",
-    "zod": "^3.23.0",
-    "@sync-erp/database": "*"
+    "superjson": "^2.2.6",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
