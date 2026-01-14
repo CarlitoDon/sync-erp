@@ -124,7 +124,7 @@ export default function RentalOrderDetail() {
       <ConfirmOrderModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
-        order={order}
+        orderId={id ?? null}
         onSuccess={() => {
           utils.rental.orders.getById.invalidate({ id: id! });
           setIsConfirmModalOpen(false);

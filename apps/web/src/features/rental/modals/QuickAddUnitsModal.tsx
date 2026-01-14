@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
 import FormModal from '@/components/ui/FormModal';
 import { Input } from '@/components/ui';
-import { apiAction } from '@/hooks/useApiAction';
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -38,7 +37,9 @@ export default function QuickAddUnitsModal({
   // Fetch product stock for each shortage item
   const { data: products = [] } = trpc.product.list.useQuery(
     undefined,
-    { enabled: isOpen }
+    {
+      enabled: isOpen,
+    }
   );
 
   // Fetch rental items to get productId
@@ -50,7 +51,9 @@ export default function QuickAddUnitsModal({
   // Map shortage items with their stock info
   const shortagesWithStock = useMemo(() => {
     return shortages.map((s) => {
-      const rentalItem = rentalItems.find((ri) => ri.id === s.rentalItemId);
+      const rentalItem = rentalItems.find(
+        (ri) => ri.id === s.rentalItemId
+      );
       const product = rentalItem
         ? products.find((p) => p.id === rentalItem.productId)
         : null;
@@ -64,27 +67,18 @@ export default function QuickAddUnitsModal({
     });
   }, [shortages, rentalItems, products]);
 
-  // State for conversion configs
+  // State for conversion configs - simplified: only quantity
   const [convertConfigs, setConvertConfigs] = useState<
-    Record<string, { quantity: number; prefix: string; startNumber: number }>
+    Record<string, { quantity: number }>
   >({});
 
   // Initialize configs when shortages change
   useMemo(() => {
-    const initial: Record<
-      string,
-      { quantity: number; prefix: string; startNumber: number }
-    > = {};
+    const initial: Record<string, { quantity: number }> = {};
     shortagesWithStock.forEach((s) => {
       if (s.hasEnoughStock && !convertConfigs[s.rentalItemId]) {
-        // Generate valid prefix: uppercase alphanumeric only
-        const basePrefix = s.productSku
-          ? s.productSku.toUpperCase().replace(/[^A-Z0-9]/g, '')
-          : 'RENT';
         initial[s.rentalItemId] = {
           quantity: Math.min(s.shortage, s.stockQty),
-          prefix: basePrefix || 'RENT',
-          startNumber: 1,
         };
       }
     });
@@ -100,29 +94,6 @@ export default function QuickAddUnitsModal({
     },
   });
 
-  // Single item convert (used by individual Convert buttons if needed)
-  const _handleConvertSingle = async (rentalItemId: string) => {
-    const config = convertConfigs[rentalItemId];
-    if (!config) return;
-
-    await apiAction(
-      () =>
-        convertMutation.mutateAsync({
-          rentalItemId,
-          quantity: config.quantity,
-          prefix: config.prefix,
-          startNumber: config.startNumber,
-        }),
-      `Berhasil mengkonversi ${config.quantity} unit dari stok`
-    );
-
-    // Refresh data
-    utils.rental.items.list.invalidate();
-    utils.product.list.invalidate();
-    utils.rentalBundle.getComponentAvailability.invalidate();
-  };
-  void _handleConvertSingle; // Silence unused warning
-
   const handleConvertAll = async () => {
     const itemsToConvert = shortagesWithStock.filter(
       (s) => s.hasEnoughStock && convertConfigs[s.rentalItemId]
@@ -136,8 +107,7 @@ export default function QuickAddUnitsModal({
         await convertMutation.mutateAsync({
           rentalItemId: item.rentalItemId,
           quantity: config.quantity,
-          prefix: config.prefix,
-          startNumber: config.startNumber,
+          // No prefix/startNumber - unit codes auto-generated!
         });
       }
 
@@ -148,33 +118,29 @@ export default function QuickAddUnitsModal({
       onSuccess();
       onClose();
     } catch (error) {
-      // Error already handled by tRPC's onError or shown via toast
       console.error('Convert error:', error);
     }
   };
 
-  const updateConfig = (
-    rentalItemId: string,
-    field: 'quantity' | 'prefix' | 'startNumber',
-    value: string | number
-  ) => {
+  const updateConfig = (rentalItemId: string, quantity: number) => {
     setConvertConfigs((prev) => ({
       ...prev,
-      [rentalItemId]: {
-        ...prev[rentalItemId],
-        [field]: value,
-      },
+      [rentalItemId]: { quantity },
     }));
   };
 
-  const itemsWithStock = shortagesWithStock.filter((s) => s.hasEnoughStock);
-  const itemsWithoutStock = shortagesWithStock.filter((s) => !s.hasEnoughStock);
+  const itemsWithStock = shortagesWithStock.filter(
+    (s) => s.hasEnoughStock
+  );
+  const itemsWithoutStock = shortagesWithStock.filter(
+    (s) => !s.hasEnoughStock
+  );
   const canConvertAny = itemsWithStock.length > 0;
 
   // PO modal state
   const [isPOModalOpen, setIsPOModalOpen] = useState(false);
 
-  // Prepare items for PO prefill - include price from products query
+  // Prepare items for PO prefill
   const poPrefilledItems: PrefillItem[] = useMemo(() => {
     return itemsWithoutStock
       .filter((item) => item.productId)
@@ -182,7 +148,7 @@ export default function QuickAddUnitsModal({
         const product = products.find((p) => p.id === item.productId);
         return {
           productId: item.productId!,
-          quantity: item.shortage - item.stockQty, // Only the amount we still need
+          quantity: item.shortage - item.stockQty,
           price: product?.price ? Number(product.price) : undefined,
         };
       });
@@ -198,8 +164,8 @@ export default function QuickAddUnitsModal({
         {/* Info */}
         <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
           <p>
-            Konversi stok produk menjadi unit rental. Stok akan berkurang dan
-            unit rental baru akan tersedia untuk di-assign.
+            Konversi stok produk menjadi unit rental. Kode unit akan
+            di-generate otomatis.
           </p>
         </div>
 
@@ -214,8 +180,6 @@ export default function QuickAddUnitsModal({
             {itemsWithStock.map((item) => {
               const config = convertConfigs[item.rentalItemId] ?? {
                 quantity: item.shortage,
-                prefix: item.productSku || 'RENT',
-                startNumber: 1,
               };
 
               return (
@@ -237,51 +201,25 @@ export default function QuickAddUnitsModal({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    <Input
-                      label="Prefix"
-                      value={config.prefix}
-                      onChange={(e) =>
-                        updateConfig(item.rentalItemId, 'prefix', e.target.value)
-                      }
-                    />
-                    <Input
-                      label="Jumlah"
-                      type="number"
-                      min={1}
-                      max={item.stockQty}
-                      value={config.quantity}
-                      onChange={(e) =>
-                        updateConfig(
-                          item.rentalItemId,
-                          'quantity',
-                          Math.min(
-                            parseInt(e.target.value) || 1,
-                            item.stockQty
-                          )
+                  <Input
+                    label="Jumlah Konversi"
+                    type="number"
+                    min={1}
+                    max={item.stockQty}
+                    value={config.quantity}
+                    onChange={(e) =>
+                      updateConfig(
+                        item.rentalItemId,
+                        Math.min(
+                          parseInt(e.target.value) || 1,
+                          item.stockQty
                         )
-                      }
-                    />
-                    <Input
-                      label="Nomor Mulai"
-                      type="number"
-                      min={1}
-                      value={config.startNumber}
-                      onChange={(e) =>
-                        updateConfig(
-                          item.rentalItemId,
-                          'startNumber',
-                          parseInt(e.target.value) || 1
-                        )
-                      }
-                    />
-                  </div>
+                      )
+                    }
+                  />
 
                   <p className="text-xs text-gray-500">
-                    Preview: {config.prefix}-
-                    {String(config.startNumber).padStart(3, '0')}
-                    {config.quantity > 1 &&
-                      ` s/d ${config.prefix}-${String(config.startNumber + config.quantity - 1).padStart(3, '0')}`}
+                    Kode unit akan di-generate otomatis
                   </p>
                 </div>
               );
@@ -324,13 +262,11 @@ export default function QuickAddUnitsModal({
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors"
             >
               <ShoppingCartIcon className="w-5 h-5" />
-              Buat Purchase Order untuk {itemsWithoutStock.length} item
+              Buat Purchase Order untuk {
+                itemsWithoutStock.length
+              }{' '}
+              item
             </button>
-
-            <p className="text-sm text-amber-700">
-              Untuk item di atas, silakan buat Purchase Order terlebih dahulu
-              untuk menambah stok.
-            </p>
           </div>
         )}
       </div>

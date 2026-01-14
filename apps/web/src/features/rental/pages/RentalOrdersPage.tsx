@@ -20,7 +20,11 @@ import {
   ComputerDesktopIcon,
   CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
-import { RentalOrderStatus, RentalPaymentStatus, OrderSource } from '@sync-erp/shared';
+import {
+  RentalOrderStatus,
+  RentalPaymentStatus,
+  OrderSource,
+} from '@sync-erp/shared';
 import type { RentalOrderWithRelations } from '@sync-erp/shared';
 import UnitAssignmentModal from '../modals/UnitAssignmentModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
@@ -59,7 +63,8 @@ export default function RentalOrdersPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isReleaseOpen, setIsReleaseOpen] = useState(false);
   const [isReturnOpen, setIsReturnOpen] = useState(false);
-  const [isVerifyPaymentOpen, setIsVerifyPaymentOpen] = useState(false);
+  const [isVerifyPaymentOpen, setIsVerifyPaymentOpen] =
+    useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<
     string | null
   >(null);
@@ -80,7 +85,9 @@ export default function RentalOrdersPage() {
       result = result.filter((o) => o.status === statusFilter);
     }
     if (paymentFilter !== 'ALL') {
-      result = result.filter((o) => o.rentalPaymentStatus === paymentFilter);
+      result = result.filter(
+        (o) => o.rentalPaymentStatus === paymentFilter
+      );
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -96,7 +103,8 @@ export default function RentalOrdersPage() {
   // Count orders awaiting payment verification
   const awaitingVerificationCount = useMemo(() => {
     return orders.filter(
-      (o) => o.rentalPaymentStatus === RentalPaymentStatus.AWAITING_CONFIRM
+      (o) =>
+        o.rentalPaymentStatus === RentalPaymentStatus.AWAITING_CONFIRM
     ).length;
   }, [orders]);
 
@@ -105,7 +113,9 @@ export default function RentalOrdersPage() {
     setIsConfirmOpen(true);
   };
 
-  const openVerifyPaymentModal = (order: RentalOrderWithRelations) => {
+  const openVerifyPaymentModal = (
+    order: RentalOrderWithRelations
+  ) => {
     setSelectedOrderId(order.id);
     setIsVerifyPaymentOpen(true);
   };
@@ -157,7 +167,7 @@ export default function RentalOrdersPage() {
           setIsConfirmOpen(false);
           setSelectedOrderId(null);
         }}
-        order={selectedOrder || null}
+        orderId={selectedOrderId}
         onSuccess={() => {
           setIsConfirmOpen(false);
           setSelectedOrderId(null);
@@ -184,14 +194,18 @@ export default function RentalOrdersPage() {
           <CurrencyDollarIcon className="w-6 h-6 text-yellow-600 shrink-0" />
           <div className="flex-1">
             <p className="font-medium text-yellow-800">
-              {awaitingVerificationCount} pembayaran menunggu verifikasi
+              {awaitingVerificationCount} pembayaran menunggu
+              verifikasi
             </p>
             <p className="text-sm text-yellow-700">
-              Klik tombol "Verifikasi" pada order untuk mengkonfirmasi pembayaran
+              Klik tombol "Verifikasi" pada order untuk mengkonfirmasi
+              pembayaran
             </p>
           </div>
           <button
-            onClick={() => setPaymentFilter(RentalPaymentStatus.AWAITING_CONFIRM)}
+            onClick={() =>
+              setPaymentFilter(RentalPaymentStatus.AWAITING_CONFIRM)
+            }
             className="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200"
           >
             Lihat
@@ -215,12 +229,20 @@ export default function RentalOrdersPage() {
         {/* Payment Status Filter */}
         <select
           value={paymentFilter}
-          onChange={(e) => setPaymentFilter(e.target.value as RentalPaymentStatus | 'ALL')}
+          onChange={(e) =>
+            setPaymentFilter(
+              e.target.value as RentalPaymentStatus | 'ALL'
+            )
+          }
           className="px-3 py-2 border rounded-lg text-sm"
         >
           <option value="ALL">Semua Pembayaran</option>
-          <option value={RentalPaymentStatus.PENDING}>Belum Bayar</option>
-          <option value={RentalPaymentStatus.AWAITING_CONFIRM}>Menunggu Verifikasi</option>
+          <option value={RentalPaymentStatus.PENDING}>
+            Belum Bayar
+          </option>
+          <option value={RentalPaymentStatus.AWAITING_CONFIRM}>
+            Menunggu Verifikasi
+          </option>
           <option value={RentalPaymentStatus.CONFIRMED}>Lunas</option>
           <option value={RentalPaymentStatus.FAILED}>Gagal</option>
         </select>
@@ -284,12 +306,18 @@ export default function RentalOrdersPage() {
                         {order.orderNumber}
                       </Link>
                       {order.orderSource === OrderSource.WEBSITE ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 text-blue-700" title="Order dari Santi Living">
+                        <span
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 text-blue-700"
+                          title="Order dari Santi Living"
+                        >
                           <GlobeAltIcon className="w-3 h-3" />
                           Website
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-600" title="Order dibuat manual">
+                        <span
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-600"
+                          title="Order dibuat manual"
+                        >
                           <ComputerDesktopIcon className="w-3 h-3" />
                           Manual
                         </span>
@@ -319,17 +347,21 @@ export default function RentalOrdersPage() {
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${PAYMENT_STATUS_COLORS[order.rentalPaymentStatus] || 'bg-gray-100 text-gray-700'}`}
                       >
-                        {PAYMENT_STATUS_LABELS[order.rentalPaymentStatus] ||
-                          order.rentalPaymentStatus}
+                        {PAYMENT_STATUS_LABELS[
+                          order.rentalPaymentStatus
+                        ] || order.rentalPaymentStatus}
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
                       {/* Verify Payment Button - highest priority for website orders */}
-                      {order.rentalPaymentStatus === RentalPaymentStatus.AWAITING_CONFIRM && (
+                      {order.rentalPaymentStatus ===
+                        RentalPaymentStatus.AWAITING_CONFIRM && (
                         <button
-                          onClick={() => openVerifyPaymentModal(order)}
+                          onClick={() =>
+                            openVerifyPaymentModal(order)
+                          }
                           className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100 animate-pulse"
                           title="Verifikasi Pembayaran"
                         >

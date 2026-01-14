@@ -32,18 +32,12 @@ export default function ConvertStockModal({
     },
   });
 
-  const [form, setForm] = useState({
-    prefix: itemSku ? `${itemSku}-RENT` : 'RENT',
-    quantity: Math.min(10, availableStock),
-    startNumber: 1,
-  });
+  const [quantity, setQuantity] = useState(
+    Math.min(10, availableStock)
+  );
 
   const resetForm = () => {
-    setForm({
-      prefix: itemSku ? `${itemSku}-RENT` : 'RENT',
-      quantity: Math.min(10, availableStock),
-      startNumber: 1,
-    });
+    setQuantity(Math.min(10, availableStock));
   };
 
   const handleClose = () => {
@@ -59,11 +53,9 @@ export default function ConvertStockModal({
       () =>
         convertMutation.mutateAsync({
           rentalItemId: itemId,
-          quantity: Number(form.quantity),
-          prefix: form.prefix,
-          startNumber: Number(form.startNumber),
+          quantity: Number(quantity),
         }),
-      `Berhasil mengkonversi ${form.quantity} unit dari stok`
+      `Berhasil mengkonversi ${quantity} unit dari stok`
     );
   };
 
@@ -80,53 +72,28 @@ export default function ConvertStockModal({
           </p>
           <p className="text-xs mt-1">
             Konversi akan mengurangi stok produk dan membuat unit
-            rental baru
+            rental baru dengan kode otomatis
           </p>
         </div>
 
+        {itemSku && (
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">SKU Produk:</span> {itemSku}
+          </div>
+        )}
+
         <Input
-          label="Prefix Kode *"
-          value={form.prefix}
-          onChange={(e) =>
-            setForm({ ...form, prefix: e.target.value })
-          }
-          placeholder="e.g., KSR-RENT"
+          label="Jumlah Unit"
+          type="number"
+          min={1}
+          max={availableStock}
+          value={String(quantity)}
+          onChange={(e) => setQuantity(Number(e.target.value))}
           required
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Nomor Awal"
-            type="number"
-            min={1}
-            value={String(form.startNumber)}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                startNumber: Number(e.target.value),
-              })
-            }
-          />
-          <Input
-            label="Jumlah Konversi"
-            type="number"
-            min={1}
-            max={availableStock}
-            value={String(form.quantity)}
-            onChange={(e) =>
-              setForm({ ...form, quantity: Number(e.target.value) })
-            }
-          />
-        </div>
-
         <p className="text-xs text-gray-500">
-          Akan membuat: {form.prefix}-
-          {String(form.startNumber).padStart(3, '0')} sampai{' '}
-          {form.prefix}-
-          {String(form.startNumber + form.quantity - 1).padStart(
-            3,
-            '0'
-          )}
+          Kode unit akan di-generate otomatis berdasarkan SKU produk
         </p>
 
         <div className="flex justify-end gap-3 pt-4 border-t">
@@ -139,12 +106,12 @@ export default function ConvertStockModal({
           </button>
           <button
             type="submit"
-            disabled={convertMutation.isPending || form.quantity < 1}
+            disabled={convertMutation.isPending || quantity < 1}
             className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
           >
             {convertMutation.isPending
               ? 'Mengkonversi...'
-              : `Konversi ${form.quantity} Unit`}
+              : `Konversi ${quantity} Unit`}
           </button>
         </div>
       </form>

@@ -85,9 +85,7 @@ export const rentalRouter = router({
         return rentalService.convertStockToUnits(
           ctx.companyId,
           input.rentalItemId,
-          input.prefix,
           input.quantity,
-          input.startNumber,
           ctx.userId
         );
       }),
