@@ -92,6 +92,12 @@ CREATE TYPE "UnitStatus" AS ENUM ('AVAILABLE', 'RESERVED', 'RENTED', 'RETURNED',
 CREATE TYPE "RentalOrderStatus" AS ENUM ('DRAFT', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
+CREATE TYPE "RentalPaymentStatus" AS ENUM ('PENDING', 'AWAITING_CONFIRM', 'CONFIRMED', 'FAILED');
+
+-- CreateEnum
+CREATE TYPE "OrderSource" AS ENUM ('ADMIN', 'WEBSITE');
+
+-- CreateEnum
 CREATE TYPE "PricingTier" AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY', 'CUSTOM');
 
 -- CreateEnum
@@ -588,6 +594,38 @@ CREATE TABLE "RentalItem" (
 );
 
 -- CreateTable
+CREATE TABLE "RentalBundle" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "externalId" TEXT,
+    "name" TEXT NOT NULL,
+    "shortName" TEXT,
+    "description" TEXT,
+    "dailyRate" DECIMAL(15,2) NOT NULL,
+    "weeklyRate" DECIMAL(15,2),
+    "monthlyRate" DECIMAL(15,2),
+    "dimensions" TEXT,
+    "capacity" TEXT,
+    "imagePath" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RentalBundle_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RentalBundleComponent" (
+    "id" TEXT NOT NULL,
+    "bundleId" TEXT NOT NULL,
+    "rentalItemId" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL DEFAULT 1,
+    "componentLabel" TEXT NOT NULL,
+
+    CONSTRAINT "RentalBundleComponent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "RentalItemUnit" (
     "id" TEXT NOT NULL,
     "rentalItemId" TEXT NOT NULL,
@@ -643,7 +681,14 @@ CREATE TABLE "RentalOrder" (
     "paymentMethod" TEXT,
     "discountAmount" DECIMAL(15,2),
     "discountLabel" TEXT,
-    "orderSource" TEXT DEFAULT 'admin',
+    "orderSource" "OrderSource" NOT NULL DEFAULT 'ADMIN',
+    "rentalPaymentStatus" "RentalPaymentStatus" NOT NULL DEFAULT 'PENDING',
+    "paymentClaimedAt" TIMESTAMP(3),
+    "paymentConfirmedAt" TIMESTAMP(3),
+    "paymentConfirmedBy" TEXT,
+    "paymentReference" TEXT,
+    "paymentFailedAt" TIMESTAMP(3),
+    "paymentFailReason" TEXT,
 
     CONSTRAINT "RentalOrder_pkey" PRIMARY KEY ("id")
 );
@@ -673,7 +718,8 @@ CREATE TABLE "RentalOrderExtension" (
 CREATE TABLE "RentalOrderItem" (
     "id" TEXT NOT NULL,
     "rentalOrderId" TEXT NOT NULL,
-    "rentalItemId" TEXT NOT NULL,
+    "rentalItemId" TEXT,
+    "rentalBundleId" TEXT,
     "quantity" INTEGER NOT NULL,
     "unitPrice" DECIMAL(15,2) NOT NULL,
     "pricingTier" "PricingTier" NOT NULL,
@@ -1056,6 +1102,21 @@ CREATE INDEX "RentalItem_companyId_isActive_idx" ON "RentalItem"("companyId", "i
 CREATE INDEX "RentalItem_productId_idx" ON "RentalItem"("productId");
 
 -- CreateIndex
+CREATE INDEX "RentalBundle_companyId_idx" ON "RentalBundle"("companyId");
+
+-- CreateIndex
+CREATE INDEX "RentalBundle_companyId_isActive_idx" ON "RentalBundle"("companyId", "isActive");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalBundle_companyId_externalId_key" ON "RentalBundle"("companyId", "externalId");
+
+-- CreateIndex
+CREATE INDEX "RentalBundleComponent_bundleId_idx" ON "RentalBundleComponent"("bundleId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RentalBundleComponent_bundleId_rentalItemId_key" ON "RentalBundleComponent"("bundleId", "rentalItemId");
+
+-- CreateIndex
 CREATE INDEX "RentalItemUnit_companyId_idx" ON "RentalItemUnit"("companyId");
 
 -- CreateIndex
@@ -1086,6 +1147,9 @@ CREATE INDEX "RentalOrder_dueDateTime_idx" ON "RentalOrder"("dueDateTime");
 CREATE INDEX "RentalOrder_orderSource_idx" ON "RentalOrder"("orderSource");
 
 -- CreateIndex
+CREATE INDEX "RentalOrder_companyId_rentalPaymentStatus_idx" ON "RentalOrder"("companyId", "rentalPaymentStatus");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "RentalOrder_companyId_orderNumber_key" ON "RentalOrder"("companyId", "orderNumber");
 
 -- CreateIndex
@@ -1096,6 +1160,12 @@ CREATE INDEX "RentalOrderExtension_companyId_idx" ON "RentalOrderExtension"("com
 
 -- CreateIndex
 CREATE INDEX "RentalOrderItem_rentalOrderId_idx" ON "RentalOrderItem"("rentalOrderId");
+
+-- CreateIndex
+CREATE INDEX "RentalOrderItem_rentalItemId_idx" ON "RentalOrderItem"("rentalItemId");
+
+-- CreateIndex
+CREATE INDEX "RentalOrderItem_rentalBundleId_idx" ON "RentalOrderItem"("rentalBundleId");
 
 -- CreateIndex
 CREATE INDEX "RentalOrderUnitAssignment_rentalItemUnitId_idx" ON "RentalOrderUnitAssignment"("rentalItemUnitId");
@@ -1347,6 +1417,15 @@ ALTER TABLE "RentalItem" ADD CONSTRAINT "RentalItem_companyId_fkey" FOREIGN KEY 
 ALTER TABLE "RentalItem" ADD CONSTRAINT "RentalItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "RentalBundle" ADD CONSTRAINT "RentalBundle_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalBundleComponent" ADD CONSTRAINT "RentalBundleComponent_bundleId_fkey" FOREIGN KEY ("bundleId") REFERENCES "RentalBundle"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalBundleComponent" ADD CONSTRAINT "RentalBundleComponent_rentalItemId_fkey" FOREIGN KEY ("rentalItemId") REFERENCES "RentalItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "RentalItemUnit" ADD CONSTRAINT "RentalItemUnit_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1365,7 +1444,10 @@ ALTER TABLE "RentalOrderExtension" ADD CONSTRAINT "RentalOrderExtension_companyI
 ALTER TABLE "RentalOrderExtension" ADD CONSTRAINT "RentalOrderExtension_rentalOrderId_fkey" FOREIGN KEY ("rentalOrderId") REFERENCES "RentalOrder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RentalOrderItem" ADD CONSTRAINT "RentalOrderItem_rentalItemId_fkey" FOREIGN KEY ("rentalItemId") REFERENCES "RentalItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "RentalOrderItem" ADD CONSTRAINT "RentalOrderItem_rentalItemId_fkey" FOREIGN KEY ("rentalItemId") REFERENCES "RentalItem"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RentalOrderItem" ADD CONSTRAINT "RentalOrderItem_rentalBundleId_fkey" FOREIGN KEY ("rentalBundleId") REFERENCES "RentalBundle"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "RentalOrderItem" ADD CONSTRAINT "RentalOrderItem_rentalOrderId_fkey" FOREIGN KEY ("rentalOrderId") REFERENCES "RentalOrder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
