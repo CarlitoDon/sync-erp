@@ -729,29 +729,29 @@ model RentalOrder {
   publicToken String? @unique @default(uuid())
 
   // Santi Living Integration Fields
-  deliveryFee     Decimal? @db.Decimal(15, 2)
-  deliveryAddress String?  @db.Text // Full combined address for display
+  deliveryFee     Decimal?    @db.Decimal(15, 2)
+  deliveryAddress String?     @db.Text // Full combined address for display
   street          String? // Jalan/nama jalan
   kelurahan       String?
   kecamatan       String?
   kota            String? // Kabupaten/Kota
   provinsi        String?
   zip             String? // Kode pos
-  latitude        Decimal? @db.Decimal(10, 8)
-  longitude       Decimal? @db.Decimal(11, 8)
+  latitude        Decimal?    @db.Decimal(10, 8)
+  longitude       Decimal?    @db.Decimal(11, 8)
   paymentMethod   String? // "qris" | "transfer"
-  discountAmount  Decimal? @db.Decimal(15, 2)
+  discountAmount  Decimal?    @db.Decimal(15, 2)
   discountLabel   String?
   orderSource     OrderSource @default(ADMIN)
 
   // Payment tracking (for website orders)
   rentalPaymentStatus RentalPaymentStatus @default(PENDING)
-  paymentClaimedAt    DateTime?     // When customer clicked "I've paid"
-  paymentConfirmedAt  DateTime?     // When admin verified payment
-  paymentConfirmedBy  String?       // User ID who confirmed
-  paymentReference    String?       // Bank reference / transaction ID
-  paymentFailedAt     DateTime?     // When payment was rejected/failed
-  paymentFailReason   String?       // Reason for failure
+  paymentClaimedAt    DateTime? // When customer clicked "I've paid"
+  paymentConfirmedAt  DateTime? // When admin verified payment
+  paymentConfirmedBy  String? // User ID who confirmed
+  paymentReference    String? // Bank reference / transaction ID
+  paymentFailedAt     DateTime? // When payment was rejected/failed
+  paymentFailReason   String? // Reason for failure
 
   // Relations
   conditionLogs   ItemConditionLog[]
@@ -1263,10 +1263,10 @@ enum RentalOrderStatus {
 }
 
 enum RentalPaymentStatus {
-  PENDING           // Order created, awaiting payment
-  AWAITING_CONFIRM  // Customer claimed payment, awaiting admin verification
-  CONFIRMED         // Admin confirmed payment received
-  FAILED            // Payment rejected/expired
+  PENDING // Order created, awaiting payment
+  AWAITING_CONFIRM // Customer claimed payment, awaiting admin verification
+  CONFIRMED // Admin confirmed payment received
+  FAILED // Payment rejected/expired
 }
 
 enum OrderSource {
