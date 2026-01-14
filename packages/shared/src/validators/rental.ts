@@ -18,7 +18,11 @@ import {
 } from '../generated/zod/index.js';
 
 // Re-export generated schemas for use in other packages
-export { RentalItemSchema, RentalOrderSchema, RentalPaymentStatusSchema };
+export {
+  RentalItemSchema,
+  RentalOrderSchema,
+  RentalPaymentStatusSchema,
+};
 
 // Export runtime Enums and Types
 export const RentalOrderStatus = RentalOrderStatusSchema.enum;
@@ -238,36 +242,33 @@ export const CreateRentalOrderSchema = z
     }
   );
 
+// Simplified: Admin just confirms, deposit is pre-calculated
 export const ConfirmRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
-  depositAmount: z.number().nonnegative(),
-  paymentMethod: z.string().min(1), // e.g., "Cash", "Transfer", "Card"
+  // Optional: deposit already calculated during order creation
+  depositAmount: z.number().nonnegative().optional(),
+  // Optional: defaults to TRANSFER for website orders
+  paymentMethod: z.string().optional(),
   paymentReference: z.string().optional(),
+  // Optional: if not provided, units will be auto-assigned
   unitAssignments: z
     .array(
       z.object({
         unitId: z.string().uuid(),
       })
     )
-    .min(1, 'Minimal 1 unit harus dipilih untuk konfirmasi order'),
+    .optional()
+    .default([]),
 });
 
 // Bulk add units
 // REMOVED: BulkAddUnitSchema - Manual bulk unit creation no longer supported
 // All units must be created via ConvertStockToUnitSchema
 
-// Convert Stock to Unit
+// Convert Stock to Unit (Simplified: Auto-generate unit codes)
 export const ConvertStockToUnitSchema = z.object({
   rentalItemId: z.string().uuid(),
-  prefix: z
-    .string()
-    .min(2, 'Prefix minimal 2 karakter')
-    .regex(
-      /^[A-Z0-9]+$/,
-      'Prefix hanya boleh huruf kapital dan angka'
-    ),
   quantity: z.number().min(1, 'Minimal 1 unit'),
-  startNumber: z.number().min(1).default(1),
 });
 
 const UnitReleaseSchema = z.object({

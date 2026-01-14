@@ -627,9 +627,12 @@ export const publicRentalRouter = router({
           rentalStartDate: input.rentalStartDate,
           rentalEndDate: input.rentalEndDate,
           dueDateTime: input.rentalEndDate,
+          // Website orders start as DRAFT with PENDING payment status
+          // Admin confirms after verifying payment → moves to CONFIRMED
           status: RentalOrderStatus.DRAFT,
+          rentalPaymentStatus: RentalPaymentStatus.PENDING,
           subtotal,
-          depositAmount: 0,
+          depositAmount: 0, // Will be calculated based on policy when confirmed
           totalAmount,
           policySnapshot: {},
           notes: input.notes,
