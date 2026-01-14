@@ -54,7 +54,7 @@ export const prisma =
     adapter,
     log:
       process.env.NODE_ENV === 'development'
-        ? ['query', 'error', 'warn']
+        ? ['error', 'warn']
         : ['error'],
     // Increase transaction timeout to handle Railway <-> Supabase latency
     transactionOptions: {
