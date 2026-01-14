@@ -791,6 +791,61 @@ export const publicRentalRouter = router({
         paymentClaimedAt: updatedOrder.paymentClaimedAt,
       };
     }),
+
+  /**
+   * Confirm payment by Order Number (Internal/Webhook Use)
+   * Used by Midtrans webhook to confirm payment via Order Number
+   */
+  confirmPaymentByOrderNumber: publicProcedure
+    .input(
+      z.object({
+        orderNumber: z.string(),
+        paymentMethod: z.string(),
+        transactionId: z.string().optional(),
+        amount: z.number().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // Find order by order number
+      const order = await prisma.rentalOrder.findFirst({
+        where: { orderNumber: input.orderNumber },
+      });
+
+      if (!order) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Order not found',
+        });
+      }
+
+      // If already confirmed, ignore (idempotency)
+      if (
+        order.rentalPaymentStatus === RentalPaymentStatus.CONFIRMED
+      ) {
+        return { success: true, status: 'ALREADY_CONFIRMED' };
+      }
+
+      // Update payment status to CONFIRMED (Trusted from Midtrans)
+      // We also auto-confirm status to CONFIRMED (ready for unit assignment)
+      const updatedOrder = await prisma.rentalOrder.update({
+        where: { id: order.id },
+        data: {
+          rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
+          paymentConfirmedAt: new Date(),
+
+          paymentMethod: input.paymentMethod,
+          paymentReference: input.transactionId,
+          // DO NOT auto-confirm status. Keeping it DRAFT allows Admin to assign unit before confirming.
+          // status: RentalOrderStatus.CONFIRMED, (REMOVED)
+        },
+      });
+
+      return {
+        success: true,
+        orderNumber: updatedOrder.orderNumber,
+        status: updatedOrder.status,
+      };
+    }),
 });
 
 export type PublicRentalRouter = typeof publicRentalRouter;
