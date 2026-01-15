@@ -53,6 +53,11 @@ export async function initializeBaileys() {
           '[Baileys] Connection closed. Reconnecting:',
           shouldReconnect
         );
+        // eslint-disable-next-line no-console
+        console.log(
+          '[Baileys] Error details:',
+          JSON.stringify(lastDisconnect?.error, null, 2)
+        );
         connectionStatus = 'DISCONNECTED';
         qrDataUrl = null;
         updateApiStatus('DISCONNECTED', null);
