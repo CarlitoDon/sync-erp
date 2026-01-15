@@ -6,6 +6,7 @@ export interface ApiKeyValidationResult {
   companyId: string;
   permissions: string[];
   keyId: string;
+  rateLimit: number;
 }
 
 export interface CreateKeyResult {
@@ -144,6 +145,7 @@ export class ApiKeyService {
         companyId: true,
         permissions: true,
         expiresAt: true,
+        rateLimit: true,
       },
     });
 
@@ -159,6 +161,7 @@ export class ApiKeyService {
               companyId: true,
               permissions: true,
               expiresAt: true,
+              rateLimit: true,
             },
           });
 
@@ -185,6 +188,7 @@ export class ApiKeyService {
           companyId: candidate.companyId,
           permissions: candidate.permissions,
           keyId: candidate.id,
+          rateLimit: candidate.rateLimit,
         };
       }
     }
