@@ -1,7 +1,7 @@
 # Railway API Dockerfile
 # Multi-stage build for sync-erp API service
 
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 
 # Build args for Prisma generate
 ARG DATABASE_URL
@@ -10,7 +10,7 @@ ENV DATABASE_URL=$DATABASE_URL
 WORKDIR /app
 
 # Install dependencies needed for native modules
-RUN apk add --no-cache python3 make g++ openssl
+RUN apt-get update -y && apt-get install -y python3 make g++ openssl
 
 # Copy all source code
 COPY . .
@@ -27,12 +27,12 @@ WORKDIR /app
 RUN npx turbo run build --filter=@sync-erp/api...
 
 # Production stage
-FROM node:22-alpine AS production
+FROM node:22-slim AS production
 
 WORKDIR /app
 
 # Install openssl for Prisma runtime
-RUN apk add --no-cache openssl
+RUN apt-get update -y && apt-get install -y openssl ca-certificates
 
 # Copy package files and install prod deps only
 COPY --from=builder /app/package*.json ./
