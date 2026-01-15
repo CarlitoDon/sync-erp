@@ -10,7 +10,7 @@ ENV DATABASE_URL=$DATABASE_URL
 WORKDIR /app
 
 # Install dependencies needed for native modules
-RUN apk add --no-cache python3 make g++ openssl
+RUN apk add --no-cache python3 make g++ openssl ca-certificates curl
 
 # Copy all source code
 COPY . .
