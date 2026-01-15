@@ -18,9 +18,9 @@ COPY . .
 # Install all dependencies
 RUN npm ci --include=dev
 
-# Generate Prisma client (bot may need database types)
+# Generate Prisma client with patch script (bot may need database types)
 WORKDIR /app/packages/database
-RUN npx prisma generate
+RUN npx prisma generate && node ../scripts/patch-zod-types.mjs
 WORKDIR /app
 
 # Build workspace packages
