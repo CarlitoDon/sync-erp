@@ -43,7 +43,8 @@ COPY --from=builder /app/packages/shared ./packages/shared
 
 # Set environment
 ENV NODE_ENV=production
-ENV SYNC_ERP_API_URL=https://sync-erp-api-production.up.railway.app/api/trpc
+ENV SYNC_ERP_API_URL=https://api.railway.internal:3001/api/trpc
+ENV SYNC_ERP_API_KEY=dev_bot_secret_key_2026
 
 # Set PRISMA_CONFIG_FILE for any runtime prisma calls
 ENV PRISMA_CONFIG_FILE=packages/database/prisma.config.ts

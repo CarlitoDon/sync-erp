@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, protectedProcedure, apiKeyProcedure } from '../trpc';
+import { router, protectedProcedure, botProcedure } from '../trpc';
 
 // In-memory store (Reset on restart)
 // For production, this should be Redis
@@ -10,7 +10,7 @@ let botState = {
 };
 
 export const botRouter = router({
-  updateStatus: apiKeyProcedure
+  updateStatus: botProcedure
     .input(
       z.object({
         status: z.enum([
