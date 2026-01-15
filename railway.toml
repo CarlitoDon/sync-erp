@@ -1,5 +1,5 @@
 [build]
-builder = "nixpacks"
+builder = "RAILPACK"
 
 # Service 1: API (Main Backend + Database Migrator)
 [[services]]
