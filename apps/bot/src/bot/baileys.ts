@@ -17,7 +17,7 @@ let connectionStatus:
   | 'READY'
   | 'DISCONNECTED' = 'INITIALIZING';
 
-const logger = pino({ level: 'silent' });
+const logger = pino({ level: 'info' });
 
 export async function initializeBaileys() {
   // Use Redis for session persistence
