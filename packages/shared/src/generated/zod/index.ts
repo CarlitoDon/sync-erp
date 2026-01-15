@@ -98,6 +98,8 @@ export const TransactionIsolationLevelSchema = z.enum(['ReadUncommitted','ReadCo
 
 export const CompanyScalarFieldEnumSchema = z.enum(['id','name','businessShape','inviteCode','createdAt','updatedAt']);
 
+export const ApiKeyScalarFieldEnumSchema = z.enum(['id','keyHash','keyPrefix','name','companyId','permissions','webhookUrl','webhookSecret','rateLimit','isActive','expiresAt','lastUsedAt','createdAt','updatedAt']);
+
 export const UserScalarFieldEnumSchema = z.enum(['id','email','name','passwordHash','createdAt','updatedAt']);
 
 export const SessionScalarFieldEnumSchema = z.enum(['id','userId','expiresAt','createdAt']);
@@ -380,6 +382,32 @@ export const CompanySchema = z.object({
 })
 
 export type Company = z.infer<typeof CompanySchema>
+
+/////////////////////////////////////////
+// API KEY SCHEMA
+/////////////////////////////////////////
+
+/**
+ * API Key for external integrations (multi-tenant)
+ */
+export const ApiKeySchema = z.object({
+  id: z.string(),
+  keyHash: z.string(),
+  keyPrefix: z.string(),
+  name: z.string(),
+  companyId: z.string(),
+  permissions: z.string().array(),
+  webhookUrl: z.string().nullable(),
+  webhookSecret: z.string().nullable(),
+  rateLimit: z.number(),
+  isActive: z.boolean(),
+  expiresAt: z.coerce.date().nullable(),
+  lastUsedAt: z.coerce.date().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type ApiKey = z.infer<typeof ApiKeySchema>
 
 /////////////////////////////////////////
 // USER SCHEMA
