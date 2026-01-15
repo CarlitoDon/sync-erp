@@ -98,7 +98,9 @@ export const TransactionIsolationLevelSchema = z.enum(['ReadUncommitted','ReadCo
 
 export const CompanyScalarFieldEnumSchema = z.enum(['id','name','businessShape','inviteCode','createdAt','updatedAt']);
 
-export const ApiKeyScalarFieldEnumSchema = z.enum(['id','keyHash','keyPrefix','name','companyId','permissions','webhookUrl','webhookSecret','rateLimit','isActive','expiresAt','lastUsedAt','createdAt','updatedAt']);
+export const IntegrationScalarFieldEnumSchema = z.enum(['id','companyId','appId','name','description','icon','isActive','config','createdAt','updatedAt']);
+
+export const ApiKeyScalarFieldEnumSchema = z.enum(['id','keyHash','keyPrefix','name','companyId','integrationId','permissions','webhookUrl','webhookSecret','rateLimit','isActive','expiresAt','lastUsedAt','createdAt','updatedAt']);
 
 export const UserScalarFieldEnumSchema = z.enum(['id','email','name','passwordHash','createdAt','updatedAt']);
 
@@ -194,9 +196,9 @@ export const RentalDamagePolicyScalarFieldEnumSchema = z.enum(['id','companyId',
 
 export const SortOrderSchema = z.enum(['asc','desc']);
 
-export const JsonNullValueInputSchema = z.enum(['JsonNull',]).transform((value) => (value === 'JsonNull' ? NullTypes.JsonNull : value));
-
 export const NullableJsonNullValueInputSchema = z.enum(['DbNull','JsonNull',]).transform((value) => value === 'JsonNull' ? NullTypes.JsonNull : value === 'DbNull' ? NullTypes.DbNull : value);
+
+export const JsonNullValueInputSchema = z.enum(['JsonNull',]).transform((value) => (value === 'JsonNull' ? NullTypes.JsonNull : value));
 
 export const QueryModeSchema = z.enum(['default','insensitive']);
 
@@ -384,6 +386,28 @@ export const CompanySchema = z.object({
 export type Company = z.infer<typeof CompanySchema>
 
 /////////////////////////////////////////
+// INTEGRATION SCHEMA
+/////////////////////////////////////////
+
+/**
+ * Integrations (Apps) installed by the company
+ */
+export const IntegrationSchema = z.object({
+  id: z.string(),
+  companyId: z.string(),
+  appId: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  icon: z.string().nullable(),
+  isActive: z.boolean(),
+  config: JsonValueSchema.nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type Integration = z.infer<typeof IntegrationSchema>
+
+/////////////////////////////////////////
 // API KEY SCHEMA
 /////////////////////////////////////////
 
@@ -396,6 +420,7 @@ export const ApiKeySchema = z.object({
   keyPrefix: z.string(),
   name: z.string(),
   companyId: z.string(),
+  integrationId: z.string().nullable(),
   permissions: z.string().array(),
   webhookUrl: z.string().nullable(),
   webhookSecret: z.string().nullable(),

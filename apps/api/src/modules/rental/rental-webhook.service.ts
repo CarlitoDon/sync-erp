@@ -5,7 +5,7 @@
 
 interface NotifyPaymentStatusParams {
   token: string;
-  action: "confirmed" | "rejected" | "claimed";
+  action: 'confirmed' | 'rejected' | 'claimed';
   paymentReference?: string;
   failReason?: string;
   paymentMethod?: string;
@@ -25,18 +25,20 @@ export class RentalWebhookService {
 
   constructor() {
     this.baseUrl =
-      process.env.SANTI_LIVING_WEBHOOK_URL || "http://localhost:3002";
-    this.apiKey = process.env.SANTI_LIVING_WEBHOOK_API_KEY || "";
+      process.env.SANTI_LIVING_WEBHOOK_URL || 'http://localhost:3002';
+    this.apiKey = process.env.SANTI_LIVING_WEBHOOK_API_KEY || '';
   }
 
   /**
    * Notify santi-living about payment status change
    * Fires async - failures are logged but don't block the main operation
    */
-  async notifyPaymentStatus(params: NotifyPaymentStatusParams): Promise<void> {
+  async notifyPaymentStatus(
+    params: NotifyPaymentStatusParams
+  ): Promise<void> {
     if (!this.apiKey) {
       console.warn(
-        "[RentalWebhook] SANTI_LIVING_WEBHOOK_API_KEY not configured, skipping notification"
+        '[RentalWebhook] SANTI_LIVING_WEBHOOK_API_KEY not configured, skipping notification'
       );
       return;
     }
@@ -45,9 +47,9 @@ export class RentalWebhookService {
       const response = await fetch(
         `${this.baseUrl}/api/orders/${params.token}/notify-payment`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${this.apiKey}`,
           },
           body: JSON.stringify({
@@ -60,7 +62,9 @@ export class RentalWebhookService {
       );
 
       if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as {
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as {
           message?: string;
         };
         console.error(
@@ -74,7 +78,10 @@ export class RentalWebhookService {
       }
     } catch (error) {
       // Log but don't throw - webhook failures shouldn't block main operation
-      console.error("[RentalWebhook] Error sending notification:", error);
+      console.error(
+        '[RentalWebhook] Error sending notification:',
+        error
+      );
     }
   }
 
@@ -85,7 +92,7 @@ export class RentalWebhookService {
   async notifyNewOrder(params: NotifyNewOrderParams): Promise<void> {
     if (!this.apiKey) {
       console.warn(
-        "[RentalWebhook] SANTI_LIVING_WEBHOOK_API_KEY not configured, skipping notification"
+        '[RentalWebhook] SANTI_LIVING_WEBHOOK_API_KEY not configured, skipping notification'
       );
       return;
     }
@@ -94,13 +101,13 @@ export class RentalWebhookService {
       const response = await fetch(
         `${this.baseUrl}/api/orders/${params.token}/notify-admin`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${this.apiKey}`,
           },
           body: JSON.stringify({
-            action: "new_order",
+            action: 'new_order',
             orderNumber: params.orderNumber,
             customerName: params.customerName,
             customerPhone: params.customerPhone,
@@ -110,12 +117,18 @@ export class RentalWebhookService {
       );
 
       if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as {
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as {
           message?: string;
         };
         console.error(
           `[RentalWebhook] Failed to notify new order: ${response.status}`,
           errorData
+        );
+        // Throw error so the caller (public-rental.router) can handle it (e.g. rollback)
+        throw new Error(
+          errorData.message || `Webhook failed: ${response.status}`
         );
       } else {
         console.log(
@@ -123,7 +136,10 @@ export class RentalWebhookService {
         );
       }
     } catch (error) {
-      console.error("[RentalWebhook] Error sending new order notification:", error);
+      console.error(
+        '[RentalWebhook] Error sending new order notification:',
+        error
+      );
     }
   }
 }

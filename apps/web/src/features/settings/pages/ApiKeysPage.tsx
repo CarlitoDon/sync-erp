@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
-import { useApiAction } from '@/hooks/useApiAction';
+import { apiAction } from '@/hooks/useApiAction';
 import {
   Button,
   Card,
@@ -9,8 +9,15 @@ import {
   CardTitle,
   Badge,
 } from '@/components/ui';
-import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { CreateApiKeyModal } from '../components/CreateApiKeyModal';
+import {
+  PlusIcon,
+  TrashIcon,
+  PencilSquareIcon,
+} from '@heroicons/react/24/outline';
+import {
+  CreateApiKeyModal,
+  ApiKeyData,
+} from '../components/CreateApiKeyModal';
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor(
@@ -36,7 +43,10 @@ function timeAgo(date: Date): string {
 }
 
 export default function ApiKeysPage() {
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingKey, setEditingKey] = useState<ApiKeyData | null>(
+    null
+  );
   const utils = trpc.useUtils();
 
   const { data: stats, isLoading: statsLoading } =
@@ -50,8 +60,6 @@ export default function ApiKeysPage() {
       utils.apiKey.getStats.invalidate();
     },
   });
-
-  const { apiAction } = useApiAction();
 
   const handleRevoke = async (keyId: string, keyName: string) => {
     if (
@@ -67,6 +75,21 @@ export default function ApiKeysPage() {
     );
   };
 
+  const handleCreate = () => {
+    setEditingKey(null);
+    setShowModal(true);
+  };
+
+  const handleEdit = (key: any) => {
+    setEditingKey({
+      id: key.id,
+      name: key.name,
+      rateLimit: key.rateLimit,
+      webhookUrl: key.webhookUrl,
+    });
+    setShowModal(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -76,7 +99,7 @@ export default function ApiKeysPage() {
             Manage API keys for external integrations
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button onClick={handleCreate}>
           <PlusIcon className="h-4 w-4 mr-2" />
           Create API Key
         </Button>
@@ -215,17 +238,28 @@ export default function ApiKeysPage() {
                         </span>
                       )}
                     </td>
-                    <td className="p-4 align-middle text-right">
+                    <td className="p-4 align-middle text-right space-x-2">
                       {key.isActive && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            handleRevoke(key.id, key.name)
-                          }
-                        >
-                          <TrashIcon className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(key)}
+                            title="Edit"
+                          >
+                            <PencilSquareIcon className="h-4 w-4 text-gray-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleRevoke(key.id, key.name)
+                            }
+                            title="Revoke"
+                          >
+                            <TrashIcon className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -236,10 +270,11 @@ export default function ApiKeysPage() {
         </CardContent>
       </Card>
 
-      {/* Create Modal */}
+      {/* Create/Edit Modal */}
       <CreateApiKeyModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        initialData={editingKey}
       />
     </div>
   );

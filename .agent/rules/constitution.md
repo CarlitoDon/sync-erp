@@ -1,3 +1,8 @@
+---
+trigger: model_decision
+description: Core principles, architectural laws, and coding standards for Sync ERP.
+---
+
 <!--
 SYNC IMPACT REPORT
 Version: 3.3.0 -> 3.4.0 (MINOR - Added BusinessShape-Aware Feature Development)

@@ -1,5 +1,6 @@
 ---
 trigger: model_decision
+description: Project context, key decisions log, known issues, and common patterns.
 ---
 
 <!--
@@ -19,7 +20,7 @@ Last Updated: 2026-01-08
 
 # Project Memory
 
-**Version**: 2.0.0 | **Last Updated**: 2026-01-08
+**Version**: 2.0.2 | **Last Updated**: 2026-01-15
 
 ## Overview
 
@@ -33,6 +34,26 @@ Last Updated: 2026-01-08
 ---
 
 ## Key Decisions Log
+
+### [2026-01-15] Phased Execution Protocol
+
+**Decision**: When a multi-phase blueprint (e.g., `fixation_plan.md`) is approved:
+
+1. Create `implementation_plan.md` and `task.md` for **Phase 1**.
+2. **Notify User** to confirm start.
+3. Execute Phase 1.
+4. Upon completion of Phase 1, immediately create `implementation_plan.md` and `task.md` for **Phase 2**.
+5. **Notify User** to confirm start of Phase 2.
+6. Repeat until all phases are complete.
+7. Finally, review the blueprint for any missed items.
+   **Rationale**: Ensures continuous, halted-only-by-notification progress through complex multi-phase projects.
+   **Reference**: Core Workflow
+
+### [2026-01-15] Use Typecheck for Verification
+
+**Decision**: Use `typecheck` (e.g., `npx tsc --noEmit`) instead of `build` for verifying code correctness during development.
+**Rationale**: `build` command can be slow or swallow errors; `typecheck` is preferred for verifying TypeScript correctness quickly.
+**Reference**: Core Workflow
 
 ### [2026-01-15] Multi-Tenant API Authentication
 

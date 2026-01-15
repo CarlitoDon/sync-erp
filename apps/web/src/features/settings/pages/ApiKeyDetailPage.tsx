@@ -1,5 +1,5 @@
 import { trpc } from '@/lib/trpc';
-import { useApiAction } from '@/hooks/useApiAction';
+import { apiAction } from '@/hooks/useApiAction';
 import {
   Button,
   Card,
@@ -11,14 +11,18 @@ import {
   Label,
 } from '@/components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import {
   ArrowLeftIcon,
   TrashIcon,
   ClipboardDocumentCheckIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
+import {
+  CreateApiKeyModal,
+  ApiKeyData,
+} from '../components/CreateApiKeyModal';
 
 // Simplified timeAgo since we removed date-fns
 function timeAgo(date: Date): string {
@@ -42,19 +46,13 @@ export default function ApiKeyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
-  const { apiAction } = useApiAction();
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
   } | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // We need to fetch the key details.
-  // currently we only have 'list'. We should add a 'get' endpoint or just filter from list if we want to save time.
-  // Best practice is a get endpoint. But strict requirements say "edit current file".
-  // I will check if list returns enough info. Yes it does.
-  // Alternatively I can add get endpoint to backend, but user said "focus internal sync erp" presumably meaning finish what's there.
-  // Actually, I can just use list and find by ID for now to save backend turn.
-
   const { data: keys, isLoading } = trpc.apiKey.list.useQuery();
   const key = keys?.find((k) => k.id === id);
 
@@ -130,18 +128,38 @@ export default function ApiKeyDetailPage() {
   if (isLoading) return <div>Loading...</div>;
   if (!key) return <div>API Key not found</div>;
 
+  const keyData: ApiKeyData = {
+    id: key.id,
+    name: key.name,
+    rateLimit: key.rateLimit,
+    webhookUrl: key.webhookUrl,
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
+          className="p-0 h-8 w-8"
           onClick={() => navigate('/settings/api-keys')}
         >
           <ArrowLeftIcon className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{key.name}</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            {key.name}
+            {key.isActive && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => setShowEditModal(true)}
+              >
+                <PencilSquareIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+              </Button>
+            )}
+          </h1>
           <p className="text-muted-foreground font-mono text-sm">
             {key.keyPrefix}...
           </p>
@@ -268,13 +286,19 @@ export default function ApiKeyDetailPage() {
               Revoking this API key will immediately block all
               requests using it. This action cannot be undone.
             </p>
-            <Button variant="destructive" onClick={handleRevoke}>
+            <Button variant="danger" onClick={handleRevoke}>
               <TrashIcon className="h-4 w-4 mr-2" />
               Revoke API Key
             </Button>
           </CardContent>
         </Card>
       )}
+
+      <CreateApiKeyModal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        initialData={keyData}
+      />
     </div>
   );
 }

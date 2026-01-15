@@ -53,6 +53,33 @@ model Company {
   configs               SystemConfig[]
   warehouses            Warehouse[]
   rentalBundles         RentalBundle[]
+  integrations          Integration[]
+}
+
+/// Integrations (Apps) installed by the company
+model Integration {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // App Identifiers
+  appId       String // e.g., "santi-living", "rockhouse", "pos-lite"
+  name        String // Display Name "Santi Living"
+  description String?
+  icon        String? // icon name or url
+
+  // Configuration
+  isActive Boolean @default(false)
+  config   Json? // App-specific config (webhooks, sync options, etc.)
+
+  // Relations
+  apiKeys ApiKey[] // Keys associated with this integration
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, appId]) // One installation per app per company
+  @@index([companyId])
 }
 
 /// API Key for external integrations (multi-tenant)
@@ -62,8 +89,10 @@ model ApiKey {
   keyPrefix String // First 8 chars for display (e.g., "sk_live_")
   name      String // "Santi Living Production"
 
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId     String
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  integration   Integration? @relation(fields: [integrationId], references: [id])
+  integrationId String?
 
   permissions   String[] @default(["rental:read", "rental:write"])
   webhookUrl    String? // Tenant's webhook endpoint

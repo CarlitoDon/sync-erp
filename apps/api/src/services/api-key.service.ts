@@ -263,6 +263,21 @@ export class ApiKeyService {
       },
     });
   }
+  /**
+   * Update an API key
+   */
+  async updateKey(
+    keyId: string,
+    data: {
+      name?: string;
+      rateLimit?: number;
+    }
+  ): Promise<void> {
+    await prisma.apiKey.update({
+      where: { id: keyId },
+      data,
+    });
+  }
 }
 
 // Singleton export for convenience

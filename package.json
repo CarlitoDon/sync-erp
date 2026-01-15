@@ -9,9 +9,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n \"api,web\" -c \"blue,magenta\" \"npm run dev:api\" \"npm run dev:web\"",
+    "dev": "concurrently --kill-others -n \"api,web,bot\" -c \"red,blue,green\" \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:bot\"",
     "dev:api": "npm run dev --workspace=@sync-erp/api",
     "dev:web": "npm run dev --workspace=@sync-erp/web",
+    "dev:bot": "npm run dev --workspace=@sync-erp/bot",
     "typecheck": "tsc -b",
     "typecheck:watch": "tsc -b --watch",
     "build": "turbo run build",
@@ -50,5 +51,8 @@
     "prettier": "^3.2.0",
     "turbo": "^2.6.3",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "qrcode.react": "^4.2.0"
   }
 }

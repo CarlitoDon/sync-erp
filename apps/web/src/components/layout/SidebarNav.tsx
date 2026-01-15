@@ -11,7 +11,6 @@ import {
   BanknotesIcon,
   BuildingOfficeIcon,
   CreditCardIcon,
-  UsersIcon,
   DocumentCheckIcon,
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
@@ -20,6 +19,8 @@ import {
   ClipboardDocumentListIcon,
   WalletIcon,
   CalendarDaysIcon,
+  Squares2X2Icon,
+  ChatBubbleOvalLeftEllipsisIcon,
 } from '@heroicons/react/24/outline';
 
 export default function SidebarNav() {
@@ -130,7 +131,21 @@ export default function SidebarNav() {
           label="Companies"
           icon={<BuildingOfficeIcon />}
         />
-        <SidebarItem path="/team" label="Team" icon={<UsersIcon />} />
+        <SidebarItem
+          path="/integrations"
+          label="Integrations"
+          icon={<Squares2X2Icon />}
+        />
+        <SidebarItem
+          path="/docs/api"
+          label="API Docs"
+          icon={<DocumentTextIcon />}
+        />
+        <SidebarItem
+          path="/settings/whatsapp"
+          label="WhatsApp"
+          icon={<ChatBubbleOvalLeftEllipsisIcon />}
+        />
       </SidebarGroup>
       {/* Rental feature */}
       <SidebarGroup label="Rental" icon={<ArchiveBoxIcon />}>

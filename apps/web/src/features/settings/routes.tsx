@@ -8,6 +8,11 @@ const ApiKeyDetailPage = lazy(
   () => import('./pages/ApiKeyDetailPage')
 );
 const ApiDocsPage = lazy(() => import('./pages/ApiDocsPage'));
+const WhatsAppSettingsPage = lazy(() =>
+  import('./pages/WhatsAppSettingsPage').then((m) => ({
+    default: m.WhatsAppSettingsPage,
+  }))
+);
 
 function LazyRoute({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<LoadingState />}>{children}</Suspense>;
@@ -28,6 +33,14 @@ export const SettingsRoutes = (
       element={
         <LazyRoute>
           <ApiKeyDetailPage />
+        </LazyRoute>
+      }
+    />
+    <Route
+      path="settings/whatsapp"
+      element={
+        <LazyRoute>
+          <WhatsAppSettingsPage />
         </LazyRoute>
       }
     />

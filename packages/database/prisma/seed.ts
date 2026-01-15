@@ -7,7 +7,7 @@ const envFile =
     ? '.env.production'
     : process.env.NODE_ENV === 'test'
       ? '.env.test'
-      : '.env.development';
+      : '.env';
 
 // Use process.cwd() to resolve .env file relative to the package root
 const envPath = path.join(process.cwd(), envFile);
@@ -237,17 +237,26 @@ async function main() {
   );
 
   // 1. Create Demo User
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn('👤 Creating demo user...');
+  {
+    const adminEmail =
+      process.env.SEED_ADMIN_EMAIL || 'admin@sync-erp.local';
+    const adminPassword =
+      process.env.SEED_ADMIN_PASSWORD || 'password';
+
+    console.warn(`👤 Creating demo user (${adminEmail})...`);
+
+    const bcrypt = await import('bcryptjs');
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
 
     const demoUser = await prisma.user.upsert({
-      where: { email: 'admin@sync-erp.local' },
-      update: {},
+      where: { email: adminEmail },
+      update: {
+        passwordHash,
+      },
       create: {
-        email: 'admin@sync-erp.local',
+        email: adminEmail,
         name: 'System Admin',
-        passwordHash:
-          '$2b$10$sw11gC0LBcucZMk3qa/Rq.04xFOFIjKDuXg7DSom9zHWfpsSFxIMe', // password: 'password'
+        passwordHash,
       },
     });
 
@@ -539,6 +548,29 @@ async function main() {
       // Create API Key for rental company (multi-tenant integration)
       if (companyDef.businessShape === 'RENTAL') {
         const isDevelopment = process.env.NODE_ENV === 'development';
+
+        // 1. Ensure Integration Record exists
+        const appId = 'santi-living';
+        const integration = await prisma.integration.upsert({
+          where: {
+            companyId_appId: { companyId: company.id, appId },
+          },
+          update: {},
+          create: {
+            companyId: company.id,
+            appId,
+            name: 'Santi Living',
+            description: 'Official Santi Living Integration',
+            icon: 'CubeIcon',
+            isActive: true,
+            config: {
+              webhookUrl: isDevelopment
+                ? 'http://localhost:3002/api/webhooks/sync-erp'
+                : 'https://erp-service-production-9d76.up.railway.app/api/webhooks/order-confirmation',
+            },
+          },
+        });
+
         // Use development key for local dev, or fallback/production key for other envs (though this block is skipped in prod)
         const existingKey = isDevelopment
           ? 'dev_sync_erp_secret_key_2026'
@@ -551,15 +583,28 @@ async function main() {
         await prisma.apiKey
           .upsert({
             where: { keyHash }, // Will fail uniqueness, use findFirst + create pattern
-            update: { isActive: true },
+            update: {
+              isActive: true,
+              name: isDevelopment
+                ? 'Santi Living Development'
+                : 'Santi Living Production',
+              integrationId: integration.id, // Link to integration
+              webhookUrl: isDevelopment
+                ? 'http://localhost:3002/api/webhooks/sync-erp'
+                : 'https://erp-service-production-9d76.up.railway.app/api/webhooks/order-confirmation',
+            },
             create: {
               keyHash,
               keyPrefix,
-              name: 'Santi Living Production',
+              name: isDevelopment
+                ? 'Santi Living Development'
+                : 'Santi Living Production',
               companyId: company.id,
+              integrationId: integration.id, // Link to integration
               permissions: ['rental:read', 'rental:write'],
-              webhookUrl:
-                'https://erp-service-production-9d76.up.railway.app/api/webhooks/order-confirmation',
+              webhookUrl: isDevelopment
+                ? 'http://localhost:3002/api/webhooks/sync-erp'
+                : 'https://erp-service-production-9d76.up.railway.app/api/webhooks/order-confirmation',
             },
           })
           .catch(async () => {
@@ -571,17 +616,40 @@ async function main() {
               },
             });
             if (!existing) {
-              await prisma.apiKey.create({
-                data: {
-                  keyHash,
-                  keyPrefix,
-                  name: 'Santi Living Production',
+              const existingApiKey = await prisma.apiKey.findFirst({
+                where: {
                   companyId: company.id,
-                  permissions: ['rental:read', 'rental:write'],
-                  webhookUrl:
-                    'https://erp-service-production-9d76.up.railway.app/api/webhooks/order-confirmation',
+                  keyPrefix: keyPrefix,
                 },
               });
+
+              if (!existingApiKey) {
+                await prisma.apiKey.create({
+                  data: {
+                    companyId: company.id,
+                    integrationId: integration.id,
+                    name: isDevelopment
+                      ? 'Santi Living Development'
+                      : 'Santi Living Production',
+                    keyHash,
+                    keyPrefix,
+                    permissions: [
+                      'publicRental.createOrder',
+                      'publicRental.confirmPayment',
+                    ],
+                    webhookUrl: isDevelopment
+                      ? 'http://localhost:3002/api/webhooks/sync-erp'
+                      : 'https://erp-service-production.up.railway.app/api/webhooks/sync-erp',
+                    webhookSecret: 'whsec_test_123',
+                    rateLimit: 1000,
+                  },
+                });
+                console.log(`✅ API Key created for ${company.name}`);
+              } else {
+                console.log(
+                  `ℹ️ API Key already exists for ${company.name}, skipping creation.`
+                );
+              }
             }
           });
         console.warn('🔑 API Key created for', companyDef.name);

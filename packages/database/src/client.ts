@@ -17,7 +17,7 @@ function getEnvFile(): string {
 
   if (isTest) return '.env.test';
   if (isProd) return '.env.production';
-  return '.env.development';
+  return '.env';
 }
 
 const envFile = getEnvFile();

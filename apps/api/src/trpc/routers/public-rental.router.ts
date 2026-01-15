@@ -127,6 +127,8 @@ export const publicRentalRouter = router({
         // Relations
         partner: order.partner,
         items: order.items.map((item) => ({
+          rentalItemId: item.rentalItemId,
+          rentalBundleId: item.rentalBundleId,
           name:
             item.rentalItem?.product?.name ||
             item.rentalBundle?.name ||
@@ -646,23 +648,54 @@ export const publicRentalRouter = router({
         },
       });
 
-      // Fire webhook notification to admin (async, non-blocking)
+      // Fire webhook notification to admin & customer (Blocking to ensure WA validation)
       const webhookService = getWebhookService();
       if (webhookService && order.publicToken) {
-        webhookService
-          .notifyNewOrder({
+        try {
+          await webhookService.notifyNewOrder({
             token: order.publicToken,
             orderNumber: order.orderNumber,
             customerName: order.partner.name,
             customerPhone: order.partner.phone || '',
             totalAmount: Number(order.totalAmount),
-          })
-          .catch((err) => {
-            console.error(
-              '[PublicRental] New order webhook failed:',
-              err
-            );
           });
+        } catch (err) {
+          const errorMessage =
+            err instanceof Error
+              ? err.message
+              : 'Unknown validation error';
+          console.error(
+            '[PublicRental] New order webhook/validation failed. Rolling back order:',
+            errorMessage
+          );
+
+          // Attempt to rollback local order (in case erp-service didn't do it)
+          try {
+            await prisma.rentalOrderItem.deleteMany({
+              where: { rentalOrderId: order.id },
+            });
+            await prisma.rentalOrder.delete({
+              where: { id: order.id },
+            });
+            console.log(
+              `[PublicRental] Rolled back order ${order.orderNumber}`
+            );
+          } catch (rollbackErr) {
+            // Ignore if already deleted by erp-service
+            console.warn(
+              '[PublicRental] Rollback failed (likely already deleted):',
+              rollbackErr
+            );
+          }
+
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              errorMessage ||
+              'Gagal validasi pesanan (WhatsApp tidak valid)',
+            cause: err,
+          });
+        }
       }
 
       return {
