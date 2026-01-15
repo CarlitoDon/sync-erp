@@ -7,6 +7,7 @@ const ApiKeysPage = lazy(() => import('./pages/ApiKeysPage'));
 const ApiKeyDetailPage = lazy(
   () => import('./pages/ApiKeyDetailPage')
 );
+const ApiDocsPage = lazy(() => import('./pages/ApiDocsPage'));
 
 function LazyRoute({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<LoadingState />}>{children}</Suspense>;
@@ -27,6 +28,14 @@ export const SettingsRoutes = (
       element={
         <LazyRoute>
           <ApiKeyDetailPage />
+        </LazyRoute>
+      }
+    />
+    <Route
+      path="docs/api"
+      element={
+        <LazyRoute>
+          <ApiDocsPage />
         </LazyRoute>
       }
     />
