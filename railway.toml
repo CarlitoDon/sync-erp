@@ -27,3 +27,6 @@ watchPaths = [
   "package.json"
 ]
 
+[services.bot.variables]
+SYNC_ERP_API_URL = "https://sync-erp-api-production.up.railway.app/api/trpc"
+
