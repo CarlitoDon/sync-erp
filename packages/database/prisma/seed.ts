@@ -536,9 +536,14 @@ async function main() {
         },
       });
 
-      // Create API Key for rental company (backward compatibility with Santi Living)
+      // Create API Key for rental company (multi-tenant integration)
       if (companyDef.businessShape === 'RENTAL') {
-        const existingKey = 'santi_secret_auth_token_2026';
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        // Use development key for local dev, or fallback/production key for other envs (though this block is skipped in prod)
+        const existingKey = isDevelopment
+          ? 'dev_sync_erp_secret_key_2026'
+          : 'santi_secret_auth_token_2026';
+
         const bcrypt = await import('bcryptjs');
         const keyHash = await bcrypt.hash(existingKey, 10);
         const keyPrefix = existingKey.substring(0, 11);

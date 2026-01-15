@@ -3,7 +3,10 @@
 
 // Layout & Container
 export { Card, CardHeader, CardTitle, CardContent } from './Card';
-export { PageHeader, type PageHeaderProps } from '../layout/PageHeader';
+export {
+  PageHeader,
+  type PageHeaderProps,
+} from '../layout/PageHeader';
 export { NoCompanySelected } from './no-company-selected';
 
 // Buttons & Actions
@@ -37,3 +40,8 @@ export { default as FormModal } from './FormModal';
 export { useConfirm } from './ConfirmModal';
 export { usePrompt } from './PromptModal';
 export type { PromptOptions } from './PromptModal';
+export * from './dialog';
+
+// Other
+export * from './badge';
+export * from './label';
