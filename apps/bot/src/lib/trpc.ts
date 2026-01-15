@@ -6,8 +6,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const API_URL =
-  process.env.SYNC_ERP_API_URL || 'http://localhost:3001/api/trpc';
+  process.env.SYNC_ERP_API_URL || 'https://sync-erp-api-production.up.railway.app/api/trpc';
 const API_KEY = process.env.SYNC_ERP_API_KEY || '';
+
+console.log(`[TRPC] Connecting to API: ${API_URL}`);
 
 export const trpc = createTRPCProxyClient<AppRouter>({
   links: [
