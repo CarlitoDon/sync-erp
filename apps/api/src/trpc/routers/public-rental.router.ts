@@ -1,4 +1,4 @@
-import { router, publicProcedure } from '../trpc';
+import { router, publicProcedure, apiKeyProcedure } from '../trpc';
 import { z } from 'zod';
 import {
   prisma,
@@ -139,7 +139,7 @@ export const publicRentalRouter = router({
    * Find or create partner by phone
    * Used when creating orders from santi-living
    */
-  findOrCreatePartner: publicProcedure
+  findOrCreatePartner: apiKeyProcedure
     .input(
       z.object({
         companyId: z.string().min(1),
@@ -220,7 +220,7 @@ export const publicRentalRouter = router({
    * Creates order in DRAFT status, to be confirmed by admin
    * Auto-creates bundles/items if not found (for santi-living integration)
    */
-  createOrder: publicProcedure
+  createOrder: apiKeyProcedure
     .input(
       z.object({
         companyId: z.string().min(1),
@@ -714,7 +714,7 @@ export const publicRentalRouter = router({
    * Confirm payment - called when customer clicks "I've paid"
    * Updates order payment status to AWAITING_CONFIRM
    */
-  confirmPayment: publicProcedure
+  confirmPayment: apiKeyProcedure
     .input(
       z.object({
         token: z.string().uuid(),
