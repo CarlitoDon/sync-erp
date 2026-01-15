@@ -26,6 +26,13 @@ export async function initializeBaileys() {
   sock = makeWASocket({
     auth: state,
     logger,
+    printQRInTerminal: false,
+    connectTimeoutMs: 60_000,
+    defaultQueryTimeoutMs: 60_000,
+    keepAliveIntervalMs: 10_000,
+    emitOwnEvents: true,
+    retryRequestDelayMs: 250,
+    browser: ['Sync ERP', 'Chrome', '10.0'],
   });
 
   sock.ev.on('creds.update', saveCreds);
