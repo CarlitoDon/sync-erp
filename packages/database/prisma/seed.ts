@@ -536,6 +536,52 @@ async function main() {
         },
       });
 
+      // Create API Key for rental company (backward compatibility with Santi Living)
+      if (companyDef.businessShape === 'RENTAL') {
+        const existingKey = 'santi_secret_auth_token_2026';
+        const bcrypt = await import('bcryptjs');
+        const keyHash = await bcrypt.hash(existingKey, 10);
+        const keyPrefix = existingKey.substring(0, 11);
+
+        await prisma.apiKey
+          .upsert({
+            where: { keyHash }, // Will fail uniqueness, use findFirst + create pattern
+            update: { isActive: true },
+            create: {
+              keyHash,
+              keyPrefix,
+              name: 'Santi Living Production',
+              companyId: company.id,
+              permissions: ['rental:read', 'rental:write'],
+              webhookUrl:
+                'https://erp-service-production-9d76.up.railway.app/api/webhooks/order-confirmation',
+            },
+          })
+          .catch(async () => {
+            // If upsert fails due to keyHash not being unique constraint, try findFirst
+            const existing = await prisma.apiKey.findFirst({
+              where: {
+                companyId: company.id,
+                name: 'Santi Living Production',
+              },
+            });
+            if (!existing) {
+              await prisma.apiKey.create({
+                data: {
+                  keyHash,
+                  keyPrefix,
+                  name: 'Santi Living Production',
+                  companyId: company.id,
+                  permissions: ['rental:read', 'rental:write'],
+                  webhookUrl:
+                    'https://erp-service-production-9d76.up.railway.app/api/webhooks/order-confirmation',
+                },
+              });
+            }
+          });
+        console.warn('🔑 API Key created for', companyDef.name);
+      }
+
       // System Config
       for (const config of CONFIGS) {
         const existing = await prisma.systemConfig.findFirst({

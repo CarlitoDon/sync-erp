@@ -144,3 +144,47 @@ export const shapedProcedure = protectedProcedure.use(
     });
   }
 );
+
+/**
+ * API Key procedure - for external integrations (multi-tenant)
+ * Validates Bearer token from Authorization header
+ * Injects companyId and permissions from validated API key
+ */
+export const apiKeyProcedure = t.procedure
+  .use(async ({ ctx, next }) => {
+    // Import dynamically to avoid circular dependency
+    const { apiKeyService } =
+      await import('../services/api-key.service');
+
+    const authHeader = ctx.req?.headers?.authorization;
+
+    // Check for Bearer token
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message:
+          'Missing or invalid Authorization header. Expected: Bearer <api_key>',
+      });
+    }
+
+    const rawKey = authHeader.replace('Bearer ', '');
+    const result = await apiKeyService.validateKey(rawKey);
+
+    if (!result) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'Invalid or expired API key',
+      });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        companyId: result.companyId,
+        permissions: result.permissions,
+        apiKeyId: result.keyId,
+        isApiKeyAuth: true,
+      },
+    });
+  })
+  .use(idempotencyMiddleware);
