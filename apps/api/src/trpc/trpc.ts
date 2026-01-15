@@ -237,6 +237,41 @@ export const apiKeyProcedure = t.procedure
   .use(idempotencyMiddleware);
 
 /**
+ * Bot procedure - for internal bot service communication
+ * Validates using BOT_SECRET environment variable instead of database API keys
+ * This allows bot service to update its status without needing database setup
+ */
+export const botProcedure = t.procedure
+  .use(async ({ ctx, next }) => {
+    const botSecret = process.env.BOT_SECRET || 'dev_bot_secret_key_2026';
+    const authHeader = ctx.req?.headers?.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message:
+          'Missing or invalid Authorization header. Expected: Bearer <bot_secret>',
+      });
+    }
+
+    const providedSecret = authHeader.replace('Bearer ', '');
+
+    if (providedSecret !== botSecret) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'Invalid bot secret',
+      });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        isBotService: true,
+      },
+    });
+  });
+
+/**
  * Permission enforcement middleware factory
  * Use: apiKeyProcedure.use(requirePermission('rental:write')).mutation(...)
  */
