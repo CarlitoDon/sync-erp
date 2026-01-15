@@ -1,5 +1,9 @@
 // Database Package - Main Entry Point
-export { prisma } from './client.js';
+export {
+  prisma,
+  withCompanyContext,
+  setCompanyContext,
+} from './client.js';
 
 // Re-export Prisma types for consumers
 export type {
