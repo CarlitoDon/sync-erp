@@ -9,7 +9,6 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   external: [
-    '@sync-erp/shared',
     '@trpc/client',
     '@trpc/server',
     '@whiskeysockets/baileys',
@@ -25,4 +24,6 @@ export default defineConfig({
     'archiver',
     'fs-extra',
   ],
+  // Bundle workspace packages
+  noExternal: ['@sync-erp/shared'],
 });

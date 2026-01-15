@@ -8,11 +8,11 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  // Don't bundle these - they're external packages
+  // External: real npm packages that should stay external
   external: [
     '@prisma/client',
-    '@sync-erp/database',
-    '@sync-erp/shared',
+    '@prisma/adapter-pg',
+    'pg',
     'express',
     'cors',
     'helmet',
@@ -21,7 +21,8 @@ export default defineConfig({
     '@trpc/server',
     'superjson',
     'zod',
+    'dotenv',
   ],
-  // Bundle all other dependencies
-  noExternal: [],
+  // Bundle workspace packages to avoid ESM import issues
+  noExternal: ['@sync-erp/database', '@sync-erp/shared'],
 });
