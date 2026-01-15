@@ -3,18 +3,20 @@ import type { AppRouter } from '@sync-erp/api/src/trpc/router';
 import superjson from 'superjson';
 import dotenv from 'dotenv';
 import https from 'https';
+import { EnvironmentValidator } from '@sync-erp/shared';
 
 dotenv.config();
 
-const API_URL =
-  process.env.SYNC_ERP_API_URL ||
-  (process.env.NODE_ENV === 'production'
-    ? 'https://sync-erp-api-production.up.railway.app/api/trpc' // Production public domain
-    : 'http://localhost:3001/api/trpc'); // Local dev
-const API_KEY = process.env.SYNC_ERP_API_KEY || '';
+// Log environment config on startup
+EnvironmentValidator.logConfiguration();
 
-// eslint-disable-next-line no-console
-console.log(`[TRPC] Connecting to API: ${API_URL}`);
+const API_URL = EnvironmentValidator.getApiUrl(
+  process.env.NODE_ENV === 'production'
+    ? 'https://sync-erp-api-production.up.railway.app/api/trpc'
+    : 'http://localhost:3001/api/trpc'
+);
+
+const API_KEY = EnvironmentValidator.getAuthSecret('dev_bot_secret_key_2026');
 
 // Custom fetch with better SSL handling
 const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {

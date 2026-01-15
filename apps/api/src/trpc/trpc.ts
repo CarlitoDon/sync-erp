@@ -243,7 +243,10 @@ export const apiKeyProcedure = t.procedure
  */
 export const botProcedure = t.procedure
   .use(async ({ ctx, next }) => {
-    const botSecret = process.env.BOT_SECRET || 'dev_bot_secret_key_2026';
+    // Use environment variable with proper fallback
+    const { EnvironmentValidator } = await import('@sync-erp/shared');
+    const botSecret = EnvironmentValidator.getAuthSecret('dev_bot_secret_key_2026');
+    
     const authHeader = ctx.req?.headers?.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
