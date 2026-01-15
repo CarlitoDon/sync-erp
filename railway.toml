@@ -1,3 +1,5 @@
+[build]
+builder = "nixpacks"
 
 # Service 1: API (Main Backend + Database Migrator)
 [[services]]
