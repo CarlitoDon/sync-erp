@@ -108,8 +108,8 @@ app.use((_req, res) => {
   });
 });
 
-const server = app.listen(PORT, () => {
-  console.warn(`🚀 Sync ERP API running on http://localhost:${PORT}`);
+const server = app.listen(Number(PORT), '0.0.0.0', () => {
+  console.warn(`🚀 Sync ERP API running on http://0.0.0.0:${PORT}`);
 });
 
 // Graceful shutdown to prevent zombie processes
