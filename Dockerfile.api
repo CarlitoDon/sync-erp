@@ -47,6 +47,7 @@ EXPOSE 3001
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=3001
+ENV NODE_OPTIONS="--dns-result-order=ipv4first"
 ENV PRISMA_CONFIG_FILE=packages/database/prisma.config.ts
 
 # Run migrations and start with node (not tsx)
