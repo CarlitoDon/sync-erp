@@ -8,10 +8,10 @@ root = "."
 dockerfilePath = "Dockerfile.api"
 watchPaths = [
   "apps/api/**",
-  "packages/**",
+  "packages/database/**",
+  "packages/shared/**",
   "Dockerfile.api",
-  "package.json",
-  "package-lock.json"
+  "package.json"
 ]
 
 # Service 2: Bot (WhatsApp Service)
@@ -21,9 +21,9 @@ root = "."
 dockerfilePath = "Dockerfile.bot"
 watchPaths = [
   "apps/bot/**",
-  "packages/**",
+  "packages/database/**",
+  "packages/shared/**",
   "Dockerfile.bot",
-  "package.json",
-  "package-lock.json"
+  "package.json"
 ]
 
