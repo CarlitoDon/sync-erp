@@ -47,6 +47,7 @@ EXPOSE 3001
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=3001
+ENV PRISMA_CONFIG_FILE=packages/database/prisma.config.ts
 
 # Run migrations and start
 # Run migrations using the config file and start
