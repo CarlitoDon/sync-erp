@@ -19,6 +19,7 @@ import { InventoryRoutes } from '@/features/inventory/routes';
 import { AccountingRoutes } from '@/features/accounting/routes';
 import { CompanyRoutes } from '@/features/company/routes';
 import { AdminRoutes } from '@/features/admin/routes';
+import { SettingsRoutes } from '@/features/settings/routes';
 
 // Lazy loaded pages for root level
 const CompanySelectionPage = lazy(() =>
@@ -65,6 +66,7 @@ export function AppRouter() {
           {RentalRoutes}
           {AccountingRoutes}
           {AdminRoutes}
+          {SettingsRoutes}
 
           {/* Remaining miscellaneous routes */}
           <Route
