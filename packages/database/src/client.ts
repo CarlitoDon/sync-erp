@@ -69,3 +69,39 @@ if (process.env.NODE_ENV !== 'production') {
 
 export { PrismaClient } from './generated/client/client.js';
 export { Prisma } from './generated/client/client.js';
+
+/**
+ * Execute a callback within a company context for RLS enforcement.
+ * Sets the PostgreSQL session variable 'app.current_company' before running queries.
+ *
+ * @param companyId - The company ID to set as context
+ * @param callback - The async function to execute within the context
+ * @returns The result of the callback
+ *
+ * @example
+ * ```ts
+ * const orders = await withCompanyContext(ctx.companyId, async () => {
+ *   return prisma.rentalOrder.findMany();
+ * });
+ * ```
+ */
+export async function withCompanyContext<T>(
+  companyId: string,
+  callback: () => Promise<T>
+): Promise<T> {
+  // Set the session variable for RLS
+  await prisma.$executeRaw`SELECT set_config('app.current_company', ${companyId}, false)`;
+
+  // Execute the callback
+  return callback();
+}
+
+/**
+ * Set company context without executing a callback.
+ * Useful for transaction blocks where you need to set context before multiple operations.
+ */
+export async function setCompanyContext(
+  companyId: string
+): Promise<void> {
+  await prisma.$executeRaw`SELECT set_config('app.current_company', ${companyId}, false)`;
+}
