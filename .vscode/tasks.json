@@ -150,9 +150,20 @@
       "problemMatcher": []
     },
     {
-      "label": "DB: Seed",
+      "label": "DB: Seed (Dev)",
       "type": "shell",
-      "command": "npm run db:seed",
+      "command": "npm run db:seed:dev",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "DB: Seed (Prod)",
+      "type": "shell",
+      "command": "npm run db:seed:prod",
       "group": "build",
       "presentation": {
         "reveal": "always",
