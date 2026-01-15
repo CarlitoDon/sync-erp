@@ -1,0 +1,18 @@
+[build]
+builder = "nixpacks"
+
+# Service 1: API (Main Backend + Database Migrator)
+[[services]]
+name = "sync-erp-api"
+root = "."
+watchPaths = ["apps/api/**", "packages/**"]
+buildCommand = "npm install && npx turbo run build --filter=@sync-erp/api"
+startCommand = "npm run db:migrate --workspace=@sync-erp/database && npm run start --workspace=@sync-erp/api"
+
+# Service 2: Bot (WhatsApp Service)
+[[services]]
+name = "sync-erp-bot"
+root = "."
+watchPaths = ["apps/bot/**", "packages/**"]
+buildCommand = "npm install && npx turbo run build --filter=@sync-erp/bot"
+startCommand = "npm run start --workspace=@sync-erp/bot"
