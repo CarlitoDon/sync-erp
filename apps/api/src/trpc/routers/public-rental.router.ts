@@ -12,7 +12,7 @@ import { TRPCError } from '@trpc/server';
 import { container, ServiceKeys } from '../../modules/common/di';
 import type { RentalWebhookService } from '../../modules/rental/rental-webhook.service';
 
-// Lazy resolve webhook service
+// Lazy resolve webhook service (for admin notifications - Santi Living specific)
 const getWebhookService = (): RentalWebhookService | null => {
   try {
     return container.resolve<RentalWebhookService>(
@@ -22,6 +22,9 @@ const getWebhookService = (): RentalWebhookService | null => {
     return null;
   }
 };
+
+// Multi-tenant webhook service (for tenant-specific notifications)
+import { webhookService as tenantWebhookService } from '../../services/webhook.service';
 
 /**
  * Public Rental Router
@@ -722,7 +725,7 @@ export const publicRentalRouter = router({
         reference: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       // Find order by token
       const order = await prisma.rentalOrder.findFirst({
         where: { publicToken: input.token },
@@ -731,6 +734,8 @@ export const publicRentalRouter = router({
           orderNumber: true,
           rentalPaymentStatus: true,
           status: true,
+          companyId: true,
+          totalAmount: true,
         },
       });
 
@@ -783,6 +788,23 @@ export const publicRentalRouter = router({
             );
           });
       }
+
+      // Fire multi-tenant webhook (async, non-blocking)
+      tenantWebhookService
+        .notifyPaymentEvent(ctx.companyId, 'payment.received', {
+          id: order.id,
+          orderNumber: order.orderNumber || '',
+          rentalPaymentStatus: 'AWAITING_CONFIRM',
+          totalAmount: order.totalAmount,
+          paymentMethod: input.paymentMethod,
+          paymentReference: input.reference || null,
+        })
+        .catch((err) => {
+          console.error(
+            '[PublicRental] Tenant payment webhook failed:',
+            err
+          );
+        });
 
       return {
         success: true,

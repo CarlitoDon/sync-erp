@@ -34,9 +34,42 @@ Last Updated: 2026-01-08
 
 ## Key Decisions Log
 
+### [2026-01-15] Multi-Tenant API Authentication
+
+**Decision**: External integrations MUST use `apiKeyProcedure` with Bearer token authentication.
+**Pattern**:
+
+```typescript
+// Router: use apiKeyProcedure for external APIs
+createOrder: apiKeyProcedure.input(schema).mutation(({ ctx }) => {
+  // ctx.companyId injected from validated API key
+  return service.create(ctx.companyId, input);
+});
+```
+
+**Database**: `ApiKey` model stores bcrypt-hashed keys with permissions, webhookUrl, rate limits.
+**Rationale**: Enables secure multi-tenant access without exposing user sessions.
+**Reference**: Constitution III (Security)
+
+### [2026-01-15] Row-Level Security for Data Isolation
+
+**Decision**: All business tables use RLS with `company_isolation` policy.
+**Pattern**:
+
+```typescript
+// Set context before queries
+import { withCompanyContext } from '@sync-erp/database';
+await withCompanyContext(ctx.companyId, async () => {
+  return prisma.rentalOrder.findMany(); // RLS filters automatically
+});
+```
+
+**Rationale**: Guarantees tenant data isolation at database level.
+**Reference**: Constitution IX (Data Integrity)
+
 ### [2026-01-09] Check TypeScript Watch for Type Errors
 
-**Decision**: Always check the `TypeScript: Watch` terminal (ProcessId: 58678) when needing to verify type correctness.
+**Decision**: Always check the `TypeScript: Watch` terminal (list process id first and then check the terminal) when needing to verify type correctness.
 **Rationale**: `npm run build` might not capture all type errors or might be slower. The watch terminal provides real-time feedback.
 **Reference**: Core Workflow
 
