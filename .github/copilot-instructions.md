@@ -1,18 +1,24 @@
-# Copilot Instructions for Sync ERP
+# GitHub Copilot Instructions for Sync ERP
+
+Workspace-aware guide for AI agents building the Sync ERP multi-tenant ERP system. Focus on **multi-tenant isolation**, **idempotency**, **DI container patterns**, and **tRPC integration**.
+
+**Quick Workspaces:**
+- **sync-erp**: Main ERP monorepo (API, Web frontend, Bot service)
+- **santi-living**: Astro + tRPC client consuming sync-erp API (ecommerce + ERP integration)
 
 ## Project Overview
 
-Sync ERP is a **multi-tenant ERP system** built as a **Turborepo monorepo** with TypeScript. The MVP covers Sales, Finance/Accounting, Purchasing, and Inventory with strict company-level data isolation.
+Sync ERP is a **multi-tenant ERP system** built as **Turborepo monorepo** with strict company-level data isolation. The system is consumed by specialized external services (e.g., santi-living ecommerce) via tRPC client integration.
 
 **Tech Stack:**
+- **Backend**: Express.js + tRPC v11 + Prisma (PostgreSQL) + Vitest + Superjson (Date serialization)
+- **Frontend**: React 18 + React Router + tRPC React Query + Tailwind CSS 4 + Vite
+- **External Clients**: Astro, Next.js can consume via `@trpc/client` (examples: santi-living)
+- **Shared**: Zod (auto-generated from Prisma + manual validators), TypeScript types
 
-- **Backend**: Express.js + **tRPC** + Prisma (PostgreSQL) + Vitest
-- **Frontend**: React 18 + React Router + **tRPC React Query** + Tailwind CSS 4 + Vite
-- **Shared**: Zod validation schemas (auto-generated from Prisma + manual), TypeScript types
+## Critical Patterns & Anti-Patterns
 
-## Architecture Fundamentals
-
-### 1. Multi-Tenant Isolation (CRITICAL)
+### 1. Multi-Tenant Isolation (CRITICAL - Data Leak Risk)
 
 **ALL backend queries MUST be scoped by `companyId`:**
 
@@ -314,6 +320,284 @@ formatDate(new Date()); // "29 Desember 2025"
 | Frontend router       | [apps/web/src/app/AppRouter.tsx](apps/web/src/app/AppRouter.tsx)   |
 | DI Container          | [apps/api/src/modules/common/di/](apps/api/src/modules/common/di/) |
 
+## Advanced Patterns
+
+### 4. Idempotency (Request Deduplication)
+
+Critical for creating orders, payments, and financial transactions where retry safety is required:
+
+```typescript
+// Backend: Define scope in tRPC router meta
+export const purchaseRouter = router({
+  create: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.PURCHASE_ORDER })
+    .input(CreatePurchaseOrderSchema)
+    .mutation(async ({ ctx, input }) => {
+      // IdempotencyMiddleware automatically handles: 
+      // 1. Checks idempotencyKey (from request header)
+      // 2. Returns cached response if duplicate detected
+      // 3. Stores result for future retries
+      return poService.create(ctx.companyId, input);
+    }),
+});
+
+// Frontend: Pass idempotency key on critical mutations
+const mutation = trpc.purchase.create.useMutation();
+await mutation.mutateAsync(data, {
+  idempotencyKey: `po-${Date.now()}-${Math.random()}`,
+});
+```
+
+### 5. Business Shape Constraints
+
+Companies have `businessShape` (PENDING, TRADING, SERVICE, HYBRID) controlling allowed features:
+
+```typescript
+// shapedProcedure blocks PENDING companies (not yet activated)
+export const inventoryRouter = router({
+  adjustStock: shapedProcedure.input(...).mutation(...), // Blocks PENDING
+});
+
+// Policy enforces rules
+RentalPolicy.ensureCanRent(shape); // SERVICE companies cannot rent
+PurchaseOrderPolicy.ensureCanPurchaseGoods(shape); // SERVICE cannot buy physical goods
+```
+
+### 6. Webhook Integration Pattern
+
+External services (santi-living) receive real-time updates via webhooks:
+
+```typescript
+// Backend: RentalWebhookService notifies santi-living of inventory changes
+// When rental order is confirmed → webhook sent to registered integration
+// When rental returns → inventory updated, webhook to santi-living
+
+// Webhook payload includes companyId, integrationId, eventType, data
+// Receiver validates signature and processes state changes
+```
+
+### 7. Audit Logging (Auto via Prisma Middleware)
+
+All mutations logged automatically:
+
+```typescript
+// Every create/update/delete triggers AuditLog record
+prisma.auditLog.create({
+  action: 'CREATE',
+  entityType: 'PURCHASE_ORDER',
+  companyId,
+  userId,
+  changes: { before: null, after: createdOrder },
+});
+```
+
+## Multi-Workspace Development
+
+### sync-erp (Main Monorepo)
+- **API**: Express + tRPC, runs on port 3001
+- **Web**: React frontend, runs on port 5173
+- **Bot**: Standalone service for background jobs
+- **Shared package**: Re-exported types, enums, validators
+- **Database package**: Prisma client, migrations, seed scripts
+
+### santi-living (External Consumer)
+- Astro frontend consuming sync-erp via tRPC client
+- ERP Sync Service (`apps/erp-service`) calls sync-erp APIs
+- Separate webhook handling for rental updates
+- Bot Service for WhatsApp order processing
+- Uses `@trpc/client` with configured endpoint
+
+**Development workflow**:
+```bash
+# Terminal 1: Start sync-erp (api + web + bot)
+cd sync-erp && npm run dev
+
+# Terminal 2: Start santi-living
+cd santi-living && npm run dev
+
+# Now both systems communicate:
+# - santi-living frontend calls sync-erp API via tRPC
+# - santi-living erp-service syncs orders and inventory
+```
+
+## Multi-Workspace Development
+
+### sync-erp (Main Monorepo)
+- **API**: Express + tRPC, runs on port 3001
+- **Web**: React frontend, runs on port 5173
+- **Bot**: Standalone service for background jobs
+- **Shared package**: Re-exported types, enums, validators
+- **Database package**: Prisma client, migrations, seed scripts
+
+### santi-living (External Consumer)
+- Astro frontend consuming sync-erp via tRPC client
+- ERP Sync Service (`apps/erp-service`) calls sync-erp APIs
+- Separate webhook handling for rental updates
+- Bot Service for WhatsApp order processing
+- Uses `@trpc/client` with configured endpoint
+
+**Development workflow**:
+```bash
+# Terminal 1: Start sync-erp (api + web + bot)
+cd sync-erp && npm run dev
+
+# Terminal 2: Start santi-living
+cd santi-living && npm run dev
+
+# Now both systems communicate:
+# - santi-living frontend calls sync-erp API via tRPC
+# - santi-living erp-service syncs orders and inventory
+```
+
+## Implementation Quick Reference
+
+### Adding a New Domain Feature
+
+**1. Database Layer**
+- Edit `packages/database/prisma/schema.prisma` (add models, enums)
+- Run `npm run db:generate` (creates client + Zod schemas)
+
+**2. Validation**
+- Manual schemas in `packages/shared/src/validators/{domain}.ts` (override generated Zod)
+- Export from `packages/shared/src/index.ts`
+
+**3. Backend Service Layer**
+```typescript
+// apps/api/src/modules/{domain}/{domain}.repository.ts
+export class PartnerRepository {
+  async findByCompany(companyId: string) {
+    return prisma.partner.findMany({ where: { companyId } });
+  }
+}
+
+// apps/api/src/modules/{domain}/{domain}.service.ts
+export class PartnerService {
+  constructor(private repo: PartnerRepository) {}
+  
+  async create(companyId: string, data: CreatePartnerInput) {
+    return this.repo.create({ ...data, companyId });
+  }
+}
+
+// Register in apps/api/src/modules/common/di/register.ts
+container.register(ServiceKeys.PARTNER_REPOSITORY, () => new PartnerRepository());
+container.register(ServiceKeys.PARTNER_SERVICE, () => 
+  new PartnerService(container.resolve(ServiceKeys.PARTNER_REPOSITORY))
+);
+```
+
+**4. API Router**
+```typescript
+// apps/api/src/trpc/routers/partner.router.ts
+import { container, ServiceKeys } from '../../modules/common/di';
+const service = container.resolve(ServiceKeys.PARTNER_SERVICE);
+
+export const partnerRouter = router({
+  list: protectedProcedure
+    .query(async ({ ctx }) => service.list(ctx.companyId)),
+  
+  create: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.PARTNER })
+    .input(CreatePartnerSchema)
+    .mutation(async ({ ctx, input }) => service.create(ctx.companyId, input)),
+});
+
+// Aggregate in apps/api/src/trpc/router.ts
+export const appRouter = router({
+  partner: partnerRouter,
+  // ...
+});
+```
+
+**5. Frontend**
+```typescript
+// apps/web/src/features/partner/pages/PartnerList.tsx
+import { trpc } from '@/lib/trpc';
+
+export default function PartnerList() {
+  const utils = trpc.useUtils();
+  const { data: partners } = trpc.partner.list.useQuery();
+  const createMutation = trpc.partner.create.useMutation({
+    onSuccess: () => utils.partner.list.invalidate(),
+  });
+  
+  return (
+    <PageContainer>
+      <PageHeader title="Partners" />
+      {/* render partners */}
+    </PageContainer>
+  );
+}
+
+// Add route in apps/web/src/app/AppRouter.tsx
+<Route path="/partners" element={<PartnerList />} />
+```
+
+## Business Domain Patterns
+
+### Procure-to-Pay (P2P)
+- Purchase Order → Bill → Payment flow
+- Uses `shapedProcedure` (blocks PENDING companies)
+- Automatic journal entries for GL integration
+- Idempotency required on payment mutations
+
+### Sales Orders & Invoicing
+- Sales Order → Invoice (optional) → Payment collection
+- Inventory allocated when SO created
+- Automatic invoice generation or manual
+- Deposit handling for upfront payments
+
+### Rental Business
+- Rental Items with tiered pricing (daily/weekly/monthly)
+- Rental Orders → Deposits → Tracking → Returns
+- Damage assessments and reconciliation
+- Real-time inventory unit tracking per rental
+
+### Cash & Bank
+- Cash transactions and bank reconciliation
+- Account mappings (company accounts, GL integration)
+- Transaction rules and payment modes
+- Balance reporting and reconciliation
+
+## Common Errors & Solutions
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "No registration found for SERVICE_KEY" | Service not registered in `register.ts` | Add registration in `container.register(ServiceKeys.XXX, ...)` |
+| Cross-tenant data visible | Missing `companyId` filter in query | Add `where: { companyId }` to ALL Prisma queries |
+| Type errors on tRPC inference | Frontend types out of sync | Run `npm run db:generate` in sync-erp (regenerates API types) |
+| Idempotency not working | Missing `.meta({ idempotencyScope: ... })` | Add meta to mutation router definition |
+| Business shape validation ignored | Using `protectedProcedure` instead | Change to `shapedProcedure` for inventory/order mutations |
+
+## Testing Patterns
+
+**Unit Test** (mock repository):
+```typescript
+describe('PartnerService', () => {
+  it('should create partner', async () => {
+    const mockRepo = { create: vi.fn() };
+    const service = new PartnerService(mockRepo as any);
+    await service.create('company-1', { name: 'Acme' });
+    expect(mockRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ companyId: 'company-1', name: 'Acme' })
+    );
+  });
+});
+```
+
+**Integration Test** (real DB):
+```typescript
+describe('P2P Full Cycle', () => {
+  it('should complete po -> bill -> payment', async () => {
+    const result = await trpc.purchase.create.mutate(
+      { name: 'PO-001', items: [...] },
+      { ctx: { companyId: 'test-co', userId: 'user-1' } }
+    );
+    expect(result.id).toBeDefined();
+  });
+});
+```
+
 ## Common Pitfalls
 
 1. **Forgetting `companyId` filter** → Cross-tenant data leak (CRITICAL)
@@ -321,6 +605,9 @@ formatDate(new Date()); // "29 Desember 2025"
 3. **Forgetting `db:generate`** → After Prisma schema changes, regenerates client AND Zod schemas
 4. **Direct Prisma in services** → Use repository layer for data access
 5. **Not invalidating tRPC cache** → Call `utils.{router}.invalidate()` after mutations
+6. **Missing idempotency on write operations** → Use `meta: { idempotencyScope: ... }` for order/payment mutations
+7. **Not checking `businessShape`** → Some features blocked for PENDING or SERVICE companies
+8. **Assuming localhost URLs in webhooks** → Use `WEBHOOK_BASE_URL` env var (Railway sets this to public domain)
 
 ## Feature Development Checklist
 
@@ -343,7 +630,7 @@ formatDate(new Date()); // "29 Desember 2025"
 
 ## Spec-Driven Development
 
-Feature specs are in `specs/###-feature-name/`:
+Feature specs are in `specs/{###}-{feature-name}/`:
 - **spec.md**: User stories, requirements, edge cases
 - **data-model.md**: Prisma schema changes
 - **tasks.md**: Breakdown with parallel opportunities marked `[P]`
