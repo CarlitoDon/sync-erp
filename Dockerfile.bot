@@ -44,5 +44,8 @@ COPY --from=builder /app/packages/shared ./packages/shared
 # Set environment
 ENV NODE_ENV=production
 
+# Set PRISMA_CONFIG_FILE for any runtime prisma calls
+ENV PRISMA_CONFIG_FILE=packages/database/prisma.config.ts
+
 # Start bot service
 CMD ["node", "apps/bot/dist/index.js"]
