@@ -7,9 +7,13 @@ import https from 'https';
 dotenv.config();
 
 const API_URL =
-  process.env.SYNC_ERP_API_URL || 'https://sync-erp-api-production.up.railway.app/api/trpc';
+  process.env.SYNC_ERP_API_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://api.railway.internal:3001/api/trpc' // Railway private network
+    : 'http://localhost:3001/api/trpc'); // Local dev
 const API_KEY = process.env.SYNC_ERP_API_KEY || '';
 
+// eslint-disable-next-line no-console
 console.log(`[TRPC] Connecting to API: ${API_URL}`);
 
 // Custom fetch with better SSL handling
@@ -21,10 +25,13 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
         rejectUnauthorized: process.env.NODE_ENV === 'production',
         timeout: 15000,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return fetch(input, { ...init, agent, timeout: 15000 } as any);
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return fetch(input, { ...init, timeout: 15000 } as any);
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('[TRPC] Fetch error:', error);
     throw error;
   }
