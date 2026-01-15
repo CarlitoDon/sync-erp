@@ -149,7 +149,46 @@ export const shapedProcedure = protectedProcedure.use(
  * API Key procedure - for external integrations (multi-tenant)
  * Validates Bearer token from Authorization header
  * Injects companyId and permissions from validated API key
+ * Enforces rate limiting
  */
+
+// In-memory rate limit store (use Redis in production for distributed systems)
+const rateLimitStore = new Map<
+  string,
+  { count: number; expiresAt: number }
+>();
+
+function checkRateLimit(keyId: string, limit: number): boolean {
+  const now = Date.now();
+  const hourKey = `${keyId}:${Math.floor(now / 3600000)}`;
+
+  const entry = rateLimitStore.get(hourKey);
+  if (!entry || entry.expiresAt < now) {
+    rateLimitStore.set(hourKey, {
+      count: 1,
+      expiresAt: now + 3600000,
+    });
+    return true;
+  }
+
+  if (entry.count >= limit) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+// Clean up old rate limit entries every hour
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (entry.expiresAt < now) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 3600000);
+
 export const apiKeyProcedure = t.procedure
   .use(async ({ ctx, next }) => {
     // Import dynamically to avoid circular dependency
@@ -177,6 +216,14 @@ export const apiKeyProcedure = t.procedure
       });
     }
 
+    // Enforce rate limiting
+    if (!checkRateLimit(result.keyId, result.rateLimit || 1000)) {
+      throw new TRPCError({
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Rate limit exceeded. Please try again later.',
+      });
+    }
+
     return next({
       ctx: {
         ...ctx,
@@ -188,3 +235,22 @@ export const apiKeyProcedure = t.procedure
     });
   })
   .use(idempotencyMiddleware);
+
+/**
+ * Permission enforcement middleware factory
+ * Use: apiKeyProcedure.use(requirePermission('rental:write')).mutation(...)
+ */
+export const requirePermission = (permission: string) =>
+  t.middleware(async ({ ctx, next }) => {
+    const permissions = (ctx as { permissions?: string[] })
+      .permissions;
+
+    if (!permissions?.includes(permission)) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: `Missing required permission: ${permission}`,
+      });
+    }
+
+    return next();
+  });
