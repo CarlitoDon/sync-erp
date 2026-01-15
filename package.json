@@ -9,6 +9,7 @@
     "packages/*"
   ],
   "scripts": {
+    "start": "echo 'Run workspace start script'",
     "dev": "concurrently --kill-others -n \"api,web,bot\" -c \"red,blue,green\" \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:bot\"",
     "dev:api": "npm run dev --workspace=@sync-erp/api",
     "dev:web": "npm run dev --workspace=@sync-erp/web",
