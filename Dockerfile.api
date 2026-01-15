@@ -1,0 +1,54 @@
+# Railway API Dockerfile
+# Multi-stage build for sync-erp API service
+
+FROM node:22-alpine AS builder
+
+# Build args for Prisma generate
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
+
+WORKDIR /app
+
+# Install dependencies needed for native modules
+RUN apk add --no-cache python3 make g++ openssl
+
+# Copy all source code
+COPY . .
+
+# Install all dependencies
+RUN npm ci --include=dev
+
+# Generate Prisma client with patch script
+WORKDIR /app/packages/database
+RUN npx prisma generate && node ../scripts/patch-zod-types.mjs
+WORKDIR /app
+
+# Build workspace packages
+RUN npm run build --workspace=@sync-erp/database
+RUN npm run build --workspace=@sync-erp/shared
+RUN npm run build --workspace=@sync-erp/api
+
+# Production stage
+FROM node:22-alpine AS production
+
+WORKDIR /app
+
+# Install openssl for Prisma runtime
+RUN apk add --no-cache openssl
+
+# Copy package files and install prod deps only
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api ./apps/api
+COPY --from=builder /app/packages/database ./packages/database
+COPY --from=builder /app/packages/shared ./packages/shared
+
+# Expose port
+EXPOSE 3001
+
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Run migrations and start
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma && node apps/api/dist/index.js"]
