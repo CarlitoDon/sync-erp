@@ -1,16 +1,14 @@
-[build]
-builder = "dockerfile"
 
 # Service 1: API (Main Backend + Database Migrator)
 [[services]]
 name = "api"
 root = "."
-dockerfilePath = "Dockerfile.api"
+buildCommand = "npx turbo run build --filter=@sync-erp/api..."
+startCommand = "npm start --workspace=@sync-erp/api"
 watchPaths = [
   "apps/api/**",
   "packages/database/**",
   "packages/shared/**",
-  "Dockerfile.api",
   "package.json"
 ]
 
@@ -18,12 +16,12 @@ watchPaths = [
 [[services]]
 name = "bot"
 root = "."
-dockerfilePath = "Dockerfile.bot"
+buildCommand = "npx turbo run build --filter=@sync-erp/bot..."
+startCommand = "npm start --workspace=@sync-erp/bot"
 watchPaths = [
   "apps/bot/**",
   "packages/database/**",
   "packages/shared/**",
-  "Dockerfile.bot",
   "package.json"
 ]
 
