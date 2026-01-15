@@ -31,8 +31,8 @@ FROM node:22-alpine AS production
 
 WORKDIR /app
 
-# Install openssl for Prisma runtime
-RUN apk add --no-cache openssl
+# Install openssl for Prisma runtime AND ca-certificates for HTTPS
+RUN apk add --no-cache openssl ca-certificates && update-ca-certificates
 
 # Copy package files and node_modules
 COPY --from=builder /app/package*.json ./
