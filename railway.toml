@@ -6,12 +6,24 @@ builder = "dockerfile"
 name = "api"
 root = "."
 dockerfilePath = "Dockerfile.api"
-watchPaths = ["apps/api/**", "packages/**"]
+watchPaths = [
+  "apps/api/**",
+  "packages/**",
+  "Dockerfile.api",
+  "package.json",
+  "package-lock.json"
+]
 
 # Service 2: Bot (WhatsApp Service)
 [[services]]
 name = "bot"
 root = "."
 dockerfilePath = "Dockerfile.bot"
-watchPaths = ["apps/bot/**", "packages/**"]
+watchPaths = [
+  "apps/bot/**",
+  "packages/**",
+  "Dockerfile.bot",
+  "package.json",
+  "package-lock.json"
+]
 
