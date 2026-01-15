@@ -110,7 +110,7 @@ export default function ApiDocsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+           <Card>
             <CardHeader>
               <CardTitle className="font-mono text-base">
                 POST /trpc/publicRental.confirmPayment

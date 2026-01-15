@@ -112,6 +112,46 @@ export const apiKeyRouter = router({
     }),
 
   /**
+   * Update API key details (name, rate limit)
+   */
+  update: protectedProcedure
+    .input(
+      z.object({
+        keyId: z.string(),
+        name: z.string().min(2).max(100).optional(),
+        rateLimit: z.number().min(100).max(10000).optional(),
+        webhookUrl: z.string().url().nullable().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify ownership
+      const key = await prisma.apiKey.findFirst({
+        where: { id: input.keyId, companyId: ctx.companyId },
+      });
+
+      if (!key) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'API key not found',
+        });
+      }
+
+      await apiKeyService.updateKey(input.keyId, {
+        name: input.name,
+        rateLimit: input.rateLimit,
+      });
+
+      if (input.webhookUrl !== undefined) {
+        await apiKeyService.updateWebhook(
+          input.keyId,
+          input.webhookUrl
+        );
+      }
+
+      return { success: true, message: 'API key updated' };
+    }),
+
+  /**
    * Test webhook connectivity
    */
   testWebhook: protectedProcedure

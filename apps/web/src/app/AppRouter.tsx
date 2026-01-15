@@ -20,6 +20,7 @@ import { AccountingRoutes } from '@/features/accounting/routes';
 import { CompanyRoutes } from '@/features/company/routes';
 import { AdminRoutes } from '@/features/admin/routes';
 import { SettingsRoutes } from '@/features/settings/routes';
+import { IntegrationRoutes } from '@/features/integrations/routes';
 
 // Lazy loaded pages for root level
 const CompanySelectionPage = lazy(() =>
@@ -67,6 +68,7 @@ export function AppRouter() {
           {AccountingRoutes}
           {AdminRoutes}
           {SettingsRoutes}
+          {IntegrationRoutes}
 
           {/* Remaining miscellaneous routes */}
           <Route

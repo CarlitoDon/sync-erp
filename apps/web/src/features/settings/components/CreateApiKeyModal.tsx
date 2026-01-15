@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import {
   Dialog,
@@ -17,9 +17,17 @@ import {
 } from '@heroicons/react/24/outline';
 import { useForm } from 'react-hook-form';
 
+export interface ApiKeyData {
+  id: string;
+  name: string;
+  rateLimit: number;
+  webhookUrl?: string | null;
+}
+
 interface CreateApiKeyModalProps {
   open: boolean;
   onClose: () => void;
+  initialData?: ApiKeyData | null;
 }
 
 interface FormData {
@@ -32,12 +40,14 @@ interface FormData {
 export function CreateApiKeyModal({
   open,
   onClose,
+  initialData,
 }: CreateApiKeyModalProps) {
   const [generatedKey, setGeneratedKey] = useState<string | null>(
     null
   );
   const [copied, setCopied] = useState(false);
   const utils = trpc.useUtils();
+  const isEditMode = !!initialData;
 
   const {
     register,
@@ -50,11 +60,40 @@ export function CreateApiKeyModal({
     },
   });
 
+  // Reset form when opening/closing or changing mode
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        reset({
+          name: initialData.name,
+          webhookUrl: initialData.webhookUrl || '',
+          rateLimit: initialData.rateLimit,
+        });
+      } else {
+        reset({
+          name: '',
+          webhookUrl: '',
+          rateLimit: 1000,
+          expiresInDays: undefined,
+        });
+        setGeneratedKey(null);
+      }
+    }
+  }, [open, initialData, reset]);
+
   const createMutation = trpc.apiKey.create.useMutation({
     onSuccess: (data) => {
       setGeneratedKey(data.key);
       utils.apiKey.list.invalidate();
       utils.apiKey.getStats.invalidate();
+    },
+  });
+
+  const updateMutation = trpc.apiKey.update.useMutation({
+    onSuccess: () => {
+      utils.apiKey.list.invalidate();
+      utils.apiKey.getStats.invalidate();
+      handleClose();
     },
   });
 
@@ -67,12 +106,21 @@ export function CreateApiKeyModal({
   };
 
   const onSubmit = async (data: FormData) => {
-    await createMutation.mutateAsync({
-      name: data.name,
-      webhookUrl: data.webhookUrl || undefined,
-      rateLimit: data.rateLimit,
-      expiresInDays: data.expiresInDays || undefined,
-    });
+    if (isEditMode && initialData) {
+      await updateMutation.mutateAsync({
+        keyId: initialData.id,
+        name: data.name,
+        rateLimit: data.rateLimit,
+        webhookUrl: data.webhookUrl || null,
+      });
+    } else {
+      await createMutation.mutateAsync({
+        name: data.name,
+        webhookUrl: data.webhookUrl || undefined,
+        rateLimit: data.rateLimit,
+        expiresInDays: data.expiresInDays || undefined,
+      });
+    }
   };
 
   const handleClose = () => {
@@ -82,17 +130,24 @@ export function CreateApiKeyModal({
     onClose();
   };
 
+  const isPending =
+    createMutation.isPending || updateMutation.isPending;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {generatedKey ? 'API Key Created' : 'Create API Key'}
+            {generatedKey
+              ? 'API Key Created'
+              : isEditMode
+                ? 'Edit API Key'
+                : 'Create API Key'}
           </DialogTitle>
         </DialogHeader>
 
         {generatedKey ? (
-          /* Success State - Show Key */
+          /* Success State - Show Key (Only for Create) */
           <div className="space-y-4">
             <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-md flex gap-3 text-sm">
               <ExclamationTriangleIcon className="h-5 w-5 text-amber-600 shrink-0" />
@@ -115,7 +170,8 @@ export function CreateApiKeyModal({
                 />
                 <Button
                   variant="outline"
-                  size="icon"
+                  size="sm"
+                  className="p-0 h-8 w-8"
                   onClick={handleCopy}
                 >
                   {copied ? (
@@ -155,6 +211,11 @@ export function CreateApiKeyModal({
               )}
             </div>
 
+            {/* Webhook URL - Only show on Create. Edit wraps to separate config or ignore for now as requested.
+                Actually, implementation plan says "Use Update procedure".
+                Router update doesn't include webhookUrl (separate endpoint).
+                So hide Webhook URL in edit mode to avoid confusion.
+            */}
             <div className="space-y-2">
               <Label htmlFor="webhookUrl">
                 Webhook URL (optional)
@@ -184,19 +245,21 @@ export function CreateApiKeyModal({
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="expiresInDays">
-                Expires In (days, optional)
-              </Label>
-              <Input
-                id="expiresInDays"
-                type="number"
-                placeholder="Leave empty for no expiration"
-                {...register('expiresInDays', {
-                  valueAsNumber: true,
-                })}
-              />
-            </div>
+            {!isEditMode && (
+              <div className="space-y-2">
+                <Label htmlFor="expiresInDays">
+                  Expires In (days, optional)
+                </Label>
+                <Input
+                  id="expiresInDays"
+                  type="number"
+                  placeholder="Leave empty for no expiration"
+                  {...register('expiresInDays', {
+                    valueAsNumber: true,
+                  })}
+                />
+              </div>
+            )}
 
             <DialogFooter>
               <Button
@@ -206,13 +269,12 @@ export function CreateApiKeyModal({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending}
-              >
-                {createMutation.isPending
-                  ? 'Creating...'
-                  : 'Generate Key'}
+              <Button type="submit" disabled={isPending}>
+                {isPending
+                  ? 'Saving...'
+                  : isEditMode
+                    ? 'Save Changes'
+                    : 'Generate Key'}
               </Button>
             </DialogFooter>
           </form>

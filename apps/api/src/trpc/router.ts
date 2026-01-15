@@ -22,6 +22,8 @@ import { rentalRouter } from './routers/rental.router'; // Feature 043: Rental B
 import { rentalBundleRouter } from './routers/rental-bundle.router'; // Package/Bundle support
 import { publicRentalRouter } from './routers/public-rental.router'; // Santi Living Integration
 import { apiKeyRouter } from './routers/api-key.router'; // Multi-tenant API key management
+import { integrationRouter } from './routers/integration.router'; // Integrations Marketplace
+import { botRouter } from './routers/bot.router';
 export { Prisma } from '@sync-erp/database';
 
 export const appRouter = router({
@@ -57,6 +59,8 @@ export const appRouter = router({
   company: companyRouter,
   admin: adminRouter,
   apiKey: apiKeyRouter, // Multi-tenant API key management
+  integration: integrationRouter, // Integrations Marketplace
+  bot: botRouter,
 });
 
 export type AppRouter = typeof appRouter;

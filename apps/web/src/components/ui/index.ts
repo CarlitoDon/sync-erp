@@ -17,6 +17,7 @@ export { BackButton } from './BackButton';
 // Form Elements
 export { default as Select } from './Select';
 export { Input } from './input';
+export { Textarea } from './textarea';
 export { DatePicker } from './DatePicker';
 export { QuantityInput } from './QuantityInput';
 export { CurrencyInput } from './CurrencyInput';

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.1.1",
+    "@hookform/resolvers": "^3.10.0",
     "@sync-erp/shared": "*",
     "@tanstack/react-query": "^5.90.12",
     "@trpc/client": "^11.8.0",

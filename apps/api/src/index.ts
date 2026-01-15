@@ -108,8 +108,22 @@ app.use((_req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.warn(`🚀 Sync ERP API running on http://localhost:${PORT}`);
 });
+
+// Graceful shutdown to prevent zombie processes
+const gracefulShutdown = (signal: string) => {
+  console.warn(`\n[${signal}] Shutting down gracefully...`);
+  server.close(() => {
+    console.warn('[API] Server closed successfully.');
+    process.exit(0);
+  });
+  // Force exit after 5s if server doesn't close
+  setTimeout(() => process.exit(1), 5000);
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 export default app;
