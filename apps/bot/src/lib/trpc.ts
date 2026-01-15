@@ -9,7 +9,7 @@ dotenv.config();
 const API_URL =
   process.env.SYNC_ERP_API_URL ||
   (process.env.NODE_ENV === 'production'
-    ? 'https://api.railway.internal:3001/api/trpc' // Railway private network
+    ? 'https://sync-erp-api-production.up.railway.app/api/trpc' // Production public domain
     : 'http://localhost:3001/api/trpc'); // Local dev
 const API_KEY = process.env.SYNC_ERP_API_KEY || '';
 
