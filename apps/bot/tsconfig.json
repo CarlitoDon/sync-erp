@@ -4,12 +4,12 @@
     "outDir": "dist",
     "rootDir": "src",
     "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "paths": {
       "@src/*": ["./src/*"]
     },
-    "noEmit": false,
-    "module": "CommonJS",
-    "moduleResolution": "Node"
+    "noEmit": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
