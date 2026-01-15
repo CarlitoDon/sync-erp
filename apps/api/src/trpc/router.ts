@@ -21,6 +21,7 @@ import { cashBankRouter } from '../modules/cash-bank/cash-bank.router'; // Featu
 import { rentalRouter } from './routers/rental.router'; // Feature 043: Rental Business
 import { rentalBundleRouter } from './routers/rental-bundle.router'; // Package/Bundle support
 import { publicRentalRouter } from './routers/public-rental.router'; // Santi Living Integration
+import { apiKeyRouter } from './routers/api-key.router'; // Multi-tenant API key management
 export { Prisma } from '@sync-erp/database';
 
 export const appRouter = router({
@@ -55,6 +56,7 @@ export const appRouter = router({
   user: userRouter,
   company: companyRouter,
   admin: adminRouter,
+  apiKey: apiKeyRouter, // Multi-tenant API key management
 });
 
 export type AppRouter = typeof appRouter;
