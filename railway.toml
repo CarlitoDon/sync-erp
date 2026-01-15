@@ -1,18 +1,18 @@
 [build]
-builder = "nixpacks"
+builder = "railpack"
 
 # Service 1: API (Main Backend + Database Migrator)
 [[services]]
-name = "sync-erp-api"
+name = "api"
 root = "."
 watchPaths = ["apps/api/**", "packages/**"]
-buildCommand = "npm install && npx turbo run build --filter=@sync-erp/api"
-startCommand = "npm run db:migrate --workspace=@sync-erp/database && npm run start --workspace=@sync-erp/api"
+buildCommand = "npm ci && cd packages/database && npx prisma generate && node ../scripts/patch-zod-types.mjs && cd ../.. && npm run build --workspace=@sync-erp/database && npm run build --workspace=@sync-erp/shared && npm run build --workspace=@sync-erp/api"
+startCommand = "npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma && npm run start --workspace=@sync-erp/api"
 
 # Service 2: Bot (WhatsApp Service)
 [[services]]
-name = "sync-erp-bot"
+name = "bot"
 root = "."
 watchPaths = ["apps/bot/**", "packages/**"]
-buildCommand = "npm install && npx turbo run build --filter=@sync-erp/bot"
+buildCommand = "npm ci && cd packages/database && npx prisma generate && cd ../.. && npm run build --workspace=@sync-erp/database && npm run build --workspace=@sync-erp/shared && npm run build --workspace=@sync-erp/bot"
 startCommand = "npm run start --workspace=@sync-erp/bot"
