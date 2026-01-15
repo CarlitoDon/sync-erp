@@ -23,10 +23,8 @@ WORKDIR /app/packages/database
 RUN npx prisma generate && node ../scripts/patch-zod-types.mjs
 WORKDIR /app
 
-# Build workspace packages
-RUN npm run build --workspace=@sync-erp/database
-RUN npm run build --workspace=@sync-erp/shared
-RUN npm run build --workspace=@sync-erp/api
+# Build api and its dependencies using turbo
+RUN npx turbo run build --filter=@sync-erp/api...
 
 # Production stage
 FROM node:22-alpine AS production
