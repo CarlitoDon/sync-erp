@@ -17,7 +17,7 @@
     "build:web": "turbo run build --filter=@sync-erp/web",
     "build:bot": "turbo run build --filter=@sync-erp/bot",
 
-    "postinstall": "npm run db:generate --workspace=@sync-erp/database",
+    "postinstall": "if [ -z \"$DATABASE_URL\" ]; then echo 'Skipping db:generate (DATABASE_URL not set)'; else npm run db:generate --workspace=@sync-erp/database; fi",
 
     "typecheck": "tsc -b",
     "typecheck:watch": "tsc -b --watch",
