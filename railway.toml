@@ -4,26 +4,26 @@ builder = "RAILPACK"
 # Service 1: API (Main Backend + Database Migrator)
 [[services]]
 name = "api"
-root = "/apps/api"
+root = "apps/api"
 buildCommand = "npx turbo run build --filter=@sync-erp/api..."
 startCommand = "npm run db:deploy --workspace=@sync-erp/database && npm start --workspace=@sync-erp/api"
 watchPaths = [
-  "/apps/api/**",
-  "/packages/database/**",
-  "/packages/shared/**",
-  "/package.json"
+  "apps/api/**",
+  "packages/database/**",
+  "packages/shared/**",
+  "package.json"
 ]
 
 # Service 2: Bot (WhatsApp Service)
 [[services]]
 name = "bot"
-root = "/apps/bot"
+root = "apps/bot"
 buildCommand = "npx turbo run build --filter=@sync-erp/bot..."
 startCommand = "npm start --workspace=@sync-erp/bot"
 watchPaths = [
-  "/apps/bot/**",
-  "/packages/database/**",
-  "/packages/shared/**",
-  "/package.json"
+  "apps/bot/**",
+  "packages/database/**",
+  "packages/shared/**",
+  "package.json"
 ]
 
