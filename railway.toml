@@ -6,7 +6,7 @@ builder = "RAILPACK"
 name = "api"
 root = "/apps/api"
 buildCommand = "npx turbo run build --filter=@sync-erp/api..."
-startCommand = "npm start --workspace=@sync-erp/api"
+startCommand = "npm run db:deploy --workspace=@sync-erp/database && npm start --workspace=@sync-erp/api"
 watchPaths = [
   "/apps/api/**",
   "/packages/database/**",
