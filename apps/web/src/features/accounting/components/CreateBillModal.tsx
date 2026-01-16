@@ -318,7 +318,7 @@ export default function CreateBillModal({
                 </div>
                 {/* Items List (Brief) */}
                 <div className="text-xs text-slate-500 mb-2 max-h-20 overflow-y-auto">
-                  {itemsToBill.map((item, idx) => (
+                  {itemsToBill.map((item: { productName: string; qty: number; price: number; total: number; }, idx: number) => (
                     <div key={idx} className="flex justify-between">
                       <span>
                         {item.qty}x {item.productName}

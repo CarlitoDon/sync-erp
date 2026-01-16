@@ -12,8 +12,9 @@
       "@modules/*": ["./src/modules/*"],
       "@src/*": ["./src/*"],
       "@middlewares/*": ["./src/middlewares/*"],
-      "@routes/*": ["./src/routes/*"]
-    }
+      "@routes/*": ["./src/routes/*"],
+    },
+    "outDir": "dist"
   },
   "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]

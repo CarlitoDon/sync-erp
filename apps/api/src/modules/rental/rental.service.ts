@@ -1,5 +1,5 @@
+import { Prisma } from '@sync-erp/database';
 import {
-  Prisma,
   prisma,
   RentalItem,
   RentalItemUnit,

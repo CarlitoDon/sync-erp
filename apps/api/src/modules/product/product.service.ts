@@ -1,4 +1,5 @@
-import { Product, Prisma } from '@sync-erp/database';
+import { Prisma } from '@sync-erp/database';
+import { Product } from '@sync-erp/database';
 import { ProductRepository } from './product.repository';
 import {
   CreateProductInput,

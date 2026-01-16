@@ -8,7 +8,21 @@ import {
   GeneralLedgerReport,
   DomainError,
   DomainErrorCodes,
+  JournalLine,
 } from '@sync-erp/shared';
+
+type JournalLineWithJournal = JournalLine & {
+  journal: {
+    id: string;
+    companyId: string;
+    reference: string | null;
+    date: Date;
+    memo: string | null;
+    sourceType: string | null;
+    sourceId: string | null;
+    createdAt: Date;
+  };
+};
 
 export class ReportService {
   constructor(
@@ -111,7 +125,7 @@ export class ReportService {
       );
 
     let runningBalance = openingBalance;
-    const entries: GeneralLedgerEntry[] = journalLines.map((line) => {
+    const entries: GeneralLedgerEntry[] = journalLines.map((line: JournalLineWithJournal) => {
       const debit = Number(line.debit);
       const credit = Number(line.credit);
 

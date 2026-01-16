@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-import { prisma } from '@sync-erp/database';
+import { prisma, JournalEntry } from '@sync-erp/database';
 import { SalesOrderService } from '@modules/sales/sales-order.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InvoiceService } from '@modules/accounting/services/invoice.service';
@@ -258,13 +258,13 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
 
     // 3. Verify Return Journal
     const journals = await journalService.list(COMPANY_ID);
-    const returnJournal = journals.find((j) =>
+    const returnJournal = journals.find((j: JournalEntry) =>
       j.reference?.includes(`Return for order ${so.orderNumber}`)
     ) as any;
 
     // Dr Inventory, Cr COGS
     expect(returnJournal).toBeDefined();
-    const drInv = returnJournal.lines.find(
+    const drInv = returnJournal?.lines.find(
       (l: any) => l.account.code === '1400'
     );
     expect(Number(drInv?.debit)).toBeGreaterThan(0);

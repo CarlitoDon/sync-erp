@@ -1,4 +1,5 @@
-import { prisma, Payment, Prisma } from '@sync-erp/database';
+import { Prisma } from '@sync-erp/database';
+import { prisma, Payment } from '@sync-erp/database';
 
 export class PaymentRepository {
   async create(

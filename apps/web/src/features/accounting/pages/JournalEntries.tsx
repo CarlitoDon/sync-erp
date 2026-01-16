@@ -13,6 +13,7 @@ import Select from '@/components/ui/Select';
 import { Card, CardContent } from '@/components/ui/Card';
 
 // Defining locally to avoid build issues
+import { JournalLine } from '@sync-erp/shared';
 interface CreateJournalLineInput {
   accountId: string;
   debit: number;
@@ -224,7 +225,7 @@ export default function JournalEntries() {
                 journals.map((journal) => {
                   // Calculate total amount (sum of debits)
                   const total = journal.lines.reduce<number>(
-                    (sum, l) => sum + Number(l.debit),
+                    (sum, l: JournalLine) => sum + Number(l.debit),
                     0
                   );
                   return (

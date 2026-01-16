@@ -1,8 +1,8 @@
+import { Prisma } from '@sync-erp/database';
 import {
   Order,
   OrderStatus,
   OrderType,
-  Prisma,
   BusinessShape,
   prisma,
   AuditLogAction,

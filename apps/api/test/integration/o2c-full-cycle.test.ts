@@ -4,11 +4,15 @@ import {
   OrderStatus,
   InvoiceStatus,
   JournalSourceType,
+  JournalEntry,
+  JournalLine,
 } from '@sync-erp/database';
 import { InvoiceService } from '../../src/modules/accounting/services/invoice.service';
 import { PaymentService } from '../../src/modules/accounting/services/payment.service';
 import { JournalService } from '../../src/modules/accounting/services/journal.service';
 import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
+
+type JournalEntryWithLines = JournalEntry & { lines: JournalLine[] };
 
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
@@ -176,20 +180,20 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       expect(auditLogs[0].correlationId).toBe(correlationId);
 
       // Step 4: Verify Journal entries
-      let journals = await journalService.list(COMPANY_ID);
+      let journals = await journalService.list(COMPANY_ID) as JournalEntryWithLines[];
       const invoiceJournal = journals.find(
-        (j: any) =>
+        (j: JournalEntryWithLines) =>
           j.sourceType === JournalSourceType.INVOICE &&
           j.sourceId === invoiceId
-      ) as any;
+      )!;
       expect(invoiceJournal).toBeDefined();
 
       const totalDebit = invoiceJournal.lines.reduce(
-        (sum: number, l: any) => sum + Number(l.debit),
+        (sum: number, l: JournalLine) => sum + Number(l.debit),
         0
       );
       const totalCredit = invoiceJournal.lines.reduce(
-        (sum: number, l: any) => sum + Number(l.credit),
+        (sum: number, l: JournalLine) => sum + Number(l.credit),
         0
       );
       expect(totalDebit).toBeCloseTo(totalCredit, 2);
@@ -210,18 +214,18 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       expect(updatedInvoice?.status).toBe(InvoiceStatus.PAID);
 
       // Step 6: Verify Cash receipt journal
-      journals = await journalService.list(COMPANY_ID);
+      journals = await journalService.list(COMPANY_ID) as JournalEntryWithLines[];
       const paymentJournal = journals.find(
-        (j: any) => j.sourceType === JournalSourceType.PAYMENT
-      ) as any;
+        (j: JournalEntryWithLines) => j.sourceType === JournalSourceType.PAYMENT
+      )!;
       expect(paymentJournal).toBeDefined();
 
       const paymentDebit = paymentJournal.lines.reduce(
-        (sum: number, l: any) => sum + Number(l.debit),
+        (sum: number, l: JournalLine) => sum + Number(l.debit),
         0
       );
       const paymentCredit = paymentJournal.lines.reduce(
-        (sum: number, l: any) => sum + Number(l.credit),
+        (sum: number, l: JournalLine) => sum + Number(l.credit),
         0
       );
       expect(paymentDebit).toBeCloseTo(paymentCredit, 2);

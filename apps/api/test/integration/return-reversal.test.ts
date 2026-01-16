@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-import { prisma } from '@sync-erp/database';
+import { prisma, JournalEntry } from '@sync-erp/database';
 import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
 import { JournalService } from '../../src/modules/accounting/services/journal.service';
 
@@ -140,17 +140,17 @@ describe('US3: Sales Return Reversal', () => {
     const journals = await journalService.list(COMPANY_ID);
 
     // Find Return Journal (reference format: RET:RET-...)
-    const returnJournal = journals.find((j) =>
+    const returnJournal = journals.find((j: JournalEntry) =>
       j.reference?.includes('RET:')
     ) as any;
 
     expect(returnJournal).toBeDefined();
 
     // Verify Lines: Dr 1400 (Asset), Cr 5000 (COGS)
-    const assetLine = returnJournal.lines.find(
+    const assetLine = returnJournal?.lines.find(
       (l: any) => l.account.code === '1400'
     );
-    const cogsLine = returnJournal.lines.find(
+    const cogsLine = returnJournal?.lines.find(
       (l: any) => l.account.code === '5000'
     );
 

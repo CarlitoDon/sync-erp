@@ -67,7 +67,7 @@ export default function Shipments() {
                 </td>
               </tr>
             ) : (
-              shipments.map((shipment) => (
+              shipments.map((shipment: any) => (
                 <tr key={shipment.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-mono text-sm">
                     <Link

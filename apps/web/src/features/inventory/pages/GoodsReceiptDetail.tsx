@@ -346,7 +346,7 @@ export default function GoodsReceiptDetail() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {receipt.items.map((item) => (
+              {receipt.items.map((item: any) => (
                 <tr key={item.id}>
                   <td className="px-4 py-3">
                     {item.product ? (

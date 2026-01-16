@@ -1,4 +1,5 @@
-import { prisma, Prisma, AccountType } from '@sync-erp/database';
+import { Prisma } from '@sync-erp/database';
+import { prisma, AccountType } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export class JournalRepository {

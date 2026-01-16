@@ -296,7 +296,7 @@ export default function ShipmentDetail() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {shipment.items.map((item) => (
+              {shipment.items.map((item: any) => (
                 <tr key={item.id}>
                   <td className="px-4 py-3">
                     {item.product ? (

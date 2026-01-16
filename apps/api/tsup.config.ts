@@ -4,25 +4,20 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
   target: 'node22',
-  dts: false,
-  splitting: false,
-  sourcemap: true,
   clean: true,
-  // External: real npm packages that should stay external
+  // Bundle workspace packages
+  noExternal: ['@sync-erp/database', '@sync-erp/shared'],
   external: [
-    '@prisma/client',
-    '@prisma/adapter-pg',
+    'dotenv',
     'pg',
+    'bcrypt',
+    'bcryptjs',
     'express',
     'cors',
     'helmet',
     'cookie-parser',
-    'bcrypt',
-    '@trpc/server',
     'superjson',
     'zod',
-    'dotenv',
+    '@trpc/server',
   ],
-  // Bundle workspace packages to avoid ESM import issues
-  noExternal: ['@sync-erp/database', '@sync-erp/shared'],
 });

@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
-import { Prisma } from '@sync-erp/database';
 import { ERROR_CODES } from '@sync-erp/shared';
 
 // Type for error details - validation errors or key-value pairs
@@ -31,7 +30,7 @@ export class AppError extends Error {
 
 // Helper to get user-friendly message for Prisma errors
 function getPrismaErrorMessage(
-  error: Prisma.PrismaClientKnownRequestError
+  error: { code?: string; message?: string }
 ): string {
   switch (error.code) {
     case 'P2002':
@@ -60,21 +59,33 @@ export function errorHandler(
   _next: NextFunction
 ) {
   // Handle Prisma known request errors (constraint violations, not found, etc.)
-  if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    console.error('Prisma Error:', err.code, err.message);
+  // Check for Prisma error codes (duck typing since error classes aren't exported)
+  if (
+    'code' in (err as unknown as Record<string, unknown>) &&
+    typeof (err as unknown as Record<string, unknown>).code === 'string'
+  ) {
+    const prismaErr = (err as unknown as Record<string, unknown>) as { code: string };
+    console.error(
+      'Prisma Error:',
+      prismaErr.code,
+      (err as Error).message
+    );
     // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Prisma error code, not database enum
-    const statusCode = err.code === 'P2025' ? 404 : 400;
+    const statusCode = prismaErr.code === 'P2025' ? 404 : 400;
     return res.status(statusCode).json({
       success: false,
       error: {
         code: ERROR_CODES.DATABASE_ERROR || 'DATABASE_ERROR',
-        message: getPrismaErrorMessage(err),
+        message: getPrismaErrorMessage(prismaErr),
       },
     });
   }
 
-  // Handle Prisma validation errors (invalid query construction)
-  if (err instanceof Prisma.PrismaClientValidationError) {
+  // Handle Prisma validation errors (check for validation error message)
+  if (
+    err.message &&
+    err.message.includes('The provided value for the column is too long')
+  ) {
     console.error('Prisma Validation Error:', err.message);
     return res.status(400).json({
       success: false,
@@ -86,7 +97,11 @@ export function errorHandler(
   }
 
   // Handle Prisma initialization errors (connection issues)
-  if (err instanceof Prisma.PrismaClientInitializationError) {
+  if (
+    err.message &&
+    (err.message.includes('Can\'t reach database server') ||
+      err.message.includes('Database connection'))
+  ) {
     console.error('Prisma Initialization Error:', err.message);
     return res.status(503).json({
       success: false,
