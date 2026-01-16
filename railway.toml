@@ -6,7 +6,7 @@ builder = "RAILPACK"
 name = "api"
 root = "apps/api"
 buildCommand = "npx turbo run build --filter=@sync-erp/api..."
-startCommand = "npm run db:deploy --workspace=@sync-erp/database && npm start --workspace=@sync-erp/api"
+startCommand = "npm run db:deploy --workspace=@sync-erp/database && node apps/api/dist/index.js"
 watchPaths = [
   "apps/api/**",
   "packages/database/**",
@@ -19,7 +19,7 @@ watchPaths = [
 name = "bot"
 root = "apps/bot"
 buildCommand = "npx turbo run build --filter=@sync-erp/bot..."
-startCommand = "npm start --workspace=@sync-erp/bot"
+startCommand = "node apps/bot/dist/index.js"
 watchPaths = [
   "apps/bot/**",
   "packages/database/**",
