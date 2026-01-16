@@ -2,14 +2,18 @@ import dotenv from 'dotenv';
 import { defineConfig, env } from 'prisma/config';
 
 // Determine environment and load appropriate .env file
-// In production (Railway), env vars are set by the platform - don't use dotenv
 function loadEnv(): void {
   const isProd = process.env.NODE_ENV === 'production';
-  if (isProd) return; // Railway sets env vars directly
-
   const isTest =
     process.env.NODE_ENV === 'test' || process.env.VITEST;
-  const envFile = isTest ? '.env.test' : '.env';
+
+  let envFile = '.env';
+  if (isProd) {
+    envFile = '.env.production';
+  } else if (isTest) {
+    envFile = '.env.test';
+  }
+
   dotenv.config({ path: envFile });
 }
 
