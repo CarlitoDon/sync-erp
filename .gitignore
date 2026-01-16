@@ -48,3 +48,4 @@ packages/database/src/generated/
 .env*.local
 .wwebjs_auth
 apps/bot/.wwebjs_auth
+supabase/.temp/
