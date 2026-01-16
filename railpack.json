@@ -1,0 +1,6 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "deploy": {
+    "startCommand": "npm run db:deploy --workspace=@sync-erp/database && npm start --workspace=@sync-erp/api"
+  }
+}

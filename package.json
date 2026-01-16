@@ -4,23 +4,29 @@
   "private": true,
   "description": "Sync ERP - Multi-Company ERP System",
   "packageManager": "npm@11.6.1",
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "start": "echo 'Run workspace start script'",
-    "dev": "concurrently --kill-others -n \"api,web,bot\" -c \"red,blue,green\" \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:bot\"",
-    "dev:api": "npm run dev --workspace=@sync-erp/api",
-    "dev:web": "npm run dev --workspace=@sync-erp/web",
-    "dev:bot": "npm run dev --workspace=@sync-erp/bot",
+    "dev": "concurrently --kill-others -n \"api,web,bot\" -c \"red,blue,green\" \"npm run dev --workspace=@sync-erp/api\" \"npm run dev --workspace=@sync-erp/web\" \"npm run dev --workspace=@sync-erp/bot\"",
+
+    "build": "turbo run build",
+    "build:api": "turbo run build --filter=@sync-erp/api",
+    "build:web": "turbo run build --filter=@sync-erp/web",
+    "build:bot": "turbo run build --filter=@sync-erp/bot",
+
+    "postinstall": "npm run db:generate --workspace=@sync-erp/database",
+
     "typecheck": "tsc -b",
     "typecheck:watch": "tsc -b --watch",
-    "build": "turbo run build",
+
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
     "test:all": "turbo run test:all",
+
     "db:reset": "npm run db:reset --workspace=@sync-erp/database",
     "db:generate": "npm run db:generate --workspace=@sync-erp/database",
     "db:push": "npm run db:push --workspace=@sync-erp/database",
@@ -30,8 +36,11 @@
     "db:seed:prod": "NODE_ENV=production npm run db:seed --workspace=@sync-erp/database",
     "db:studio": "npm run db:studio --workspace=@sync-erp/database",
     "db:test": "npm run db:test --workspace=@sync-erp/database",
+
     "db:reseed:full": "npm run db:reset && npm run db:seed && ./scripts/seed-via-api.sh",
+
     "knip": "export $(cat packages/database/.env | xargs) && knip",
+
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "engines": {
