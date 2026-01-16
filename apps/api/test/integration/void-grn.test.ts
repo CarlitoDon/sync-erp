@@ -3,6 +3,7 @@ import {
   prisma,
   OrderStatus,
   DocumentStatus,
+  Fulfillment,
 } from '@sync-erp/database';
 import { InventoryService } from '@modules/inventory/inventory.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
@@ -189,7 +190,7 @@ describe('P2P: Void GRN & Status Recalculation', () => {
     // 2. Get the GRN
     const grns = await inventoryService.listGRN(COMPANY_ID);
     const grn = grns.find(
-      (g) =>
+      (g: Fulfillment) =>
         g.orderId === order.id && g.status === DocumentStatus.POSTED
     );
     expect(grn).toBeDefined();

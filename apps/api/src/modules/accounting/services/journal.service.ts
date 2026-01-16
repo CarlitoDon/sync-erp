@@ -8,6 +8,7 @@ import {
   BusinessDate,
   DomainError,
   DomainErrorCodes,
+  JournalLine,
 } from '@sync-erp/shared';
 import { JournalRepository } from '../repositories/journal.repository';
 import { AccountService } from './account.service';
@@ -66,7 +67,7 @@ export class JournalService {
     }
 
     const reversalLines: CreateJournalLineInput[] =
-      original.lines.map((line) => ({
+      original.lines.map((line: JournalLine) => ({
         accountId: line.accountId,
         debit: Number(line.credit), // Swap
         credit: Number(line.debit), // Swap

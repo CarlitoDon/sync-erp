@@ -12,6 +12,15 @@ import {
   CardContent,
 } from '@/components/ui/Card';
 import { LoadingState } from '@/components/ui';
+import { JournalLine } from '@sync-erp/shared';
+
+type JournalLineWithAccount = JournalLine & {
+  account: {
+    id: string;
+    code: string;
+    name: string;
+  };
+};
 
 // Source type display config
 const SOURCE_TYPE_CONFIG: Record<
@@ -199,7 +208,7 @@ export default function JournalDetail() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {journal.lines.map((line) => (
+              {journal.lines.map((line: JournalLineWithAccount) => (
                 <tr key={line.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm text-gray-900">
                     <div className="font-medium">

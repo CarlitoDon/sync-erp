@@ -16,8 +16,11 @@
       "import": "./dist/client.js"
     }
   },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsc --watch",
     "lint": "eslint src --ext .ts",
@@ -40,6 +43,7 @@
   "devDependencies": {
     "@types/pg": "^8.16.0",
     "prisma": "7.1.0",
+    "tsup": "^8.5.1",
     "tsx": "^4.7.0",
     "typescript": "^5.9.3",
     "zod-prisma-types": "^3.3.10"

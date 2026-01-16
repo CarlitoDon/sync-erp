@@ -1,10 +1,10 @@
+import { Prisma } from '@sync-erp/database';
 import {
   prisma,
   Order,
   OrderItem,
   OrderType,
   OrderStatus,
-  Prisma,
   Product,
   Partner,
   Invoice,

@@ -1,13 +1,29 @@
 import { prisma } from '@sync-erp/database';
 // import { apiKeyService } from './api-key.service';
 import { TRPCError } from '@trpc/server';
+import { Prisma } from '@sync-erp/database';
+
+type IntegrationWithApiKeys = {
+  id: string;
+  companyId: string;
+  appId: string;
+  config: Record<string, unknown>;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  apiKeys: Array<{
+    id: string;
+    keyPrefix: string;
+    lastUsedAt: Date | null;
+  }>;
+};
 
 export interface IntegrationApp {
   appId: string;
   name: string;
   description: string;
   icon: string;
-  defaultConfig?: Record<string, any>;
+  defaultConfig?: Record<string, unknown>;
 }
 
 export const AVAILABLE_INTEGRATIONS: IntegrationApp[] = [
@@ -59,11 +75,11 @@ export class IntegrationService {
           take: 1,
         },
       },
-    });
+    }) as IntegrationWithApiKeys[];
 
     return AVAILABLE_INTEGRATIONS.map((app) => {
       const existing = installed.find(
-        (i: any) => i.appId === app.appId
+        (i: IntegrationWithApiKeys) => i.appId === app.appId
       );
       return {
         ...app,
@@ -117,7 +133,7 @@ export class IntegrationService {
           name: appDef.name,
           description: appDef.description,
           icon: appDef.icon,
-          config: appDef.defaultConfig || {},
+          config: (appDef.defaultConfig as Prisma.JsonValue) || {},
           isActive: true,
         },
       });
@@ -188,7 +204,7 @@ export class IntegrationService {
   async updateConfig(
     companyId: string,
     integrationId: string,
-    config: any,
+    config: Record<string, unknown>,
     isActive?: boolean
   ) {
     const access = await prisma.integration.findFirst({
@@ -205,7 +221,7 @@ export class IntegrationService {
     return prisma.integration.update({
       where: { id: integrationId },
       data: {
-        config: config ?? undefined,
+        config: config as Prisma.JsonValue ?? undefined,
         isActive: isActive ?? undefined,
       },
     });

@@ -18,6 +18,7 @@
     "test:invariants": "vitest run --config test/invariants/vitest.config.ts"
   },
   "dependencies": {
+    "@prisma/client": "^7.2.0",
     "@sync-erp/database": "*",
     "@sync-erp/shared": "*",
     "@trpc/server": "^11.8.0",
@@ -39,8 +40,8 @@
     "@vitest/coverage-v8": "^4.0.0",
     "decimal.js": "^10.6.0",
     "supertest": "^7.0.0",
+    "tsup": "^8.5.1",
     "tsx": "^4.7.0",
-    "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vite-tsconfig-paths": "^6.0.2",
     "vitest": "^4.0.0"

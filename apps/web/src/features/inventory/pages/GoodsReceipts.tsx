@@ -67,7 +67,7 @@ export default function GoodsReceipts() {
                 </td>
               </tr>
             ) : (
-              receipts.map((receipt) => (
+              receipts.map((receipt: any) => (
                 <tr key={receipt.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-mono text-sm">
                     <Link

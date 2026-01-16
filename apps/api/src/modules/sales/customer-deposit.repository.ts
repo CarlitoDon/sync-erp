@@ -5,6 +5,7 @@
  * Similar pattern to procurement/upfront-payment.repository.ts but for Sales Orders.
  */
 
+import { Prisma } from '@sync-erp/database';
 import {
   Payment,
   PaymentStatus,
@@ -13,7 +14,6 @@ import {
   InvoiceStatus,
   InvoiceType,
   OrderType,
-  Prisma,
   prisma,
 } from '@sync-erp/database';
 

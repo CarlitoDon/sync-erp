@@ -1,6 +1,6 @@
 import {
-  Prisma,
   prisma,
+  Prisma,
   InventoryMovement,
   MovementType,
   FulfillmentType,
@@ -9,6 +9,7 @@ import {
   DocumentStatus,
   InvoiceStatus,
 } from '@sync-erp/database';
+import { Decimal } from 'decimal.js';
 
 export interface StockMovementInput {
   companyId: string;
@@ -68,7 +69,7 @@ export class InventoryRepository {
       const newQty = oldQty + inQty;
 
       if (newQty > 0) {
-        newAverageCost = new Prisma.Decimal(totalValue / newQty);
+        newAverageCost = new Decimal(totalValue / newQty);
       }
     }
 

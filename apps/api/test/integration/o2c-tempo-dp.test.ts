@@ -5,6 +5,8 @@ import {
   InvoiceStatus,
   JournalSourceType,
   PaymentStatus,
+  JournalEntry,
+  JournalLine,
 } from '@sync-erp/database';
 import { InvoiceService } from '../../src/modules/accounting/services/invoice.service';
 import { PaymentService } from '../../src/modules/accounting/services/payment.service';
@@ -227,19 +229,19 @@ describe('O2C Flow: Tax + Tempo + Down Payment', () => {
     // verify 'postSettleCustomerDeposit' implementation in journal service if needed
     // But we can find by account codes 2200 Dr and 1300 Cr
     const settJournal = journals.find(
-      (j) =>
-        j.lines.some(
-          (l: any) => l.account.code === '2200' && Number(l.debit) > 0
+      (j: JournalEntry) =>
+        (j as any).lines.some(
+          (l: JournalLine) => (l as any).account?.code === '2200' && Number(l.debit) > 0
         ) &&
-        j.lines.some(
-          (l: any) =>
-            l.account.code === '1300' && Number(l.credit) > 0
+        (j as any).lines.some(
+          (l: JournalLine) =>
+            (l as any).account?.code === '1300' && Number(l.credit) > 0
         )
     );
     expect(settJournal).toBeDefined();
     // journalService.list output structure usually has accounts included or transformed.
     // Assuming list() returns lines with account info.
-    const settDebit = settJournal?.lines.find(
+    const settDebit = (settJournal as any)?.lines.find(
       (l: any) => l.account.code === '2200'
     );
     expect(Number(settDebit?.debit)).toBe(222000);

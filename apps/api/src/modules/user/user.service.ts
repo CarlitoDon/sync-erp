@@ -1,4 +1,5 @@
-import { type User, Prisma } from '@sync-erp/database';
+import { Prisma } from '@sync-erp/database';
+import { type User } from '@sync-erp/database';
 import { UserRepository } from './user.repository';
 
 export interface CreateUserInput {

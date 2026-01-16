@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-import { prisma } from '@sync-erp/database';
+import { prisma, JournalEntry } from '@sync-erp/database';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
@@ -178,7 +178,7 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     // 6. Verify Bill Journal (search by sourceType and sourceId)
     const allJournals = await journalService.list(COMPANY_ID);
     const billJournal = allJournals.find(
-      (j) => j.sourceType === 'BILL' && j.sourceId === bill.id
+      (j: JournalEntry) => j.sourceType === 'BILL' && j.sourceId === bill.id
     );
 
     expect(billJournal).toBeDefined();

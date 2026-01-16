@@ -4,6 +4,7 @@
  * Feature 036: Data access layer for upfront payment operations.
  */
 
+import { Prisma } from '@sync-erp/database';
 import {
   Payment,
   PaymentStatus,
@@ -11,7 +12,6 @@ import {
   PaymentTerms,
   InvoiceStatus,
   InvoiceType,
-  Prisma,
   prisma,
 } from '@sync-erp/database';
 

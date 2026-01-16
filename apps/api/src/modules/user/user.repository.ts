@@ -1,9 +1,9 @@
+import { Prisma } from '@sync-erp/database';
 import {
   prisma,
   type User,
   type CompanyMember,
   type Role,
-  Prisma,
 } from '@sync-erp/database';
 
 export class UserRepository {

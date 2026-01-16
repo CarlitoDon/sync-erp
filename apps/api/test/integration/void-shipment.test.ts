@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-import { prisma, OrderStatus } from '@sync-erp/database';
+import { prisma, OrderStatus, Fulfillment } from '@sync-erp/database';
 import { InventoryService } from '@modules/inventory/inventory.service';
 import { SalesOrderService } from '@modules/sales/sales-order.service';
 import { ProductService } from '@modules/product/product.service';
@@ -142,7 +142,7 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
     // Get the created shipment
     const shipments =
       await inventoryService.listShipments(COMPANY_ID);
-    const shipment = shipments.find((s) => s.orderId === orderId);
+    const shipment = shipments.find((s: Fulfillment) => s.orderId === orderId);
     expect(shipment).toBeDefined();
     expect(shipment?.status).toBe('POSTED');
     shipmentId = shipment!.id;
@@ -202,7 +202,7 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
       await salesOrderService.ship(COMPANY_ID, order.id);
       const shipments =
         await inventoryService.listShipments(COMPANY_ID);
-      const shipment = shipments.find((s) => s.orderId === order.id);
+      const shipment = shipments.find((s: Fulfillment) => s.orderId === order.id);
 
       // Void once
       await inventoryService.voidShipment(

@@ -112,14 +112,14 @@ export const integrationRouter = router({
       z.object({
         id: z.string(),
         isActive: z.boolean().optional(),
-        config: z.record(z.any()).optional(),
+        config: z.record(z.unknown()).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       return integrationService.updateConfig(
         ctx.companyId,
         input.id,
-        input.config,
+        (input.config || {}) as Record<string, unknown>,
         input.isActive
       );
     }),

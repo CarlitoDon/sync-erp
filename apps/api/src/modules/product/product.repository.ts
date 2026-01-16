@@ -1,4 +1,5 @@
-import { prisma, type Product, Prisma } from '@sync-erp/database';
+import { Prisma } from '@sync-erp/database';
+import { prisma, type Product } from '@sync-erp/database';
 
 export class ProductRepository {
   async create(

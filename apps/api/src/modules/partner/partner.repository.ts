@@ -1,7 +1,7 @@
+import { Prisma } from '@sync-erp/database';
 import {
   prisma,
   type Partner,
-  Prisma,
   PartnerType,
 } from '@sync-erp/database';
 

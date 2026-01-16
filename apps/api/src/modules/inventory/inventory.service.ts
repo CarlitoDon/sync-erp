@@ -255,7 +255,7 @@ export class InventoryService {
       );
 
     // Map and validate items
-    const mappedItems = data.items.map((item) => {
+    const mappedItems = data.items.map((item: { productId: string; quantity: number }) => {
       const orderItem = order.items.find(
         (oi) => oi.productId === item.productId
       );
@@ -837,7 +837,7 @@ export class InventoryService {
       );
 
     // Map and validate items
-    const mappedItems = data.items.map((item) => {
+    const mappedItems = data.items.map((item: { productId: string; quantity: number }) => {
       const orderItem = order.items.find(
         (oi) => oi.productId === item.productId
       );

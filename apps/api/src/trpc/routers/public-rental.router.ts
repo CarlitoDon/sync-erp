@@ -1,12 +1,14 @@
 import { router, publicProcedure, apiKeyProcedure } from '../trpc';
 import { z } from 'zod';
+import { Prisma } from '@sync-erp/database';
+import { Decimal } from 'decimal.js';
 import {
   prisma,
   PartnerType,
   RentalOrderStatus,
   RentalPaymentStatus,
   OrderSource,
-  Prisma,
+  // Prisma, // Removed
 } from '@sync-erp/database';
 import { TRPCError } from '@trpc/server';
 import { container, ServiceKeys } from '../../modules/common/di';
@@ -499,7 +501,7 @@ export const publicRentalRouter = router({
                 // Update the reference so pricing calculation uses new rate
                 rentalItem = {
                   ...freshLookup,
-                  dailyRate: new Prisma.Decimal(item.pricePerDay),
+                  dailyRate: new Decimal(item.pricePerDay),
                 };
               }
             }
