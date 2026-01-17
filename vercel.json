@@ -1,5 +1,4 @@
 {
-  "rootDirectory": "apps/web",
   "buildCommand": "cd ../.. && npm run build --workspace=@sync-erp/web",
   "outputDirectory": "apps/web/dist",
   "installCommand": "cd ../.. && npm install",
