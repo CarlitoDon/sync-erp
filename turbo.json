@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["DATABASE_URL"],
+  "globalEnv": ["DATABASE_URL", "VITE_API_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build", "^db:generate", "db:generate"],
