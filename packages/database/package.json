@@ -41,12 +41,12 @@
     "pg": "^8.16.3",
     "zod": "^3.23.0",
     "prisma": "7.1.0",
-    "zod-prisma-types": "^3.3.10"
+    "zod-prisma-types": "^3.3.10",
+    "tsup": "^8.5.1",
+    "tsx": "^4.7.0"
   },
   "devDependencies": {
     "@types/pg": "^8.16.0",
-    "tsup": "^8.5.1",
-    "tsx": "^4.7.0",
     "typescript": "^5.9.3"
   }
 }

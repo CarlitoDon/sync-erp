@@ -1,6 +1,15 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["DATABASE_URL", "VITE_API_URL"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "VITE_API_URL",
+    "API_KEY",
+    "BOT_SECRET",
+    "NODE_ENV",
+    "SANTI_LIVING_WEBHOOK_API_KEY",
+    "SANTI_LIVING_WEBHOOK_URL",
+    "SYNC_ERP_API_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build", "^db:generate", "db:generate"],
