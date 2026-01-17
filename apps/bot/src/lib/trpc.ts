@@ -10,16 +10,15 @@ dotenv.config();
 // Log environment config on startup
 EnvironmentValidator.logConfiguration();
 
-const API_URL = EnvironmentValidator.getApiUrl(
-  process.env.NODE_ENV === 'production'
-    ? 'https://sync-erp-api-production.up.railway.app/api/trpc'
-    : 'http://localhost:3001/api/trpc'
-);
+const API_URL = EnvironmentValidator.getApiUrl();
 
-const API_KEY = EnvironmentValidator.getAuthSecret('dev_bot_secret_key_2026');
+const API_KEY = EnvironmentValidator.getAuthSecret();
 
 // Custom fetch with better SSL handling
-const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+const customFetch = async (
+  input: RequestInfo | URL,
+  init?: RequestInit
+) => {
   try {
     // Use https agent if URL is HTTPS
     if (typeof input === 'string' && input.startsWith('https://')) {
