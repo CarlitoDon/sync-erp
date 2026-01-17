@@ -1,7 +1,7 @@
 {
-  "buildCommand": "cd ../.. && npm run build --workspace=@sync-erp/web",
+  "buildCommand": "npm run build --workspace=@sync-erp/web",
   "outputDirectory": "apps/web/dist",
-  "installCommand": "cd ../.. && npm install",
+  "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
     {
