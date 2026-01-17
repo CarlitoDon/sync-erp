@@ -6,22 +6,46 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load shared environment variables
-const envPath = path.resolve(
+// Determine environment and load appropriate .env file
+// Priority: test > development > production
+function getEnvFile(): string {
+  const isTest =
+    process.env.NODE_ENV === 'test' || process.env.VITEST;
+  const isProd = process.env.NODE_ENV === 'production';
+
+  if (isTest) return '.env.test';
+  if (isProd) return '.env.production';
+  return '.env';
+}
+
+const envFile = getEnvFile();
+const pkgEnvPath = path.resolve(__dirname, `../${envFile}`);
+
+// eslint-disable-next-line no-console
+console.log(`[Bot] Loading ${envFile} from ${pkgEnvPath}`);
+
+let result = dotenv.config({ path: pkgEnvPath });
+
+if (result.error) {
+  // Fallback to generic .env if specific file not found
+  const fallbackPath = path.resolve(__dirname, '../.env');
+  // eslint-disable-next-line no-console
+  console.log(`[Bot] Fallback to ${fallbackPath}`);
+  result = dotenv.config({ path: fallbackPath });
+  if (result.error) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[Bot] Failed to load environment from ${pkgEnvPath}`
+    );
+  }
+}
+
+// Load shared environment variables (if needed fallback, though usually monorepo specific)
+const sharedEnvPath = path.resolve(
   __dirname,
   '../../../packages/database/.env'
 );
-dotenv.config({ path: envPath });
-
-// Load .env.production if explicitly in production mode (for local simulation or file-based usage)
-if (process.env.NODE_ENV === 'production') {
-  dotenv.config({
-    path: path.resolve(__dirname, '../.env.production'),
-  });
-}
-
-// Also load local .env if exists (overrides shared, creates defaults)
-dotenv.config();
+dotenv.config({ path: sharedEnvPath });
 
 import { startServer } from './server';
 import { initializeBaileys, getSocket } from './bot/baileys';
