@@ -1,0 +1,14 @@
+[build]
+builder = "nixpacks"
+
+# Service 1: API (Core)
+[[services]]
+name = "api"
+watchPaths = ["apps/api/**", "packages/**"]
+startCommand = "npm run db:deploy --workspace=@sync-erp/database && npm start --workspace=@sync-erp/api"
+
+# Service 2: Bot (WhatsApp)
+[[services]]
+name = "bot"
+watchPaths = ["apps/bot/**", "packages/**"]
+startCommand = "npm start --workspace=@sync-erp/bot"
