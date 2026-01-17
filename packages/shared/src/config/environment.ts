@@ -1,18 +1,18 @@
 /**
  * Environment Configuration Validator
- * 
+ *
  * This file validates and logs all critical environment variables needed for
  * service-to-service communication in the Sync ERP ecosystem.
- * 
+ *
  * Environment Variable Mapping:
  * - BOT_SECRET: Used by bot service and services authenticating with bot/API
  *   Default (dev): "dev_bot_secret_key_2026"
  *   Set in Railway/Vercel: Required in production
- * 
+ *
  * - SYNC_ERP_API_URL: URL to sync-erp API backend
  *   Default (dev): "http://localhost:3001/api/trpc"
  *   Production: "https://sync-erp-api-production.up.railway.app/api/trpc"
- * 
+ *
  * - API_KEY: Local service authentication (for santi-living)
  *   Default: "santi_secret_auth_token_2026"
  */
@@ -47,10 +47,7 @@ export class EnvironmentValidator {
     const hasSyncErpKey = Boolean(syncErpApiKey);
 
     if (hasBotSecret) {
-      this.logInfo(
-        'BOT_SECRET',
-        'Found (primary auth method)'
-      );
+      this.logInfo('BOT_SECRET', 'Found (primary auth method)');
       return botSecret!;
     }
 
@@ -80,18 +77,22 @@ export class EnvironmentValidator {
   /**
    * Validate SYNC_ERP_API_URL
    */
-  static getApiUrl(fallback = 'http://localhost:3001/api/trpc'): string {
-    const url = process.env.SYNC_ERP_API_URL || fallback;
+  static getApiUrl(
+    fallback = 'http://localhost:3001/api/trpc'
+  ): string {
+    const url = process.env.SYNC_ERP_API_URL;
 
-    if (!process.env.SYNC_ERP_API_URL && !this.isDevelopment()) {
-      this.logWarning(
-        'SYNC_ERP_API_URL',
-        'Using default URL in production. Set SYNC_ERP_API_URL explicitly.'
-      );
-    } else {
-      this.logInfo('SYNC_ERP_API_URL', url);
+    if (!url) {
+      if (!this.isDevelopment()) {
+        this.logWarning(
+          'SYNC_ERP_API_URL',
+          '❌ NOT SET in production! API communication will fail.'
+        );
+      }
+      return fallback;
     }
 
+    this.logInfo('SYNC_ERP_API_URL', url);
     return url;
   }
 
