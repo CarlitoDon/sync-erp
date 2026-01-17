@@ -47,29 +47,30 @@ export class EnvironmentValidator {
     const hasSyncErpKey = Boolean(syncErpApiKey);
 
     if (hasBotSecret) {
-      this.logInfo('BOT_SECRET', 'Found (primary auth method)');
+      this.logInfo('BOT_SECRET (Primary)', botSecret!);
       return botSecret!;
     }
 
     if (hasSyncErpKey) {
       this.logWarning(
         'SYNC_ERP_API_KEY',
-        'Using SYNC_ERP_API_KEY, but BOT_SECRET is preferred'
+        'Using deprecated SYNC_ERP_API_KEY. Please migrate to BOT_SECRET.'
       );
+      this.logInfo('SYNC_ERP_API_KEY (Legacy)', syncErpApiKey!);
       return syncErpApiKey!;
     }
 
     if (this.isDevelopment()) {
       this.logInfo(
-        'BOT_SECRET/SYNC_ERP_API_KEY',
-        'Using development default'
+        'BOT_SECRET',
+        'Using default dev key (dev_bot_secret_key_2026)'
       );
       return fallback;
     }
 
     this.logWarning(
-      'BOT_SECRET/SYNC_ERP_API_KEY',
-      '❌ NOT SET in production! Service authentication will fail.'
+      'BOT_SECRET',
+      '❌ MISSING in Production! Services cannot authenticate.'
     );
     return fallback;
   }
@@ -86,7 +87,12 @@ export class EnvironmentValidator {
       if (!this.isDevelopment()) {
         this.logWarning(
           'SYNC_ERP_API_URL',
-          '❌ NOT SET in production! API communication will fail.'
+          '❌ MISSING in Production! TRPC Client cannot connect to API.'
+        );
+      } else {
+        this.logInfo(
+          'SYNC_ERP_API_URL',
+          `Using default dev URL (${fallback})`
         );
       }
       return fallback;
@@ -102,12 +108,16 @@ export class EnvironmentValidator {
   static getApiKey(fallback = ''): string {
     const apiKey = process.env.API_KEY;
 
-    if (!apiKey && !this.isDevelopment()) {
-      this.logWarning(
-        'API_KEY',
-        'NOT SET in production. Local API authentication will fail.'
-      );
-    } else if (apiKey) {
+    if (!apiKey) {
+      if (!this.isDevelopment()) {
+        this.logWarning(
+          'API_KEY',
+          '❌ MISSING in Production! Local API authentication will fail.'
+        );
+      } else {
+        // Quiet in dev unless needed
+      }
+    } else {
       this.logInfo('API_KEY', apiKey);
     }
 
