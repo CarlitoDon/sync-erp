@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "npm run db:deploy --workspace=@sync-erp/database && npm start --workspace=@sync-erp/api"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Watch paths to trigger redeploy only when relevant code changes
+watchPaths = ["apps/api/**", "packages/**"]
