@@ -14,8 +14,25 @@ import { appRouter } from './trpc/router';
 import { createContext } from './trpc/context';
 
 // DI Container - register all services on startup
+// DI Container - register all services on startup
 import { registerServices } from './modules/common/di';
 registerServices();
+
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Load .env.production if in production (App-specific)
+if (process.env.NODE_ENV === 'production') {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  dotenv.config({
+    path: path.resolve(__dirname, '../.env.production'),
+  });
+  console.log(
+    '[API] Loaded production environment from apps/api/.env.production'
+  );
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
