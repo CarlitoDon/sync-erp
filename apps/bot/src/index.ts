@@ -12,7 +12,15 @@ const envPath = path.resolve(
   '../../../packages/database/.env'
 );
 dotenv.config({ path: envPath });
-// Also load local .env if exists (overrides shared)
+
+// Load .env.production if explicitly in production mode (for local simulation or file-based usage)
+if (process.env.NODE_ENV === 'production') {
+  dotenv.config({
+    path: path.resolve(__dirname, '../.env.production'),
+  });
+}
+
+// Also load local .env if exists (overrides shared, creates defaults)
 dotenv.config();
 
 import { startServer } from './server';
