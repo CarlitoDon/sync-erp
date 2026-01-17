@@ -79,6 +79,15 @@ app.use(
 );
 app.use(express.json());
 
+// Root Health Check
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'Sync ERP API',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Public Health Check (keep for load balancers)
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
