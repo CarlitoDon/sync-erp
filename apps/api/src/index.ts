@@ -55,8 +55,8 @@ const getCorsOrigin = ():
       return;
     }
 
-    // Allow Vercel preview URLs (pattern: *-doncarlo31s-projects.vercel.app)
-    if (origin.endsWith('-doncarlo31s-projects.vercel.app')) {
+    // Allow Vercel deployments (production and preview)
+    if (origin.endsWith('.vercel.app')) {
       callback(null, true);
       return;
     }
