@@ -64,6 +64,7 @@ const getCorsOrigin = ():
     }
 
     // Allow Railway deployments
+    // Security: This allows any Railway app to access the API. In production, use CORS_ORIGIN env var.
     if (origin.endsWith('.up.railway.app')) {
       callback(null, true);
       return;
