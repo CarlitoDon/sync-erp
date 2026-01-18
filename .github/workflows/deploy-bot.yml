@@ -1,0 +1,25 @@
+name: Deploy Bot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/bot/**
+      - packages/**
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+      - run: npm run build --workspace=@sync-erp/bot
+
+      - run: railway up
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
