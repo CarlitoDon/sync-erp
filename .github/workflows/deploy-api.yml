@@ -1,0 +1,35 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/api/**
+      - packages/**
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Build API
+        run: npm run build --workspace=@sync-erp/api
+
+      - name: Prisma migrate
+        run: npx prisma migrate deploy
+        working-directory: packages/database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Deploy to Railway
+        run: railway up
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
