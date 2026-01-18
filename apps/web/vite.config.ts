@@ -9,6 +9,17 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    // Polyfill process.env for shared code compatibility
+    'process.env.SYNC_ERP_API_URL': JSON.stringify(
+      process.env.VITE_API_URL || process.env.SYNC_ERP_API_URL
+    ),
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
+    'process.env.BOT_SECRET': JSON.stringify(process.env.BOT_SECRET),
+    'process.env.NODE_ENV': JSON.stringify(
+      process.env.NODE_ENV || 'development'
+    ),
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
