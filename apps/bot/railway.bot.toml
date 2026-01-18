@@ -3,7 +3,7 @@ builder = "nixpacks"
 buildCommand = "npx turbo run build --filter=@sync-erp/bot..."
 
 [deploy]
-startCommand = "npm start --workspace=@sync-erp/bot"
+startCommand = "npm start --workspace=@sync-erp/bot --omit=dev"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
