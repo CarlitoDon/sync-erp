@@ -41,6 +41,8 @@ export const authRouter = router({
         sameSite:
           process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-site (Vercel -> Railway)
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        // @ts-expect-error - partitioned is not yet in @types/express or cookie-parser but supported by browsers (CHIPS)
+        partitioned: process.env.NODE_ENV === 'production',
       });
 
       return {
@@ -71,6 +73,8 @@ export const authRouter = router({
         sameSite:
           process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-site (Vercel -> Railway)
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        // @ts-expect-error - partitioned is not yet in @types/express or cookie-parser but supported by browsers (CHIPS)
+        partitioned: process.env.NODE_ENV === 'production',
       });
 
       return {

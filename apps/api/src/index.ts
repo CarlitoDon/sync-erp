@@ -63,6 +63,12 @@ const getCorsOrigin = ():
       return;
     }
 
+    // Allow Railway deployments
+    if (origin.endsWith('.up.railway.app')) {
+      callback(null, true);
+      return;
+    }
+
     // Allow localhost for development
     if (origin.startsWith('http://localhost:')) {
       callback(null, true);
