@@ -12,7 +12,7 @@ EnvironmentValidator.logConfiguration();
 
 const API_URL = EnvironmentValidator.getApiUrl();
 
-const API_KEY = EnvironmentValidator.getAuthSecret();
+const API_KEY = EnvironmentValidator.getApiSecret();
 
 // Custom fetch with better SSL handling
 const customFetch = async (
