@@ -20,6 +20,11 @@ jobs:
 
       - run: npm ci
 
+      - name: Build Packages
+        run: |
+          npm run build --workspace=@sync-erp/shared
+          npm run build --workspace=@sync-erp/database
+
       - name: Build API
         run: npm run build --workspace=@sync-erp/api
 
