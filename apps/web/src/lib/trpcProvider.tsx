@@ -42,7 +42,7 @@ const trpcClient = trpc.createClient({
   links: [
     idempotencyLink,
     httpBatchLink({
-      url: `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/trpc`,
+      url: `${import.meta.env.VITE_SYNC_ERP_API_URL || 'http://localhost:3001/api/trpc'}`,
       // Include credentials for cookie auth
       fetch(url, options) {
         return fetch(url, {

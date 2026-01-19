@@ -3,16 +3,19 @@ import type { AppRouter } from '@sync-erp/api/src/trpc/router';
 import superjson from 'superjson';
 import dotenv from 'dotenv';
 import https from 'https';
-import { EnvironmentValidator } from '@sync-erp/shared';
+import { createEnvValidator } from '@sync-erp/shared';
 
 dotenv.config();
 
+// Create environment validator for bot service
+const env = createEnvValidator('bot');
+
 // Log environment config on startup
-EnvironmentValidator.logConfiguration();
+env.logConfiguration();
 
-const API_URL = EnvironmentValidator.getApiUrl();
+const API_URL = env.getApiUrl();
 
-const API_KEY = EnvironmentValidator.getApiSecret();
+const API_KEY = env.getApiSecret();
 
 // Custom fetch with better SSL handling
 const customFetch = async (
