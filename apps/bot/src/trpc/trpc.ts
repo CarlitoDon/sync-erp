@@ -1,7 +1,7 @@
-import { initTRPC, TRPCError } from "@trpc/server";
-import superjson from "superjson";
-import * as trpcExpress from "@trpc/server/adapters/express";
-import dotenv from "dotenv";
+import { initTRPC, TRPCError } from '@trpc/server';
+import superjson from 'superjson';
+import * as trpcExpress from '@trpc/server/adapters/express';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -22,17 +22,20 @@ const t = initTRPC.context<Context>().create({
 
 const isAuthed = t.middleware(({ ctx, next }) => {
   const authHeader = ctx.req.headers.authorization;
-  const apiSecret = process.env.API_SECRET;
+  const apiSecret = process.env.SYNC_ERP_BOT_SECRET;
 
   if (!authHeader) {
     throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "Missing Authorization header",
+      code: 'UNAUTHORIZED',
+      message: 'Missing Authorization header',
     });
   }
-  const token = authHeader.split(" ")[1];
+  const token = authHeader.split(' ')[1];
   if (token !== apiSecret) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Invalid API Key" });
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Invalid API Key',
+    });
   }
   return next();
 });
