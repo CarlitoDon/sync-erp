@@ -2,7 +2,7 @@ name: Deploy Bot
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - apps/bot/**
       - packages/**
@@ -22,4 +22,4 @@ jobs:
 
       - run: railway up
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ github.ref == 'refs/heads/dev' && secrets.RAILWAY_TOKEN_STAGING || secrets.RAILWAY_TOKEN }}

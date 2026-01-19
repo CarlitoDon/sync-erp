@@ -743,10 +743,13 @@ export class RentalService {
         });
       }
 
-      // Use pre-calculated deposit from order (set during order creation)
-      const depositAmount = order.depositAmount
-        ? new Decimal(order.depositAmount.toString())
-        : new Decimal(0);
+      // Use input deposit if provided, fallback to pre-calculated deposit from order
+      const depositAmount =
+        input.depositAmount !== undefined && input.depositAmount > 0
+          ? new Decimal(input.depositAmount)
+          : order.depositAmount
+            ? new Decimal(order.depositAmount.toString())
+            : new Decimal(0);
 
       // PaymentMethod: use from order or default to BANK_TRANSFER
       const paymentMethodStr =
