@@ -9,13 +9,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Determine environment and load appropriate .env file
-// Priority: test > development > production
+// Priority: test > staging > production > development
 function getEnvFile(): string {
   const isTest =
     process.env.NODE_ENV === 'test' || process.env.VITEST;
+  const isStaging = process.env.NODE_ENV === 'staging';
   const isProd = process.env.NODE_ENV === 'production';
 
   if (isTest) return '.env.test';
+  if (isStaging) return '.env.staging';
   if (isProd) return '.env.production';
   return '.env';
 }

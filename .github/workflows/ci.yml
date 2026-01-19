@@ -3,11 +3,33 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [develop, main]
+    branches: [dev, main]
 
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sync_erp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Increase Node.js heap memory to 4GB to prevent OOM crashes during tests
+      NODE_OPTIONS: '--max-old-space-size=4096'
+      # Database URL for tests
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sync_erp_test?schema=public
+      NODE_ENV: test
 
     steps:
       - uses: actions/checkout@v4
@@ -20,14 +42,17 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      - name: Setup test database
+        run: npm run db:push --workspace=@sync-erp/database
+
       - name: Lint
-        run: npm run lint --workspaces
+        run: npm run lint
 
       - name: Type check
-        run: npm run typecheck --workspaces
+        run: npm run typecheck
 
       - name: Test
-        run: npm run test --workspaces
+        run: npm run test
 
       - name: Build
-        run: npm run build --workspaces
+        run: npm run build
