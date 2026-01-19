@@ -8,20 +8,36 @@
  * - SYNC_ERP_BOT_URL: URL to sync-erp Bot
  */
 
+export type ServiceName =
+  | 'api'
+  | 'bot'
+  | 'web'
+  | 'proxy'
+  | 'database'
+  | 'unknown';
+
 export class EnvironmentValidator {
-  private static isDevelopment(): boolean {
+  private serviceName: ServiceName;
+
+  constructor(serviceName: ServiceName = 'unknown') {
+    this.serviceName = serviceName;
+  }
+
+  private isDevelopment(): boolean {
     return process.env.NODE_ENV !== 'production';
   }
 
-  private static logWarning(varName: string, message: string): void {
+  private logWarning(varName: string, message: string): void {
     // eslint-disable-next-line no-console
-    console.warn(`⚠️  [ENV] ${varName}: ${message}`);
+    console.warn(
+      `⚠️  [ENV:${this.serviceName}] ${varName}: ${message}`
+    );
   }
 
-  private static logInfo(varName: string, value: string): void {
+  private logInfo(varName: string, value: string): void {
     // eslint-disable-next-line no-console
     console.log(
-      `✅ [ENV] ${varName}: ${
+      `✅ [ENV:${this.serviceName}] ${varName}: ${
         value ? `***${value.slice(-4)}` : 'EMPTY'
       }`
     );
@@ -30,7 +46,7 @@ export class EnvironmentValidator {
   /**
    * Get SYNC_ERP_API_SECRET - Authentication for sync-erp API
    */
-  static getApiSecret(fallback = ''): string {
+  getApiSecret(fallback = ''): string {
     const secret = process.env.SYNC_ERP_API_SECRET;
 
     if (secret) {
@@ -56,7 +72,7 @@ export class EnvironmentValidator {
   /**
    * Get SYNC_ERP_BOT_SECRET - Authentication for sync-erp Bot
    */
-  static getBotSecret(fallback = ''): string {
+  getBotSecret(fallback = ''): string {
     const secret = process.env.SYNC_ERP_BOT_SECRET;
 
     if (secret) {
@@ -82,9 +98,7 @@ export class EnvironmentValidator {
   /**
    * Get SYNC_ERP_API_URL
    */
-  static getApiUrl(
-    fallback = 'http://localhost:3001/api/trpc'
-  ): string {
+  getApiUrl(fallback = 'http://localhost:3001/api/trpc'): string {
     const url = process.env.SYNC_ERP_API_URL;
 
     if (!url) {
@@ -109,7 +123,7 @@ export class EnvironmentValidator {
   /**
    * Get SYNC_ERP_BOT_URL
    */
-  static getBotUrl(fallback = 'http://localhost:3000'): string {
+  getBotUrl(fallback = 'http://localhost:3000'): string {
     const url = process.env.SYNC_ERP_BOT_URL;
 
     if (!url) {
@@ -134,11 +148,11 @@ export class EnvironmentValidator {
   /**
    * Print full environment configuration summary
    */
-  static logConfiguration(): void {
+  logConfiguration(): void {
     // eslint-disable-next-line no-console
-    console.log('\n========================================');
+    console.log(`\n========================================`);
     // eslint-disable-next-line no-console
-    console.log('📋 Environment Configuration Summary');
+    console.log(`📋 Environment Configuration [${this.serviceName}]`);
     // eslint-disable-next-line no-console
     console.log('========================================');
 
@@ -162,9 +176,14 @@ export class EnvironmentValidator {
   }
 }
 
-// Auto-log on module load (dev only)
-if (process.env.LOG_ENV_ON_LOAD !== 'false') {
-  EnvironmentValidator.logConfiguration();
+/**
+ * Create an environment validator for a specific service
+ */
+export function createEnvValidator(
+  serviceName: ServiceName
+): EnvironmentValidator {
+  return new EnvironmentValidator(serviceName);
 }
 
+// Default instance for backward compatibility (deprecated)
 export default EnvironmentValidator;
