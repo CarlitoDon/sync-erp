@@ -48,6 +48,13 @@ module.exports = {
       },
     },
     {
+      // Bot service - needs console logging for service operations
+      files: ['apps/bot/**/*.ts'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
+    {
       files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts'],
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
