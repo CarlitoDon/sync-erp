@@ -21,7 +21,7 @@
       "dependsOn": ["^db:generate"]
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "db:generate"]
     },
     "test": {
       "dependsOn": ["build"]
