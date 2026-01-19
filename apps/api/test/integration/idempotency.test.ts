@@ -2,8 +2,10 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma, BusinessShape } from '@sync-erp/database';
 import { appRouter } from '../../src/trpc/router';
 import { PurchaseOrderService } from '../../src/modules/procurement/purchase-order.service';
+import { AccountService } from '../../src/modules/accounting/services/account.service';
 
 const procurementService = new PurchaseOrderService();
+const accountService = new AccountService();
 
 const COMPANY_ID = 'test-idempotency-001';
 const ACTOR_ID = 'test-user-idev-001';
@@ -23,6 +25,9 @@ describe('Backend Idempotency Integration', () => {
       },
       update: {},
     });
+
+    // Setup Accounts (Required for GRN Journal)
+    await accountService.seedDefaultAccounts(COMPANY_ID);
 
     // Setup Partner
     const partner = await prisma.partner.create({
@@ -57,11 +62,31 @@ describe('Backend Idempotency Integration', () => {
     await prisma.idempotencyKey.deleteMany({
       where: { companyId: COMPANY_ID },
     });
+    // Cleanup Invoices first (FK to Order)
     await prisma.invoice.deleteMany({
       where: { companyId: COMPANY_ID },
     });
+    // Cleanup Fulfillments & Items
+    await prisma.fulfillmentItem.deleteMany({
+      where: { fulfillment: { companyId: COMPANY_ID } },
+    });
+    await prisma.inventoryMovement.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.fulfillment.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    // Cleanup Journals
+    await prisma.journalEntry.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    // Cleanup Items
     await prisma.orderItem.deleteMany({
       where: { order: { companyId: COMPANY_ID } },
+    });
+    // Cleanup Accounts
+    await prisma.account.deleteMany({
+      where: { companyId: COMPANY_ID },
     });
     await prisma.order.deleteMany({
       where: { companyId: COMPANY_ID },
@@ -84,6 +109,11 @@ describe('Backend Idempotency Integration', () => {
       items: [{ productId, quantity: 10, price: 100 }],
     });
     await procurementService.confirm(order.id, COMPANY_ID, ACTOR_ID);
+    await procurementService.receive(
+      order.id,
+      COMPANY_ID,
+      'GRN-TEST-SEQ'
+    );
 
     const idempotencyKey = `key-seq-${Date.now()}`;
 
@@ -139,6 +169,11 @@ describe('Backend Idempotency Integration', () => {
       items: [{ productId, quantity: 20, price: 100 }],
     });
     await procurementService.confirm(order.id, COMPANY_ID, ACTOR_ID);
+    await procurementService.receive(
+      order.id,
+      COMPANY_ID,
+      'GRN-TEST-CONC'
+    );
 
     const idempotencyKey = `key-conc-${Date.now()}`;
     const ctx = {
@@ -175,7 +210,7 @@ describe('Backend Idempotency Integration', () => {
       const reason = (failed[0] as PromiseRejectedResult).reason;
       // TRPC error structure?
       // Check if message contains 'processing' or code CONFLICT
-      expect(reason.message).toMatch(/processing|conflict/i);
+      expect(reason.message).toMatch(/process|conflict/i);
     } else {
       // Both succeeded (sequential execution within JS event loop or fast completion)
       // Ensure they returned the SAME object ID

@@ -2,7 +2,7 @@ name: Deploy API
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - apps/api/**
       - packages/**
@@ -27,9 +27,9 @@ jobs:
         run: npx prisma migrate deploy
         working-directory: packages/database
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ github.ref == 'refs/heads/dev' && secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
 
       - name: Deploy to Railway
         run: railway up
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ github.ref == 'refs/heads/dev' && secrets.RAILWAY_TOKEN_STAGING || secrets.RAILWAY_TOKEN }}

@@ -188,6 +188,13 @@ describe('FR-011, FR-020: 3-Way Matching Validation', () => {
         }
       );
 
+      // FORCE OVERBILLING: Update Bill to be for full PO amount (20 units = 2,000,000)
+      // because default logic auto-corrects to match GRN (15 units)
+      await prisma.invoice.update({
+        where: { id: bill.id },
+        data: { amount: 2000000, subtotal: 2000000 },
+      });
+
       // Post Bill - should FAIL 3-way matching (ordered 20, received 15)
       await expect(
         billService.post(bill.id, COMPANY_ID, undefined, ACTOR_ID)
@@ -218,7 +225,7 @@ describe('FR-011, FR-020: 3-Way Matching Validation', () => {
         where: {
           orderId: order.id,
           companyId: COMPANY_ID,
-          notes: { contains: 'Down Payment' },
+          isDownPayment: true,
         },
       });
 
