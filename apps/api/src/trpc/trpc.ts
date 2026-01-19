@@ -243,10 +243,9 @@ export const apiKeyProcedure = t.procedure
  */
 export const botProcedure = t.procedure.use(async ({ ctx, next }) => {
   // Use standardized environment variable
-  const { EnvironmentValidator } = await import('@sync-erp/shared');
-  const apiSecret = EnvironmentValidator.getApiSecret(
-    'dev_sync_erp_secret_key_2026'
-  );
+  const { createEnvValidator } = await import('@sync-erp/shared');
+  const env = createEnvValidator('api');
+  const apiSecret = env.getApiSecret('dev_sync_erp_secret_key_2026');
 
   const authHeader = ctx.req?.headers?.authorization;
 
