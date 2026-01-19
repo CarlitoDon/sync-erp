@@ -21,7 +21,11 @@
       "dependsOn": ["^db:generate"]
     },
     "lint": {
-      "dependsOn": ["^build", "db:generate"]
+      "dependsOn": [
+        "^build",
+        "db:generate",
+        "@sync-erp/eslint-plugin#build"
+      ]
     },
     "test": {
       "dependsOn": ["build"]
