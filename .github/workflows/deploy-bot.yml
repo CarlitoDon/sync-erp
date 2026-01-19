@@ -2,7 +2,7 @@ name: Deploy Bot
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - apps/bot/**
       - packages/**
@@ -18,8 +18,14 @@ jobs:
           node-version: 20
 
       - run: npm ci
+
+      - name: Build Packages
+        run: |
+          npm run build --workspace=@sync-erp/shared
+          npm run build --workspace=@sync-erp/database
+
       - run: npm run build --workspace=@sync-erp/bot
 
       - run: railway up
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ github.ref == 'refs/heads/dev' && secrets.RAILWAY_TOKEN_STAGING || secrets.RAILWAY_TOKEN }}

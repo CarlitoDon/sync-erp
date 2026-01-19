@@ -1,20 +1,11 @@
 /**
  * Environment Configuration Validator
  *
- * This file validates and logs all critical environment variables needed for
- * service-to-service communication in the Sync ERP ecosystem.
- *
- * Environment Variable Mapping:
- * - BOT_SECRET: Used by bot service and services authenticating with bot/API
- *   Default (dev): "dev_bot_secret_key_2026"
- *   Set in Railway/Vercel: Required in production
- *
- * - SYNC_ERP_API_URL: URL to sync-erp API backend
- *   Default (dev): "http://localhost:3001/api/trpc"
- *   Production: "https://sync-erp-api-production.up.railway.app/api/trpc"
- *
- * - API_KEY: Local service authentication (for santi-living)
- *   Default: "santi_secret_auth_token_2026"
+ * Standardized environment variable names for Sync ERP ecosystem:
+ * - SYNC_ERP_API_SECRET: Authentication for sync-erp API
+ * - SYNC_ERP_BOT_SECRET: Authentication for sync-erp Bot
+ * - SYNC_ERP_API_URL: URL to sync-erp API
+ * - SYNC_ERP_BOT_URL: URL to sync-erp Bot
  */
 
 export class EnvironmentValidator {
@@ -37,46 +28,59 @@ export class EnvironmentValidator {
   }
 
   /**
-   * Validate BOT_SECRET - Critical for service authentication
-   * Priority: BOT_SECRET > SYNC_ERP_API_KEY > default
+   * Get SYNC_ERP_API_SECRET - Authentication for sync-erp API
    */
-  static getAuthSecret(fallback = ''): string {
-    const botSecret = process.env.BOT_SECRET;
-    const syncErpApiKey = process.env.SYNC_ERP_API_KEY;
-    const hasBotSecret = Boolean(botSecret);
-    const hasSyncErpKey = Boolean(syncErpApiKey);
+  static getApiSecret(fallback = ''): string {
+    const secret = process.env.SYNC_ERP_API_SECRET;
 
-    if (hasBotSecret) {
-      this.logInfo('BOT_SECRET (Primary)', botSecret!);
-      return botSecret!;
-    }
-
-    if (hasSyncErpKey) {
-      this.logWarning(
-        'SYNC_ERP_API_KEY',
-        'Using deprecated SYNC_ERP_API_KEY. Please migrate to BOT_SECRET.'
-      );
-      this.logInfo('SYNC_ERP_API_KEY (Legacy)', syncErpApiKey!);
-      return syncErpApiKey!;
+    if (secret) {
+      this.logInfo('SYNC_ERP_API_SECRET', secret);
+      return secret;
     }
 
     if (this.isDevelopment()) {
       this.logInfo(
-        'BOT_SECRET',
-        'Using default dev key (dev_bot_secret_key_2026)'
+        'SYNC_ERP_API_SECRET',
+        'Using default dev key (dev_sync_erp_secret_key_2026)'
       );
-      return fallback;
+      return fallback || 'dev_sync_erp_secret_key_2026';
     }
 
     this.logWarning(
-      'BOT_SECRET',
+      'SYNC_ERP_API_SECRET',
       '❌ MISSING in Production! Services cannot authenticate.'
     );
     return fallback;
   }
 
   /**
-   * Validate SYNC_ERP_API_URL
+   * Get SYNC_ERP_BOT_SECRET - Authentication for sync-erp Bot
+   */
+  static getBotSecret(fallback = ''): string {
+    const secret = process.env.SYNC_ERP_BOT_SECRET;
+
+    if (secret) {
+      this.logInfo('SYNC_ERP_BOT_SECRET', secret);
+      return secret;
+    }
+
+    if (this.isDevelopment()) {
+      this.logInfo(
+        'SYNC_ERP_BOT_SECRET',
+        'Using default dev key (dev_bot_secret_key_2026)'
+      );
+      return fallback || 'dev_bot_secret_key_2026';
+    }
+
+    this.logWarning(
+      'SYNC_ERP_BOT_SECRET',
+      '❌ MISSING in Production! Bot authentication will fail.'
+    );
+    return fallback;
+  }
+
+  /**
+   * Get SYNC_ERP_API_URL
    */
   static getApiUrl(
     fallback = 'http://localhost:3001/api/trpc'
@@ -103,25 +107,28 @@ export class EnvironmentValidator {
   }
 
   /**
-   * Validate API_KEY (local service authentication)
+   * Get SYNC_ERP_BOT_URL
    */
-  static getApiKey(fallback = ''): string {
-    const apiKey = process.env.API_KEY;
+  static getBotUrl(fallback = 'http://localhost:3000'): string {
+    const url = process.env.SYNC_ERP_BOT_URL;
 
-    if (!apiKey) {
+    if (!url) {
       if (!this.isDevelopment()) {
         this.logWarning(
-          'API_KEY',
-          '❌ MISSING in Production! Local API authentication will fail.'
+          'SYNC_ERP_BOT_URL',
+          '❌ MISSING in Production! Cannot connect to Bot service.'
         );
       } else {
-        // Quiet in dev unless needed
+        this.logInfo(
+          'SYNC_ERP_BOT_URL',
+          `Using default dev URL (${fallback})`
+        );
       }
-    } else {
-      this.logInfo('API_KEY', apiKey);
+      return fallback;
     }
 
-    return apiKey || fallback;
+    this.logInfo('SYNC_ERP_BOT_URL', url);
+    return url;
   }
 
   /**
@@ -141,13 +148,14 @@ export class EnvironmentValidator {
     // Auth Methods
     // eslint-disable-next-line no-console
     console.log('\n🔐 Authentication:');
-    this.getAuthSecret('dev_bot_secret_key_2026');
-    this.getApiKey();
+    this.getApiSecret();
+    this.getBotSecret();
 
     // API URLs
     // eslint-disable-next-line no-console
     console.log('\n🌐 API Endpoints:');
     this.getApiUrl();
+    this.getBotUrl();
 
     // eslint-disable-next-line no-console
     console.log('\n========================================\n');

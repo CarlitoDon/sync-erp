@@ -238,41 +238,42 @@ export const apiKeyProcedure = t.procedure
 
 /**
  * Bot procedure - for internal bot service communication
- * Validates using BOT_SECRET environment variable instead of database API keys
+ * Validates using SYNC_ERP_API_SECRET environment variable instead of database API keys
  * This allows bot service to update its status without needing database setup
  */
-export const botProcedure = t.procedure
-  .use(async ({ ctx, next }) => {
-    // Use environment variable with proper fallback
-    const { EnvironmentValidator } = await import('@sync-erp/shared');
-    const botSecret = EnvironmentValidator.getAuthSecret('dev_bot_secret_key_2026');
-    
-    const authHeader = ctx.req?.headers?.authorization;
+export const botProcedure = t.procedure.use(async ({ ctx, next }) => {
+  // Use standardized environment variable
+  const { EnvironmentValidator } = await import('@sync-erp/shared');
+  const apiSecret = EnvironmentValidator.getApiSecret(
+    'dev_sync_erp_secret_key_2026'
+  );
 
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message:
-          'Missing or invalid Authorization header. Expected: Bearer <bot_secret>',
-      });
-    }
+  const authHeader = ctx.req?.headers?.authorization;
 
-    const providedSecret = authHeader.replace('Bearer ', '');
-
-    if (providedSecret !== botSecret) {
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message: 'Invalid bot secret',
-      });
-    }
-
-    return next({
-      ctx: {
-        ...ctx,
-        isBotService: true,
-      },
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message:
+        'Missing or invalid Authorization header. Expected: Bearer <api_secret>',
     });
+  }
+
+  const providedSecret = authHeader.replace('Bearer ', '');
+
+  if (providedSecret !== apiSecret) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Invalid API secret',
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      isBotService: true,
+    },
   });
+});
 
 /**
  * Permission enforcement middleware factory

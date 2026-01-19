@@ -17,12 +17,12 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     define: {
       // Polyfill process.env for shared code compatibility
-      // We explicitly map the variables we need from the loaded `env` object
       'process.env.SYNC_ERP_API_URL': JSON.stringify(
-        env.VITE_API_URL || env.SYNC_ERP_API_URL
+        env.SYNC_ERP_API_URL
       ),
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
-      'process.env.BOT_SECRET': JSON.stringify(env.BOT_SECRET),
+      'process.env.SYNC_ERP_API_SECRET': JSON.stringify(
+        env.SYNC_ERP_API_SECRET
+      ),
       'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV || mode),
     },
     resolve: {
