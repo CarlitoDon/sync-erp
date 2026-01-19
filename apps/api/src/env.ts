@@ -6,16 +6,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Determine environment and load appropriate .env file
-// Priority: test > staging > production > development
+// Railway sets NODE_ENV=production for ALL environments, so we check RAILWAY_ENVIRONMENT first
+// Priority: RAILWAY_ENVIRONMENT > NODE_ENV
 function getEnvFile(): string {
-  const isTest =
-    process.env.NODE_ENV === 'test' || process.env.VITEST;
-  const isStaging = process.env.NODE_ENV === 'staging';
-  const isProd = process.env.NODE_ENV === 'production';
+  const railwayEnv = process.env.RAILWAY_ENVIRONMENT; // 'staging' or 'production' on Railway
+  const nodeEnv = process.env.NODE_ENV;
 
-  if (isTest) return '.env.test';
-  if (isStaging) return '.env.staging';
-  if (isProd) return '.env.production';
+  // Railway environment takes precedence
+  if (railwayEnv === 'staging') return '.env.staging';
+  if (railwayEnv === 'production') return '.env.production';
+
+  // Fallback to NODE_ENV for local development
+  if (nodeEnv === 'test' || process.env.VITEST) return '.env.test';
+  if (nodeEnv === 'staging') return '.env.staging';
+  if (nodeEnv === 'production') return '.env.production';
+
   return '.env';
 }
 
