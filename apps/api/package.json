@@ -10,7 +10,7 @@
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "test": "vitest run --config vitest.config.ts",
-    "test:unit": "vitest run --config vitest.config.ts",
+    "test:unit": "vitest run --config vitest.config.ts test/unit",
     "test:integration": "vitest run --config vitest.config.ts test/integration",
     "test:all": "npm run test:unit && npm run test:integration",
     "test:watch": "vitest",
