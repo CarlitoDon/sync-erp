@@ -898,6 +898,24 @@ export const publicRentalRouter = router({
         },
       });
 
+      // Fire webhook notification to admin & customer (async, non-blocking)
+      const webhookService = getWebhookService();
+      if (webhookService && order.publicToken) {
+        webhookService
+          .notifyPaymentStatus({
+            token: order.publicToken,
+            action: 'confirmed',
+            paymentMethod: input.paymentMethod,
+            paymentReference: input.transactionId,
+          })
+          .catch((err) => {
+            console.error(
+              '[PublicRental] Payment confirmed webhook failed:',
+              err
+            );
+          });
+      }
+
       return {
         success: true,
         orderNumber: updatedOrder.orderNumber,
