@@ -84,7 +84,8 @@ export default function GoodsReceiptDetail() {
       if (order?.paymentTerms === PaymentTermsSchema.enum.COD) {
         const goToPayment = await confirm({
           title: 'COD Order - Pembayaran Jatuh Tempo',
-          message: 'Order ini COD dan pembayaran harus segera diterima. Mau lihat detail order untuk mencatat pembayaran?',
+          message:
+            'Order ini COD dan pembayaran harus segera diterima. Mau lihat detail order untuk mencatat pembayaran?',
           confirmText: 'Lihat Order',
           cancelText: 'Nanti',
         });
@@ -346,36 +347,46 @@ export default function GoodsReceiptDetail() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {receipt.items.map((item: any) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-3">
-                    {item.product ? (
-                      <Link
-                        to={`/products/${item.productId}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {item.product.name}
-                      </Link>
-                    ) : (
-                      item.productId
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {Number(item.quantity)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {formatCurrency(
-                      Number(item.orderItem?.price || 0)
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium">
-                    {formatCurrency(
-                      Number(item.quantity) *
+              {receipt.items.map(
+                (item: {
+                  id: string;
+                  productId: string;
+                  quantity: number | { toNumber: () => number };
+                  product?: { name: string };
+                  orderItem?: {
+                    price: number | { toNumber: () => number };
+                  };
+                }) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-3">
+                      {item.product ? (
+                        <Link
+                          to={`/products/${item.productId}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {item.product.name}
+                        </Link>
+                      ) : (
+                        item.productId
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {Number(item.quantity)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {formatCurrency(
                         Number(item.orderItem?.price || 0)
-                    )}
-                  </td>
-                </tr>
-              ))}
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium">
+                      {formatCurrency(
+                        Number(item.quantity) *
+                          Number(item.orderItem?.price || 0)
+                      )}
+                    </td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </CardContent>

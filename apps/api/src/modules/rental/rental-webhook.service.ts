@@ -72,6 +72,7 @@ export class RentalWebhookService {
           errorData
         );
       } else {
+        // eslint-disable-next-line no-console -- Webhook success log
         console.log(
           `[RentalWebhook] Payment status notification sent: ${params.action} for ${params.token}`
         );
@@ -131,6 +132,7 @@ export class RentalWebhookService {
           errorData.message || `Webhook failed: ${response.status}`
         );
       } else {
+        // eslint-disable-next-line no-console -- Webhook success log
         console.log(
           `[RentalWebhook] New order notification sent: ${params.orderNumber}`
         );

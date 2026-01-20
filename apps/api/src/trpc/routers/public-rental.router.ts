@@ -679,6 +679,7 @@ export const publicRentalRouter = router({
             await prisma.rentalOrder.delete({
               where: { id: order.id },
             });
+            // eslint-disable-next-line no-console -- Rollback success log
             console.log(
               `[PublicRental] Rolled back order ${order.orderNumber}`
             );
