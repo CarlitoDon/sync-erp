@@ -1,142 +1,80 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { prisma } from '@sync-erp/database';
+import { ProductService } from '@modules/product/product.service';
+import { PartnerService } from '@modules/partner/partner.service';
+import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
+import { AccountService } from '@modules/accounting/services/account.service';
 
-const API_URL = 'http://localhost:3001/api';
+// Initialize Services
+const productService = new ProductService();
+const partnerService = new PartnerService();
+const purchaseOrderService = new PurchaseOrderService();
+const accountService = new AccountService();
 
-// Helper to standard fetch with headers
-const request = async (
-  endpoint: string,
-  method: string,
-  headers: Record<string, string>,
-  body?: any
-) => {
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+// Unique IDs for test isolation
+const COMPANY_A_ID = `test-isolation-company-a-${Date.now()}`;
+const COMPANY_B_ID = `test-isolation-company-b-${Date.now()}`;
 
-  let data = {};
-  try {
-    data = await res.json();
-  } catch (e) {
-    // ignore json parse error for empty body
-  }
-
-  return {
-    status: res.status,
-    body: data as any,
-  };
-};
-
-// Skip: This test requires a running API server on localhost:3001
-describe.skip('Multi-Company Data Isolation', () => {
-  let companyAId: string;
-  let companyBId: string;
-  let userAId: string;
-  let userBId: string;
-
-  // Headers generators
-  const headersA = () => ({
-    'x-user-id': userAId,
-    'x-company-id': companyAId,
-  });
-  const headersB = () => ({
-    'x-user-id': userBId,
-    'x-company-id': companyBId,
-  });
-
+describe('Multi-Company Data Isolation', () => {
   beforeAll(async () => {
-    const timestamp = Date.now();
+    // Create two test companies
+    await prisma.company.create({
+      data: { id: COMPANY_A_ID, name: 'Isolation Test Company A' },
+    });
+    await prisma.company.create({
+      data: { id: COMPANY_B_ID, name: 'Isolation Test Company B' },
+    });
+  });
 
-    // 1. Create Company A (No User context initially)
-    // We send x-company-id: temp because middleware requires it
-    const resCompA = await request(
-      '/companies',
-      'POST',
-      { 'x-company-id': 'temp' },
-      {
-        name: `Isolation Test Company A ${timestamp}`,
-      }
-    );
-    expect(resCompA.status).toBe(201);
-    companyAId = resCompA.body.data.id;
-    // console.log('Created Company A:', companyAId);
-
-    // 2. Create User A in Company A
-    const resUserA = await request(
-      '/users',
-      'POST',
-      { 'x-company-id': companyAId },
-      {
-        email: `usera-${timestamp}@test.com`,
-        name: 'User A',
-      }
-    );
-    expect(resUserA.status).toBe(201);
-    userAId = resUserA.body.data.id;
-    // console.log('Created User A:', userAId);
-
-    // 3. Create Company B
-    const resCompB = await request(
-      '/companies',
-      'POST',
-      { 'x-company-id': 'temp' },
-      {
-        name: `Isolation Test Company B ${timestamp}`,
-      }
-    );
-    expect(resCompB.status).toBe(201);
-    companyBId = resCompB.body.data.id;
-    // console.log('Created Company B:', companyBId);
-
-    // 4. Create User B in Company B
-    const resUserB = await request(
-      '/users',
-      'POST',
-      { 'x-company-id': companyBId },
-      {
-        email: `userb-${timestamp}@test.com`,
-        name: 'User B',
-      }
-    );
-    expect(resUserB.status).toBe(201);
-    userBId = resUserB.body.data.id;
-    // console.log('Created User B:', userBId);
+  afterAll(async () => {
+    // Cleanup - order matters due to foreign keys
+    const cleanupTx = [
+      prisma.orderItem.deleteMany({
+        where: {
+          order: { companyId: { in: [COMPANY_A_ID, COMPANY_B_ID] } },
+        },
+      }),
+      prisma.order.deleteMany({
+        where: { companyId: { in: [COMPANY_A_ID, COMPANY_B_ID] } },
+      }),
+      prisma.account.deleteMany({
+        where: { companyId: { in: [COMPANY_A_ID, COMPANY_B_ID] } },
+      }),
+      prisma.partner.deleteMany({
+        where: { companyId: { in: [COMPANY_A_ID, COMPANY_B_ID] } },
+      }),
+      prisma.product.deleteMany({
+        where: { companyId: { in: [COMPANY_A_ID, COMPANY_B_ID] } },
+      }),
+      prisma.company.deleteMany({
+        where: { id: { in: [COMPANY_A_ID, COMPANY_B_ID] } },
+      }),
+    ];
+    await prisma.$transaction(cleanupTx);
   });
 
   describe('Product Isolation', () => {
     let productAId: string;
 
     it('should create product in Company A', async () => {
-      const res = await request('/products', 'POST', headersA(), {
+      const product = await productService.create(COMPANY_A_ID, {
         name: 'Product A',
         sku: `SKU-A-${Date.now()}`,
         price: 100,
-        stock: 10,
       });
-      expect(res.status).toBe(201);
-      productAId = res.body.data.id;
+      expect(product).toBeDefined();
+      expect(product.companyId).toBe(COMPANY_A_ID);
+      productAId = product.id;
     });
 
     it('Company A should see Product A', async () => {
-      const res = await request('/products', 'GET', headersA());
-      expect(res.status).toBe(200);
-      const products = res.body.data;
-      expect(products.some((p: any) => p.id === productAId)).toBe(
-        true
-      );
+      const products = await productService.list(COMPANY_A_ID);
+      expect(products.some((p) => p.id === productAId)).toBe(true);
     });
 
     it('Company B should NOT see Product A', async () => {
-      const res = await request('/products', 'GET', headersB());
-      expect(res.status).toBe(200);
-      const products = res.body.data;
-      expect(products.some((p: any) => p.id === productAId)).toBe(
-        false
-      );
+      const products = await productService.list(COMPANY_B_ID);
+      expect(products.some((p) => p.id === productAId)).toBe(false);
     });
   });
 
@@ -144,93 +82,72 @@ describe.skip('Multi-Company Data Isolation', () => {
     let partnerAId: string;
 
     it('should create partner in Company A', async () => {
-      const res = await request('/partners', 'POST', headersA(), {
+      const partner = await partnerService.create(COMPANY_A_ID, {
         name: 'Partner A',
         email: `partner-a-${Date.now()}@test.com`,
         phone: '1234567890',
         type: 'CUSTOMER',
       });
-      expect(res.status).toBe(201);
-      partnerAId = res.body.data.id;
+      expect(partner).toBeDefined();
+      expect(partner.companyId).toBe(COMPANY_A_ID);
+      partnerAId = partner.id;
     });
 
     it('Company A should see Partner A', async () => {
-      const res = await request('/partners', 'GET', headersA());
-      expect(res.status).toBe(200);
-      const partners = res.body.data;
-      expect(partners.some((p: any) => p.id === partnerAId)).toBe(
-        true
-      );
+      const partners = await partnerService.list(COMPANY_A_ID);
+      expect(partners.some((p) => p.id === partnerAId)).toBe(true);
     });
 
     it('Company B should NOT see Partner A', async () => {
-      const res = await request('/partners', 'GET', headersB());
-      expect(res.status).toBe(200);
-      const partners = res.body.data;
-      expect(partners.some((p: any) => p.id === partnerAId)).toBe(
-        false
-      );
+      const partners = await partnerService.list(COMPANY_B_ID);
+      expect(partners.some((p) => p.id === partnerAId)).toBe(false);
     });
   });
 
   describe('Order Isolation (PO)', () => {
     let poAId: string;
+    let supplierAId: string;
+    let productForPO: string;
 
-    it('should create PO in Company A', async () => {
-      // Create Supplier for A if not exists
-      // Re-use partnerAId if type was SUPPLIER? No, it was CUSTOMER.
-      const suppRes = await request('/partners', 'POST', headersA(), {
-        name: 'Supplier A',
-        email: `supplier-a-${Date.now()}@test.com`,
+    beforeAll(async () => {
+      // Create supplier for Company A
+      const supplier = await partnerService.create(COMPANY_A_ID, {
+        name: 'Supplier A for PO',
+        email: `supplier-po-${Date.now()}@test.com`,
         phone: '111',
         type: 'SUPPLIER',
       });
-      const supplierId = suppRes.body.data.id;
+      supplierAId = supplier.id;
 
-      // Get Product A ID from previous test?
-      // We can't easily access variables across describe blocks if not shared.
-      // But we can fetch products to get one.
-      const prodRes = await request('/products', 'GET', headersA());
-      const productAId = prodRes.body.data[0].id;
+      // Create product for Company A
+      const product = await productService.create(COMPANY_A_ID, {
+        name: 'Product for PO',
+        sku: `SKU-PO-${Date.now()}`,
+        price: 100,
+      });
+      productForPO = product.id;
+    });
 
-      const res = await request(
-        '/purchase-orders',
-        'POST',
-        headersA(),
-        {
-          partnerId: supplierId,
-          date: new Date().toISOString(),
-          items: [{ productId: productAId, quantity: 1, price: 100 }],
-        }
-      );
-
-      if (res.status !== 201) {
-        // Error logging
-      }
-      expect(res.status).toBe(201);
-      poAId = res.body.data.id;
+    it('should create PO in Company A', async () => {
+      const po = await purchaseOrderService.create(COMPANY_A_ID, {
+        partnerId: supplierAId,
+        type: 'PURCHASE',
+        paymentTerms: 'NET30',
+        items: [{ productId: productForPO, quantity: 1, price: 100 }],
+      });
+      expect(po).toBeDefined();
+      expect(po.companyId).toBe(COMPANY_A_ID);
+      poAId = po.id;
     });
 
     it('Company A should see PO A', async () => {
-      const res = await request(
-        '/purchase-orders',
-        'GET',
-        headersA()
-      );
-      expect(res.status).toBe(200);
-      const orders = res.body.data;
-      expect(orders.some((o: any) => o.id === poAId)).toBe(true);
+      const orders = await purchaseOrderService.list(COMPANY_A_ID);
+      expect(orders.some((o) => o.id === poAId)).toBe(true);
     });
 
     it('Company B should NOT see PO A', async () => {
-      const res = await request(
-        '/purchase-orders',
-        'GET',
-        headersB()
-      );
-      expect(res.status).toBe(200);
-      const orders = res.body.data;
-      expect(orders.some((o: any) => o.id === poAId)).toBe(false);
+      const orders = await purchaseOrderService.list(COMPANY_B_ID);
+      expect(orders.some((o) => o.id === poAId)).toBe(false);
     });
   });
 
@@ -238,53 +155,27 @@ describe.skip('Multi-Company Data Isolation', () => {
     let accountAId: string;
 
     it('should create Account in Company A', async () => {
-      // Code must be max 10 chars.
-      // Using random 4 digits.
       const randomCode = Math.floor(
         1000 + Math.random() * 9000
       ).toString();
-      const res = await request(
-        '/finance/accounts',
-        'POST',
-        headersA(),
-        {
-          code: randomCode,
-          name: 'Cash A',
-          type: 'ASSET',
-        }
-      );
-
-      if (res.status !== 201) {
-        // Error logging
-      }
-      expect(res.status).toBe(201);
-      accountAId = res.body.data.id;
+      const account = await accountService.create(COMPANY_A_ID, {
+        code: randomCode,
+        name: 'Cash A',
+        type: 'ASSET',
+      });
+      expect(account).toBeDefined();
+      expect(account.companyId).toBe(COMPANY_A_ID);
+      accountAId = account.id;
     });
 
     it('Company A should see Account A', async () => {
-      const res = await request(
-        '/finance/accounts',
-        'GET',
-        headersA()
-      );
-      expect(res.status).toBe(200);
-      const accounts = res.body.data;
-      expect(accounts.some((a: any) => a.id === accountAId)).toBe(
-        true
-      );
+      const accounts = await accountService.list(COMPANY_A_ID);
+      expect(accounts.some((a) => a.id === accountAId)).toBe(true);
     });
 
     it('Company B should NOT see Account A', async () => {
-      const res = await request(
-        '/finance/accounts',
-        'GET',
-        headersB()
-      );
-      expect(res.status).toBe(200);
-      const accounts = res.body.data;
-      expect(accounts.some((a: any) => a.id === accountAId)).toBe(
-        false
-      );
+      const accounts = await accountService.list(COMPANY_B_ID);
+      expect(accounts.some((a) => a.id === accountAId)).toBe(false);
     });
   });
 });
