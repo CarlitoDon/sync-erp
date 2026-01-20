@@ -1,0 +1,121 @@
+flowchart TB
+    subgraph Phase1["Phase 1: Customer Order"]
+        n1["Customer Landing<br>/sewa-kasur"]
+        n2["Pilih Kasur & Durasi"]
+        n3["Input Data Customer<br>(Nama, WA, Alamat)"]
+        n4@{ label: "Klik 'Pesan Sekarang'" }
+    end
+
+    subgraph Phase2["Phase 2: System Processing"]
+        n5(("Start"))
+        n6["Proxy: order.create"]
+        n7["ERP: findOrCreatePartner"]
+        n8["ERP: createOrder"]
+        n9["DATA ORDER:<br>- Status: Draft<br>- Payment: Pending"]
+        n10{{"Validasi WA"}}
+        n11["Bot: sendOrder<br>(Rincian + Link)"]
+        n12["Error: Rollback Order"]
+    end
+
+    subgraph Phase3["Phase 3: Payment"]
+        n13["Navigate /checkout"]
+        n14{{"Pilih Metode"}}
+        n15["Transfer BCA"]
+        n16["QRIS"]
+        n17["Copy Norek / Download QR"]
+        n18["Customer Bayar"]
+        n19@{ label: "Klik 'Sudah Bayar'" }
+        n20["Navigate /thank-you"]
+        n21["DATA ORDER:<br>- Payment: Awaiting"]
+    end
+
+    subgraph Phase4["Phase 4: Konfirmasi Admin"]
+        n22["Admin Cek Mutasi"]
+        n23{{"Valid?"}}
+        n24["Konfirmasi Payment"]
+        n25["DATA ORDER:<br>- Payment: Confirmed"]
+        n26["Bot: Kirim Notifikasi"]
+    end
+
+    subgraph Phase5["Phase 5: Tracking"]
+        n27["Customer Akses<br>/pesanan/:token"]
+        n28["Lihat Status Order"]
+    end
+
+    %% FLOW CONNECTIONS
+    Start(("Mulai")) --> n1
+    n1 --> n2
+    n2 --> n3
+    n3 --> n4
+    n4 --> n5
+    n5 --> n6
+    n6 --> n7
+    n7 --> n8
+    n8 --> n10
+    n10 -- Valid --> n11
+    n10 -- Invalid --> n12
+    n12 --> n3
+    n11 --> n13
+    n13 --> n14
+    n14 -- BCA --> n15
+    n14 -- QRIS --> n16
+    n15 --> n17
+    n16 --> n17
+    n17 --> n18
+    n18 --> n19
+    n19 --> n20
+    n20 --> n22
+    n22 --> n23
+    n23 -- Ya --> n24
+    n23 -- Tidak --> n22
+    n24 --> n26
+    n26 --> End(("Selesai"))
+    
+    %% TRACKING FLOW (SEPARATE)
+    n11 -.-> n27
+    n27 --> n28
+
+    %% BUTTON SHAPES
+    n4@{ shape: rect }
+    n19@{ shape: rect }
+
+    %% STYLE ASSIGNMENTS
+    n1:::pageNavigate
+    n2:::user
+    n3:::user
+    n4:::userEvent
+    n5:::system
+    n6:::system
+    n7:::system
+    n8:::system
+    n9:::storedData
+    n10:::diam
+    n11:::system
+    n12:::endNode
+    n13:::pageNavigate
+    n14:::diam
+    n15:::pageNavigate
+    n16:::pageNavigate
+    n17:::user
+    n18:::user
+    n19:::userEvent
+    n20:::pageNavigate
+    n21:::storedData
+    n22:::Admin
+    n23:::diam
+    n24:::adminEvent
+    n25:::storedData
+    n26:::system
+    n27:::pageNavigate
+    n28:::user
+
+    %% CLASS DEFINITIONS
+    classDef pageNavigate stroke:#2962FF, fill:#cbe5fa, color:#000000, stroke-width:4px, stroke-dasharray:5
+    classDef userEvent stroke:#00C853, fill:#C8E6C9, color:#2962FF, stroke:#000000, stroke-width:2px
+    classDef user fill:#e1f5fe, stroke:#01579b, stroke-width:2px
+    classDef system fill:#fff3e0, stroke:#e65100, stroke-width:2px, stroke-dasharray:5 5
+    classDef Admin stroke:#AA00FF, fill:#E1BEE7, color:#000000
+    classDef adminEvent stroke:#000000, fill:#AA00FF, color:#FFFFFF
+    classDef endNode fill:#ffebee, stroke:#b71c1c, stroke-width:2px
+    classDef storedData fill:#eeeeee, stroke:#616161, stroke-width:1px, stroke-dasharray:2 2
+    classDef diam shape:diamond,fill:#fff3e0,stroke:#e65100,stroke-width:2px
