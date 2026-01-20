@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createContext } from '../../src/trpc/context';
 import { appRouter } from '../../src/trpc/router';
 import {
@@ -7,6 +7,8 @@ import {
   InvoiceStatus,
 } from '@sync-erp/database';
 
+const TEST_COMPANY_ID = 'test-expenses-flow-001';
+
 describe('Expenses Flow', () => {
   let ctx: any;
   let caller: any;
@@ -14,22 +16,53 @@ describe('Expenses Flow', () => {
   let partnerId: string;
 
   beforeAll(async () => {
-    // Setup context (assuming test db is ready)
-    // Find a company and partner or create logic if needed.
-    // Usually integration tests have a seed or create data.
-    // I'll assume we can find the first company and partner.
-    const company = await prisma.company.findFirst();
-    if (!company) throw new Error('No company found for test');
-    companyId = company.id;
+    // Setup self-contained test data
+    companyId = TEST_COMPANY_ID;
 
-    const partner = await prisma.partner.findFirst({
-      where: { companyId },
+    // Create company
+    await prisma.company.upsert({
+      where: { id: companyId },
+      create: { id: companyId, name: 'Test Expenses Company' },
+      update: {},
     });
-    if (!partner) throw new Error('No partner found for test');
+
+    // Create required accounts
+    const accounts = [
+      { code: '1100', name: 'Cash', type: 'ASSET' },
+      { code: '1200', name: 'Bank', type: 'ASSET' },
+      { code: '2100', name: 'Accounts Payable', type: 'LIABILITY' },
+      { code: '6100', name: 'General Expense', type: 'EXPENSE' }, // Required for expenses!
+    ];
+
+    for (const acc of accounts) {
+      await prisma.account.upsert({
+        where: {
+          companyId_code: { companyId, code: acc.code },
+        },
+        update: {},
+        create: {
+          companyId,
+          code: acc.code,
+          name: acc.name,
+          type: acc.type as any,
+          isActive: true,
+        },
+      });
+    }
+
+    // Create partner
+    const partner = await prisma.partner.create({
+      data: {
+        companyId,
+        name: 'Test Expense Partner',
+        type: 'SUPPLIER',
+        email: `expense-test-${Date.now()}@test.com`,
+      },
+    });
     partnerId = partner.id;
 
     ctx = await createContext({
-      info: {} as any, // Mock info
+      info: {} as any,
       req: {
         headers: {
           'x-company-id': companyId,
@@ -42,15 +75,39 @@ describe('Expenses Flow', () => {
       } as any,
       res: {} as any,
     });
-    // Mock session manually since createTRPCContext might depend on auth middleware that isn't running here
     ctx.session = {
       companyId,
       userId: 'test-user',
       businessShape: { type: 'goods' },
-    }; // Mock session
-    ctx.companyId = companyId; // Router uses ctx.companyId
+    };
+    ctx.companyId = companyId;
 
     caller = appRouter.createCaller(ctx);
+  });
+
+  afterAll(async () => {
+    // Cleanup in proper FK order
+    await prisma
+      .$transaction([
+        prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN (SELECT id FROM "JournalEntry" WHERE "companyId" = ${TEST_COMPANY_ID})`,
+        prisma.journalEntry.deleteMany({
+          where: { companyId: TEST_COMPANY_ID },
+        }),
+        prisma.payment.deleteMany({
+          where: { companyId: TEST_COMPANY_ID },
+        }),
+        prisma.invoice.deleteMany({
+          where: { companyId: TEST_COMPANY_ID },
+        }),
+        prisma.account.deleteMany({
+          where: { companyId: TEST_COMPANY_ID },
+        }),
+        prisma.partner.deleteMany({
+          where: { companyId: TEST_COMPANY_ID },
+        }),
+        prisma.company.delete({ where: { id: TEST_COMPANY_ID } }),
+      ])
+      .catch(() => {}); // Ignore cleanup errors
   });
 
   it('should create and post an expense', async () => {
