@@ -136,8 +136,7 @@ describe('P2P Edge Cases: Comprehensive Error Handling', () => {
   // 1. PO Validation Edge Cases
   // =========================================
   describe('1. PO Validation Edge Cases', () => {
-    // TODO: Implement quantity validation in backend
-    it.skip('should reject PO with zero quantity', async () => {
+    it('should reject PO with zero quantity', async () => {
       await expect(
         procurementService.create(COMPANY_ID, {
           partnerId,
@@ -148,8 +147,7 @@ describe('P2P Edge Cases: Comprehensive Error Handling', () => {
       ).rejects.toThrow();
     });
 
-    // TODO: Implement price validation in backend
-    it.skip('should reject PO with negative price', async () => {
+    it('should reject PO with negative price', async () => {
       await expect(
         procurementService.create(COMPANY_ID, {
           partnerId,
@@ -160,8 +158,7 @@ describe('P2P Edge Cases: Comprehensive Error Handling', () => {
       ).rejects.toThrow();
     });
 
-    // TODO: Implement empty items validation in backend
-    it.skip('should reject PO with empty items', async () => {
+    it('should reject PO with empty items', async () => {
       await expect(
         procurementService.create(COMPANY_ID, {
           partnerId,

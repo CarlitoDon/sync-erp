@@ -136,8 +136,7 @@ describe('P2P Edge Cases (tRPC): Comprehensive Error Handling', () => {
   // 1. PO Validation Edge Cases
   // =========================================
   describe('1. PO Validation Edge Cases', () => {
-    // TODO: Backend validation needed
-    it.skip('should reject PO with zero quantity', async () => {
+    it('should reject PO with zero quantity', async () => {
       await expect(
         caller.purchaseOrder.create({
           partnerId,
@@ -148,8 +147,7 @@ describe('P2P Edge Cases (tRPC): Comprehensive Error Handling', () => {
       ).rejects.toThrow();
     });
 
-    // TODO: Backend validation needed
-    it.skip('should reject PO with negative price', async () => {
+    it('should reject PO with negative price', async () => {
       await expect(
         caller.purchaseOrder.create({
           partnerId,
@@ -160,8 +158,7 @@ describe('P2P Edge Cases (tRPC): Comprehensive Error Handling', () => {
       ).rejects.toThrow();
     });
 
-    // TODO: Backend validation needed
-    it.skip('should reject PO with empty items', async () => {
+    it('should reject PO with empty items', async () => {
       await expect(
         caller.purchaseOrder.create({
           partnerId,

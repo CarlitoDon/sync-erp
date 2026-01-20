@@ -109,34 +109,63 @@ describe('E2E: Cash Upfront Payment Flow', () => {
   });
 
   afterAll(async () => {
-    await prisma.$transaction([
-      prisma.auditLog.deleteMany({
+    // Cleanup in proper FK order - use raw SQL for complex dependencies
+    try {
+      // Delete JournalLines first (references Account)
+      await prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN (SELECT id FROM "JournalEntry" WHERE "companyId" = ${COMPANY_ID})`;
+      // Delete JournalEntries
+      await prisma.journalEntry.deleteMany({
         where: { companyId: COMPANY_ID },
-      }),
-      prisma.$executeRaw`DELETE FROM "JournalLine" WHERE "journalId" IN (SELECT id FROM "JournalEntry" WHERE "companyId" = ${COMPANY_ID})`,
-      prisma.journalEntry.deleteMany({
+      });
+      // Delete Payments (references Invoice)
+      await prisma.payment.deleteMany({
         where: { companyId: COMPANY_ID },
-      }),
-      prisma.payment.deleteMany({ where: { companyId: COMPANY_ID } }),
-      prisma.invoice.deleteMany({ where: { companyId: COMPANY_ID } }),
-      prisma.inventoryMovement.deleteMany({
+      });
+      // Delete Invoices (references Partner, Order)
+      await prisma.invoice.deleteMany({
         where: { companyId: COMPANY_ID },
-      }),
-      prisma.fulfillmentItem.deleteMany({
+      });
+      // Delete InventoryMovements
+      await prisma.inventoryMovement.deleteMany({
+        where: { companyId: COMPANY_ID },
+      });
+      // Delete FulfillmentItems (references Fulfillment)
+      await prisma.fulfillmentItem.deleteMany({
         where: { fulfillment: { companyId: COMPANY_ID } },
-      }),
-      prisma.fulfillment.deleteMany({
+      });
+      // Delete Fulfillments (references Order)
+      await prisma.fulfillment.deleteMany({
         where: { companyId: COMPANY_ID },
-      }),
-      prisma.orderItem.deleteMany({
+      });
+      // Delete AuditLogs
+      await prisma.auditLog.deleteMany({
+        where: { companyId: COMPANY_ID },
+      });
+      // Delete OrderItems (references Order, Product)
+      await prisma.orderItem.deleteMany({
         where: { order: { companyId: COMPANY_ID } },
-      }),
-      prisma.order.deleteMany({ where: { companyId: COMPANY_ID } }),
-      prisma.product.deleteMany({ where: { companyId: COMPANY_ID } }),
-      prisma.account.deleteMany({ where: { companyId: COMPANY_ID } }),
-      prisma.partner.deleteMany({ where: { companyId: COMPANY_ID } }),
-      prisma.company.deleteMany({ where: { id: COMPANY_ID } }),
-    ]);
+      });
+      // Delete Orders (references Partner)
+      await prisma.order.deleteMany({
+        where: { companyId: COMPANY_ID },
+      });
+      // Delete Products
+      await prisma.product.deleteMany({
+        where: { companyId: COMPANY_ID },
+      });
+      // Delete Accounts (now safe since JournalLine is deleted)
+      await prisma.account.deleteMany({
+        where: { companyId: COMPANY_ID },
+      });
+      // Delete Partners (now safe since Invoice and Order are deleted)
+      await prisma.partner.deleteMany({
+        where: { companyId: COMPANY_ID },
+      });
+      // Delete Company
+      await prisma.company.deleteMany({ where: { id: COMPANY_ID } });
+    } catch {
+      // Ignore cleanup errors in tests
+    }
   });
 
   it('Complete P2P flow: PO -> Pay -> GRN -> Bill -> Auto Settle', async () => {
