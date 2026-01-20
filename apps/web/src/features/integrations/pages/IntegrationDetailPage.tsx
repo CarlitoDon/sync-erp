@@ -68,7 +68,7 @@ export default function IntegrationDetailPage() {
 
   // Sync form with data when loaded
   if (integration && webhookUrl === '' && integration.config) {
-    const config = integration.config as any;
+    const config = integration.config as { webhookUrl?: string };
     if (config.webhookUrl) setWebhookUrl(config.webhookUrl);
   }
 
@@ -170,7 +170,9 @@ export default function IntegrationDetailPage() {
               <Input
                 placeholder="https://your-app.com/api/webhooks"
                 value={webhookUrl}
-                onChange={(e: any) => setWebhookUrl(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setWebhookUrl(e.target.value)
+                }
               />
               <p className="text-sm text-gray-500">
                 We will send order updates to this URL.
@@ -227,26 +229,32 @@ export default function IntegrationDetailPage() {
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {integration.apiKeys.map((key: any) => (
-                    <div
-                      key={key.id}
-                      className="flex justify-between items-center p-3 bg-gray-50 rounded border"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-mono text-sm font-medium">
-                          {key.keyPrefix}...
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          Last used:{' '}
-                          {key.lastUsedAt
-                            ? new Date(
-                                key.lastUsedAt
-                              ).toLocaleString()
-                            : 'Never'}
-                        </span>
+                  {integration.apiKeys.map(
+                    (key: {
+                      id: string;
+                      keyPrefix: string;
+                      lastUsedAt: Date | null;
+                    }) => (
+                      <div
+                        key={key.id}
+                        className="flex justify-between items-center p-3 bg-gray-50 rounded border"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-mono text-sm font-medium">
+                            {key.keyPrefix}...
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Last used:{' '}
+                            {key.lastUsedAt
+                              ? new Date(
+                                  key.lastUsedAt
+                                ).toLocaleString()
+                              : 'Never'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               )}
             </div>

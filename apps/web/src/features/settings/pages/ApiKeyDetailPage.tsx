@@ -103,10 +103,12 @@ export default function ApiKeyDetailPage() {
         success: true,
         message: `Success! Latency: ${result.latencyMs}ms`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Unknown error';
       setTestResult({
         success: false,
-        message: `Failed: ${err.message}`,
+        message: `Failed: ${errorMessage}`,
       });
     }
   };

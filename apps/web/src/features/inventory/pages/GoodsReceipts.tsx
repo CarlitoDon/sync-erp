@@ -67,40 +67,49 @@ export default function GoodsReceipts() {
                 </td>
               </tr>
             ) : (
-              receipts.map((receipt: any) => (
-                <tr key={receipt.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-mono text-sm">
-                    <Link
-                      to={`/receipts/${receipt.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {receipt.number}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4">
-                    {receipt.order ? (
+              receipts.map(
+                (receipt: {
+                  id: string;
+                  number: string;
+                  orderId: string;
+                  date: Date;
+                  status: string;
+                  order?: { orderNumber: string | null } | null;
+                }) => (
+                  <tr key={receipt.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-mono text-sm">
                       <Link
-                        to={`/purchase-orders/${receipt.orderId}`}
+                        to={`/receipts/${receipt.id}`}
                         className="text-blue-600 hover:underline"
                       >
-                        {receipt.order.orderNumber}
+                        {receipt.number}
                       </Link>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {formatDate(receipt.date)}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(receipt.status)}`}
-                    >
-                      {receipt.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td className="px-6 py-4">
+                      {receipt.order ? (
+                        <Link
+                          to={`/purchase-orders/${receipt.orderId}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {receipt.order.orderNumber}
+                        </Link>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">
+                      {formatDate(receipt.date)}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(receipt.status)}`}
+                      >
+                        {receipt.status}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              )
             )}
           </tbody>
         </table>
