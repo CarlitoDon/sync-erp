@@ -2,16 +2,15 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { InventoryService } from '@modules/inventory/inventory.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
-// FulfillmentService doesn't exist - skip these tests
-// import { FulfillmentService } from '@modules/fulfillment/fulfillment.service';
+import { SalesOrderService } from '@modules/sales/sales-order.service';
 
 const inventoryService = new InventoryService();
 const journalService = new JournalService();
-// const fulfillmentService = new FulfillmentService();
+const salesOrderService = new SalesOrderService();
 
 const COMPANY_ID = 'test-finance-integration-001';
 
-describe.skip('Finance Automation Integration', () => {
+describe('Finance Automation Integration', () => {
   let productId: string;
   let partnerId: string;
 
@@ -73,11 +72,17 @@ describe.skip('Finance Automation Integration', () => {
   });
 
   afterAll(async () => {
-    // Cleanup
+    // Cleanup - order matters due to foreign key constraints
     const deleteJournals = prisma.journalEntry.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     const deleteMovements = prisma.inventoryMovement.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    const deleteFulfillmentItems = prisma.fulfillmentItem.deleteMany({
+      where: { fulfillment: { companyId: COMPANY_ID } },
+    });
+    const deleteFulfillments = prisma.fulfillment.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     const deleteOrderItems = prisma.orderItem.deleteMany({
@@ -102,6 +107,8 @@ describe.skip('Finance Automation Integration', () => {
     await prisma.$transaction([
       deleteJournals,
       deleteMovements,
+      deleteFulfillmentItems,
+      deleteFulfillments,
       deleteOrderItems,
       deleteOrders,
       deleteProducts,
@@ -128,17 +135,14 @@ describe.skip('Finance Automation Integration', () => {
         },
       });
 
-      // 2. Process Shipment (Cost = 2 * 100,000 = 200,000)
-      /* await fulfillmentService.processShipment(COMPANY_ID, {
-        orderId: order.id,
-      }); */
+      // 2. Process Shipment using SalesOrderService.ship (Cost = 2 * 100,000 = 200,000)
+      await salesOrderService.ship(COMPANY_ID, order.id);
 
-      // 3. Verify Journal
+      // 3. Verify Journal - look for shipment journal by sourceType
       const journals = await journalService.list(COMPANY_ID);
-      const shipmentJournal = journals.find((j: any) =>
-        j.reference?.includes(
-          `Shipment for Order ${order.orderNumber}`
-        )
+      const shipmentJournal = journals.find(
+        (j: any) =>
+          j.sourceType === 'SHIPMENT' || j.reference?.includes('SHP:')
       ) as any;
 
       expect(shipmentJournal).toBeDefined();
