@@ -1,0 +1,302 @@
+flowchart TB
+ subgraph s3["Phase 1.1: Customer Landing"]
+        n31["Customer Landing di santiliving.com/sewa-kasur"]
+        n32@{ label: "Klik 'Sewa Kasur Sekarang'" }
+        n33["Navigate Customer to /sewa-kasur#calculator"]
+  end
+ subgraph LocationLogic["Logic Lokasi"]
+        InputData["Input Alamat"]
+        n23["Fetch GPS Geolocation"]
+        n27["Buka Modal Maps dengan Location Picker"]
+        n26["Pilih dan Konfirmasi Pin Lokasi"]
+        n25["Input Detail Lokasi (Jalan, No. Rumah)"]
+  end
+ subgraph Phase1["Phase 1.2: Pemesanan & Administrasi"]
+        Browse["Cari & Pilih Kasur"]
+        SelectDetails["Pilih Jadwal Kirim dan Durasi Sewa"]
+        n2@{ label: "Klik 'Pesan via Whatsapp'" }
+        LocationLogic
+        n1["Input No. WA"]
+  end
+ subgraph s2["Phase 1.3: System Order Creation"]
+        n39(("Start Process"))
+        n7["Create Order di Sync-ERP (Status: Pending)"]
+        n46["DATA ORDER:<br>- Status: Draft<br>- Payment: Pending"]
+        n8["Compose WA Message:<br>1. Rincian Pesanan<br>2. Link Order (/pesanan/:id)"]
+        n9{"Nomor WA Valid?"}
+        n10["Kirim WA ke Customer & Admin Sales"]
+        n11["Error Validation & Rollback"]
+  end
+ subgraph s1["Phase 2.1: Pembayaran (Checkout Endpoint)"]
+        n6["Navigate to /checkout (Summary State)"]
+        n14{"Pilih Metode Pembayaran"}
+        n28["State: Transfer BCA"]
+        n18["Copy Norek"]
+        n21["Payment Via Transfer BCA"]
+        n30@{ label: "Klik 'Saya Sudah Bayar'" }
+        n29["State: QRIS"]
+        n17["Download QRIS"]
+        n22["Payment Via QRIS"]
+        n34@{ label: "Klik 'Saya Sudah Bayar'" }
+        n35["Update Order: Payment = Awaiting_Confirm (BCA)"]
+        n36["Update Order: Payment = Awaiting_Confirm (QRIS)"]
+        n50["DATA ORDER:<br>- Payment: Awaiting Confirm"]
+  end
+ subgraph s4["Phase 2.2: Admin Konfirmasi Pembayaran"]
+        n42["Admin Check Mutasi Bank"]
+        n57{"Pembayaran Valid?"}
+        n43["Konfirmasi Pembayaran di Dashboard"]
+        n52["DATA ORDER:<br>- Payment: Confirmed<br>- KTP: Belum Upload"]
+        n60@{ label: "Klik 'Notify Payment Not Found'" }
+        n61["Bot WA: Minta Bukti Transfer"]
+        n62["Customer Kirim Bukti via WA"]
+        n63["Admin Re-Check Mutasi"]
+        n64{"Valid Sekarang?"}
+        n66(("Close Order: PENIPU"))
+  end
+ subgraph s5["Phase 3: Upload & Verifikasi KTP"]
+        n44["Navigate to /sewa-kasur/pesanan/:id"]
+        UploadKYC["Upload KTP/Identitas"]
+        n45["DATA ORDER:<br>- Upload KTP: Yes"]
+        n56["Admin Verifikasi KTP Customer"]
+        n59{"KTP Valid?"}
+        RejectFlow["Notifikasi Penolakan & Refund"]
+        ReceiveRefund["Terima Refund Dana"]
+        EndReject(("Order Dibatalkan"))
+        n67["Konfirmasi Order (Approve)"]
+        n69["DATA ORDER:<br>- Status: Confirmed"]
+  end
+ subgraph s6["Phase 4: Unit Assignment & Pengiriman"]
+        n71["Admin Assign Unit"]
+        n72{"Unit Rental Tersedia?"}
+        n73["Pengadaan Rental Unit"]
+        n76{"Ada Unit Non-Rental?"}
+        n87["Convert Non-Rental ke Rental"]
+        n74["Klik Kunci Unit (Lock Stock)"]
+        n79["Kirim Unit (Driver Jalan)"]
+        n80["Driver Cek Fisik KTP vs Orang"]
+        n81{"KTP Sesuai?"}
+        n82["Serah Terima Barang"]
+        n83["Driver Konfirmasi di Apps Driver"]
+        n84["Driver Upload Foto Bukti Serah Terima"]
+        n86["System: Konfirmasi Unit Terkirim"]
+  end
+ subgraph Phase2["Phase 5: Penerimaan di Sisi Customer"]
+        WaitDelivery["Customer Menunggu Kurir"]
+        CheckItem["Cek Kondisi Fisik Kasur"]
+        ItemOK{"Kondisi Oke?"}
+        RejectItem["Tolak Barang (Rusak/Kotor)"]
+        ReturLogic["Driver Bawa Balik / Tukar Unit"]
+        SignHandover["Tanda Tangan Berita Acara (Digital)"]
+        SysActive["Update Order: STATUS ACTIVE (Sewa Dimulai)"]
+  end
+ subgraph Phase3["Phase 6: Masa Sewa"]
+        UseItem["Masa Sewa Berjalan"]
+        SysReminder["System WA: Reminder H-3 Habis"]
+        NearEnd{"Keputusan?"}
+        PayExtend["Bayar Perpanjangan (Loop ke Payment)"]
+        SchedulePickup["Konfirmasi Selesai & Jadwal Pickup"]
+  end
+ subgraph Phase4["Phase 7: Pengembalian & Closing"]
+        PickupProcess["Kurir Datang & Cek Barang"]
+        InspectReturn{"Ada Kerusakan?"}
+        DeductLogic["Admin Input Denda Kerusakan"]
+        DeductDeposit["Potong Deposit"]
+        FullRefund["Full Refund Deposit"]
+        RefundProcess["Finance Transfer Refund"]
+        ReceiveDeposit["Terima Dana Deposit"]
+        LeaveReview["Beri Rating/Review"]
+        OrderClosed["Status Order: CLOSED"]
+  end
+    Start(("Mulai")) --> n31
+    n31 --> n32
+    n32 --> n33
+    n33 --> Browse
+    Browse --> SelectDetails
+    SelectDetails --> n1
+    n1 --> InputData
+    InputData -- Use Current Location --> n23
+    n23 --> n25
+    InputData -- Pin Map --> n27
+    n27 --> n26
+    n26 --> n25
+    n25 --> n2
+    n2 --> n39
+    n39 --> n7
+    n7 --> n8
+    n8 --> n9
+    n9 -- Valid --> n10
+    n9 -- Invalid --> n11
+    n11 --> n1
+    n10 --> n6
+    n6 --> n14
+    n14 -- Transfer --> n28
+    n28 --> n18
+    n18 --> n21
+    n21 --> n30
+    n30 --> n35
+    n14 -- QRIS --> n29
+    n29 --> n17
+    n17 --> n22
+    n22 --> n34
+    n34 --> n36
+    n35 --> n42
+    n36 --> n42
+    n42 --> n57
+    n57 -- Valid --> n43
+    n57 -- Invalid --> n60
+    n60 --> n61
+    n61 --> n62
+    n62 --> n63
+    n63 --> n64
+    n64 -- Valid --> n43
+    n64 -- Invalid --> n66
+    n43 --> n44
+    n44 --> UploadKYC
+    UploadKYC --> n56
+    n56 --> n59
+    n59 -- Valid --> n67
+    n59 -- Invalid --> RejectFlow
+    RejectFlow --> ReceiveRefund
+    ReceiveRefund --> EndReject
+    n67 --> n71
+    n71 --> n72
+    n72 -- Ya --> n74
+    n72 -- Tidak --> n73
+    n73 --> n76
+    n76 -- Ya --> n87
+    n87 --> n74
+    n74 --> n79
+    n79 --> n80
+    n80 --> n81
+    n81 -- Tidak (Batal) --> RejectFlow
+    n81 -- Ya (Sesuai) --> n82
+    n82 --> n83
+    n83 --> n84
+    n84 --> n86
+    n86 --> WaitDelivery
+    WaitDelivery --> CheckItem
+    CheckItem --> ItemOK
+    ItemOK -- Tidak --> RejectItem
+    RejectItem --> ReturLogic
+    ReturLogic --> n71
+    ItemOK -- Ya --> SignHandover
+    SignHandover --> SysActive
+    SysActive --> UseItem
+    UseItem --> SysReminder
+    SysReminder --> NearEnd
+    NearEnd -- Perpanjang --> PayExtend
+    PayExtend --> UseItem
+    NearEnd -- Selesai --> SchedulePickup
+    SchedulePickup --> PickupProcess
+    PickupProcess --> InspectReturn
+    InspectReturn -- Rusak --> DeductLogic
+    DeductLogic --> DeductDeposit
+    DeductDeposit --> RefundProcess
+    InspectReturn -- Aman --> FullRefund
+    FullRefund --> RefundProcess
+    RefundProcess --> ReceiveDeposit
+    ReceiveDeposit --> LeaveReview
+    LeaveReview --> OrderClosed
+    OrderClosed --> EndSuccess(("Selesai"))
+
+    n32@{ shape: rect}
+    n2@{ shape: rect}
+    n30@{ shape: rect}
+    n34@{ shape: rect}
+    n60@{ shape: rect}
+     n31:::pageNavigate
+     n32:::userEvent
+     n33:::pageNavigate
+     Browse:::user
+     SelectDetails:::user
+     n2:::userEvent
+     InputData:::userEvent
+     n23:::system
+     n27:::system
+     n26:::user
+     n25:::user
+     n1:::user
+     n39:::system
+     n7:::system
+     n46:::storedData
+     n8:::system
+     n9:::system
+     n10:::system
+     n11:::system
+     n6:::pageNavigate
+     n14:::userEvent
+     n28:::pageNavigate
+     n18:::user
+     n21:::user
+     n30:::userEvent
+     n29:::pageNavigate
+     n17:::user
+     n22:::user
+     n34:::userEvent
+     n35:::system
+     n36:::system
+     n50:::storedData
+     n42:::Admin
+     n57:::adminEvent
+     n43:::adminEvent
+     n52:::storedData
+     n60:::adminEvent
+     n61:::system
+     n62:::userEvent
+     n63:::Admin
+     n64:::adminEvent
+     n66:::endNode
+     n44:::pageNavigate
+     UploadKYC:::userEvent
+     n45:::storedData
+     n56:::adminEvent
+     n59:::adminEvent
+     RejectFlow:::system
+     ReceiveRefund:::user
+     EndReject:::endNode
+     n67:::adminEvent
+     n69:::storedData
+     n71:::Admin
+     n72:::diam
+     n73:::Admin
+     n76:::diam
+     n87:::system
+     n74:::adminEvent
+     n79:::Admin
+     n80:::Admin
+     n81:::adminEvent
+     n82:::Admin
+     n83:::adminEvent
+     n84:::adminEvent
+     n86:::system
+     WaitDelivery:::user
+     CheckItem:::userEvent
+     ItemOK:::userEvent
+     RejectItem:::userEvent
+     ReturLogic:::system
+     SignHandover:::userEvent
+     SysActive:::system
+     UseItem:::user
+     SysReminder:::system
+     NearEnd:::userEvent
+     PayExtend:::user
+     SchedulePickup:::userEvent
+     PickupProcess:::Admin
+     InspectReturn:::adminEvent
+     DeductLogic:::Admin
+     DeductDeposit:::system
+     FullRefund:::system
+     RefundProcess:::system
+     ReceiveDeposit:::user
+     LeaveReview:::userEvent
+     OrderClosed:::system
+    classDef pageNavigate stroke:#2962FF, fill:#cbe5fa, color:#000000, stroke-width:4px, stroke-dasharray:5
+    classDef userEvent stroke:#00C853, fill:#C8E6C9, color:#2962FF, stroke:#000000, stroke-width:2px, stroke-dasharray:0
+    classDef user fill:#e1f5fe, stroke:#01579b, stroke-width:2px
+    classDef system fill:#fff3e0, stroke:#e65100, stroke-width:2px, stroke-dasharray:5 5
+    classDef Admin stroke:#AA00FF, fill:#E1BEE7, color:#000000
+    classDef adminEvent stroke:#000000, fill:#AA00FF, color:#FFFFFF
+    classDef endNode fill:#ffebee, stroke:#b71c1c, stroke-width:2px
+    classDef storedData fill:#eeeeee, stroke:#616161, stroke-width:1px, stroke-dasharray:2 2
+    classDef diam shape:diamond,fill:#fff3e0,stroke:#e65100,stroke-width:2px
