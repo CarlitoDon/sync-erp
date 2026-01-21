@@ -1,9 +1,9 @@
-import type { OrderPayload } from "../types/order";
+import type { OrderPayload } from '../types/order';
 
 const formatCurrency = (val: number) => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(val);
@@ -11,22 +11,26 @@ const formatCurrency = (val: number) => {
 
 export const formatOrderMessage = (data: OrderPayload): string => {
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
+    return new Date(dateStr).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
     });
   };
 
   let message = `Halo Kak *${data.customerName}*! 👋\n`;
   message += `Terima kasih sudah memesan di *Sewa Kasur Jogja by Santi Mebel*.\n`;
-  message += `Order ID: *${data.orderId || "-"}*\n\n`;
+  message += `Order ID: *${data.orderId || '-'}*\n\n`;
   message += `Pesanan Anda telah kami terima dengan rincian berikut:\n\n`;
 
   // Helper to filter items
-  const packages = data.items.filter((i) => i.category === "package");
-  const mattressOnly = data.items.filter((i) => i.category === "mattress");
-  const accessories = data.items.filter((i) => i.category === "accessory");
+  const packages = data.items.filter((i) => i.category === 'package');
+  const mattressOnly = data.items.filter(
+    (i) => i.category === 'mattress'
+  );
+  const accessories = data.items.filter(
+    (i) => i.category === 'accessory'
+  );
 
   // 1. Paket Kasur
   if (packages.length > 0) {
@@ -63,7 +67,7 @@ export const formatOrderMessage = (data: OrderPayload): string => {
 
   // Calculate total units (mattresses only)
   const totalQuantity = data.items
-    .filter((i) => i.category !== "accessory")
+    .filter((i) => i.category !== 'accessory')
     .reduce((sum, i) => sum + i.quantity, 0);
 
   message += `*Detail Sewa:*\n`;
@@ -91,7 +95,7 @@ export const formatOrderMessage = (data: OrderPayload): string => {
 
   if (discount > 0) {
     message += `Diskon (${
-      data.volumeDiscountLabel || "Hemat"
+      data.volumeDiscountLabel || 'Hemat'
     }): -${formatCurrency(discount)}\n`;
   }
 
@@ -105,6 +109,14 @@ export const formatOrderMessage = (data: OrderPayload): string => {
   message += `*TOTAL BAYAR: ${formatCurrency(data.totalPrice)}*\n`;
   message += `━━━━━━━━━━━━━\n\n`;
 
+  // Add order tracking link FIRST (for WhatsApp link preview)
+  if (data.orderUrl) {
+    message += `*Link Status Pesanan:*\n`;
+    message += `${data.orderUrl}\n`;
+    message += `\n_Klik link di atas untuk melihat status pesanan Kakak._\n\n`;
+    message += `━━━━━━━━━━━━━━\n`;
+  }
+
   message += `*Detail Pengiriman:*\n`;
   message += `- Nama: ${data.customerName}\n`;
   message += `- Alamat: ${data.deliveryAddress}\n`;
@@ -116,14 +128,6 @@ export const formatOrderMessage = (data: OrderPayload): string => {
 
   if (data.notes && data.notes.trim()) {
     message += `- Catatan: ${data.notes}\n`;
-  }
-
-  // Add order tracking link if available
-  if (data.orderUrl) {
-    message += `\n━━━━━━━━━━━━━━\n`;
-    message += `*Link Status Pesanan:*\n`;
-    message += `${data.orderUrl}\n`;
-    message += `\n_Klik link di atas untuk melihat status pesanan Kakak._\n`;
   }
 
   message += `\nAdmin kami akan segera menghubungi Kakak kembali untuk konfirmasi pengiriman. Terima kasih! 🙏`;
