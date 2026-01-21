@@ -125,16 +125,14 @@ describe('DP Bill Linking (Feature Implementation)', () => {
       items: [{ productId, quantity: 2, price: 1000000 }], // Total 2M
     });
 
-    // 2. Confirm PO -> Should create DP Bill
+    // 2. Confirm PO
     await procurementService.confirm(order.id, COMPANY_ID, ACTOR_ID);
 
-    // 3. Find DP Bill and Verify Flag
-    const dpBill = await prisma.invoice.findFirst({
-      where: {
-        orderId: order.id,
-        isDownPayment: true, // Use new flag!
-      },
-    });
+    // 3. Create DP Bill manually (Feature 041: manual DP Bill creation)
+    const dpBill = await billService.createDownPaymentBill(
+      COMPANY_ID,
+      order.id
+    );
 
     expect(dpBill).toBeDefined();
     expect(dpBill?.isDownPayment).toBe(true);

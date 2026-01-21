@@ -120,19 +120,18 @@ describe('P2P: Payment Methods (COD, Tempo+DP)', () => {
     // DP Amount should be 200,000
     expect(Number(order.dpAmount)).toBe(200000);
 
-    // 2. Confirm PO (Auto-creates DP Bill)
+    // 2. Confirm PO
     await purchaseOrderService.confirm(
       order.id,
       COMPANY_ID,
       'test-user-id'
     );
 
-    // 3. Verify DP Bill Created
-    const bills = await prisma.invoice.findMany({
-      where: { orderId: order.id, companyId: COMPANY_ID },
-    });
-    expect(bills.length).toBe(1);
-    const dpBill = bills[0];
+    // 3. Create DP Bill manually (Feature 041: DP Bill is now created manually)
+    const dpBill = await billService.createDownPaymentBill(
+      COMPANY_ID,
+      order.id
+    );
     expect(Number(dpBill.amount)).toBe(200000);
     expect(dpBill.notes).toContain('Down Payment');
 

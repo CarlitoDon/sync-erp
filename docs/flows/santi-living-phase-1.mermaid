@@ -1,0 +1,133 @@
+flowchart TB
+    subgraph Phase1["Phase 1: Customer Order"]
+        n1["Customer Landing<br>/sewa-kasur"]
+        n2["Pilih Kasur & Durasi"]
+        n3["Input Data Customer<br>(Nama, WA, Alamat)"]
+        n4@{ label: "Klik 'Pesan Sekarang'" }
+    end
+
+    subgraph Phase2["Phase 2: System Processing"]
+        n5(("Start"))
+        n6["Proxy: order.create"]
+        n7["ERP: findOrCreatePartner"]
+        n8["ERP: createOrder"]
+        n9["DATA ORDER:<br>- Status: Draft<br>- Payment: Pending"]
+        n10{{"Validasi WA"}}
+        n11["Bot: sendOrder<br>(Rincian + Link)"]
+        n12["Error: Rollback Order"]
+    end
+
+    subgraph Phase3["Phase 3: Payment"]
+        n13["Navigate /checkout"]
+        n14{{"Pilih Metode"}}
+        n15["Transfer BCA"]
+        n16["QRIS"]
+        n17["Copy Norek / Download QR"]
+        n18["Customer Bayar"]
+        n19@{ label: "Klik 'Sudah Bayar'" }
+        n20["Navigate /thank-you"]
+        n21["DATA ORDER:<br>- Payment: Awaiting"]
+    end
+
+    subgraph Phase4["Phase 4: Konfirmasi Admin"]
+        n22["Admin Cek Mutasi"]
+        n23{{"Valid?"}}
+        n24["Konfirmasi Payment"]
+        n25["DATA ORDER:<br>- Payment: Confirmed"]
+        n26["Bot: Kirim Notifikasi"]
+    end
+
+    subgraph Phase5["Phase 5: Tracking"]
+        n27["Customer Akses<br>/pesanan/:token"]
+        n28["Lihat Status Order"]
+    end
+
+    %% FLOW CONNECTIONS
+    Start(("Mulai")) --> n1
+    n1 --> n2
+    n2 --> n3
+    n3 --> n4
+    n4 --> n5
+    n5 --> n6
+    n6 --> n7
+    n7 --> n8
+    n8 --> n10
+    n10 -- Valid --> n11
+    n10 -- Invalid --> n12
+    n12 --> n3
+    n11 --> n13
+    n13 --> n14
+    n14 -- BCA --> n15
+    n14 -- QRIS --> n16
+    n15 --> n17
+    n16 --> n17
+    n17 --> n18
+    n18 --> n19
+    n19 --> n20
+    n20 --> n22
+    n22 --> n23
+    n23 -- Ya --> n24
+    n23 -- Tidak --> n22
+    n24 --> n26
+    n26 --> End(("Selesai"))
+    
+    %% TRACKING FLOW (SEPARATE)
+    n11 -.-> n27
+    n27 --> n28
+
+    %% BUTTON SHAPES
+    n4@{ shape: rect }
+    n19@{ shape: rect }
+
+    %% STYLE ASSIGNMENTS - Per Service
+    %% Frontend (Santi Living Astro)
+    n1:::clientWeb
+    n2:::clientWeb
+    n3:::clientWeb
+    n4:::clientWeb
+    n13:::clientWeb
+    n15:::clientWeb
+    n16:::clientWeb
+    n17:::clientWeb
+    n18:::clientWeb
+    n19:::clientWeb
+    n20:::clientWeb
+    n27:::clientWeb
+    n28:::clientWeb
+
+    %% Proxy API (Railway)
+    n6:::proxyApi
+    n10:::proxyApi
+
+    %% Sync ERP API
+    n7:::syncApi
+    n8:::syncApi
+    n24:::syncApi
+
+    %% Bot WA Service
+    n11:::botWa
+    n26:::botWa
+
+    %% Admin Dashboard
+    n22:::syncWeb
+    n23:::syncWeb
+
+    %% Database/Stored Data
+    n9:::database
+    n21:::database
+    n25:::database
+
+    %% Error/End nodes
+    n12:::errorNode
+    n5:::system
+    n14:::system
+
+    %% CLASS DEFINITIONS - Per Service
+    classDef clientWeb fill:#bbdefb, stroke:#1565c0, stroke-width:2px, color:#000000
+    classDef proxyApi fill:#e1bee7, stroke:#6a1b9a, stroke-width:2px, color:#000000
+    classDef syncApi fill:#ffccbc, stroke:#d84315, stroke-width:2px, color:#000000
+    classDef syncWeb fill:#fff9c4, stroke:#fbc02d, stroke-width:2px, color:#000000
+    classDef botWa fill:#c8e6c9, stroke:#2e7d32, stroke-width:2px, color:#000000
+    classDef database fill:#cfd8dc, stroke:#455a64, stroke-width:1px, stroke-dasharray:2 2
+    classDef errorNode fill:#ffebee, stroke:#b71c1c, stroke-width:2px
+    classDef system fill:#fff3e0, stroke:#e65100, stroke-width:2px

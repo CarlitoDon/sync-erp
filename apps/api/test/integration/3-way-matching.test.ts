@@ -213,21 +213,18 @@ describe('FR-011, FR-020: 3-Way Matching Validation', () => {
         items: [{ productId, quantity: 5, price: 100000 }],
       });
 
-      // Confirm PO - this auto-creates DP Bill
+      // Confirm PO
       await procurementService.confirm(
         order.id,
         COMPANY_ID,
         ACTOR_ID
       );
 
-      // Find the DP Bill
-      const dpBill = await prisma.invoice.findFirst({
-        where: {
-          orderId: order.id,
-          companyId: COMPANY_ID,
-          isDownPayment: true,
-        },
-      });
+      // Create DP Bill manually (Feature 041: manual DP Bill creation)
+      const dpBill = await billService.createDownPaymentBill(
+        COMPANY_ID,
+        order.id
+      );
 
       expect(dpBill).toBeDefined();
       expect(dpBill?.status).toBe(InvoiceStatus.DRAFT);

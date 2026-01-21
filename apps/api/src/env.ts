@@ -27,6 +27,7 @@ function getEnvFile(): string {
 const envFile = getEnvFile();
 const pkgEnvPath = path.resolve(__dirname, `../${envFile}`);
 
+// eslint-disable-next-line no-console -- Startup log for deployment debugging
 console.log(`[API] Loading ${envFile} from ${pkgEnvPath}`);
 
 let result = dotenv.config({ path: pkgEnvPath });
@@ -34,9 +35,11 @@ let result = dotenv.config({ path: pkgEnvPath });
 if (result.error) {
   // Fallback to generic .env if specific file not found
   const fallbackPath = path.resolve(__dirname, '../.env');
+  // eslint-disable-next-line no-console -- Startup log for deployment debugging
   console.log(`[API] Fallback to ${fallbackPath}`);
   result = dotenv.config({ path: fallbackPath });
   if (result.error) {
+    // eslint-disable-next-line no-console -- Warning for missing env file
     console.warn(
       `[API] Failed to load environment from ${pkgEnvPath}`
     );

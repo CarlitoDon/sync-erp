@@ -80,7 +80,12 @@ export default function ApiKeysPage() {
     setShowModal(true);
   };
 
-  const handleEdit = (key: any) => {
+  const handleEdit = (key: {
+    id: string;
+    name: string;
+    rateLimit: number;
+    webhookUrl: string | null;
+  }) => {
     setEditingKey({
       id: key.id,
       name: key.name,

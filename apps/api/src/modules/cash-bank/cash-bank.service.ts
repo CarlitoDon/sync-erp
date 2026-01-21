@@ -394,13 +394,82 @@ export class CashBankService {
   }
 
   async voidTransaction(
-    _id: string,
-    _companyId: string,
-    _reason: string,
+    id: string,
+    companyId: string,
+    reason: string,
     _userId: string
   ): Promise<CashTransaction> {
-    // TODO: Implement void logic
-    throw new Error('Not implemented');
+    if (!reason || reason.trim().length === 0) {
+      throw new DomainError(
+        'Void reason is required',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    return prisma.$transaction(async (tx) => {
+      // 1. Fetch Transaction
+      const transaction = await this.repository.getTransactionById(
+        id,
+        companyId,
+        tx
+      );
+      if (!transaction) {
+        throw new DomainError(
+          'Transaction not found',
+          404,
+          DomainErrorCodes.NOT_FOUND
+        );
+      }
+
+      // 2. Validate Status - only POSTED can be voided
+      if (transaction.status !== CashTransactionStatus.POSTED) {
+        throw new DomainError(
+          'Only POSTED transactions can be voided',
+          400,
+          DomainErrorCodes.INVALID_INPUT
+        );
+      }
+
+      // 3. Create Reversal Journal Entry
+      if (transaction.journalEntryId) {
+        const originalJournal = await tx.journalEntry.findUnique({
+          where: { id: transaction.journalEntryId },
+          include: { lines: true },
+        });
+
+        if (originalJournal) {
+          // Reverse all lines (swap debit/credit)
+          const reversedLines: CreateJournalLineInput[] =
+            originalJournal.lines.map((line) => ({
+              accountId: line.accountId,
+              debit: Number(line.credit),
+              credit: Number(line.debit),
+            }));
+
+          await this.journalService.create(
+            companyId,
+            {
+              date: new Date(),
+              reference: `VOID: ${transaction.reference || id}`,
+              memo: `Reversal: ${reason}`,
+              sourceType: 'CASH_TRANSACTION',
+              sourceId: `${id}:void`,
+              lines: reversedLines,
+            },
+            tx
+          );
+        }
+      }
+
+      // 4. Update Transaction Status
+      return tx.cashTransaction.update({
+        where: { id },
+        data: {
+          status: CashTransactionStatus.VOIDED,
+        },
+      });
+    });
   }
 
   async listTransactions(

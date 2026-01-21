@@ -679,6 +679,7 @@ export const publicRentalRouter = router({
             await prisma.rentalOrder.delete({
               where: { id: order.id },
             });
+            // eslint-disable-next-line no-console -- Rollback success log
             console.log(
               `[PublicRental] Rolled back order ${order.orderNumber}`
             );
@@ -896,6 +897,24 @@ export const publicRentalRouter = router({
           // status: RentalOrderStatus.CONFIRMED, (REMOVED)
         },
       });
+
+      // Fire webhook notification to admin & customer (async, non-blocking)
+      const webhookService = getWebhookService();
+      if (webhookService && order.publicToken) {
+        webhookService
+          .notifyPaymentStatus({
+            token: order.publicToken,
+            action: 'confirmed',
+            paymentMethod: input.paymentMethod,
+            paymentReference: input.transactionId,
+          })
+          .catch((err) => {
+            console.error(
+              '[PublicRental] Payment confirmed webhook failed:',
+              err
+            );
+          });
+      }
 
       return {
         success: true,

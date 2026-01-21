@@ -1,10 +1,12 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma, InvoiceStatus } from '@sync-erp/database';
 import { BillService } from '@modules/accounting/services/bill.service';
+import { PaymentService } from '@modules/accounting/services/payment.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
 const billService = new BillService();
+const paymentService = new PaymentService();
 const procurementService = new PurchaseOrderService();
 const inventoryService = new InventoryService();
 
@@ -214,22 +216,18 @@ describe('3-Way Matching with Tax and DP', () => {
         dpAmount: Number(order.dpAmount),
       });
 
-      // Confirm PO - this should create DP Bill
+      // Confirm PO
       await procurementService.confirm(
         order.id,
         COMPANY_ID,
         ACTOR_ID
       );
 
-      // Find and pay the DP Bill
-      const dpBill = await prisma.invoice.findFirst({
-        where: {
-          orderId: order.id,
-          companyId: COMPANY_ID,
-          type: 'BILL',
-          notes: { contains: 'Down Payment' },
-        },
-      });
+      // Create DP Bill manually (Feature 041: manual DP Bill creation)
+      const dpBill = await billService.createDownPaymentBill(
+        COMPANY_ID,
+        order.id
+      );
       expect(dpBill).toBeDefined();
       console.log('DP Bill:', {
         id: dpBill?.id,
@@ -238,9 +236,6 @@ describe('3-Way Matching with Tax and DP', () => {
       });
 
       // Post DP Bill first
-      const { BillService } =
-        await import('@modules/accounting/services/bill.service');
-      const billService = new BillService();
       const postedDpBill = await billService.post(
         dpBill!.id,
         COMPANY_ID,
@@ -249,9 +244,6 @@ describe('3-Way Matching with Tax and DP', () => {
       );
 
       // Pay DP Bill
-      const { PaymentService } =
-        await import('@modules/accounting/services/payment.service');
-      const paymentService = new PaymentService();
       await paymentService.create(COMPANY_ID, {
         invoiceId: dpBill!.id,
         amount: Number(postedDpBill.amount),

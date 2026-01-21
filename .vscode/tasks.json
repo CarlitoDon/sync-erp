@@ -2,13 +2,58 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build: All",
-      "type": "shell",
-      "command": "npm run build",
+      "label": "Turbo: Dev All",
+      "type": "npm",
+      "script": "dev",
       "group": {
         "kind": "build",
         "isDefault": true
       },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Turbo: Dev API",
+      "type": "shell",
+      "command": "turbo run dev --filter=@sync-erp/api",
+      "presentation": {
+        "group": "dev",
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Turbo: Dev Web",
+      "type": "shell",
+      "command": "turbo run dev --filter=@sync-erp/web",
+      "presentation": {
+        "group": "dev",
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Turbo: Dev Bot",
+      "type": "shell",
+      "command": "turbo run dev --filter=@sync-erp/bot",
+      "presentation": {
+        "group": "dev",
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Turbo: Build All",
+      "type": "npm",
+      "script": "build",
+      "group": "build",
       "presentation": {
         "reveal": "always",
         "panel": "shared"
@@ -16,23 +61,34 @@
       "problemMatcher": "$tsc"
     },
     {
-      "label": "Dev: Start All",
-      "type": "shell",
-      "command": "npm run dev",
+      "label": "Turbo: Lint",
+      "type": "npm",
+      "script": "lint",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "Turbo: Test",
+      "type": "npm",
+      "script": "test",
       "group": {
-        "kind": "build",
+        "kind": "test",
         "isDefault": true
       },
       "presentation": {
         "reveal": "always",
-        "panel": "new"
+        "panel": "shared"
       },
       "problemMatcher": []
     },
     {
       "label": "TypeScript: Watch",
-      "type": "shell",
-      "command": "npm run typecheck:watch",
+      "type": "npm",
+      "script": "typecheck:watch",
       "group": {
         "kind": "build",
         "isDefault": true
@@ -45,163 +101,55 @@
       "problemMatcher": "$tsc-watch"
     },
     {
-      "label": "Dev: Start API",
-      "type": "shell",
-      "command": "npm run dev:api",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      },
+      "label": "DB: Generate",
+      "type": "npm",
+      "script": "db:generate",
       "problemMatcher": []
     },
     {
-      "label": "Dev: Start Web",
-      "type": "shell",
-      "command": "npm run dev:web",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      },
+      "label": "DB: Migrate",
+      "type": "npm",
+      "script": "db:migrate",
       "problemMatcher": []
     },
     {
-      "label": "TypeScript: Check",
-      "type": "shell",
-      "command": "npx tsc --noEmit",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": "$tsc"
-    },
-    {
-      "label": "Build: Shared Package",
-      "type": "shell",
-      "command": "npm run build",
-      "options": {
-        "cwd": "${workspaceFolder}/packages/shared"
-      },
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": "$tsc"
-    },
-    {
-      "label": "Test: Run All",
-      "type": "shell",
-      "command": "npm run test",
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Lint: All",
-      "type": "shell",
-      "command": "npm run lint",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": ["$eslint-stylish"]
-    },
-    {
-      "label": "DB: Generate Prisma Client",
-      "type": "shell",
-      "command": "npm run db:generate",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "DB: Run Migrations",
-      "type": "shell",
-      "command": "npm run db:migrate",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "DB: Push Schema",
-      "type": "shell",
-      "command": "npm run db:push",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
+      "label": "DB: Push",
+      "type": "npm",
+      "script": "db:push",
       "problemMatcher": []
     },
     {
       "label": "DB: Seed (Dev)",
-      "type": "shell",
-      "command": "npm run db:seed:dev",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
+      "type": "npm",
+      "script": "db:seed:dev",
       "problemMatcher": []
     },
     {
       "label": "DB: Seed (Prod)",
-      "type": "shell",
-      "command": "npm run db:seed:prod",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
+      "type": "npm",
+      "script": "db:seed:prod",
       "problemMatcher": []
     },
     {
       "label": "DB: Reset",
-      "type": "shell",
-      "command": "npm run db:reset",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
+      "type": "npm",
+      "script": "db:reset",
       "problemMatcher": []
     },
     {
       "label": "DB: Studio",
-      "type": "shell",
-      "command": "npm run db:studio",
-      "group": "build",
+      "type": "npm",
+      "script": "db:studio",
       "presentation": {
-        "reveal": "always",
         "panel": "dedicated"
       },
+      "isBackground": true,
       "problemMatcher": []
     },
     {
       "label": "Clean: All",
-      "type": "shell",
-      "command": "npm run clean",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
+      "type": "npm",
+      "script": "clean",
       "problemMatcher": []
     }
   ]
