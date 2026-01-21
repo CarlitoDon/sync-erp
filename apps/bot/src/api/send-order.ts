@@ -7,6 +7,7 @@ import {
   isValidIndonesianNumber,
 } from '../utils/phone';
 import { trpc } from '../lib/trpc';
+import { getUrlInfo } from '@whiskeysockets/baileys';
 
 // Type helper for error handling
 function getErrorMessage(error: unknown): string {
@@ -110,8 +111,29 @@ export const sendOrder = async (req: Request, res: Response) => {
 
     const message = formatOrderMessage(payload);
 
+    // Generate explicit link preview for orderUrl if available
+    let linkPreview = undefined;
+    if (payload.orderUrl) {
+      try {
+        console.log(
+          `[SendOrder] Generating link preview for: ${payload.orderUrl}`
+        );
+        linkPreview = await getUrlInfo(payload.orderUrl);
+        console.log(
+          `[SendOrder] Link preview generated successfully`
+        );
+      } catch (previewErr) {
+        console.warn(
+          '[SendOrder] Failed to generate link preview:',
+          previewErr
+        );
+        // Continue without preview
+      }
+    }
+
     const response = await sock.sendMessage(targetNumber, {
       text: message,
+      ...(linkPreview && { linkPreview }),
     });
 
     // eslint-disable-next-line no-console

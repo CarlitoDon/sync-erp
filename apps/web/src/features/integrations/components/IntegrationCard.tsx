@@ -16,13 +16,16 @@ interface IntegrationCardProps {
     description: string;
     icon: string;
     isInstalled: boolean;
-    installation: any;
+    installation: { id: string } | null;
   };
   onInstall: (appId: string) => void;
   isInstalling: boolean;
 }
 
-const ICONS: Record<string, any> = {
+const ICONS: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   CubeIcon,
   SpeakerWaveIcon,
   ComputerDesktopIcon,
@@ -60,7 +63,7 @@ export function IntegrationCard({
       </p>
 
       <div className="mt-auto">
-        {app.isInstalled ? (
+        {app.isInstalled && app.installation ? (
           <Link to={`/integrations/${app.installation.id}`}>
             <Button variant="outline" className="w-full">
               Configure

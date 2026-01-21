@@ -67,40 +67,49 @@ export default function Shipments() {
                 </td>
               </tr>
             ) : (
-              shipments.map((shipment: any) => (
-                <tr key={shipment.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-mono text-sm">
-                    <Link
-                      to={`/shipments/${shipment.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {shipment.number}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4">
-                    {shipment.order ? (
+              shipments.map(
+                (shipment: {
+                  id: string;
+                  number: string;
+                  orderId: string;
+                  date: Date;
+                  status: string;
+                  order?: { orderNumber: string | null } | null;
+                }) => (
+                  <tr key={shipment.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-mono text-sm">
                       <Link
-                        to={`/sales-orders/${shipment.orderId}`}
+                        to={`/shipments/${shipment.id}`}
                         className="text-blue-600 hover:underline"
                       >
-                        {shipment.order.orderNumber}
+                        {shipment.number}
                       </Link>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {formatDate(shipment.date)}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(shipment.status)}`}
-                    >
-                      {shipment.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td className="px-6 py-4">
+                      {shipment.order ? (
+                        <Link
+                          to={`/sales-orders/${shipment.orderId}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {shipment.order.orderNumber}
+                        </Link>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">
+                      {formatDate(shipment.date)}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(shipment.status)}`}
+                      >
+                        {shipment.status}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              )
             )}
           </tbody>
         </table>

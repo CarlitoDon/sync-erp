@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently --kill-others -n \"api,web,bot\" -c \"red,blue,green\" \"npm run dev --workspace=@sync-erp/api\" \"npm run dev --workspace=@sync-erp/web\" \"npm run dev --workspace=@sync-erp/bot\"",
+    "dev": "turbo run dev",
     "build": "turbo run build",
     "build:api": "turbo run build --filter=@sync-erp/api",
     "build:web": "turbo run build --filter=@sync-erp/web",
@@ -51,7 +51,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "knip": "^5.0.0",
     "prettier": "^3.2.0",
-    "turbo": "^2.6.3",
+    "turbo": "^2.7.5",
     "typescript": "^5.9.3"
   },
   "dependencies": {

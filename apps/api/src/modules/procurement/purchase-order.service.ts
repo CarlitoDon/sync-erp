@@ -45,6 +45,33 @@ export class PurchaseOrderService {
     shape?: BusinessShape,
     userId?: string
   ): Promise<Order> {
+    // Validation: Items must not be empty
+    if (!data.items || data.items.length === 0) {
+      throw new DomainError(
+        'Order must have at least one item',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    // Validation: Check each item for valid quantity and price
+    for (const item of data.items) {
+      if (item.quantity <= 0) {
+        throw new DomainError(
+          'Item quantity must be positive',
+          400,
+          DomainErrorCodes.INVALID_INPUT
+        );
+      }
+      if (item.price <= 0) {
+        throw new DomainError(
+          'Item price must be positive',
+          400,
+          DomainErrorCodes.INVALID_INPUT
+        );
+      }
+    }
+
     // Policy check: SERVICE companies cannot purchase physical goods
     // Only enforce if shape is provided and items contain physical products
     if (shape && data.items.length > 0) {

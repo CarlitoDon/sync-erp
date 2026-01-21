@@ -94,6 +94,7 @@ export class WebhookService {
       const duration = Date.now() - startTime;
 
       if (response.ok) {
+        // eslint-disable-next-line no-console -- Webhook delivery success log
         console.log(
           `[WebhookService] Delivered ${event} to ${apiKey.webhookUrl} in ${duration}ms`
         );

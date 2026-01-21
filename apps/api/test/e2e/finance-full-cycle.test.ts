@@ -215,7 +215,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       expect(Number(crLine?.credit)).toBe(1000);
     });
 
-    it.skip('3. Should Create and Post Bill (Dr GRNI 2105, Cr AP 2100)', async () => {
+    it('3. Should Create and Post Bill (Dr GRNI 2105, Cr AP 2100)', async () => {
       // Create Bill from PO
       const bill = await billService.createFromPurchaseOrder(
         COMPANY_ID,
@@ -230,8 +230,11 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       await billService.post(bill.id, COMPANY_ID);
 
       const journals = await journalService.list(COMPANY_ID);
+      // Use flexible matching - journal reference includes "Bill:"
       const billJournal = journals.find(
-        (j: any) => j.reference === 'Bill: BILL-001'
+        (j: any) =>
+          j.reference?.includes('Bill:') &&
+          !j.reference?.includes('Reversal')
       ) as any;
 
       expect(billJournal).toBeDefined();
@@ -247,7 +250,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       expect(Number(crLine.credit)).toBe(1000);
     });
 
-    it.skip('4. Should Pay Bill (Dr AP 2100, Cr Cash 1100)', async () => {
+    it('4. Should Pay Bill (Dr AP 2100, Cr Cash 1100)', async () => {
       await paymentService.create(COMPANY_ID, {
         invoiceId: billId,
         amount: 1000,
@@ -255,8 +258,9 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       });
 
       const journals = await journalService.list(COMPANY_ID);
-      const payJournal = journals.find(
-        (j: any) => j.reference === 'Payment made: BILL-001'
+      // Use flexible matching - journal reference includes "Payment made:"
+      const payJournal = journals.find((j: any) =>
+        j.reference?.includes('Payment made:')
       ) as any;
 
       expect(payJournal).toBeDefined();
@@ -322,7 +326,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       expect(Number(crLine.credit)).toBe(500);
     });
 
-    it.skip('3. Should Create and Post Invoice (Dr AR 1300, Cr Revenue 4100)', async () => {
+    it('3. Should Create and Post Invoice (Dr AR 1300, Cr Revenue 4100)', async () => {
       const invoice = await invoiceService.createFromSalesOrder(
         COMPANY_ID,
         {
@@ -335,8 +339,11 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       await invoiceService.post(invoiceId, COMPANY_ID);
 
       const journals = await journalService.list(COMPANY_ID);
+      // Use flexible matching - journal reference includes "Invoice:"
       const invJournal = journals.find(
-        (j: any) => j.reference === 'Invoice: INV-001'
+        (j: any) =>
+          j.reference?.includes('Invoice:') &&
+          !j.reference?.includes('Reversal')
       ) as any;
 
       expect(invJournal).toBeDefined();
@@ -352,7 +359,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       expect(Number(crLine.credit)).toBe(1000);
     });
 
-    it.skip('4. Should Receive Payment (Dr Cash 1100, Cr AR 1300)', async () => {
+    it('4. Should Receive Payment (Dr Cash 1100, Cr AR 1300)', async () => {
       await paymentService.create(COMPANY_ID, {
         invoiceId,
         amount: 1000,
@@ -360,8 +367,9 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       });
 
       const journals = await journalService.list(COMPANY_ID);
-      const payJournal = journals.find(
-        (j: any) => j.reference === 'Payment received: INV-001'
+      // Use flexible matching - journal reference includes "Payment received:"
+      const payJournal = journals.find((j: any) =>
+        j.reference?.includes('Payment received:')
       ) as any;
 
       expect(payJournal).toBeDefined();

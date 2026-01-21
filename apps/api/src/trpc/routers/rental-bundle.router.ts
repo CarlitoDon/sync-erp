@@ -188,9 +188,6 @@ export const rentalBundleRouter = router({
       })
     )
     .query(async ({ input }) => {
-      console.log(
-        `[DEBUG findByExternalId] Looking for companyId=${input.companyId}, externalId=${input.externalId}`
-      );
       const result = await prisma.rentalBundle.findUnique({
         where: {
           companyId_externalId: {
@@ -200,7 +197,6 @@ export const rentalBundleRouter = router({
         },
         include: { components: true },
       });
-      console.log(`[DEBUG findByExternalId] Result:`, result);
       return result;
     }),
 

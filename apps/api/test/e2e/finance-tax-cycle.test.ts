@@ -242,24 +242,32 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     expect(Number(crTax?.credit)).toBe(110000);
   });
 
-  it.skip('Flow 3: Sales Return (COGS Reversal)', async () => {
-    // 1. Ship Sales Order items first (to create Cost)
-    // Find the SO from previous test
-    const orders = await salesOrderService.list(COMPANY_ID);
-    const so = orders.find((o) => o.orderNumber?.startsWith('SO-')); // Only 1 so far
-    if (!so) throw new Error('SO missing');
+  it('Flow 3: Sales Return (COGS Reversal)', async () => {
+    // Create a fresh SO for this test (self-contained)
+    const order = await salesOrderService.create(COMPANY_ID, {
+      partnerId: customerId,
+      type: 'SALES',
+      items: [{ productId, quantity: 2, price: 200000 }],
+      taxRate: 11,
+    });
 
-    await salesOrderService.ship(COMPANY_ID, so.id);
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { status: 'CONFIRMED' },
+    });
+
+    // 1. Ship Sales Order items first (creates COGS journal)
+    await salesOrderService.ship(COMPANY_ID, order.id);
 
     // 2. Return 1 item
-    /* await salesOrderService.returnOrder(COMPANY_ID, so.id, [
+    await salesOrderService.returnOrder(COMPANY_ID, order.id, [
       { productId, quantity: 1 },
-    ]); */
+    ]);
 
-    // 3. Verify Return Journal
+    // 3. Verify Return Journal - look for RET: prefix
     const journals = await journalService.list(COMPANY_ID);
     const returnJournal = journals.find((j: JournalEntry) =>
-      j.reference?.includes(`Return for order ${so.orderNumber}`)
+      j.reference?.startsWith('RET:')
     ) as any;
 
     // Dr Inventory, Cr COGS

@@ -347,7 +347,7 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
     });
 
     // GAP-2 Test: Block receive for UPFRONT PO without deposit (matching O2C)
-    it('Should block receive for UPFRONT PO without deposit', async () => {
+    it('Should block receive for UPFRONT PO without paid DP Bill', async () => {
       const order = await procurementService.create(COMPANY_ID, {
         partnerId,
         type: 'PURCHASE',
@@ -360,15 +360,16 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
         ACTOR_ID
       );
 
-      // Try to create GRN without paying - should fail
+      // Create DP Bill manually (Feature 041: manual DP Bill creation)
+      await billService.createDownPaymentBill(COMPANY_ID, order.id);
+
+      // Try to create GRN without paying DP Bill - should fail
       await expect(
         inventoryService.createGRN(COMPANY_ID, {
           purchaseOrderId: order.id,
           items: [{ productId, quantity: 1 }],
         })
-      ).rejects.toThrow(
-        /DP Bill must be paid|upfront payment required/i
-      );
+      ).rejects.toThrow(/DP Bill must be paid/i);
     });
 
     it('Should prevent overpayment (balance cannot be negative)', async () => {
