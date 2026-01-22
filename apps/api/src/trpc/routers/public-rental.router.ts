@@ -750,6 +750,71 @@ export const publicRentalRouter = router({
     }),
 
   /**
+   * Update payment method on an existing order
+   * Called when customer selects payment method at checkout
+   * This allows order to be created without paymentMethod, then set later
+   */
+  updatePaymentMethod: apiKeyProcedure
+    .input(
+      z.object({
+        token: z.string().uuid(),
+        paymentMethod: z.enum(['qris', 'transfer', 'gopay']),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // Find order by token
+      const order = await prisma.rentalOrder.findFirst({
+        where: { publicToken: input.token },
+        select: {
+          id: true,
+          orderNumber: true,
+          status: true,
+          rentalPaymentStatus: true,
+        },
+      });
+
+      if (!order) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Order not found',
+        });
+      }
+
+      // Only allow update if order is still in DRAFT status and payment is PENDING
+      if (order.status !== RentalOrderStatus.DRAFT) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Cannot update payment method. Order status: ${order.status}`,
+        });
+      }
+
+      if (order.rentalPaymentStatus !== RentalPaymentStatus.PENDING) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Cannot update payment method. Payment status: ${order.rentalPaymentStatus}`,
+        });
+      }
+
+      // Update payment method
+      const updatedOrder = await prisma.rentalOrder.update({
+        where: { id: order.id },
+        data: {
+          paymentMethod: input.paymentMethod,
+        },
+        select: {
+          orderNumber: true,
+          paymentMethod: true,
+        },
+      });
+
+      return {
+        success: true,
+        orderNumber: updatedOrder.orderNumber,
+        paymentMethod: updatedOrder.paymentMethod,
+      };
+    }),
+
+  /**
    * Confirm payment - called when customer clicks "I've paid"
    * Updates order payment status to AWAITING_CONFIRM
    */
@@ -757,7 +822,7 @@ export const publicRentalRouter = router({
     .input(
       z.object({
         token: z.string().uuid(),
-        paymentMethod: z.enum(['qris', 'transfer']),
+        paymentMethod: z.enum(['qris', 'transfer', 'gopay']),
         reference: z.string().optional(),
       })
     )

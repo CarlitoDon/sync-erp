@@ -33,7 +33,7 @@ export const OrderPayloadSchema = z.object({
   endDate: z.string(), // ISO date string
   duration: z.number().int().positive(),
   deliveryFee: z.number().nonnegative(),
-  paymentMethod: z.enum(['qris', 'transfer']).optional(),
+  paymentMethod: z.enum(['qris', 'transfer', 'gopay']).optional(),
   notes: z.string().optional(),
   volumeDiscountAmount: z.number().optional(),
   volumeDiscountLabel: z.string().optional(),
