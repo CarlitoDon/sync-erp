@@ -34,7 +34,8 @@ jobs:
         env:
           DATABASE_URL: ${{ github.ref == 'refs/heads/dev' && secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
 
-      - name: Deploy to Railway
-        run: railway up
+      - name: Skip Railway deploy (handled by Railway)
+        run: |
+          echo "Skipping 'railway up' — Railway auto-deploy handles this."
         env:
           RAILWAY_TOKEN: ${{ github.ref == 'refs/heads/dev' && secrets.RAILWAY_TOKEN_STAGING || secrets.RAILWAY_TOKEN }}
