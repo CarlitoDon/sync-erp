@@ -26,8 +26,10 @@ jobs:
 
       - run: npm run build --workspace=@sync-erp/bot
 
-      - name: Skip Railway deploy (handled by Railway)
-        run: |
-          echo "Skipping 'railway up' — Railway auto-deploy handles this."
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up
         env:
           RAILWAY_TOKEN: ${{ github.ref == 'refs/heads/dev' && secrets.RAILWAY_TOKEN_STAGING || secrets.RAILWAY_TOKEN }}
