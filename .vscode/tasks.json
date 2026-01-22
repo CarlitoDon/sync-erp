@@ -12,37 +12,24 @@
       "presentation": {
         "reveal": "always"
       },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
       "label": "Turbo: Dev API",
       "type": "shell",
       "command": "turbo run dev --filter=@sync-erp/api",
-      "presentation": {
-        "group": "dev"
-      },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
       "label": "Turbo: Dev Web",
       "type": "shell",
       "command": "turbo run dev --filter=@sync-erp/web",
-      "presentation": {
-        "group": "dev"
-      },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
       "label": "Turbo: Dev Bot",
       "type": "shell",
       "command": "turbo run dev --filter=@sync-erp/bot",
-      "presentation": {
-        "group": "dev"
-      },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
@@ -86,7 +73,6 @@
         "kind": "build",
         "isDefault": true
       },
-      "isBackground": true,
       "presentation": {
         "reveal": "always"
       },
@@ -135,7 +121,6 @@
       "presentation": {
         "panel": "dedicated"
       },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
