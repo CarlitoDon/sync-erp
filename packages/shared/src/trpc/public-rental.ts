@@ -83,7 +83,7 @@ export const PublicRentalGetByTokenInput = z.object({
 
 export const PublicRentalConfirmPaymentInput = z.object({
   token: z.string().uuid(),
-  paymentMethod: z.enum(['qris', 'transfer']),
+  paymentMethod: z.enum(['qris', 'transfer', 'gopay']),
   reference: z.string().optional(),
 });
 

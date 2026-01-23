@@ -34,7 +34,10 @@ jobs:
         env:
           DATABASE_URL: ${{ github.ref == 'refs/heads/dev' && secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
 
-      - name: Deploy to Railway
-        run: railway up
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway (api service)
+        run: railway up --service api
         env:
           RAILWAY_TOKEN: ${{ github.ref == 'refs/heads/dev' && secrets.RAILWAY_TOKEN_STAGING || secrets.RAILWAY_TOKEN }}

@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Turbo: Dev All",
+      "label": "Turbo: Dev All - SE",
       "type": "npm",
       "script": "dev",
       "group": {
@@ -10,43 +10,26 @@
         "isDefault": true
       },
       "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
+        "reveal": "always"
       },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
       "label": "Turbo: Dev API",
       "type": "shell",
       "command": "turbo run dev --filter=@sync-erp/api",
-      "presentation": {
-        "group": "dev",
-        "panel": "dedicated"
-      },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
       "label": "Turbo: Dev Web",
       "type": "shell",
       "command": "turbo run dev --filter=@sync-erp/web",
-      "presentation": {
-        "group": "dev",
-        "panel": "dedicated"
-      },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
       "label": "Turbo: Dev Bot",
       "type": "shell",
       "command": "turbo run dev --filter=@sync-erp/bot",
-      "presentation": {
-        "group": "dev",
-        "panel": "dedicated"
-      },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
@@ -55,8 +38,7 @@
       "script": "build",
       "group": "build",
       "presentation": {
-        "reveal": "always",
-        "panel": "shared"
+        "reveal": "always"
       },
       "problemMatcher": "$tsc"
     },
@@ -66,8 +48,7 @@
       "script": "lint",
       "group": "test",
       "presentation": {
-        "reveal": "always",
-        "panel": "shared"
+        "reveal": "always"
       },
       "problemMatcher": ["$eslint-stylish"]
     },
@@ -80,8 +61,7 @@
         "isDefault": true
       },
       "presentation": {
-        "reveal": "always",
-        "panel": "shared"
+        "reveal": "always"
       },
       "problemMatcher": []
     },
@@ -93,10 +73,8 @@
         "kind": "build",
         "isDefault": true
       },
-      "isBackground": true,
       "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
+        "reveal": "always"
       },
       "problemMatcher": "$tsc-watch"
     },
@@ -143,7 +121,6 @@
       "presentation": {
         "panel": "dedicated"
       },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
