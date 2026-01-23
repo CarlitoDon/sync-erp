@@ -26,6 +26,10 @@ jobs:
 
       - run: npm run build --workspace=@sync-erp/bot
 
-      - run: railway up
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway (bot service)
+        run: railway up --service bot
         env:
           RAILWAY_TOKEN: ${{ github.ref == 'refs/heads/dev' && secrets.RAILWAY_TOKEN_STAGING || secrets.RAILWAY_TOKEN }}
