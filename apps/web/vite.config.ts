@@ -9,9 +9,29 @@ import tailwindcss from '@tailwindcss/vite';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
-  // Load env file based on `mode` in the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
-  const env = loadEnv(mode, process.cwd(), '');
+  // Load env file based on mode
+  // Use VERCEL_ENV (auto-set by Vercel: production/preview/development) for Vercel deployments
+  // Fall back to Vite mode for local development
+  const vercelEnv = process.env.VERCEL_ENV; // 'production' | 'preview' | 'development' | undefined
+
+  // Determine which .env file to load
+  // - On Vercel production: use 'production'
+  // - On Vercel preview: use 'staging' (our .env.staging maps to preview)
+  // - Local: use Vite mode
+  let envMode = mode;
+  if (vercelEnv === 'production') {
+    envMode = 'production';
+  } else if (vercelEnv === 'preview') {
+    envMode = 'staging'; // Map preview to staging
+  }
+
+  console.log(
+    '[Vite Config] VERCEL_ENV:',
+    vercelEnv || 'NOT SET (local)'
+  );
+  console.log('[Vite Config] Resolved envMode:', envMode);
+
+  const env = loadEnv(envMode, process.cwd(), '');
 
   return {
     plugins: [react(), tailwindcss()],
