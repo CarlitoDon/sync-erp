@@ -1,3 +1,8 @@
+---
+trigger: model_decision
+description: berisi instruksi dalam mengerjakan pengembangan aplikasi
+---
+
 # AI Agent Instructions for Sync ERP
 
 ## Architecture Overview
