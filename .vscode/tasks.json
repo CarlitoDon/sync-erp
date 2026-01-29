@@ -9,31 +9,48 @@
         "kind": "build",
         "isDefault": true
       },
-      "presentation": {
-        "reveal": "always"
+      "problemMatcher": [],
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest"
       },
-      "problemMatcher": []
+      "isBackground": true
     },
     {
       "label": "Turbo: Dev API",
       "type": "shell",
       "command": "turbo run dev --filter=@sync-erp/api",
-      "problemMatcher": []
+      "problemMatcher": [],
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest"
+      },
+      "isBackground": true
     },
     {
-      "label": "Turbo: Dev Web",
+      "label": "Turbo: Dev Web - SE",
       "type": "shell",
       "command": "turbo run dev --filter=@sync-erp/web",
-      "problemMatcher": []
+      "problemMatcher": [],
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest"
+      },
+      "isBackground": true
     },
     {
       "label": "Turbo: Dev Bot",
       "type": "shell",
       "command": "turbo run dev --filter=@sync-erp/bot",
-      "problemMatcher": []
+      "problemMatcher": [],
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest"
+      },
+      "isBackground": true
     },
     {
-      "label": "Turbo: Build All",
+      "label": "Turbo: Build All - SE",
       "type": "npm",
       "script": "build",
       "group": "build",
@@ -43,7 +60,7 @@
       "problemMatcher": "$tsc"
     },
     {
-      "label": "Turbo: Lint",
+      "label": "Turbo: Lint - SE",
       "type": "npm",
       "script": "lint",
       "group": "test",
@@ -66,7 +83,7 @@
       "problemMatcher": []
     },
     {
-      "label": "TypeScript: Watch",
+      "label": "TypeScript: Watch - SE",
       "type": "npm",
       "script": "typecheck:watch",
       "group": {
@@ -76,7 +93,12 @@
       "presentation": {
         "reveal": "always"
       },
-      "problemMatcher": "$tsc-watch"
+      "problemMatcher": "$tsc-watch",
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest"
+      },
+      "isBackground": true
     },
     {
       "label": "DB: Generate",
@@ -121,7 +143,12 @@
       "presentation": {
         "panel": "dedicated"
       },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "runOptions": {
+        "instanceLimit": 1,
+        "instancePolicy": "terminateOldest"
+      },
+      "isBackground": true
     },
     {
       "label": "Clean: All",

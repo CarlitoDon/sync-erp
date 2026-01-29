@@ -15,6 +15,13 @@ export const formatDate = (date: string | Date) => {
   });
 };
 
+export const formatTime = (date: string | Date) => {
+  return new Date(date).toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 export const formatDateTime = (date: string | Date) => {
   const d = new Date(date);
   const dateStr = d.toLocaleDateString('id-ID', {
