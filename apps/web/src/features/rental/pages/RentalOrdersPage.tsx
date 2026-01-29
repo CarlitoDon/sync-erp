@@ -9,7 +9,11 @@ import {
 import { LoadingState, NoCompanySelected } from '@/components/ui';
 import { Card } from '@/components/ui/Card';
 import { apiAction } from '@/hooks/useApiAction';
-import { formatCurrency, formatDate } from '@/utils/format';
+import {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+} from '@/utils/format';
 import {
   PlusIcon,
   ClipboardDocumentListIcon,
@@ -274,6 +278,9 @@ export default function RentalOrdersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Order #
                 </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                  Created At
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Customer
                 </th>
@@ -323,6 +330,11 @@ export default function RentalOrdersPage() {
                         </span>
                       )}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-center text-gray-500 text-sm">
+                    {order.createdAt
+                      ? formatDateTime(new Date(order.createdAt))
+                      : '-'}
                   </td>
                   <td className="px-6 py-4 text-gray-900">
                     {order.partner?.name || '-'}

@@ -189,25 +189,73 @@ export default function RentalOrderDetail() {
                 <CardTitle>Rental Period</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                    <p className="text-xs text-blue-600 uppercase font-semibold mb-1">
-                      Start Date
-                    </p>
-                    <p className="font-medium text-gray-900">
-                      {formatDateTime(order.rentalStartDate)}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                    <p className="text-xs text-purple-600 uppercase font-semibold mb-1">
-                      End Date
-                    </p>
-                    <p className="font-medium text-gray-900">
-                      {formatDateTime(order.rentalEndDate)}
-                    </p>
-                  </div>
+                <div
+                  className="grid gap-4"
+                  style={{ gridTemplateColumns: '2fr 2fr 1fr' }}
+                >
+                  {/* Start Date */}
+                  {(() => {
+                    const startDate = new Date(order.rentalStartDate);
+                    const dayName = startDate.toLocaleDateString(
+                      'id-ID',
+                      { weekday: 'long' }
+                    );
+                    return (
+                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 flex flex-col justify-center items-center text-center">
+                        <p className="text-xs text-blue-600 uppercase font-semibold mb-1">
+                          Start Date
+                        </p>
+                        <p className="font-medium text-gray-900">
+                          {dayName}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {formatDateTime(order.rentalStartDate)}
+                        </p>
+                      </div>
+                    );
+                  })()}
+                  {/* End Date */}
+                  {(() => {
+                    const endDate = new Date(order.rentalEndDate);
+                    const dayName = endDate.toLocaleDateString(
+                      'id-ID',
+                      { weekday: 'long' }
+                    );
+                    return (
+                      <div className="p-3 bg-purple-50 rounded-lg border border-purple-100 flex flex-col justify-center items-center text-center">
+                        <p className="text-xs text-purple-600 uppercase font-semibold mb-1">
+                          End Date
+                        </p>
+                        <p className="font-medium text-gray-900">
+                          {dayName}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {formatDateTime(order.rentalEndDate)}
+                        </p>
+                      </div>
+                    );
+                  })()}
+                  {/* Total Days */}
+                  {(() => {
+                    const start = new Date(order.rentalStartDate);
+                    const end = new Date(order.rentalEndDate);
+                    const durationDays = Math.ceil(
+                      (end.getTime() - start.getTime()) /
+                        (1000 * 60 * 60 * 24)
+                    );
+                    return (
+                      <div className="p-3 bg-green-50 rounded-lg border border-green-100 flex flex-col justify-center items-center">
+                        <p className="text-xs text-green-600 uppercase font-semibold mb-1">
+                          Durasi
+                        </p>
+                        <p className="font-bold text-xl text-green-700">
+                          {durationDays}
+                        </p>
+                        <p className="text-xs text-green-600">hari</p>
+                      </div>
+                    );
+                  })()}
                 </div>
-                {/* Progress Bar could go here */}
               </CardContent>
             </Card>
 
@@ -224,8 +272,11 @@ export default function RentalOrderDetail() {
                         <th className="px-4 py-3 text-left font-medium text-gray-500">
                           Product
                         </th>
-                        <th className="px-4 py-3 text-right font-medium text-gray-500">
+                        <th className="px-4 py-3 text-center font-medium text-gray-500">
                           Qty
+                        </th>
+                        <th className="px-4 py-3 text-center font-medium text-gray-500">
+                          Day(s)
                         </th>
                         <th className="px-4 py-3 text-right font-medium text-gray-500">
                           Price
@@ -236,43 +287,55 @@ export default function RentalOrderDetail() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {order.items.map((item) => (
-                        <tr key={item.id}>
-                          <td className="px-4 py-3">
-                            <div>
-                              <p className="font-medium text-gray-900">
-                                {item.rentalBundle?.name ||
-                                  item.rentalItem?.product?.name ||
-                                  'Unknown Product'}
-                              </p>
-                              {item.rentalBundle && (
-                                <p className="text-sm text-gray-500">
-                                  {item.rentalBundle.components
-                                    ?.map(
-                                      (c) =>
-                                        c.rentalItem?.product?.name
-                                    )
-                                    .filter(Boolean)
-                                    .join(', ')}
+                      {order.items.map((item) => {
+                        // Calculate days for this order
+                        const start = new Date(order.rentalStartDate);
+                        const end = new Date(order.rentalEndDate);
+                        const durationDays = Math.ceil(
+                          (end.getTime() - start.getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        );
+                        return (
+                          <tr key={item.id}>
+                            <td className="px-4 py-3">
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  {item.rentalBundle?.name ||
+                                    item.rentalItem?.product?.name ||
+                                    'Unknown Product'}
                                 </p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {item.quantity}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {formatCurrency(Number(item.unitPrice))}
-                          </td>
-                          <td className="px-4 py-3 text-right font-medium">
-                            {formatCurrency(Number(item.subtotal))}
-                          </td>
-                        </tr>
-                      ))}
+                                {item.rentalBundle && (
+                                  <p className="text-sm text-gray-500">
+                                    {item.rentalBundle.components
+                                      ?.map(
+                                        (c) =>
+                                          c.rentalItem?.product?.name
+                                      )
+                                      .filter(Boolean)
+                                      .join(', ')}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {item.quantity}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {durationDays}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {formatCurrency(Number(item.unitPrice))}
+                            </td>
+                            <td className="px-4 py-3 text-right font-medium">
+                              {formatCurrency(Number(item.subtotal))}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                     <tfoot className="bg-gray-50 font-medium">
                       <tr>
-                        <td className="px-4 py-3" colSpan={3}>
+                        <td className="px-4 py-3" colSpan={4}>
                           Subtotal
                         </td>
                         <td className="px-4 py-3 text-right">
