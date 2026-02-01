@@ -57,8 +57,15 @@ const getCorsOrigin = ():
       return;
     }
 
+    // Debug logging for CORS
+    console.log(`[CORS] Checking origin: ${origin}`);
+
     // Allow Vercel deployments (production and preview)
-    if (origin.endsWith('.vercel.app')) {
+    if (
+      origin &&
+      (origin.endsWith('.vercel.app') ||
+        origin === 'https://sync-erp.vercel.app')
+    ) {
       callback(null, true);
       return;
     }
