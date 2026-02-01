@@ -20,5 +20,6 @@ export default defineConfig({
     'zod',
     '@trpc/server',
     '@prisma/client',
+    '@prisma/adapter-pg',
   ],
 });
