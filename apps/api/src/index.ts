@@ -119,8 +119,11 @@ app.use((_req, res) => {
   });
 });
 
-const server = app.listen(Number(PORT), '0.0.0.0', () => {
-  console.warn(`🚀 Sync ERP API running on http://0.0.0.0:${PORT}`);
+const server = app.listen(Number(PORT), () => {
+  // eslint-disable-next-line no-console
+  console.log('PORT env:', process.env.PORT);
+  // eslint-disable-next-line no-console
+  console.warn(`🚀 Sync ERP API running on port ${PORT}`);
 });
 
 // Graceful shutdown to prevent zombie processes
