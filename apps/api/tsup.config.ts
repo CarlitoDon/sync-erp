@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
-  target: 'node22',
+  target: 'node18',
   clean: true,
   // Bundle workspace packages
   noExternal: ['@sync-erp/database', '@sync-erp/shared'],
@@ -19,5 +19,6 @@ export default defineConfig({
     'superjson',
     'zod',
     '@trpc/server',
+    '@prisma/client',
   ],
 });
