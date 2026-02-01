@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/client"
+  provider   = "prisma-client"
+  output     = "../src/generated/client"
+  engineType = "binary"
 }
 
 generator zod {
