@@ -70,10 +70,10 @@ jobs:
           ssh-add ~/.ssh/id_ed25519
 
           # Upload files
-          rsync -avz --delete -e "ssh -p 65002" deploy/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/apps/api/
+          rsync -avz --delete -e "ssh -p 65002 -o StrictHostKeyChecking=no" deploy/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/apps/api/
 
           # Install dependencies and restart
-          ssh -p 65002 ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} << 'EOF'
+          ssh -p 65002 -o StrictHostKeyChecking=no ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} << 'EOF'
             cd ~/public_html/apps/api
             npm install --production
             npx prisma generate
