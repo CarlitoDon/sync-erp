@@ -34,7 +34,18 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(envMode, process.cwd(), '');
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react({
+        jsxRuntime: 'automatic',
+        babel: {
+          // Force production JSX transform
+          plugins: mode === 'production' ? [] : undefined,
+        },
+        // Explicitly control development mode
+        jsxDev: mode !== 'production',
+      }),
+      tailwindcss(),
+    ],
     define: {
       // Polyfill process.env for shared code compatibility
       'process.env.SYNC_ERP_API_URL': JSON.stringify(
