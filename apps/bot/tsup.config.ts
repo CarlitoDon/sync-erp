@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
-  target: 'node22',
+  target: 'node18',
   clean: true,
   // Bundle workspace packages
   noExternal: ['@sync-erp/shared'],
@@ -18,5 +18,6 @@ export default defineConfig({
     'cors',
     'body-parser',
     'zod',
+    '@prisma/client',
   ],
 });
