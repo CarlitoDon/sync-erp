@@ -37,12 +37,6 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react({
         jsxRuntime: 'automatic',
-        babel: {
-          // Force production JSX transform
-          plugins: mode === 'production' ? [] : undefined,
-        },
-        // Explicitly control development mode
-        jsxDev: mode !== 'production',
       }),
       tailwindcss(),
     ],
@@ -54,7 +48,7 @@ export default defineConfig(({ mode }) => {
       'process.env.SYNC_ERP_API_SECRET': JSON.stringify(
         env.SYNC_ERP_API_SECRET
       ),
-      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV || mode),
+      'process.env.NODE_ENV': JSON.stringify(mode),
     },
     resolve: {
       alias: {
