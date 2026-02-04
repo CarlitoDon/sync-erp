@@ -38,11 +38,9 @@ export default defineConfig(({ mode }) => {
       react({
         jsxRuntime: 'automatic',
         babel: {
-          // Force production JSX transform
+          // Force production JSX transform by not including dev plugins
           plugins: mode === 'production' ? [] : undefined,
         },
-        // Explicitly control development mode
-        jsxDev: mode !== 'production',
       }),
       tailwindcss(),
     ],
