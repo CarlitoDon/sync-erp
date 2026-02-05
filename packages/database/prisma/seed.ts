@@ -566,7 +566,7 @@ async function main() {
             config: {
               webhookUrl: isDevelopment
                 ? 'http://localhost:3002/api/webhooks/sync-erp'
-                : 'https://proxy.santimebelgodean.com/api/webhooks/order-confirmation',
+                : 'https://proxy.santiliving.com/api/webhooks/order-confirmation',
             },
           },
         });
@@ -591,7 +591,7 @@ async function main() {
               integrationId: integration.id, // Link to integration
               webhookUrl: isDevelopment
                 ? 'http://localhost:3002/api/webhooks/sync-erp'
-                : 'https://proxy.santimebelgodean.com/api/webhooks/order-confirmation',
+                : 'https://proxy.santiliving.com/api/webhooks/order-confirmation',
             },
             create: {
               keyHash,
@@ -604,7 +604,7 @@ async function main() {
               permissions: ['rental:read', 'rental:write'],
               webhookUrl: isDevelopment
                 ? 'http://localhost:3002/api/webhooks/sync-erp'
-                : 'https://proxy.santimebelgodean.com/api/webhooks/order-confirmation',
+                : 'https://proxy.santiliving.com/api/webhooks/order-confirmation',
             },
           })
           .catch(async () => {
@@ -639,7 +639,7 @@ async function main() {
                     ],
                     webhookUrl: isDevelopment
                       ? 'http://localhost:3002/api/webhooks/sync-erp'
-                      : 'https://proxy.santimebelgodean.com/api/webhooks/sync-erp',
+                      : 'https://proxy.santiliving.com/api/webhooks/sync-erp',
                     webhookSecret: 'whsec_test_123',
                     rateLimit: 1000,
                   },
