@@ -84,6 +84,7 @@ jobs:
           # Install dependencies (if package.json changed) and restart
           ssh -p 65002 -o StrictHostKeyChecking=no ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} << 'EOF'
             cd ~/public_html/apps/api
+            rm -rf node_modules
             npm install --production
             npx prisma generate
             # Restart via cPanel API or touch restart.txt
