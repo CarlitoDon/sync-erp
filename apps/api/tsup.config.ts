@@ -2,18 +2,15 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.ts'],
-  format: ['cjs'],
+  format: ['esm'],
   target: 'node18',
   clean: true,
-  // Force .js extension for CJS output (Hostinger Node.js expects index.js)
-  outExtension: () => ({ js: '.js' }),
-  // Bundle workspace packages only
-  noExternal: ['@sync-erp/database', '@sync-erp/shared'],
-  // Keep runtime dependencies external - CJS can resolve them from node_modules
-  external: [
-    '@prisma/client',
-    '@prisma/adapter-pg',
-    'pg-native',
-    'bcrypt',
-  ],
+  // ESM needs to bundle everything to avoid Hostinger's symlinked node_modules issues
+  noExternal: [/.*/],
+  // Only truly native modules stay external
+  external: ['@prisma/client/runtime/*', 'pg-native', 'bcrypt'],
+  // Shim import.meta.url for bundled code that tries to use it
+  shims: true,
+  // Allow dynamic imports for Prisma
+  splitting: false,
 });
