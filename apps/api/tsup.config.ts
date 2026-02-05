@@ -8,8 +8,9 @@ export default defineConfig({
   platform: 'node',
   bundle: true,
   splitting: false,
-  // Do NOT use noExternal: [/.*/] - it prevents bundling!
-  // Let tsup bundle by default, only exclude native modules
+  // Force bundle workspace packages (tsup treats them as external by default)
+  noExternal: ['@sync-erp/database', '@sync-erp/shared'],
+  // Keep native modules external
   external: [
     'bcrypt',
     'pg-native',
