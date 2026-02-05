@@ -1,9 +1,8 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Use process.cwd() for bundled CJS output - it runs from api root directory
+const appDir = process.cwd();
 
 // Determine environment and load appropriate .env file
 // Railway sets NODE_ENV=production for ALL environments, so we check HOSTINGER_ENV first
@@ -25,7 +24,7 @@ function getEnvFile(): string {
 }
 
 const envFile = getEnvFile();
-const pkgEnvPath = path.resolve(__dirname, `../${envFile}`);
+const pkgEnvPath = path.resolve(appDir, envFile);
 
 // eslint-disable-next-line no-console -- Startup log for deployment debugging
 console.log(`[API] Loading ${envFile} from ${pkgEnvPath}`);
@@ -34,7 +33,7 @@ let result = dotenv.config({ path: pkgEnvPath });
 
 if (result.error) {
   // Fallback to generic .env if specific file not found
-  const fallbackPath = path.resolve(__dirname, '../.env');
+  const fallbackPath = path.resolve(appDir, '.env');
   // eslint-disable-next-line no-console -- Startup log for deployment debugging
   console.log(`[API] Fallback to ${fallbackPath}`);
   result = dotenv.config({ path: fallbackPath });
