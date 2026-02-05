@@ -54,6 +54,8 @@ jobs:
           mkdir -p deploy/node_modules/@sync-erp/database
           cp -r ../../packages/database/dist deploy/node_modules/@sync-erp/database/
           cp ../../packages/database/package.json deploy/node_modules/@sync-erp/database/
+          # Also copy generated Prisma client (needed for WASM runtime resolution)
+          cp -r ../../packages/database/src/generated deploy/node_modules/@sync-erp/database/
 
       - name: Setup SSH
         run: |
