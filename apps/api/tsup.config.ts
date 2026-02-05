@@ -5,21 +5,13 @@ export default defineConfig({
   format: ['esm'],
   target: 'node18',
   clean: true,
-  // Bundle workspace packages
-  noExternal: ['@sync-erp/database', '@sync-erp/shared'],
+  // Bundle ALL dependencies to avoid ESM resolution issues on Hostinger
+  noExternal: [/.*/],
+  // Only keep native binaries external
   external: [
-    'dotenv',
-    'pg',
-    'bcrypt',
-    'bcryptjs',
-    'express',
-    'cors',
-    'helmet',
-    'cookie-parser',
-    'superjson',
-    'zod',
-    '@trpc/server',
     '@prisma/client',
     '@prisma/adapter-pg',
+    'pg-native',
+    'bcrypt', // native addon
   ],
 });
