@@ -1,12 +1,11 @@
 import * as dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import { resolve } from 'path';
 import { PrismaClient } from './generated/client/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Use process.cwd() for CJS bundle compatibility
+const appDir = process.cwd();
 
 // Determine environment and load appropriate .env file
 // Railway sets NODE_ENV=production for ALL environments, so we check HOSTINGER_ENV first
@@ -28,7 +27,7 @@ function getEnvFile(): string {
 }
 
 const envFile = getEnvFile();
-const pkgEnvPath = resolve(__dirname, `../${envFile}`);
+const pkgEnvPath = resolve(appDir, envFile);
 
 // eslint-disable-next-line no-console
 console.log(`[Database] Loading ${envFile} from ${pkgEnvPath}`);
@@ -37,7 +36,7 @@ let result = dotenv.config({ path: pkgEnvPath });
 
 if (result.error) {
   // Fallback to generic .env if specific file not found
-  const fallbackPath = resolve(__dirname, '../.env');
+  const fallbackPath = resolve(appDir, '.env');
   // eslint-disable-next-line no-console
   console.log(`[Database] Fallback to ${fallbackPath}`);
   result = dotenv.config({ path: fallbackPath });
