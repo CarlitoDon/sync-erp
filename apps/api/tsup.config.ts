@@ -2,16 +2,16 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.ts'],
-  format: ['esm'],
+  format: ['cjs'],
   target: 'node18',
   clean: true,
-  // Bundle ALL dependencies to avoid ESM resolution issues on Hostinger
-  noExternal: [/.*/],
-  // Only keep native binaries external
+  // Bundle workspace packages only
+  noExternal: ['@sync-erp/database', '@sync-erp/shared'],
+  // Keep runtime dependencies external - CJS can resolve them from node_modules
   external: [
     '@prisma/client',
     '@prisma/adapter-pg',
     'pg-native',
-    'bcrypt', // native addon
+    'bcrypt',
   ],
 });
