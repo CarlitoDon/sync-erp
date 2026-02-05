@@ -50,6 +50,11 @@ jobs:
           mkdir -p deploy/prisma
           cp ../../packages/database/prisma/schema.prisma deploy/prisma/
 
+          # Copy @sync-erp/database package to node_modules (since it's externalized)
+          mkdir -p deploy/node_modules/@sync-erp/database
+          cp -r ../../packages/database/dist deploy/node_modules/@sync-erp/database/
+          cp ../../packages/database/package.json deploy/node_modules/@sync-erp/database/
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -91,3 +96,8 @@ jobs:
             # Restart via cPanel API or touch restart.txt
             touch tmp/restart.txt 2>/dev/null || true
           EOF
+
+          # Copy @sync-erp/database to node_modules (after npm install so it won't be deleted)
+          rsync -avz \
+            -e "ssh -p 65002 -o StrictHostKeyChecking=no" \
+            deploy/node_modules/@sync-erp/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/apps/api/node_modules/@sync-erp/

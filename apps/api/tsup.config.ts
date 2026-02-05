@@ -8,10 +8,11 @@ export default defineConfig({
   platform: 'node',
   bundle: true,
   splitting: false,
-  // Force bundle workspace packages (tsup treats them as external by default)
-  noExternal: ['@sync-erp/database', '@sync-erp/shared'],
-  // Keep native modules and Prisma external (Prisma needs runtime files)
+  // Only bundle shared types (no native deps)
+  noExternal: ['@sync-erp/shared'],
+  // Keep Prisma and database external (need proper node_modules resolution)
   external: [
+    '@sync-erp/database',
     '@prisma/client',
     '@prisma/adapter-pg',
     'bcrypt',
