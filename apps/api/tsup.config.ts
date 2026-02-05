@@ -6,10 +6,10 @@ export default defineConfig({
   target: 'node18',
   clean: true,
   platform: 'node',
-  // ESM needs to bundle everything to avoid Hostinger's symlinked node_modules issues
+  // Bundle all dependencies (avoids Hostinger symlink issues)
   noExternal: [/.*/],
-  // Keep native modules external
-  external: ['pg-native', 'bcrypt'],
+  // Native modules MUST be external - use regex to match any import path containing these
+  external: [/bcrypt/, /pg-native/, /node-gyp-build/],
   // Shim import.meta.url for bundled code
   shims: true,
   splitting: false,
