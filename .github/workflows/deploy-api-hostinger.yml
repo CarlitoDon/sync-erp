@@ -2,12 +2,21 @@ name: Deploy API to Hostinger
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - 'apps/api/**'
       - 'packages/database/**'
       - 'packages/shared/**'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
 
 jobs:
   deploy:
@@ -15,6 +24,11 @@ jobs:
     defaults:
       run:
         working-directory: apps/api
+
+    env:
+      # Set deployment target based on branch or manual input
+      DEPLOY_ENV: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+      DEPLOY_PATH: ${{ github.event.inputs.environment == 'production' || github.ref == 'refs/heads/main' && 'apps/api' || 'apps/api-staging' }}
 
     steps:
       - name: Checkout
@@ -25,6 +39,18 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+
+      - name: Set deployment variables
+        id: vars
+        run: |
+          if [[ "${{ env.DEPLOY_ENV }}" == "production" ]]; then
+            echo "deploy_path=apps/api" >> $GITHUB_OUTPUT
+            echo "env_name=production" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_path=apps/api-staging" >> $GITHUB_OUTPUT
+            echo "env_name=staging" >> $GITHUB_OUTPUT
+          fi
+          echo "Deploying to: ${{ env.DEPLOY_ENV }}"
 
       - name: Install dependencies
         run: npm ci
@@ -68,6 +94,7 @@ jobs:
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
           SSH_PASSPHRASE: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
+          DEPLOY_DIR: ${{ steps.vars.outputs.deploy_path }}
         run: |
           eval $(ssh-agent -a $SSH_AUTH_SOCK)
 
@@ -80,18 +107,20 @@ jobs:
 
           ssh-add ~/.ssh/id_ed25519
 
+          echo "Deploying to: ~/public_html/$DEPLOY_DIR"
+
           # Upload files with excludes to prevent deleting config/deps
           rsync -avz --delete \
             --exclude='.htaccess' \
             --exclude='.env' \
             --exclude='node_modules' \
             -e "ssh -p 65002 -o StrictHostKeyChecking=no" \
-            deploy/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/apps/api/
+            deploy/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/$DEPLOY_DIR/
 
           # Install dependencies (if package.json changed) and restart
-          ssh -p 65002 -o StrictHostKeyChecking=no ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} << 'EOF'
-            export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
-            cd ~/public_html/apps/api
+          ssh -p 65002 -o StrictHostKeyChecking=no ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} <<EOF
+            export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH
+            cd ~/public_html/$DEPLOY_DIR
             rm -rf node_modules
             npm install --production
             npx prisma generate
@@ -102,4 +131,4 @@ jobs:
           # Copy @sync-erp/database to node_modules (after npm install so it won't be deleted)
           rsync -avz \
             -e "ssh -p 65002 -o StrictHostKeyChecking=no" \
-            deploy/node_modules/@sync-erp/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/apps/api/node_modules/@sync-erp/
+            deploy/node_modules/@sync-erp/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/$DEPLOY_DIR/node_modules/@sync-erp/
