@@ -2,11 +2,20 @@ name: Deploy Bot to Hostinger
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - 'apps/bot/**'
       - 'packages/shared/**'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
 
 jobs:
   deploy:
@@ -14,6 +23,9 @@ jobs:
     defaults:
       run:
         working-directory: apps/bot
+
+    env:
+      DEPLOY_ENV: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
 
     steps:
       - name: Checkout
@@ -24,6 +36,16 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+
+      - name: Set deployment variables
+        id: vars
+        run: |
+          if [[ "${{ env.DEPLOY_ENV }}" == "production" ]]; then
+            echo "deploy_path=apps/bot" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_path=apps/bot-staging" >> $GITHUB_OUTPUT
+          fi
+          echo "Deploying to: ${{ env.DEPLOY_ENV }}"
 
       - name: Install dependencies
         run: npm ci
@@ -50,16 +72,31 @@ jobs:
       - name: Deploy to Hostinger
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          SSH_PASSPHRASE: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
+          DEPLOY_DIR: ${{ steps.vars.outputs.deploy_path }}
         run: |
           eval $(ssh-agent -a $SSH_AUTH_SOCK)
-          echo "${{ secrets.HOSTINGER_SSH_PASSPHRASE }}" | SSH_ASKPASS_REQUIRE=force ssh-add ~/.ssh/id_ed25519
+
+          echo 'echo "$SSH_PASSPHRASE"' > ~/.ssh/askpass
+          chmod +x ~/.ssh/askpass
+          export SSH_ASKPASS=~/.ssh/askpass
+          export DISPLAY=:0
+
+          ssh-add ~/.ssh/id_ed25519
+
+          echo "Deploying to: ~/public_html/$DEPLOY_DIR"
 
           # Upload files
-          rsync -avz --delete -e "ssh -p 65002" deploy/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/apps/bot/
+          rsync -avz --delete \
+            --exclude='.env' \
+            --exclude='node_modules' \
+            -e "ssh -p 65002 -o StrictHostKeyChecking=no" \
+            deploy/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/$DEPLOY_DIR/
 
           # Install dependencies and restart
-          ssh -p 65002 ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} << 'EOF'
-            cd ~/public_html/apps/bot
+          ssh -p 65002 -o StrictHostKeyChecking=no ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} <<EOF
+            export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH
+            cd ~/public_html/$DEPLOY_DIR
             npm install --production
             touch tmp/restart.txt 2>/dev/null || true
           EOF
