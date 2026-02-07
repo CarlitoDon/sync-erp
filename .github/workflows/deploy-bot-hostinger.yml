@@ -71,7 +71,12 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p 65002 ${{ secrets.HOSTINGER_HOST }} >> ~/.ssh/known_hosts
+          # Clear any cached host keys and add fresh one
+          ssh-keyscan -p 65002 ${{ secrets.HOSTINGER_HOST }} > ~/.ssh/known_hosts 2>/dev/null
+          # Also configure to accept new keys automatically
+          echo "Host *" >> ~/.ssh/config
+          echo "  StrictHostKeyChecking accept-new" >> ~/.ssh/config
+          echo "  UserKnownHostsFile ~/.ssh/known_hosts" >> ~/.ssh/config
 
       - name: Deploy to Hostinger
         env:
