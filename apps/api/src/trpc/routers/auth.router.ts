@@ -35,7 +35,10 @@ export const authRouter = router({
       }
 
       // Set session cookie
+      // Use SECURE_COOKIES env var as primary check (dotenv-loaded vars available)
+      // Falls back to NODE_ENV for backwards compatibility
       const isSecureEnv =
+        process.env.SECURE_COOKIES === 'true' ||
         process.env.NODE_ENV === 'production' ||
         process.env.NODE_ENV === 'staging';
       ctx.res.cookie('sessionId', result.session!.id, {
@@ -67,7 +70,10 @@ export const authRouter = router({
       }
 
       // Set session cookie
+      // Use SECURE_COOKIES env var as primary check (dotenv-loaded vars available)
+      // Falls back to NODE_ENV for backwards compatibility
       const isSecureEnv =
+        process.env.SECURE_COOKIES === 'true' ||
         process.env.NODE_ENV === 'production' ||
         process.env.NODE_ENV === 'staging';
       ctx.res.cookie('sessionId', result.session!.id, {
