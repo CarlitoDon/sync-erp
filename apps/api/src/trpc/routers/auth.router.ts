@@ -35,11 +35,13 @@ export const authRouter = router({
       }
 
       // Set session cookie
+      const isSecureEnv =
+        process.env.NODE_ENV === 'production' ||
+        process.env.NODE_ENV === 'staging';
       ctx.res.cookie('sessionId', result.session!.id, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite:
-          process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-site (Vercel -> Railway)
+        secure: isSecureEnv,
+        sameSite: isSecureEnv ? 'none' : 'lax', // 'none' required for cross-site (Vercel -> Hostinger)
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
@@ -65,11 +67,13 @@ export const authRouter = router({
       }
 
       // Set session cookie
+      const isSecureEnv =
+        process.env.NODE_ENV === 'production' ||
+        process.env.NODE_ENV === 'staging';
       ctx.res.cookie('sessionId', result.session!.id, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite:
-          process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-site (Vercel -> Railway)
+        secure: isSecureEnv,
+        sameSite: isSecureEnv ? 'none' : 'lax', // 'none' required for cross-site (Vercel -> Hostinger)
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
