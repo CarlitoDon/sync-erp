@@ -38,6 +38,8 @@ describe('IdempotencyService Unit', () => {
     const response = { id: 'bill-1' };
     mockPrisma.idempotencyKey.findUnique.mockResolvedValue({
       id: key,
+      companyId,
+      scope,
       status: IdempotencyStatus.COMPLETED,
       response,
       updatedAt: new Date(),
@@ -52,6 +54,8 @@ describe('IdempotencyService Unit', () => {
   it('acquireLock should throw CONFLICT if PROCESSING (active)', async () => {
     mockPrisma.idempotencyKey.findUnique.mockResolvedValue({
       id: key,
+      companyId,
+      scope,
       status: IdempotencyStatus.PROCESSING,
       updatedAt: new Date(), // Just now
     });
@@ -64,6 +68,8 @@ describe('IdempotencyService Unit', () => {
   it('acquireLock should clean up and retry if FAILED', async () => {
     mockPrisma.idempotencyKey.findUnique.mockResolvedValue({
       id: key,
+      companyId,
+      scope,
       status: IdempotencyStatus.FAILED,
       updatedAt: new Date(),
     });
