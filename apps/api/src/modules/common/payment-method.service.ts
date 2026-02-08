@@ -201,7 +201,7 @@ export async function seedDefaults(input: SeedDefaultsInput) {
   const defaults = [
     {
       companyId: input.companyId,
-      code: 'CASH',
+      code: PaymentMethodType.CASH,
       name: 'Tunai',
       type: PaymentMethodType.CASH,
       accountId: cashAccount?.id,
@@ -210,7 +210,7 @@ export async function seedDefaults(input: SeedDefaultsInput) {
     },
     {
       companyId: input.companyId,
-      code: 'BANK_TRANSFER',
+      code: PaymentMethodType.BANK,
       name: 'Transfer Bank',
       type: PaymentMethodType.BANK,
       accountId: bankAccount?.id,
