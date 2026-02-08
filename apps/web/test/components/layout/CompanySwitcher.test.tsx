@@ -71,7 +71,6 @@ describe('CompanySwitcher', () => {
       companies: mockCompanies,
       currentCompany: mockCompanies[0],
       setCurrentCompany: mockSetCurrentCompany,
-      setCompanies: vi.fn(),
       refreshCompanies: vi.fn(),
       isLoading: false,
       ...overrides,

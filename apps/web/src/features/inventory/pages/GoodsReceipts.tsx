@@ -7,7 +7,7 @@ import {
   PageHeader,
 } from '@/components/layout/PageLayout';
 import { Card } from '@/components/ui/Card';
-import { LoadingState } from '@/components/ui';
+import { LoadingState, StatusBadge } from '@/components/ui';
 
 export default function GoodsReceipts() {
   const { currentCompany } = useCompany();
@@ -15,17 +15,6 @@ export default function GoodsReceipts() {
     trpc.inventory.listGRN.useQuery(undefined, {
       enabled: !!currentCompany?.id,
     });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'POSTED':
-        return 'bg-green-100 text-green-800';
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   if (loading) {
     return <LoadingState />;
@@ -101,11 +90,10 @@ export default function GoodsReceipts() {
                       {formatDate(receipt.date)}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(receipt.status)}`}
-                      >
-                        {receipt.status}
-                      </span>
+                      <StatusBadge
+                        status={receipt.status}
+                        domain="document"
+                      />
                     </td>
                   </tr>
                 )

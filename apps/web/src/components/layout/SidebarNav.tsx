@@ -132,6 +132,11 @@ export default function SidebarNav() {
           icon={<BuildingOfficeIcon />}
         />
         <SidebarItem
+          path="/settings/payment-methods"
+          label="Metode Pembayaran"
+          icon={<CreditCardIcon />}
+        />
+        <SidebarItem
           path="/integrations"
           label="Integrations"
           icon={<Squares2X2Icon />}

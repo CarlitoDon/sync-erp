@@ -5,12 +5,13 @@
  * This file provides type-safe options for Select components and label mappings.
  */
 import { InvoiceStatusSchema } from '@/types/api';
-import { PaymentMethodSchema } from '@sync-erp/shared';
+import { PaymentMethodTypeSchema } from '@sync-erp/shared';
+import { formatCompact } from '@/types/decimal';
 import { z } from 'zod';
 
 // Types inferred from schemas (source of truth)
 export type InvoiceStatus = z.infer<typeof InvoiceStatusSchema>;
-export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
+export type PaymentMethod = z.infer<typeof PaymentMethodTypeSchema>;
 
 // ============================================
 // Payment Method Options (for Select components)
@@ -18,23 +19,22 @@ export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
 
 // Label mapping - exhaustive, will error if schema changes
 const paymentMethodLabels: Record<PaymentMethod, string> = {
-  BANK_TRANSFER: 'Bank Transfer',
   CASH: 'Cash',
-  CHECK: 'Check',
-  CREDIT_CARD: 'Credit Card',
+  BANK: 'Bank Transfer',
+  QRIS: 'QRIS',
+  EWALLET: 'E-Wallet',
   OTHER: 'Other',
 };
 
 // Generate options from schema
-export const paymentMethodOptions = PaymentMethodSchema.options.map(
-  (value) => ({
+export const paymentMethodOptions =
+  PaymentMethodTypeSchema.options.map((value) => ({
     value,
     label: paymentMethodLabels[value],
-  })
-);
+  }));
 
 // Default value
-export const defaultPaymentMethod: PaymentMethod = 'BANK_TRANSFER';
+export const defaultPaymentMethod: PaymentMethod = 'BANK';
 
 // ============================================
 // Invoice Status Options (for filters/tabs)
@@ -104,3 +104,51 @@ export function hasBalance(
 // Bill uses same status as Invoice, so we reuse InvoiceStatus types
 export const getBillStatusDisplay = getInvoiceStatusDisplay;
 export type BillStatus = InvoiceStatus;
+
+// ============================================
+// Status Badge Helpers (with balance display)
+// ============================================
+
+/**
+ * Get invoice status badge with optional balance display.
+ */
+export function getInvoiceStatusBadge(
+  status: string,
+  balance?: number | null
+) {
+  const numBalance = balance ?? 0;
+
+  switch (status) {
+    case InvoiceStatusSchema.enum.PAID:
+      return {
+        color: 'bg-green-100 text-green-800',
+        label: '✓ Paid',
+      };
+    case InvoiceStatusSchema.enum.POSTED:
+      return {
+        color: 'bg-yellow-100 text-yellow-800',
+        label:
+          numBalance > 0
+            ? `○ Rp ${formatCompact(numBalance)}`
+            : '○ Posted',
+      };
+    case InvoiceStatusSchema.enum.PARTIALLY_PAID:
+      return {
+        color: 'bg-blue-100 text-blue-800',
+        label:
+          numBalance > 0
+            ? `◐ Rp ${formatCompact(numBalance)}`
+            : '◐ Partial',
+      };
+    case InvoiceStatusSchema.enum.VOID:
+      return { color: 'bg-red-100 text-red-800', label: '✕ Void' };
+    default:
+      return { color: 'bg-gray-100 text-gray-600', label: '◌ Draft' };
+  }
+}
+
+/**
+ * Get bill status badge with optional balance display.
+ * (Bills use same status as invoices)
+ */
+export const getBillStatusBadge = getInvoiceStatusBadge;

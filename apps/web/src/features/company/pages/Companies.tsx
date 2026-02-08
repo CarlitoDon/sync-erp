@@ -1,15 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
+import type { Company } from '@/types/api';
 
 export default function Companies() {
   const { companies, currentCompany, setCurrentCompany } =
     useCompany();
 
-  const handleSelectCompany = (company: typeof currentCompany) => {
-    if (company) {
-      setCurrentCompany(company);
-      localStorage.setItem('currentCompanyId', company.id);
-    }
+  const handleSelectCompany = (company: Company) => {
+    setCurrentCompany(company);
   };
 
   return (

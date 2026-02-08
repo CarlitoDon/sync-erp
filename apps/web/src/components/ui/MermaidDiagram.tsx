@@ -162,5 +162,3 @@ export function MermaidDiagram({
     </div>
   );
 }
-
-export default MermaidDiagram;

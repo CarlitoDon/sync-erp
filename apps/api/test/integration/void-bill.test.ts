@@ -242,7 +242,7 @@ describe('P2P: Void Bill & Journal Reversal', () => {
         companyId: COMPANY_ID,
         invoiceId: bill.id,
         amount: 500000,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
         date: new Date(),
         reference: 'PAY-001',
       },

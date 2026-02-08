@@ -126,6 +126,8 @@ export const PaymentScalarFieldEnumSchema = z.enum(['id','companyId','invoiceId'
 
 export const AccountScalarFieldEnumSchema = z.enum(['id','companyId','code','name','type','isActive','createdAt','updatedAt','isGroup','parentId']);
 
+export const CompanyPaymentMethodScalarFieldEnumSchema = z.enum(['id','companyId','code','name','type','accountId','isActive','isDefault','sortOrder','createdAt','updatedAt']);
+
 export const JournalEntryScalarFieldEnumSchema = z.enum(['id','companyId','reference','date','memo','sourceType','sourceId','createdAt']);
 
 export const JournalLineScalarFieldEnumSchema = z.enum(['id','journalId','accountId','debit','credit']);
@@ -253,6 +255,10 @@ export type InvoiceStatusType = `${z.infer<typeof InvoiceStatusSchema>}`
 export const PaymentMethodSchema = z.enum(['CASH','BANK_TRANSFER','CREDIT_CARD','CHECK','OTHER']);
 
 export type PaymentMethodType = `${z.infer<typeof PaymentMethodSchema>}`
+
+export const PaymentMethodTypeSchema = z.enum(['CASH','BANK','QRIS','EWALLET','OTHER']);
+
+export type PaymentMethodTypeType = `${z.infer<typeof PaymentMethodTypeSchema>}`
 
 export const BusinessShapeSchema = z.enum(['PENDING','RETAIL','MANUFACTURING','SERVICE','RENTAL']);
 
@@ -639,7 +645,7 @@ export type InvoiceItem = z.infer<typeof InvoiceItemSchema>
 /////////////////////////////////////////
 
 export const PaymentSchema = z.object({
-  method: PaymentMethodSchema,
+  method: PaymentMethodTypeSchema,
   id: z.string(),
   companyId: z.string(),
   invoiceId: z.string().nullable(),
@@ -675,6 +681,29 @@ export const AccountSchema = z.object({
 })
 
 export type Account = z.infer<typeof AccountSchema>
+
+/////////////////////////////////////////
+// COMPANY PAYMENT METHOD SCHEMA
+/////////////////////////////////////////
+
+/**
+ * Payment methods configured by company (e.g., Cash, BCA Transfer, QRIS BCA)
+ */
+export const CompanyPaymentMethodSchema = z.object({
+  type: PaymentMethodTypeSchema,
+  id: z.string(),
+  companyId: z.string(),
+  code: z.string(),
+  name: z.string(),
+  accountId: z.string().nullable(),
+  isActive: z.boolean(),
+  isDefault: z.boolean(),
+  sortOrder: z.number(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type CompanyPaymentMethod = z.infer<typeof CompanyPaymentMethodSchema>
 
 /////////////////////////////////////////
 // JOURNAL ENTRY SCHEMA

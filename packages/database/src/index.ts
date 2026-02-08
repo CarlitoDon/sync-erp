@@ -63,6 +63,7 @@ export {
   AuditLogAction,
   EntityType,
   PaymentMethod,
+  PaymentMethodType,
   SequenceType,
   // Feature 036: Cash Upfront Payment
   PaymentTerms,

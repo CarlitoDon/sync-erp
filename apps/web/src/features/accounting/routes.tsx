@@ -1,6 +1,6 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { Route } from 'react-router-dom';
-import { LoadingState } from '@/components/ui';
+import { LazyRoute } from '@/app/LazyRoute';
 
 // Accounting pages - lazy loaded
 const Finance = lazy(() => import('./pages/Finance'));
@@ -14,10 +14,6 @@ const ExpenseList = lazy(() => import('./pages/ExpenseList'));
 const ExpenseDetail = lazy(() => import('./pages/ExpenseDetail'));
 const JournalEntries = lazy(() => import('./pages/JournalEntries'));
 const JournalDetail = lazy(() => import('./pages/JournalDetail'));
-
-function LazyRoute({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<LoadingState />}>{children}</Suspense>;
-}
 
 export const AccountingRoutes = (
   <>

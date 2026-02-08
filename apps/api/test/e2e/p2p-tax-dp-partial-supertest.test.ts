@@ -232,7 +232,7 @@ describe('P2P E2E (tRPC Caller): Tax + DP + Partial GRN + Per-GRN Billing', () =
       const payment = await caller.payment.create({
         invoiceId: dpBillId,
         amount: DP_AMOUNT,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
       });
 
       expect(Number(payment.amount)).toBeCloseTo(DP_AMOUNT, 0);
@@ -361,7 +361,7 @@ describe('P2P E2E (tRPC Caller): Tax + DP + Partial GRN + Per-GRN Billing', () =
       const payment = await caller.payment.create({
         invoiceId: bill1Id,
         amount: partialAmount,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
       });
 
       expect(Number(payment.amount)).toBeCloseTo(partialAmount, 0);
@@ -391,7 +391,7 @@ describe('P2P E2E (tRPC Caller): Tax + DP + Partial GRN + Per-GRN Billing', () =
       await caller.payment.create({
         invoiceId: bill2Id,
         amount,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
       });
 
       const updated = await caller.bill.getById({ id: bill2Id });

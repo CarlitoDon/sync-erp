@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { IdempotencyService } from '../../src/modules/idempotency/idempotency.service';
+import { IdempotencyService } from '../../src/modules/common/services/idempotency.service';
 import { mockPrisma } from '../setup';
 import {
   IdempotencyScope,

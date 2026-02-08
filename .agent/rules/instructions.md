@@ -1,103 +1,133 @@
----
-trigger: model_decision
-description: berisi instruksi dalam mengerjakan pengembangan aplikasi
----
-
 # AI Agent Instructions for Sync ERP
 
 ## Architecture Overview
 
-Sync ERP is a strict monorepo following a specific dependency flow and layered architecture.
+```text
+apps/web ─tRPC→ apps/api ─Repository→ packages/database
+    ↓               ↓                       ↓
+packages/shared ←── packages/shared ←── (Prisma types)
+```
 
-**Structure:**
+**Monorepo Stack**:
 
-- **Monorepo**: Turbo + NPM Workspaces.
-- **Frontend**: `apps/web` (Vite + React). Pure state projection.
-- **Backend**: `apps/api` (Node.js + Express + Prisma). Layered architecture.
-- **Shared**: `packages/shared` (Zod schemas, types). The source of truth for contracts.
-- **Database**: `packages/database` (Prisma schema). The source of truth for data shape.
+- **Build**: Turbo + NPM Workspaces
+- **Frontend**: `apps/web` (Vite + React + tRPC client)
+- **Backend**: `apps/api` (Express + tRPC + TypeScript)
+- **Shared**: `packages/shared` (Zod schemas, types, domain objects)
+- **Database**: `packages/database` (Prisma ORM)
 
-**Dependency Flow:**
-`apps/web` -> `apps/api` -> `packages/shared` <- `packages/database`
+---
 
 ## Key Patterns
 
-### 1. Schema-First Development
+### 1. tRPC Router + DI Container
 
-All API contracts start in `packages/shared`.
-
-- Define Zod schema in `packages/shared/src/validators/`.
-- Export inferred type: `export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;`.
-- Rebuild shared: `cd packages/shared && npm run build`.
-- Import in Frontend and Backend from `@sync-erp/shared`.
-
-### 2. Layered Backend Architecture
-
-Every module in `apps/api/src/modules/[domain]/` MUST follow this layer responsibility:
-
-| Layer          | File              | Responsibility                                                    |
-| -------------- | ----------------- | ----------------------------------------------------------------- |
-| **Controller** | `*.controller.ts` | HTTP Boundary. Validates input. Calls Service. No business logic. |
-| **Service**    | `*.service.ts`    | Orchestration. Calls Policy, Rules, Repository. "Why".            |
-| **Rules**      | `rules/*.ts`      | Pure business logic. Stateless. Testable.                         |
-| **Policy**     | `*.policy.ts`     | Business constraints (e.g. "Can this run?"). No DB access.        |
-| **Repository** | `*.repository.ts` | Data Access. "How". Typesafe Prisma queries. No business logic.   |
-
-**Example Service Method (The Golden Flow):**
+Backend modules use tRPC routers that resolve services via DI container:
 
 ```typescript
-async createOrder(input: CreateOrderInput) {
-  // 1. Prepare (Policy/Validation)
-  await this.policy.canCreateOrder(input.companyId);
+// apps/api/src/trpc/routers/partner.router.ts
+import { container, ServiceKeys } from '../../modules/common/di';
 
-  // 2. Orchestrate (Saga)
-  const data = this.rules.prepareOrderPayload(input);
+const partnerService = container.resolve<PartnerService>(
+  ServiceKeys.PARTNER_SERVICE
+);
 
-  // 3. Execute (Repository Transaction)
-  const order = await this.repo.transaction(async (tx) => {
-    return this.repo.create(data, tx);
-  });
+export const partnerRouter = router({
+  list: protectedProcedure
+    .input(
+      z
+        .object({ type: z.nativeEnum(PartnerType).optional() })
+        .optional()
+    )
+    .query(({ ctx, input }) =>
+      partnerService.list(ctx.companyId, input?.type)
+    ),
 
-  // 4. Post-Process (Side Effects)
-  await this.events.emit('OrderCreated', order);
-  return order;
-}
+  create: protectedProcedure
+    .input(CreatePartnerSchema)
+    .mutation(({ ctx, input }) =>
+      partnerService.create(ctx.companyId, input)
+    ),
+});
 ```
 
-### 3. Frontend State Projection
+### 2. Layered Module Architecture
 
-- UI components in `apps/web/src/features/[domain]/` must NOT contain business logic.
-- They simply render backend state.
-- No direct `axios` calls; use typed API actions.
+Each domain in `apps/api/src/modules/[domain]/` follows:
 
-### 4. Financial Precision
+| Layer          | File              | Responsibility                      |
+| :------------- | :---------------- | :---------------------------------- |
+| **Service**    | `*.service.ts`    | Orchestration, Policy checks, "Why" |
+| **Policy**     | `*.policy.ts`     | Business constraints, no DB access  |
+| **Rules**      | `rules/*.ts`      | Pure business logic, stateless      |
+| **Repository** | `*.repository.ts` | Prisma queries, no business logic   |
 
-- Use `Decimal.js` for all calculations.
-- Use `Decimal` type in Prisma.
-- Only convert to `number` for display (`toFixed(2)`) or final assertions.
+### 3. Schema-First Development
 
-## Development Workflow
+All API contracts start in `packages/shared/src/validators/`:
 
-- **Start Dev**: `npm run dev` (Runs API and Web concurrently)
-- **Database**:
-  - `npm run db:migrate` (Run migrations)
-  - `npm run db:seed` (Seed data - check `package.json` for dev/prod variants)
-  - `npm run db:studio` (View DB)
-- **Testing**: `turbo run test` (Run all tests)
-- **Linting**: `turbo run lint`
+```typescript
+// packages/shared/src/validators/partner.ts
+export const CreatePartnerSchema = z.object({...});
+export type CreatePartnerInput = z.infer<typeof CreatePartnerSchema>;
+```
+
+After modifying schemas: `cd packages/shared && npm run build`
+
+### 4. Frontend State Projection
+
+- UI components in `apps/web/src/features/[domain]/`
+- Use `apiAction()` helper for mutations with automatic toast
+- Use `useConfirm()` hook for dialogs (never `window.confirm()`)
+- Use tRPC hooks with company context: `{ enabled: !!currentCompany?.id }`
+
+---
+
+## Development Commands
+
+| Command                   | Purpose                       |
+| :------------------------ | :---------------------------- |
+| `npm run dev`             | Start all dev servers (Turbo) |
+| `npm run typecheck`       | Type check all packages       |
+| `npm run typecheck:watch` | Watch mode typecheck          |
+| `npm run test`            | Run all tests                 |
+| `npm run db:migrate`      | Run Prisma migrations         |
+| `npm run db:seed`         | Seed database                 |
+| `npm run db:studio`       | Open Prisma Studio            |
+
+---
 
 ## Do's and Don'ts
 
-- **DO** use `packages/shared` for all types shared between FE and BE.
-- **DO** verify `npx tsc --noEmit` returns zero errors before finishing.
-- **DO** use the exact Prisma field names in raw SQL (quoted PascalCase: `"JournalLine"`).
-- **DON'T** put business logic in Controllers or Repositories.
-- **DON'T** use `any`. Use strict Zod schemas.
-- **DON'T** start a task without reading `.agent/rules/constitution.md` if making architectural changes.
+### ✅ DO
 
-## Key Files Reference
+- Read `.agent/rules/constitution.md` before architectural changes
+- Use DI container to resolve services in routers
+- Use Zod schemas from `@sync-erp/shared` for validation
+- Verify `npx tsc --noEmit` returns zero errors
+- Check running `typecheck:watch` terminal for errors
+- Use `apiAction()` for mutations, `useConfirm()` for dialogs
 
-- **Constitution**: `.agent/rules/constitution.md` (The Law)
-- **Prisma Schema**: `packages/database/prisma/schema.prisma`
-- **Shared Validators**: `packages/shared/src/validators/index.ts`
-- **API Module Example**: `apps/api/src/modules/rental/`
+### ❌ DON'T
+
+- Put business logic in routers or repositories
+- Use `any` type — use strict Zod schemas
+- Import Prisma directly in Service layer
+- Skip Policy checks before repository operations
+- Call repository from router (always go through service)
+- Use `window.confirm()` or direct `toast()` calls
+
+---
+
+## Key File References
+
+| Purpose               | Path                                     |
+| :-------------------- | :--------------------------------------- |
+| **Constitution**      | `.agent/rules/constitution.md`           |
+| **Project Memory**    | `.agent/rules/memory.md`                 |
+| **Prisma Schema**     | `packages/database/prisma/schema.prisma` |
+| **Shared Validators** | `packages/shared/src/validators/`        |
+| **tRPC Routers**      | `apps/api/src/trpc/routers/`             |
+| **Domain Modules**    | `apps/api/src/modules/[domain]/`         |
+| **DI Container**      | `apps/api/src/modules/common/di/`        |
+| **Frontend Features** | `apps/web/src/features/[domain]/`        |

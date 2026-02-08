@@ -171,7 +171,7 @@ describe('Feature 036: Canonical P2P Cash Upfront Flow', () => {
       {
         orderId: order.id,
         amount: 1000000,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
         reference: 'E2E-TRF-001',
       },
       ACTOR_ID

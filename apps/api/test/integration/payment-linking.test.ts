@@ -105,7 +105,7 @@ describe('Feature: Payment Linking to Bank Accounts', () => {
     const payment = await paymentService.create(COMPANY_ID, {
       invoiceId: billId,
       amount: 100000,
-      method: 'BANK_TRANSFER', // Enum value
+      method: 'BANK', // Enum value
       bankAccountId: bankAccountId,
       businessDate: new Date(),
     });

@@ -14,16 +14,13 @@ import {
 
 export default function CreateCompany() {
   const navigate = useNavigate();
-  const utils = trpc.useUtils();
   const { setCurrentCompany } = useCompany();
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const createMutation = trpc.company.create.useMutation({
     onSuccess: (company) => {
-      utils.company.list.invalidate();
       setCurrentCompany(company);
-      localStorage.setItem('currentCompanyId', company.id);
       navigate('/');
     },
     onError: (err) => {

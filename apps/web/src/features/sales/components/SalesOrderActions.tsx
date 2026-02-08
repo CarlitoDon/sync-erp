@@ -6,9 +6,8 @@ import {
   InvoiceStatusSchema,
   DocumentStatusSchema,
 } from '@sync-erp/shared';
-
-// Type for Prisma Decimal that can be number, string, or Decimal object
-type DecimalLike = number | string | { toNumber(): number } | null;
+import { DecimalLike } from '@/types/decimal';
+import { getInvoiceStatusBadge } from '@/features/accounting/utils/financeEnums';
 
 interface SalesOrder {
   id: string;
@@ -54,49 +53,7 @@ export default function SalesOrderActions({
   onCloseSO,
   layout = 'list',
 }: SalesOrderActionsProps) {
-  // Helper for Invoice Status Badge
-  const getInvoiceStatusBadge = (
-    status: string,
-    balance: DecimalLike
-  ) => {
-    // Handle Prisma Decimal or number/string
-    const numBalance =
-      typeof balance === 'object' &&
-      balance !== null &&
-      'toNumber' in balance
-        ? balance.toNumber()
-        : Number(balance);
-    const formatCompact = (val: number) => {
-      if (val >= 1000000000)
-        return `${(val / 1000000000).toFixed(1)}B`;
-      if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-      if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
-      return val.toFixed(0);
-    };
-
-    switch (status) {
-      case InvoiceStatusSchema.enum.PAID:
-        return {
-          color: 'bg-green-100 text-green-800',
-          label: '✓ Paid',
-        };
-      case InvoiceStatusSchema.enum.POSTED:
-        return {
-          color: 'bg-yellow-100 text-yellow-800',
-          label:
-            numBalance > 0
-              ? `○ Rp ${formatCompact(numBalance)}`
-              : '○ Posted',
-        };
-      case InvoiceStatusSchema.enum.VOID:
-        return { color: 'bg-red-100 text-red-800', label: '✕ Void' };
-      default:
-        return {
-          color: 'bg-gray-100 text-gray-600',
-          label: '◌ Draft',
-        };
-    }
-  };
+  // Status flags and permission logic
 
   const isDraft = order.status === OrderStatusSchema.enum.DRAFT;
   const isConfirmed =

@@ -238,7 +238,7 @@ describe('P2P E2E: Tax + DP + Partial GRN + Per-GRN Billing', () => {
       const payment = await paymentService.create(COMPANY_ID, {
         invoiceId: dpBillId,
         amount: DP_AMOUNT,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
       });
 
       expect(Number(payment.amount)).toBeCloseTo(DP_AMOUNT, 0);
@@ -435,7 +435,7 @@ describe('P2P E2E: Tax + DP + Partial GRN + Per-GRN Billing', () => {
       const payment = await paymentService.create(COMPANY_ID, {
         invoiceId: bill1Id,
         amount: partialAmount,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
       });
 
       expect(Number(payment.amount)).toBeCloseTo(partialAmount, 0);
@@ -467,7 +467,7 @@ describe('P2P E2E: Tax + DP + Partial GRN + Per-GRN Billing', () => {
       await paymentService.create(COMPANY_ID, {
         invoiceId: bill2Id,
         amount,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
       });
 
       const updated = await billService.getById(bill2Id, COMPANY_ID);

@@ -103,22 +103,29 @@ export const DAMAGE_SEVERITY_OPTIONS = [
 
 export const PAYMENT_METHOD_OPTIONS = [
   { value: PaymentMethod.CASH, label: 'Tunai' },
-  { value: PaymentMethod.BANK_TRANSFER, label: 'Transfer Bank' },
-  { value: PaymentMethod.CREDIT_CARD, label: 'Kartu Kredit' },
+  { value: PaymentMethod.BANK, label: 'Transfer Bank' },
+  { value: PaymentMethod.QRIS, label: 'QRIS' },
 ] as const;
 
 // ============================================
 // Rental Payment Status
 // ============================================
 
-export const PAYMENT_STATUS_COLORS: Record<RentalPaymentStatus, string> = {
+export const PAYMENT_STATUS_COLORS: Record<
+  RentalPaymentStatus,
+  string
+> = {
   [RentalPaymentStatus.PENDING]: 'bg-gray-100 text-gray-700',
-  [RentalPaymentStatus.AWAITING_CONFIRM]: 'bg-yellow-100 text-yellow-800',
+  [RentalPaymentStatus.AWAITING_CONFIRM]:
+    'bg-yellow-100 text-yellow-800',
   [RentalPaymentStatus.CONFIRMED]: 'bg-green-100 text-green-800',
   [RentalPaymentStatus.FAILED]: 'bg-red-100 text-red-800',
 };
 
-export const PAYMENT_STATUS_LABELS: Record<RentalPaymentStatus, string> = {
+export const PAYMENT_STATUS_LABELS: Record<
+  RentalPaymentStatus,
+  string
+> = {
   [RentalPaymentStatus.PENDING]: 'Belum Bayar',
   [RentalPaymentStatus.AWAITING_CONFIRM]: 'Menunggu Verifikasi',
   [RentalPaymentStatus.CONFIRMED]: 'Lunas',

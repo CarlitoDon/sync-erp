@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import {
   InvoiceStatus,
   InvoiceType,
-  PaymentMethod,
+  PaymentMethodType,
   prisma,
 } from '@sync-erp/database';
 import { PaymentService } from '@modules/accounting/services/payment.service';
@@ -106,7 +106,7 @@ describe('P2P: Void Payment & Journal Reversal', () => {
       {
         invoiceId: bill.id,
         amount: 400000,
-        method: PaymentMethod.BANK_TRANSFER,
+        method: PaymentMethodType.BANK,
         businessDate: new Date(),
       },
       asCorrelationId(`void-pay-test-${Date.now()}`)
@@ -171,7 +171,7 @@ describe('P2P: Void Payment & Journal Reversal', () => {
     const payment = await paymentService.create(COMPANY_ID, {
       invoiceId: bill.id,
       amount: 500000,
-      method: PaymentMethod.CASH,
+      method: PaymentMethodType.CASH,
     });
 
     // First void should succeed
@@ -215,7 +215,7 @@ describe('P2P: Void Payment & Journal Reversal', () => {
     const payment = await paymentService.create(COMPANY_ID, {
       invoiceId: bill.id,
       amount: 100000,
-      method: PaymentMethod.CASH,
+      method: PaymentMethodType.CASH,
     });
 
     // Try to void without permission
@@ -254,7 +254,7 @@ describe('P2P: Void Payment & Journal Reversal', () => {
       {
         invoiceId: bill.id,
         amount: 600000,
-        method: PaymentMethod.BANK_TRANSFER,
+        method: PaymentMethodType.BANK,
       },
       asCorrelationId(`partial-1-${Date.now()}`)
     );
@@ -265,7 +265,7 @@ describe('P2P: Void Payment & Journal Reversal', () => {
       {
         invoiceId: bill.id,
         amount: 400000,
-        method: PaymentMethod.BANK_TRANSFER,
+        method: PaymentMethodType.BANK,
       },
       asCorrelationId(`partial-2-${Date.now()}`)
     );

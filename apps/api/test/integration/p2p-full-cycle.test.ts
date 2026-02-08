@@ -218,7 +218,7 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
       const payment = await paymentService.create(COMPANY_ID, {
         invoiceId: billId,
         amount: 888000,
-        method: 'BANK_TRANSFER' as const,
+        method: 'BANK' as const,
       });
       expect(Number(payment.amount)).toBe(888000);
 

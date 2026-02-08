@@ -84,7 +84,6 @@ describe('ProtectedRoute', () => {
         currentCompany: null,
         companies: [],
         setCurrentCompany: vi.fn(),
-        setCompanies: vi.fn(),
         refreshCompanies: vi.fn(),
         isLoading: false,
       });
@@ -115,7 +114,6 @@ describe('ProtectedRoute', () => {
         currentCompany: null,
         companies: [],
         setCurrentCompany: vi.fn(),
-        setCompanies: vi.fn(),
         refreshCompanies: vi.fn(),
         isLoading: true,
       });
@@ -141,7 +139,6 @@ describe('ProtectedRoute', () => {
         currentCompany: null,
         companies: [],
         setCurrentCompany: vi.fn(),
-        setCompanies: vi.fn(),
         refreshCompanies: vi.fn(),
         isLoading: false,
       });
@@ -177,7 +174,6 @@ describe('ProtectedRoute', () => {
         currentCompany: null,
         companies: [],
         setCurrentCompany: vi.fn(),
-        setCompanies: vi.fn(),
         refreshCompanies: vi.fn(),
         isLoading: false,
       });
@@ -213,7 +209,6 @@ describe('ProtectedRoute', () => {
         currentCompany: null,
         companies: [],
         setCurrentCompany: vi.fn(),
-        setCompanies: vi.fn(),
         refreshCompanies: vi.fn(),
         isLoading: false,
       });
@@ -264,7 +259,6 @@ describe('ProtectedRoute', () => {
           },
         ],
         setCurrentCompany: vi.fn(),
-        setCompanies: vi.fn(),
         refreshCompanies: vi.fn(),
         isLoading: false,
       });

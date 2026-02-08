@@ -147,7 +147,7 @@ describe('Cash Upfront Sales: Customer Deposits', () => {
         {
           orderId: order.id,
           amount: 500000, // Full amount
-          method: 'BANK_TRANSFER',
+          method: 'BANK',
           reference: 'TRF-CUST-001',
         },
         ACTOR_ID

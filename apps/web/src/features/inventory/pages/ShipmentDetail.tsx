@@ -16,7 +16,8 @@ import {
   CardTitle,
   CardContent,
 } from '@/components/ui/Card';
-import { LoadingState } from '@/components/ui';
+import { LoadingState, StatusBadge } from '@/components/ui';
+import { logger } from '@/lib/logger';
 
 export default function ShipmentDetail() {
   const { id } = useParams<{ id: string }>();
@@ -97,7 +98,7 @@ export default function ShipmentDetail() {
       try {
         await voidMutation.mutateAsync({ id: shipment.id, reason });
       } catch (error) {
-        console.error('Failed to void Shipment:', error);
+        logger.error('Failed to void Shipment', error);
       }
     }
   };
@@ -117,7 +118,7 @@ export default function ShipmentDetail() {
       try {
         await deleteMutation.mutateAsync({ id: shipment.id });
       } catch (error) {
-        console.error('Failed to delete Shipment:', error);
+        logger.error('Failed to delete Shipment', error);
       }
     }
   };
@@ -127,21 +128,8 @@ export default function ShipmentDetail() {
     setIsInvoiceModalOpen(true);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'POSTED':
-        return 'bg-green-100 text-green-800';
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'VOIDED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   if (error) {
-    console.error('Failed to load shipment:', error);
+    logger.error('Failed to load shipment', error);
     navigate('/shipments');
     return null;
   }
@@ -175,11 +163,10 @@ export default function ShipmentDetail() {
               <h1 className="text-2xl font-bold text-gray-900">
                 {shipment.number}
               </h1>
-              <span
-                className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(shipment.status)}`}
-              >
-                {shipment.status}
-              </span>
+              <StatusBadge
+                status={shipment.status}
+                domain="document"
+              />
             </div>
             <p className="text-sm text-gray-500">
               Shipment / Delivery Note

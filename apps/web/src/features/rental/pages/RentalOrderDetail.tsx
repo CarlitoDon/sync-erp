@@ -1,54 +1,42 @@
 import { useParams } from 'react-router-dom';
-import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { formatCurrency, formatDateTime } from '@/utils/format';
+import { formatDateTime } from '@/utils/format';
 import { PageContainer } from '@/components/layout/PageLayout';
 import {
-  ActionButton,
   BackButton,
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   StatusBadge,
   LoadingState,
   EmptyState,
 } from '@/components/ui';
+
 import UnitAssignmentModal from '../modals/UnitAssignmentModal';
 import CancelOrderModal from '../modals/CancelOrderModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
 import ReturnModal from '../modals/ReturnModal';
 import VerifyPaymentModal from '../modals/VerifyPaymentModal';
-import {
-  RentalOrderStatus,
-  RentalPaymentStatus,
-  OrderSource,
-} from '@sync-erp/shared';
-import {
-  PAYMENT_STATUS_COLORS,
-  PAYMENT_STATUS_LABELS,
-} from '../constants';
+import { OrderSource } from '@sync-erp/shared';
 import {
   UserIcon,
-  TruckIcon,
-  CheckCircleIcon,
   GlobeAltIcon,
   ComputerDesktopIcon,
-  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
-import { toast } from 'react-hot-toast';
+import { useRentalOrderModals } from '../hooks/useRentalOrderModals';
+import { useRentalOrderPermissions } from '../hooks/useRentalOrderPermissions';
+import { useRentalOrderCalculations } from '../hooks/useRentalOrderCalculations';
+import { RentalPeriodCard } from '../components/RentalPeriodCard';
+import { RentalItemsTable } from '../components/RentalItemsTable';
+import { UnitAssignmentsCard } from '../components/UnitAssignmentsCard';
+import { RentalActionsCard } from '../components/RentalActionsCard';
+import { RentalFinancialSummary } from '../components/RentalFinancialSummary';
+import { RentalPaymentStatusCard } from '../components/RentalPaymentStatusCard';
 
 export default function RentalOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const { currentCompany } = useCompany();
-  const utils = trpc.useUtils();
-  const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
-  const [isVerifyPaymentOpen, setIsVerifyPaymentOpen] =
-    useState(false);
+  const modals = useRentalOrderModals(id);
 
   const { data: order, isLoading } =
     trpc.rental.orders.getById.useQuery(
@@ -56,89 +44,53 @@ export default function RentalOrderDetail() {
       { enabled: !!id && !!currentCompany?.id }
     );
 
+  const permissions = useRentalOrderPermissions(order);
+  const calculations = useRentalOrderCalculations(order);
+
   if (isLoading) return <LoadingState />;
   if (!order) return <EmptyState message="Rental Order not found" />;
 
-  const handleConfirm = () => {
-    setIsConfirmModalOpen(true);
-  };
-
-  const handleCancelOrder = () => {
-    setIsCancelModalOpen(true);
-  };
-
-  // Safe type casting or checking
-  const isConfirmed = order.status === RentalOrderStatus.CONFIRMED;
-  const isActive = order.status === RentalOrderStatus.ACTIVE;
-  const isDraft = order.status === RentalOrderStatus.DRAFT;
-  const isAwaitingPaymentVerification =
-    order.rentalPaymentStatus ===
-    RentalPaymentStatus.AWAITING_CONFIRM;
-
-  // Assignments Logic - order already has correct type from TRPC
-  const assignments = order.unitAssignments ?? [];
-  const assignedUnitsCount = assignments.length;
-
-  // For bundle orders, count component units needed, not just item quantity
-  const totalUnitsRequired = order.items.reduce((sum, item) => {
-    if (item.rentalBundleId && item.rentalBundle?.components) {
-      // Bundle: count each component * bundle quantity
-      return (
-        sum + item.rentalBundle.components.length * item.quantity
-      );
-    }
-    // Regular item: just quantity
-    return sum + item.quantity;
-  }, 0);
+  const handleConfirm = () => modals.confirm.open();
+  const handleCancelOrder = () => modals.cancel.open();
+  const handleRelease = () => modals.release.open();
+  const handleReturn = () => modals.return.open();
 
   return (
     <>
       <UnitAssignmentModal
-        isOpen={isReleaseModalOpen}
-        onClose={() => setIsReleaseModalOpen(false)}
+        isOpen={modals.release.isOpen}
+        onClose={modals.release.close}
         order={order}
-        onSuccess={() => {
-          utils.rental.orders.getById.invalidate({ id: id! });
-          setIsReleaseModalOpen(false);
-        }}
+        onSuccess={modals.release.onSuccess}
       />
 
       <CancelOrderModal
-        isOpen={isCancelModalOpen}
-        onClose={() => setIsCancelModalOpen(false)}
+        isOpen={modals.cancel.isOpen}
+        onClose={modals.cancel.close}
         orderId={order.id}
         orderNumber={order.orderNumber}
-        onSuccess={() => setIsCancelModalOpen(false)}
+        onSuccess={modals.cancel.onSuccess}
       />
 
       <ReturnModal
-        isOpen={isReturnModalOpen}
-        onClose={() => setIsReturnModalOpen(false)}
+        isOpen={modals.return.isOpen}
+        onClose={modals.return.close}
         order={order}
-        onSuccess={() => {
-          utils.rental.orders.getById.invalidate({ id: id! });
-          setIsReturnModalOpen(false);
-        }}
+        onSuccess={modals.return.onSuccess}
       />
 
       <ConfirmOrderModal
-        isOpen={isConfirmModalOpen}
-        onClose={() => setIsConfirmModalOpen(false)}
+        isOpen={modals.confirm.isOpen}
+        onClose={modals.confirm.close}
         orderId={id ?? null}
-        onSuccess={() => {
-          utils.rental.orders.getById.invalidate({ id: id! });
-          setIsConfirmModalOpen(false);
-        }}
+        onSuccess={modals.confirm.onSuccess}
       />
 
       <VerifyPaymentModal
-        isOpen={isVerifyPaymentOpen}
-        onClose={() => setIsVerifyPaymentOpen(false)}
+        isOpen={modals.verifyPayment.isOpen}
+        onClose={modals.verifyPayment.close}
         order={order}
-        onSuccess={() => {
-          utils.rental.orders.getById.invalidate({ id: id! });
-          setIsVerifyPaymentOpen(false);
-        }}
+        onSuccess={modals.verifyPayment.onSuccess}
       />
 
       <PageContainer>
@@ -183,441 +135,67 @@ export default function RentalOrderDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content - Left Col */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Rental Period & Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Rental Period</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div
-                  className="grid gap-4"
-                  style={{ gridTemplateColumns: '2fr 2fr 1fr' }}
-                >
-                  {/* Start Date */}
-                  {(() => {
-                    const startDate = new Date(order.rentalStartDate);
-                    const dayName = startDate.toLocaleDateString(
-                      'id-ID',
-                      { weekday: 'long' }
-                    );
-                    return (
-                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 flex flex-col justify-center items-center text-center">
-                        <p className="text-xs text-blue-600 uppercase font-semibold mb-1">
-                          Start Date
-                        </p>
-                        <p className="font-medium text-gray-900">
-                          {dayName}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {formatDateTime(order.rentalStartDate)}
-                        </p>
-                      </div>
-                    );
-                  })()}
-                  {/* End Date */}
-                  {(() => {
-                    const endDate = new Date(order.rentalEndDate);
-                    const dayName = endDate.toLocaleDateString(
-                      'id-ID',
-                      { weekday: 'long' }
-                    );
-                    return (
-                      <div className="p-3 bg-purple-50 rounded-lg border border-purple-100 flex flex-col justify-center items-center text-center">
-                        <p className="text-xs text-purple-600 uppercase font-semibold mb-1">
-                          End Date
-                        </p>
-                        <p className="font-medium text-gray-900">
-                          {dayName}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {formatDateTime(order.rentalEndDate)}
-                        </p>
-                      </div>
-                    );
-                  })()}
-                  {/* Total Days */}
-                  {(() => {
-                    const start = new Date(order.rentalStartDate);
-                    const end = new Date(order.rentalEndDate);
-                    const durationDays = Math.ceil(
-                      (end.getTime() - start.getTime()) /
-                        (1000 * 60 * 60 * 24)
-                    );
-                    return (
-                      <div className="p-3 bg-green-50 rounded-lg border border-green-100 flex flex-col justify-center items-center">
-                        <p className="text-xs text-green-600 uppercase font-semibold mb-1">
-                          Durasi
-                        </p>
-                        <p className="font-bold text-xl text-green-700">
-                          {durationDays}
-                        </p>
-                        <p className="text-xs text-green-600">hari</p>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </CardContent>
-            </Card>
+            <RentalPeriodCard
+              startDate={order.rentalStartDate}
+              endDate={order.rentalEndDate}
+              calculations={calculations}
+            />
 
-            {/* Order Items */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Rental Items</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium text-gray-500">
-                          Product
-                        </th>
-                        <th className="px-4 py-3 text-center font-medium text-gray-500">
-                          Qty
-                        </th>
-                        <th className="px-4 py-3 text-center font-medium text-gray-500">
-                          Day(s)
-                        </th>
-                        <th className="px-4 py-3 text-right font-medium text-gray-500">
-                          Price
-                        </th>
-                        <th className="px-4 py-3 text-right font-medium text-gray-500">
-                          Total
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {order.items.map((item) => {
-                        // Calculate days for this order
-                        const start = new Date(order.rentalStartDate);
-                        const end = new Date(order.rentalEndDate);
-                        const durationDays = Math.ceil(
-                          (end.getTime() - start.getTime()) /
-                            (1000 * 60 * 60 * 24)
-                        );
-                        return (
-                          <tr key={item.id}>
-                            <td className="px-4 py-3">
-                              <div>
-                                <p className="font-medium text-gray-900">
-                                  {item.rentalBundle?.name ||
-                                    item.rentalItem?.product?.name ||
-                                    'Unknown Product'}
-                                </p>
-                                {item.rentalBundle && (
-                                  <p className="text-sm text-gray-500">
-                                    {item.rentalBundle.components
-                                      ?.map(
-                                        (c) =>
-                                          c.rentalItem?.product?.name
-                                      )
-                                      .filter(Boolean)
-                                      .join(', ')}
-                                  </p>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              {item.quantity}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              {durationDays}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              {formatCurrency(Number(item.unitPrice))}
-                            </td>
-                            <td className="px-4 py-3 text-right font-medium">
-                              {formatCurrency(Number(item.subtotal))}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot className="bg-gray-50 font-medium">
-                      <tr>
-                        <td className="px-4 py-3" colSpan={4}>
-                          Subtotal
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {formatCurrency(Number(order.subtotal))}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
+            <RentalItemsTable
+              items={order.items.map((item) => ({
+                ...item,
+                unitPrice: Number(item.unitPrice),
+                subtotal: Number(item.subtotal),
+                rentalBundle: item.rentalBundle
+                  ? {
+                      name: item.rentalBundle.name,
+                      components:
+                        item.rentalBundle.components?.map((c) => ({
+                          rentalItem: c.rentalItem
+                            ? {
+                                product: c.rentalItem.product
+                                  ? {
+                                      name: c.rentalItem.product.name,
+                                    }
+                                  : undefined,
+                              }
+                            : undefined,
+                        })) || [],
+                    }
+                  : null,
+              }))}
+              calculations={calculations}
+            />
 
-            {/* Unit Assignments */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Unit Assignments</CardTitle>
-                <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded-full">
-                  {assignedUnitsCount} / {totalUnitsRequired} Assigned
-                </span>
-              </CardHeader>
-              <CardContent>
-                {assignments.length > 0 ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {assignments.map((assignment) => (
-                      <div
-                        key={assignment.id}
-                        className="flex items-start gap-3 p-3 border rounded-lg hover:shadow-sm transition-shadow"
-                      >
-                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                          <CheckCircleIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900">
-                            {assignment.rentalItemUnit?.unitCode}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {
-                              assignment.rentalItemUnit?.rentalItem
-                                ?.product?.name
-                            }
-                          </p>
-                          <div className="flex gap-2 mt-1">
-                            <span className="text-xs px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
-                              {assignment.rentalItemUnit?.condition}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
-                    No units assigned yet. Confirmed orders will
-                    reserve units.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <UnitAssignmentsCard
+              assignments={order.unitAssignments ?? []}
+              calculations={calculations}
+            />
           </div>
 
           {/* Sidebar - Right Col */}
           <div className="space-y-6">
-            {/* Payment Status Card - Show for website orders */}
-            {order.orderSource === OrderSource.WEBSITE &&
-              order.rentalPaymentStatus && (
-                <Card
-                  className={
-                    isAwaitingPaymentVerification
-                      ? 'ring-2 ring-yellow-400'
-                      : ''
-                  }
-                >
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CurrencyDollarIcon className="w-5 h-5" />
-                      Status Pembayaran
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">
-                        Status
-                      </span>
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${PAYMENT_STATUS_COLORS[order.rentalPaymentStatus] || 'bg-gray-100 text-gray-700'}`}
-                      >
-                        {PAYMENT_STATUS_LABELS[
-                          order.rentalPaymentStatus
-                        ] || order.rentalPaymentStatus}
-                      </span>
-                    </div>
+            {permissions.isWebsiteOrder && (
+              <RentalPaymentStatusCard
+                rentalPaymentStatus={order.rentalPaymentStatus}
+                paymentClaimedAt={order.paymentClaimedAt}
+                paymentConfirmedAt={order.paymentConfirmedAt}
+                paymentReference={order.paymentReference}
+                paymentFailReason={order.paymentFailReason}
+                permissions={permissions}
+                onVerifyPayment={modals.verifyPayment.open}
+              />
+            )}
 
-                    {order.paymentClaimedAt && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">Diklaim</span>
-                        <span>
-                          {formatDateTime(order.paymentClaimedAt)}
-                        </span>
-                      </div>
-                    )}
+            <RentalActionsCard
+              permissions={permissions}
+              onConfirm={handleConfirm}
+              onRelease={handleRelease}
+              onReturn={handleReturn}
+              onCancel={handleCancelOrder}
+            />
 
-                    {order.paymentConfirmedAt && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">
-                          Dikonfirmasi
-                        </span>
-                        <span>
-                          {formatDateTime(order.paymentConfirmedAt)}
-                        </span>
-                      </div>
-                    )}
-
-                    {order.paymentReference && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">
-                          Referensi
-                        </span>
-                        <span className="font-mono text-xs">
-                          {order.paymentReference}
-                        </span>
-                      </div>
-                    )}
-
-                    {order.paymentFailReason && (
-                      <div className="p-2 bg-red-50 rounded text-sm text-red-700">
-                        <span className="font-medium">
-                          Alasan gagal:
-                        </span>{' '}
-                        {order.paymentFailReason}
-                      </div>
-                    )}
-
-                    {isAwaitingPaymentVerification && (
-                      <ActionButton
-                        variant="primary"
-                        className="w-full mt-2"
-                        onClick={() => setIsVerifyPaymentOpen(true)}
-                      >
-                        Verifikasi Pembayaran
-                      </ActionButton>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-            {/* Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {isDraft && (
-                  <ActionButton
-                    variant="primary"
-                    className="w-full"
-                    onClick={handleConfirm}
-                  >
-                    Confirm Order
-                  </ActionButton>
-                )}
-
-                {isConfirmed && (
-                  <div className="space-y-2">
-                    <ActionButton
-                      variant="primary"
-                      className="w-full flex justify-center gap-2"
-                      onClick={() => setIsReleaseModalOpen(true)}
-                    >
-                      <TruckIcon className="w-4 h-4" />
-                      Release Units (Serah Terima)
-                    </ActionButton>
-                    <p className="text-xs text-gray-500 text-center">
-                      Serahkan unit ke customer untuk memulai masa
-                      sewa.
-                    </p>
-                  </div>
-                )}
-
-                {isActive && (
-                  <ActionButton
-                    variant="primary"
-                    className="w-full"
-                    onClick={() => setIsReturnModalOpen(true)}
-                  >
-                    Return Units (Kembalikan)
-                  </ActionButton>
-                )}
-
-                {isDraft && (
-                  <ActionButton
-                    variant="destructive"
-                    className="w-full"
-                    onClick={handleCancelOrder}
-                  >
-                    Cancel Order
-                  </ActionButton>
-                )}
-
-                <hr className="border-gray-100" />
-
-                <ActionButton
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    toast('Invoice feature coming soon');
-                  }}
-                >
-                  Create Invoice
-                </ActionButton>
-              </CardContent>
-            </Card>
-
-            {/* Financial Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Financial Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {/* Subtotal */}
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Subtotal</span>
-                  <span className="font-medium">
-                    {formatCurrency(Number(order.subtotal))}
-                  </span>
-                </div>
-
-                {/* Discount (if any) */}
-                {Number(order.discountAmount) > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>
-                      Diskon{' '}
-                      {order.discountLabel
-                        ? `(${order.discountLabel})`
-                        : ''}
-                    </span>
-                    <span className="font-medium">
-                      -{formatCurrency(Number(order.discountAmount))}
-                    </span>
-                  </div>
-                )}
-
-                {/* Delivery Fee (if any) */}
-                {Number(order.deliveryFee) > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Ongkir</span>
-                    <span className="font-medium">
-                      {formatCurrency(Number(order.deliveryFee))}
-                    </span>
-                  </div>
-                )}
-
-                <hr className="my-2" />
-
-                {/* Total */}
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Total Amount</span>
-                  <span className="font-semibold">
-                    {formatCurrency(Number(order.totalAmount))}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">
-                    Deposit Amount
-                  </span>
-                  <span className="font-medium">
-                    {formatCurrency(Number(order.depositAmount))}
-                  </span>
-                </div>
-                <hr className="my-2" />
-                <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                  <span className="font-semibold text-gray-700">
-                    Net Outstanding
-                  </span>
-                  <span className="font-bold text-gray-900">
-                    {formatCurrency(
-                      Number(order.totalAmount) -
-                        Number(order.depositAmount)
-                    )}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+            <RentalFinancialSummary calculations={calculations} />
 
             {/* Meta Info */}
             <Card>

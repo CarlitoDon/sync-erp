@@ -3,7 +3,7 @@ import {
   PartnerTypeSchema,
   OrderTypeSchema,
   InvoiceTypeSchema,
-  PaymentMethodSchema,
+  PaymentMethodTypeSchema,
   AuditLogActionSchema,
   EntityTypeSchema,
 } from '../generated/zod/index.js';
@@ -237,7 +237,7 @@ export const CreateInvoiceFromSOSchema = z.object({
 export const CreatePaymentSchema = z.object({
   invoiceId: z.string().uuid(),
   amount: z.number().positive('Payment amount must be positive'),
-  method: PaymentMethodSchema,
+  method: PaymentMethodTypeSchema,
   reference: z.string().optional(),
   bankAccountId: z.string().uuid().optional(), // Link to BankAccount (Cash/Bank)
   businessDate: z.coerce.date().optional(), // G5: Explicit business date

@@ -1,6 +1,17 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+} from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import {
+  ChevronDownIcon,
+  PlusIcon,
+  MagnifyingGlassIcon,
+} from '@heroicons/react/24/outline';
+import { toast } from 'react-hot-toast';
 
 interface SelectOption {
   value: string | number;
@@ -17,12 +28,22 @@ interface SelectProps {
   value: string | number;
   onChange: (value: string) => void;
   options?: SelectOption[];
-  groups?: SelectOptionGroup[]; // For grouped options
+  groups?: SelectOptionGroup[];
   placeholder?: string;
   required?: boolean;
   className?: string;
   disabled?: boolean;
   portal?: boolean;
+  /** Enable search/filter functionality */
+  searchable?: boolean;
+  /** Show "Create new" option. Default true */
+  allowCreate?: boolean;
+  /** Callback when user wants to create new option */
+  onCreate?: (searchTerm: string) => void;
+  /** URL to navigate for creating new item (if no onCreate) */
+  createHref?: string;
+  /** Label for create new button */
+  createLabel?: string;
 }
 
 export default function Select({
@@ -36,22 +57,24 @@ export default function Select({
   className = '',
   disabled = false,
   portal = true,
+  searchable = true,
+  allowCreate = true,
+  onCreate,
+  createHref,
+  createLabel = 'Tambah baru',
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [dropdownStyle, setDropdownStyle] =
     useState<React.CSSProperties>({});
 
-  // Calculate dropdown position when opening
-  // useLayoutEffect runs synchronously before browser paint,
-  // ensuring position is calculated before the dropdown is visible
   useLayoutEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      // Use fixed positioning with viewport-relative coordinates
-      // getBoundingClientRect() already returns viewport-relative values
       setDropdownStyle(
         portal
           ? {
@@ -73,7 +96,18 @@ export default function Select({
     }
   }, [isOpen, portal]);
 
-  // Close dropdown when clicking outside (both container AND dropdown portal)
+  useEffect(() => {
+    if (isOpen && searchable && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isOpen, searchable]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm('');
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -92,11 +126,9 @@ export default function Select({
     };
   }, []);
 
-  // Close on external scroll (not dropdown internal scroll)
   useEffect(() => {
     if (isOpen) {
       const handleScroll = (event: Event) => {
-        // Don't close if scrolling inside the dropdown itself
         if (dropdownRef.current?.contains(event.target as Node)) {
           return;
         }
@@ -108,16 +140,53 @@ export default function Select({
     }
   }, [isOpen]);
 
-  // Get all options (flat or from groups) for finding selected option
   const allOptions: SelectOption[] = groups
     ? groups.flatMap((g) => g.options)
     : options;
+
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm.trim()) return options;
+    const term = searchTerm.toLowerCase();
+    return options.filter((opt) =>
+      opt.label.toLowerCase().includes(term)
+    );
+  }, [options, searchTerm]);
+
+  const filteredGroups = useMemo(() => {
+    if (!groups || !searchTerm.trim()) return groups;
+    const term = searchTerm.toLowerCase();
+    return groups
+      .map((group) => ({
+        ...group,
+        options: group.options.filter((opt) =>
+          opt.label.toLowerCase().includes(term)
+        ),
+      }))
+      .filter((group) => group.options.length > 0);
+  }, [groups, searchTerm]);
 
   const selectedOption = allOptions.find(
     (opt) => opt.value === value
   );
 
-  // Render a single option item
+  const hasResults = groups
+    ? (filteredGroups?.length ?? 0) > 0
+    : filteredOptions.length > 0;
+
+  const handleCreate = () => {
+    if (onCreate) {
+      onCreate(searchTerm);
+      setIsOpen(false);
+      setSearchTerm('');
+    } else if (createHref) {
+      window.open(createHref, '_blank');
+      setIsOpen(false);
+    } else {
+      toast('Buat item baru di menu Settings', { icon: 'ℹ️' });
+      setIsOpen(false);
+    }
+  };
+
   const renderOption = (option: SelectOption) => (
     <div
       key={option.value}
@@ -156,16 +225,32 @@ export default function Select({
     <div
       ref={dropdownRef}
       style={dropdownStyle}
-      className="bg-white shadow-lg max-h-60 rounded-lg border border-gray-200 focus:outline-none overflow-hidden"
+      className="bg-white shadow-lg rounded-lg border border-gray-200 focus:outline-none overflow-hidden"
     >
-      <div className="py-1 text-base sm:text-sm max-h-60 overflow-y-auto">
-        {allOptions.length === 0 ? (
-          <div className="cursor-default select-none relative py-2 px-4 text-gray-500">
-            No options available
+      {searchable && (
+        <div className="p-2 border-b border-gray-100">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Cari..."
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
-        ) : groups ? (
-          // Render grouped options
-          groups.map((group, groupIndex) => (
+        </div>
+      )}
+
+      <div className="py-1 text-base sm:text-sm max-h-60 overflow-y-auto">
+        {!hasResults && !allowCreate ? (
+          <div className="cursor-default select-none relative py-2 px-4 text-gray-500">
+            {searchTerm ? 'Tidak ditemukan' : 'No options available'}
+          </div>
+        ) : filteredGroups ? (
+          filteredGroups.map((group, groupIndex) => (
             <div key={group.label}>
               {groupIndex > 0 && (
                 <div className="border-t border-gray-200 my-1" />
@@ -177,8 +262,25 @@ export default function Select({
             </div>
           ))
         ) : (
-          // Render flat options
-          options.map(renderOption)
+          filteredOptions.map(renderOption)
+        )}
+
+        {allowCreate && (
+          <>
+            {hasResults && (
+              <div className="border-t border-gray-200 my-1" />
+            )}
+            <div
+              className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-green-50 text-green-700 flex items-center gap-2"
+              onClick={handleCreate}
+            >
+              <PlusIcon className="h-4 w-4" />
+              <span>
+                {createLabel}
+                {searchTerm && `: "${searchTerm}"`}
+              </span>
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -219,7 +321,6 @@ export default function Select({
         </span>
       </button>
 
-      {/* Render dropdown in portal to escape overflow containers */}
       {isOpen &&
         (portal
           ? createPortal(dropdownContent, document.body)

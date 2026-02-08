@@ -59,7 +59,6 @@ const renderWithProviders = (initialRoute = '/') => {
     currentCompany: { id: '1', name: 'Test Co' } as any,
     companies: [],
     setCurrentCompany: vi.fn(),
-    setCompanies: vi.fn(),
     refreshCompanies: vi.fn(),
     isLoading: false,
   });

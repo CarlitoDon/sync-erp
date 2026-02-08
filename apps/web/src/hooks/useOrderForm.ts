@@ -164,9 +164,14 @@ export function useOrderForm(
   }, [currentItem]);
 
   // Action: Update item at index
-  const updateItem = useCallback((index: number, item: OrderItemForm) => {
-    setItems((prev) => prev.map((it, i) => (i === index ? item : it)));
-  }, []);
+  const updateItem = useCallback(
+    (index: number, item: OrderItemForm) => {
+      setItems((prev) =>
+        prev.map((it, i) => (i === index ? item : it))
+      );
+    },
+    []
+  );
 
   // Action: Remove item at index
   const removeItem = useCallback((index: number) => {
@@ -216,5 +221,3 @@ export function useOrderForm(
     isValid,
   };
 }
-
-export default useOrderForm;

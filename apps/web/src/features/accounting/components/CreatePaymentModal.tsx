@@ -7,7 +7,7 @@ import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline';
-import { PaymentMethodSchema } from '@sync-erp/shared';
+import { PaymentMethodTypeSchema } from '@sync-erp/shared';
 import { trpc, type RouterOutputs } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ type BillDoc = RouterOutputs['bill']['list'][number];
 type SelectedDoc = InvoiceDoc | BillDoc;
 
 // Derive PaymentMethod type from the Zod schema
-type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
+type PaymentMethod = z.infer<typeof PaymentMethodTypeSchema>;
 
 type CreatePaymentForm = {
   // eslint-disable-next-line @sync-erp/no-hardcoded-enum
@@ -66,7 +66,7 @@ export default function CreatePaymentModal({
       type: 'INBOUND',
       date: new Date().toISOString().split('T')[0],
       // Use the first option or a specific default
-      method: PaymentMethodSchema.options[0] as PaymentMethod,
+      method: PaymentMethodTypeSchema.options[0] as PaymentMethod,
       amount: 0,
     },
   });
@@ -291,9 +291,11 @@ export default function CreatePaymentModal({
                 {...register('method', { required: true })}
                 className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-2 px-3 border"
               >
-                {PaymentMethodSchema.options.map((method) => (
+                {PaymentMethodTypeSchema.options.map((method) => (
                   <option key={method} value={method}>
-                    {method.replace('_', ' ')}
+                    {method === 'BANK'
+                      ? 'Bank Transfer'
+                      : method.replace('_', ' ')}
                   </option>
                 ))}
               </select>
