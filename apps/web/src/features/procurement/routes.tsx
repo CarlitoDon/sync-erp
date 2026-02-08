@@ -1,6 +1,6 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { Route } from 'react-router-dom';
-import { LoadingState } from '@/components/ui';
+import { LazyRoute } from '@/app/LazyRoute';
 
 // Procurement pages - lazy loaded
 const Suppliers = lazy(() => import('./pages/Suppliers'));
@@ -9,10 +9,6 @@ const PurchaseOrders = lazy(() => import('./pages/PurchaseOrders'));
 const PurchaseOrderDetail = lazy(
   () => import('./pages/PurchaseOrderDetail')
 );
-
-function LazyRoute({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<LoadingState />}>{children}</Suspense>;
-}
 
 export const ProcurementRoutes = (
   <>

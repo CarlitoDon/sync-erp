@@ -169,7 +169,7 @@ describe('BUG: O2C Flow with Shipment Before Invoice Post', () => {
       {
         orderId: order.id,
         amount: 222000,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
       },
       ACTOR_ID
     );
@@ -238,7 +238,7 @@ describe('BUG: O2C Flow with Shipment Before Invoice Post', () => {
     const payment = await paymentService.create(COMPANY_ID, {
       invoiceId: invoice.id,
       amount: 888000,
-      method: 'BANK_TRANSFER',
+      method: 'BANK',
     });
     expect(Number(payment.amount)).toBe(888000);
 

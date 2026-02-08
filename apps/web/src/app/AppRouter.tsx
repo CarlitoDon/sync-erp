@@ -1,8 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import Layout from '@/components/layout/Layout';
-import { LoadingState } from '@/components/ui';
+import { LazyRoute } from '@/app/LazyRoute';
 
 // Auth pages - not lazy loaded (initial entry points)
 import { RegisterPage } from '@/features/auth/components/RegisterPage';
@@ -29,14 +29,6 @@ const CompanySelectionPage = lazy(() =>
   )
 );
 const CashBankPage = lazy(() => import('@/features/cash-bank'));
-
-/**
- * Suspense wrapper for lazy-loaded routes.
- * Shows loading spinner while chunks are being fetched.
- */
-function LazyRoute({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<LoadingState />}>{children}</Suspense>;
-}
 
 export function AppRouter() {
   return (

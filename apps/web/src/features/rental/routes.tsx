@@ -1,7 +1,6 @@
 import { lazy } from 'react';
 import { Route } from 'react-router-dom';
-import { LoadingState } from '@/components/ui';
-import { Suspense } from 'react';
+import { LazyRoute } from '@/app/LazyRoute';
 
 // Lazy loaded pages
 const RentalItems = lazy(() => import('./pages/RentalItemsPage'));
@@ -18,10 +17,6 @@ const RentalSettings = lazy(
 const RentalScheduler = lazy(
   () => import('./pages/RentalSchedulerPage')
 );
-
-function LazyRoute({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<LoadingState />}>{children}</Suspense>;
-}
 
 export const RentalRoutes = (
   <Route path="rental">

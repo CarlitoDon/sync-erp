@@ -169,7 +169,7 @@ describe('O2C Flow: DP Deduction in Final Invoice', () => {
     await paymentService.create(COMPANY_ID, {
       invoiceId: dpInvoice!.id,
       amount: 222000,
-      method: 'BANK_TRANSFER',
+      method: 'BANK',
     });
 
     // 4. Create Final Invoice

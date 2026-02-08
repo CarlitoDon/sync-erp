@@ -14,7 +14,6 @@ interface CompanyContextType {
   currentCompany: Company | null;
   companies: Company[];
   setCurrentCompany: (company: Company | null) => void;
-  setCompanies: (companies: Company[]) => void;
   refreshCompanies: () => Promise<void>;
   isLoading: boolean;
 }
@@ -107,7 +106,6 @@ export function CompanyProvider({
         currentCompany,
         companies,
         setCurrentCompany,
-        setCompanies: () => {}, // No-op as query manages state now
         refreshCompanies: async () => {
           await refetch();
         },

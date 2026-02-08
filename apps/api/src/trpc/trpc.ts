@@ -2,8 +2,12 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import { middlewareMarker } from '@trpc/server/unstable-core-do-not-import';
 import { Context } from './context';
 import superjson from 'superjson';
-import { BusinessShape, IdempotencyScope } from '@sync-erp/database';
-import { IdempotencyService } from '../modules/idempotency/idempotency.service';
+import {
+  BusinessShape,
+  IdempotencyScope,
+  Prisma,
+} from '@sync-erp/database';
+import { IdempotencyService } from '../modules/common/services/idempotency.service';
 
 export interface Meta {
   idempotencyScope?: IdempotencyScope;
@@ -60,7 +64,10 @@ const idempotencyMiddleware = t.middleware(
         // We run this in background (fire and forget) to not block response?
         // Better await it to ensure consistency, but it adds latency.
         // For safety, await it.
-        await idempotencyService.complete(key, result.data);
+        await idempotencyService.complete(
+          key,
+          result.data as Prisma.InputJsonObject
+        );
       } else {
         // Store failure (or allow retry)
         // We store failure to allow retry with same key (via fail() logic which deletes it or marks failed)

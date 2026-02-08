@@ -100,9 +100,8 @@ export function RecordPaymentModal({
     let method: PaymentMethod = defaultPaymentMethod;
     if (selectedAccount) {
       const code = selectedAccount.account.code;
-      if (code.startsWith('11')) method = 'CASH' as PaymentMethod;
-      else if (code.startsWith('12'))
-        method = 'BANK_TRANSFER' as PaymentMethod;
+      if (code.startsWith('11')) method = 'CASH';
+      else if (code.startsWith('12')) method = 'BANK';
     }
 
     await apiAction(

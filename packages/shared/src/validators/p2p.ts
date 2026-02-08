@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  PaymentMethodSchema,
+  PaymentMethodTypeSchema,
   PaymentTermsSchema,
   PaymentStatusSchema,
 } from '../generated/zod/index.js';
@@ -106,7 +106,7 @@ export const CreateBillFromPOSchema = z.object({
 export const CreateP2PPaymentSchema = z.object({
   invoiceId: z.string().uuid(),
   amount: z.number().positive(),
-  method: PaymentMethodSchema,
+  method: PaymentMethodTypeSchema,
   accountId: z.string().uuid(),
   reference: z.string().optional(),
   date: z.coerce.date(),
@@ -120,7 +120,7 @@ export const CreateP2PPaymentSchema = z.object({
 export const RegisterUpfrontPaymentSchema = z.object({
   orderId: z.string().uuid(),
   amount: z.number().positive(),
-  method: PaymentMethodSchema,
+  method: PaymentMethodTypeSchema,
   accountId: z.string().uuid().optional(),
   reference: z.string().max(100).optional(),
   businessDate: z.coerce.date().optional(),
@@ -205,7 +205,7 @@ export type SettlementResponse = z.infer<
 export const RegisterCustomerDepositSchema = z.object({
   orderId: z.string().uuid(),
   amount: z.number().positive(),
-  method: PaymentMethodSchema,
+  method: PaymentMethodTypeSchema,
   accountId: z.string().uuid().optional(),
   reference: z.string().max(100).optional(),
   businessDate: z.coerce.date().optional(),

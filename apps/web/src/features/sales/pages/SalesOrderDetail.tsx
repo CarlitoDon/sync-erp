@@ -3,24 +3,26 @@ import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useOrderMutations } from '@/hooks/useOrderMutations';
-import { formatCurrency, formatDate } from '@/utils/format';
+import { formatDate } from '@/utils/format';
 import { ShipmentModal } from '@/features/inventory/components/ShipmentModal';
 import CreateInvoiceModal from '@/features/accounting/components/CreateInvoiceModal';
 import { PageContainer } from '@/components/layout/PageLayout';
 import SalesOrderActions from '../components/SalesOrderActions';
 import { CustomerDepositCard } from '../components/CustomerDepositCard';
 import { RegisterDepositModal } from '../components/RegisterDepositModal';
+import { usePrompt } from '@/components/ui/PromptModal';
 import {
   PaymentTermsSchema,
   OrderStatusSchema,
   PaymentStatusSchema,
-  InvoiceStatusSchema,
-  DocumentStatusSchema,
   PaymentTermsType,
   PaymentStatusType,
 } from '@sync-erp/shared';
+import { useSalesOrderCalculations } from '../hooks/useSalesOrderCalculations';
+import { SalesOrderStats } from '../components/SalesOrderStats';
+import { SalesOrderShipments } from '../components/SalesOrderShipments';
+import { SalesOrderDepositStatus } from '../components/SalesOrderDepositStatus';
 import {
-  ActionButton,
   BackButton,
   Card,
   CardHeader,
@@ -43,12 +45,15 @@ export default function SalesOrderDetail() {
   const [shipmentModalOpen, setShipmentModalOpen] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const prompt = usePrompt();
 
   const { data: order, isLoading: loading } =
     trpc.salesOrder.getById.useQuery(
       { id: id! },
       { enabled: !!id && !!currentCompany?.id }
     );
+
+  const calculations = useSalesOrderCalculations(order);
 
   const { handleConfirm, handleCancel } = useOrderMutations({
     type: 'sales',
@@ -62,10 +67,13 @@ export default function SalesOrderDetail() {
     },
   });
 
-  const handleCloseSO = (orderId: string) => {
-    const reason = prompt(
-      'Please enter a reason for closing this SO:'
-    );
+  const handleCloseSO = async (orderId: string) => {
+    const reason = await prompt({
+      title: 'Close Sales Order',
+      message: 'Please enter a reason for closing this SO:',
+      placeholder: 'Enter reason...',
+      required: true,
+    });
     if (reason && reason.trim()) {
       closeMutation.mutate({ id: orderId, reason: reason.trim() });
     }
@@ -233,59 +241,10 @@ export default function SalesOrderDetail() {
                 />
               </div>
             </div>
-
-            <hr className="my-6" />
-
-            {/* Feature 041: Total and Outstanding amounts */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              <div>
-                <p className="text-sm text-gray-500 mb-2">
-                  Total Amount
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(Number(order.totalAmount))}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-2">
-                  Total Invoiced
-                </p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {formatCurrency(
-                    order.invoices?.reduce(
-                      (sum, inv) =>
-                        inv.isDownPayment
-                          ? sum
-                          : sum + Number(inv.subtotal || 0),
-                      0
-                    ) || 0
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-2">
-                  Outstanding
-                </p>
-                <p className="text-2xl font-bold text-amber-600">
-                  {formatCurrency(
-                    Math.max(
-                      0,
-                      Number(order.totalAmount) -
-                        (order.invoices?.reduce(
-                          (sum, inv) =>
-                            inv.isDownPayment
-                              ? sum
-                              : sum + Number(inv.subtotal || 0),
-                          0
-                        ) || 0) -
-                        (Number(order.dpAmount) || 0)
-                    )
-                  )}
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
+
+        <SalesOrderStats calculations={calculations} />
 
         {/* Items Card */}
         <Card>
@@ -309,81 +268,7 @@ export default function SalesOrderDetail() {
         </Card>
 
         {/* Feature 041: Shipments Card - Show linked invoices */}
-        {order.fulfillments && order.fulfillments.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500">
-                        Shipment Number
-                      </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500">
-                        Linked Invoice
-                      </th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-500">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {order.fulfillments.map((shipment) => {
-                      const linkedInvoice = shipment.invoices?.[0];
-                      return (
-                        <tr key={shipment.id}>
-                          <td className="px-4 py-3 font-mono">
-                            {shipment.number}
-                          </td>
-                          <td className="px-4 py-3">
-                            <StatusBadge
-                              status={shipment.status}
-                              domain="document"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            {linkedInvoice ? (
-                              <Link
-                                to={`/invoices/${linkedInvoice.id}`}
-                                className="text-blue-600 hover:text-blue-800 hover:underline font-mono"
-                              >
-                                {linkedInvoice.invoiceNumber}
-                              </Link>
-                            ) : (
-                              <span className="text-gray-400 italic">
-                                No invoice created
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {!linkedInvoice &&
-                              shipment.status ===
-                                DocumentStatusSchema.enum.POSTED && (
-                                <ActionButton
-                                  variant="primary"
-                                  onClick={() => {
-                                    /* TODO: Create invoice from shipment */
-                                  }}
-                                >
-                                  Create Invoice
-                                </ActionButton>
-                              )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <SalesOrderShipments fulfillments={order.fulfillments} />
 
         {/* Cash Upfront: Customer Deposit Card */}
         {isUpfrontOrder && depositSummary && (
@@ -401,77 +286,10 @@ export default function SalesOrderDetail() {
         )}
 
         {/* DP Invoice Info - Show for UPFRONT or orders with dpAmount */}
-        {(() => {
-          const dpAmount = order.dpAmount
-            ? Number(order.dpAmount)
-            : 0;
-          const dpPercent = order.dpPercent
-            ? Number(order.dpPercent)
-            : 0;
-          const hasDpRequired = isUpfrontOrder || dpAmount > 0;
-          const dpInvoice = order.invoices?.find((inv) =>
-            inv.notes?.includes('Down Payment')
-          );
-          const isDpPaid =
-            dpInvoice?.status === InvoiceStatusSchema.enum.PAID;
-
-          if (!hasDpRequired) return null;
-
-          return (
-            <div
-              className={`border-l-4 p-4 rounded-lg ${
-                isDpPaid
-                  ? 'bg-green-50 border-green-500'
-                  : 'bg-blue-50 border-blue-500'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p
-                    className={`font-semibold ${
-                      isDpPaid ? 'text-green-800' : 'text-blue-800'
-                    }`}
-                  >
-                    {isDpPaid
-                      ? '✅ Customer Deposit Received'
-                      : '💰 Customer Deposit Required'}
-                  </p>
-                  <p
-                    className={`text-sm ${
-                      isDpPaid ? 'text-green-700' : 'text-blue-700'
-                    }`}
-                  >
-                    {isUpfrontOrder
-                      ? `Full upfront payment: ${formatCurrency(Number(order.totalAmount))}`
-                      : `DP ${dpPercent}%: ${formatCurrency(dpAmount)}`}
-                  </p>
-                  {!isDpPaid && !isUpfrontOrder && (
-                    <p className="text-xs text-blue-600 mt-1">
-                      Remaining after deposit:{' '}
-                      {formatCurrency(
-                        Number(order.totalAmount) - dpAmount
-                      )}
-                    </p>
-                  )}
-                </div>
-                {dpInvoice ? (
-                  <ActionButton
-                    variant={isDpPaid ? 'secondary' : 'primary'}
-                    onClick={() =>
-                      navigate(`/invoices/${dpInvoice.id}`)
-                    }
-                  >
-                    {isDpPaid ? 'View DP Invoice' : '💳 Collect DP →'}
-                  </ActionButton>
-                ) : (
-                  <span className="text-sm text-gray-500">
-                    Confirm SO to create Deposit Invoice
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })()}
+        <SalesOrderDepositStatus
+          order={order}
+          calculations={calculations}
+        />
 
         {/* Actions */}
         <Card>

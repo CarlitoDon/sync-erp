@@ -56,6 +56,8 @@ model Company {
   warehouses            Warehouse[]
   rentalBundles         RentalBundle[]
   integrations          Integration[]
+
+  paymentMethods        CompanyPaymentMethod[]
 }
 
 /// Integrations (Apps) installed by the company
@@ -334,23 +336,23 @@ model InvoiceItem {
 }
 
 model Payment {
-  id               String        @id @default(uuid())
+  id               String            @id @default(uuid())
   companyId        String
   invoiceId        String?
   orderId          String?
-  paymentType      String        @default("INVOICE")
+  paymentType      String            @default("INVOICE")
   settledAt        DateTime?
   settlementBillId String?
-  amount           Decimal       @db.Decimal(15, 2)
-  date             DateTime      @default(now())
-  method           PaymentMethod
+  amount           Decimal           @db.Decimal(15, 2)
+  date             DateTime          @default(now())
+  method           PaymentMethodType
   reference        String?
   accountId        String?
-  version          Int           @default(1)
-  createdAt        DateTime      @default(now())
-  company          Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  invoice          Invoice?      @relation(fields: [invoiceId], references: [id])
-  order            Order?        @relation("OrderUpfrontPayments", fields: [orderId], references: [id])
+  version          Int               @default(1)
+  createdAt        DateTime          @default(now())
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice          Invoice?          @relation(fields: [invoiceId], references: [id])
+  order            Order?            @relation("OrderUpfrontPayments", fields: [orderId], references: [id])
 
   @@index([companyId])
   @@index([invoiceId])
@@ -359,27 +361,50 @@ model Payment {
 }
 
 model Account {
-  id                   String                @id @default(uuid())
+  id                   String                 @id @default(uuid())
   companyId            String
   code                 String
   name                 String
   type                 AccountType
-  isActive             Boolean               @default(true)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  isGroup              Boolean               @default(false)
+  isActive             Boolean                @default(true)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  isGroup              Boolean                @default(false)
   parentId             String?
-  company              Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  parent               Account?              @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children             Account[]             @relation("AccountHierarchy")
+  company              Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent               Account?               @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children             Account[]              @relation("AccountHierarchy")
   bankAccounts         BankAccount[]
   cashTransactionItems CashTransactionItem[]
   journalLines         JournalLine[]
+  paymentMethods       CompanyPaymentMethod[]
 
   @@unique([companyId, code])
   @@index([companyId])
   @@index([companyId, type])
   @@index([parentId])
+}
+
+/// Payment methods configured by company (e.g., Cash, BCA Transfer, QRIS BCA)
+model CompanyPaymentMethod {
+  id        String            @id @default(uuid())
+  companyId String
+  code      String // Unique code: 'CASH', 'BCA_TRANSFER', 'QRIS_BCA'
+  name      String // Display name: 'Tunai', 'Transfer BCA', 'QRIS BCA'
+  type      PaymentMethodType // Category: CASH, BANK, QRIS, EWALLET
+  accountId String? // Linked GL Account for journal entries
+  isActive  Boolean           @default(true)
+  isDefault Boolean           @default(false)
+  sortOrder Int               @default(0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([companyId, isActive])
 }
 
 model JournalEntry {
@@ -1128,11 +1153,20 @@ enum InvoiceStatus {
   VOID
 }
 
+/// @deprecated Use PaymentMethodType instead - kept for migration compatibility
 enum PaymentMethod {
   CASH
   BANK_TRANSFER
   CREDIT_CARD
   CHECK
+  OTHER
+}
+
+enum PaymentMethodType {
+  CASH
+  BANK
+  QRIS
+  EWALLET
   OTHER
 }
 

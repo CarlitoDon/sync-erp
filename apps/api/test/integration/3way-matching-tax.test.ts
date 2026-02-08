@@ -247,7 +247,7 @@ describe('3-Way Matching with Tax and DP', () => {
       await paymentService.create(COMPANY_ID, {
         invoiceId: dpBill!.id,
         amount: Number(postedDpBill.amount),
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
       });
 
       // Receive goods (full qty)

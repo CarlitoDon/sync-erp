@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import {
   InvoiceStatus,
   InvoiceType,
-  PaymentMethod,
+  PaymentMethodType,
   prisma,
 } from '@sync-erp/database';
 import { PaymentService } from '../../src/modules/accounting/services/payment.service';
@@ -106,7 +106,7 @@ describe('O2C: Void Receipt & Journal Reversal (Mirroring P2P)', () => {
       {
         invoiceId: invoice.id,
         amount: 400000,
-        method: PaymentMethod.BANK_TRANSFER,
+        method: PaymentMethodType.BANK,
         businessDate: new Date(),
       },
       asCorrelationId(`void-rec-test-${Date.now()}`)
@@ -169,7 +169,7 @@ describe('O2C: Void Receipt & Journal Reversal (Mirroring P2P)', () => {
     const payment = await paymentService.create(COMPANY_ID, {
       invoiceId: invoice.id,
       amount: 500000,
-      method: PaymentMethod.CASH,
+      method: PaymentMethodType.CASH,
     });
 
     // First void should succeed
@@ -213,7 +213,7 @@ describe('O2C: Void Receipt & Journal Reversal (Mirroring P2P)', () => {
     const payment = await paymentService.create(COMPANY_ID, {
       invoiceId: invoice.id,
       amount: 100000,
-      method: PaymentMethod.CASH,
+      method: PaymentMethodType.CASH,
     });
 
     // Try to void without permission
@@ -252,7 +252,7 @@ describe('O2C: Void Receipt & Journal Reversal (Mirroring P2P)', () => {
       {
         invoiceId: invoice.id,
         amount: 600000,
-        method: PaymentMethod.BANK_TRANSFER,
+        method: PaymentMethodType.BANK,
       },
       asCorrelationId(`partial-1-${Date.now()}`)
     );
@@ -263,7 +263,7 @@ describe('O2C: Void Receipt & Journal Reversal (Mirroring P2P)', () => {
       {
         invoiceId: invoice.id,
         amount: 400000,
-        method: PaymentMethod.BANK_TRANSFER,
+        method: PaymentMethodType.BANK,
       },
       asCorrelationId(`partial-2-${Date.now()}`)
     );

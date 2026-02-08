@@ -15,7 +15,6 @@ export const mockUseCompany = vi.fn(() => ({
   currentCompany: null as any,
   companies: [],
   setCurrentCompany: vi.fn(),
-  setCompanies: vi.fn(),
   refreshCompanies: vi.fn(),
   isLoading: false,
 }));

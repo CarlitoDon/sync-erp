@@ -91,7 +91,6 @@ describe('Sidebar', () => {
       },
       companies: [],
       setCurrentCompany: vi.fn(),
-      setCompanies: vi.fn(),
       refreshCompanies: vi.fn(),
       isLoading: false,
       ...overrides.company,

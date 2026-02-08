@@ -152,7 +152,7 @@ describe('E2E: Cash Upfront Sales - Complete O2C Flow', () => {
       {
         orderId: order.id,
         amount: 500000, // Full amount
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
         reference: 'E2E-DEPOSIT-001',
       },
       ACTOR_ID

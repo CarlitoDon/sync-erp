@@ -202,7 +202,7 @@ describe('Standard O2C Flow (Order-to-Cash)', () => {
       const payment = await paymentService.create(COMPANY_ID, {
         invoiceId,
         amount: 555000,
-        method: 'BANK_TRANSFER' as const,
+        method: 'BANK' as const,
       });
       expect(Number(payment.amount)).toBe(555000);
 

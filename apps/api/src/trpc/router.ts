@@ -24,6 +24,7 @@ import { publicRentalRouter } from './routers/public-rental.router'; // Santi Li
 import { apiKeyRouter } from './routers/api-key.router'; // Multi-tenant API key management
 import { integrationRouter } from './routers/integration.router'; // Integrations Marketplace
 import { botRouter } from './routers/bot.router';
+import { paymentMethodRouter } from './routers/payment-method.router'; // Company payment methods
 export { Prisma } from '@sync-erp/database';
 
 export const appRouter = router({
@@ -52,6 +53,7 @@ export const appRouter = router({
   finance: financeRouter,
   expense: expenseRouter,
   cashBank: cashBankRouter,
+  paymentMethod: paymentMethodRouter, // Company payment methods CRUD
 
   // System
   dashboard: dashboardRouter,

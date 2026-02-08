@@ -1,6 +1,6 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { Route } from 'react-router-dom';
-import { LoadingState } from '@/components/ui';
+import { LazyRoute } from '@/app/LazyRoute';
 
 // Lazy load integration pages
 const IntegrationsListPage = lazy(
@@ -9,10 +9,6 @@ const IntegrationsListPage = lazy(
 const IntegrationDetailPage = lazy(
   () => import('./pages/IntegrationDetailPage')
 );
-
-function LazyRoute({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<LoadingState />}>{children}</Suspense>;
-}
 
 export const IntegrationRoutes = (
   <>

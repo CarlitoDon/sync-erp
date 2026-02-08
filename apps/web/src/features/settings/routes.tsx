@@ -1,6 +1,6 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { Route } from 'react-router-dom';
-import { LoadingState } from '@/components/ui';
+import { LazyRoute } from '@/app/LazyRoute';
 
 // Settings pages - lazy loaded
 const ApiKeysPage = lazy(() => import('./pages/ApiKeysPage'));
@@ -13,10 +13,9 @@ const WhatsAppSettingsPage = lazy(() =>
     default: m.WhatsAppSettingsPage,
   }))
 );
-
-function LazyRoute({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<LoadingState />}>{children}</Suspense>;
-}
+const PaymentMethodsPage = lazy(
+  () => import('./pages/PaymentMethodsPage')
+);
 
 export const SettingsRoutes = (
   <>
@@ -49,6 +48,14 @@ export const SettingsRoutes = (
       element={
         <LazyRoute>
           <ApiDocsPage />
+        </LazyRoute>
+      }
+    />
+    <Route
+      path="settings/payment-methods"
+      element={
+        <LazyRoute>
+          <PaymentMethodsPage />
         </LazyRoute>
       }
     />

@@ -1,7 +1,6 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { apiAction } from '@/hooks/useApiAction';
 import {
   formatCurrency,
   formatDate,
@@ -9,7 +8,6 @@ import {
 } from '@/utils/format';
 import { RecordPaymentModal } from '@/features/accounting/components/RecordPaymentModal';
 import { PaymentHistoryModal } from '@/features/accounting/components/PaymentHistoryModal';
-import { useState } from 'react';
 import { getBillStatusDisplay } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
 import { getPaymentTermLabel } from '@sync-erp/shared';
@@ -23,19 +21,14 @@ import {
   CardContent,
   ActionButton,
   BackButton,
-  useConfirm,
-  usePrompt,
   LoadingState,
   EmptyState,
 } from '@/components/ui';
+import { useBillActions } from '../hooks/useBillActions';
 
 export default function BillDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { currentCompany } = useCompany();
-  const confirm = useConfirm();
-  const prompt = usePrompt();
-  const utils = trpc.useUtils();
 
   const { data: bill, isLoading: loading } =
     trpc.bill.getById.useQuery(
@@ -43,85 +36,7 @@ export default function BillDetail() {
       { enabled: !!id && !!currentCompany?.id }
     );
 
-  const postMutation = trpc.bill.post.useMutation({
-    onSuccess: () => {
-      utils.bill.getById.invalidate({ id: id! });
-      utils.bill.list.invalidate();
-      utils.purchaseOrder.list.invalidate(); // PO status may change
-    },
-  });
-
-  const voidMutation = trpc.bill.void.useMutation({
-    onSuccess: () => {
-      utils.bill.getById.invalidate({ id: id! });
-      utils.bill.list.invalidate();
-      utils.purchaseOrder.list.invalidate(); // PO status may change
-    },
-  });
-
-  const deleteMutation = trpc.bill.delete.useMutation({
-    onSuccess: () => {
-      utils.bill.list.invalidate();
-      utils.purchaseOrder.list.invalidate();
-      navigate('/bills');
-    },
-  });
-
-  // Modal State
-  const [showPayment, setShowPayment] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-
-  const handlePost = async () => {
-    if (!bill) return;
-    await apiAction(
-      () => postMutation.mutateAsync({ id: bill.id }),
-      'Bill posted!'
-    );
-  };
-
-  const handleVoid = async () => {
-    if (!bill) return;
-
-    // FR-024: Prompt for void reason (accessible modal)
-    const reason = await prompt({
-      title: 'Void Bill',
-      message: 'Please enter a reason for voiding this bill:',
-      placeholder: 'Enter reason...',
-      required: true,
-    });
-    if (!reason) {
-      return; // User cancelled
-    }
-
-    const confirmed = await confirm({
-      title: 'Void Bill',
-      message: 'Are you sure you want to void this bill?',
-      confirmText: 'Yes, Void',
-      variant: 'danger',
-    });
-    if (!confirmed) return;
-    await apiAction(
-      () => voidMutation.mutateAsync({ id: bill.id, reason }),
-      'Bill voided'
-    );
-  };
-
-  const handleDelete = async () => {
-    if (!bill) return;
-
-    const confirmed = await confirm({
-      title: 'Delete Bill',
-      message:
-        'Are you sure you want to delete this draft bill? This action cannot be undone.',
-      confirmText: 'Delete',
-      variant: 'danger',
-    });
-    if (!confirmed) return;
-    await apiAction(
-      () => deleteMutation.mutateAsync({ id: bill.id }),
-      'Bill deleted successfully'
-    );
-  };
+  const actions = useBillActions({ billId: id! });
 
   if (loading) {
     return <LoadingState />;
@@ -140,20 +55,20 @@ export default function BillDetail() {
     <>
       {/* Payment Modal */}
       <RecordPaymentModal
-        isOpen={showPayment}
-        onClose={() => setShowPayment(false)}
+        isOpen={actions.paymentModal.isOpen}
+        onClose={actions.paymentModal.close}
         invoiceId={bill.id}
         invoiceNumber={bill.invoiceNumber || ''}
         balance={Number(bill.balance)}
         dueDate={bill.dueDate}
         documentType="bill"
-        onSuccess={() => utils.bill.getById.invalidate({ id: id! })}
+        onSuccess={actions.paymentModal.onSuccess}
       />
 
       {/* Payment History Modal */}
       <PaymentHistoryModal
-        isOpen={showHistory}
-        onClose={() => setShowHistory(false)}
+        isOpen={actions.historyModal.isOpen}
+        onClose={actions.historyModal.close}
         invoiceId={bill.id}
         totalAmount={Number(bill.amount)}
       />
@@ -432,14 +347,14 @@ export default function BillDetail() {
                       <>
                         <ActionButton
                           variant="primary"
-                          onClick={handlePost}
+                          onClick={actions.handlePost}
                           className="w-full"
                         >
                           ✓ Post Bill
                         </ActionButton>
                         <ActionButton
                           variant="danger"
-                          onClick={handleDelete}
+                          onClick={actions.handleDelete}
                           className="w-full"
                         >
                           🗑 Delete
@@ -453,7 +368,7 @@ export default function BillDetail() {
                         {Number(bill.balance) > 0 && (
                           <ActionButton
                             variant="success"
-                            onClick={() => setShowPayment(true)}
+                            onClick={actions.paymentModal.open}
                             className="w-full"
                           >
                             💳 Record Payment
@@ -461,7 +376,7 @@ export default function BillDetail() {
                         )}
                         <ActionButton
                           variant="danger"
-                          onClick={handleVoid}
+                          onClick={actions.handleVoid}
                           className="w-full"
                         >
                           ✕ Void Bill
@@ -470,7 +385,7 @@ export default function BillDetail() {
                     )}
                     <ActionButton
                       variant="secondary"
-                      onClick={() => setShowHistory(true)}
+                      onClick={actions.historyModal.open}
                       className="w-full"
                     >
                       📜 Payment History

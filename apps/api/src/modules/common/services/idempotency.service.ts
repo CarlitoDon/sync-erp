@@ -1,10 +1,16 @@
+/**
+ * Idempotency Service
+ *
+ * Business logic for request idempotency handling.
+ * Prevents duplicate operations by tracking request keys.
+ */
 import {
-  prisma,
   Prisma,
   IdempotencyScope,
   IdempotencyStatus,
 } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import * as idempotencyRepo from '../repositories/idempotency.repository';
 
 // Zombie lock timeout in milliseconds (5 minutes)
 const ZOMBIE_LOCK_TIMEOUT_MS = 5 * 60 * 1000;
@@ -24,16 +30,10 @@ export class IdempotencyService {
     scope: IdempotencyScope,
     entityId: string
   ): Promise<{ saved: boolean; response?: T }> {
-    // 1. Check if exists
-    const existing = await prisma.idempotencyKey.findUnique({
-      where: { id: key },
-    });
+    const existing = await idempotencyRepo.findById(key);
 
     if (existing) {
       if (existing.companyId !== companyId) {
-        console.warn(
-          `[IDEMPOTENCY] Ownership mismatch: key=${key}, expected company=${companyId}, got=${existing.companyId}`
-        );
         throw new DomainError(
           'Idempotency key ownership mismatch',
           403,
@@ -41,20 +41,13 @@ export class IdempotencyService {
         );
       }
       if (existing.scope !== scope) {
-        console.warn(
-          `[IDEMPOTENCY] Scope mismatch: key=${key}, expected=${scope}, got=${existing.scope}`
-        );
         throw new DomainError(
           `Idempotency key scope mismatch: expected ${scope}`,
           400,
           DomainErrorCodes.OPERATION_NOT_ALLOWED
         );
       }
-      // T006: Entity ID validation - if existing key has entityId AND it differs, reject
       if (existing.entityId && existing.entityId !== entityId) {
-        console.warn(
-          `[IDEMPOTENCY] Entity mismatch: key=${key}, expected entity=${entityId}, got=${existing.entityId}`
-        );
         throw new DomainError(
           `Idempotency key entity mismatch: key is bound to entity ${existing.entityId}`,
           400,
@@ -63,12 +56,9 @@ export class IdempotencyService {
       }
 
       if (existing.status === IdempotencyStatus.PROCESSING) {
-        // Check if this is a zombie lock (stale PROCESSING)
         const lockAge = Date.now() - existing.updatedAt.getTime();
         if (lockAge > ZOMBIE_LOCK_TIMEOUT_MS) {
-          // Zombie detected - delete and allow retry
-          await prisma.idempotencyKey.delete({ where: { id: key } });
-          // Fall through to create new lock
+          await idempotencyRepo.deleteById(key);
         } else {
           throw new DomainError(
             'Request with this key is currently processing. Please wait.',
@@ -82,28 +72,21 @@ export class IdempotencyService {
           response: existing.response as T,
         };
       } else if (existing.status === IdempotencyStatus.FAILED) {
-        // Failed status - delete and allow retry
-        await prisma.idempotencyKey.delete({ where: { id: key } });
-        // Fall through to create new lock
+        await idempotencyRepo.deleteById(key);
       }
     }
 
-    // 2. Create new lock with entityId
     try {
-      await prisma.idempotencyKey.create({
-        data: {
-          id: key,
-          companyId,
-          scope,
-          entityId, // T007: Store entityId
-          status: IdempotencyStatus.PROCESSING,
-        },
+      await idempotencyRepo.create({
+        id: key,
+        companyId,
+        scope,
+        entityId,
+        status: IdempotencyStatus.PROCESSING,
       });
       return { saved: false };
     } catch (err) {
-      // Handle race condition where another request created it just now
       if (
-        // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- P2002 is Prisma's unique constraint error code
         (err as Prisma.PrismaClientKnownRequestError).code === 'P2002'
       ) {
         throw new DomainError(
@@ -117,39 +100,52 @@ export class IdempotencyService {
   }
 
   /**
+   * Legacy method for backward compatibility
+   */
+  async acquireLock(
+    key: string,
+    companyId: string,
+    scope: IdempotencyScope,
+    entityId?: string
+  ): Promise<unknown | null> {
+    const result = await this.lock(
+      key,
+      companyId,
+      scope,
+      entityId || ''
+    );
+    if (result.saved) {
+      return result.response;
+    }
+    return null;
+  }
+
+  /**
    * Complete the operation and store response.
    */
   async complete(
     key: string,
     response: Prisma.InputJsonObject
   ): Promise<void> {
-    await prisma.idempotencyKey.update({
-      where: { id: key },
-      data: {
-        status: IdempotencyStatus.COMPLETED,
-        response: response as Prisma.JsonObject,
-      },
-    });
+    await idempotencyRepo.updateStatus(
+      key,
+      IdempotencyStatus.COMPLETED,
+      response as Prisma.InputJsonValue
+    );
   }
 
   /**
-   * Optional: Release lock (delete) on failure if we want to allow retrying failures immediately.
-   * Or we keep it as FAILED status? Spec only said PROCESSING | COMPLETED.
-   * For now, if business logic throws, controller should probably NOT call complete,
-   * but maybe we should expire stuck keys?
-   * MVP: If it fails, transaction rolls back?
-   * Prisma doesn't support nested transaction with this separate service easily unless passed tx.
-   *
-   * Strategy: If operation fails, we should delete the key so user can retry?
-   * Or mark as FAILED?
-   * User spec says: "If New, lock Key -> Execute -> Save Response -> Unlock".
-   * If Execute fails, what happens?
-   * The SPEC is silent on Failure. "Apple-like" implies strictly robust.
-   * We will add `fail` method to remove key to allow retry.
+   * Mark operation as failed, allowing retry.
    */
-  async fail(key: string): Promise<void> {
-    await prisma.idempotencyKey.delete({
-      where: { id: key },
-    });
+  async fail(key: string, error?: unknown): Promise<void> {
+    if (error) {
+      await idempotencyRepo.updateStatus(
+        key,
+        IdempotencyStatus.FAILED,
+        { error: String(error) } as Prisma.InputJsonValue
+      );
+    } else {
+      await idempotencyRepo.deleteById(key);
+    }
   }
 }

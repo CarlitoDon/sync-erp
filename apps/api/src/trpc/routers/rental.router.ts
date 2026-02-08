@@ -26,6 +26,7 @@ import {
   UpdateUnitStatusSchema,
   CreateRentalOrderSchema,
   ConfirmRentalOrderSchema,
+  ManualConfirmRentalOrderSchema,
   ReleaseRentalOrderSchema,
   ProcessReturnSchema,
   UpdateRentalPolicySchema,
@@ -153,6 +154,17 @@ export const rentalRouter = router({
       .input(ConfirmRentalOrderSchema)
       .mutation(async ({ ctx, input }) => {
         return rentalService.confirmOrder(
+          ctx.companyId,
+          input,
+          ctx.userId
+        );
+      }),
+
+    // Manual confirm with override options
+    manualConfirm: protectedProcedure
+      .input(ManualConfirmRentalOrderSchema)
+      .mutation(async ({ ctx, input }) => {
+        return rentalService.manualConfirmOrder(
           ctx.companyId,
           input,
           ctx.userId

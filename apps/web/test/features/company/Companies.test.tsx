@@ -28,7 +28,6 @@ describe('Companies', () => {
       currentCompany: null,
       companies: [],
       setCurrentCompany: mockSetCurrentCompany,
-      setCompanies: vi.fn(),
       refreshCompanies: vi.fn(),
       isLoading: false,
       ...overrides,

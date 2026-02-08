@@ -17,6 +17,14 @@
       "isBackground": true
     },
     {
+      "label": "ESLint Watch",
+      "type": "npm",
+      "script": "lint:watch",
+      "group": "build",
+      "isBackground": true,
+      "presentation": { "reveal": "silent" }
+    },
+    {
       "label": "Turbo: Dev API",
       "type": "shell",
       "command": "turbo run dev --filter=@sync-erp/api",

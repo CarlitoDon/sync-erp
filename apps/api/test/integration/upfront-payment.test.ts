@@ -232,7 +232,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
         {
           orderId: order.id,
           amount: 500000, // Full amount
-          method: 'BANK_TRANSFER',
+          method: 'BANK',
           reference: 'TRF-001',
         },
         ACTOR_ID
@@ -357,7 +357,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
         {
           orderId: order.id,
           amount: 500000,
-          method: 'BANK_TRANSFER',
+          method: 'BANK',
         },
         ACTOR_ID
       );
@@ -441,7 +441,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
         {
           orderId: order.id,
           amount: 1000000,
-          method: 'BANK_TRANSFER',
+          method: 'BANK',
         },
         ACTOR_ID
       );
@@ -740,7 +740,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
         {
           orderId: order.id,
           amount: 100000,
-          method: 'BANK_TRANSFER', // Cr 1200 Bank
+          method: 'BANK', // Cr 1200 Bank
         },
         ACTOR_ID
       );
@@ -844,7 +844,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
         {
           orderId: order.id,
           amount: 100000,
-          method: 'BANK_TRANSFER',
+          method: 'BANK',
         },
         ACTOR_ID
       );
@@ -935,7 +935,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
         {
           orderId: order.id,
           amount: 100000,
-          method: 'BANK_TRANSFER',
+          method: 'BANK',
         },
         ACTOR_ID
       );

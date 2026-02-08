@@ -22,6 +22,7 @@ import {
   LoadingState,
   EmptyState,
 } from '@/components/ui';
+import { logger } from '@/lib/logger';
 
 export default function GoodsReceiptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -124,7 +125,7 @@ export default function GoodsReceiptDetail() {
       try {
         await voidMutation.mutateAsync({ id: receipt.id, reason });
       } catch (error) {
-        console.error('Failed to void GRN:', error);
+        logger.error('Failed to void GRN', error);
       }
     }
   };
@@ -149,13 +150,13 @@ export default function GoodsReceiptDetail() {
       try {
         await deleteMutation.mutateAsync({ id: receipt.id });
       } catch (error) {
-        console.error('Failed to delete GRN:', error);
+        logger.error('Failed to delete GRN', error);
       }
     }
   };
 
   if (error) {
-    console.error('Failed to load goods receipt:', error);
+    logger.error('Failed to load goods receipt', error);
     navigate('/receipts');
     return null;
   }

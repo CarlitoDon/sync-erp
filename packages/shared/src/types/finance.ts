@@ -6,13 +6,13 @@ import { z } from 'zod';
 import {
   InvoiceTypeType as InvoiceType,
   InvoiceStatusType as InvoiceStatus,
-  PaymentMethodType,
-  PaymentMethodSchema,
+  PaymentMethodTypeType as PaymentMethodType,
+  PaymentMethodTypeSchema,
   JournalEntry,
   JournalLine,
 } from '../generated/zod/index.js';
 
-export const PaymentMethod = PaymentMethodSchema.enum;
+export const PaymentMethod = PaymentMethodTypeSchema.enum;
 export type PaymentMethod = PaymentMethodType;
 export type { InvoiceType, InvoiceStatus };
 

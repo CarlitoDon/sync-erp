@@ -150,7 +150,7 @@ describe('P2P: Payment Methods (COD, Tempo+DP)', () => {
     // 4. Pay DP Bill
     await paymentService.create(COMPANY_ID, {
       invoiceId: dpBill.id,
-      method: 'BANK_TRANSFER',
+      method: 'BANK',
       amount: paidAmount, // use precise amount
       businessDate: new Date(),
     });

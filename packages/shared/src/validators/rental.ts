@@ -261,6 +261,19 @@ export const ConfirmRentalOrderSchema = z.object({
     .default([]),
 });
 
+// Manual confirm for admin to override stock/payment checks
+export const ManualConfirmRentalOrderSchema = z.object({
+  orderId: z.string().uuid(),
+  // Override flags
+  skipStockCheck: z.boolean().default(false),
+  // Payment info
+  paymentMethodId: z.string().uuid(), // From CompanyPaymentMethod
+  paymentAmount: z.number().nonnegative(),
+  paymentReference: z.string().optional(),
+  // Notes for audit trail
+  notes: z.string().min(5, 'Notes required for manual confirmation'),
+});
+
 // Bulk add units
 // REMOVED: BulkAddUnitSchema - Manual bulk unit creation no longer supported
 // All units must be created via ConvertStockToUnitSchema
@@ -391,6 +404,9 @@ export type CreateRentalOrderInput = z.infer<
 >;
 export type ConfirmRentalOrderInput = z.infer<
   typeof ConfirmRentalOrderSchema
+>;
+export type ManualConfirmRentalOrderInput = z.infer<
+  typeof ManualConfirmRentalOrderSchema
 >;
 export type ReleaseRentalOrderInput = z.infer<
   typeof ReleaseRentalOrderSchema

@@ -184,6 +184,3 @@ export function createEnvValidator(
 ): EnvironmentValidator {
   return new EnvironmentValidator(serviceName);
 }
-
-// Default instance for backward compatibility (deprecated)
-export default EnvironmentValidator;

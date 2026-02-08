@@ -300,7 +300,7 @@ describe('US3: Full Rental Asset Lifecycle', () => {
     await paymentService.create(COMPANY_ID, {
       invoiceId: bill.id,
       amount: Number(bill.amount),
-      method: 'BANK_TRANSFER',
+      method: 'BANK',
     });
 
     // Check Journal for Payment (AP Debit / Bank Credit)

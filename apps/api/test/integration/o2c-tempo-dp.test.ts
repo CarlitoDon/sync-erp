@@ -147,7 +147,7 @@ describe('O2C Flow: Tax + Tempo + Down Payment', () => {
       {
         orderId: order.id,
         amount: 222000,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
       },
       ACTOR_ID
     );
@@ -250,7 +250,7 @@ describe('O2C Flow: Tax + Tempo + Down Payment', () => {
     const payment = await paymentService.create(COMPANY_ID, {
       invoiceId: invoice.id,
       amount: 888000,
-      method: 'BANK_TRANSFER',
+      method: 'BANK',
     });
     expect(Number(payment.amount)).toBe(888000);
 

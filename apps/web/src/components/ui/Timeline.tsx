@@ -209,5 +209,3 @@ export function Timeline({ events, className = '' }: TimelineProps) {
     </div>
   );
 }
-
-export default Timeline;

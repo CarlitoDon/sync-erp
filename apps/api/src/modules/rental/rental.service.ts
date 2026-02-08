@@ -16,7 +16,7 @@ import {
   InvoiceStatus,
   EntityType,
   AuditLogAction,
-  PaymentMethod,
+  PaymentMethodType,
 } from '@sync-erp/database';
 
 export { Prisma };
@@ -31,6 +31,7 @@ import {
   type CreateRentalItemInput,
   type CreateRentalOrderInput,
   type ConfirmRentalOrderInput,
+  type ManualConfirmRentalOrderInput,
   type ReleaseRentalOrderInput,
   type ProcessReturnInput,
   type RentalItemWithRelations,
@@ -755,7 +756,7 @@ export class RentalService {
       const paymentMethodStr =
         input.paymentMethod ||
         order.paymentMethod ||
-        PaymentMethod.BANK_TRANSFER;
+        PaymentMethodType.BANK;
 
       // Create deposit allocations (using unitIds - either provided or auto-assigned)
       const allocations = unitIds.map((unitId) => {
@@ -845,6 +846,254 @@ export class RentalService {
         entityId: order.id,
         businessDate: new Date(),
         payloadSnapshot: { depositId: deposit.id },
+      });
+
+      return updated;
+    });
+  }
+
+  /**
+   * Manual confirm order - allows admin to override checks
+   * Used when payment was made offline or stock needs force-assignment
+   */
+  async manualConfirmOrder(
+    companyId: string,
+    input: ManualConfirmRentalOrderInput,
+    userId: string
+  ): Promise<RentalOrder> {
+    return prisma.$transaction(async (tx) => {
+      // Phase 1: Prepare
+      const order = await this.repository.findOrderById(
+        input.orderId,
+        tx
+      );
+      if (!order || order.companyId !== companyId) {
+        throw new DomainError(
+          'Order not found',
+          404,
+          DomainErrorCodes.ORDER_NOT_FOUND
+        );
+      }
+
+      if (order.status !== RentalOrderStatus.DRAFT) {
+        throw new DomainError(
+          'Can only confirm DRAFT orders',
+          400,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
+        );
+      }
+
+      // Get payment method
+      const paymentMethod = await tx.companyPaymentMethod.findFirst({
+        where: { id: input.paymentMethodId, companyId },
+        include: { account: true },
+      });
+
+      if (!paymentMethod) {
+        throw new DomainError(
+          'Payment method not found',
+          404,
+          DomainErrorCodes.ORDER_NOT_FOUND
+        );
+      }
+
+      // Get order items with their rental item info
+      const orderItems = await tx.rentalOrderItem.findMany({
+        where: { rentalOrderId: order.id },
+        include: {
+          rentalItem: true,
+          rentalBundle: {
+            include: {
+              components: {
+                include: { rentalItem: true },
+              },
+            },
+          },
+        },
+      });
+
+      // Build list of required units per rentalItemId
+      const requiredUnits: Map<string, number> = new Map();
+      for (const item of orderItems) {
+        if (item.rentalBundleId && item.rentalBundle?.components) {
+          for (const comp of item.rentalBundle.components) {
+            if (comp.rentalItemId) {
+              const current =
+                requiredUnits.get(comp.rentalItemId) || 0;
+              requiredUnits.set(
+                comp.rentalItemId,
+                current + comp.quantity * item.quantity
+              );
+            }
+          }
+        } else if (item.rentalItemId) {
+          const current = requiredUnits.get(item.rentalItemId) || 0;
+          requiredUnits.set(
+            item.rentalItemId,
+            current + item.quantity
+          );
+        }
+      }
+
+      // AUTO-ASSIGN: Find available units (or skip check if override enabled)
+      const unitIds: string[] = [];
+      for (const [rentalItemId, qty] of requiredUnits.entries()) {
+        const availableUnits = await tx.rentalItemUnit.findMany({
+          where: {
+            rentalItemId,
+            companyId,
+            status: UnitStatus.AVAILABLE,
+          },
+          take: qty,
+          orderBy: { unitCode: 'asc' },
+        });
+
+        if (!input.skipStockCheck && availableUnits.length < qty) {
+          throw new DomainError(
+            `Insufficient available units for rental item. Need ${qty}, found ${availableUnits.length}`,
+            400,
+            DomainErrorCodes.INSUFFICIENT_STOCK
+          );
+        }
+
+        // If skipStockCheck, take whatever is available
+        unitIds.push(...availableUnits.map((u) => u.id));
+      }
+
+      // Get policy
+      let policy = await this.repository.getCurrentPolicy(companyId);
+      if (!policy) {
+        policy = await tx.rentalPolicy.create({
+          data: {
+            companyId,
+            gracePeriodHours: 24,
+            lateFeeDailyRate: 50000,
+            cleaningFee: 25000,
+            pickupGracePeriodHours: 48,
+            defaultDepositPolicyType: DepositPolicyType.PER_UNIT,
+            defaultDepositPerUnit: 100000,
+            createdBy: userId,
+            isActive: true,
+          },
+        });
+      }
+
+      // Use provided payment amount as deposit
+      const depositAmount = new Decimal(input.paymentAmount);
+
+      // Create deposit allocations
+      const allocations =
+        unitIds.length > 0
+          ? unitIds.map((unitId) => ({
+              unitId,
+              maxCoveredAmount: depositAmount.dividedBy(
+                unitIds.length
+              ),
+            }))
+          : [];
+
+      // Phase 2: Execute
+      // Create deposit using CompanyPaymentMethod code
+      const deposit = await tx.rentalDeposit.create({
+        data: {
+          rentalOrderId: order.id,
+          companyId,
+          amount: depositAmount,
+          policyType: policy.defaultDepositPolicyType,
+          status: DepositStatus.COLLECTED,
+          collectedAt: new Date(),
+          paymentMethod: paymentMethod.code, // Use payment method code
+          paymentReference: input.paymentReference,
+          allocations:
+            allocations.length > 0
+              ? { create: allocations }
+              : undefined,
+        },
+      });
+
+      // Create unit assignments and reserve units (only if we have units)
+      if (unitIds.length > 0) {
+        await tx.rentalOrderUnitAssignment.createMany({
+          data: unitIds.map((unitId) => ({
+            rentalOrderId: order.id,
+            rentalItemUnitId: unitId,
+            lockedBy: userId,
+          })),
+        });
+
+        // Reserve units (skip if skipStockCheck - may have partial stock)
+        if (!input.skipStockCheck) {
+          const reservationResult =
+            await tx.rentalItemUnit.updateMany({
+              where: {
+                id: { in: unitIds },
+                status: UnitStatus.AVAILABLE,
+              },
+              data: { status: UnitStatus.RESERVED },
+            });
+
+          if (reservationResult.count !== unitIds.length) {
+            throw new DomainError(
+              'One or more units were reserved by another user. Please try again.',
+              409,
+              DomainErrorCodes.INSUFFICIENT_STOCK
+            );
+          }
+        } else {
+          // Force reserve whatever is available
+          await tx.rentalItemUnit.updateMany({
+            where: {
+              id: { in: unitIds },
+              status: UnitStatus.AVAILABLE,
+            },
+            data: { status: UnitStatus.RESERVED },
+          });
+        }
+      }
+
+      // Update order
+      const updated = await tx.rentalOrder.update({
+        where: { id: order.id },
+        data: {
+          status: RentalOrderStatus.CONFIRMED,
+          depositAmount,
+          confirmedAt: new Date(),
+          notes: order.notes
+            ? `${order.notes}\n[Manual Confirm: ${input.notes}]`
+            : `[Manual Confirm: ${input.notes}]`,
+        },
+        include: {
+          items: true,
+          unitAssignments: true,
+          deposit: true,
+        },
+      });
+
+      // Post deposit journal using the payment method's account
+      await this.journalService.postRentalDeposit(
+        companyId,
+        deposit.id,
+        order.orderNumber!,
+        Number(depositAmount),
+        paymentMethod.code,
+        tx
+      );
+
+      // Audit log
+      await recordAudit({
+        companyId,
+        actorId: userId,
+        action: AuditLogAction.RENTAL_ORDER_CONFIRMED,
+        entityType: EntityType.RENTAL_ORDER,
+        entityId: order.id,
+        businessDate: new Date(),
+        payloadSnapshot: {
+          depositId: deposit.id,
+          manualOverride: true,
+          skipStockCheck: input.skipStockCheck,
+          paymentMethodId: input.paymentMethodId,
+          notes: input.notes,
+        },
       });
 
       return updated;
@@ -1563,8 +1812,8 @@ export class RentalService {
               companyId,
               amount: returnRecord.depositRefund.negated(), // Negative = outgoing payment
               method:
-                (deposit.paymentMethod as PaymentMethod) ||
-                PaymentMethod.CASH,
+                (deposit.paymentMethod as PaymentMethodType) ||
+                PaymentMethodType.CASH,
               paymentType: 'DEPOSIT_REFUND',
               reference: `Refund: ${returnRecord.rentalOrder.orderNumber}`,
               date: new Date(),

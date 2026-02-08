@@ -8,26 +8,20 @@ import {
 } from '@/components/ui/Card';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
-import { apiAction } from '@/hooks/useApiAction';
-import { useConfirm } from '@/components/ui/ConfirmModal';
-import { usePrompt } from '@/components/ui/PromptModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { RecordPaymentModal } from '@/features/accounting/components/RecordPaymentModal';
 import { PaymentHistoryModal } from '@/features/accounting/components/PaymentHistoryModal';
 import { InvoiceDepositInfo } from '@/features/accounting/components/InvoiceDepositInfo';
 import { BackButton } from '@/components/ui/BackButton';
-import { useState } from 'react';
 import { getInvoiceStatusDisplay } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
 import { getPaymentTermLabel } from '@sync-erp/shared';
+import { useInvoiceActions } from '../hooks/useInvoiceActions';
 
 export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const { currentCompany } = useCompany();
-  const confirm = useConfirm();
-  const prompt = usePrompt();
-  const utils = trpc.useUtils();
 
   const { data: invoice, isLoading: loading } =
     trpc.invoice.getById.useQuery(
@@ -35,60 +29,7 @@ export default function InvoiceDetail() {
       { enabled: !!id && !!currentCompany?.id }
     );
 
-  const postMutation = trpc.invoice.post.useMutation({
-    onSuccess: () => {
-      utils.invoice.getById.invalidate({ id: id! });
-      utils.invoice.list.invalidate();
-      utils.salesOrder.list.invalidate(); // SO status may change
-    },
-  });
-
-  const voidMutation = trpc.invoice.void.useMutation({
-    onSuccess: () => {
-      utils.invoice.getById.invalidate({ id: id! });
-      utils.invoice.list.invalidate();
-      utils.salesOrder.list.invalidate(); // SO status may change
-    },
-  });
-
-  // Modal State
-  const [showPayment, setShowPayment] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-
-  const handlePost = async () => {
-    if (!invoice) return;
-    await apiAction(
-      () => postMutation.mutateAsync({ id: invoice.id }),
-      'Invoice posted!'
-    );
-  };
-
-  const handleVoid = async () => {
-    if (!invoice) return;
-
-    // FR-024: Prompt for void reason (accessible modal)
-    const reason = await prompt({
-      title: 'Void Invoice',
-      message: 'Please enter a reason for voiding this invoice:',
-      placeholder: 'Enter reason...',
-      required: true,
-    });
-    if (!reason) {
-      return; // User cancelled
-    }
-
-    const confirmed = await confirm({
-      title: 'Void Invoice',
-      message: 'Are you sure you want to void this invoice?',
-      confirmText: 'Yes, Void',
-      variant: 'danger',
-    });
-    if (!confirmed) return;
-    await apiAction(
-      () => voidMutation.mutateAsync({ id: invoice.id, reason }),
-      'Invoice voided'
-    );
-  };
+  const actions = useInvoiceActions({ invoiceId: id! });
 
   if (loading) {
     return (
@@ -242,36 +183,45 @@ export default function InvoiceDetail() {
                 <>
                   <ActionButton
                     variant="primary"
-                    onClick={handlePost}
+                    onClick={actions.handlePost}
+                    disabled={actions.isPosting}
                   >
-                    Post Invoice
+                    {actions.isPosting
+                      ? 'Posting...'
+                      : 'Post Invoice'}
                   </ActionButton>
-                  <ActionButton variant="danger" onClick={handleVoid}>
-                    Void
+                  <ActionButton
+                    variant="danger"
+                    onClick={actions.handleVoid}
+                    disabled={actions.isVoiding}
+                  >
+                    {actions.isVoiding ? 'Voiding...' : 'Void'}
                   </ActionButton>
                 </>
               )}
               {(invoice.status === StatusSchema.enum.POSTED ||
-                invoice.status === StatusSchema.enum.PARTIALLY_PAID) &&
+                invoice.status ===
+                  StatusSchema.enum.PARTIALLY_PAID) &&
                 Number(invoice.balance) > 0 && (
                   <>
                     <ActionButton
                       variant="success"
-                      onClick={() => setShowPayment(true)}
+                      onClick={actions.paymentModal.open}
                     >
                       Record Payment
                     </ActionButton>
                     <ActionButton
                       variant="danger"
-                      onClick={handleVoid}
+                      onClick={actions.handleVoid}
+                      disabled={actions.isVoiding}
                     >
-                      Void
+                      {actions.isVoiding ? 'Voiding...' : 'Void'}
                     </ActionButton>
                   </>
                 )}
               <ActionButton
                 variant="secondary"
-                onClick={() => setShowHistory(true)}
+                onClick={actions.historyModal.open}
               >
                 View Payment History
               </ActionButton>
@@ -282,22 +232,20 @@ export default function InvoiceDetail() {
 
       {/* Payment Modal */}
       <RecordPaymentModal
-        isOpen={showPayment}
-        onClose={() => setShowPayment(false)}
+        isOpen={actions.paymentModal.isOpen}
+        onClose={actions.paymentModal.close}
         invoiceId={invoice.id}
         invoiceNumber={invoice.invoiceNumber || ''}
         balance={Number(invoice.balance)}
         dueDate={invoice.dueDate}
         documentType="invoice"
-        onSuccess={() =>
-          utils.invoice.getById.invalidate({ id: id! })
-        }
+        onSuccess={actions.paymentModal.onSuccess}
       />
 
       {/* Payment History Modal */}
       <PaymentHistoryModal
-        isOpen={showHistory}
-        onClose={() => setShowHistory(false)}
+        isOpen={actions.historyModal.isOpen}
+        onClose={actions.historyModal.close}
         invoiceId={invoice.id}
         totalAmount={Number(invoice.amount)}
       />

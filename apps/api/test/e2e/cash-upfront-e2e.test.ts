@@ -194,7 +194,7 @@ describe('E2E: Cash Upfront Payment Flow', () => {
       {
         orderId: order.id,
         amount: 1000000,
-        method: 'BANK_TRANSFER',
+        method: 'BANK',
       },
       ACTOR_ID
     );

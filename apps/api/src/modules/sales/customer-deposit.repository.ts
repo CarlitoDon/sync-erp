@@ -9,7 +9,7 @@ import { Prisma } from '@sync-erp/database';
 import {
   Payment,
   PaymentStatus,
-  PaymentMethod,
+  PaymentMethodType,
   PaymentTerms,
   InvoiceStatus,
   InvoiceType,
@@ -67,7 +67,7 @@ export class CustomerDepositRepository {
         orderId: data.orderId,
         invoiceId: null,
         amount: data.amount,
-        method: data.method as PaymentMethod,
+        method: data.method as PaymentMethodType,
         paymentType: PaymentTerms.UPFRONT,
         reference: data.reference,
         date: data.date,

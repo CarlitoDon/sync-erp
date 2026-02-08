@@ -19,6 +19,7 @@
     "typecheck": "tsc -b",
     "typecheck:watch": "tsc -b --watch",
     "lint": "turbo run lint",
+    "lint:watch": "esw . --watch --ext .ts,.tsx --color",
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
     "test:all": "turbo run test:all",

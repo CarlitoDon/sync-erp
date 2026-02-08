@@ -375,5 +375,3 @@ export function POTimelineMermaid({
     </div>
   );
 }
-
-export default POTimelineMermaid;

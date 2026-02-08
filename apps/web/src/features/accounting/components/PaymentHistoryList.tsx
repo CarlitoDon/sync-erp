@@ -4,6 +4,7 @@ import { formatDate } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { usePrompt } from '@/components/ui/PromptModal';
+import { logger } from '@/lib/logger';
 
 interface PaymentHistoryListProps {
   invoiceId: string;
@@ -75,7 +76,7 @@ export function PaymentHistoryList({
       try {
         await voidMutation.mutateAsync({ id: paymentId, reason });
       } catch (error) {
-        console.error('Failed to void payment:', error);
+        logger.error('Failed to void payment', error);
       }
     }
   };

@@ -3,7 +3,7 @@ import {
   prisma,
   InvoiceType,
   InvoiceStatus,
-  PaymentMethod,
+  PaymentMethodType,
 } from '@sync-erp/database';
 import { asCorrelationId } from '@sync-erp/shared';
 import { PaymentService } from '@modules/accounting/services/payment.service';
@@ -116,7 +116,7 @@ describe('Partial Payment Flow', () => {
       {
         invoiceId: bill.id,
         amount: 400000,
-        method: PaymentMethod.BANK_TRANSFER,
+        method: PaymentMethodType.BANK,
         businessDate: new Date(),
       },
       asCorrelationId(`payment-1-${Date.now()}`)
@@ -135,7 +135,7 @@ describe('Partial Payment Flow', () => {
       {
         invoiceId: bill.id,
         amount: 300000,
-        method: PaymentMethod.BANK_TRANSFER,
+        method: PaymentMethodType.BANK,
         businessDate: new Date(),
       },
       asCorrelationId(`payment-2-${Date.now()}`)
@@ -154,7 +154,7 @@ describe('Partial Payment Flow', () => {
       {
         invoiceId: bill.id,
         amount: 300000,
-        method: PaymentMethod.BANK_TRANSFER,
+        method: PaymentMethodType.BANK,
         businessDate: new Date(),
       },
       asCorrelationId(`payment-3-${Date.now()}`)
@@ -199,7 +199,7 @@ describe('Partial Payment Flow', () => {
         {
           invoiceId: bill.id,
           amount: 100000, // Bill is only 50k
-          method: PaymentMethod.BANK_TRANSFER,
+          method: PaymentMethodType.BANK,
           businessDate: new Date(),
         },
         asCorrelationId(`payment-exceed-${Date.now()}`)
@@ -227,7 +227,7 @@ describe('Partial Payment Flow', () => {
         paymentService.create(testCompanyId, {
           invoiceId: bill.id,
           amount: -100,
-          method: PaymentMethod.CASH,
+          method: PaymentMethodType.CASH,
         })
       ).rejects.toThrow();
     });
@@ -252,7 +252,7 @@ describe('Partial Payment Flow', () => {
         paymentService.create(testCompanyId, {
           invoiceId: bill.id,
           amount: 0,
-          method: PaymentMethod.CASH,
+          method: PaymentMethodType.CASH,
         })
       ).rejects.toThrow();
     });
@@ -277,7 +277,7 @@ describe('Partial Payment Flow', () => {
         paymentService.create(testCompanyId, {
           invoiceId: bill.id,
           amount: 100,
-          method: PaymentMethod.CASH,
+          method: PaymentMethodType.CASH,
         })
       ).rejects.toThrow();
     });
@@ -302,7 +302,7 @@ describe('Partial Payment Flow', () => {
         paymentService.create(testCompanyId, {
           invoiceId: bill.id,
           amount: 100,
-          method: PaymentMethod.CASH,
+          method: PaymentMethodType.CASH,
         })
       ).rejects.toThrow();
     });
