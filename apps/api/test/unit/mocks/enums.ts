@@ -69,6 +69,13 @@ export enum SagaStep {
 export enum IdempotencyScope {
   PAYMENT_CREATE = 'PAYMENT_CREATE',
   INVOICE_POST = 'INVOICE_POST',
+  BILL_CREATE = 'BILL_CREATE',
+  BILL_POST = 'BILL_POST',
+}
+export enum IdempotencyStatus {
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
 }
 export enum PaymentTerms {
   NET7 = 'NET7',
