@@ -2,6 +2,7 @@ import {
   Invoice,
   InvoiceStatus,
   PaymentMethod,
+  PaymentMethodType,
 } from '@sync-erp/database';
 import {
   DomainError,
@@ -79,9 +80,16 @@ export class PaymentPolicy {
       );
     }
 
-    // Payment method validation (enum check)
-    const validMethods = Object.values(PaymentMethod);
-    if (!validMethods.includes(data.method as PaymentMethod)) {
+    // Payment method validation (accept both legacy PaymentMethod and new PaymentMethodType)
+    const validMethods = [
+      ...Object.values(PaymentMethod),
+      ...Object.values(PaymentMethodType),
+    ];
+    if (
+      !validMethods.includes(
+        data.method as PaymentMethod | PaymentMethodType
+      )
+    ) {
       throw new DomainError(
         `Invalid payment method: ${data.method}`,
         400,
