@@ -51,3 +51,4 @@ packages/database/src/generated/
 .wwebjs_auth
 apps/bot/.wwebjs_auth
 supabase/.temp/
+apps/api/deploy/
