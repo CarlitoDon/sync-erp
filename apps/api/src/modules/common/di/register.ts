@@ -329,8 +329,6 @@ export function registerServices(): void {
     ServiceKeys.RENTAL_SERVICE,
     () =>
       new RentalService(
-        container.resolve(ServiceKeys.RENTAL_REPOSITORY),
-        container.resolve(ServiceKeys.DOCUMENT_NUMBER_SERVICE),
         container.resolve(ServiceKeys.RENTAL_WEBHOOK_SERVICE)
       )
   );

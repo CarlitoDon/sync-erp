@@ -1,7 +1,6 @@
 import {
   JournalEntry,
   JournalSourceType,
-  PaymentMethod,
   Prisma,
 } from '@sync-erp/database';
 import {
@@ -12,6 +11,10 @@ import {
 } from '@sync-erp/shared';
 import { JournalRepository } from '../repositories/journal.repository';
 import { AccountService } from './account.service';
+import { JournalSalesService } from './journal-sales.service';
+import { JournalProcurementService } from './journal-procurement.service';
+import { JournalRentalService } from './journal-rental.service';
+import { JournalInventoryService } from './journal-inventory.service';
 
 export interface CreateJournalLineInput {
   accountId: string;
@@ -38,10 +41,20 @@ export interface CreateJournalEntryInput {
  * - Inventory Journals: adjustment
  */
 export class JournalService {
+  private readonly sales: JournalSalesService;
+  private readonly procurement: JournalProcurementService;
+  private readonly rental: JournalRentalService;
+  private readonly inventory: JournalInventoryService;
+
   constructor(
     private readonly repository: JournalRepository = new JournalRepository(),
     private readonly accountService: AccountService = new AccountService()
-  ) {}
+  ) {
+    this.sales = new JournalSalesService();
+    this.procurement = new JournalProcurementService();
+    this.rental = new JournalRentalService();
+    this.inventory = new JournalInventoryService();
+  }
 
   // ==========================================
   // CORE METHODS
@@ -271,43 +284,15 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const lines: {
-      accountCode: string;
-      debit?: number;
-      credit?: number;
-    }[] = [
-      { accountCode: '1300', debit: amount }, // Accounts Receivable
-    ];
-
-    const grossItems = (subtotal || 0) + (taxAmount || 0);
-    const dpDeducted = Math.max(0, grossItems - amount);
-
-    if (dpDeducted > 0.01) {
-      lines.push({ accountCode: '2200', debit: dpDeducted }); // Clear Customer Deposits
-    }
-
-    if (taxAmount && taxAmount > 0) {
-      lines.push({
-        accountCode: '4100',
-        credit: subtotal || amount - taxAmount,
-      }); // Sales Revenue
-      lines.push({ accountCode: '2300', credit: taxAmount }); // VAT Payable
-    } else {
-      lines.push({ accountCode: '4100', credit: amount });
-    }
-
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Invoice: ${invoiceNumber}`,
-        memo: `Auto-generated from invoice ${invoiceNumber}`,
-        sourceType: JournalSourceType.INVOICE,
-        sourceId: invoiceId,
-        lines,
-        date: businessDate,
-      },
-      tx
+    const data = this.sales.prepareInvoiceJournal(
+      invoiceId,
+      invoiceNumber,
+      amount,
+      subtotal,
+      taxAmount,
+      businessDate
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -323,35 +308,14 @@ export class JournalService {
     taxAmount?: number,
     tx?: Prisma.TransactionClient
   ) {
-    const lines: {
-      accountCode: string;
-      debit?: number;
-      credit?: number;
-    }[] = [
-      { accountCode: '1300', credit: amount }, // Reverse Accounts Receivable
-    ];
-
-    if (taxAmount && taxAmount > 0) {
-      lines.push({
-        accountCode: '4100',
-        debit: subtotal || amount - taxAmount,
-      }); // Reverse Sales Revenue
-      lines.push({ accountCode: '2300', debit: taxAmount }); // Reverse VAT Payable
-    } else {
-      lines.push({ accountCode: '4100', debit: amount }); // Reverse Sales Revenue
-    }
-
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Invoice Reversal: ${invoiceNumber}`,
-        memo: `Reversal of voided invoice ${invoiceNumber}`,
-        sourceType: JournalSourceType.INVOICE,
-        sourceId: `${invoiceId}:reversal`,
-        lines,
-      },
-      tx
+    const data = this.sales.prepareInvoiceReversalJournal(
+      invoiceId,
+      invoiceNumber,
+      amount,
+      subtotal,
+      taxAmount
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postCreditNote(
@@ -364,36 +328,15 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const lines: {
-      accountCode: string;
-      debit?: number;
-      credit?: number;
-    }[] = [
-      { accountCode: '1300', credit: amount }, // Credit AR (reduce debt)
-    ];
-
-    if (taxAmount && taxAmount > 0) {
-      lines.push({
-        accountCode: '4100',
-        debit: subtotal || amount - taxAmount,
-      }); // Reduct Sales Revenue
-      lines.push({ accountCode: '2300', debit: taxAmount }); // Reduct VAT Payable
-    } else {
-      lines.push({ accountCode: '4100', debit: amount });
-    }
-
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Credit Note: ${invoiceNumber}`,
-        memo: `Reversal for invoice ${invoiceNumber}`,
-        sourceType: JournalSourceType.CREDIT_NOTE,
-        sourceId: creditNoteId,
-        lines,
-        date: businessDate,
-      },
-      tx
+    const data = this.sales.prepareCreditNoteJournal(
+      creditNoteId,
+      invoiceNumber,
+      amount,
+      subtotal,
+      taxAmount,
+      businessDate
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -411,36 +354,15 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const lines: {
-      accountCode: string;
-      debit?: number;
-      credit?: number;
-    }[] = [
-      { accountCode: '2100', debit: amount }, // Debit AP (reduce liability)
-    ];
-
-    if (taxAmount && taxAmount > 0) {
-      lines.push({
-        accountCode: '2105',
-        credit: subtotal || amount - taxAmount,
-      }); // Reverse Accrual
-      lines.push({ accountCode: '1500', credit: taxAmount }); // Reverse VAT Receivable
-    } else {
-      lines.push({ accountCode: '2105', credit: amount }); // Reverse Accrual
-    }
-
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Debit Note: ${billNumber}`,
-        memo: `Debit note for bill ${billNumber}`,
-        sourceType: JournalSourceType.CREDIT_NOTE,
-        sourceId: debitNoteId,
-        lines,
-        date: businessDate,
-      },
-      tx
+    const data = this.procurement.prepareDebitNoteJournal(
+      debitNoteId,
+      billNumber,
+      amount,
+      subtotal,
+      taxAmount,
+      businessDate
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postGoodsReceipt(
@@ -449,18 +371,11 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference,
-        memo: 'Auto-generated Accrual from Goods Receipt',
-        lines: [
-          { accountCode: '1400', debit: amount }, // Asset
-          { accountCode: '2105', credit: amount }, // Liability Suspense
-        ],
-      },
-      tx
+    const data = this.procurement.prepareGoodsReceiptJournal(
+      reference,
+      amount
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -473,18 +388,11 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference,
-        memo: 'Reversal of Goods Receipt Accrual',
-        lines: [
-          { accountCode: '1400', credit: amount }, // Reverse Asset
-          { accountCode: '2105', debit: amount }, // Reverse Liability Suspense
-        ],
-      },
-      tx
+    const data = this.procurement.prepareGoodsReceiptReversalJournal(
+      reference,
+      amount
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   // ==========================================
@@ -502,43 +410,15 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const lines: {
-      accountCode: string;
-      debit?: number;
-      credit?: number;
-    }[] = [
-      { accountCode: '2100', credit: amount }, // Accounts Payable (Payable portion)
-    ];
-
-    const grossItems = (subtotal || 0) + (taxAmount || 0);
-    const dpDeducted = Math.max(0, grossItems - amount);
-
-    if (dpDeducted > 0.01) {
-      lines.push({ accountCode: '1600', credit: dpDeducted }); // Clear Advances to Supplier
-    }
-
-    if (taxAmount && taxAmount > 0) {
-      lines.push({
-        accountCode: '2105',
-        debit: subtotal || 0,
-      }); // Clear Accrual for full value of items
-      lines.push({ accountCode: '1500', debit: taxAmount }); // VAT Receivable for full value
-    } else {
-      lines.push({ accountCode: '2105', debit: amount + dpDeducted }); // Clear Accrual
-    }
-
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Bill: ${billNumber}`,
-        memo: `Auto-generated from bill ${billNumber}`,
-        sourceType: JournalSourceType.BILL,
-        sourceId: billId,
-        lines,
-        date: businessDate,
-      },
-      tx
+    const data = this.procurement.prepareBillJournal(
+      billId,
+      billNumber,
+      amount,
+      subtotal,
+      taxAmount,
+      businessDate
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -554,35 +434,14 @@ export class JournalService {
     taxAmount?: number,
     tx?: Prisma.TransactionClient
   ) {
-    const lines: {
-      accountCode: string;
-      debit?: number;
-      credit?: number;
-    }[] = [
-      { accountCode: '2100', debit: amount }, // Reverse Accounts Payable
-    ];
-
-    if (taxAmount && taxAmount > 0) {
-      lines.push({
-        accountCode: '2105',
-        credit: subtotal || amount - taxAmount,
-      }); // Reverse Accrual
-      lines.push({ accountCode: '1500', credit: taxAmount }); // Reverse VAT Receivable
-    } else {
-      lines.push({ accountCode: '2105', credit: amount }); // Reverse Accrual
-    }
-
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Bill Reversal: ${billNumber}`,
-        memo: `Reversal of voided bill ${billNumber}`,
-        sourceType: JournalSourceType.BILL,
-        sourceId: `${billId}:reversal`,
-        lines,
-      },
-      tx
+    const data = this.procurement.prepareBillReversalJournal(
+      billId,
+      billNumber,
+      amount,
+      subtotal,
+      taxAmount
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postPaymentReceived(
@@ -595,24 +454,15 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const cashAccount =
-      contraAccountCode ||
-      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100'); // Bank or Cash
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Payment received: ${invoiceNumber}`,
-        memo: `Payment via ${method}`,
-        sourceType: JournalSourceType.PAYMENT,
-        sourceId: paymentId,
-        lines: [
-          { accountCode: cashAccount, debit: amount },
-          { accountCode: '1300', credit: amount },
-        ],
-        date: businessDate,
-      },
-      tx
+    const data = this.sales.preparePaymentReceivedJournal(
+      paymentId,
+      invoiceNumber,
+      amount,
+      method,
+      contraAccountCode,
+      businessDate
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -628,23 +478,14 @@ export class JournalService {
     contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
-    const cashAccount =
-      contraAccountCode ||
-      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100');
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Payment Reversal: ${invoiceNumber}`,
-        memo: `Reversal of voided payment`,
-        sourceType: JournalSourceType.PAYMENT,
-        sourceId: `${paymentId}:reversal`, // Unique ID for reversal
-        lines: [
-          { accountCode: '1300', debit: amount }, // Restore AR
-          { accountCode: cashAccount, credit: amount }, // Reverse Cash
-        ],
-      },
-      tx
+    const data = this.sales.preparePaymentReceivedReversalJournal(
+      paymentId,
+      invoiceNumber,
+      amount,
+      method,
+      contraAccountCode
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -660,23 +501,14 @@ export class JournalService {
     contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
-    const cashAccount =
-      contraAccountCode ||
-      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100');
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Bill Payment Reversal: ${billNumber}`,
-        memo: `Reversal of voided payment`,
-        sourceType: JournalSourceType.PAYMENT,
-        sourceId: `${paymentId}:reversal`, // Unique ID for reversal
-        lines: [
-          { accountCode: cashAccount, debit: amount }, // Restore Cash
-          { accountCode: '2100', credit: amount }, // Restore AP
-        ],
-      },
-      tx
+    const data = this.procurement.preparePaymentMadeReversalJournal(
+      paymentId,
+      billNumber,
+      amount,
+      method,
+      contraAccountCode
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postPaymentMade(
@@ -688,23 +520,14 @@ export class JournalService {
     contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
-    const cashAccount =
-      contraAccountCode ||
-      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100');
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Payment made: ${billNumber}`,
-        memo: `Payment via ${method}`,
-        sourceType: JournalSourceType.PAYMENT,
-        sourceId: paymentId,
-        lines: [
-          { accountCode: '2100', debit: amount },
-          { accountCode: cashAccount, credit: amount },
-        ],
-      },
-      tx
+    const data = this.procurement.preparePaymentMadeJournal(
+      paymentId,
+      billNumber,
+      amount,
+      method,
+      contraAccountCode
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postShipment(
@@ -713,18 +536,8 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference,
-        memo: 'Auto-generated COGS from Shipment',
-        lines: [
-          { accountCode: '5000', debit: amount },
-          { accountCode: '1400', credit: amount },
-        ],
-      },
-      tx
-    );
+    const data = this.sales.prepareShipmentJournal(reference, amount);
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postSalesReturn(
@@ -733,18 +546,11 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference,
-        memo: 'Auto-generated reversal from Sales Return',
-        lines: [
-          { accountCode: '1400', debit: amount },
-          { accountCode: '5000', credit: amount },
-        ],
-      },
-      tx
+    const data = this.sales.prepareSalesReturnJournal(
+      reference,
+      amount
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -758,18 +564,11 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference,
-        memo: 'Auto-generated reversal from Purchase Return',
-        lines: [
-          { accountCode: '2105', debit: amount }, // Reduce GRNI accrual
-          { accountCode: '1400', credit: amount }, // Reduce Inventory
-        ],
-      },
-      tx
+    const data = this.procurement.preparePurchaseReturnJournal(
+      reference,
+      amount
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   // ==========================================
@@ -784,29 +583,12 @@ export class JournalService {
     isLoss: boolean,
     tx?: Prisma.TransactionClient
   ) {
-    const memo = isLoss ? 'Stock Loss/Shrinkage' : 'Stock Gain/Found';
-    // If Loss: Dr Expense (5200), Cr Asset (1400)
-    // If Gain: Dr Asset (1400), Cr Revenue/Contra (5200)
-
-    const lines = isLoss
-      ? [
-          { accountCode: '5200', debit: amount },
-          { accountCode: '1400', credit: amount },
-        ]
-      : [
-          { accountCode: '1400', debit: amount },
-          { accountCode: '5200', credit: amount },
-        ];
-
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference,
-        memo,
-        lines,
-      },
-      tx
+    const data = this.inventory.prepareAdjustmentJournal(
+      reference,
+      amount,
+      isLoss
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -819,18 +601,11 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference,
-        memo: 'Reversal of Shipment COGS',
-        lines: [
-          { accountCode: '1400', debit: amount }, // Restore Asset
-          { accountCode: '5000', credit: amount }, // Reverse COGS
-        ],
-      },
-      tx
+    const data = this.sales.prepareShipmentReversalJournal(
+      reference,
+      amount
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   // ==========================================
@@ -850,23 +625,14 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const cashAccount =
-      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Upfront Payment: PO ${orderNumber}`,
-        memo: `Advance payment to supplier via ${method}`,
-        sourceType: JournalSourceType.PAYMENT,
-        sourceId: paymentId,
-        lines: [
-          { accountCode: '1600', debit: amount }, // Advances to Supplier (Asset)
-          { accountCode: cashAccount, credit: amount }, // Cash/Bank (Asset)
-        ],
-        date: businessDate,
-      },
-      tx
+    const data = this.procurement.prepareUpfrontPaymentJournal(
+      paymentId,
+      orderNumber,
+      amount,
+      method,
+      businessDate
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -881,20 +647,12 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Settle Prepaid: Bill ${billNumber}`,
-        memo: `Settlement of supplier advance against bill`,
-        sourceType: JournalSourceType.PAYMENT,
-        sourceId: `${paymentId}:settlement`, // Unique ID for settlement
-        lines: [
-          { accountCode: '2100', debit: amount }, // Reduce Accounts Payable
-          { accountCode: '1600', credit: amount }, // Clear Advances to Supplier
-        ],
-      },
-      tx
+    const data = this.procurement.prepareSettlePrepaidJournal(
+      paymentId,
+      billNumber,
+      amount
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   // ==========================================
@@ -914,23 +672,14 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const cashAccount =
-      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Customer Deposit: SO ${orderNumber}`,
-        memo: `Customer advance payment via ${method}`,
-        sourceType: JournalSourceType.PAYMENT,
-        sourceId: paymentId,
-        lines: [
-          { accountCode: cashAccount, debit: amount }, // Cash/Bank (Asset)
-          { accountCode: '2200', credit: amount }, // Customer Deposits (Liability)
-        ],
-        date: businessDate,
-      },
-      tx
+    const data = this.sales.prepareCustomerDepositJournal(
+      paymentId,
+      orderNumber,
+      amount,
+      method,
+      businessDate
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -945,20 +694,12 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Settle Deposit: Invoice ${invoiceNumber}`,
-        memo: `Settlement of customer deposit against invoice`,
-        sourceType: JournalSourceType.PAYMENT,
-        sourceId: `${paymentId}:settlement`, // Unique ID for settlement
-        lines: [
-          { accountCode: '2200', debit: amount }, // Clear Customer Deposits
-          { accountCode: '1300', credit: amount }, // Reduce Accounts Receivable
-        ],
-      },
-      tx
+    const data = this.sales.prepareSettleCustomerDepositJournal(
+      paymentId,
+      invoiceNumber,
+      amount
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   // ==========================================
@@ -976,24 +717,17 @@ export class JournalService {
     orderNumber: string,
     amount: number,
     paymentMethod: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
-    const cashAccount =
-      paymentMethod === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Rental Deposit: ${orderNumber}`,
-        memo: `Rental deposit collected via ${paymentMethod}`,
-        sourceType: JournalSourceType.RENTAL_DEPOSIT,
-        sourceId: depositId,
-        lines: [
-          { accountCode: cashAccount, debit: amount }, // Cash/Bank (Asset)
-          { accountCode: '2400', credit: amount }, // Customer Deposits (Liability)
-        ],
-      },
-      tx
+    const data = this.rental.prepareRentalDepositJournal(
+      depositId,
+      orderNumber,
+      amount,
+      paymentMethod,
+      businessDate
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 
   /**
@@ -1013,49 +747,14 @@ export class JournalService {
     paymentMethod: string,
     tx?: Prisma.TransactionClient
   ) {
-    const cashAccount =
-      paymentMethod === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
-
-    const lines: {
-      accountCode: string;
-      debit?: number;
-      credit?: number;
-    }[] = [];
-
-    // Always debit the full deposit liability (clearing it)
-    lines.push({ accountCode: '2400', debit: depositAmount });
-
-    // Credit rental revenue
-    if (rentalRevenue > 0) {
-      lines.push({ accountCode: '4200', credit: rentalRevenue });
-    }
-
-    // If refund, credit cash (money going out)
-    if (depositRefund > 0) {
-      lines.push({ accountCode: cashAccount, credit: depositRefund });
-    }
-
-    // If damage charges exceed deposit (additional collection needed)
-    const additionalCharge =
-      rentalRevenue - depositAmount + depositRefund;
-    if (additionalCharge > 0) {
-      // This means customer pays extra
-      lines.push({
-        accountCode: cashAccount,
-        debit: additionalCharge,
-      });
-    }
-
-    return this.resolveAndCreate(
-      companyId,
-      {
-        reference: `Rental Return: ${orderNumber}`,
-        memo: `Rental return settlement - Revenue: ${rentalRevenue}, Refund: ${depositRefund}`,
-        sourceType: JournalSourceType.RENTAL_RETURN,
-        sourceId: returnId,
-        lines,
-      },
-      tx
+    const data = this.rental.prepareRentalReturnJournal(
+      returnId,
+      orderNumber,
+      depositAmount,
+      rentalRevenue,
+      depositRefund,
+      paymentMethod
     );
+    return this.resolveAndCreate(companyId, data, tx);
   }
 }

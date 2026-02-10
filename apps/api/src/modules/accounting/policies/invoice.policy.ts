@@ -97,7 +97,7 @@ export class InvoicePolicy {
    * Ensure Shipment exists before Invoice posting
    */
   static ensureShipmentExists(shipmentCount: number): void {
-    ensureFulfillmentExists(shipmentCount, 'Invoice', 'Shipment');
+    ensureFulfillmentExists(shipmentCount, 'Invoice', 'SHIPMENT');
   }
 
   /**
@@ -116,7 +116,7 @@ export class InvoicePolicy {
       order,
       shippedQtyByProduct,
       'Invoice',
-      'Shipped',
+      'SHIPPED',
       isDpInvoice
     );
   }

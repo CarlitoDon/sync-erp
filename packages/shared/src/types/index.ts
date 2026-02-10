@@ -80,3 +80,4 @@ export * from './report.js';
 export * from './dashboard.js';
 export * from './admin.js';
 export * from './branded-ids.js';
+export * from './rental.js';

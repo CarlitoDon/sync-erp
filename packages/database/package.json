@@ -36,15 +36,15 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "7.1.0",
+    "@types/pg": "^8.16.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "pg": "^8.16.3",
-    "zod": "^3.23.0",
     "prisma": "7.1.0",
-    "zod-prisma-types": "^3.3.10",
     "tsup": "^8.5.1",
     "tsx": "^4.7.0",
-    "@types/pg": "^8.16.0"
+    "zod": "^3.23.0",
+    "zod-prisma-types": "^3.3.11"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

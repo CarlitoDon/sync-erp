@@ -152,3 +152,32 @@ export function getInvoiceStatusBadge(
  * (Bills use same status as invoices)
  */
 export const getBillStatusBadge = getInvoiceStatusBadge;
+
+// ============================================
+// UI Constants (Avoid hardcoded strings)
+// ============================================
+
+export const FINANCE_TABS = {
+  OVERVIEW: 'overview',
+  REPORTS: 'reports',
+  JOURNALS: 'journals',
+} as const; // Only values are used as type
+
+export type FinanceTab =
+  (typeof FINANCE_TABS)[keyof typeof FINANCE_TABS];
+
+export const REPORT_TYPES = {
+  BALANCE_SHEET: 'BS',
+  INCOME_STATEMENT: 'IS',
+} as const;
+
+export type ReportType =
+  (typeof REPORT_TYPES)[keyof typeof REPORT_TYPES];
+
+export const DOCUMENT_TYPES = {
+  BILL: 'bill',
+  INVOICE: 'invoice',
+} as const;
+
+export type DocumentType =
+  (typeof DOCUMENT_TYPES)[keyof typeof DOCUMENT_TYPES];

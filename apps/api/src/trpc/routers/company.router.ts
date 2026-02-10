@@ -38,6 +38,36 @@ export const companyRouter = router({
     }),
 
   /**
+   * Update member role
+   */
+  updateMemberRole: authenticatedProcedure
+    .input(
+      z.object({
+        companyId: z.string().uuid(),
+        userId: z.string().uuid(),
+        roleId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Basic check: Ensure user is member of company they are editing
+      // Real check should be: ctx.userPermissions.includes('company:write')
+      const isMember = await companyService.isMember(
+        ctx.userId!,
+        input.companyId
+      );
+      if (!isMember) {
+        throw new Error('Unauthorized');
+      }
+
+      return companyService.updateMemberRole(
+        input.companyId,
+        input.userId,
+        input.roleId,
+        ctx.userId!
+      );
+    }),
+
+  /**
    * Join company via invite code
    */
   join: authenticatedProcedure

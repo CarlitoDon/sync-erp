@@ -42,7 +42,6 @@ export default function ShipmentDetail() {
       utils.inventory.getShipment.invalidate({ id: id! }),
   });
 
-  // TODO: Add voidShipment mutation when available in backend
   const voidMutation = trpc.inventory.voidShipment.useMutation({
     onSuccess: () => {
       utils.inventory.getShipment.invalidate({ id: id! });

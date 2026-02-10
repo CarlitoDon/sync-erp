@@ -1,26 +1,6 @@
 import { router, protectedProcedure } from '../trpc';
 import { z } from 'zod';
-import {
-  RentalOrderStatus,
-  RentalPaymentStatus,
-  UnitStatus,
-  UnitCondition,
-  DepositPolicyType,
-  DepositStatus,
-  ReturnStatus,
-  EntityType,
-} from '@sync-erp/database';
 
-export {
-  RentalOrderStatus,
-  RentalPaymentStatus,
-  UnitStatus,
-  UnitCondition,
-  DepositPolicyType,
-  DepositStatus,
-  ReturnStatus,
-  EntityType,
-};
 import {
   CreateRentalItemSchema,
   UpdateUnitStatusSchema,
@@ -34,8 +14,14 @@ import {
   CreateInvoiceFromReturnSchema,
   ConvertStockToUnitSchema,
   type RentalItemWithRelations,
-  type RentalOrderWithRelations,
+  ApiRentalOrderStatusSchema,
+  ApiUnitStatusSchema,
+  PortableRentalOrder,
 } from '@sync-erp/shared';
+import type {
+  RentalOrderStatus,
+  UnitStatus,
+} from '@sync-erp/database';
 import { RentalService } from '../../modules/rental/rental.service';
 import { container, ServiceKeys } from '../../modules/common/di';
 
@@ -112,7 +98,7 @@ export const rentalRouter = router({
       .input(
         z
           .object({
-            status: z.nativeEnum(RentalOrderStatus).optional(),
+            status: ApiRentalOrderStatusSchema.optional(),
             partnerId: z.string().uuid().optional(),
             dateRange: z
               .object({
@@ -125,9 +111,27 @@ export const rentalRouter = router({
           })
           .optional()
       )
-      .query(async ({ ctx, input }) => {
-        return rentalService.listOrders(ctx.companyId, input);
-      }),
+      .query(
+        async ({
+          ctx,
+          input,
+        }): Promise<{
+          items: PortableRentalOrder[];
+          nextCursor: string | null;
+        }> => {
+          const result = await rentalService.listOrders(
+            ctx.companyId,
+            {
+              ...input,
+              status: input?.status as RentalOrderStatus | undefined,
+            }
+          );
+          return result as unknown as {
+            items: PortableRentalOrder[];
+            nextCursor: string | null;
+          };
+        }
+      ),
 
     getById: protectedProcedure
       .input(z.object({ id: z.string().uuid() }))
@@ -135,74 +139,96 @@ export const rentalRouter = router({
         async ({
           ctx,
           input,
-        }): Promise<RentalOrderWithRelations | null> => {
-          return rentalService.getOrderById(ctx.companyId, input.id);
+        }): Promise<PortableRentalOrder | null> => {
+          const result = await rentalService.getOrderById(
+            ctx.companyId,
+            input.id
+          );
+          return result as PortableRentalOrder | null;
         }
       ),
 
     create: protectedProcedure
       .input(CreateRentalOrderSchema)
-      .mutation(async ({ ctx, input }) => {
-        return rentalService.createOrder(
-          ctx.companyId,
-          input,
-          ctx.userId
-        );
-      }),
+      .mutation(
+        async ({ ctx, input }): Promise<PortableRentalOrder> => {
+          const result = await rentalService.createOrder(
+            ctx.companyId,
+            input,
+            ctx.userId
+          );
+          return result as PortableRentalOrder;
+        }
+      ),
 
     confirm: protectedProcedure
       .input(ConfirmRentalOrderSchema)
-      .mutation(async ({ ctx, input }) => {
-        return rentalService.confirmOrder(
-          ctx.companyId,
-          input,
-          ctx.userId
-        );
-      }),
+      .mutation(
+        async ({ ctx, input }): Promise<PortableRentalOrder> => {
+          const result = await rentalService.confirmOrder(
+            ctx.companyId,
+            input,
+            ctx.userId
+          );
+          return result as PortableRentalOrder;
+        }
+      ),
 
     // Manual confirm with override options
     manualConfirm: protectedProcedure
       .input(ManualConfirmRentalOrderSchema)
-      .mutation(async ({ ctx, input }) => {
-        return rentalService.manualConfirmOrder(
-          ctx.companyId,
-          input,
-          ctx.userId
-        );
-      }),
+      .mutation(
+        async ({ ctx, input }): Promise<PortableRentalOrder> => {
+          const result = await rentalService.manualConfirmOrder(
+            ctx.companyId,
+            input,
+            ctx.userId
+          );
+          return result as PortableRentalOrder;
+        }
+      ),
 
     release: protectedProcedure
       .input(ReleaseRentalOrderSchema)
-      .mutation(async ({ ctx, input }) => {
-        return rentalService.releaseOrder(
-          ctx.companyId,
-          input,
-          ctx.userId
-        );
-      }),
+      .mutation(
+        async ({ ctx, input }): Promise<PortableRentalOrder> => {
+          const result = await rentalService.releaseOrder(
+            ctx.companyId,
+            input,
+            ctx.userId
+          );
+          return result as PortableRentalOrder;
+        }
+      ),
 
     cancel: protectedProcedure
       .input(
         z.object({ orderId: z.string().uuid(), reason: z.string() })
       )
-      .mutation(async ({ ctx, input }) => {
-        return rentalService.cancelOrder(
-          ctx.companyId,
-          input.orderId,
-          input.reason,
-          ctx.userId
-        );
-      }),
+      .mutation(
+        async ({ ctx, input }): Promise<PortableRentalOrder> => {
+          const result = await rentalService.cancelOrder(
+            ctx.companyId,
+            input.orderId,
+            input.reason,
+            ctx.userId
+          );
+          return result as PortableRentalOrder;
+        }
+      ),
 
     extend: protectedProcedure
       .input(ExtendRentalOrderSchema)
-      .mutation(async ({ ctx, input }) => {
-        return rentalService.extendOrder(
-          ctx.companyId,
-          input,
-          ctx.userId
-        );
-      }),
+      .mutation(
+        async ({ ctx, input }): Promise<PortableRentalOrder> => {
+          const result = await rentalService.extendOrder(
+            ctx.companyId,
+            input,
+            ctx.userId
+          );
+          return result as PortableRentalOrder;
+        }
+      ),
 
     verifyPayment: protectedProcedure
       .input(
@@ -213,16 +239,19 @@ export const rentalRouter = router({
           failReason: z.string().optional(),
         })
       )
-      .mutation(async ({ ctx, input }) => {
-        return rentalService.verifyPayment(
-          ctx.companyId,
-          input.orderId,
-          input.action,
-          ctx.userId,
-          input.paymentReference,
-          input.failReason
-        );
-      }),
+      .mutation(
+        async ({ ctx, input }): Promise<PortableRentalOrder> => {
+          const result = await rentalService.verifyPayment(
+            ctx.companyId,
+            input.orderId,
+            input.action,
+            ctx.userId,
+            input.paymentReference,
+            input.failReason
+          );
+          return result as PortableRentalOrder;
+        }
+      ),
   }),
 
   // ==========================================
@@ -250,14 +279,14 @@ export const rentalRouter = router({
       .input(
         z.object({
           itemId: z.string().uuid(),
-          status: z.nativeEnum(UnitStatus).optional(),
+          status: ApiUnitStatusSchema.optional(),
         })
       )
       .query(async ({ ctx, input }) => {
         return rentalService.getUnitsByItem(
           ctx.companyId,
           input.itemId,
-          input.status
+          input.status as UnitStatus | undefined
         );
       }),
 

@@ -1,11 +1,8 @@
-import { useState, useMemo } from 'react';
-import { trpc } from '@/lib/trpc';
 import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { apiAction } from '@/hooks/useApiAction';
 import {
   CheckIcon,
   CubeIcon,
@@ -15,12 +12,8 @@ import {
   ExclamationTriangleIcon,
   ClockIcon,
 } from '@heroicons/react/24/outline';
-import {
-  RentalPaymentStatus,
-  PaymentMethodTypeSchema,
-} from '@sync-erp/shared';
 import QuickAddUnitsModal from './QuickAddUnitsModal';
-import { toast } from 'react-hot-toast';
+import { useConfirmOrder } from '../hooks';
 
 interface Props {
   isOpen: boolean;
@@ -35,210 +28,46 @@ export default function ConfirmOrderModal({
   orderId,
   onSuccess,
 }: Props) {
-  const utils = trpc.useUtils();
-  const [showQuickAddModal, setShowQuickAddModal] = useState(false);
-
-  // Manual override state
-  const [manualMode, setManualMode] = useState(false);
-  const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [paymentAmount, setPaymentAmount] = useState(0);
-  const [paymentReference, setPaymentReference] = useState('');
-  const [manualNotes, setManualNotes] = useState('');
-  const [skipStockCheck, setSkipStockCheck] = useState(false);
-
-  // Fetch complete order data
-  const { data: order, isLoading } =
-    trpc.rental.orders.getById.useQuery(
-      { id: orderId! },
-      { enabled: isOpen && !!orderId }
-    );
-
-  // Fetch rental items to check availability
-  const { data: rentalItems = [] } = trpc.rental.items.list.useQuery(
-    undefined,
-    { enabled: isOpen }
-  );
-
-  // Fetch payment methods for manual confirm
-  const { data: paymentMethods = [] } =
-    trpc.paymentMethod.list.useQuery(undefined, { enabled: isOpen });
-
-  // Calculate unit requirements and availability
-  const availabilityCheck = useMemo(() => {
-    if (!order?.items) return { shortages: [], isAvailable: true };
-
-    const shortages: {
-      rentalItemId: string;
-      productName: string;
-      productSku: string;
-      required: number;
-      available: number;
-      shortage: number;
-    }[] = [];
-
-    // Check each order item
-    order.items.forEach((item) => {
-      if (item.rentalBundleId && item.rentalBundle?.components) {
-        // Bundle: check each component
-        item.rentalBundle.components.forEach((comp) => {
-          const rentalItem = rentalItems.find(
-            (ri) => ri.id === comp.rentalItem?.id
-          );
-          if (!rentalItem) return;
-
-          const available =
-            rentalItem.units?.filter((u) => u.status === 'AVAILABLE')
-              .length || 0;
-          const required = comp.quantity * item.quantity;
-
-          if (available < required) {
-            const existing = shortages.find(
-              (s) => s.rentalItemId === rentalItem.id
-            );
-            if (existing) {
-              existing.required += required;
-              existing.shortage =
-                existing.required - existing.available;
-            } else {
-              shortages.push({
-                rentalItemId: rentalItem.id,
-                productName: rentalItem.product?.name || 'Unknown',
-                productSku: rentalItem.product?.sku || '',
-                required,
-                available,
-                shortage: required - available,
-              });
-            }
-          }
-        });
-      } else if (item.rentalItemId) {
-        // Standalone item
-        const rentalItem = rentalItems.find(
-          (ri) => ri.id === item.rentalItemId
-        );
-        if (!rentalItem) return;
-
-        const available =
-          rentalItem.units?.filter((u) => u.status === 'AVAILABLE')
-            .length || 0;
-        const required = item.quantity;
-
-        if (available < required) {
-          shortages.push({
-            rentalItemId: rentalItem.id,
-            productName: rentalItem.product?.name || 'Unknown',
-            productSku: rentalItem.product?.sku || '',
-            required,
-            available,
-            shortage: required - available,
-          });
-        }
-      }
-    });
-
-    return { shortages, isAvailable: shortages.length === 0 };
-  }, [order?.items, rentalItems]);
-
-  // Check payment status
-  const paymentStatus = order?.rentalPaymentStatus;
-  const isPaymentVerified =
-    paymentStatus === RentalPaymentStatus.CONFIRMED ||
-    paymentStatus === RentalPaymentStatus.AWAITING_CONFIRM;
-  const isPaymentPending =
-    paymentStatus === RentalPaymentStatus.PENDING;
-
-  // Can only confirm if payment verified AND units available
-  const canConfirm =
-    isPaymentVerified && availabilityCheck.isAvailable;
-
-  const confirmMutation = trpc.rental.orders.confirm.useMutation({
-    onSuccess: () => {
-      utils.rental.orders.list.invalidate();
-      utils.rental.orders.getById.invalidate({ id: orderId! });
-      onSuccess();
-      onClose();
-    },
-  });
-
-  const manualConfirmMutation =
-    trpc.rental.orders.manualConfirm.useMutation({
-      onSuccess: () => {
-        utils.rental.orders.list.invalidate();
-        utils.rental.orders.getById.invalidate({ id: orderId! });
-        setManualMode(false);
-        onSuccess();
-        onClose();
-      },
-    });
-
-  // Quick create payment method
-  const createPaymentMethodMutation =
-    trpc.paymentMethod.create.useMutation({
-      onSuccess: (data) => {
-        utils.paymentMethod.list.invalidate();
-        setPaymentMethodId(data.id);
-        toast.success(`Metode "${data.name}" berhasil dibuat!`);
-      },
-      onError: (error) => {
-        toast.error(`Gagal membuat metode: ${error.message}`);
-      },
-    });
-
-  const handleQuickCreatePaymentMethod = async (name: string) => {
-    if (!name.trim()) return;
-    // Add timestamp suffix to ensure unique code
-    const timestamp = Date.now().toString(36).slice(-4);
-    const code = `${name.toUpperCase().replace(/\s+/g, '_')}_${timestamp}`;
-    await createPaymentMethodMutation.mutateAsync({
-      code,
-      name,
-      type: PaymentMethodTypeSchema.enum.OTHER,
-      isDefault: false,
-    });
-  };
-
-  const handleConfirm = async () => {
-    if (!order || !canConfirm) return;
-
-    await apiAction(
-      () => confirmMutation.mutateAsync({ orderId: order.id }),
-      'Order dikonfirmasi! Unit otomatis di-assign.'
-    );
-  };
-
-  const handleManualConfirm = async () => {
-    if (!order || !paymentMethodId || !manualNotes.trim()) return;
-
-    await apiAction(
-      () =>
-        manualConfirmMutation.mutateAsync({
-          orderId: order.id,
-          paymentMethodId,
-          paymentAmount: paymentAmount || depositAmount,
-          paymentReference: paymentReference || undefined,
-          skipStockCheck,
-          notes: manualNotes,
-        }),
-      'Order dikonfirmasi secara manual!'
-    );
-  };
+  const {
+    order,
+    isLoading,
+    paymentMethods,
+    availabilityCheck,
+    totalItems,
+    depositAmount,
+    isPaymentPending,
+    canConfirm,
+    showQuickAddModal,
+    manualMode,
+    isConfirming,
+    isManualConfirming,
+    paymentMethodId,
+    setPaymentMethodId,
+    paymentAmount,
+    setPaymentAmount,
+    paymentReference,
+    setPaymentReference,
+    manualNotes,
+    setManualNotes,
+    skipStockCheck,
+    setSkipStockCheck,
+    handleConfirm,
+    handleManualConfirm,
+    handleQuickCreatePaymentMethod,
+    handleCloseModal,
+    handleOpenQuickAdd,
+    handleCloseQuickAdd,
+    handleQuickAddSuccess,
+    enterManualMode,
+  } = useConfirmOrder({ orderId, isOpen, onSuccess, onClose });
 
   if (!order && !isLoading) return null;
-
-  // Calculate total items
-  const totalItems =
-    order?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-
-  // Get deposit from order (already calculated)
-  const depositAmount = order?.depositAmount
-    ? Number(order.depositAmount)
-    : 0;
 
   return (
     <>
       <FormModal
         isOpen={isOpen}
-        onClose={onClose}
+        onClose={handleCloseModal}
         title={`Konfirmasi Order - ${order?.orderNumber || '...'}`}
       >
         <div className="space-y-4">
@@ -302,7 +131,7 @@ export default function ConfirmOrderModal({
                   <Button
                     variant="danger"
                     size="sm"
-                    onClick={() => setShowQuickAddModal(true)}
+                    onClick={handleOpenQuickAdd}
                     className="mt-3 w-full"
                   >
                     Konversi Stok ke Unit Rental
@@ -415,10 +244,7 @@ export default function ConfirmOrderModal({
                   </p>
                   <Button
                     size="sm"
-                    onClick={() => {
-                      setManualMode(true);
-                      setPaymentAmount(depositAmount);
-                    }}
+                    onClick={enterManualMode}
                     className="bg-amber-600 hover:bg-amber-700"
                   >
                     Konfirmasi Manual
@@ -501,13 +327,7 @@ export default function ConfirmOrderModal({
 
               {/* Actions */}
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setManualMode(false);
-                    onClose();
-                  }}
-                >
+                <Button variant="outline" onClick={handleCloseModal}>
                   Tutup
                 </Button>
                 {manualMode ? (
@@ -516,9 +336,9 @@ export default function ConfirmOrderModal({
                     disabled={
                       !paymentMethodId ||
                       !manualNotes.trim() ||
-                      manualConfirmMutation.isPending
+                      isManualConfirming
                     }
-                    isLoading={manualConfirmMutation.isPending}
+                    isLoading={isManualConfirming}
                     loadingText="Mengkonfirmasi..."
                     className="bg-amber-600 hover:bg-amber-700"
                   >
@@ -528,10 +348,8 @@ export default function ConfirmOrderModal({
                 ) : (
                   <Button
                     onClick={handleConfirm}
-                    disabled={
-                      !canConfirm || confirmMutation.isPending
-                    }
-                    isLoading={confirmMutation.isPending}
+                    disabled={!canConfirm || isConfirming}
+                    isLoading={isConfirming}
                     loadingText="Mengkonfirmasi..."
                     className="bg-green-600 hover:bg-green-700"
                   >
@@ -548,12 +366,9 @@ export default function ConfirmOrderModal({
       {/* Quick Add Units Modal */}
       <QuickAddUnitsModal
         isOpen={showQuickAddModal}
-        onClose={() => setShowQuickAddModal(false)}
+        onClose={handleCloseQuickAdd}
         shortages={availabilityCheck.shortages}
-        onSuccess={() => {
-          utils.rental.items.list.invalidate();
-          setShowQuickAddModal(false);
-        }}
+        onSuccess={handleQuickAddSuccess}
       />
     </>
   );

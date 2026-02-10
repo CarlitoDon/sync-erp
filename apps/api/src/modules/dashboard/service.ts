@@ -42,8 +42,20 @@ export class DashboardService {
       outstandingAR: outstandingARResult,
       outstandingAP: outstandingAPResult,
       inventoryValue: inventoryValueResult,
-      currency: 'IDR', // TODO: Get from company settings
+      currency: await this.getCompanyCurrency(companyId),
     };
+  }
+
+  private async getCompanyCurrency(
+    companyId: string
+  ): Promise<string> {
+    const config = await prisma.systemConfig.findFirst({
+      where: {
+        companyId,
+        key: 'currency',
+      },
+    });
+    return (config?.value as string) || 'IDR';
   }
 
   /**

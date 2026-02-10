@@ -10,6 +10,9 @@ import { DocumentStatusSchema } from '@sync-erp/shared';
 import { Link } from 'react-router-dom';
 import { RouterOutputs } from '@/lib/trpc';
 
+import CreateInvoiceModal from '@/features/accounting/components/CreateInvoiceModal';
+import { useState } from 'react';
+
 type SalesOrder = NonNullable<RouterOutputs['salesOrder']['getById']>;
 
 interface SalesOrderShipmentsProps {
@@ -19,6 +22,11 @@ interface SalesOrderShipmentsProps {
 export function SalesOrderShipments({
   fulfillments,
 }: SalesOrderShipmentsProps) {
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [selectedShipmentId, setSelectedShipmentId] = useState<
+    string | null
+  >(null);
+
   if (!fulfillments || fulfillments.length === 0) return null;
 
   return (
@@ -80,7 +88,8 @@ export function SalesOrderShipments({
                           <ActionButton
                             variant="primary"
                             onClick={() => {
-                              /* TODO: Create invoice from shipment */
+                              setSelectedShipmentId(shipment.id);
+                              setIsInvoiceModalOpen(true);
                             }}
                           >
                             Create Invoice
@@ -94,6 +103,18 @@ export function SalesOrderShipments({
           </table>
         </div>
       </CardContent>
+
+      <CreateInvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => {
+          setIsInvoiceModalOpen(false);
+          setSelectedShipmentId(null);
+        }}
+        shipmentId={selectedShipmentId || undefined}
+        onSuccess={() => {
+          // Invalidate queries if needed, though navigation usually happens
+        }}
+      />
     </Card>
   );
 }
