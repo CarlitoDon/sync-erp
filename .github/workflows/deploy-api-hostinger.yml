@@ -119,11 +119,11 @@ jobs:
             --exclude='.htaccess' \
             --exclude='.env' \
             --exclude='node_modules' \
-            -e "ssh -p 65002 -o StrictHostKeyChecking=no" \
+            -e "ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
             deploy/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/$DEPLOY_DIR/
 
           # Install dependencies (if package.json changed) and restart
-          ssh -p 65002 -o StrictHostKeyChecking=no ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} <<EOF
+          ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} <<EOF
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH
             cd ~/public_html/$DEPLOY_DIR
             rm -rf node_modules
@@ -135,5 +135,5 @@ jobs:
 
           # Copy @sync-erp/database to node_modules (after npm install so it won't be deleted)
           rsync -avz \
-            -e "ssh -p 65002 -o StrictHostKeyChecking=no" \
+            -e "ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
             deploy/node_modules/@sync-erp/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/$DEPLOY_DIR/node_modules/@sync-erp/

@@ -35,7 +35,7 @@ const getCorsOrigin = ():
       callback: (err: Error | null, allow?: boolean) => void
     ) => void) => {
   const corsOrigin =
-    process.env.CORS_ORIGIN || 'http://localhost:5173';
+    process.env.CORS_ORIGIN || process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:5173';
 
   // If comma-separated, split into array
   const origins = corsOrigin.split(',').map((o) => o.trim());

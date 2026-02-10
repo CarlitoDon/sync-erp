@@ -8,7 +8,11 @@
  */
 
 import { CashTransactionStatus } from '@sync-erp/database';
-import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import {
+  DomainError,
+  DomainErrorCodes,
+  CreateCashTransactionInput,
+} from '@sync-erp/shared';
 
 /**
  * CashBankPolicy - Validation rules for cash/bank operations.
@@ -77,8 +81,8 @@ export class CashBankPolicy {
    * Validate SPEND transaction requirements.
    */
   static ensureValidSpendTransaction(
-    sourceBankAccountId?: string,
-    destinationBankAccountId?: string,
+    sourceBankAccountId?: string | null,
+    destinationBankAccountId?: string | null,
     itemsCount?: number
   ): void {
     if (!sourceBankAccountId) {
@@ -108,8 +112,8 @@ export class CashBankPolicy {
    * Validate RECEIVE transaction requirements.
    */
   static ensureValidReceiveTransaction(
-    sourceBankAccountId?: string,
-    destinationBankAccountId?: string,
+    sourceBankAccountId?: string | null,
+    destinationBankAccountId?: string | null,
     itemsCount?: number
   ): void {
     if (!destinationBankAccountId) {
@@ -139,8 +143,8 @@ export class CashBankPolicy {
    * Validate TRANSFER transaction requirements.
    */
   static ensureValidTransferTransaction(
-    sourceBankAccountId?: string,
-    destinationBankAccountId?: string,
+    sourceBankAccountId?: string | null,
+    destinationBankAccountId?: string | null,
     amount?: number
   ): void {
     if (!sourceBankAccountId || !destinationBankAccountId) {
@@ -162,6 +166,47 @@ export class CashBankPolicy {
         'A positive amount is required for TRANSFER',
         400,
         DomainErrorCodes.INVALID_INPUT
+      );
+    }
+  }
+  /**
+   * Ensure transaction is in valid state for update.
+   */
+  static ensureCanUpdateTransaction(
+    status: CashTransactionStatus
+  ): void {
+    if (status !== CashTransactionStatus.DRAFT) {
+      throw new DomainError(
+        'Only DRAFT transactions can be updated',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+  }
+
+  /**
+   * Validate transaction creation input.
+   */
+  static ensureValidCreateInput(
+    data: CreateCashTransactionInput
+  ): void {
+    if (data.type === 'SPEND') {
+      this.ensureValidSpendTransaction(
+        data.sourceBankAccountId,
+        data.destinationBankAccountId,
+        data.items?.length
+      );
+    } else if (data.type === 'RECEIVE') {
+      this.ensureValidReceiveTransaction(
+        data.sourceBankAccountId,
+        data.destinationBankAccountId,
+        data.items?.length
+      );
+    } else if (data.type === 'TRANSFER') {
+      this.ensureValidTransferTransaction(
+        data.sourceBankAccountId,
+        data.destinationBankAccountId,
+        data.amount
       );
     }
   }
