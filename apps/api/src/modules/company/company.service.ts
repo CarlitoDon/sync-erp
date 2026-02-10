@@ -1,4 +1,9 @@
-import { Company, BusinessShape, prisma } from '@sync-erp/database';
+import {
+  Company,
+  CompanyMember,
+  BusinessShape,
+  prisma,
+} from '@sync-erp/database';
 import { CompanyRepository } from './company.repository';
 import { CompanyPolicy } from './company.policy';
 import { InventoryPolicy } from '../inventory/inventory.policy';
@@ -69,6 +74,34 @@ export class CompanyService {
       companyId
     );
     return !!membership;
+  }
+
+  async updateMemberRole(
+    companyId: string,
+    targetUserId: string,
+    roleId: string,
+    _actorId: string // The user performing the action
+  ): Promise<CompanyMember> {
+    // 1. Verify actor has permission (skipped for MVP, assume middleware checks OWNER/ADMIN role)
+    // 2. Verify target is a member
+    const membership = await this.repository.findMembership(
+      targetUserId,
+      companyId
+    );
+    if (!membership) {
+      throw new DomainError(
+        'User is not a member of this company',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
+    // 3. Update role
+    return this.repository.updateMemberRole(
+      companyId,
+      targetUserId,
+      roleId
+    );
   }
 
   /**

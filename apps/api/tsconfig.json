@@ -7,12 +7,18 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "composite": false,
     "baseUrl": ".",
     "paths": {
       "@modules/*": ["./src/modules/*"],
       "@src/*": ["./src/*"],
       "@middlewares/*": ["./src/middlewares/*"],
+      "@/*": ["./src/*"],
       "@routes/*": ["./src/routes/*"],
+      "@sync-erp/database": ["../../packages/database/src"],
+      "@sync-erp/shared": ["../../packages/shared/src"]
     },
     "outDir": "dist"
   },

@@ -119,7 +119,7 @@ export class BillPolicy {
       order,
       receivedQtyByProduct,
       'Bill',
-      'Received',
+      'RECEIVED',
       isDpBill
     );
   }

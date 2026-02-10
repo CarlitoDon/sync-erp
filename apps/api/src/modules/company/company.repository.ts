@@ -90,4 +90,20 @@ export class CompanyRepository {
       data: { businessShape: shape },
     });
   }
+
+  async updateMemberRole(
+    companyId: string,
+    userId: string,
+    roleId: string
+  ): Promise<CompanyMember> {
+    return prisma.companyMember.update({
+      where: {
+        userId_companyId: {
+          userId,
+          companyId,
+        },
+      },
+      data: { roleId },
+    });
+  }
 }

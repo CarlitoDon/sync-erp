@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import Select from '@/components/ui/Select';
 import { toast } from 'react-hot-toast';
+import { trpc } from '@/lib/trpc';
 
 interface AssignCompanyModalProps {
   isOpen: boolean;
@@ -28,6 +29,13 @@ export function AssignCompanyModal({
   userName,
 }: AssignCompanyModalProps) {
   const { currentCompany } = useCompany();
+  const trpcUtils = trpc.useUtils();
+  const updateRoleMutation =
+    trpc.company.updateMemberRole.useMutation({
+      onSuccess: () => {
+        trpcUtils.user.listByCompany.invalidate();
+      },
+    });
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
 
@@ -44,8 +52,11 @@ export function AssignCompanyModal({
 
     setLoading(true);
     try {
-      // Role assignment requires backend endpoint - for now just show success
-      // TODO: Implement trpc.user.assign when backend supports it
+      await updateRoleMutation.mutateAsync({
+        companyId: currentCompany.id,
+        userId,
+        roleId: selectedRole,
+      });
       toast.success('Role assigned successfully!');
       onSuccess?.();
       onClose();

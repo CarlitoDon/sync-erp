@@ -6,6 +6,12 @@ import {
   FinancialReport,
   ReportSection,
 } from '@/features/accounting/components/FinancialReport';
+import {
+  FINANCE_TABS,
+  FinanceTab,
+  REPORT_TYPES,
+  ReportType,
+} from '@/features/accounting/utils/financeEnums';
 import JournalEntries from '@/features/accounting/pages/JournalEntries';
 import type { AccountGroup } from '@/types/api';
 import { AccountType } from '@/types/api';
@@ -58,13 +64,12 @@ export default function Finance() {
       },
     });
 
-  /* eslint-disable @sync-erp/no-hardcoded-enum */
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'reports' | 'journals'
-  >('overview');
-  /* eslint-enable @sync-erp/no-hardcoded-enum */
-  // eslint-disable-next-line @sync-erp/no-hardcoded-enum
-  const [reportType, setReportType] = useState<'IS' | 'BS'>('BS');
+  const [activeTab, setActiveTab] = useState<FinanceTab>(
+    FINANCE_TABS.OVERVIEW
+  );
+  const [reportType, setReportType] = useState<ReportType>(
+    REPORT_TYPES.BALANCE_SHEET
+  );
 
   // Create Account State
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -269,18 +274,13 @@ export default function Finance() {
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex space-x-8">
           {[
-            { id: 'overview', label: 'Overview & CoA' },
-            { id: 'reports', label: 'Financial Reports' },
-            { id: 'journals', label: 'Journal Entries' },
+            { id: FINANCE_TABS.OVERVIEW, label: 'Overview & CoA' },
+            { id: FINANCE_TABS.REPORTS, label: 'Financial Reports' },
+            { id: FINANCE_TABS.JOURNALS, label: 'Journal Entries' },
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() =>
-                setActiveTab(
-                  // eslint-disable-next-line @sync-erp/no-hardcoded-enum
-                  tab.id as 'overview' | 'reports' | 'journals'
-                )
-              }
+              onClick={() => setActiveTab(tab.id)}
               className={`py-4 px-1 font-medium text-sm border-b-2 ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
@@ -296,7 +296,7 @@ export default function Finance() {
       {/* TAB CONTENT */}
 
       {/* 1. OVERVIEW (CoA) */}
-      {activeTab === 'overview' && (
+      {activeTab === FINANCE_TABS.OVERVIEW && (
         <div className="space-y-6">
           {/* CoA Actions */}
           <div className="flex gap-4">
@@ -457,29 +457,28 @@ export default function Finance() {
       )}
 
       {/* 2. REPORTS */}
-      {activeTab === 'reports' && reportsData && (
+      {activeTab === FINANCE_TABS.REPORTS && reportsData && (
         <div className="space-y-6">
           <div className="flex gap-2 bg-gray-100 p-1 rounded-lg w-fit">
             <button
-              // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type
-              onClick={() => setReportType('BS')}
-              // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${reportType === 'BS' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() =>
+                setReportType(REPORT_TYPES.BALANCE_SHEET)
+              }
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${reportType === REPORT_TYPES.BALANCE_SHEET ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Balance Sheet
             </button>
             <button
-              // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type
-              onClick={() => setReportType('IS')}
-              // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${reportType === 'IS' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() =>
+                setReportType(REPORT_TYPES.INCOME_STATEMENT)
+              }
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${reportType === REPORT_TYPES.INCOME_STATEMENT ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Income Statement
             </button>
           </div>
 
-          {/* eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type */}
-          {reportType === 'BS' ? (
+          {reportType === REPORT_TYPES.BALANCE_SHEET ? (
             <FinancialReport
               title="Balance Sheet"
               subtitle={`As of ${new Date().toLocaleDateString()}`}
@@ -505,7 +504,7 @@ export default function Finance() {
       )}
 
       {/* 3. JOURNAL ENTRIES */}
-      {activeTab === 'journals' && <JournalEntries />}
+      {activeTab === FINANCE_TABS.JOURNALS && <JournalEntries />}
     </PageContainer>
   );
 }

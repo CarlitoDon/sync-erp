@@ -58,7 +58,7 @@ const getCorsOrigin = ():
     }
 
     // Debug logging for CORS
-    console.log(`[CORS] Checking origin: ${origin}`);
+    // console.log(`[CORS] Checking origin: ${origin}`);
 
     // Allow Vercel deployments (production and preview)
     if (

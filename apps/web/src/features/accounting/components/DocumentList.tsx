@@ -25,16 +25,14 @@ import {
   paymentMethodOptions,
   defaultPaymentMethod,
   invoiceStatusFilterOptions,
+  DOCUMENT_TYPES,
+  DocumentType,
 } from '@/features/accounting/utils/financeEnums';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
 
 type Bill = RouterOutputs['bill']['list'][number];
 type Invoice = RouterOutputs['invoice']['list'][number];
 type Document = Bill | Invoice;
-
-/* eslint-disable @sync-erp/no-hardcoded-enum */
-type DocumentType = 'bill' | 'invoice';
-/* eslint-enable @sync-erp/no-hardcoded-enum */
 
 export interface DocumentListProps {
   type: DocumentType;
@@ -57,7 +55,7 @@ export function DocumentList({
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
 
-  const isBill = type === 'bill';
+  const isBill = type === DOCUMENT_TYPES.BILL;
   const entityLabel = isBill ? 'Bill' : 'Invoice';
   const partnerLabel = isBill ? 'Supplier' : 'Customer';
   const partnerRoute = isBill ? 'suppliers' : 'customers';

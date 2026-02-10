@@ -13,6 +13,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Select from '@/components/ui/Select';
+import {
+  STOCK_ADJUSTMENT_TYPES,
+  STOCK_ADJUSTMENT_OPTIONS,
+  StockAdjustmentType,
+} from '@/features/inventory/utils/inventoryEnums';
 
 interface StockAdjustmentModalProps {
   isOpen: boolean;
@@ -36,11 +41,8 @@ export function StockAdjustmentModal({
 }: StockAdjustmentModalProps) {
   const { currentCompany } = useCompany();
   const utils = trpc.useUtils();
-  /* eslint-disable @sync-erp/no-hardcoded-enum */
-  const [adjustmentType, setAdjustmentType] = useState<
-    'INCREMENT' | 'DECREMENT'
-  >('INCREMENT');
-  /* eslint-enable @sync-erp/no-hardcoded-enum */
+  const [adjustmentType, setAdjustmentType] =
+    useState<StockAdjustmentType>(STOCK_ADJUSTMENT_TYPES.INCREMENT);
 
   const adjustMutation = trpc.inventory.adjustStock.useMutation({
     onSuccess: () => {
@@ -68,8 +70,7 @@ export function StockAdjustmentModal({
     await adjustMutation.mutateAsync({
       productId: data.productId,
       quantity:
-        // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- UI local type
-        adjustmentType === 'DECREMENT'
+        adjustmentType === STOCK_ADJUSTMENT_TYPES.DECREMENT
           ? -Math.abs(data.quantity)
           : Math.abs(data.quantity),
       costPerUnit: Number(data.costPerUnit),
@@ -103,13 +104,9 @@ export function StockAdjustmentModal({
               <Select
                 value={adjustmentType}
                 onChange={(val) =>
-                  // eslint-disable-next-line @sync-erp/no-hardcoded-enum
-                  setAdjustmentType(val as 'INCREMENT' | 'DECREMENT')
+                  setAdjustmentType(val as StockAdjustmentType)
                 }
-                options={[
-                  { value: 'INCREMENT', label: 'Increment (+)' },
-                  { value: 'DECREMENT', label: 'Decrement (-)' },
-                ]}
+                options={STOCK_ADJUSTMENT_OPTIONS}
                 className="col-span-3"
               />
             </div>

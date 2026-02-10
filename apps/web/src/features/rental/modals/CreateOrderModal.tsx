@@ -1,28 +1,13 @@
-import React, { useState, useMemo } from 'react';
-import { trpc } from '@/lib/trpc';
-import { useCompany } from '@/contexts/CompanyContext';
 import FormModal from '@/components/ui/FormModal';
 import { Input } from '@/components/ui';
-import { apiAction } from '@/hooks/useApiAction';
 import { formatCurrency } from '@/utils/format';
 import {
   TrashIcon,
   PlusCircleIcon,
 } from '@heroicons/react/24/outline';
-import { UnitStatus, PartnerType } from '@sync-erp/shared';
+import { UnitStatus } from '@sync-erp/shared';
 import QuickCreateCustomerModal from './QuickCreateCustomerModal';
-import {
-  useRentalPricing,
-  useRentalDays,
-  getPricingTierLabel,
-} from '../hooks';
-
-interface OrderItem {
-  type: 'item' | 'bundle';
-  rentalItemId?: string;
-  rentalBundleId?: string;
-  quantity: number;
-}
+import { useCreateOrder, getPricingTierLabel } from '../hooks';
 
 interface Props {
   isOpen: boolean;
@@ -35,161 +20,35 @@ export default function CreateOrderModal({
   onClose,
   onSuccess,
 }: Props) {
-  const { currentCompany } = useCompany();
-  const utils = trpc.useUtils();
-
-  // Queries
-  const { data: rentalItems = [], isLoading: isLoadingItems } =
-    trpc.rental.items.list.useQuery(undefined, {
-      enabled: isOpen && !!currentCompany?.id,
-    });
-  const { data: partners = [], isLoading: isLoadingPartners } =
-    trpc.partner.list.useQuery(undefined, {
-      enabled: isOpen && !!currentCompany?.id,
-    });
-  const { data: rentalBundles = [] } =
-    trpc.rentalBundle.list.useQuery(
-      { companyId: currentCompany?.id || '' },
-      { enabled: isOpen && !!currentCompany?.id }
-    );
-
-  const isLoadingData = isLoadingItems || isLoadingPartners;
-
-  // Mutation
-  const createMutation = trpc.rental.orders.create.useMutation({
-    onSuccess: () => {
-      utils.rental.orders.list.invalidate();
-      onSuccess?.();
-      handleClose();
-    },
-  });
-
-  // Form state
-  // Trigger re-compile
-  const [orderForm, setOrderForm] = useState({
-    partnerId: '',
-    rentalStartDate: new Date().toISOString().split('T')[0],
-    rentalEndDate: '',
-    dueDateTime: '',
-    notes: '',
-    items: [] as OrderItem[],
-  });
-  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
-
-  // Calculate pricing using hooks
-  const rentalDays = useRentalDays(
-    orderForm.rentalStartDate,
-    orderForm.rentalEndDate
-  );
-  const { subtotal, depositRequired } = useRentalPricing(
-    orderForm.items,
+  const {
     rentalItems,
+    rentalBundles,
+    customers,
+    isLoadingData,
     rentalDays,
-    rentalBundles
-  );
-
-  const resetForm = () => {
-    setOrderForm({
-      partnerId: '',
-      rentalStartDate: new Date().toISOString().split('T')[0],
-      rentalEndDate: '',
-      dueDateTime: '',
-      notes: '',
-      items: [],
-    });
-  };
-
-  const handleClose = () => {
-    resetForm();
-    onClose();
-  };
-
-  const addItem = () => {
-    setOrderForm({
-      ...orderForm,
-      items: [
-        ...orderForm.items,
-        { type: 'item', rentalItemId: '', quantity: 1 },
-      ],
-    });
-  };
-
-  const updateItem = (
-    idx: number,
-    field: keyof OrderItem,
-    value: string | number | 'item' | 'bundle'
-  ) => {
-    const newItems = [...orderForm.items];
-    newItems[idx] = { ...newItems[idx], [field]: value };
-    setOrderForm({ ...orderForm, items: newItems });
-  };
-
-  const removeItem = (idx: number) => {
-    setOrderForm({
-      ...orderForm,
-      items: orderForm.items.filter((_, i) => i !== idx),
-    });
-  };
-
-  const getAvailableUnits = (itemId: string) => {
-    const item = rentalItems.find((ri) => ri.id === itemId);
-    return (
-      item?.units?.filter((u) => u.status === UnitStatus.AVAILABLE)
-        .length || 0
-    );
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (orderForm.items.length === 0) return;
-
-    const dueDateTime = orderForm.dueDateTime
-      ? new Date(orderForm.dueDateTime)
-      : new Date(orderForm.rentalEndDate + 'T18:00:00');
-
-    await apiAction(
-      () =>
-        createMutation.mutateAsync({
-          partnerId: orderForm.partnerId,
-          rentalStartDate: new Date(
-            orderForm.rentalStartDate
-          ).toISOString(),
-          rentalEndDate: new Date(
-            orderForm.rentalEndDate
-          ).toISOString(),
-          dueDateTime: dueDateTime.toISOString(),
-          notes: orderForm.notes || undefined,
-          items: orderForm.items
-            .filter(
-              (i) =>
-                (i.rentalItemId || i.rentalBundleId) && i.quantity > 0
-            )
-            .map((i) => ({
-              rentalItemId:
-                i.type === 'item' ? i.rentalItemId : undefined,
-              rentalBundleId:
-                i.type === 'bundle' ? i.rentalBundleId : undefined,
-              quantity: i.quantity,
-            })),
-        }),
-      'Order berhasil dibuat'
-    );
-  };
-
-  const customers = useMemo(
-    () => partners.filter((p) => p.type === PartnerType.CUSTOMER),
-    [partners]
-  );
+    subtotal,
+    depositRequired,
+    orderForm,
+    updateFormField,
+    isQuickCreateOpen,
+    setIsQuickCreateOpen,
+    isCreating,
+    handleClose,
+    handleSubmit,
+    addItem,
+    updateItem,
+    updateItemType,
+    removeItem,
+    getAvailableUnits,
+    handleQuickCreateSuccess,
+  } = useCreateOrder({ isOpen, onSuccess, onClose });
 
   return (
     <>
       <QuickCreateCustomerModal
         isOpen={isQuickCreateOpen}
         onClose={() => setIsQuickCreateOpen(false)}
-        onSuccess={(partnerId) => {
-          setOrderForm((prev) => ({ ...prev, partnerId }));
-          setIsQuickCreateOpen(false);
-        }}
+        onSuccess={handleQuickCreateSuccess}
       />
 
       <FormModal
@@ -231,10 +90,7 @@ export default function CreateOrderModal({
                 <select
                   value={orderForm.partnerId}
                   onChange={(e) =>
-                    setOrderForm({
-                      ...orderForm,
-                      partnerId: e.target.value,
-                    })
+                    updateFormField('partnerId', e.target.value)
                   }
                   className="w-full px-3 py-2 border rounded-lg"
                   required
@@ -255,10 +111,7 @@ export default function CreateOrderModal({
                   type="date"
                   value={orderForm.rentalStartDate}
                   onChange={(e) =>
-                    setOrderForm({
-                      ...orderForm,
-                      rentalStartDate: e.target.value,
-                    })
+                    updateFormField('rentalStartDate', e.target.value)
                   }
                   required
                 />
@@ -267,10 +120,7 @@ export default function CreateOrderModal({
                   type="date"
                   value={orderForm.rentalEndDate}
                   onChange={(e) =>
-                    setOrderForm({
-                      ...orderForm,
-                      rentalEndDate: e.target.value,
-                    })
+                    updateFormField('rentalEndDate', e.target.value)
                   }
                   min={orderForm.rentalStartDate}
                   required
@@ -301,8 +151,8 @@ export default function CreateOrderModal({
 
                 {orderForm.items.length === 0 ? (
                   <p className="text-sm text-gray-500 text-center py-4">
-                    Belum ada item. Klik "+ Tambah Item" untuk
-                    memulai.
+                    Belum ada item. Klik &quot;+ Tambah Item&quot;
+                    untuk memulai.
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -323,7 +173,7 @@ export default function CreateOrderModal({
                       const availableUnits =
                         item.type === 'item' && item.rentalItemId
                           ? getAvailableUnits(item.rentalItemId)
-                          : 999; // Bundles treated as unlimited for now (or calculate based on component availability - separate task)
+                          : 999;
 
                       return (
                         <div
@@ -334,22 +184,12 @@ export default function CreateOrderModal({
                           <div className="w-24">
                             <select
                               value={item.type}
-                              onChange={(e) => {
-                                // Reset selection when type changes
-                                const newItems = [...orderForm.items];
-                                newItems[idx] = {
-                                  ...newItems[idx],
-                                  type: e.target.value as
-                                    | 'item'
-                                    | 'bundle',
-                                  rentalItemId: '',
-                                  rentalBundleId: '',
-                                };
-                                setOrderForm({
-                                  ...orderForm,
-                                  items: newItems,
-                                });
-                              }}
+                              onChange={(e) =>
+                                updateItemType(
+                                  idx,
+                                  e.target.value as 'item' | 'bundle'
+                                )
+                              }
                               className="w-full px-2 py-2 border rounded-lg text-sm bg-white"
                             >
                               <option value="item">Item</option>
@@ -486,10 +326,7 @@ export default function CreateOrderModal({
                 <textarea
                   value={orderForm.notes}
                   onChange={(e) =>
-                    setOrderForm({
-                      ...orderForm,
-                      notes: e.target.value,
-                    })
+                    updateFormField('notes', e.target.value)
                   }
                   className="w-full px-3 py-2 border rounded-lg"
                   rows={2}
@@ -508,14 +345,11 @@ export default function CreateOrderModal({
                 <button
                   type="submit"
                   disabled={
-                    createMutation.isPending ||
-                    orderForm.items.length === 0
+                    isCreating || orderForm.items.length === 0
                   }
                   className="px-6 py-2 bg-primary-600 text-white rounded-lg disabled:opacity-50"
                 >
-                  {createMutation.isPending
-                    ? 'Menyimpan...'
-                    : 'Buat Order'}
+                  {isCreating ? 'Menyimpan...' : 'Buat Order'}
                 </button>
               </div>
             </>

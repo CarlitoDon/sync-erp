@@ -253,12 +253,62 @@ export class CashBankService {
   async updateTransaction(
     id: string,
     companyId: string,
-    _data: UpdateCashTransactionInput
+    data: UpdateCashTransactionInput
   ): Promise<CashTransactionWithRelations> {
-    // TODO: Implement updates (check status DRAFT)
-    return this.repository.updateTransaction(id, companyId, {
-      // ... map fields
-    });
+    const transaction = await this.repository.getTransactionById(
+      id,
+      companyId
+    );
+
+    if (!transaction) {
+      throw new DomainError(
+        'Transaction not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
+    if (transaction.status !== CashTransactionStatus.DRAFT) {
+      throw new DomainError(
+        'Only DRAFT transactions can be updated',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    // Map input to repository format
+    const updateData: Prisma.CashTransactionUpdateInput = {};
+    if (data.date) updateData.date = new Date(data.date);
+    if (data.reference !== undefined)
+      updateData.reference = data.reference;
+    if (data.payee !== undefined) updateData.payee = data.payee;
+    if (data.description !== undefined)
+      updateData.description = data.description;
+
+    // For amount/items updates, we might need more complex logic (recreating items)
+    // For MVP/Maintenance pass, we assume basic field updates or follow repository pattern
+    // If items are provided, they should replace existing ones
+    if (data.items) {
+      updateData.items = {
+        deleteMany: {},
+        create: data.items.map((item) => ({
+          accountId: item.accountId,
+          description: item.description,
+          amount: item.amount,
+        })),
+      };
+      // Recalculate total if needed
+      updateData.amount = data.items.reduce(
+        (sum, item) => sum + Number(item.amount),
+        0
+      );
+    }
+
+    return this.repository.updateTransaction(
+      id,
+      companyId,
+      updateData
+    );
   }
 
   async postTransaction(

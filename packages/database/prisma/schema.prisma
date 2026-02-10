@@ -9,7 +9,7 @@ generator zod {
   provider             = "zod-prisma-types"
   output               = "../../shared/src/generated/zod"
   createInputTypes     = "false"
-  prismaClientPath     = "@sync-erp/database/client"
+  prismaClientPath     = "@sync-erp/database"
   useDefaultValidators = "false"
 }
 
@@ -57,7 +57,7 @@ model Company {
   rentalBundles         RentalBundle[]
   integrations          Integration[]
 
-  paymentMethods        CompanyPaymentMethod[]
+  paymentMethods CompanyPaymentMethod[]
 }
 
 /// Integrations (Apps) installed by the company
@@ -1273,6 +1273,7 @@ enum AuditLogAction {
   RENTAL_ORDER_CANCELLED
   RENTAL_RETURN_PROCESSED
   RENTAL_RETURN_SETTLED
+  RENTAL_ORDER_EXTENDED
 }
 
 enum EntityType {

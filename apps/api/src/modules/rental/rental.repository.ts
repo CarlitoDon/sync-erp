@@ -10,7 +10,7 @@ import {
   UnitStatus,
   RentalOrderStatus,
 } from '@sync-erp/database';
-import { type RentalOrderWithRelations } from '@sync-erp/shared';
+import { type PrismaRentalOrderWithRelations } from '@sync-erp/shared';
 
 export class RentalRepository {
   // ==========================================
@@ -155,7 +155,7 @@ export class RentalRepository {
   async findOrderById(
     id: string,
     tx?: Prisma.TransactionClient
-  ): Promise<RentalOrderWithRelations | null> {
+  ): Promise<PrismaRentalOrderWithRelations | null> {
     const db = tx || prisma;
     return db.rentalOrder.findUnique({
       where: { id },
@@ -287,7 +287,7 @@ export class RentalRepository {
       cursor?: string;
     },
     tx?: Prisma.TransactionClient
-  ): Promise<RentalOrderWithRelations[]> {
+  ): Promise<PrismaRentalOrderWithRelations[]> {
     const db = tx || prisma;
     return db.rentalOrder.findMany({
       where: {
@@ -310,9 +310,23 @@ export class RentalRepository {
                 units: true,
               },
             },
+            rentalBundle: {
+              include: {
+                components: {
+                  include: {
+                    rentalItem: {
+                      include: {
+                        product: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
         partner: true,
+        deposit: true,
         unitAssignments: {
           include: {
             rentalItemUnit: {

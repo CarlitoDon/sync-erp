@@ -25,6 +25,39 @@ export {
 };
 
 // Export runtime Enums and Types
+// Portable Schemas for API (avoiding ZodNativeEnum portability issues)
+export const ApiRentalOrderStatusSchema = z.enum([
+  'DRAFT',
+  'CONFIRMED',
+  'ACTIVE',
+  'COMPLETED',
+  'CANCELLED',
+]);
+
+export const ApiRentalPaymentStatusSchema = z.enum([
+  'PENDING',
+  'AWAITING_CONFIRM',
+  'CONFIRMED',
+  'FAILED',
+]);
+
+export const ApiUnitStatusSchema = z.enum([
+  'AVAILABLE',
+  'RESERVED',
+  'RENTED',
+  'RETURNED',
+  'CLEANING',
+  'MAINTENANCE',
+  'RETIRED',
+]);
+
+export const ApiUnitConditionSchema = z.enum([
+  'NEW',
+  'GOOD',
+  'FAIR',
+  'NEEDS_REPAIR',
+]);
+
 export const RentalOrderStatus = RentalOrderStatusSchema.enum;
 export type RentalOrderStatus = z.infer<
   typeof RentalOrderStatusSchema

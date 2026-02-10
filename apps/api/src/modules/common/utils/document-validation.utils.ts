@@ -1,3 +1,11 @@
+import {
+  VALIDATION_DOCUMENT_TYPES,
+  VALIDATION_ORDER_TYPES,
+  VALIDATION_FULFILLMENT_TYPES,
+  VALIDATION_FULFILLMENT_ACTIONS,
+  ValidationDocumentType,
+} from './validation.constants';
+
 /**
  * Shared Document Validation Utilities
  *
@@ -16,8 +24,7 @@ import { Decimal } from 'decimal.js';
 /**
  * Document type for contextual error messages
  */
-// eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local type alias for error messages, not database enum
-export type DocumentType = 'Bill' | 'Invoice';
+export type DocumentType = ValidationDocumentType;
 
 /**
  * Validate business date is valid and not in blocked period
@@ -60,8 +67,7 @@ export function validateOrderStatus(
   orderStatus: string,
   validStatuses: string[],
   docType: DocumentType,
-  // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local param type, not database enum
-  orderType: 'PO' | 'SO'
+  orderType: keyof typeof VALIDATION_ORDER_TYPES
 ): void {
   if (!validStatuses.includes(orderStatus)) {
     throw new DomainError(
@@ -78,14 +84,15 @@ export function validateOrderStatus(
 export function ensureFulfillmentExists(
   count: number,
   docType: DocumentType,
-  // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local param type, not database enum
-  fulfillmentType: 'GRN' | 'Shipment'
+  fulfillmentType: keyof typeof VALIDATION_FULFILLMENT_TYPES
 ): void {
   if (count === 0) {
-    // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local param comparison
-    const action = fulfillmentType === 'GRN' ? 'received' : 'shipped';
+    const action =
+      fulfillmentType === VALIDATION_FULFILLMENT_TYPES.GRN
+        ? VALIDATION_FULFILLMENT_ACTIONS.RECEIVED.toLowerCase()
+        : VALIDATION_FULFILLMENT_ACTIONS.SHIPPED.toLowerCase();
     throw new DomainError(
-      `Cannot ${docType === 'Bill' ? 'create bill' : 'post invoice'}: Goods have not been ${action} (no ${fulfillmentType} found)`,
+      `Cannot ${docType === VALIDATION_DOCUMENT_TYPES.BILL ? 'create bill' : 'post invoice'}: Goods have not been ${action} (no ${fulfillmentType} found)`,
       400,
       DomainErrorCodes.OPERATION_NOT_ALLOWED
     );
@@ -140,8 +147,7 @@ export function validate3WayMatching(
   order: ThreeWayMatchOrder,
   qtyByProduct: Map<string, number>,
   docType: DocumentType,
-  // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- Local param type, not database enum
-  fulfillmentType: 'Received' | 'Shipped',
+  fulfillmentType: keyof typeof VALIDATION_FULFILLMENT_ACTIONS,
   isDownPayment: boolean = false
 ): void {
   // 1. Skip for DP documents (created before fulfillment)
@@ -217,7 +223,7 @@ export function validate3WayMatching(
   } else {
     // Fallback: Validate order qty against fulfilled qty
     // This ensures we can't post an invoice for more than what was shipped
-    // 
+    //
     // Feature 041: Skip this validation for partial bills (created from specific GRN)
     // When a bill is created from a GRN with partial qty, the order qty won't match
     // the fulfilled qty, but that's expected. The bill subtotal is already validated
