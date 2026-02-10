@@ -224,10 +224,14 @@ export class InventoryReturnService {
     }
   }
 
-  async listReturns(companyId: string) {
+  async listReturns(
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
     return this.repository.listFulfillments(
       companyId,
-      FulfillmentType.RETURN
+      FulfillmentType.RETURN,
+      tx
     );
   }
 
@@ -415,10 +419,14 @@ export class InventoryReturnService {
     }
   }
 
-  async listPurchaseReturns(companyId: string) {
+  async listPurchaseReturns(
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
     return this.repository.listFulfillments(
       companyId,
-      FulfillmentType.PURCHASE_RETURN
+      FulfillmentType.PURCHASE_RETURN,
+      tx
     );
   }
 }

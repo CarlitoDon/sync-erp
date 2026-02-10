@@ -345,15 +345,27 @@ export class InventoryShipmentService {
     return prisma.$transaction(execute);
   }
 
-  async listShipments(companyId: string) {
+  async listShipments(
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
     return this.repository.listFulfillments(
       companyId,
-      FulfillmentType.SHIPMENT
+      FulfillmentType.SHIPMENT,
+      tx
     );
   }
 
-  async getShipment(companyId: string, shipmentId: string) {
-    return this.repository.findFulfillmentById(shipmentId, companyId);
+  async getShipment(
+    companyId: string,
+    shipmentId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.repository.findFulfillmentById(
+      shipmentId,
+      companyId,
+      tx
+    );
   }
 
   async deleteShipment(

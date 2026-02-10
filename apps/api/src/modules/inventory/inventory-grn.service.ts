@@ -380,15 +380,20 @@ export class InventoryGRNService {
     return prisma.$transaction(execute);
   }
 
-  async listGRN(companyId: string) {
+  async listGRN(companyId: string, tx?: Prisma.TransactionClient) {
     return this.repository.listFulfillments(
       companyId,
-      FulfillmentType.RECEIPT
+      FulfillmentType.RECEIPT,
+      tx
     );
   }
 
-  async getGRN(companyId: string, grnId: string) {
-    return this.repository.findFulfillmentById(grnId, companyId);
+  async getGRN(
+    companyId: string,
+    grnId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.repository.findFulfillmentById(grnId, companyId, tx);
   }
 
   async deleteGRN(

@@ -230,8 +230,12 @@ export class InventoryFulfillmentService {
     return repo.listFulfillments(companyId, type, tx);
   }
 
-  async getFulfillment(companyId: string, fulfillmentId: string) {
-    return this.grnService.getGRN(companyId, fulfillmentId); // getGRN is just a wrapper for findFulfillmentById which is generic.
+  async getFulfillment(
+    companyId: string,
+    fulfillmentId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.grnService.getGRN(companyId, fulfillmentId, tx); // getGRN is just a wrapper for findFulfillmentById which is generic.
   }
 
   async deleteFulfillment(
@@ -298,12 +302,16 @@ export class InventoryFulfillmentService {
     return this.grnService.postGRN(companyId, grnId, tx, userId);
   }
 
-  async listGRN(companyId: string) {
-    return this.grnService.listGRN(companyId);
+  async listGRN(companyId: string, tx?: Prisma.TransactionClient) {
+    return this.grnService.listGRN(companyId, tx);
   }
 
-  async getGRN(companyId: string, grnId: string) {
-    return this.grnService.getGRN(companyId, grnId);
+  async getGRN(
+    companyId: string,
+    grnId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.grnService.getGRN(companyId, grnId, tx);
   }
 
   async voidGRN(
@@ -361,12 +369,23 @@ export class InventoryFulfillmentService {
     );
   }
 
-  async listShipments(companyId: string) {
-    return this.shipmentService.listShipments(companyId);
+  async listShipments(
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.shipmentService.listShipments(companyId, tx);
   }
 
-  async getShipment(companyId: string, shipmentId: string) {
-    return this.shipmentService.getShipment(companyId, shipmentId);
+  async getShipment(
+    companyId: string,
+    shipmentId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.shipmentService.getShipment(
+      companyId,
+      shipmentId,
+      tx
+    );
   }
 
   async voidShipment(
@@ -430,8 +449,11 @@ export class InventoryFulfillmentService {
     );
   }
 
-  async listReturns(companyId: string) {
-    return this.returnService.listReturns(companyId);
+  async listReturns(
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.returnService.listReturns(companyId, tx);
   }
 
   // ==========================================
@@ -469,7 +491,10 @@ export class InventoryFulfillmentService {
     );
   }
 
-  async listPurchaseReturns(companyId: string) {
-    return this.returnService.listPurchaseReturns(companyId);
+  async listPurchaseReturns(
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.returnService.listPurchaseReturns(companyId, tx);
   }
 }
