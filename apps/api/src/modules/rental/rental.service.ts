@@ -26,6 +26,7 @@ import { RentalOrderService } from './rental-order.service';
 import { RentalReturnService } from './rental-return.service';
 import { RentalPolicyService } from './rental-policy.service';
 import { RentalWebhookService } from './rental-webhook.service';
+import { RentalExternalOrderService } from './rental-external-order.service';
 import {
   type CreateRentalItemInput,
   type CreateRentalOrderInput,
@@ -44,6 +45,7 @@ export class RentalService {
   private readonly orderService: RentalOrderService;
   private readonly returnService: RentalReturnService;
   private readonly policyService: RentalPolicyService;
+  public readonly externalOrderService: RentalExternalOrderService;
 
   constructor(webhookService?: RentalWebhookService) {
     this.itemService = new RentalItemService();
@@ -54,6 +56,7 @@ export class RentalService {
     );
     this.returnService = new RentalReturnService();
     this.policyService = new RentalPolicyService();
+    this.externalOrderService = new RentalExternalOrderService();
   }
 
   // ==========================================
