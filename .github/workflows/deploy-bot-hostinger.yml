@@ -100,10 +100,13 @@ jobs:
 
           echo "Deploying to: ~/public_html/$DEPLOY_DIR"
 
-          # Upload files
+          # Upload files (preserve .htaccess, .env, tmp/, stderr.log - managed by Hostinger/cPanel)
           rsync -avz --delete \
             --exclude='.env' \
+            --exclude='.htaccess' \
             --exclude='node_modules' \
+            --exclude='tmp' \
+            --exclude='stderr.log' \
             -e "ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
             deploy/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/$DEPLOY_DIR/
 
@@ -112,5 +115,6 @@ jobs:
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH
             cd ~/public_html/$DEPLOY_DIR
             npm install --production
-            touch tmp/restart.txt 2>/dev/null || true
+            mkdir -p tmp
+            touch tmp/restart.txt
           EOF
