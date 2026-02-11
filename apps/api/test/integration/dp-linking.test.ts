@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-import { prisma, PaymentMethod } from '@sync-erp/database';
+import { prisma, PaymentMethodType } from '@sync-erp/database';
 import { BillService } from '../../src/modules/accounting/services/bill.service';
 import { PurchaseOrderService } from '../../src/modules/procurement/purchase-order.service';
 import { PaymentService } from '../../src/modules/accounting/services/payment.service';
@@ -148,7 +148,7 @@ describe('DP Bill Linking (Feature Implementation)', () => {
     await paymentService.create(COMPANY_ID, {
       invoiceId: dpBill!.id,
       amount: 1000000,
-      method: PaymentMethod.CASH,
+      method: PaymentMethodType.CASH,
     });
 
     // 5. Create Final Bill

@@ -1,4 +1,4 @@
-import { JournalSourceType, PaymentMethod } from '@sync-erp/database';
+import { JournalSourceType, PaymentMethodType } from '@sync-erp/database';
 
 export class JournalSalesService {
   prepareInvoiceJournal(
@@ -124,7 +124,7 @@ export class JournalSalesService {
   ) {
     const cashAccount =
       contraAccountCode ||
-      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100'); // Bank or Cash
+      (method === PaymentMethodType.BANK ? '1200' : '1100'); // Bank or Cash
 
     return {
       reference: `Payment received: ${invoiceNumber}`,
@@ -148,7 +148,7 @@ export class JournalSalesService {
   ) {
     const cashAccount =
       contraAccountCode ||
-      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100');
+      (method === PaymentMethodType.BANK ? '1200' : '1100');
 
     return {
       reference: `Payment Reversal: ${invoiceNumber}`,
@@ -203,7 +203,7 @@ export class JournalSalesService {
     businessDate?: Date
   ) {
     const cashAccount =
-      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
+      method === PaymentMethodType.BANK ? '1200' : '1100';
     return {
       reference: `Customer Deposit: SO ${orderNumber}`,
       memo: `Customer advance payment via ${method}`,

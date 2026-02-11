@@ -1,4 +1,4 @@
-import { JournalSourceType, PaymentMethod } from '@sync-erp/database';
+import { JournalSourceType, PaymentMethodType } from '@sync-erp/database';
 
 export class JournalRentalService {
   /**
@@ -13,7 +13,7 @@ export class JournalRentalService {
     businessDate?: Date
   ) {
     const cashAccount =
-      paymentMethod === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
+      paymentMethod === PaymentMethodType.BANK ? '1200' : '1100';
 
     return {
       reference: `Rental Deposit: ${orderNumber}`,
@@ -44,7 +44,7 @@ export class JournalRentalService {
     paymentMethod: string
   ) {
     const cashAccount =
-      paymentMethod === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
+      paymentMethod === PaymentMethodType.BANK ? '1200' : '1100';
 
     const lines: {
       accountCode: string;

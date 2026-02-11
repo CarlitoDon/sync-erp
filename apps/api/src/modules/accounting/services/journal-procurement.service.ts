@@ -1,4 +1,4 @@
-import { JournalSourceType, PaymentMethod } from '@sync-erp/database';
+import { JournalSourceType, PaymentMethodType } from '@sync-erp/database';
 
 export class JournalProcurementService {
   prepareBillJournal(
@@ -159,7 +159,7 @@ export class JournalProcurementService {
   ) {
     const cashAccount =
       contraAccountCode ||
-      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100');
+      (method === PaymentMethodType.BANK ? '1200' : '1100');
     return {
       reference: `Payment made: ${billNumber}`,
       memo: `Payment via ${method}`,
@@ -181,7 +181,7 @@ export class JournalProcurementService {
   ) {
     const cashAccount =
       contraAccountCode ||
-      (method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100');
+      (method === PaymentMethodType.BANK ? '1200' : '1100');
     return {
       reference: `Bill Payment Reversal: ${billNumber}`,
       memo: `Reversal of voided payment`,
@@ -202,7 +202,7 @@ export class JournalProcurementService {
     businessDate?: Date
   ) {
     const cashAccount =
-      method === PaymentMethod.BANK_TRANSFER ? '1200' : '1100';
+      method === PaymentMethodType.BANK ? '1200' : '1100';
     return {
       reference: `Upfront Payment: PO ${orderNumber}`,
       memo: `Advance payment to supplier via ${method}`,

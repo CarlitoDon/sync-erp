@@ -224,7 +224,7 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
           undefined,
           ['*:*'] // Admin permissions for test
         )
-      ).rejects.toThrow('Cannot void fulfillment');
+      ).rejects.toThrow(/Cannot void Shipment in status: VOIDED/);
       // Note: Exact message depends on implementation, but it should fail
     });
   });
