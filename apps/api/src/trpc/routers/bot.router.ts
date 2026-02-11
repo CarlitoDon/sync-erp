@@ -4,13 +4,45 @@ import { createEnvValidator } from '@sync-erp/shared';
 
 const env = createEnvValidator('api');
 
-// In-memory store (Reset on restart)
-// For production, this should be Redis
+// In-memory cache for bot status (updated by bot push + direct fetch)
 let botState = {
   status: 'INITIALIZING',
   qr: null as string | null,
   lastUpdated: new Date(),
 };
+
+/**
+ * Fetch real-time status directly from the bot service.
+ * Falls back to cached in-memory state on failure.
+ */
+async function fetchBotStatus(): Promise<typeof botState> {
+  try {
+    const botUrl = env.getBotUrl();
+    const botSecret = env.getBotSecret();
+
+    const response = await fetch(`${botUrl}/status`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${botSecret}` },
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (response.ok) {
+      const data = (await response.json()) as {
+        status: string;
+        qrCode: string | null;
+      };
+      // Update cache with fresh data
+      botState = {
+        status: data.status,
+        qr: data.qrCode,
+        lastUpdated: new Date(),
+      };
+    }
+  } catch {
+    // Bot unreachable — return cached state
+  }
+  return botState;
+}
 
 export const botRouter = router({
   updateStatus: botProcedure
@@ -34,8 +66,9 @@ export const botRouter = router({
       return { success: true };
     }),
 
-  getStatus: protectedProcedure.query(() => {
-    return botState;
+  getStatus: protectedProcedure.query(async () => {
+    // Always fetch real status from bot (fixes Passenger restart losing state)
+    return fetchBotStatus();
   }),
 
   /**
