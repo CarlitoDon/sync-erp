@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import {
   InvoiceStatus,
   AuditLogAction,
-  PaymentMethod,
+  PaymentMethodType,
   prisma,
 } from '@sync-erp/database';
 import { InvoiceService } from '@modules/accounting/services/invoice.service';
@@ -320,7 +320,7 @@ describe('O2C: Void Sales Invoice & Journal Reversal', () => {
         invoiceId: invoice.id,
         amount: 1000000,
         date: new Date(),
-        method: PaymentMethod.CASH,
+        method: PaymentMethodType.CASH,
       },
     });
 

@@ -145,7 +145,7 @@ describe('Fulfillment (GRN & Shipment) Double Creation Bug', () => {
           purchaseOrderId: orderId,
           items: [{ productId, quantity: 10 }],
         })
-      ).rejects.toThrow(/Cannot fulfill 10 units/);
+      ).rejects.toThrow(/Cannot receive 10 units/);
     });
 
     it('should allow creating new GRN after deleting DRAFT', async () => {
@@ -210,7 +210,7 @@ describe('Fulfillment (GRN & Shipment) Double Creation Bug', () => {
           salesOrderId: order.id,
           items: [{ productId, quantity: 5 }],
         })
-      ).rejects.toThrow(/Cannot fulfill 5 units/);
+      ).rejects.toThrow(/Cannot ship 5 units/);
     });
 
     it('should allow creating new Shipment after deleting DRAFT', async () => {

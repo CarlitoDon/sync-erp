@@ -3,7 +3,7 @@ import {
   prisma,
   InvoiceStatus,
   BusinessShape,
-  PaymentMethod,
+  PaymentMethodType,
   AccountType,
 } from '@sync-erp/database';
 import { appRouter } from '@src/trpc/router';
@@ -175,7 +175,7 @@ describe('P2P Partial Actions Edge Cases (tRPC)', () => {
       const pay1 = await caller.payment.create({
         invoiceId: bill.id,
         amount: 200000,
-        method: PaymentMethod.CASH,
+        method: PaymentMethodType.CASH,
         businessDate: new Date(),
       });
 
@@ -183,7 +183,7 @@ describe('P2P Partial Actions Edge Cases (tRPC)', () => {
       const pay2 = await caller.payment.create({
         invoiceId: bill.id,
         amount: 300000,
-        method: PaymentMethod.CASH,
+        method: PaymentMethodType.CASH,
         businessDate: new Date(),
       });
 
@@ -283,7 +283,7 @@ describe('P2P Partial Actions Edge Cases (tRPC)', () => {
       await caller.payment.create({
         invoiceId: dpBill.id,
         amount: 500000,
-        method: PaymentMethod.CASH,
+        method: PaymentMethodType.CASH,
         businessDate: new Date(),
       });
 

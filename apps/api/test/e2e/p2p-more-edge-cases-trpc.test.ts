@@ -3,7 +3,7 @@ import {
   prisma,
   PaymentTerms,
   BusinessShape,
-  PaymentMethod,
+  PaymentMethodType,
   AccountType,
 } from '@sync-erp/database';
 import { appRouter } from '@src/trpc/router';
@@ -166,7 +166,7 @@ describe('P2P More Edge Cases (tRPC)', () => {
       await caller.payment.create({
         invoiceId: dpBill.id,
         amount: 500000,
-        method: PaymentMethod.CASH,
+        method: PaymentMethodType.CASH,
         businessDate: new Date(),
       });
 
@@ -180,7 +180,7 @@ describe('P2P More Edge Cases (tRPC)', () => {
       await caller.payment.create({
         invoiceId: dpBill.id,
         amount: 500000,
-        method: PaymentMethod.CASH,
+        method: PaymentMethodType.CASH,
         businessDate: new Date(),
       });
 
@@ -210,7 +210,7 @@ describe('P2P More Edge Cases (tRPC)', () => {
       await caller.payment.create({
         invoiceId: dpBill.id,
         amount: 1000000,
-        method: PaymentMethod.CASH,
+        method: PaymentMethodType.CASH,
       });
 
       const grn1 = await caller.inventory.createGRN({
@@ -267,7 +267,7 @@ describe('P2P More Edge Cases (tRPC)', () => {
       await caller.payment.create({
         invoiceId: bill.id,
         amount: 100000,
-        method: PaymentMethod.CASH,
+        method: PaymentMethodType.CASH,
       });
 
       await expect(
