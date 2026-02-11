@@ -52,12 +52,15 @@ export async function initializeBaileys() {
       }
 
       if (connection === 'close') {
+        const statusCode =
+          (lastDisconnect?.error as Boom)?.output?.statusCode;
         const shouldReconnect =
-          (lastDisconnect?.error as Boom)?.output?.statusCode !==
-          DisconnectReason.loggedOut;
+          statusCode !== DisconnectReason.loggedOut;
         // eslint-disable-next-line no-console
         console.log(
-          '[Baileys] Connection closed. Reconnecting:',
+          '[Baileys] Connection closed. StatusCode:',
+          statusCode,
+          'Reconnecting:',
           shouldReconnect
         );
         // eslint-disable-next-line no-console
@@ -66,11 +69,13 @@ export async function initializeBaileys() {
           JSON.stringify(lastDisconnect?.error, null, 2)
         );
 
-        // Check if we should clear session (Logout or QR timeout)
-        if (!shouldReconnect || connectionStatus === 'QR_PENDING') {
+        // Only clear session on explicit logout (user logged out from phone)
+        // Do NOT clear on QR_PENDING — the post-scan handshake can cause
+        // a brief disconnect that we need to survive with creds intact
+        if (!shouldReconnect) {
           // eslint-disable-next-line no-console
           console.log(
-            '[Baileys] Session ended (Logout/QR timeout). Clearing Redis state...'
+            '[Baileys] Logged out. Clearing Redis state...'
           );
           await clearState();
         }
