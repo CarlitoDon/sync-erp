@@ -35,6 +35,7 @@ const getRedisClient = () => {
 export async function useRedisAuthState(): Promise<{
   state: AuthenticationState;
   saveCreds: () => Promise<void>;
+  clearState: () => Promise<void>;
 }> {
   const redis = getRedisClient();
 
@@ -153,6 +154,19 @@ export async function useRedisAuthState(): Promise<{
     },
     saveCreds: async () => {
       await writeData(CREDS_KEY, creds);
+    },
+    clearState: async () => {
+      try {
+        const keys = await redis.keys(`${REDIS_KEY_PREFIX}*`);
+        if (keys.length > 0) {
+          await redis.del(keys);
+          // eslint-disable-next-line no-console
+          console.log(`[Redis] Cleared ${keys.length} session keys.`);
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[Redis] Clear state error:', err);
+      }
     },
   };
 }

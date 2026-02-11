@@ -3,12 +3,12 @@ import {
   JournalSourceType,
   Prisma,
 } from '@sync-erp/database';
+// Use Core type which supports Date | string to avoid build errors with existing consumers
 import {
-  BusinessDate,
-  DomainError,
-  DomainErrorCodes,
-  JournalLine,
-} from '@sync-erp/shared';
+  JournalCoreService,
+  CreateJournalEntryInput,
+  CreateJournalLineInput,
+} from './journal-core.service';
 import { JournalRepository } from '../repositories/journal.repository';
 import { AccountService } from './account.service';
 import { JournalSalesService } from './journal-sales.service';
@@ -16,48 +16,37 @@ import { JournalProcurementService } from './journal-procurement.service';
 import { JournalRentalService } from './journal-rental.service';
 import { JournalInventoryService } from './journal-inventory.service';
 
-export interface CreateJournalLineInput {
-  accountId: string;
-  debit: number;
-  credit: number;
-}
-
-export interface CreateJournalEntryInput {
-  date?: string | Date;
-  reference?: string;
-  memo?: string;
-  sourceType?: JournalSourceType;
-  sourceId?: string;
-  lines: CreateJournalLineInput[];
-}
-
 /**
- * JournalService - Central service for all journal entries
+ * Journal Service (Facade)
  *
- * Organized into sections:
- * - Core Methods: create, reverse, getById, list, resolveAndCreate
- * - O2C (Sales) Journals: invoice, creditNote, paymentReceived, shipment, customerDeposit
- * - P2P (Procurement) Journals: bill, debitNote, paymentMade, goodsReceipt, upfrontPayment
- * - Inventory Journals: adjustment
+ * Central entry point for all journal operations.
+ * Delegates to:
+ * - JournalCoreService: Core CRUD and account resolution
+ * - JournalSalesService: O2C logic
+ * - JournalProcurementService: P2P logic
+ * - JournalRentalService: Rental logic
+ * - JournalInventoryService: Inventory logic
  */
 export class JournalService {
-  private readonly sales: JournalSalesService;
-  private readonly procurement: JournalProcurementService;
-  private readonly rental: JournalRentalService;
-  private readonly inventory: JournalInventoryService;
+  public readonly sales: JournalSalesService;
+  public readonly procurement: JournalProcurementService;
+  public readonly rental: JournalRentalService;
+  public readonly inventory: JournalInventoryService;
+  public readonly core: JournalCoreService;
 
   constructor(
-    private readonly repository: JournalRepository = new JournalRepository(),
-    private readonly accountService: AccountService = new AccountService()
+    repository: JournalRepository = new JournalRepository(),
+    accountService: AccountService = new AccountService()
   ) {
-    this.sales = new JournalSalesService();
-    this.procurement = new JournalProcurementService();
-    this.rental = new JournalRentalService();
-    this.inventory = new JournalInventoryService();
+    this.core = new JournalCoreService(repository, accountService);
+    this.sales = new JournalSalesService(this.core);
+    this.procurement = new JournalProcurementService(this.core);
+    this.rental = new JournalRentalService(this.core);
+    this.inventory = new JournalInventoryService(this.core);
   }
 
   // ==========================================
-  // CORE METHODS
+  // CORE METHODS (Delegated)
   // ==========================================
 
   async reverse(
@@ -66,36 +55,7 @@ export class JournalService {
     reason?: string,
     tx?: Prisma.TransactionClient
   ): Promise<JournalEntry> {
-    const original = await this.repository.findById(
-      journalId,
-      companyId,
-      tx
-    );
-    if (!original) {
-      throw new DomainError(
-        'Journal entry not found',
-        404,
-        DomainErrorCodes.NOT_FOUND
-      );
-    }
-
-    const reversalLines: CreateJournalLineInput[] =
-      original.lines.map((line: JournalLine) => ({
-        accountId: line.accountId,
-        debit: Number(line.credit), // Swap
-        credit: Number(line.debit), // Swap
-      }));
-
-    return this.create(
-      companyId,
-      {
-        date: new Date(),
-        reference: `Reversal: ${original.reference || journalId}`,
-        memo: reason || `Reversal of journal ${journalId}`,
-        lines: reversalLines,
-      },
-      tx
-    );
+    return this.core.reverse(companyId, journalId, reason, tx);
   }
 
   async create(
@@ -103,75 +63,7 @@ export class JournalService {
     data: CreateJournalEntryInput,
     tx?: Prisma.TransactionClient
   ): Promise<JournalEntry> {
-    // Validate: debits must equal credits
-    const totalDebit = data.lines.reduce(
-      (sum, l) => sum + (l.debit || 0),
-      0
-    );
-    const totalCredit = data.lines.reduce(
-      (sum, l) => sum + (l.credit || 0),
-      0
-    );
-
-    // Allow small floating point error
-    if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      throw new DomainError(
-        `Journal entry is unbalanced. Debits: ${totalDebit}, Credits: ${totalCredit}`,
-        400,
-        DomainErrorCodes.OPERATION_NOT_ALLOWED
-      );
-    }
-
-    // Verify accounts exist and prepare lines
-    const lineData: Prisma.JournalLineUncheckedCreateWithoutJournalInput[] =
-      [];
-    for (const line of data.lines) {
-      let account;
-      if (tx) {
-        account = await tx.account.findUnique({
-          where: { id: line.accountId },
-        });
-        if (account && account.companyId !== companyId)
-          account = null;
-      } else {
-        account = await this.accountService.getById(
-          line.accountId,
-          companyId
-        );
-      }
-
-      if (!account) {
-        throw new DomainError(
-          `Account not found: ${line.accountId}`,
-          404,
-          DomainErrorCodes.NOT_FOUND
-        );
-      }
-      lineData.push({
-        accountId: account.id,
-        debit: line.debit || 0,
-        credit: line.credit || 0,
-      });
-    }
-
-    const journalDate = data.date ? new Date(data.date) : new Date();
-
-    // Phase 1 Guard: Backdated check
-    BusinessDate.from(journalDate).ensureNotBackdated();
-
-    const createData: Prisma.JournalEntryUncheckedCreateInput = {
-      companyId,
-      reference: data.reference,
-      date: journalDate,
-      memo: data.memo,
-      sourceType: data.sourceType,
-      sourceId: data.sourceId,
-      lines: {
-        create: lineData,
-      },
-    };
-
-    return this.repository.create(createData, tx);
+    return this.core.create(companyId, data, tx);
   }
 
   async getById(
@@ -179,7 +71,7 @@ export class JournalService {
     companyId: string,
     tx?: Prisma.TransactionClient
   ) {
-    return this.repository.findById(id, companyId, tx);
+    return this.core.getById(id, companyId, tx);
   }
 
   async list(
@@ -188,27 +80,17 @@ export class JournalService {
     endDate?: Date,
     tx?: Prisma.TransactionClient
   ) {
-    return this.repository.findAll(companyId, startDate, endDate, tx);
+    return this.core.list(companyId, startDate, endDate, tx);
   }
 
   async getAccountBalance(
     accountId: string,
     tx?: Prisma.TransactionClient
   ): Promise<number> {
-    const sums = await this.repository.aggregateAccountSum(
-      accountId,
-      undefined,
-      tx
-    );
-    return (
-      (Number(sums._sum.debit) || 0) - (Number(sums._sum.credit) || 0)
-    );
+    return this.core.getAccountBalance(accountId, tx);
   }
 
-  // ============================================
-  // Auto-Posting Helpers (Internal)
-  // ============================================
-
+  // NOTE: resolveAndCreate uses Core types internally
   public async resolveAndCreate(
     companyId: string,
     data: {
@@ -225,53 +107,11 @@ export class JournalService {
     },
     tx?: Prisma.TransactionClient
   ) {
-    const resolvedLines: CreateJournalLineInput[] = [];
-    for (const line of data.lines) {
-      let acc;
-      if (tx) {
-        acc = await tx.account.findUnique({
-          where: {
-            companyId_code: { companyId, code: line.accountCode },
-          },
-        });
-      } else {
-        acc = await this.accountService.getByCode(
-          companyId,
-          line.accountCode
-        );
-      }
-
-      if (!acc) {
-        throw new DomainError(
-          `System Account code ${line.accountCode} not found. Please seed defaults.`,
-          404,
-          DomainErrorCodes.NOT_FOUND
-        );
-      }
-      resolvedLines.push({
-        accountId: acc.id,
-        debit: line.debit || 0,
-        credit: line.credit || 0,
-      });
-    }
-
-    return this.create(
-      companyId,
-      {
-        date: data.date,
-        reference: data.reference,
-        memo: data.memo,
-        sourceType: data.sourceType,
-        sourceId: data.sourceId,
-        lines: resolvedLines,
-      },
-      tx
-    );
+    return this.core.resolveAndCreate(companyId, data, tx);
   }
 
   // ==========================================
-  // O2C (ORDER-TO-CASH) JOURNALS
-  // Invoice, Credit Note, Payment Received, Shipment
+  // SALES (O2C) JOURNALS (Delegated)
   // ==========================================
 
   async postInvoice(
@@ -284,21 +124,18 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const data = this.sales.prepareInvoiceJournal(
+    return this.sales.postInvoice(
+      companyId,
       invoiceId,
       invoiceNumber,
       amount,
       subtotal,
       taxAmount,
+      tx,
       businessDate
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Reverse Invoice Journal Entry (for void Invoice)
-   * Reverses: Credit AR, Debit Sales Revenue (and VAT if applicable)
-   */
   async postInvoiceReversal(
     companyId: string,
     invoiceId: string,
@@ -308,14 +145,15 @@ export class JournalService {
     taxAmount?: number,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.sales.prepareInvoiceReversalJournal(
+    return this.sales.postInvoiceReversal(
+      companyId,
       invoiceId,
       invoiceNumber,
       amount,
       subtotal,
-      taxAmount
+      taxAmount,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postCreditNote(
@@ -328,22 +166,18 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const data = this.sales.prepareCreditNoteJournal(
+    return this.sales.postCreditNote(
+      companyId,
       creditNoteId,
       invoiceNumber,
       amount,
       subtotal,
       taxAmount,
+      tx,
       businessDate
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Post Debit Note Journal (P2P returns/credits)
-   * Issued by buyer to claim credit from supplier
-   * Dr 2100 (AP - reduce liability), Cr 2105 (Accrual) or 5200 (Purchase Returns)
-   */
   async postDebitNote(
     companyId: string,
     debitNoteId: string,
@@ -354,15 +188,16 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const data = this.procurement.prepareDebitNoteJournal(
+    return this.procurement.postDebitNote(
+      companyId,
       debitNoteId,
       billNumber,
       amount,
       subtotal,
       taxAmount,
+      tx,
       businessDate
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postGoodsReceipt(
@@ -371,33 +206,30 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.procurement.prepareGoodsReceiptJournal(
+    return this.procurement.postGoodsReceipt(
+      companyId,
       reference,
-      amount
+      amount,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Reverse Goods Receipt Journal Entry (for void GRN)
-   * Reverses the accrual (Credit Asset, Debit Liability)
-   */
   async postGoodsReceiptReversal(
     companyId: string,
     reference: string,
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.procurement.prepareGoodsReceiptReversalJournal(
+    return this.procurement.postGoodsReceiptReversal(
+      companyId,
       reference,
-      amount
+      amount,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
   // ==========================================
-  // P2P (PROCURE-TO-PAY) JOURNALS
-  // Bill, Debit Note, Payment Made, Goods Receipt
+  // PROCUREMENT (P2P) JOURNALS (Delegated)
   // ==========================================
 
   async postBill(
@@ -410,21 +242,18 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const data = this.procurement.prepareBillJournal(
+    return this.procurement.postBill(
+      companyId,
       billId,
       billNumber,
       amount,
       subtotal,
       taxAmount,
+      tx,
       businessDate
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Reverse Bill Journal Entry (for void Bill)
-   * Reverses: Debit AP, Credit Accrual (and VAT if applicable)
-   */
   async postBillReversal(
     companyId: string,
     billId: string,
@@ -434,14 +263,15 @@ export class JournalService {
     taxAmount?: number,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.procurement.prepareBillReversalJournal(
+    return this.procurement.postBillReversal(
+      companyId,
       billId,
       billNumber,
       amount,
       subtotal,
-      taxAmount
+      taxAmount,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postPaymentReceived(
@@ -454,21 +284,18 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const data = this.sales.preparePaymentReceivedJournal(
+    return this.sales.postPaymentReceived(
+      companyId,
       paymentId,
       invoiceNumber,
       amount,
       method,
       contraAccountCode,
+      tx,
       businessDate
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Reverse Payment Received Journal Entry (for void Payment on Invoice AR)
-   * Reverses: Debit AR, Credit Cash
-   */
   async postPaymentReceivedReversal(
     companyId: string,
     paymentId: string,
@@ -478,20 +305,17 @@ export class JournalService {
     contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.sales.preparePaymentReceivedReversalJournal(
+    return this.sales.postPaymentReceivedReversal(
+      companyId,
       paymentId,
       invoiceNumber,
       amount,
       method,
-      contraAccountCode
+      contraAccountCode,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Reverse Payment Made Journal Entry (for void Payment on Bill AP)
-   * Reverses: Credit AP, Debit Cash
-   */
   async postPaymentMadeReversal(
     companyId: string,
     paymentId: string,
@@ -501,14 +325,15 @@ export class JournalService {
     contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.procurement.preparePaymentMadeReversalJournal(
+    return this.procurement.postPaymentMadeReversal(
+      companyId,
       paymentId,
       billNumber,
       amount,
       method,
-      contraAccountCode
+      contraAccountCode,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postPaymentMade(
@@ -520,14 +345,15 @@ export class JournalService {
     contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.procurement.preparePaymentMadeJournal(
+    return this.procurement.postPaymentMade(
+      companyId,
       paymentId,
       billNumber,
       amount,
       method,
-      contraAccountCode
+      contraAccountCode,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
   async postShipment(
@@ -536,8 +362,7 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.sales.prepareShipmentJournal(reference, amount);
-    return this.resolveAndCreate(companyId, data, tx);
+    return this.sales.postShipment(companyId, reference, amount, tx);
   }
 
   async postSalesReturn(
@@ -546,34 +371,30 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.sales.prepareSalesReturnJournal(
+    return this.sales.postSalesReturn(
+      companyId,
       reference,
-      amount
+      amount,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Post Purchase Return Journal Entry
-   * Reverses GRNI accrual: Dr 2105 (GRNI Accrued), Cr 1400 (Inventory)
-   * Called when goods are returned to supplier.
-   */
   async postPurchaseReturn(
     companyId: string,
     reference: string,
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.procurement.preparePurchaseReturnJournal(
+    return this.procurement.postPurchaseReturn(
+      companyId,
       reference,
-      amount
+      amount,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
   // ==========================================
-  // INVENTORY JOURNALS
-  // Stock Adjustments
+  // INVENTORY JOURNALS (Delegated)
   // ==========================================
 
   async postAdjustment(
@@ -583,39 +404,33 @@ export class JournalService {
     isLoss: boolean,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.inventory.prepareAdjustmentJournal(
+    return this.inventory.postAdjustment(
+      companyId,
       reference,
       amount,
-      isLoss
+      isLoss,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Reverse Shipment COGS Journal Entry (for void Shipment)
-   * Reverses: Debit Asset (1400), Credit COGS (5000)
-   */
   async postShipmentReversal(
     companyId: string,
     reference: string,
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.sales.prepareShipmentReversalJournal(
+    return this.sales.postShipmentReversal(
+      companyId,
       reference,
-      amount
+      amount,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
   // ==========================================
-  // Feature 036: Cash Upfront Payment
+  // UPDATED: Prepaid / Deposit methods
   // ==========================================
 
-  /**
-   * T028: Post Upfront Payment Journal
-   * FR-006: Dr 1600 (Advances to Supplier), Cr Cash/Bank
-   */
   async postUpfrontPayment(
     companyId: string,
     paymentId: string,
@@ -625,21 +440,17 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const data = this.procurement.prepareUpfrontPaymentJournal(
+    return this.procurement.postUpfrontPayment(
+      companyId,
       paymentId,
       orderNumber,
       amount,
       method,
+      tx,
       businessDate
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Post Settlement of Prepaid against AP
-   * FR-010: Dr 2100 (AP), Cr 1600 (Advances to Supplier)
-   * Note: Uses unique sourceId to avoid conflict with upfront payment journal
-   */
   async postSettlePrepaid(
     companyId: string,
     paymentId: string,
@@ -647,22 +458,15 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.procurement.prepareSettlePrepaidJournal(
+    return this.procurement.postSettlePrepaid(
+      companyId,
       paymentId,
       billNumber,
-      amount
+      amount,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  // ==========================================
-  // Cash Upfront Sales - Customer Deposits
-  // ==========================================
-
-  /**
-   * Post Customer Deposit Journal (Sales Upfront)
-   * Dr Cash/Bank (Asset), Cr 2200 Customer Deposits (Liability)
-   */
   async postCustomerDeposit(
     companyId: string,
     paymentId: string,
@@ -672,21 +476,17 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const data = this.sales.prepareCustomerDepositJournal(
+    return this.sales.postCustomerDeposit(
+      companyId,
       paymentId,
       orderNumber,
       amount,
       method,
+      tx,
       businessDate
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Post Settlement of Customer Deposit against AR
-   * Dr 2200 (Customer Deposits), Cr 1300 (Accounts Receivable)
-   * Note: Uses unique sourceId to avoid conflict with deposit payment journal
-   */
   async postSettleCustomerDeposit(
     companyId: string,
     paymentId: string,
@@ -694,23 +494,19 @@ export class JournalService {
     amount: number,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.sales.prepareSettleCustomerDepositJournal(
+    return this.sales.postSettleCustomerDeposit(
+      companyId,
       paymentId,
       invoiceNumber,
-      amount
+      amount,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
   // ==========================================
-  // RENTAL JOURNALS
-  // Deposit Collection, Return Settlement
+  // RENTAL JOURNALS (Delegated)
   // ==========================================
 
-  /**
-   * Post Rental Deposit Journal when deposit is collected on order confirmation
-   * Dr Cash/Bank (1100/1200), Cr Customer Deposits (2400) - Liability
-   */
   async postRentalDeposit(
     companyId: string,
     depositId: string,
@@ -720,23 +516,17 @@ export class JournalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-    const data = this.rental.prepareRentalDepositJournal(
+    return this.rental.postRentalDeposit(
+      companyId,
       depositId,
       orderNumber,
       amount,
       paymentMethod,
+      tx,
       businessDate
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 
-  /**
-   * Post Rental Return Journal when return is finalized
-   * Clears deposit liability and recognizes rental revenue
-   * Dr Customer Deposits (2400), Cr Rental Revenue (4200)
-   * If refund needed: Cr Cash/Bank for refund amount
-   * If damage charge: Dr Cash/Bank for additional charge
-   */
   async postRentalReturn(
     companyId: string,
     returnId: string,
@@ -747,14 +537,18 @@ export class JournalService {
     paymentMethod: string,
     tx?: Prisma.TransactionClient
   ) {
-    const data = this.rental.prepareRentalReturnJournal(
+    return this.rental.postRentalReturn(
+      companyId,
       returnId,
       orderNumber,
       depositAmount,
       rentalRevenue,
       depositRefund,
-      paymentMethod
+      paymentMethod,
+      tx
     );
-    return this.resolveAndCreate(companyId, data, tx);
   }
 }
+
+// Re-export types for backward compatibility
+export type { CreateJournalEntryInput, CreateJournalLineInput };

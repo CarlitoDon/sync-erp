@@ -1,11 +1,56 @@
-import { JournalSourceType, PaymentMethodType } from '@sync-erp/database';
+import {
+  JournalSourceType,
+  PaymentMethodType,
+  Prisma,
+} from '@sync-erp/database';
+import { JournalCoreService } from './journal-core.service';
 
 export class JournalRentalService {
-  /**
-   * Post Rental Deposit Journal when deposit is collected on order confirmation
-   * Dr Cash/Bank (1100/1200), Cr Customer Deposits (2400) - Liability
-   */
-  prepareRentalDepositJournal(
+  constructor(private readonly core: JournalCoreService) {}
+
+  async postRentalDeposit(
+    companyId: string,
+    depositId: string,
+    orderNumber: string,
+    amount: number,
+    paymentMethod: string,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const data = this.prepareRentalDepositJournal(
+      depositId,
+      orderNumber,
+      amount,
+      paymentMethod,
+      businessDate
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postRentalReturn(
+    companyId: string,
+    returnId: string,
+    orderNumber: string,
+    depositAmount: number,
+    rentalRevenue: number,
+    depositRefund: number,
+    paymentMethod: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareRentalReturnJournal(
+      returnId,
+      orderNumber,
+      depositAmount,
+      rentalRevenue,
+      depositRefund,
+      paymentMethod
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  // --- Helpers (Private) ---
+
+  private prepareRentalDepositJournal(
     depositId: string,
     orderNumber: string,
     amount: number,
@@ -28,14 +73,7 @@ export class JournalRentalService {
     };
   }
 
-  /**
-   * Post Rental Return Journal when return is finalized
-   * Clears deposit liability and recognizes rental revenue
-   * Dr Customer Deposits (2400), Cr Rental Revenue (4200)
-   * If refund needed: Cr Cash/Bank for refund amount
-   * If damage charge: Dr Cash/Bank for additional charge
-   */
-  prepareRentalReturnJournal(
+  private prepareRentalReturnJournal(
     returnId: string,
     orderNumber: string,
     depositAmount: number,

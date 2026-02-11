@@ -1,5 +1,27 @@
+import { JournalCoreService } from './journal-core.service';
+import { Prisma } from '@sync-erp/database';
+
 export class JournalInventoryService {
-  prepareAdjustmentJournal(
+  constructor(private readonly core: JournalCoreService) {}
+
+  async postAdjustment(
+    companyId: string,
+    reference: string,
+    amount: number,
+    isLoss: boolean,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareAdjustmentJournal(
+      reference,
+      amount,
+      isLoss
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  // --- Helpers (Private) ---
+
+  private prepareAdjustmentJournal(
     reference: string,
     amount: number,
     isLoss: boolean

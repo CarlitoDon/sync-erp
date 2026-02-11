@@ -1,7 +1,184 @@
-import { JournalSourceType, PaymentMethodType } from '@sync-erp/database';
+import {
+  JournalSourceType,
+  PaymentMethodType,
+  Prisma,
+} from '@sync-erp/database';
+import { JournalCoreService } from './journal-core.service';
 
 export class JournalSalesService {
-  prepareInvoiceJournal(
+  constructor(private readonly core: JournalCoreService) {}
+
+  async postInvoice(
+    companyId: string,
+    invoiceId: string,
+    invoiceNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const data = this.prepareInvoiceJournal(
+      invoiceId,
+      invoiceNumber,
+      amount,
+      subtotal,
+      taxAmount,
+      businessDate
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postInvoiceReversal(
+    companyId: string,
+    invoiceId: string,
+    invoiceNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareInvoiceReversalJournal(
+      invoiceId,
+      invoiceNumber,
+      amount,
+      subtotal,
+      taxAmount
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postCreditNote(
+    companyId: string,
+    creditNoteId: string,
+    invoiceNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const data = this.prepareCreditNoteJournal(
+      creditNoteId,
+      invoiceNumber,
+      amount,
+      subtotal,
+      taxAmount,
+      businessDate
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postPaymentReceived(
+    companyId: string,
+    paymentId: string,
+    invoiceNumber: string,
+    amount: number,
+    method: string,
+    contraAccountCode?: string,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const data = this.preparePaymentReceivedJournal(
+      paymentId,
+      invoiceNumber,
+      amount,
+      method,
+      contraAccountCode,
+      businessDate
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postPaymentReceivedReversal(
+    companyId: string,
+    paymentId: string,
+    invoiceNumber: string,
+    amount: number,
+    method: string,
+    contraAccountCode?: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.preparePaymentReceivedReversalJournal(
+      paymentId,
+      invoiceNumber,
+      amount,
+      method,
+      contraAccountCode
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postShipment(
+    companyId: string,
+    reference: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareShipmentJournal(reference, amount);
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postShipmentReversal(
+    companyId: string,
+    reference: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareShipmentReversalJournal(
+      reference,
+      amount
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postSalesReturn(
+    companyId: string,
+    reference: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareSalesReturnJournal(reference, amount);
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postCustomerDeposit(
+    companyId: string,
+    paymentId: string,
+    orderNumber: string,
+    amount: number,
+    method: string,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const data = this.prepareCustomerDepositJournal(
+      paymentId,
+      orderNumber,
+      amount,
+      method,
+      businessDate
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postSettleCustomerDeposit(
+    companyId: string,
+    paymentId: string,
+    invoiceNumber: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareSettleCustomerDepositJournal(
+      paymentId,
+      invoiceNumber,
+      amount
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  // --- Helpers (Private) ---
+
+  private prepareInvoiceJournal(
     invoiceId: string,
     invoiceNumber: string,
     amount: number,
@@ -44,7 +221,7 @@ export class JournalSalesService {
     };
   }
 
-  prepareInvoiceReversalJournal(
+  private prepareInvoiceReversalJournal(
     invoiceId: string,
     invoiceNumber: string,
     amount: number,
@@ -78,7 +255,7 @@ export class JournalSalesService {
     };
   }
 
-  prepareCreditNoteJournal(
+  private prepareCreditNoteJournal(
     creditNoteId: string,
     invoiceNumber: string,
     amount: number,
@@ -114,7 +291,7 @@ export class JournalSalesService {
     };
   }
 
-  preparePaymentReceivedJournal(
+  private preparePaymentReceivedJournal(
     paymentId: string,
     invoiceNumber: string,
     amount: number,
@@ -139,7 +316,7 @@ export class JournalSalesService {
     };
   }
 
-  preparePaymentReceivedReversalJournal(
+  private preparePaymentReceivedReversalJournal(
     paymentId: string,
     invoiceNumber: string,
     amount: number,
@@ -162,7 +339,7 @@ export class JournalSalesService {
     };
   }
 
-  prepareShipmentJournal(reference: string, amount: number) {
+  private prepareShipmentJournal(reference: string, amount: number) {
     return {
       reference,
       memo: 'Auto-generated COGS from Shipment',
@@ -173,7 +350,10 @@ export class JournalSalesService {
     };
   }
 
-  prepareShipmentReversalJournal(reference: string, amount: number) {
+  private prepareShipmentReversalJournal(
+    reference: string,
+    amount: number
+  ) {
     return {
       reference,
       memo: 'Reversal of Shipment COGS',
@@ -184,7 +364,10 @@ export class JournalSalesService {
     };
   }
 
-  prepareSalesReturnJournal(reference: string, amount: number) {
+  private prepareSalesReturnJournal(
+    reference: string,
+    amount: number
+  ) {
     return {
       reference,
       memo: 'Auto-generated reversal from Sales Return',
@@ -195,7 +378,7 @@ export class JournalSalesService {
     };
   }
 
-  prepareCustomerDepositJournal(
+  private prepareCustomerDepositJournal(
     paymentId: string,
     orderNumber: string,
     amount: number,
@@ -217,7 +400,7 @@ export class JournalSalesService {
     };
   }
 
-  prepareSettleCustomerDepositJournal(
+  private prepareSettleCustomerDepositJournal(
     paymentId: string,
     invoiceNumber: string,
     amount: number

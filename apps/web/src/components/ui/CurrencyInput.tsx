@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { formatNumber } from '@/utils/format';
 
 interface CurrencyInputProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
@@ -16,12 +17,6 @@ interface CurrencyInputProps extends Omit<
 /**
  * Formats a number with thousand separators (Indonesian format: 1.000.000)
  */
-const formatNumber = (value: number): string => {
-  if (value === 0) return '';
-  return new Intl.NumberFormat('id-ID', {
-    maximumFractionDigits: 0,
-  }).format(value);
-};
 
 /**
  * Parse a formatted string to number (removes all non-digit characters)

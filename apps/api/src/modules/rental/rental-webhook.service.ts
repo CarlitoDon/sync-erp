@@ -144,4 +144,34 @@ export class RentalWebhookService {
       );
     }
   }
+
+  /**
+   * Adapter for RentalOrderLifecycleService
+   */
+  async notifyOrderCreated(order: any): Promise<void> {
+    // Map internal order to webhook params
+    // Assuming order has relations included or at least basic fields
+    await this.notifyNewOrder({
+      token: order.id, // Using order ID as token for now, or generate one
+      orderNumber: order.orderNumber || 'UNKNOWN',
+      customerName: order.partner?.name || 'Guest',
+      customerPhone:
+        order.partner?.phone || order.partner?.email || '-',
+      totalAmount: Number(order.totalAmount || 0),
+    });
+  }
+
+  async notifyOrderCancelled(order: any): Promise<void> {
+    if (!this.apiKey) return;
+
+    // Currently no specific endpoint for cancellation in the interface,
+    // but we can log it or maybe send a status update if supported.
+    // For now, mirroring the payment status or just logging to avoid crash.
+    console.log(
+      `[RentalWebhook] Order Cancelled: ${order.orderNumber}`
+    );
+
+    // If there is a generic status endpoint, we could use it.
+    // For now, implementation is placeholder to prevent runtime errors.
+  }
 }

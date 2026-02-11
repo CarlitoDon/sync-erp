@@ -11,15 +11,14 @@
  * file into focused, testable sub-services while maintaining backward compatibility.
  */
 
-import { prisma } from '@sync-erp/database';
 import {
   RentalItem,
   RentalItemUnit,
   RentalOrder,
-  RentalOrderStatus,
   RentalReturn,
   RentalPolicy,
   UnitStatus,
+  RentalOrderStatus,
 } from '@sync-erp/database';
 import { RentalItemService } from './rental-item.service';
 import { RentalOrderService } from './rental-order.service';
@@ -27,6 +26,7 @@ import { RentalReturnService } from './rental-return.service';
 import { RentalPolicyService } from './rental-policy.service';
 import { RentalWebhookService } from './rental-webhook.service';
 import { RentalExternalOrderService } from './rental-external-order.service';
+import { RentalAvailabilityService } from './rental-availability.service';
 import {
   type CreateRentalItemInput,
   type CreateRentalOrderInput,
@@ -46,6 +46,7 @@ export class RentalService {
   private readonly returnService: RentalReturnService;
   private readonly policyService: RentalPolicyService;
   public readonly externalOrderService: RentalExternalOrderService;
+  private readonly availabilityService: RentalAvailabilityService;
 
   constructor(webhookService?: RentalWebhookService) {
     this.itemService = new RentalItemService();
@@ -57,6 +58,7 @@ export class RentalService {
     this.returnService = new RentalReturnService();
     this.policyService = new RentalPolicyService();
     this.externalOrderService = new RentalExternalOrderService();
+    this.availabilityService = new RentalAvailabilityService();
   }
 
   // ==========================================
@@ -293,7 +295,7 @@ export class RentalService {
   }
 
   // ==========================================
-  // Scheduler / Timeline (complex query - kept in facade)
+  // Scheduler / Timeline (delegated to RentalAvailabilityService)
   // ==========================================
 
   async getSchedulerTimeline(
@@ -319,81 +321,10 @@ export class RentalService {
       }>;
     }>;
   }> {
-    // Fetch rental items with units
-    const items = await prisma.rentalItem.findMany({
-      where: { companyId },
-      include: {
-        product: { select: { name: true } },
-        units: {
-          orderBy: { unitCode: 'asc' },
-        },
-      },
-    });
-
-    // Fetch orders that overlap with the date range
-    const orders = await prisma.rentalOrder.findMany({
-      where: {
-        companyId,
-        status: {
-          in: [RentalOrderStatus.CONFIRMED, RentalOrderStatus.ACTIVE],
-        },
-        OR: [
-          {
-            rentalStartDate: { lte: endDate },
-            rentalEndDate: { gte: startDate },
-          },
-        ],
-      },
-      include: {
-        partner: { select: { name: true } },
-        unitAssignments: {
-          select: { rentalItemUnitId: true },
-        },
-      },
-    });
-
-    // Create a map of unit -> bookings
-    const unitBookings = new Map<
-      string,
-      Array<{
-        orderId: string;
-        orderNumber: string;
-        partnerName: string;
-        startDate: Date;
-        endDate: Date;
-        status: string;
-      }>
-    >();
-
-    for (const order of orders) {
-      for (const assignment of order.unitAssignments) {
-        const unitId = assignment.rentalItemUnitId;
-        if (!unitBookings.has(unitId)) {
-          unitBookings.set(unitId, []);
-        }
-        unitBookings.get(unitId)!.push({
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          partnerName: order.partner?.name || 'Unknown',
-          startDate: order.rentalStartDate,
-          endDate: order.rentalEndDate,
-          status: order.status,
-        });
-      }
-    }
-
-    // Build the response
-    return {
-      items: items.map((item) => ({
-        id: item.id,
-        name: item.product?.name || 'Unknown',
-        units: item.units.map((unit) => ({
-          id: unit.id,
-          unitCode: unit.unitCode,
-          status: unit.status,
-          bookings: unitBookings.get(unit.id) || [],
-        })),
-      })),
-    };
+    return this.availabilityService.getSchedulerTimeline(
+      companyId,
+      startDate,
+      endDate
+    );
   }
 }

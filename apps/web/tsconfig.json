@@ -7,7 +7,11 @@
     "paths": {
       "@/*": ["./src/*"],
       "@sync-erp/database": ["../../packages/database/src"],
-      "@sync-erp/shared": ["../../packages/shared/src"]
+      "@sync-erp/shared": ["../../packages/shared/src"],
+      "@modules/*": ["../api/src/modules/*"],
+      "@src/*": ["../api/src/*"],
+      "@middlewares/*": ["../api/src/middlewares/*"],
+      "@routes/*": ["../api/src/routes/*"]
     },
     "types": ["vitest/globals", "@testing-library/jest-dom"],
     "module": "ESNext",

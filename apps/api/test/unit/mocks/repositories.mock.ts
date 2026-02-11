@@ -120,6 +120,17 @@ export const mockCompanyRepository = {
   findMemberships: vi.fn(),
 };
 
+// ==================== Rental Repository ====================
+export const mockRentalRepository = {
+  create: vi.fn(),
+  findById: vi.fn(),
+  findByNumber: vi.fn(),
+  updateStatus: vi.fn(),
+  findOrderById: vi.fn(),
+  getCurrentPolicy: vi.fn(),
+  createRentalOrder: vi.fn(),
+};
+
 // ==================== Reset Function ====================
 const allMocks = [
   mockProductRepository,
@@ -134,6 +145,7 @@ const allMocks = [
   mockUserRepository,
   mockAuthRepository,
   mockCompanyRepository,
+  mockRentalRepository,
 ];
 
 export const resetRepositoryMocks = () => {
@@ -183,4 +195,7 @@ export function MockAuthRepository() {
 }
 export function MockCompanyRepository() {
   return mockCompanyRepository;
+}
+export function MockRentalRepository() {
+  return mockRentalRepository;
 }

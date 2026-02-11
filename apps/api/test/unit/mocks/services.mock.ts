@@ -74,6 +74,7 @@ export const mockJournalService = {
   post: vi.fn(),
   postGoodsReceipt: vi.fn(),
   postBill: vi.fn(),
+  postRentalDeposit: vi.fn(),
 };
 
 export const mockReportService = {
@@ -131,6 +132,16 @@ export const mockPurchaseOrderService = {
   cancel: vi.fn(),
 };
 
+export const mockDocumentNumberService = {
+  generateNextNumber: vi.fn(),
+  generate: vi.fn(),
+};
+
+export const mockRentalWebhookService = {
+  notifyOrderCreated: vi.fn(),
+  notifyOrderCancelled: vi.fn(),
+};
+
 const allMocks = [
   mockUserService,
   mockSalesService,
@@ -149,6 +160,8 @@ const allMocks = [
   mockPaymentService,
   mockProductService,
   mockPurchaseOrderService,
+  mockDocumentNumberService,
+  mockRentalWebhookService,
 ];
 
 export const resetServiceMocks = () => {

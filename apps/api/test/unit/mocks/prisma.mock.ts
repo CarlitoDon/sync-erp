@@ -153,6 +153,52 @@ export const mockPrisma = {
     findMany: vi.fn(),
     deleteMany: vi.fn(),
   },
+  rentalItem: {
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    update: vi.fn(),
+  },
+  rentalBundle: {
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+  },
+  rentalOrder: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+  },
+  rentalOrderExtension: {
+    create: vi.fn(),
+  },
+  rentalOrderUnitAssignment: {
+    findMany: vi.fn(),
+    createMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
+  rentalItemUnit: {
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  rentalOrderItem: {
+    findMany: vi.fn(),
+  },
+  companyPaymentMethod: {
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
+  },
+  itemConditionLog: {
+    create: vi.fn(),
+  },
+  rentalDeposit: {
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  rentalPolicy: {
+    findFirst: vi.fn(),
+    create: vi.fn(),
+  },
+  auditLog: {
+    create: vi.fn(),
+  },
   $transaction: vi.fn((arg) => {
     // Handle both patterns: array of queries or callback function
     if (Array.isArray(arg)) {

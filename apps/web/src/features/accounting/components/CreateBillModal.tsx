@@ -5,6 +5,7 @@ import {
   useBill,
   CreateBillInput,
 } from '@/features/accounting/hooks/useBill';
+import { formatCurrency } from '@/utils/format';
 import { useGoodsReceipt } from '@/features/procurement/hooks/useGoodsReceipt';
 import { trpc } from '@/lib/trpc';
 import {
@@ -225,14 +226,6 @@ export default function CreateBillModal({
   const taxAmount = (subtotal * taxRate) / 100;
   const totalAmount = subtotal + taxAmount;
 
-  const formatMoney = (amount: number) =>
-    new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-
   return (
     <FormModal
       isOpen={isOpen}
@@ -260,7 +253,7 @@ export default function CreateBillModal({
                   PO Total
                 </div>
                 <div className="font-bold text-slate-900">
-                  {formatMoney(Number(order?.totalAmount || 0))}
+                  {formatCurrency(Number(order?.totalAmount || 0))}
                 </div>
               </div>
             </div>
@@ -271,7 +264,7 @@ export default function CreateBillModal({
                 <div className="flex justify-between text-slate-600">
                   <span>Previously Billed</span>
                   <span className="font-medium">
-                    {formatMoney(
+                    {formatCurrency(
                       Number(order?.computed?.totalBilled || 0)
                     )}
                   </span>
@@ -295,7 +288,7 @@ export default function CreateBillModal({
                             {inv.invoiceNumber} ({inv.status})
                           </span>
                           <span>
-                            {formatMoney(Number(inv.amount))}
+                            {formatCurrency(Number(inv.amount))}
                           </span>
                         </div>
                       ))}
@@ -304,7 +297,7 @@ export default function CreateBillModal({
                 <div className="flex justify-between text-slate-600 border-t border-dashed pt-2">
                   <span>Current Outstanding</span>
                   <span className="font-medium">
-                    {formatMoney(
+                    {formatCurrency(
                       Number(order?.computed?.outstanding || 0)
                     )}
                   </span>
@@ -318,28 +311,38 @@ export default function CreateBillModal({
                 </div>
                 {/* Items List (Brief) */}
                 <div className="text-xs text-slate-500 mb-2 max-h-20 overflow-y-auto">
-                  {itemsToBill.map((item: { productName: string; qty: number; price: number; total: number; }, idx: number) => (
-                    <div key={idx} className="flex justify-between">
-                      <span>
-                        {item.qty}x {item.productName}
-                      </span>
-                      <span>{formatMoney(item.total)}</span>
-                    </div>
-                  ))}
+                  {itemsToBill.map(
+                    (
+                      item: {
+                        productName: string;
+                        qty: number;
+                        price: number;
+                        total: number;
+                      },
+                      idx: number
+                    ) => (
+                      <div key={idx} className="flex justify-between">
+                        <span>
+                          {item.qty}x {item.productName}
+                        </span>
+                        <span>{formatCurrency(item.total)}</span>
+                      </div>
+                    )
+                  )}
                 </div>
                 {/* Subtotal + Tax + Total */}
                 <div className="text-xs border-t border-slate-200 pt-2 space-y-1">
                   <div className="flex justify-between text-slate-600">
                     <span>Subtotal</span>
-                    <span>{formatMoney(subtotal)}</span>
+                    <span>{formatCurrency(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-slate-600">
                     <span>Tax ({taxRate}%)</span>
-                    <span>{formatMoney(taxAmount)}</span>
+                    <span>{formatCurrency(taxAmount)}</span>
                   </div>
                   <div className="flex justify-between font-medium text-slate-800 pt-1 border-t border-dashed">
                     <span>Bill Total</span>
-                    <span>{formatMoney(totalAmount)}</span>
+                    <span>{formatCurrency(totalAmount)}</span>
                   </div>
                 </div>
 
@@ -349,7 +352,7 @@ export default function CreateBillModal({
                     <span>Less: DP Allocation (Est.)</span>
                     <span>
                       -
-                      {formatMoney(
+                      {formatCurrency(
                         (totalAmount /
                           Number(order?.totalAmount || 1)) *
                           Number(order?.computed?.actualDpAmount || 0)
@@ -361,7 +364,7 @@ export default function CreateBillModal({
                 <div className="flex justify-between items-center bg-blue-50 p-2 rounded text-blue-800 font-bold">
                   <span>Net Payable Amount</span>
                   <span className="text-lg">
-                    {formatMoney(
+                    {formatCurrency(
                       totalAmount -
                         (Number(
                           order?.computed?.actualDpAmount || 0
@@ -381,7 +384,7 @@ export default function CreateBillModal({
               <div className="flex justify-between text-slate-500 text-xs pt-1">
                 <span>Remaining Unbilled (Forecast)</span>
                 <span>
-                  {formatMoney(
+                  {formatCurrency(
                     Math.max(
                       0,
                       Number(order?.computed?.outstanding || 0) -

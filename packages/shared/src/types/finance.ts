@@ -6,15 +6,19 @@ import { z } from 'zod';
 import {
   InvoiceTypeType as InvoiceType,
   InvoiceStatusType as InvoiceStatus,
-  PaymentMethodTypeType as PaymentMethodType,
+  InvoiceStatusSchema, // Add this
+  PaymentMethodTypeType, // Import original type name
   PaymentMethodTypeSchema,
   JournalEntry,
   JournalLine,
 } from '../generated/zod/index.js';
 
-export const PaymentMethod = PaymentMethodTypeSchema.enum;
-export type PaymentMethod = PaymentMethodType;
+// export const PaymentMethod = PaymentMethodTypeSchema.enum; // Removed legacy alias
+// export type PaymentMethod = PaymentMethodType; // Removed legacy alias
+export const PaymentMethodType = PaymentMethodTypeSchema.enum;
+export { InvoiceStatusSchema, PaymentMethodTypeSchema }; // Export schemas
 export type { InvoiceType, InvoiceStatus };
+export type PaymentMethodType = PaymentMethodTypeType;
 
 export const TAX_RATES = [
   { label: 'No Tax (0%)', value: 0 },

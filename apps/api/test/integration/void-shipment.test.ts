@@ -142,7 +142,9 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
     // Get the created shipment
     const shipments =
       await inventoryService.listShipments(COMPANY_ID);
-    const shipment = shipments.find((s: Fulfillment) => s.orderId === orderId);
+    const shipment = shipments.find(
+      (s: Fulfillment) => s.orderId === orderId
+    );
     expect(shipment).toBeDefined();
     expect(shipment?.status).toBe('POSTED');
     shipmentId = shipment!.id;
@@ -202,7 +204,9 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
       await salesOrderService.ship(COMPANY_ID, order.id);
       const shipments =
         await inventoryService.listShipments(COMPANY_ID);
-      const shipment = shipments.find((s: Fulfillment) => s.orderId === order.id);
+      const shipment = shipments.find(
+        (s: Fulfillment) => s.orderId === order.id
+      );
 
       // Void once
       await inventoryService.voidShipment(
@@ -222,10 +226,9 @@ describe('O2C: Void Shipment & Status Recalculation', () => {
           'Second void reason',
           undefined,
           undefined,
-          ['*:*'] // Admin permissions for test
+          ['*:*']
         )
       ).rejects.toThrow(/Cannot void Shipment in status: VOIDED/);
-      // Note: Exact message depends on implementation, but it should fail
     });
   });
 });

@@ -21,7 +21,7 @@ const logger = pino({ level: 'info' });
 
 export async function initializeBaileys() {
   // Use Redis for session persistence
-  const { state, saveCreds } = await useRedisAuthState();
+  const { state, saveCreds, clearState } = await useRedisAuthState();
 
   sock = makeWASocket({
     auth: state,
@@ -65,13 +65,23 @@ export async function initializeBaileys() {
           '[Baileys] Error details:',
           JSON.stringify(lastDisconnect?.error, null, 2)
         );
+
+        // Check if we should clear session (Logout or QR timeout)
+        if (!shouldReconnect || connectionStatus === 'QR_PENDING') {
+          // eslint-disable-next-line no-console
+          console.log(
+            '[Baileys] Session ended (Logout/QR timeout). Clearing Redis state...'
+          );
+          await clearState();
+        }
+
         connectionStatus = 'DISCONNECTED';
         qrDataUrl = null;
         updateApiStatus('DISCONNECTED', null);
 
-        if (shouldReconnect) {
-          initializeBaileys();
-        }
+        // Always attempt to reconnect/restart to keep the service alive
+        // (unless it's a fatal error, but for now we restart for fresh QR)
+        initializeBaileys();
       } else if (connection === 'open') {
         // eslint-disable-next-line no-console
         console.log('[Baileys] Connection opened!');

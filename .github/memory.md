@@ -277,6 +277,29 @@ vi.mock('../services/partner.service', () => ({
 
 ---
 
+## Hostinger Deployment
+
+### [2026-02-11] SSH-Based App Management via apps-manager.sh
+
+**Decision**: All Hostinger Node.js app management via SSH using `~/apps-manager.sh` script. Never use cPanel UI.
+
+**Commands**:
+```bash
+ssh hostinger 'bash ~/apps-manager.sh status'        # Status all apps + NPROC
+ssh hostinger 'bash ~/apps-manager.sh start prod'     # Start production (api, proxy, bot)
+ssh hostinger 'bash ~/apps-manager.sh start staging'  # Start staging
+ssh hostinger 'bash ~/apps-manager.sh restart api'    # Restart single app
+ssh hostinger 'bash ~/apps-manager.sh stop all'       # Stop everything
+```
+
+**Underlying CLI**: `cloudlinux-selector start|stop|restart --json --interpreter nodejs --app-root <path>`
+
+**NPROC Limit**: 100 processes max. If exceeded, SSH blocks entirely. Stop all apps via cPanel UI as emergency fallback.
+
+**Rationale**: cPanel UI is slow and error-prone. SSH + cloudlinux-selector CLI is faster and scriptable.
+
+---
+
 ## Update Guidelines
 
 1. **Version Bump**: MAJOR (breaking), MINOR (new sections), PATCH (entries)

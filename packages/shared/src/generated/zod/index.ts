@@ -245,10 +245,6 @@ export const InvoiceStatusSchema = z.enum(['DRAFT','POSTED','PARTIALLY_PAID','PA
 
 export type InvoiceStatusType = `${z.infer<typeof InvoiceStatusSchema>}`
 
-export const PaymentMethodSchema = z.enum(['CASH','BANK_TRANSFER','CREDIT_CARD','CHECK','OTHER']);
-
-export type PaymentMethodType = `${z.infer<typeof PaymentMethodSchema>}`
-
 export const PaymentMethodTypeSchema = z.enum(['CASH','BANK','QRIS','EWALLET','OTHER']);
 
 export type PaymentMethodTypeType = `${z.infer<typeof PaymentMethodTypeSchema>}`

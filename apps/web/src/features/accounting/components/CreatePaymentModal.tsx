@@ -1,13 +1,15 @@
 /* eslint-disable @sync-erp/no-hardcoded-enum -- This file uses UI-local types (INBOUND/OUTBOUND) and query status params */
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import {
   XMarkIcon,
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline';
-import { PaymentMethodTypeSchema } from '@sync-erp/shared';
+import {
+  PaymentMethodTypeSchema,
+  PaymentMethodType,
+} from '@sync-erp/shared';
 import { trpc, type RouterOutputs } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { Button } from '@/components/ui/button';
@@ -25,14 +27,14 @@ type BillDoc = RouterOutputs['bill']['list'][number];
 type SelectedDoc = InvoiceDoc | BillDoc;
 
 // Derive PaymentMethod type from the Zod schema
-type PaymentMethod = z.infer<typeof PaymentMethodTypeSchema>;
+// type PaymentMethod = z.infer<typeof PaymentMethodTypeSchema>;
 
 type CreatePaymentForm = {
   // eslint-disable-next-line @sync-erp/no-hardcoded-enum
   type: 'INBOUND' | 'OUTBOUND';
   invoiceId: string;
   amount: number;
-  method: PaymentMethod;
+  method: PaymentMethodType;
   reference?: string;
   date: string;
 };
@@ -66,7 +68,7 @@ export default function CreatePaymentModal({
       type: 'INBOUND',
       date: new Date().toISOString().split('T')[0],
       // Use the first option or a specific default
-      method: PaymentMethodTypeSchema.options[0] as PaymentMethod,
+      method: PaymentMethodType.BANK,
       amount: 0,
     },
   });

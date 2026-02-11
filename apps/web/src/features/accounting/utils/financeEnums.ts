@@ -5,36 +5,35 @@
  * This file provides type-safe options for Select components and label mappings.
  */
 import { InvoiceStatusSchema } from '@/types/api';
-import { PaymentMethodTypeSchema } from '@sync-erp/shared';
+import {
+  PaymentMethodType,
+} from '@sync-erp/shared';
+export { PaymentMethodType };
 import { formatCompact } from '@/types/decimal';
 import { z } from 'zod';
 
 // Types inferred from schemas (source of truth)
 export type InvoiceStatus = z.infer<typeof InvoiceStatusSchema>;
-export type PaymentMethod = z.infer<typeof PaymentMethodTypeSchema>;
+// export type PaymentMethod = z.infer<typeof PaymentMethodTypeSchema>; // Removed
 
 // ============================================
 // Payment Method Options (for Select components)
 // ============================================
 
 // Label mapping - exhaustive, will error if schema changes
-const paymentMethodLabels: Record<PaymentMethod, string> = {
-  CASH: 'Cash',
-  BANK: 'Bank Transfer',
-  QRIS: 'QRIS',
-  EWALLET: 'E-Wallet',
-  OTHER: 'Other',
-};
+// Label mapping - exhaustive
 
 // Generate options from schema
-export const paymentMethodOptions =
-  PaymentMethodTypeSchema.options.map((value) => ({
-    value,
-    label: paymentMethodLabels[value],
-  }));
+import {
+  PAYMENT_METHOD_OPTIONS,
+  INVOICE_STATUS_OPTIONS,
+} from '@sync-erp/shared';
+
+export const paymentMethodOptions = PAYMENT_METHOD_OPTIONS;
 
 // Default value
-export const defaultPaymentMethod: PaymentMethod = 'BANK';
+export const defaultPaymentMethod: PaymentMethodType =
+  PaymentMethodType.BANK;
 
 // ============================================
 // Invoice Status Options (for filters/tabs)
@@ -67,10 +66,7 @@ export const invoiceStatusOptions = InvoiceStatusSchema.options.map(
 );
 
 // Filter options (includes 'ALL')
-export const invoiceStatusFilterOptions = [
-  { value: 'ALL' as const, label: 'All' },
-  ...invoiceStatusOptions,
-];
+export const invoiceStatusFilterOptions = INVOICE_STATUS_OPTIONS;
 
 export type InvoiceStatusFilter = InvoiceStatus | 'ALL';
 
