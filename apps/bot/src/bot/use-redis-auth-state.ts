@@ -14,7 +14,9 @@ import {
   proto,
 } from '@whiskeysockets/baileys';
 
-const REDIS_KEY_PREFIX = 'baileys:auth:';
+// Use REDIS_KEY_PREFIX env to isolate prod/staging keys on shared Redis
+const REDIS_KEY_PREFIX =
+  process.env.REDIS_KEY_PREFIX || 'baileys:auth:';
 const CREDS_KEY = `${REDIS_KEY_PREFIX}creds`;
 
 // Initialize Redis client
