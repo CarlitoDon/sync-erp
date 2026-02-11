@@ -1153,15 +1153,6 @@ enum InvoiceStatus {
   VOID
 }
 
-/// @deprecated Use PaymentMethodType instead - kept for migration compatibility
-enum PaymentMethod {
-  CASH
-  BANK_TRANSFER
-  CREDIT_CARD
-  CHECK
-  OTHER
-}
-
 enum PaymentMethodType {
   CASH
   BANK

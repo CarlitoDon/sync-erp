@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
+import { formatCurrency } from '@/utils/format';
 import { StockAdjustmentModal } from '@/features/inventory/components/StockAdjustmentModal';
 import ActionButton from '@/components/ui/ActionButton';
 import { useState, useMemo } from 'react';
@@ -24,13 +25,6 @@ export default function Inventory() {
   const [adjustingProductId, setAdjustingProductId] = useState<
     string | null
   >(null);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-    }).format(value);
-  };
 
   // Memoize computed values to avoid recalculation on every render
   const { totalValue, totalUnits, lowStockItems, outOfStockItems } =

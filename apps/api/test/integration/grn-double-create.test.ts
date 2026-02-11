@@ -143,7 +143,7 @@ describe('Fulfillment (GRN & Shipment) Double Creation Bug', () => {
       await expect(
         inventoryService.createGRN(COMPANY_ID, {
           purchaseOrderId: orderId,
-          items: [{ productId, quantity: 10 }],
+          items: [{ productId: productId, quantity: 10 }],
         })
       ).rejects.toThrow(/Cannot receive 10 units/);
     });
@@ -208,7 +208,7 @@ describe('Fulfillment (GRN & Shipment) Double Creation Bug', () => {
       await expect(
         inventoryService.createShipment(COMPANY_ID, {
           salesOrderId: order.id,
-          items: [{ productId, quantity: 5 }],
+          items: [{ productId: productId, quantity: 5 }],
         })
       ).rejects.toThrow(/Cannot ship 5 units/);
     });

@@ -8,7 +8,7 @@ export type {
 
 // Local type alias for use in this file
 type PaymentMethod =
-  import('../generated/zod/index.js').PaymentMethodType;
+  import('../generated/zod/index.js').PaymentMethodTypeType;
 
 export type { InvoiceStatus, InvoiceType } from './finance.js';
 

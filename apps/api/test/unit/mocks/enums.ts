@@ -116,4 +116,80 @@ export enum AuditLogAction {
   BILL_VOIDED = 'BILL_VOIDED',
   PAYMENT_VOIDED = 'PAYMENT_VOIDED',
   ORDER_VOIDED = 'ORDER_VOIDED',
+  RENTAL_VOIDED = 'RENTAL_VOIDED',
+}
+
+export enum RentalOrderStatus {
+  DRAFT = 'DRAFT',
+  CONFIRMED = 'CONFIRMED',
+  PICKED_UP = 'PICKED_UP',
+  RETURNED = 'RETURNED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  OVERDUE = 'OVERDUE',
+  RESERVED = 'RESERVED',
+}
+
+export enum OrderSource {
+  ADMIN = 'ADMIN',
+  WEBSITE = 'WEBSITE',
+}
+
+export enum UnitCondition {
+  NEW = 'NEW',
+  GOOD = 'GOOD',
+  FAIR = 'FAIR',
+  NEEDS_REPAIR = 'NEEDS_REPAIR',
+}
+
+export enum PaymentMethodType {
+  CASH = 'CASH',
+  BANK = 'BANK',
+  QRIS = 'QRIS',
+  EWALLET = 'EWALLET',
+  OTHER = 'OTHER',
+}
+
+export enum DepositPolicyType {
+  PERCENTAGE = 'PERCENTAGE',
+  PER_UNIT = 'PER_UNIT',
+  HYBRID = 'HYBRID',
+}
+
+export enum UnitStatus {
+  AVAILABLE = 'AVAILABLE',
+  RESERVED = 'RESERVED',
+  RENTED = 'RENTED',
+  RETURNED = 'RETURNED',
+  CLEANING = 'CLEANING',
+  MAINTENANCE = 'MAINTENANCE',
+  RETIRED = 'RETIRED',
+}
+
+export enum DepositStatus {
+  PENDING = 'PENDING',
+  COLLECTED = 'COLLECTED',
+  REFUNDED = 'REFUNDED',
+  FORFEITED = 'FORFEITED',
+  PARTIAL_REFUND = 'PARTIAL_REFUND',
+}
+
+export enum ConditionType {
+  RELEASE = 'RELEASE',
+  RETURN = 'RETURN',
+  INSPECTION = 'INSPECTION',
+  CLEANING = 'CLEANING',
+}
+
+export enum DamageSeverity {
+  MINOR = 'MINOR',
+  MAJOR = 'MAJOR',
+  UNUSABLE = 'UNUSABLE',
+}
+
+export enum PaymentStatus {
+  UNPAID = 'UNPAID',
+  PARTIALLY_PAID = 'PARTIALLY_PAID',
+  PAID = 'PAID',
+  REFUNDED = 'REFUNDED',
 }

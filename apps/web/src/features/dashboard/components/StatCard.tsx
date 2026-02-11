@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/ui/Card';
+import { formatCurrency, formatNumber } from '@/utils/format';
 
 interface StatCardProps {
   title: string;
@@ -23,12 +24,8 @@ export function StatCard({
   const formattedValue =
     typeof value === 'number'
       ? currency
-        ? new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency,
-            maximumFractionDigits: 0,
-          }).format(value)
-        : new Intl.NumberFormat('id-ID').format(value)
+        ? formatCurrency(value)
+        : formatNumber(value)
       : value;
 
   if (isLoading) {

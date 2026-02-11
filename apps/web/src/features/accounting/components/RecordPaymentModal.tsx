@@ -4,7 +4,7 @@ import Select from '@/components/ui/Select';
 import { CurrencyInput } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/utils/format';
 import {
-  PaymentMethod,
+  PaymentMethodType,
   defaultPaymentMethod,
 } from '@/features/accounting/utils/financeEnums';
 import { trpc } from '@/lib/trpc';
@@ -97,11 +97,11 @@ export function RecordPaymentModal({
     const selectedAccount = bankAccounts.find(
       (a) => a.id === selectedAccountId
     );
-    let method: PaymentMethod = defaultPaymentMethod;
+    let method: PaymentMethodType = defaultPaymentMethod;
     if (selectedAccount) {
       const code = selectedAccount.account.code;
-      if (code.startsWith('11')) method = 'CASH';
-      else if (code.startsWith('12')) method = 'BANK';
+      if (code.startsWith('11')) method = PaymentMethodType.CASH;
+      else if (code.startsWith('12')) method = PaymentMethodType.BANK;
     }
 
     await apiAction(

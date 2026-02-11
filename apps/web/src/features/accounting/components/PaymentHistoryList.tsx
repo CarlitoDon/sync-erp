@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatCurrency } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { usePrompt } from '@/components/ui/PromptModal';
@@ -44,13 +44,6 @@ export function PaymentHistoryList({
     0
   );
   const remainingBalance = Number(totalAmount) - totalPaid;
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
 
   const handleVoidPayment = async (paymentId: string) => {
     // FR-024: Prompt for void reason (accessible modal)
@@ -141,7 +134,7 @@ export function PaymentHistoryList({
                     {payment.method}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 text-right">
-                    {formatCurrency(Number(payment.amount))}
+                    {formatCurrency(Number(payment.amount), currency)}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <Button
@@ -167,7 +160,7 @@ export function PaymentHistoryList({
                 Total Paid:
               </td>
               <td className="px-6 py-4 text-right text-sm font-bold text-success-600">
-                {formatCurrency(totalPaid)}
+                {formatCurrency(totalPaid, currency)}
               </td>
             </tr>
             <tr>
@@ -180,7 +173,7 @@ export function PaymentHistoryList({
               <td
                 className={`px-6 py-4 text-right text-sm font-bold ${remainingBalance > 0 ? 'text-red-600' : 'text-gray-900'}`}
               >
-                {formatCurrency(remainingBalance)}
+                {formatCurrency(remainingBalance, currency)}
               </td>
             </tr>
           </tfoot>

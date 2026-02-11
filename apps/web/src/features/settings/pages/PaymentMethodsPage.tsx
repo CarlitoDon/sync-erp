@@ -165,17 +165,17 @@ export default function PaymentMethodsPage() {
                         </Badge>
                       )}
                     </td>
-                      <td className="p-4">
-                        <Badge
-                          variant={
-                            PAYMENT_METHOD_TYPE_COLORS[method.type] ||
-                            'outline'
-                          }
-                        >
-                          {PAYMENT_METHOD_TYPE_LABELS[method.type] ||
-                            method.type}
-                        </Badge>
-                      </td>
+                    <td className="p-4">
+                      <Badge
+                        variant={
+                          PAYMENT_METHOD_TYPE_COLORS[method.type] ||
+                          'outline'
+                        }
+                      >
+                        {PAYMENT_METHOD_TYPE_LABELS[method.type] ||
+                          method.type}
+                      </Badge>
+                    </td>
                     <td className="p-4 text-sm">
                       {method.account ? (
                         <span className="font-mono">

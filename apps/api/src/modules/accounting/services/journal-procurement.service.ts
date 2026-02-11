@@ -1,7 +1,182 @@
-import { JournalSourceType, PaymentMethodType } from '@sync-erp/database';
+import {
+  JournalSourceType,
+  PaymentMethodType,
+  Prisma,
+} from '@sync-erp/database';
+import { JournalCoreService } from './journal-core.service';
 
 export class JournalProcurementService {
-  prepareBillJournal(
+  constructor(private readonly core: JournalCoreService) {}
+
+  async postBill(
+    companyId: string,
+    billId: string,
+    billNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const data = this.prepareBillJournal(
+      billId,
+      billNumber,
+      amount,
+      subtotal,
+      taxAmount,
+      businessDate
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postBillReversal(
+    companyId: string,
+    billId: string,
+    billNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareBillReversalJournal(
+      billId,
+      billNumber,
+      amount,
+      subtotal,
+      taxAmount
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postDebitNote(
+    companyId: string,
+    debitNoteId: string,
+    billNumber: string,
+    amount: number,
+    subtotal?: number,
+    taxAmount?: number,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const data = this.prepareDebitNoteJournal(
+      debitNoteId,
+      billNumber,
+      amount,
+      subtotal,
+      taxAmount,
+      businessDate
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postGoodsReceipt(
+    companyId: string,
+    reference: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareGoodsReceiptJournal(reference, amount);
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postGoodsReceiptReversal(
+    companyId: string,
+    reference: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareGoodsReceiptReversalJournal(
+      reference,
+      amount
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postPurchaseReturn(
+    companyId: string,
+    reference: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.preparePurchaseReturnJournal(reference, amount);
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postPaymentMade(
+    companyId: string,
+    paymentId: string,
+    billNumber: string,
+    amount: number,
+    method: string,
+    contraAccountCode?: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.preparePaymentMadeJournal(
+      paymentId,
+      billNumber,
+      amount,
+      method,
+      contraAccountCode
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postPaymentMadeReversal(
+    companyId: string,
+    paymentId: string,
+    billNumber: string,
+    amount: number,
+    method: string,
+    contraAccountCode?: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.preparePaymentMadeReversalJournal(
+      paymentId,
+      billNumber,
+      amount,
+      method,
+      contraAccountCode
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postUpfrontPayment(
+    companyId: string,
+    paymentId: string,
+    orderNumber: string,
+    amount: number,
+    method: string,
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
+  ) {
+    const data = this.prepareUpfrontPaymentJournal(
+      paymentId,
+      orderNumber,
+      amount,
+      method,
+      businessDate
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  async postSettlePrepaid(
+    companyId: string,
+    paymentId: string,
+    billNumber: string,
+    amount: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareSettlePrepaidJournal(
+      paymentId,
+      billNumber,
+      amount
+    );
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  // --- Helpers (Private) ---
+
+  private prepareBillJournal(
     billId: string,
     billNumber: string,
     amount: number,
@@ -44,7 +219,7 @@ export class JournalProcurementService {
     };
   }
 
-  prepareBillReversalJournal(
+  private prepareBillReversalJournal(
     billId: string,
     billNumber: string,
     amount: number,
@@ -78,7 +253,7 @@ export class JournalProcurementService {
     };
   }
 
-  prepareDebitNoteJournal(
+  private prepareDebitNoteJournal(
     debitNoteId: string,
     billNumber: string,
     amount: number,
@@ -114,7 +289,10 @@ export class JournalProcurementService {
     };
   }
 
-  prepareGoodsReceiptJournal(reference: string, amount: number) {
+  private prepareGoodsReceiptJournal(
+    reference: string,
+    amount: number
+  ) {
     return {
       reference,
       memo: 'Auto-generated Accrual from Goods Receipt',
@@ -125,7 +303,7 @@ export class JournalProcurementService {
     };
   }
 
-  prepareGoodsReceiptReversalJournal(
+  private prepareGoodsReceiptReversalJournal(
     reference: string,
     amount: number
   ) {
@@ -139,7 +317,10 @@ export class JournalProcurementService {
     };
   }
 
-  preparePurchaseReturnJournal(reference: string, amount: number) {
+  private preparePurchaseReturnJournal(
+    reference: string,
+    amount: number
+  ) {
     return {
       reference,
       memo: 'Auto-generated reversal from Purchase Return',
@@ -150,7 +331,7 @@ export class JournalProcurementService {
     };
   }
 
-  preparePaymentMadeJournal(
+  private preparePaymentMadeJournal(
     paymentId: string,
     billNumber: string,
     amount: number,
@@ -172,7 +353,7 @@ export class JournalProcurementService {
     };
   }
 
-  preparePaymentMadeReversalJournal(
+  private preparePaymentMadeReversalJournal(
     paymentId: string,
     billNumber: string,
     amount: number,
@@ -194,7 +375,7 @@ export class JournalProcurementService {
     };
   }
 
-  prepareUpfrontPaymentJournal(
+  private prepareUpfrontPaymentJournal(
     paymentId: string,
     orderNumber: string,
     amount: number,
@@ -216,7 +397,7 @@ export class JournalProcurementService {
     };
   }
 
-  prepareSettlePrepaidJournal(
+  private prepareSettlePrepaidJournal(
     paymentId: string,
     billNumber: string,
     amount: number

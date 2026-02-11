@@ -2,13 +2,19 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CreateProductInput } from '@/types/api';
 import { trpc } from '@/lib/trpc';
+import { formatCurrency } from '@/utils/format';
 
 import { useCompany } from '@/contexts/CompanyContext';
 import { apiAction } from '@/hooks/useApiAction';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import ActionButton from '@/components/ui/ActionButton';
 import FormModal from '@/components/ui/FormModal';
-import { CurrencyInput, LoadingState, NoCompanySelected, Input } from '@/components/ui';
+import {
+  CurrencyInput,
+  LoadingState,
+  NoCompanySelected,
+  Input,
+} from '@/components/ui';
 import {
   PageContainer,
   PageHeader,
@@ -74,19 +80,14 @@ export default function Products() {
     );
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-    }).format(value);
-  };
-
   if (loading) {
     return <LoadingState />;
   }
 
   if (!currentCompany) {
-    return <NoCompanySelected message="Please select a company to view products." />;
+    return (
+      <NoCompanySelected message="Please select a company to view products." />
+    );
   }
 
   return (

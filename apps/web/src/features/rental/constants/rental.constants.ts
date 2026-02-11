@@ -3,7 +3,7 @@ import {
   RentalPaymentStatus,
   UnitStatus,
   UnitCondition,
-  PaymentMethod,
+  PaymentMethodType,
 } from '@sync-erp/shared';
 
 // ============================================
@@ -102,9 +102,9 @@ export const DAMAGE_SEVERITY_OPTIONS = [
 // ============================================
 
 export const PAYMENT_METHOD_OPTIONS = [
-  { value: PaymentMethod.CASH, label: 'Tunai' },
-  { value: PaymentMethod.BANK, label: 'Transfer Bank' },
-  { value: PaymentMethod.QRIS, label: 'QRIS' },
+  { value: PaymentMethodType.CASH, label: 'Tunai' },
+  { value: PaymentMethodType.BANK, label: 'Transfer Bank' },
+  { value: PaymentMethodType.QRIS, label: 'QRIS' },
 ] as const;
 
 // ============================================

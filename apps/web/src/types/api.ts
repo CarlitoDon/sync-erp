@@ -118,11 +118,11 @@ export type RegisterInput = RouterInputs['auth']['register'];
 // Constants for dropdowns
 export { PAYMENT_TERMS, BusinessShape } from '@sync-erp/shared';
 
-import { PaymentMethodSchema } from '@sync-erp/shared';
-export { PaymentMethodSchema };
+import { PaymentMethodTypeSchema } from '@sync-erp/shared';
+export { PaymentMethodTypeSchema };
 
 // Derived constants
-export const PAYMENT_METHODS = PaymentMethodSchema.options;
+export const PAYMENT_METHODS = PaymentMethodTypeSchema.options;
 
 // Zod schemas for validation/type guards
 export {
