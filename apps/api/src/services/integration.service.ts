@@ -1,6 +1,5 @@
 import { prisma } from '@sync-erp/database';
-// import { apiKeyService } from './api-key.service';
-import { TRPCError } from '@trpc/server';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { Prisma } from '@sync-erp/database';
 
 type IntegrationWithApiKeys = {
@@ -105,10 +104,11 @@ export class IntegrationService {
       (a) => a.appId === appId
     );
     if (!appDef) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `App ${appId} not found in marketplace`,
-      });
+      throw new DomainError(
+        `App ${appId} not found in marketplace`,
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
     }
 
     // Check if already installed
@@ -189,10 +189,11 @@ export class IntegrationService {
     });
 
     if (!integration || integration.companyId !== companyId) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Integration not found',
-      });
+      throw new DomainError(
+        'Integration not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
     }
 
     return integration;
@@ -212,16 +213,17 @@ export class IntegrationService {
     });
 
     if (!access) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Integration not found',
-      });
+      throw new DomainError(
+        'Integration not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
     }
 
     return prisma.integration.update({
       where: { id: integrationId },
       data: {
-        config: config as Prisma.JsonValue ?? undefined,
+        config: config as Prisma.InputJsonValue,
         isActive: isActive ?? undefined,
       },
     });

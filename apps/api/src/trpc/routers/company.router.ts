@@ -4,6 +4,7 @@ import {
   CreateCompanySchema,
   JoinCompanySchema,
 } from '@sync-erp/shared';
+import { TRPCError } from '@trpc/server';
 import { CompanyService } from '../../modules/company/company.service';
 import { z } from 'zod';
 
@@ -56,7 +57,10 @@ export const companyRouter = router({
         input.companyId
       );
       if (!isMember) {
-        throw new Error('Unauthorized');
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Not authorized to update member roles',
+        });
       }
 
       return companyService.updateMemberRole(

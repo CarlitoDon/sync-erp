@@ -3,7 +3,7 @@
  *
  * Business logic for rental bundle management
  */
-import { TRPCError } from '@trpc/server';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { DepositPolicyType } from '@sync-erp/database';
 import * as bundleRepo from './rental-bundle.repository';
 
@@ -21,16 +21,18 @@ export async function list(input: ListInput) {
 
 export interface GetByIdInput {
   id: string;
+  companyId: string;
 }
 
 export async function getById(input: GetByIdInput) {
-  const bundle = await bundleRepo.findById(input.id);
+  const bundle = await bundleRepo.findById(input.id, input.companyId);
 
   if (!bundle) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: 'Bundle not found',
-    });
+    throw new DomainError(
+      'Bundle not found',
+      404,
+      DomainErrorCodes.NOT_FOUND
+    );
   }
 
   return bundle;
@@ -38,6 +40,7 @@ export async function getById(input: GetByIdInput) {
 
 export interface GetComponentAvailabilityInput {
   bundleId: string;
+  companyId: string;
   orderQuantity: number;
 }
 
@@ -45,14 +48,16 @@ export async function getComponentAvailability(
   input: GetComponentAvailabilityInput
 ) {
   const bundle = await bundleRepo.findByIdWithAvailability(
-    input.bundleId
+    input.bundleId,
+    input.companyId
   );
 
   if (!bundle) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: 'Bundle not found',
-    });
+    throw new DomainError(
+      'Bundle not found',
+      404,
+      DomainErrorCodes.NOT_FOUND
+    );
   }
 
   const components = bundle.components.map((comp) => {

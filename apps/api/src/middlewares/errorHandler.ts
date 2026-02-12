@@ -66,7 +66,7 @@ export function errorHandler(
   ) {
     const prismaErr = (err as unknown as Record<string, unknown>) as { code: string };
     console.error(
-      'Prisma Error:',
+      '[ErrorHandler] Prisma Error:',
       prismaErr.code,
       (err as Error).message
     );

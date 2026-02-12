@@ -18,9 +18,10 @@ export const rentalBundleRouter = router({
         orderQuantity: z.number().int().positive().default(1),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       return bundleService.getComponentAvailability({
         bundleId: input.bundleId,
+        companyId: ctx.companyId,
         orderQuantity: input.orderQuantity,
       });
     }),
@@ -28,8 +29,8 @@ export const rentalBundleRouter = router({
   // Get single bundle by ID
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
-      return bundleService.getById({ id: input.id });
+    .query(async ({ input, ctx }) => {
+      return bundleService.getById({ id: input.id, companyId: ctx.companyId });
     }),
 
   // Create bundle

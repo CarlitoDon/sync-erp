@@ -12,15 +12,13 @@ export class ProductRepository {
 
   async findById(
     id: string,
-    companyId?: string,
+    companyId: string,
     tx?: Prisma.TransactionClient
   ): Promise<Product | null> {
     const db = tx || prisma;
-    const where: Prisma.ProductWhereInput = { id };
-    if (companyId) {
-      where.companyId = companyId;
-    }
-    return db.product.findFirst({ where });
+    return db.product.findFirst({
+      where: { id, companyId },
+    });
   }
 
   async findBySku(

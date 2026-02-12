@@ -1,5 +1,5 @@
-import { Prisma } from '@sync-erp/database';
 import {
+  Prisma,
   prisma,
   type Partner,
   PartnerType,
@@ -14,13 +14,11 @@ export class PartnerRepository {
 
   async findById(
     id: string,
-    companyId?: string
+    companyId: string
   ): Promise<Partner | null> {
-    const where: Prisma.PartnerWhereInput = { id };
-    if (companyId) {
-      where.companyId = companyId;
-    }
-    return prisma.partner.findFirst({ where });
+    return prisma.partner.findFirst({
+      where: { id, companyId },
+    });
   }
 
   async findAll(

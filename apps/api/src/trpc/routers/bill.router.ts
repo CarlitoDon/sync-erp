@@ -1,9 +1,15 @@
 import { router, protectedProcedure } from '../trpc';
 import { container, ServiceKeys } from '../../modules/common/di';
-import { IdempotencyScope } from '@sync-erp/database';
+import {
+  IdempotencyScope,
+  AuditLogAction,
+  EntityType,
+} from '@sync-erp/database';
 import { CreateBillFromPOSchema } from '@sync-erp/shared';
 import { z } from 'zod';
 import { BillService } from '../../modules/accounting/services/bill.service';
+import { ensureHasPermission } from '../../modules/common/utils/permission.utils';
+import { recordAudit } from '../../modules/common/audit/audit-log.service';
 
 const billService = container.resolve<BillService>(
   ServiceKeys.BILL_SERVICE
@@ -96,17 +102,7 @@ export const billRouter = router({
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       // FR-026: Granular RBAC Check
-      const hasPermission = ctx.userPermissions?.some((p) =>
-        [
-          'FINANCE:DELETE',
-          'BILL:DELETE',
-          '*:*',
-          'FINANCE:*',
-        ].includes(p.toUpperCase())
-      );
-      if (!hasPermission) {
-        throw new Error('Missing permission: finance:delete');
-      }
+      ensureHasPermission(ctx.userPermissions, 'FINANCE:DELETE');
 
       return billService.delete(input.id, ctx.companyId);
     }),
@@ -126,12 +122,6 @@ export const billRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Import audit service dynamically to avoid circular deps
-      const { recordAudit } =
-        await import('../../modules/common/audit/audit-log.service');
-      const { AuditLogAction, EntityType } =
-        await import('@sync-erp/database');
-
       await recordAudit({
         companyId: ctx.companyId,
         actorId: ctx.userId,

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure, botProcedure } from '../trpc';
 import { createEnvValidator, BOT_STATUS_TIMEOUT_MS } from '@sync-erp/shared';
 
@@ -91,9 +92,12 @@ export const botRouter = router({
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(
-        data.error || `Bot returned ${response.status}`
-      );
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message:
+          (data as { error?: string }).error ||
+          `Bot returned ${response.status}`,
+      });
     }
 
     return data as {

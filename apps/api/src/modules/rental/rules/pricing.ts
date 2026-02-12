@@ -1,4 +1,5 @@
 import { Decimal } from 'decimal.js';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 /**
  * Pure pricing calculation logic (no side effects, 100% testable)
@@ -31,7 +32,11 @@ export function calculateOptimalTier(
   monthlyRate: number
 ): PricingTier {
   if (rentalDays <= 0) {
-    throw new Error('Rental days must be positive');
+    throw new DomainError(
+      'Rental days must be positive',
+      400,
+      DomainErrorCodes.INVALID_INPUT
+    );
   }
 
   const daily = new Decimal(dailyRate);
@@ -100,7 +105,11 @@ export function calculateRentalSubtotal(
   );
 
   if (rentalDays <= 0) {
-    throw new Error('End date must be after start date');
+    throw new DomainError(
+      'End date must be after start date',
+      400,
+      DomainErrorCodes.INVALID_INPUT
+    );
   }
 
   let subtotal = new Decimal(0);
