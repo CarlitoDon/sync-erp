@@ -5,12 +5,10 @@ import {
   beforeAll,
   afterAll,
   beforeEach,
-  vi,
 } from 'vitest';
 import {
   prisma,
   RentalOrderStatus,
-  RentalPaymentStatus,
   UnitStatus,
   JournalSourceType,
 } from '@sync-erp/database';
@@ -18,7 +16,6 @@ import { RentalOrderFulfillmentService } from '@modules/rental/rental-order-fulf
 import { RentalRepository } from '@modules/rental/rental.repository';
 import { JournalService } from '@modules/accounting/services/journal.service';
 import { RentalService } from '@modules/rental/rental.service';
-import { DocumentNumberService } from '@modules/common/services/document-number.service';
 
 const rentalServiceFacade = new RentalService(); // For setup helper
 const repository = new RentalRepository();

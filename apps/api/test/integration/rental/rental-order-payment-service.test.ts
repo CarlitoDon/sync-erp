@@ -12,7 +12,6 @@ import {
   RentalOrderStatus,
   RentalPaymentStatus,
   OrderSource,
-  UnitStatus,
 } from '@sync-erp/database';
 import { RentalOrderPaymentService } from '@modules/rental/rental-order-payment.service';
 import { RentalService } from '@modules/rental/rental.service';
