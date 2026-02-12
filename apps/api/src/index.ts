@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { errorHandler } from './middlewares/errorHandler';
 import { optionalAuthMiddleware } from './middlewares/auth';
 import { correlationMiddleware } from './middlewares/correlation';
+import { SHUTDOWN_TIMEOUT_MS } from '@sync-erp/shared';
 
 import cookieParser from 'cookie-parser';
 
@@ -139,7 +140,6 @@ const gracefulShutdown = (signal: string) => {
     process.exit(0);
   });
   // Force exit after timeout if server doesn't close
-  const { SHUTDOWN_TIMEOUT_MS } = require('@sync-erp/shared');
   setTimeout(() => process.exit(1), SHUTDOWN_TIMEOUT_MS);
 };
 
