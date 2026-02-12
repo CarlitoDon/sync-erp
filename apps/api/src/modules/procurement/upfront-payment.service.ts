@@ -10,7 +10,7 @@ import {
   PaymentStatus,
   PaymentTerms,
 } from '@sync-erp/database';
-import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import { DomainError, DomainErrorCodes, TRANSACTION_TIMEOUT_MS } from '@sync-erp/shared';
 import { PurchaseOrderPolicy } from './purchase-order.policy';
 import { UpfrontPaymentRepository } from './upfront-payment.repository';
 import { JournalService } from '../accounting/services/journal.service';
@@ -119,7 +119,7 @@ export class UpfrontPaymentService {
 
         return payment;
       },
-      { timeout: 60000 }
+      { timeout: TRANSACTION_TIMEOUT_MS }
     );
   }
 
@@ -338,7 +338,7 @@ export class UpfrontPaymentService {
           },
         };
       },
-      { timeout: 60000 }
+      { timeout: TRANSACTION_TIMEOUT_MS }
     );
   }
 }

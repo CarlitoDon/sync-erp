@@ -9,7 +9,7 @@ import {
   Payment,
   PaymentStatus,
 } from '@sync-erp/database';
-import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import { DomainError, DomainErrorCodes, TRANSACTION_TIMEOUT_MS } from '@sync-erp/shared';
 import { SalesOrderPolicy } from './sales-order.policy';
 import { CustomerDepositRepository } from './customer-deposit.repository';
 import { JournalService } from '../accounting/services/journal.service';
@@ -118,7 +118,7 @@ export class CustomerDepositService {
 
         return payment;
       },
-      { timeout: 60000 }
+      { timeout: TRANSACTION_TIMEOUT_MS }
     );
   }
 
@@ -342,7 +342,7 @@ export class CustomerDepositService {
           },
         };
       },
-      { timeout: 60000 }
+      { timeout: TRANSACTION_TIMEOUT_MS }
     );
   }
 }

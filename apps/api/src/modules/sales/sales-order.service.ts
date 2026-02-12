@@ -19,6 +19,7 @@ import {
   DomainError,
   DomainErrorCodes,
   CreateSalesOrderInput,
+  TRANSACTION_TIMEOUT_MS,
 } from '@sync-erp/shared';
 import { recordAudit } from '../common/audit/audit-log.service';
 import {
@@ -387,7 +388,7 @@ export class SalesOrderService {
         // Return empty movements array for backward compatibility
         return [];
       },
-      { timeout: 60000 }
+      { timeout: TRANSACTION_TIMEOUT_MS }
     );
   }
 

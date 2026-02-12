@@ -1,6 +1,7 @@
 import { prisma } from '@sync-erp/database';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import { API_KEY_PREFIX_LENGTH, DEFAULT_RATE_LIMIT } from '@sync-erp/shared';
 
 export interface ApiKeyValidationResult {
   companyId: string;
@@ -47,7 +48,7 @@ export class ApiKeyService {
   ): Promise<CreateKeyResult> {
     // Generate a secure random key with sk_ prefix
     const rawKey = `sk_${crypto.randomBytes(24).toString('hex')}`;
-    const keyPrefix = rawKey.substring(0, 11); // "sk_xxxxxxx"
+    const keyPrefix = rawKey.substring(0, API_KEY_PREFIX_LENGTH); // "sk_xxxxxxx"
     const keyHash = await bcrypt.hash(rawKey, 10);
 
     // Generate webhook secret if webhookUrl provided but no secret
@@ -68,7 +69,7 @@ export class ApiKeyService {
           'rental:read',
           'rental:write',
         ],
-        rateLimit: options?.rateLimit ?? 1000,
+        rateLimit: options?.rateLimit ?? DEFAULT_RATE_LIMIT,
         expiresAt: options?.expiresAt,
       },
     });

@@ -38,7 +38,7 @@ interface SalesOrderActionsProps {
   onViewInvoice?: (invoiceId: string) => void;
   onViewShipment?: (shipmentId: string) => void;
   onCloseSO?: (id: string) => void; // GAP-003: Close partially shipped SOs
-  // eslint-disable-next-line
+  /** Layout variant: 'list' for compact actions, 'detail' for full actions */
   layout?: 'list' | 'detail';
 }
 

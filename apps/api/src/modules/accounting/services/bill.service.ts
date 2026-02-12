@@ -18,6 +18,7 @@ import {
   DomainError,
   DomainErrorCodes,
   Money,
+  TRANSACTION_TIMEOUT_MS,
 } from '@sync-erp/shared';
 import { JournalService } from './journal.service';
 
@@ -729,7 +730,7 @@ export class BillService {
           tx
         ))!;
       },
-      { timeout: 60000 }
+      { timeout: TRANSACTION_TIMEOUT_MS }
     );
   }
 
@@ -798,7 +799,7 @@ export class BillService {
           tx
         );
       },
-      { timeout: 60000 }
+      { timeout: TRANSACTION_TIMEOUT_MS }
     );
   }
 

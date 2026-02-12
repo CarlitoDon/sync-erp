@@ -29,11 +29,9 @@ const customFetch = async (
         rejectUnauthorized: process.env.NODE_ENV === 'production',
         timeout: 15000,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return fetch(input, { ...init, agent, timeout: 15000 } as any);
+      return fetch(input, { ...init, agent, timeout: 15000 } as RequestInit & { agent: typeof agent; timeout: number });
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return fetch(input, { ...init, timeout: 15000 } as any);
+    return fetch(input, { ...init, timeout: 15000 } as RequestInit & { timeout: number });
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('[TRPC] Fetch error:', error);

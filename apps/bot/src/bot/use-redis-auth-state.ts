@@ -134,8 +134,7 @@ export async function useRedisAuthState(): Promise<{
           );
           return data;
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        set: async (data: any): Promise<void> => {
+        set: async (data: Record<string, Record<string, SignalDataTypeMap[keyof SignalDataTypeMap] | null>>): Promise<void> => {
           const tasks: Promise<void>[] = [];
           for (const category in data) {
             for (const id in data[category]) {
