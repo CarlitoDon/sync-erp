@@ -19,6 +19,7 @@ import {
   DomainError,
   DomainErrorCodes,
   CreatePurchaseOrderInput,
+  TRANSACTION_TIMEOUT_MS,
 } from '@sync-erp/shared';
 import {
   calculateDpAmount,
@@ -478,7 +479,7 @@ export class PurchaseOrderService {
         // Return empty movements array for backward compatibility
         return [];
       },
-      { timeout: 60000 }
+      { timeout: TRANSACTION_TIMEOUT_MS }
     );
   }
 

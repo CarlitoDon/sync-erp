@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { prisma } from '@sync-erp/database';
+import { WEBHOOK_TIMEOUT_MS, WEBHOOK_TEST_TIMEOUT_MS } from '@sync-erp/shared';
 
 export interface WebhookEvent {
   event: string;
@@ -88,7 +89,7 @@ export class WebhookService {
           'X-Webhook-Timestamp': webhookEvent.timestamp.toString(),
         },
         body,
-        signal: AbortSignal.timeout(10000), // 10s timeout
+        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
 
       const duration = Date.now() - startTime;
@@ -224,7 +225,7 @@ export class WebhookService {
           'X-Webhook-Timestamp': testEvent.timestamp.toString(),
         },
         body,
-        signal: AbortSignal.timeout(5000), // 5s timeout for test
+        signal: AbortSignal.timeout(WEBHOOK_TEST_TIMEOUT_MS),
       });
 
       const duration = Date.now() - startTime;

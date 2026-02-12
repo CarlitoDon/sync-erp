@@ -14,8 +14,7 @@ export interface PageHeaderProps {
   actions?: React.ReactNode;
   /** Show back button for detail pages (default: false) */
   showBackButton?: boolean;
-  /** Custom back navigation handler (currently unused - for future extension) */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  /** Custom back navigation handler */
   onBack?: () => void;
   /** Additional className for the container */
   className?: string;

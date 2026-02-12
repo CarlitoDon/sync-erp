@@ -16,6 +16,7 @@ import {
   CorrelationId,
   DomainError,
   DomainErrorCodes,
+  TRANSACTION_TIMEOUT_MS,
 } from '@sync-erp/shared';
 import { IdempotencyService } from '../../common/services/idempotency.service';
 import { JournalService } from './journal.service';
@@ -172,7 +173,7 @@ export class PaymentService {
 
           return payment;
         },
-        { timeout: 60000 }
+        { timeout: TRANSACTION_TIMEOUT_MS }
       );
 
       // Idempotency Complete
@@ -369,7 +370,7 @@ export class PaymentService {
 
         return updatedPayment;
       },
-      { timeout: 60000 }
+      { timeout: TRANSACTION_TIMEOUT_MS }
     );
   }
 }

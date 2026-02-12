@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { router, protectedProcedure, botProcedure } from '../trpc';
-import { createEnvValidator } from '@sync-erp/shared';
+import { createEnvValidator, BOT_STATUS_TIMEOUT_MS } from '@sync-erp/shared';
 
 const env = createEnvValidator('api');
 
@@ -23,7 +23,7 @@ async function fetchBotStatus(): Promise<typeof botState> {
     const response = await fetch(`${botUrl}/status`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${botSecret}` },
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(BOT_STATUS_TIMEOUT_MS),
     });
 
     if (response.ok) {
@@ -38,8 +38,9 @@ async function fetchBotStatus(): Promise<typeof botState> {
         lastUpdated: new Date(),
       };
     }
-  } catch {
+  } catch (error) {
     // Bot unreachable — return cached state
+    console.warn('[BotRouter] Failed to fetch bot status, using cache:', (error as Error).message);
   }
   return botState;
 }

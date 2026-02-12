@@ -128,8 +128,6 @@ app.use((_req, res) => {
 
 const server = app.listen(Number(PORT), () => {
   // eslint-disable-next-line no-console
-  console.log('PORT env:', process.env.PORT);
-  // eslint-disable-next-line no-console
   console.warn(`🚀 Sync ERP API running on port ${PORT}`);
 });
 
@@ -140,8 +138,9 @@ const gracefulShutdown = (signal: string) => {
     console.warn('[API] Server closed successfully.');
     process.exit(0);
   });
-  // Force exit after 5s if server doesn't close
-  setTimeout(() => process.exit(1), 5000);
+  // Force exit after timeout if server doesn't close
+  const { SHUTDOWN_TIMEOUT_MS } = require('@sync-erp/shared');
+  setTimeout(() => process.exit(1), SHUTDOWN_TIMEOUT_MS);
 };
 
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));

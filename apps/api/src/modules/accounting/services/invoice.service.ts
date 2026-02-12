@@ -18,6 +18,7 @@ import {
   DomainErrorCodes,
   BusinessDate,
   Money,
+  TRANSACTION_TIMEOUT_MS,
 } from '@sync-erp/shared';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { JournalService } from './journal.service';
@@ -669,7 +670,7 @@ export class InvoiceService {
           // Return both invoice and order info for auto-settlement check
           return { invoice: updatedInvoice, order };
         },
-        { timeout: 60000 }
+        { timeout: TRANSACTION_TIMEOUT_MS }
       );
 
       // 6. Cash Upfront Sales: Auto-settle customer deposit if applicable
@@ -801,7 +802,7 @@ export class InvoiceService {
           tx
         );
       },
-      { timeout: 60000 }
+      { timeout: TRANSACTION_TIMEOUT_MS }
     );
   }
 

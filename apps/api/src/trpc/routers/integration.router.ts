@@ -2,7 +2,7 @@ import { router, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import { integrationService } from '../../services/integration.service';
 import { apiKeyService } from '../../services/api-key.service';
-// import { TRPCError } from '@trpc/server';
+import { DEFAULT_RATE_LIMIT } from '@sync-erp/shared';
 
 export const integrationRouter = router({
   /**
@@ -34,7 +34,7 @@ export const integrationRouter = router({
         keyName,
         {
           permissions: ['rental:read', 'rental:write'], // Default perms
-          rateLimit: 1000,
+          rateLimit: DEFAULT_RATE_LIMIT,
         }
       );
 
@@ -76,7 +76,7 @@ export const integrationRouter = router({
         keyName,
         {
           permissions: ['rental:read', 'rental:write'],
-          rateLimit: 1000,
+          rateLimit: DEFAULT_RATE_LIMIT,
         }
       );
 

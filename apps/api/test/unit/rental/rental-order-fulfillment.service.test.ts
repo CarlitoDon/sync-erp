@@ -131,6 +131,155 @@ describe('RentalOrderFulfillmentService', () => {
     });
   });
 
+  describe('manualConfirmOrder', () => {
+    const input = {
+      orderId: 'order-1',
+      paymentMethodId: 'pm-1',
+      paymentAmount: 50000,
+      paymentReference: 'REF-123',
+      notes: 'Manual confirm',
+      skipStockCheck: false,
+    };
+
+    const mockOrder = {
+      id: 'order-1',
+      companyId: COMPANY_ID,
+      orderNumber: 'ORD-001',
+      status: RentalOrderStatus.DRAFT,
+      totalAmount: new Decimal(100000),
+      depositAmount: new Decimal(0),
+    };
+
+    const mockPaymentMethod = {
+      id: 'pm-1',
+      code: 'BANK',
+      name: 'Bank Transfer',
+    };
+
+    beforeEach(() => {
+      mockRentalRepository.findOrderById.mockResolvedValue(
+        mockOrder as any
+      );
+      (
+        prisma.companyPaymentMethod.findFirst as any
+      ).mockResolvedValue(mockPaymentMethod);
+    });
+
+    it('should manually confirm order successfully', async () => {
+      // Mock order items
+      (prisma.rentalOrderItem.findMany as any).mockResolvedValue([
+        {
+          rentalItemId: 'item-1',
+          quantity: 1,
+          rentalBundleId: null,
+        },
+      ]);
+
+      // Mock available units
+      (prisma.rentalItemUnit.findMany as any).mockResolvedValue([
+        { id: 'unit-1', status: UnitStatus.AVAILABLE },
+      ]);
+      (prisma.rentalItemUnit.updateMany as any).mockResolvedValue({
+        count: 1,
+      });
+
+      mockRentalRepository.getCurrentPolicy.mockResolvedValue({
+        defaultDepositPolicyType: DepositPolicyType.PER_UNIT,
+      } as any);
+
+      (prisma.rentalDeposit.create as any).mockResolvedValue({
+        id: 'deposit-1',
+        amount: new Decimal(50000),
+      });
+
+      (
+        prisma.rentalOrderUnitAssignment.createMany as any
+      ).mockResolvedValue({ count: 1 });
+
+      (prisma.rentalOrder.update as any).mockResolvedValue({
+        ...mockOrder,
+        status: RentalOrderStatus.CONFIRMED,
+        depositAmount: new Decimal(50000),
+      });
+
+      const result = await service.manualConfirmOrder(
+        COMPANY_ID,
+        input,
+        ACTOR_ID
+      );
+
+      expect(result.status).toBe(RentalOrderStatus.CONFIRMED);
+      expect(prisma.rentalDeposit.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            amount: expect.objectContaining({ d: [50000] }), // Decimal check
+            paymentMethod: 'BANK',
+            paymentReference: 'REF-123',
+          }),
+        })
+      );
+      expect(mockJournalService.postRentalDeposit).toHaveBeenCalled();
+    });
+
+    it('should skip stock check if requested', async () => {
+      const skipInput = { ...input, skipStockCheck: true };
+
+      // Mock order items
+      (prisma.rentalOrderItem.findMany as any).mockResolvedValue([
+        {
+          rentalItemId: 'item-1',
+          quantity: 10, // Require 10
+          rentalBundleId: null,
+        },
+      ]);
+
+      // Mock available units (only 1 available)
+      (prisma.rentalItemUnit.findMany as any).mockResolvedValue([
+        { id: 'unit-1', status: UnitStatus.AVAILABLE },
+      ]);
+
+      // It should proceed despite insufficient stock
+      (prisma.rentalItemUnit.updateMany as any).mockResolvedValue({
+        count: 1,
+      });
+
+      mockRentalRepository.getCurrentPolicy.mockResolvedValue(null); // Should create policy
+      (prisma.rentalPolicy.create as any).mockResolvedValue({
+        defaultDepositPolicyType: DepositPolicyType.PER_UNIT,
+      });
+
+      (prisma.rentalDeposit.create as any).mockResolvedValue({
+        id: 'deposit-1',
+      });
+      (prisma.rentalOrder.update as any).mockResolvedValue({
+        ...mockOrder,
+        status: RentalOrderStatus.CONFIRMED,
+      });
+
+      await service.manualConfirmOrder(
+        COMPANY_ID,
+        skipInput,
+        ACTOR_ID
+      );
+
+      expect(
+        prisma.rentalOrderUnitAssignment.createMany
+      ).toHaveBeenCalled();
+      // Only 1 unit assigned
+      expect(prisma.rentalItemUnit.updateMany).toHaveBeenCalled();
+    });
+
+    it('should throw if payment method not found', async () => {
+      (
+        prisma.companyPaymentMethod.findFirst as any
+      ).mockResolvedValue(null);
+
+      await expect(
+        service.manualConfirmOrder(COMPANY_ID, input, ACTOR_ID)
+      ).rejects.toThrow('Payment method not found');
+    });
+  });
+
   describe('releaseOrder', () => {
     const input = {
       orderId: 'order-1',

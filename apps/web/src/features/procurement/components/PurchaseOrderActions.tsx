@@ -39,7 +39,7 @@ interface PurchaseOrderActionsProps {
   onViewBill?: (billId: string) => void;
   onViewGRN?: (grnId: string) => void;
   onClosePO?: (id: string) => void; // GAP-001: Close partially received POs
-  // eslint-disable-next-line
+  /** Layout variant: 'list' for compact actions, 'detail' for full actions */
   layout?: 'list' | 'detail';
 }
 

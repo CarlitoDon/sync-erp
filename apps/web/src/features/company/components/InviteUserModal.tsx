@@ -67,7 +67,7 @@ export function InviteUserModal({
     createMutation.mutate({
       email,
       name,
-      passwordHash: 'temporary123',
+      passwordHash: 'changeme',
     });
   };
 
