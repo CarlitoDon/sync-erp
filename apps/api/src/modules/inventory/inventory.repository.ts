@@ -114,10 +114,13 @@ export class InventoryRepository {
 
   async findById(
     id: string,
+    companyId: string,
     tx?: Prisma.TransactionClient
   ): Promise<InventoryMovement | null> {
     const db = tx || prisma;
-    return db.inventoryMovement.findUnique({ where: { id } });
+    return db.inventoryMovement.findFirst({
+      where: { id, companyId },
+    });
   }
 
   async countByReferencePatterns(

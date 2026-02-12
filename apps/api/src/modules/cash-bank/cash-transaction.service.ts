@@ -148,7 +148,11 @@ export class CashTransactionService {
       if (transaction.type === 'SPEND') {
         const sourceBank = transaction.sourceBank;
         if (!sourceBank)
-          throw new Error('Source bank account not found');
+          throw new DomainError(
+            'Source bank account not found',
+            400,
+            DomainErrorCodes.INVALID_INPUT
+          );
 
         // Dr Expense (each item)
         transaction.items.forEach((item: CashTransactionItem) => {
@@ -168,7 +172,11 @@ export class CashTransactionService {
       } else if (transaction.type === 'RECEIVE') {
         const destBank = transaction.destinationBank;
         if (!destBank)
-          throw new Error('Destination bank account not found');
+          throw new DomainError(
+            'Destination bank account not found',
+            400,
+            DomainErrorCodes.INVALID_INPUT
+          );
 
         // Dr Bank
         lines.push({
@@ -189,7 +197,11 @@ export class CashTransactionService {
         const sourceBank = transaction.sourceBank;
         const destBank = transaction.destinationBank;
         if (!sourceBank || !destBank)
-          throw new Error('Bank accounts not found');
+          throw new DomainError(
+            'Bank accounts not found',
+            400,
+            DomainErrorCodes.INVALID_INPUT
+          );
 
         // Dr Destination Bank
         lines.push({

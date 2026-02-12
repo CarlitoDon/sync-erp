@@ -22,6 +22,7 @@ import {
   TRANSACTION_TIMEOUT_MS,
 } from '@sync-erp/shared';
 import { recordAudit } from '../common/audit/audit-log.service';
+import { container, ServiceKeys } from '../common/di';
 import {
   calculateDpAmount,
   validateAndAuditClose,
@@ -238,6 +239,7 @@ export class SalesOrderService {
     for (const item of order.items) {
       const hasStock = await this.productService.checkStock(
         item.productId,
+        companyId,
         item.quantity
       );
       if (!hasStock) {
@@ -279,10 +281,13 @@ export class SalesOrderService {
       (order.dpAmount && Number(order.dpAmount) > 0);
 
     if (hasDpRequired) {
-      // Lazy-load InvoiceService to avoid circular dependency
-      const { InvoiceService } =
-        await import('../accounting/services/invoice.service');
-      const invoiceService = new InvoiceService();
+      // Resolve InvoiceService from DI container (avoids circular dependency)
+      const { InvoiceService } = await import(
+        '../accounting/services/invoice.service'
+      );
+      const invoiceService = container.resolve<InstanceType<typeof InvoiceService>>(
+        ServiceKeys.INVOICE_SERVICE
+      );
       await invoiceService.createDownPaymentInvoice(companyId, id);
     }
 
@@ -342,6 +347,7 @@ export class SalesOrderService {
         for (const item of order.items) {
           const hasStock = await this.productService.checkStock(
             item.productId,
+            companyId,
             item.quantity,
             tx
           );

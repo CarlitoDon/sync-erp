@@ -2,8 +2,7 @@ import { router, protectedProcedure } from '../trpc';
 import { container, ServiceKeys } from '../../modules/common/di';
 import { ExpenseService } from '../../modules/accounting/services/expense.service';
 import { z } from 'zod';
-import { TRPCError } from '@trpc/server';
-import { DomainError } from '@sync-erp/shared';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 const service = container.resolve<ExpenseService>(
   ServiceKeys.EXPENSE_SERVICE
@@ -31,17 +30,7 @@ export const expenseRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      try {
-        return await service.create(ctx.companyId, input);
-      } catch (error) {
-        if (error instanceof DomainError) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: error.message,
-          });
-        }
-        throw error;
-      }
+      return service.create(ctx.companyId, input);
     }),
 
   list: protectedProcedure.query(async ({ ctx }) => {
@@ -53,10 +42,11 @@ export const expenseRouter = router({
     .query(async ({ input, ctx }) => {
       const expense = await service.findById(input, ctx.companyId);
       if (!expense) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Expense not found',
-        });
+        throw new DomainError(
+          'Expense not found',
+          404,
+          DomainErrorCodes.NOT_FOUND
+        );
       }
       return expense;
     }),
@@ -64,20 +54,6 @@ export const expenseRouter = router({
   post: protectedProcedure
     .input(z.string().uuid())
     .mutation(async ({ input, ctx }) => {
-      try {
-        return await service.post(input, ctx.companyId);
-      } catch (error) {
-        if (error instanceof DomainError) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: error.message,
-          });
-        }
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message:
-            error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
+      return service.post(input, ctx.companyId);
     }),
 });

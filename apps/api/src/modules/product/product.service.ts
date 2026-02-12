@@ -129,11 +129,12 @@ export class ProductService {
    */
   async updateAverageCost(
     id: string,
+    companyId: string,
     newQuantity: number,
     newCostPerUnit: number,
     tx?: Prisma.TransactionClient
   ): Promise<Product> {
-    const product = await this.repository.findById(id, undefined, tx);
+    const product = await this.repository.findById(id, companyId, tx);
     if (!product) {
       throw new DomainError(
         'Product not found',
@@ -162,10 +163,11 @@ export class ProductService {
 
   async checkStock(
     id: string,
+    companyId: string,
     requiredQty: number,
     tx?: Prisma.TransactionClient
   ): Promise<boolean> {
-    const product = await this.repository.findById(id, undefined, tx);
+    const product = await this.repository.findById(id, companyId, tx);
     if (!product) {
       return false;
     }

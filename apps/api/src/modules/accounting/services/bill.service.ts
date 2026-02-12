@@ -21,6 +21,7 @@ import {
   TRANSACTION_TIMEOUT_MS,
 } from '@sync-erp/shared';
 import { JournalService } from './journal.service';
+import { normalizeTaxRate } from '../../common/utils/finance.utils';
 
 export interface CreateBillInput {
   orderId: string;
@@ -201,7 +202,7 @@ export class BillService {
     }
     taxRate = taxRate || 0;
 
-    const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
+    const taxMultiplier = normalizeTaxRate(taxRate);
     const taxAmount = subtotal * taxMultiplier;
     let amount = subtotal + taxAmount;
 
@@ -353,7 +354,7 @@ export class BillService {
     const taxRate = order.taxRate
       ? new Decimal(order.taxRate).toNumber()
       : 0;
-    const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
+    const taxMultiplier = normalizeTaxRate(taxRate);
 
     // Calculate order total (subtotal + tax)
     const orderSubtotal = order.items.reduce(

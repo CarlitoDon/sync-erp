@@ -93,6 +93,7 @@ export class InventoryMovementService {
     if (!isLoss) {
       await this.productService.updateAverageCost(
         data.productId,
+        companyId,
         data.quantity,
         data.costPerUnit,
         tx

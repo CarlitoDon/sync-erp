@@ -40,16 +40,19 @@ export async function findMany(companyId: string) {
   });
 }
 
-export async function findById(id: string) {
-  return prisma.rentalBundle.findUnique({
-    where: { id },
+export async function findById(id: string, companyId: string) {
+  return prisma.rentalBundle.findFirst({
+    where: { id, companyId },
     include: bundleWithComponentsInclude,
   });
 }
 
-export async function findByIdWithAvailability(id: string) {
-  return prisma.rentalBundle.findUnique({
-    where: { id },
+export async function findByIdWithAvailability(
+  id: string,
+  companyId: string
+) {
+  return prisma.rentalBundle.findFirst({
+    where: { id, companyId },
     include: bundleWithAvailabilityInclude,
   });
 }

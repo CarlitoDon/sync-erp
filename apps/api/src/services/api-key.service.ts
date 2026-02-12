@@ -150,23 +150,12 @@ export class ApiKeyService {
       },
     });
 
-    // If no prefix match, try without prefix filter (for legacy keys)
-    const keysToCheck =
-      candidates.length > 0
-        ? candidates
-        : await prisma.apiKey.findMany({
-            where: { isActive: true },
-            select: {
-              id: true,
-              keyHash: true,
-              companyId: true,
-              permissions: true,
-              expiresAt: true,
-              rateLimit: true,
-            },
-          });
+    // No prefix match = invalid key (legacy keys without prefix should be rotated)
+    if (candidates.length === 0) {
+      return null;
+    }
 
-    for (const candidate of keysToCheck) {
+    for (const candidate of candidates) {
       // Skip expired keys
       if (candidate.expiresAt && candidate.expiresAt < new Date()) {
         continue;

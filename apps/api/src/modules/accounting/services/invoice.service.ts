@@ -25,6 +25,7 @@ import { JournalService } from './journal.service';
 import { ReversalPolicy } from '../policies/reversal.policy';
 import { InvoicePolicy } from '../policies/invoice.policy';
 import { InventoryRepository } from '../../inventory/inventory.repository';
+import { normalizeTaxRate } from '../../common/utils/finance.utils';
 
 // Update Interface
 export interface CreateInvoiceInput {
@@ -173,7 +174,7 @@ export class InvoiceService {
     }
     taxRate = taxRate || 0;
 
-    const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
+    const taxMultiplier = normalizeTaxRate(taxRate);
     const taxAmount = subtotal * taxMultiplier;
     let amount = subtotal + taxAmount;
 
@@ -347,7 +348,7 @@ export class InvoiceService {
     let subtotal: number;
     let taxAmount: number;
     const taxRate = order.taxRate ? Number(order.taxRate) : 0;
-    const taxMultiplier = taxRate > 1 ? taxRate / 100 : taxRate;
+    const taxMultiplier = normalizeTaxRate(taxRate);
 
     if (isUpfront) {
       // UPFRONT: 100% of order total
@@ -714,7 +715,7 @@ export class InvoiceService {
         } catch (settleError) {
           // Log settlement error but don't fail the invoice post
           console.error(
-            'Auto-settlement failed for invoice:',
+            '[InvoiceService] Auto-settlement failed for invoice:',
             result.invoice.id,
             settleError
           );

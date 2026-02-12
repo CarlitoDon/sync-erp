@@ -10,6 +10,7 @@ import {
 import { PaymentRepository } from '../repositories/payment.repository';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { CashBankRepository } from '../../cash-bank/cash-bank.repository'; // Import from CashBank module
+import { ensureHasPermission } from '../../common/utils/permission.utils';
 import {
   CreatePaymentInput,
   BusinessDate,
@@ -214,23 +215,7 @@ export class PaymentService {
     userPermissions?: string[] // FR-026: Granular permissions array
   ): Promise<Payment> {
     // FR-026: Void Payment requires 'FINANCE:VOID' permission
-    // Note: Context builds permissions as UPPERCASE
-    const requiredPermission = 'FINANCE:VOID';
-    const normalizedPermissions = userPermissions?.map((p) =>
-      p.toUpperCase()
-    );
-    const hasPermission =
-      normalizedPermissions?.includes(requiredPermission) ||
-      normalizedPermissions?.includes('FINANCE:*') ||
-      normalizedPermissions?.includes('*:*');
-
-    if (!hasPermission) {
-      throw new DomainError(
-        `Missing permission: ${requiredPermission}`,
-        403,
-        DomainErrorCodes.FORBIDDEN
-      );
-    }
+    ensureHasPermission(userPermissions, 'FINANCE:VOID');
 
     // FR-024: Reason is mandatory
     if (!reason || reason.trim().length === 0) {

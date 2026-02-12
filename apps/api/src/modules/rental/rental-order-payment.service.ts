@@ -114,7 +114,7 @@ export class RentalOrderPaymentService {
           })
           .catch((err) => {
             console.error(
-              '[RentalOrderService] Webhook notification failed:',
+              '[RentalOrderPaymentService] Webhook notification failed:',
               err
             );
           });
