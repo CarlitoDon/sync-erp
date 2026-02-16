@@ -15,7 +15,7 @@
     "build:api": "turbo run build --filter=@sync-erp/api",
     "build:web": "turbo run build --filter=@sync-erp/web",
     "build:bot": "turbo run build --filter=@sync-erp/bot",
-    "postinstall": "npm run db:generate --workspace=@sync-erp/database",
+    "postinstall": "node scripts/patch-zod-prisma-types.mjs && npm run db:generate --workspace=@sync-erp/database",
     "typecheck": "tsc -b",
     "typecheck:watch": "tsc -b --watch",
     "lint": "turbo run lint",
