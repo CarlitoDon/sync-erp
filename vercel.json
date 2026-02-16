@@ -5,6 +5,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/trpc/:path*",
+      "destination": "https://api.santiliving.com/api/trpc/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
