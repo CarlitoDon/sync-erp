@@ -54,6 +54,9 @@ app.post('/send-order', authenticateApiKey, sendOrder);
 app.post('/send-message', authenticateApiKey, sendMessage);
 app.post('/ping', authenticateApiKey, ping);
 
+import { logout } from './api/logout';
+app.post('/logout', authenticateApiKey, logout);
+
 // Start server function (to be called from index.ts)
 export const startServer = () => {
   app.listen(PORT, () => {

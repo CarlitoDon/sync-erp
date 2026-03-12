@@ -106,4 +106,33 @@ export const botRouter = router({
       sentTo: string;
     };
   }),
+
+  /**
+   * Logout from WhatsApp — clears session and restarts for fresh QR
+   */
+  logout: protectedProcedure.mutation(async () => {
+    const botUrl = env.getBotUrl();
+    const botSecret = env.getBotSecret();
+
+    const response = await fetch(`${botUrl}/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${botSecret}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message:
+          (data as { error?: string }).error ||
+          `Bot returned ${response.status}`,
+      });
+    }
+
+    return data as { success: boolean; message: string };
+  }),
 });

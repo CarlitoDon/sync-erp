@@ -49,6 +49,7 @@ function formatTimeAgo(date: Date): string {
 export function WhatsAppSettingsPage() {
   const { data: statusData, refetch } = trpc.bot.getStatus.useQuery();
   const pingMutation = trpc.bot.ping.useMutation();
+  const logoutMutation = trpc.bot.logout.useMutation();
   const [lastPingResult, setLastPingResult] = useState<string | null>(
     null
   );
@@ -78,6 +79,19 @@ export function WhatsAppSettingsPage() {
     if (result) {
       setLastPingResult(`Sent to ${result.sentTo}`);
     }
+  };
+
+  const handleLogout = async () => {
+    const confirmed = window.confirm(
+      'Logout WhatsApp?\n\nSession akan dihapus dan bot perlu di-pair ulang via QR code.'
+    );
+    if (!confirmed) return;
+
+    await apiAction(
+      () => logoutMutation.mutateAsync(),
+      '✅ WhatsApp logged out. Scan QR code untuk reconnect.'
+    );
+    refetch();
   };
 
   return (
@@ -235,6 +249,34 @@ export function WhatsAppSettingsPage() {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Logout */}
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="font-medium text-sm text-red-700">
+                    🚪 Logout WhatsApp
+                  </h3>
+                  <p className="text-xs text-red-500">
+                    Disconnect and clear session. Bot will need
+                    to re-pair via QR code.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={handleLogout}
+                isLoading={logoutMutation.isPending}
+                loadingText="Logging out..."
+                disabled={
+                  status === 'LOADING' ||
+                  status === 'INITIALIZING'
+                }
+              >
+                Logout
+              </Button>
             </div>
           </div>
         </Card>
