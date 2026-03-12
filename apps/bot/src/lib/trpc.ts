@@ -1,4 +1,4 @@
-import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+import { createTRPCProxyClient, httpLink } from '@trpc/client';
 import type { AppRouter } from '@sync-erp/api/src/trpc/router';
 import superjson from 'superjson';
 import dotenv from 'dotenv';
@@ -41,7 +41,7 @@ const customFetch = async (
 
 export const trpc = createTRPCProxyClient<AppRouter>({
   links: [
-    httpBatchLink({
+    httpLink({
       url: API_URL,
       transformer: superjson,
       fetch: customFetch,

@@ -2,6 +2,7 @@ import makeWASocket, {
   DisconnectReason,
   WASocket,
   ConnectionState,
+  fetchLatestBaileysVersion,
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import QRCode from 'qrcode';
@@ -25,8 +26,14 @@ export async function initializeBaileys() {
   const { state, saveCreds, clearState } = await useRedisAuthState();
   currentClearState = clearState;
 
+  // Fetch latest WhatsApp version to avoid 405 errors
+  const { version } = await fetchLatestBaileysVersion();
+  // eslint-disable-next-line no-console
+  console.log('[Baileys] Using WA version:', version);
+
   sock = makeWASocket({
     auth: state,
+    version,
     logger,
     printQRInTerminal: false,
     connectTimeoutMs: 60_000,
