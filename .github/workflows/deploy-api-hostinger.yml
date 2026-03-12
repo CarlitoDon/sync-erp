@@ -139,3 +139,26 @@ jobs:
           rsync -avz \
             -e "ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
             deploy/node_modules/@sync-erp/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:~/public_html/$DEPLOY_DIR/node_modules/@sync-erp/
+
+          # Restart Passenger to pick up new code + database package
+          ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} "cd ~/public_html/$DEPLOY_DIR && mkdir -p tmp && touch tmp/restart.txt"
+
+      - name: Verify API health (external)
+        env:
+          API_HOST: ${{ steps.vars.outputs.env_name == 'production' && 'api.santiliving.com' || 'api-staging.santiliving.com' }}
+        run: |
+          echo "Checking API health at https://$API_HOST/health"
+          MAX_RETRIES=5
+          RETRY_DELAY=10
+          for i in $(seq 1 $MAX_RETRIES); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 15 "https://$API_HOST/health" 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ API is healthy (HTTP $HTTP_STATUS)"
+              exit 0
+            fi
+            echo "⏳ Attempt $i/$MAX_RETRIES: HTTP $HTTP_STATUS - retrying in ${RETRY_DELAY}s..."
+            sleep $RETRY_DELAY
+          done
+          echo "❌ API health check failed after $MAX_RETRIES attempts"
+          echo "::warning::API at https://$API_HOST/health is not reachable externally. Check Hostinger ModSecurity, SSL certificates, and firewall settings."
+          exit 1
