@@ -16,12 +16,14 @@ let connectionStatus:
   | 'QR_PENDING'
   | 'READY'
   | 'DISCONNECTED' = 'INITIALIZING';
+let currentClearState: (() => Promise<void>) | null = null;
 
 const logger = pino({ level: 'info' });
 
 export async function initializeBaileys() {
   // Use Redis for session persistence
   const { state, saveCreds, clearState } = await useRedisAuthState();
+  currentClearState = clearState;
 
   sock = makeWASocket({
     auth: state,
@@ -123,4 +125,43 @@ export function getStatus() {
 
 export function getQrDataUrl() {
   return qrDataUrl;
+}
+
+/**
+ * Logout from WhatsApp, clear session, and restart for fresh QR.
+ */
+export async function logoutAndRestart() {
+  // eslint-disable-next-line no-console
+  console.log('[Baileys] Manual logout requested...');
+
+  // Close existing socket
+  if (sock) {
+    try {
+      await sock.logout();
+      // eslint-disable-next-line no-console
+      console.log('[Baileys] Socket logged out.');
+    } catch {
+      // If logout fails (already disconnected), just end the socket
+      try {
+        sock.end(undefined);
+      } catch {
+        // ignore
+      }
+    }
+    sock = null;
+  }
+
+  // Clear all session data from Redis
+  if (currentClearState) {
+    await currentClearState();
+    // eslint-disable-next-line no-console
+    console.log('[Baileys] Session cleared from Redis.');
+  }
+
+  // Reset state
+  connectionStatus = 'INITIALIZING';
+  qrDataUrl = null;
+
+  // Re-initialize for fresh QR
+  initializeBaileys();
 }
