@@ -1,0 +1,47 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Run every 4 days at 03:00 UTC (10:00 WIB)
+    - cron: '0 3 */4 * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  ping-staging:
+    name: Ping Staging DB
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Staging
+        run: |
+          echo "Pinging Supabase Staging to prevent auto-pause..."
+          # Simple health check via Supabase REST API
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${{ secrets.SUPABASE_STAGING_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_STAGING_ANON_KEY }}" \
+            "https://ctesbnhcqubamrtcxxqi.supabase.co/rest/v1/?limit=0")
+          echo "Staging response: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "✅ Staging is alive"
+          else
+            echo "⚠️ Staging returned status $HTTP_STATUS"
+            exit 1
+          fi
+
+  ping-production:
+    name: Ping Production DB
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Production
+        run: |
+          echo "Pinging Supabase Production to prevent auto-pause..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${{ secrets.SUPABASE_PROD_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_PROD_ANON_KEY }}" \
+            "https://vktglrwmbrhtddpmekda.supabase.co/rest/v1/?limit=0")
+          echo "Production response: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "✅ Production is alive"
+          else
+            echo "⚠️ Production returned status $HTTP_STATUS"
+            exit 1
+          fi
