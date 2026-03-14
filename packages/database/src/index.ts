@@ -42,6 +42,8 @@ export type {
   CleaningLog,
   CustomerRentalRisk,
   RentalPolicy,
+  RentalWebhookOutbox,
+  TenantWebhookOutbox,
 } from './generated/client/client.js';
 
 // Re-export enums as values (not just types)
@@ -91,6 +93,9 @@ export {
   DamageSeverity,
   CleaningType,
   RiskLevel,
+  RentalWebhookDeliveryType,
+  RentalWebhookOutboxStatus,
+  TenantWebhookOutboxStatus,
 } from './generated/client/client.js';
 
 export type {

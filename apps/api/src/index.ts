@@ -1,145 +1,28 @@
-import './env';
-import './di-setup';
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import { errorHandler } from './middlewares/errorHandler';
-import { optionalAuthMiddleware } from './middlewares/auth';
-import { correlationMiddleware } from './middlewares/correlation';
 import { SHUTDOWN_TIMEOUT_MS } from '@sync-erp/shared';
+import { createApp } from './app';
+import { startRentalWebhookOutboxWorker } from './modules/rental/rental-webhook-outbox.service';
+import { startTenantWebhookOutboxWorker } from './services/tenant-webhook-outbox.service';
 
-import cookieParser from 'cookie-parser';
+const PORT = Number(process.env.PORT || 3001);
+const app = createApp();
+const stopRentalWebhookOutboxWorker =
+  startRentalWebhookOutboxWorker();
+const stopTenantWebhookOutboxWorker =
+  startTenantWebhookOutboxWorker();
 
-// tRPC
-import * as trpcExpress from '@trpc/server/adapters/express';
-import { appRouter } from './trpc/router';
-import { createContext } from './trpc/context';
-
-// DI Container - register all services on startup
-// DI Container - register all services on startup
-import { registerServices } from './modules/common/di';
-registerServices();
-
-const app = express();
-const PORT = process.env.PORT || 3001;
-
-// Global Middleware
-app.use(helmet());
-app.use(correlationMiddleware); // Request tracing
-app.use(cookieParser());
-// CORS origin configuration - supports multiple origins and Vercel previews
-const getCorsOrigin = ():
-  | string
-  | string[]
-  | ((
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void
-    ) => void) => {
-  const corsOrigin =
-    process.env.CORS_ORIGIN || process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:5173';
-
-  // If comma-separated, split into array
-  const origins = corsOrigin.split(',').map((o) => o.trim());
-
-  // Custom origin checker function to support Vercel preview URLs
-  return (
-    origin: string | undefined,
-    callback: (err: Error | null, allow?: boolean) => void
-  ) => {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-
-    // Check if origin matches any allowed origin
-    if (origins.includes(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    // Debug logging for CORS
-    // console.log(`[CORS] Checking origin: ${origin}`);
-
-    // Allow Vercel deployments (production and preview)
-    if (
-      origin &&
-      (origin.endsWith('.vercel.app') ||
-        origin === 'https://sync-erp.vercel.app')
-    ) {
-      callback(null, true);
-      return;
-    }
-
-    // Allow localhost for development
-    if (origin.startsWith('http://localhost:')) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error('Not allowed by CORS'));
-  };
-};
-
-app.use(
-  cors({
-    origin: getCorsOrigin(),
-    credentials: true,
-  })
-);
-app.use(express.json());
-
-// Root Health Check
-app.get('/', (_req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'Sync ERP API',
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// Public Health Check (keep for load balancers)
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// tRPC (mounted with OPTIONAL auth - tRPC procedures handle their own auth via protectedProcedure)
-app.use(
-  '/api/trpc',
-  optionalAuthMiddleware,
-  trpcExpress.createExpressMiddleware({
-    router: appRouter,
-    createContext,
-  })
-);
-
-// Global Error Handler
-app.use(errorHandler);
-
-// 404 Handler
-app.use((_req, res) => {
-  res.status(404).json({
-    success: false,
-    error: {
-      code: 'NOT_FOUND',
-      message: 'Resource not found',
-    },
-  });
-});
-
-const server = app.listen(Number(PORT), () => {
+const server = app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.warn(`🚀 Sync ERP API running on port ${PORT}`);
 });
 
-// Graceful shutdown to prevent zombie processes
 const gracefulShutdown = (signal: string) => {
   console.warn(`\n[${signal}] Shutting down gracefully...`);
+  stopRentalWebhookOutboxWorker();
+  stopTenantWebhookOutboxWorker();
   server.close(() => {
     console.warn('[API] Server closed successfully.');
     process.exit(0);
   });
-  // Force exit after timeout if server doesn't close
   setTimeout(() => process.exit(1), SHUTDOWN_TIMEOUT_MS);
 };
 

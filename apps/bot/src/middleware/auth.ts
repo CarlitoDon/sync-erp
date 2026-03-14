@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { parseBearerToken } from '../utils/auth';
 
 const BOT_SECRET = process.env.SYNC_ERP_BOT_SECRET;
 
@@ -15,9 +16,9 @@ export const authenticateApiKey = (
       .json({ error: 'Missing Authorization header' });
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = parseBearerToken(authHeader);
 
-  if (token !== BOT_SECRET) {
+  if (!token || token !== BOT_SECRET) {
     return res.status(403).json({ error: 'Invalid API Key' });
   }
 

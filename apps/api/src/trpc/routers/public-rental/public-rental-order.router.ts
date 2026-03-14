@@ -33,18 +33,20 @@ export const publicRentalOrderRouter = router({
         // This keeps the service clean (just data access/domain logic) and router handles DTO mapping.
 
         return {
+          id: order.id,
           orderNumber: order.orderNumber,
           status: order.status,
           rentalStartDate: order.rentalStartDate,
           rentalEndDate: order.rentalEndDate,
-          subtotal: order.subtotal,
-          totalAmount: order.totalAmount,
-          depositAmount: order.depositAmount,
+          subtotal: Number(order.subtotal),
+          totalAmount: Number(order.totalAmount),
+          depositAmount: Number(order.depositAmount),
           notes: order.notes,
           createdAt: order.createdAt,
 
           // Santi Living address fields
-          deliveryFee: order.deliveryFee,
+          deliveryFee:
+            order.deliveryFee === null ? null : Number(order.deliveryFee),
           deliveryAddress: order.deliveryAddress,
           street: order.street,
           kelurahan: order.kelurahan,
@@ -52,10 +54,15 @@ export const publicRentalOrderRouter = router({
           kota: order.kota,
           provinsi: order.provinsi,
           zip: order.zip,
-          latitude: order.latitude,
-          longitude: order.longitude,
+          latitude:
+            order.latitude === null ? null : Number(order.latitude),
+          longitude:
+            order.longitude === null ? null : Number(order.longitude),
           paymentMethod: order.paymentMethod,
-          discountAmount: order.discountAmount,
+          discountAmount:
+            order.discountAmount === null
+              ? null
+              : Number(order.discountAmount),
           discountLabel: order.discountLabel,
           orderSource: order.orderSource,
 
@@ -68,7 +75,25 @@ export const publicRentalOrderRouter = router({
           paymentFailReason: order.paymentFailReason,
 
           // Relations
-          partner: order.partner,
+          partner: {
+            name: order.partner.name,
+            phone: order.partner.phone,
+            address: order.partner.address,
+            street: order.partner.street,
+            kelurahan: order.partner.kelurahan,
+            kecamatan: order.partner.kecamatan,
+            kota: order.partner.kota,
+            provinsi: order.partner.provinsi,
+            zip: order.partner.zip,
+            latitude:
+              order.partner.latitude === null
+                ? null
+                : Number(order.partner.latitude),
+            longitude:
+              order.partner.longitude === null
+                ? null
+                : Number(order.partner.longitude),
+          },
           items: order.items.map((item) => ({
             rentalItemId: item.rentalItemId,
             rentalBundleId: item.rentalBundleId,
@@ -77,8 +102,8 @@ export const publicRentalOrderRouter = router({
               item.rentalBundle?.name ||
               'Unknown',
             quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            subtotal: item.subtotal,
+            unitPrice: Number(item.unitPrice),
+            subtotal: Number(item.subtotal),
           })),
         };
       } catch (err) {
@@ -147,9 +172,19 @@ export const publicRentalOrderRouter = router({
         discountLabel: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        const order = await service.createOrder(input);
+        if (input.companyId !== ctx.companyId) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'API key company mismatch',
+          });
+        }
+
+        const order = await service.createOrder({
+          ...input,
+          companyId: ctx.companyId,
+        });
 
         return {
           id: order.id,
@@ -219,9 +254,12 @@ export const publicRentalOrderRouter = router({
           .optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        const updated = await service.updateOrder(input);
+        const updated = await service.updateOrder(
+          input,
+          ctx.companyId
+        );
 
         return {
           id: updated.id,
@@ -247,11 +285,11 @@ export const publicRentalOrderRouter = router({
    * Delete order by ID (Internal/Rollback Use)
    * Used by santi-living to rollback invalid orders
    */
-  deleteOrder: publicProcedure
+  deleteOrder: apiKeyProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        await service.deleteOrder(input.id);
+        await service.deleteOrder(input.id, ctx.companyId);
         return { success: true };
       } catch (err) {
         if (err instanceof DomainError) {

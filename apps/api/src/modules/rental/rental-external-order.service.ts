@@ -4,9 +4,11 @@ import {
   RentalPaymentStatus,
   OrderSource,
   Prisma,
+  PartnerType,
 } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
+import { DocumentNumberService } from '../common/services/document-number.service';
 import { container, ServiceKeys } from '../common/di';
 import type { RentalWebhookService } from './rental-webhook.service';
 
@@ -82,7 +84,26 @@ export interface UpdatePublicOrderInput {
   }[];
 }
 
+type ExternalOrderItemInput = CreatePublicOrderInput['items'][number];
+
+type ResolvedOrderItem = {
+  rentalItemId?: string;
+  rentalBundleId?: string;
+  quantity: number;
+  unitPrice: Prisma.Decimal | number;
+  subtotal: number;
+  pricingTier: 'DAILY';
+};
+
+type RateBearingRecord = {
+  id: string;
+  dailyRate: Prisma.Decimal;
+};
+
 export class RentalExternalOrderService {
+  private readonly documentNumberService =
+    new DocumentNumberService();
+
   async getByToken(token: string) {
     const order = await prisma.rentalOrder.findFirst({
       where: { publicToken: token },
@@ -137,314 +158,25 @@ export class RentalExternalOrderService {
   }
 
   async createOrder(input: CreatePublicOrderInput) {
-    // Get only items that have rentalItemId (not bundles)
-    const itemsWithRentalItemId = input.items.filter(
-      (i): i is typeof i & { rentalItemId: string } =>
-        !!i.rentalItemId
+    const durationDays = this.getDurationDays(
+      input.rentalStartDate,
+      input.rentalEndDate
     );
 
-    // Fetch rental items for pricing - try by ID first, then by name for santi-living
-    let rentalItems = await prisma.rentalItem.findMany({
-      where: {
-        id: {
-          in: itemsWithRentalItemId.map((i) => i.rentalItemId),
-        },
-        companyId: input.companyId,
-      },
+    const { subtotal, orderItems } = await this.buildOrderItems({
+      companyId: input.companyId,
+      items: input.items,
+      durationDays,
+      allowAutoCreate: true,
     });
 
-    // If not found by ID, try by name (for santi-living integration)
-    if (
-      itemsWithRentalItemId.length > 0 &&
-      rentalItems.length !== itemsWithRentalItemId.length
-    ) {
-      // Try lookup by product name
-      const itemNames = itemsWithRentalItemId.map(
-        (i) => i.rentalItemId
-      );
-      const rentalItemsByName = await prisma.rentalItem.findMany({
-        where: {
-          companyId: input.companyId,
-          product: {
-            name: { in: itemNames, mode: 'insensitive' },
-          },
-        },
-        include: { product: true },
-      });
-
-      if (rentalItemsByName.length > 0) {
-        rentalItems = rentalItemsByName;
-      }
-    }
-
-    // Calculate duration and pricing
-    const durationDays = Math.ceil(
-      (input.rentalEndDate.getTime() -
-        input.rentalStartDate.getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
-
-    // Calculate subtotal - handle both items and bundles
-    let subtotal = 0;
-    const orderItems = [];
-
-    for (const item of input.items) {
-      if (item.rentalBundleId) {
-        // Bundle order - find bundle by ID or externalId
-        let bundle = await prisma.rentalBundle.findFirst({
-          where: {
-            companyId: input.companyId,
-            OR: [
-              { id: item.rentalBundleId },
-              { externalId: item.rentalBundleId },
-            ],
-          },
-        });
-
-        // Auto-create bundle if not found and metadata provided
-        if (!bundle && item.name && item.pricePerDay) {
-          // Create bundle with components in a transaction
-          bundle = await prisma.$transaction(async (tx) => {
-            // 1. Create the bundle
-            const newBundle = await tx.rentalBundle.create({
-              data: {
-                companyId: input.companyId,
-                externalId: item.rentalBundleId,
-                name: item.name!,
-                dailyRate: item.pricePerDay!,
-                weeklyRate: item.pricePerDay! * 6, // ~14% discount
-                monthlyRate: item.pricePerDay! * 25, // ~17% discount
-                isActive: true,
-              },
-            });
-
-            // 2. Create components if provided
-            if (item.components && item.components.length > 0) {
-              for (const componentLabel of item.components) {
-                // Parse quantity from label (e.g., "2 bantal" -> quantity: 2, label: "bantal")
-                const quantityMatch =
-                  componentLabel.match(/^(\d+)\s+(.+)$/);
-                const quantity = quantityMatch
-                  ? parseInt(quantityMatch[1], 10)
-                  : 1;
-                const label = quantityMatch
-                  ? quantityMatch[2]
-                  : componentLabel;
-
-                // Find or create the rental item for this component
-                let rentalItem = await tx.rentalItem.findFirst({
-                  where: {
-                    companyId: input.companyId,
-                    product: {
-                      name: {
-                        contains: label,
-                        mode: 'insensitive',
-                      },
-                    },
-                  },
-                });
-
-                // If not found, create product and rental item
-                if (!rentalItem) {
-                  const product = await tx.product.create({
-                    data: {
-                      companyId: input.companyId,
-                      sku: `SL-${label.toLowerCase().replace(/\s+/g, '-')}`,
-                      name:
-                        label.charAt(0).toUpperCase() +
-                        label.slice(1),
-                      price: 0,
-                    },
-                  });
-
-                  rentalItem = await tx.rentalItem.create({
-                    data: {
-                      companyId: input.companyId,
-                      productId: product.id,
-                      dailyRate: 5000, // Default component price
-                      weeklyRate: 30000,
-                      monthlyRate: 125000,
-                      depositPolicyType: 'PERCENTAGE',
-                      depositPercentage: 0,
-                      isActive: true,
-                    },
-                  });
-                }
-
-                // Create the bundle component link
-                await tx.rentalBundleComponent.create({
-                  data: {
-                    bundleId: newBundle.id,
-                    rentalItemId: rentalItem.id,
-                    quantity,
-                    componentLabel: label,
-                  },
-                });
-              }
-            }
-
-            return newBundle;
-          });
-        }
-
-        if (!bundle) {
-          throw new DomainError(
-            `Bundle not found: ${item.rentalBundleId}. Provide name, pricePerDay, and components for auto-creation.`,
-            400,
-            DomainErrorCodes.INVALID_INPUT
-          );
-        }
-
-        const itemTotal =
-          Number(bundle.dailyRate) * durationDays * item.quantity;
-        subtotal += itemTotal;
-        orderItems.push({
-          rentalBundleId: bundle.id,
-          quantity: item.quantity,
-          unitPrice: bundle.dailyRate,
-          subtotal: itemTotal,
-          pricingTier: 'DAILY' as const,
-        });
-      } else if (item.rentalItemId) {
-        // Regular item order - try by ID first, then by name
-        let rentalItem:
-          | { id: string; dailyRate: Prisma.Decimal }
-          | undefined = rentalItems.find(
-          (r) => r.id === item.rentalItemId
-        );
-        // If not found by ID, try product name
-        if (!rentalItem && item.rentalItemId) {
-          rentalItem = rentalItems.find(
-            (r) =>
-              (
-                r as unknown as { product?: { name?: string } }
-              ).product?.name?.toLowerCase() ===
-              item.rentalItemId!.toLowerCase()
-          );
-        }
-
-        // For mattress-only items with components, try to find by component SKU
-        if (!rentalItem && item.components?.[0]) {
-          const componentSku = `SL-${item.components[0].toLowerCase().replace(/\s+/g, '-')}`;
-
-          const freshLookup = await prisma.rentalItem.findFirst({
-            where: {
-              companyId: input.companyId,
-              product: { sku: componentSku },
-            },
-            include: { product: true },
-          });
-
-          if (freshLookup) {
-            rentalItem = freshLookup;
-
-            if (
-              item.pricePerDay &&
-              item.pricePerDay > Number(freshLookup.dailyRate)
-            ) {
-              await prisma.rentalItem.update({
-                where: { id: freshLookup.id },
-                data: {
-                  dailyRate: item.pricePerDay,
-                  weeklyRate: item.pricePerDay * 6,
-                  monthlyRate: item.pricePerDay * 25,
-                },
-              });
-              rentalItem = {
-                ...freshLookup,
-                dailyRate: new Decimal(item.pricePerDay),
-              };
-            }
-          }
-        }
-
-        // Auto-create rental item if not found and metadata provided
-        if (!rentalItem && item.name && item.pricePerDay) {
-          const componentName = item.components?.[0];
-          const productName = componentName
-            ? componentName.charAt(0).toUpperCase() +
-              componentName.slice(1)
-            : item.name;
-          const productSku = componentName
-            ? `SL-${componentName.toLowerCase().replace(/\s+/g, '-')}`
-            : `SL-${item.rentalItemId}`;
-
-          let product = await prisma.product.findFirst({
-            where: {
-              companyId: input.companyId,
-              sku: productSku,
-            },
-          });
-
-          if (!product) {
-            product = await prisma.product.create({
-              data: {
-                companyId: input.companyId,
-                sku: productSku,
-                name: productName,
-                price: 0,
-              },
-            });
-          }
-
-          const existingRentalItem =
-            await prisma.rentalItem.findFirst({
-              where: {
-                companyId: input.companyId,
-                productId: product.id,
-              },
-            });
-
-          if (existingRentalItem) {
-            rentalItem = existingRentalItem;
-          } else {
-            rentalItem = await prisma.rentalItem.create({
-              data: {
-                companyId: input.companyId,
-                productId: product.id,
-                dailyRate: item.pricePerDay,
-                weeklyRate: item.pricePerDay * 6,
-                monthlyRate: item.pricePerDay * 25,
-                depositPolicyType: 'PERCENTAGE',
-                depositPercentage: 0,
-                isActive: true,
-              },
-            });
-          }
-        }
-
-        if (!rentalItem) {
-          throw new DomainError(
-            `Rental item not found for: ${item.rentalItemId}. Provide name and pricePerDay for auto-creation.`,
-            400,
-            DomainErrorCodes.INVALID_INPUT
-          );
-        }
-
-        const itemTotal =
-          Number(rentalItem.dailyRate) * durationDays * item.quantity;
-        subtotal += itemTotal;
-        orderItems.push({
-          rentalItemId: rentalItem.id,
-          quantity: item.quantity,
-          unitPrice: rentalItem.dailyRate,
-          subtotal: itemTotal,
-          pricingTier: 'DAILY' as const,
-        });
-      }
-    }
-
-    // Apply discount if provided
     const finalSubtotal = subtotal - (input.discountAmount || 0);
     const totalAmount = finalSubtotal + (input.deliveryFee || 0);
+    const orderNumber = await this.documentNumberService.generate(
+      input.companyId,
+      'RNT'
+    );
 
-    // Generate order number
-    const orderCount = await prisma.rentalOrder.count({
-      where: { companyId: input.companyId },
-    });
-    const orderNumber = `RNT-${String(orderCount + 1).padStart(6, '0')}`;
-
-    // Create order
     const order = await prisma.rentalOrder.create({
       data: {
         companyId: input.companyId,
@@ -462,7 +194,6 @@ export class RentalExternalOrderService {
         policySnapshot: {},
         notes: input.notes,
         createdBy: 'santi-living-website',
-
         deliveryFee: input.deliveryFee,
         deliveryAddress: input.deliveryAddress,
         street: input.street,
@@ -477,7 +208,6 @@ export class RentalExternalOrderService {
         discountAmount: input.discountAmount,
         discountLabel: input.discountLabel,
         orderSource: OrderSource.WEBSITE,
-
         items: {
           create: orderItems,
         },
@@ -490,17 +220,20 @@ export class RentalExternalOrderService {
       },
     });
 
-    // Fire webhook
     const webhookService = getWebhookService();
     if (webhookService && order.publicToken) {
       try {
-        await webhookService.notifyNewOrder({
-          token: order.publicToken,
-          orderNumber: order.orderNumber,
-          customerName: order.partner.name,
-          customerPhone: order.partner.phone || '',
-          totalAmount: Number(order.totalAmount),
-        });
+        await webhookService.notifyNewOrder(
+          {
+            companyId: input.companyId,
+            token: order.publicToken,
+            orderNumber: order.orderNumber,
+            customerName: order.partner.name,
+            customerPhone: order.partner.phone || '',
+            totalAmount: Number(order.totalAmount),
+          },
+          { throwOnFailure: true }
+        );
       } catch (err) {
         const errorMessage =
           err instanceof Error
@@ -511,17 +244,16 @@ export class RentalExternalOrderService {
           errorMessage
         );
 
-        // Rollback
         try {
           await prisma.rentalOrderItem.deleteMany({
             where: { rentalOrderId: order.id },
           });
-          await prisma.rentalOrder.delete({
+          await prisma.rentalOrder.deleteMany({
             where: { id: order.id },
           });
         } catch (rollbackErr) {
           console.warn(
-            '[PublicRental] Rollback failed (likely already deleted):',
+            '[PublicRental] Rollback failed unexpectedly:',
             rollbackErr
           );
         }
@@ -538,13 +270,27 @@ export class RentalExternalOrderService {
     return order;
   }
 
-  async updateOrder(input: UpdatePublicOrderInput) {
+  async updateOrder(
+    input: UpdatePublicOrderInput,
+    expectedCompanyId?: string
+  ) {
     const order = await prisma.rentalOrder.findFirst({
       where: { publicToken: input.token },
       include: { partner: true, items: true },
     });
 
     if (!order) {
+      throw new DomainError(
+        'Order not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
+    if (
+      expectedCompanyId &&
+      order.companyId !== expectedCompanyId
+    ) {
       throw new DomainError(
         'Order not found',
         404,
@@ -571,130 +317,43 @@ export class RentalExternalOrderService {
       );
     }
 
-    // Update partner info
-    if (input.customerName || input.customerPhone) {
-      const partnerUpdate: Record<string, unknown> = {};
-      if (input.customerName) partnerUpdate.name = input.customerName;
-      if (input.customerPhone)
-        partnerUpdate.phone = input.customerPhone;
+    const nextPartnerId = await this.resolvePartnerForOrderUpdate(
+      order,
+      input
+    );
 
-      // Update partner address fields if provided in order update
-      if (input.deliveryAddress)
-        partnerUpdate.address = input.deliveryAddress;
-      if (input.street) partnerUpdate.street = input.street;
-      if (input.kelurahan) partnerUpdate.kelurahan = input.kelurahan;
-      if (input.kecamatan) partnerUpdate.kecamatan = input.kecamatan;
-      if (input.kota) partnerUpdate.kota = input.kota;
-      if (input.provinsi) partnerUpdate.provinsi = input.provinsi;
-      if (input.zip) partnerUpdate.zip = input.zip;
-      if (input.latitude !== undefined)
-        partnerUpdate.latitude = input.latitude;
-      if (input.longitude !== undefined)
-        partnerUpdate.longitude = input.longitude;
-
-      await prisma.partner.update({
-        where: { id: order.partnerId },
-        data: partnerUpdate,
-      });
-    }
-
-    // Recalculate items
     const startDate = input.rentalStartDate || order.rentalStartDate;
     const endDate = input.rentalEndDate || order.rentalEndDate;
-    const durationDays = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
+    const durationDays = this.getDurationDays(startDate, endDate);
 
     let subtotal = Number(order.subtotal);
     let totalAmount = Number(order.totalAmount);
 
     if (input.items && input.items.length > 0) {
+      const recalculated = await this.buildOrderItems({
+        companyId: order.companyId,
+        items: input.items,
+        durationDays,
+        allowAutoCreate: true,
+      });
+
+      subtotal = recalculated.subtotal;
+
       await prisma.rentalOrderItem.deleteMany({
         where: { rentalOrderId: order.id },
       });
 
-      subtotal = 0;
-      const newOrderItems = [];
-
-      for (const item of input.items) {
-        if (item.rentalBundleId) {
-          const bundle = await prisma.rentalBundle.findFirst({
-            where: {
-              companyId: order.companyId,
-              OR: [
-                { id: item.rentalBundleId },
-                { externalId: item.rentalBundleId },
-              ],
-            },
-          });
-
-          if (bundle) {
-            const itemTotal =
-              Number(bundle.dailyRate) * durationDays * item.quantity;
-            subtotal += itemTotal;
-            newOrderItems.push({
-              rentalOrderId: order.id,
-              rentalBundleId: bundle.id,
-              quantity: item.quantity,
-              unitPrice: bundle.dailyRate,
-              subtotal: itemTotal,
-              pricingTier: 'DAILY' as const,
-            });
-          }
-        } else if (item.rentalItemId) {
-          // Logic similar to createOrder (omitted slight duplications for brevity, assuming standard lookup)
-          let rentalItem = await prisma.rentalItem.findFirst({
-            where: {
-              companyId: order.companyId,
-              OR: [
-                { id: item.rentalItemId },
-                {
-                  product: {
-                    name: {
-                      equals: item.rentalItemId,
-                      mode: 'insensitive',
-                    },
-                  },
-                },
-              ],
-            },
-          });
-
-          // Fallback lookup by component SKU if not found
-          if (!rentalItem && item.components?.[0]) {
-            const componentSku = `SL-${item.components[0].toLowerCase().replace(/\s+/g, '-')}`;
-            rentalItem = await prisma.rentalItem.findFirst({
-              where: {
-                companyId: order.companyId,
-                product: { sku: componentSku },
-              },
-            });
-          }
-
-          if (rentalItem) {
-            const itemTotal =
-              Number(rentalItem.dailyRate) *
-              durationDays *
-              item.quantity;
-            subtotal += itemTotal;
-            newOrderItems.push({
-              rentalOrderId: order.id,
-              rentalItemId: rentalItem.id,
-              quantity: item.quantity,
-              unitPrice: rentalItem.dailyRate,
-              subtotal: itemTotal,
-              pricingTier: 'DAILY' as const,
-            });
-          }
-        }
-      }
-
-      if (newOrderItems.length > 0) {
-        await prisma.rentalOrderItem.createMany({
-          data: newOrderItems,
-        });
-      }
+      await prisma.rentalOrderItem.createMany({
+        data: recalculated.orderItems.map((item) => ({
+          rentalOrderId: order.id,
+          rentalItemId: item.rentalItemId,
+          rentalBundleId: item.rentalBundleId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          subtotal: item.subtotal,
+          pricingTier: item.pricingTier,
+        })),
+      });
     } else if (input.rentalStartDate || input.rentalEndDate) {
       const existingItems = await prisma.rentalOrderItem.findMany({
         where: { rentalOrderId: order.id },
@@ -719,46 +378,14 @@ export class RentalExternalOrderService {
     const finalSubtotal = subtotal - discountAmount;
     totalAmount = finalSubtotal + deliveryFee;
 
-    const orderUpdate: Record<string, unknown> = {
-      subtotal,
-      totalAmount,
-    };
-
-    if (input.rentalStartDate)
-      orderUpdate.rentalStartDate = input.rentalStartDate;
-    if (input.rentalEndDate) {
-      orderUpdate.rentalEndDate = input.rentalEndDate;
-      orderUpdate.dueDateTime = input.rentalEndDate;
-    }
-    if (input.notes !== undefined) orderUpdate.notes = input.notes;
-    // ... Copy other fields
-    if (input.deliveryFee !== undefined)
-      orderUpdate.deliveryFee = input.deliveryFee;
-    if (input.deliveryAddress !== undefined)
-      orderUpdate.deliveryAddress = input.deliveryAddress;
-    if (input.street !== undefined) orderUpdate.street = input.street;
-    if (input.kelurahan !== undefined)
-      orderUpdate.kelurahan = input.kelurahan;
-    if (input.kecamatan !== undefined)
-      orderUpdate.kecamatan = input.kecamatan;
-    if (input.kota !== undefined) orderUpdate.kota = input.kota;
-    if (input.provinsi !== undefined)
-      orderUpdate.provinsi = input.provinsi;
-    if (input.zip !== undefined) orderUpdate.zip = input.zip;
-    if (input.latitude !== undefined)
-      orderUpdate.latitude = input.latitude;
-    if (input.longitude !== undefined)
-      orderUpdate.longitude = input.longitude;
-    if (input.paymentMethod !== undefined)
-      orderUpdate.paymentMethod = input.paymentMethod;
-    if (input.discountAmount !== undefined)
-      orderUpdate.discountAmount = input.discountAmount;
-    if (input.discountLabel !== undefined)
-      orderUpdate.discountLabel = input.discountLabel;
-
     const updated = await prisma.rentalOrder.update({
       where: { id: order.id },
-      data: orderUpdate,
+      data: this.buildOrderUpdateData(
+        input,
+        subtotal,
+        totalAmount,
+        nextPartnerId !== order.partnerId ? nextPartnerId : undefined
+      ),
       include: {
         partner: { select: { name: true, phone: true } },
         items: true,
@@ -768,8 +395,7 @@ export class RentalExternalOrderService {
     return updated;
   }
 
-  async deleteOrder(id: string) {
-    // Find order first
+  async deleteOrder(id: string, expectedCompanyId?: string) {
     const order = await prisma.rentalOrder.findUnique({
       where: { id },
     });
@@ -782,7 +408,17 @@ export class RentalExternalOrderService {
       );
     }
 
-    // Check restricted deletion if necessary (e.g. only DRAFT)
+    if (
+      expectedCompanyId &&
+      order.companyId !== expectedCompanyId
+    ) {
+      throw new DomainError(
+        'Order not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
     if (order.status !== RentalOrderStatus.DRAFT) {
       throw new DomainError(
         'Cannot delete order that is not DRAFT',
@@ -791,7 +427,6 @@ export class RentalExternalOrderService {
       );
     }
 
-    // Manually delete items first to avoid foreign key constraint errors
     await prisma.rentalOrderItem.deleteMany({
       where: { rentalOrderId: id },
     });
@@ -801,5 +436,634 @@ export class RentalExternalOrderService {
     });
 
     return { success: true };
+  }
+
+  private getDurationDays(startDate: Date, endDate: Date): number {
+    if (endDate <= startDate) {
+      throw new DomainError(
+        'Rental end date must be after start date',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    return Math.ceil(
+      (endDate.getTime() - startDate.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+  }
+
+  private async updatePartnerFromInput(
+    partnerId: string,
+    input: UpdatePublicOrderInput
+  ) {
+    const partnerUpdate = this.buildPartnerUpdateData(input);
+
+    if (Object.keys(partnerUpdate).length === 0) {
+      return;
+    }
+
+    await prisma.partner.update({
+      where: { id: partnerId },
+      data: partnerUpdate,
+    });
+  }
+
+  private buildPartnerUpdateData(input: UpdatePublicOrderInput) {
+    const partnerUpdate: Record<string, unknown> = {};
+
+    if (input.customerName !== undefined) {
+      partnerUpdate.name = input.customerName;
+    }
+    if (input.customerPhone !== undefined) {
+      partnerUpdate.phone = this.normalizePhone(input.customerPhone);
+    }
+    if (input.deliveryAddress !== undefined) {
+      partnerUpdate.address = input.deliveryAddress;
+    }
+    if (input.street !== undefined) {
+      partnerUpdate.street = input.street;
+    }
+    if (input.kelurahan !== undefined) {
+      partnerUpdate.kelurahan = input.kelurahan;
+    }
+    if (input.kecamatan !== undefined) {
+      partnerUpdate.kecamatan = input.kecamatan;
+    }
+    if (input.kota !== undefined) {
+      partnerUpdate.kota = input.kota;
+    }
+    if (input.provinsi !== undefined) {
+      partnerUpdate.provinsi = input.provinsi;
+    }
+    if (input.zip !== undefined) {
+      partnerUpdate.zip = input.zip;
+    }
+    if (input.latitude !== undefined) {
+      partnerUpdate.latitude = input.latitude;
+    }
+    if (input.longitude !== undefined) {
+      partnerUpdate.longitude = input.longitude;
+    }
+
+    return partnerUpdate;
+  }
+
+  private async resolvePartnerForOrderUpdate(
+    order: {
+      partnerId: string;
+      companyId: string;
+      partner: {
+        type: PartnerType;
+        name: string;
+        email: string | null;
+        phone: string | null;
+        address: string | null;
+        street: string | null;
+        kelurahan: string | null;
+        kecamatan: string | null;
+        kota: string | null;
+        provinsi: string | null;
+        zip: string | null;
+        latitude: Prisma.Decimal | null;
+        longitude: Prisma.Decimal | null;
+      };
+    },
+    input: UpdatePublicOrderInput
+  ) {
+    const partnerUpdate = this.buildPartnerUpdateData(input);
+
+    if (Object.keys(partnerUpdate).length === 0) {
+      return order.partnerId;
+    }
+
+    const linkedOrdersCount = await prisma.rentalOrder.count({
+      where: { partnerId: order.partnerId },
+    });
+
+    if (linkedOrdersCount <= 1) {
+      await this.updatePartnerFromInput(order.partnerId, input);
+      return order.partnerId;
+    }
+
+    const clonedPartner = await prisma.partner.create({
+      data: {
+        companyId: order.companyId,
+        type: order.partner.type,
+        name: input.customerName ?? order.partner.name,
+        email: order.partner.email,
+        phone: input.customerPhone
+          ? this.normalizePhone(input.customerPhone)
+          : order.partner.phone,
+        address: input.deliveryAddress ?? order.partner.address,
+        street: input.street ?? order.partner.street,
+        kelurahan: input.kelurahan ?? order.partner.kelurahan,
+        kecamatan: input.kecamatan ?? order.partner.kecamatan,
+        kota: input.kota ?? order.partner.kota,
+        provinsi: input.provinsi ?? order.partner.provinsi,
+        zip: input.zip ?? order.partner.zip,
+        latitude: input.latitude ?? order.partner.latitude,
+        longitude: input.longitude ?? order.partner.longitude,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return clonedPartner.id;
+  }
+
+  private buildOrderUpdateData(
+    input: UpdatePublicOrderInput,
+    subtotal: number,
+    totalAmount: number,
+    partnerId?: string
+  ) {
+    const orderUpdate: Record<string, unknown> = {
+      subtotal,
+      totalAmount,
+    };
+
+    if (partnerId !== undefined) {
+      orderUpdate.partnerId = partnerId;
+    }
+
+    if (input.rentalStartDate !== undefined) {
+      orderUpdate.rentalStartDate = input.rentalStartDate;
+    }
+    if (input.rentalEndDate !== undefined) {
+      orderUpdate.rentalEndDate = input.rentalEndDate;
+      orderUpdate.dueDateTime = input.rentalEndDate;
+    }
+    if (input.notes !== undefined) {
+      orderUpdate.notes = input.notes;
+    }
+    if (input.deliveryFee !== undefined) {
+      orderUpdate.deliveryFee = input.deliveryFee;
+    }
+    if (input.deliveryAddress !== undefined) {
+      orderUpdate.deliveryAddress = input.deliveryAddress;
+    }
+    if (input.street !== undefined) {
+      orderUpdate.street = input.street;
+    }
+    if (input.kelurahan !== undefined) {
+      orderUpdate.kelurahan = input.kelurahan;
+    }
+    if (input.kecamatan !== undefined) {
+      orderUpdate.kecamatan = input.kecamatan;
+    }
+    if (input.kota !== undefined) {
+      orderUpdate.kota = input.kota;
+    }
+    if (input.provinsi !== undefined) {
+      orderUpdate.provinsi = input.provinsi;
+    }
+    if (input.zip !== undefined) {
+      orderUpdate.zip = input.zip;
+    }
+    if (input.latitude !== undefined) {
+      orderUpdate.latitude = input.latitude;
+    }
+    if (input.longitude !== undefined) {
+      orderUpdate.longitude = input.longitude;
+    }
+    if (input.paymentMethod !== undefined) {
+      orderUpdate.paymentMethod = input.paymentMethod;
+    }
+    if (input.discountAmount !== undefined) {
+      orderUpdate.discountAmount = input.discountAmount;
+    }
+    if (input.discountLabel !== undefined) {
+      orderUpdate.discountLabel = input.discountLabel;
+    }
+
+    return orderUpdate;
+  }
+
+  private async buildOrderItems(params: {
+    companyId: string;
+    items: ExternalOrderItemInput[];
+    durationDays: number;
+    allowAutoCreate: boolean;
+  }): Promise<{
+    subtotal: number;
+    orderItems: ResolvedOrderItem[];
+  }> {
+    let subtotal = 0;
+    const orderItems: ResolvedOrderItem[] = [];
+
+    for (const item of params.items) {
+      if (item.rentalBundleId) {
+        const bundle = await this.resolveBundle(
+          params.companyId,
+          item,
+          params.allowAutoCreate
+        );
+        const itemTotal =
+          Number(bundle.dailyRate) *
+          params.durationDays *
+          item.quantity;
+
+        subtotal += itemTotal;
+        orderItems.push({
+          rentalBundleId: bundle.id,
+          quantity: item.quantity,
+          unitPrice: bundle.dailyRate,
+          subtotal: itemTotal,
+          pricingTier: 'DAILY',
+        });
+        continue;
+      }
+
+      if (item.rentalItemId) {
+        const rentalItem = await this.resolveRentalItem(
+          params.companyId,
+          item,
+          params.allowAutoCreate
+        );
+        const itemTotal =
+          Number(rentalItem.dailyRate) *
+          params.durationDays *
+          item.quantity;
+
+        subtotal += itemTotal;
+        orderItems.push({
+          rentalItemId: rentalItem.id,
+          quantity: item.quantity,
+          unitPrice: rentalItem.dailyRate,
+          subtotal: itemTotal,
+          pricingTier: 'DAILY',
+        });
+        continue;
+      }
+
+      throw new DomainError(
+        'Either rentalItemId or rentalBundleId is required',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    return { subtotal, orderItems };
+  }
+
+  private async resolveBundle(
+    companyId: string,
+    item: ExternalOrderItemInput,
+    allowAutoCreate: boolean
+  ): Promise<RateBearingRecord> {
+    let bundle = await prisma.rentalBundle.findFirst({
+      where: {
+        companyId,
+        OR: [
+          { id: item.rentalBundleId },
+          { externalId: item.rentalBundleId },
+        ],
+      },
+      select: {
+        id: true,
+        dailyRate: true,
+      },
+    });
+
+    if (
+      !bundle &&
+      allowAutoCreate &&
+      item.name &&
+      item.pricePerDay
+    ) {
+      bundle = await this.createBundleWithComponents(companyId, item);
+    }
+
+    if (!bundle) {
+      throw new DomainError(
+        `Bundle not found: ${item.rentalBundleId}. Provide name, pricePerDay, and components for auto-creation.`,
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    return bundle;
+  }
+
+  private async createBundleWithComponents(
+    companyId: string,
+    item: ExternalOrderItemInput
+  ): Promise<RateBearingRecord> {
+    if (!item.rentalBundleId || !item.name || !item.pricePerDay) {
+      throw new DomainError(
+        'Bundle metadata is incomplete for auto-creation',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    const bundleExternalId = item.rentalBundleId;
+    const bundleName = item.name;
+    const bundlePricePerDay = item.pricePerDay;
+
+    return prisma.$transaction(async (tx) => {
+      const newBundle = await tx.rentalBundle.create({
+        data: {
+          companyId,
+          externalId: bundleExternalId,
+          name: bundleName,
+          dailyRate: bundlePricePerDay,
+          weeklyRate: bundlePricePerDay * 6,
+          monthlyRate: bundlePricePerDay * 25,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          dailyRate: true,
+        },
+      });
+
+      for (const component of item.components || []) {
+        const { quantity, label } = this.parseComponentLabel(component);
+        const rentalItem = await this.findOrCreateComponentRentalItem(
+          tx,
+          companyId,
+          label
+        );
+
+        await tx.rentalBundleComponent.create({
+          data: {
+            bundleId: newBundle.id,
+            rentalItemId: rentalItem.id,
+            quantity,
+            componentLabel: label,
+          },
+        });
+      }
+
+      return newBundle;
+    });
+  }
+
+  private async resolveRentalItem(
+    companyId: string,
+    item: ExternalOrderItemInput,
+    allowAutoCreate: boolean
+  ): Promise<RateBearingRecord> {
+    let rentalItem = await prisma.rentalItem.findFirst({
+      where: {
+        companyId,
+        id: item.rentalItemId,
+      },
+      select: {
+        id: true,
+        dailyRate: true,
+      },
+    });
+
+    if (!rentalItem && item.rentalItemId) {
+      rentalItem = await prisma.rentalItem.findFirst({
+        where: {
+          companyId,
+          product: {
+            name: {
+              equals: item.rentalItemId,
+              mode: 'insensitive',
+            },
+          },
+        },
+        select: {
+          id: true,
+          dailyRate: true,
+        },
+      });
+    }
+
+    if (!rentalItem && item.components?.[0]) {
+      const componentSku = this.toExternalSku(item.components[0]);
+      const freshLookup = await prisma.rentalItem.findFirst({
+        where: {
+          companyId,
+          product: { sku: componentSku },
+        },
+        select: {
+          id: true,
+          dailyRate: true,
+        },
+      });
+
+      if (freshLookup) {
+        rentalItem = freshLookup;
+
+        if (
+          item.pricePerDay &&
+          item.pricePerDay > Number(freshLookup.dailyRate)
+        ) {
+          await prisma.rentalItem.update({
+            where: { id: freshLookup.id },
+            data: {
+              dailyRate: item.pricePerDay,
+              weeklyRate: item.pricePerDay * 6,
+              monthlyRate: item.pricePerDay * 25,
+            },
+          });
+
+          rentalItem = {
+            ...freshLookup,
+            dailyRate: new Decimal(item.pricePerDay),
+          };
+        }
+      }
+    }
+
+    if (
+      !rentalItem &&
+      allowAutoCreate &&
+      item.name &&
+      item.pricePerDay
+    ) {
+      rentalItem = await this.findOrCreateRentalItem(companyId, item);
+    }
+
+    if (!rentalItem) {
+      throw new DomainError(
+        `Rental item not found for: ${item.rentalItemId}. Provide name and pricePerDay for auto-creation.`,
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    return rentalItem;
+  }
+
+  private async findOrCreateRentalItem(
+    companyId: string,
+    item: ExternalOrderItemInput
+  ): Promise<RateBearingRecord> {
+    if (!item.rentalItemId || !item.name || !item.pricePerDay) {
+      throw new DomainError(
+        'Rental item metadata is incomplete for auto-creation',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    const componentName = item.components?.[0];
+    const productName = componentName
+      ? this.capitalizeLabel(componentName)
+      : item.name;
+    const productSku = componentName
+      ? this.toExternalSku(componentName)
+      : this.toExternalSku(item.rentalItemId);
+
+    let product = await prisma.product.findFirst({
+      where: {
+        companyId,
+        sku: productSku,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!product) {
+      product = await prisma.product.create({
+        data: {
+          companyId,
+          sku: productSku,
+          name: productName,
+          price: 0,
+        },
+        select: {
+          id: true,
+        },
+      });
+    }
+
+    const existingRentalItem = await prisma.rentalItem.findFirst({
+      where: {
+        companyId,
+        productId: product.id,
+      },
+      select: {
+        id: true,
+        dailyRate: true,
+      },
+    });
+
+    if (existingRentalItem) {
+      if (item.pricePerDay > Number(existingRentalItem.dailyRate)) {
+        await prisma.rentalItem.update({
+          where: { id: existingRentalItem.id },
+          data: {
+            dailyRate: item.pricePerDay,
+            weeklyRate: item.pricePerDay * 6,
+            monthlyRate: item.pricePerDay * 25,
+          },
+        });
+
+        return {
+          ...existingRentalItem,
+          dailyRate: new Decimal(item.pricePerDay),
+        };
+      }
+
+      return existingRentalItem;
+    }
+
+    return prisma.rentalItem.create({
+      data: {
+        companyId,
+        productId: product.id,
+        dailyRate: item.pricePerDay,
+        weeklyRate: item.pricePerDay * 6,
+        monthlyRate: item.pricePerDay * 25,
+        depositPolicyType: 'PERCENTAGE',
+        depositPercentage: 0,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        dailyRate: true,
+      },
+    });
+  }
+
+  private async findOrCreateComponentRentalItem(
+    tx: Prisma.TransactionClient,
+    companyId: string,
+    label: string
+  ): Promise<{ id: string }> {
+    const existing = await tx.rentalItem.findFirst({
+      where: {
+        companyId,
+        product: {
+          name: {
+            contains: label,
+            mode: 'insensitive',
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    const product = await tx.product.create({
+      data: {
+        companyId,
+        sku: this.toExternalSku(label),
+        name: this.capitalizeLabel(label),
+        price: 0,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return tx.rentalItem.create({
+      data: {
+        companyId,
+        productId: product.id,
+        dailyRate: 5000,
+        weeklyRate: 30000,
+        monthlyRate: 125000,
+        depositPolicyType: 'PERCENTAGE',
+        depositPercentage: 0,
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  private parseComponentLabel(componentLabel: string) {
+    const quantityMatch = componentLabel.match(/^(\d+)\s+(.+)$/);
+
+    return {
+      quantity: quantityMatch
+        ? parseInt(quantityMatch[1], 10)
+        : 1,
+      label: quantityMatch ? quantityMatch[2] : componentLabel,
+    };
+  }
+
+  private toExternalSku(value: string) {
+    return `SL-${value.toLowerCase().replace(/\s+/g, '-')}`;
+  }
+
+  private normalizePhone(value: string) {
+    const digits = value.replace(/\D/g, '');
+    if (digits.startsWith('0')) {
+      return `62${digits.slice(1)}`;
+    }
+
+    return digits;
+  }
+
+  private capitalizeLabel(value: string) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
   }
 }

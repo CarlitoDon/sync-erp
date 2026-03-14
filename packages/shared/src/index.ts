@@ -7,5 +7,6 @@ export * from './validators/index';
 export * from './domain/Money';
 export * from './domain/BusinessDate';
 export * from './utils/paymentTerms';
+export * from './utils/auth';
 export * from './config/environment';
 export * from './utils/formatters';

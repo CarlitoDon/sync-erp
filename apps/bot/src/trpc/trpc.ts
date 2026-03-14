@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import superjson from 'superjson';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import dotenv from 'dotenv';
+import { parseBearerToken } from '../utils/auth';
 
 dotenv.config();
 
@@ -30,8 +31,8 @@ const isAuthed = t.middleware(({ ctx, next }) => {
       message: 'Missing Authorization header',
     });
   }
-  const token = authHeader.split(' ')[1];
-  if (token !== apiSecret) {
+  const token = parseBearerToken(authHeader);
+  if (!token || token !== apiSecret) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Invalid API Key',

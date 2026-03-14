@@ -5,10 +5,11 @@
  * Extracted from public-rental.router.ts for maintainability.
  */
 
-import { publicProcedure, apiKeyProcedure, router } from '../../trpc';
+import { apiKeyProcedure, router } from '../../trpc';
 import { z } from 'zod';
 import {
   prisma,
+  OrderSource,
   RentalOrderStatus,
   RentalPaymentStatus,
 } from '@sync-erp/database';
@@ -40,10 +41,13 @@ export const publicRentalPaymentRouter = router({
         paymentMethod: z.enum(['qris', 'transfer', 'gopay']),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       // Find order by token
       const order = await prisma.rentalOrder.findFirst({
-        where: { publicToken: input.token },
+        where: {
+          publicToken: input.token,
+          companyId: ctx.companyId,
+        },
         select: {
           id: true,
           orderNumber: true,
@@ -108,7 +112,10 @@ export const publicRentalPaymentRouter = router({
     .mutation(async ({ ctx, input }) => {
       // Find order by token
       const order = await prisma.rentalOrder.findFirst({
-        where: { publicToken: input.token },
+        where: {
+          publicToken: input.token,
+          companyId: ctx.companyId,
+        },
         select: {
           id: true,
           orderNumber: true,
@@ -157,6 +164,7 @@ export const publicRentalPaymentRouter = router({
       if (webhookService) {
         webhookService
           .notifyPaymentStatus({
+            companyId: order.companyId,
             token: input.token,
             action: 'claimed',
             paymentMethod: input.paymentMethod,
@@ -198,7 +206,7 @@ export const publicRentalPaymentRouter = router({
    * Confirm payment by Order Number (Internal/Webhook Use)
    * Used by Midtrans webhook to confirm payment via Order Number
    */
-  confirmPaymentByOrderNumber: publicProcedure
+  confirmPaymentByOrderNumber: apiKeyProcedure
     .input(
       z.object({
         orderNumber: z.string(),
@@ -207,10 +215,13 @@ export const publicRentalPaymentRouter = router({
         amount: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       // Find order by order number
       const order = await prisma.rentalOrder.findFirst({
-        where: { orderNumber: input.orderNumber },
+        where: {
+          companyId: ctx.companyId,
+          orderNumber: input.orderNumber,
+        },
       });
 
       if (!order) {
@@ -227,6 +238,27 @@ export const publicRentalPaymentRouter = router({
         return { success: true, status: 'ALREADY_CONFIRMED' };
       }
 
+      if (
+        order.orderSource === OrderSource.WEBSITE &&
+        input.amount === undefined
+      ) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Payment amount is required for website orders',
+        });
+      }
+
+      if (
+        input.amount !== undefined &&
+        Math.round(input.amount) !== Math.round(Number(order.totalAmount))
+      ) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message:
+            'Payment amount does not match the current order total',
+        });
+      }
+
       // Update payment status to CONFIRMED (Trusted from Midtrans)
       const updatedOrder = await prisma.rentalOrder.update({
         where: { id: order.id },
@@ -235,6 +267,13 @@ export const publicRentalPaymentRouter = router({
           paymentConfirmedAt: new Date(),
           paymentMethod: input.paymentMethod,
           paymentReference: input.transactionId,
+          ...(order.orderSource === OrderSource.WEBSITE &&
+          order.status === RentalOrderStatus.DRAFT
+            ? {
+                status: RentalOrderStatus.CONFIRMED,
+                confirmedAt: new Date(),
+              }
+            : {}),
         },
       });
 
@@ -243,6 +282,7 @@ export const publicRentalPaymentRouter = router({
       if (webhookService && order.publicToken) {
         webhookService
           .notifyPaymentStatus({
+            companyId: order.companyId,
             token: order.publicToken,
             action: 'confirmed',
             paymentMethod: input.paymentMethod,
@@ -260,6 +300,86 @@ export const publicRentalPaymentRouter = router({
         success: true,
         orderNumber: updatedOrder.orderNumber,
         status: updatedOrder.status,
+      };
+    }),
+
+  /**
+   * Reject payment by Order Number (Internal/Webhook Use)
+   * Used by Midtrans webhook to mark expired/denied/cancelled payments as failed.
+   */
+  rejectPaymentByOrderNumber: apiKeyProcedure
+    .input(
+      z.object({
+        orderNumber: z.string(),
+        paymentMethod: z.string().optional(),
+        failReason: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const order = await prisma.rentalOrder.findFirst({
+        where: {
+          companyId: ctx.companyId,
+          orderNumber: input.orderNumber,
+        },
+      });
+
+      if (!order) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Order not found',
+        });
+      }
+
+      if (
+        order.rentalPaymentStatus === RentalPaymentStatus.CONFIRMED
+      ) {
+        return {
+          success: true,
+          orderNumber: order.orderNumber,
+          status: 'ALREADY_CONFIRMED',
+        };
+      }
+
+      if (order.rentalPaymentStatus === RentalPaymentStatus.FAILED) {
+        return {
+          success: true,
+          orderNumber: order.orderNumber,
+          status: 'ALREADY_FAILED',
+        };
+      }
+
+      const updatedOrder = await prisma.rentalOrder.update({
+        where: { id: order.id },
+        data: {
+          rentalPaymentStatus: RentalPaymentStatus.FAILED,
+          paymentFailedAt: new Date(),
+          paymentFailReason: input.failReason,
+          paymentMethod: input.paymentMethod || order.paymentMethod,
+        },
+      });
+
+      const webhookService = getWebhookService();
+      if (webhookService && order.publicToken) {
+        webhookService
+          .notifyPaymentStatus({
+            companyId: order.companyId,
+            token: order.publicToken,
+            action: 'rejected',
+            paymentMethod: input.paymentMethod || order.paymentMethod || undefined,
+            failReason: input.failReason,
+          })
+          .catch((err: unknown) => {
+            console.error(
+              '[PublicRental] Payment rejected webhook failed:',
+              err
+            );
+          });
+      }
+
+      return {
+        success: true,
+        orderNumber: updatedOrder.orderNumber,
+        status: RentalPaymentStatus.FAILED,
       };
     }),
 });

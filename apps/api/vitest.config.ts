@@ -6,6 +6,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   root: __dirname,
+  server: {
+    fs: {
+      allow: [path.resolve(__dirname, '../../..')],
+    },
+  },
   resolve: {
     alias: {
       '@modules': path.resolve(__dirname, 'src/modules'),
