@@ -95,6 +95,10 @@ export const IntegrationScalarFieldEnumSchema = z.enum(['id','companyId','appId'
 
 export const ApiKeyScalarFieldEnumSchema = z.enum(['id','keyHash','keyPrefix','name','companyId','integrationId','permissions','webhookUrl','webhookSecret','rateLimit','isActive','expiresAt','lastUsedAt','createdAt','updatedAt']);
 
+export const RentalWebhookOutboxScalarFieldEnumSchema = z.enum(['id','companyId','deliveryType','orderPublicToken','orderNumber','payload','autoRetry','status','attempts','nextAttemptAt','lastAttemptAt','deliveredAt','lastError','lastStatusCode','createdAt','updatedAt']);
+
+export const TenantWebhookOutboxScalarFieldEnumSchema = z.enum(['id','companyId','apiKeyId','event','payload','webhookUrl','webhookSecret','eventTimestamp','status','attempts','nextAttemptAt','lastAttemptAt','deliveredAt','lastError','lastStatusCode','createdAt','updatedAt']);
+
 export const UserScalarFieldEnumSchema = z.enum(['id','email','name','passwordHash','createdAt','updatedAt']);
 
 export const SessionScalarFieldEnumSchema = z.enum(['id','userId','expiresAt','createdAt']);
@@ -361,6 +365,18 @@ export const RiskLevelSchema = z.enum(['NORMAL','WATCHLIST','BLACKLISTED']);
 
 export type RiskLevelType = `${z.infer<typeof RiskLevelSchema>}`
 
+export const RentalWebhookDeliveryTypeSchema = z.enum(['NEW_ORDER','PAYMENT_STATUS']);
+
+export type RentalWebhookDeliveryTypeType = `${z.infer<typeof RentalWebhookDeliveryTypeSchema>}`
+
+export const RentalWebhookOutboxStatusSchema = z.enum(['PENDING','PROCESSING','DELIVERED','FAILED','DEAD_LETTER']);
+
+export type RentalWebhookOutboxStatusType = `${z.infer<typeof RentalWebhookOutboxStatusSchema>}`
+
+export const TenantWebhookOutboxStatusSchema = z.enum(['PENDING','PROCESSING','DELIVERED','FAILED','DEAD_LETTER']);
+
+export type TenantWebhookOutboxStatusType = `${z.infer<typeof TenantWebhookOutboxStatusSchema>}`
+
 /////////////////////////////////////////
 // MODELS
 /////////////////////////////////////////
@@ -428,6 +444,57 @@ export const ApiKeySchema = z.object({
 })
 
 export type ApiKey = z.infer<typeof ApiKeySchema>
+
+/////////////////////////////////////////
+// RENTAL WEBHOOK OUTBOX SCHEMA
+/////////////////////////////////////////
+
+export const RentalWebhookOutboxSchema = z.object({
+  deliveryType: RentalWebhookDeliveryTypeSchema,
+  status: RentalWebhookOutboxStatusSchema,
+  id: z.string(),
+  companyId: z.string(),
+  orderPublicToken: z.string(),
+  orderNumber: z.string().nullable(),
+  payload: JsonValueSchema,
+  autoRetry: z.boolean(),
+  attempts: z.number(),
+  nextAttemptAt: z.coerce.date(),
+  lastAttemptAt: z.coerce.date().nullable(),
+  deliveredAt: z.coerce.date().nullable(),
+  lastError: z.string().nullable(),
+  lastStatusCode: z.number().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type RentalWebhookOutbox = z.infer<typeof RentalWebhookOutboxSchema>
+
+/////////////////////////////////////////
+// TENANT WEBHOOK OUTBOX SCHEMA
+/////////////////////////////////////////
+
+export const TenantWebhookOutboxSchema = z.object({
+  status: TenantWebhookOutboxStatusSchema,
+  id: z.string(),
+  companyId: z.string(),
+  apiKeyId: z.string().nullable(),
+  event: z.string(),
+  payload: JsonValueSchema,
+  webhookUrl: z.string(),
+  webhookSecret: z.string().nullable(),
+  eventTimestamp: z.coerce.date(),
+  attempts: z.number(),
+  nextAttemptAt: z.coerce.date(),
+  lastAttemptAt: z.coerce.date().nullable(),
+  deliveredAt: z.coerce.date().nullable(),
+  lastError: z.string().nullable(),
+  lastStatusCode: z.number().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type TenantWebhookOutbox = z.infer<typeof TenantWebhookOutboxSchema>
 
 /////////////////////////////////////////
 // USER SCHEMA

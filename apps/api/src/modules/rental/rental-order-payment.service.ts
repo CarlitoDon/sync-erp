@@ -107,6 +107,7 @@ export class RentalOrderPaymentService {
       if (this.webhookService && order.publicToken) {
         this.webhookService
           .notifyPaymentStatus({
+            companyId: order.companyId,
             token: order.publicToken,
             action: action === 'confirm' ? 'confirmed' : 'rejected',
             paymentReference,

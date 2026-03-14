@@ -8,6 +8,7 @@
 import { apiKeyProcedure, router } from '../../trpc';
 import { z } from 'zod';
 import { prisma, PartnerType } from '@sync-erp/database';
+import { TRPCError } from '@trpc/server';
 
 export const publicRentalPartnerRouter = router({
   /**
@@ -33,7 +34,14 @@ export const publicRentalPartnerRouter = router({
         longitude: z.number().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      if (input.companyId !== ctx.companyId) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'API key company mismatch',
+        });
+      }
+
       // Normalize phone number
       let normalizedPhone = input.phone.replace(/\D/g, '');
       if (normalizedPhone.startsWith('0')) {
@@ -43,7 +51,7 @@ export const publicRentalPartnerRouter = router({
       // Try to find existing partner by phone
       let partner = await prisma.partner.findFirst({
         where: {
-          companyId: input.companyId,
+          companyId: ctx.companyId,
           phone: normalizedPhone,
         },
       });
@@ -52,7 +60,7 @@ export const publicRentalPartnerRouter = router({
         // Create new partner with all address fields
         partner = await prisma.partner.create({
           data: {
-            companyId: input.companyId,
+            companyId: ctx.companyId,
             name: input.name,
             phone: normalizedPhone,
             email: input.email,
@@ -68,12 +76,38 @@ export const publicRentalPartnerRouter = router({
             type: PartnerType.CUSTOMER,
           },
         });
-      } else {
-        // Update existing partner with new address data if provided
-        partner = await prisma.partner.update({
-          where: { id: partner.id },
+      } else if (
+        input.name !== partner.name ||
+        (input.address !== undefined &&
+          input.address !== partner.address) ||
+        (input.street !== undefined &&
+          input.street !== partner.street) ||
+        (input.kelurahan !== undefined &&
+          input.kelurahan !== partner.kelurahan) ||
+        (input.kecamatan !== undefined &&
+          input.kecamatan !== partner.kecamatan) ||
+        (input.kota !== undefined && input.kota !== partner.kota) ||
+        (input.provinsi !== undefined &&
+          input.provinsi !== partner.provinsi) ||
+        (input.zip !== undefined && input.zip !== partner.zip) ||
+        (input.latitude !== undefined &&
+          input.latitude !==
+            (partner.latitude === null
+              ? undefined
+              : Number(partner.latitude))) ||
+        (input.longitude !== undefined &&
+          input.longitude !==
+            (partner.longitude === null
+              ? undefined
+              : Number(partner.longitude)))
+      ) {
+        // Create a fresh partner snapshot instead of mutating an existing master record
+        partner = await prisma.partner.create({
           data: {
+            companyId: ctx.companyId,
             name: input.name,
+            phone: normalizedPhone,
+            email: input.email,
             address: input.address,
             street: input.street,
             kelurahan: input.kelurahan,
@@ -83,6 +117,7 @@ export const publicRentalPartnerRouter = router({
             zip: input.zip,
             latitude: input.latitude,
             longitude: input.longitude,
+            type: PartnerType.CUSTOMER,
           },
         });
       }

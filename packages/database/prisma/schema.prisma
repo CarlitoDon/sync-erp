@@ -56,6 +56,8 @@ model Company {
   warehouses            Warehouse[]
   rentalBundles         RentalBundle[]
   integrations          Integration[]
+  rentalWebhookOutbox   RentalWebhookOutbox[]
+  tenantWebhookOutbox   TenantWebhookOutbox[]
 
   paymentMethods CompanyPaymentMethod[]
 }
@@ -110,9 +112,63 @@ model ApiKey {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenantWebhookOutbox TenantWebhookOutbox[]
+
   @@index([companyId])
   @@index([keyPrefix])
   @@index([isActive])
+}
+
+model RentalWebhookOutbox {
+  id               String                    @id @default(cuid())
+  companyId        String
+  deliveryType     RentalWebhookDeliveryType
+  orderPublicToken String
+  orderNumber      String?
+  payload          Json
+  autoRetry        Boolean                   @default(true)
+  status           RentalWebhookOutboxStatus @default(PENDING)
+  attempts         Int                       @default(0)
+  nextAttemptAt    DateTime                  @default(now())
+  lastAttemptAt    DateTime?
+  deliveredAt      DateTime?
+  lastError        String?                   @db.Text
+  lastStatusCode   Int?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  company          Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@index([status, nextAttemptAt])
+  @@index([deliveryType, status, nextAttemptAt])
+  @@index([orderPublicToken])
+}
+
+model TenantWebhookOutbox {
+  id             String                   @id @default(cuid())
+  companyId      String
+  apiKeyId       String?
+  event          String
+  payload        Json
+  webhookUrl     String
+  webhookSecret  String?
+  eventTimestamp DateTime                 @default(now())
+  status         TenantWebhookOutboxStatus @default(PENDING)
+  attempts       Int                      @default(0)
+  nextAttemptAt  DateTime                 @default(now())
+  lastAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  lastError      String?                  @db.Text
+  lastStatusCode Int?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  company        Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  apiKey         ApiKey?                  @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
+  @@index([status, nextAttemptAt])
+  @@index([companyId, status, nextAttemptAt])
+  @@index([event, status, nextAttemptAt])
 }
 
 model User {
@@ -1402,4 +1458,25 @@ enum RiskLevel {
   NORMAL
   WATCHLIST
   BLACKLISTED
+}
+
+enum RentalWebhookDeliveryType {
+  NEW_ORDER
+  PAYMENT_STATUS
+}
+
+enum RentalWebhookOutboxStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+  DEAD_LETTER
+}
+
+enum TenantWebhookOutboxStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+  DEAD_LETTER
 }

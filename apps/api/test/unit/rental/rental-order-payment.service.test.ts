@@ -99,12 +99,15 @@ describe('RentalOrderPaymentService', () => {
       // Check if the webhook method was called
       expect(
         mockWebhookService.notifyPaymentStatus
-      ).toHaveBeenCalledWith({
-        token: 'token-123',
-        action: 'confirmed',
-        paymentReference: 'REF-001',
-        failReason: undefined,
-      });
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          companyId: COMPANY_ID,
+          token: 'token-123',
+          action: 'confirmed',
+          paymentReference: 'REF-001',
+          failReason: undefined,
+        })
+      );
     });
 
     it('should auto-confirm order if WEBSITE and DRAFT', async () => {

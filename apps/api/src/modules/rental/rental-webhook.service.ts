@@ -2,8 +2,10 @@
  * Webhook service for Santi Living notifications
  * Calls santi-living erp-sync-service to trigger WA notifications
  */
+import { rentalWebhookOutboxService } from './rental-webhook-outbox.service';
 
 interface NotifyPaymentStatusParams {
+  companyId: string;
   token: string;
   action: 'confirmed' | 'rejected' | 'claimed';
   paymentReference?: string;
@@ -12,6 +14,7 @@ interface NotifyPaymentStatusParams {
 }
 
 interface NotifyNewOrderParams {
+  companyId: string;
   token: string;
   orderNumber: string;
   customerName: string;
@@ -19,16 +22,11 @@ interface NotifyNewOrderParams {
   totalAmount: number;
 }
 
+interface NotifyOptions {
+  throwOnFailure?: boolean;
+}
+
 export class RentalWebhookService {
-  private readonly baseUrl: string;
-  private readonly apiKey: string;
-
-  constructor() {
-    this.baseUrl =
-      process.env.SANTI_LIVING_WEBHOOK_URL || 'http://localhost:3002';
-    this.apiKey = process.env.SANTI_LIVING_WEBHOOK_API_KEY || '';
-  }
-
   /**
    * Notify santi-living about payment status change
    * Fires async - failures are logged but don't block the main operation
@@ -36,112 +34,41 @@ export class RentalWebhookService {
   async notifyPaymentStatus(
     params: NotifyPaymentStatusParams
   ): Promise<void> {
-    if (!this.apiKey) {
-      console.warn(
-        '[RentalWebhook] SANTI_LIVING_WEBHOOK_API_KEY not configured, skipping notification'
-      );
-      return;
-    }
+    const result =
+      await rentalWebhookOutboxService.enqueuePaymentStatus(params);
 
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/api/orders/${params.token}/notify-payment`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify({
-            action: params.action,
-            paymentReference: params.paymentReference,
-            failReason: params.failReason,
-            paymentMethod: params.paymentMethod,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = (await response
-          .json()
-          .catch(() => ({}))) as {
-          message?: string;
-        };
-        console.error(
-          `[RentalWebhook] Failed to notify payment status: ${response.status}`,
-          errorData
-        );
-      } else {
-        // eslint-disable-next-line no-console -- Webhook success log
-        console.log(
-          `[RentalWebhook] Payment status notification sent: ${params.action} for ${params.token}`
-        );
-      }
-    } catch (error) {
-      // Log but don't throw - webhook failures shouldn't block main operation
+    if (!result.success) {
       console.error(
-        '[RentalWebhook] Error sending notification:',
-        error
+        `[RentalWebhook] Payment status notification queued for retry: ${params.action} for ${params.token}`,
+        result.error
       );
     }
   }
 
   /**
    * Notify admin about new website order
-   * Fires async - failures are logged but don't block the main operation
+   * By default failures are logged and swallowed. External order creation can
+   * opt into fail-fast mode so rollback behavior is explicit.
    */
-  async notifyNewOrder(params: NotifyNewOrderParams): Promise<void> {
-    if (!this.apiKey) {
-      console.warn(
-        '[RentalWebhook] SANTI_LIVING_WEBHOOK_API_KEY not configured, skipping notification'
-      );
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/api/orders/${params.token}/notify-admin`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify({
-            action: 'new_order',
-            orderNumber: params.orderNumber,
-            customerName: params.customerName,
-            customerPhone: params.customerPhone,
-            totalAmount: params.totalAmount,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = (await response
-          .json()
-          .catch(() => ({}))) as {
-          message?: string;
-        };
-        console.error(
-          `[RentalWebhook] Failed to notify new order: ${response.status}`,
-          errorData
-        );
-        // Throw error so the caller (public-rental.router) can handle it (e.g. rollback)
-        throw new Error(
-          errorData.message || `Webhook failed: ${response.status}`
-        );
-      } else {
-        // eslint-disable-next-line no-console -- Webhook success log
-        console.log(
-          `[RentalWebhook] New order notification sent: ${params.orderNumber}`
-        );
+  async notifyNewOrder(
+    params: NotifyNewOrderParams,
+    options: NotifyOptions = {}
+  ): Promise<void> {
+    const result = await rentalWebhookOutboxService.enqueueNewOrder(
+      params,
+      {
+        autoRetry: !options.throwOnFailure,
       }
-    } catch (error) {
+    );
+
+    if (!result.success) {
       console.error(
-        '[RentalWebhook] Error sending new order notification:',
-        error
+        `[RentalWebhook] Failed to notify new order: ${params.orderNumber}`,
+        result.error
       );
+      if (options.throwOnFailure) {
+        throw new Error(result.error || 'Webhook delivery failed');
+      }
     }
   }
 
@@ -149,12 +76,14 @@ export class RentalWebhookService {
    * Adapter for RentalOrderLifecycleService — maps internal order to webhook params
    */
   async notifyOrderCreated(order: {
+    companyId: string;
     id: string;
     orderNumber?: string;
     totalAmount?: number | { toNumber(): number };
     partner?: { name?: string; phone?: string; email?: string } | null;
   }): Promise<void> {
     await this.notifyNewOrder({
+      companyId: order.companyId,
       token: order.id,
       orderNumber: order.orderNumber || 'UNKNOWN',
       customerName: order.partner?.name || 'Guest',
@@ -167,8 +96,6 @@ export class RentalWebhookService {
   async notifyOrderCancelled(order: {
     orderNumber?: string;
   }): Promise<void> {
-    if (!this.apiKey) return;
-
     // eslint-disable-next-line no-console -- Webhook cancellation log
     console.log(
       `[RentalWebhook] Order Cancelled: ${order.orderNumber}`

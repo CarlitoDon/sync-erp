@@ -206,12 +206,15 @@ describe('RentalOrderPaymentService Integration', () => {
     // Check Webhook
     expect(
       mockWebhookService.notifyPaymentStatus
-    ).toHaveBeenCalledWith({
-      token: 'test-token-123',
-      action: 'confirmed',
-      paymentReference: 'REF-PAY-001',
-      failReason: undefined,
-    });
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyId: COMPANY_ID,
+        token: 'test-token-123',
+        action: 'confirmed',
+        paymentReference: 'REF-PAY-001',
+        failReason: undefined,
+      })
+    );
   });
 
   it('should auto-confirm order if source is WEBSITE and status DRAFT', async () => {
@@ -292,11 +295,14 @@ describe('RentalOrderPaymentService Integration', () => {
     // Check Webhook
     expect(
       mockWebhookService.notifyPaymentStatus
-    ).toHaveBeenCalledWith({
-      token: 'test-token-fail',
-      action: 'rejected',
-      paymentReference: undefined,
-      failReason: 'Invalid proof',
-    });
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyId: COMPANY_ID,
+        token: 'test-token-fail',
+        action: 'rejected',
+        paymentReference: undefined,
+        failReason: 'Invalid proof',
+      })
+    );
   });
 });

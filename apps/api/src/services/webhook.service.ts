@@ -1,6 +1,7 @@
 import crypto from 'crypto';
-import { prisma } from '@sync-erp/database';
-import { WEBHOOK_TIMEOUT_MS, WEBHOOK_TEST_TIMEOUT_MS } from '@sync-erp/shared';
+import { TenantWebhookOutboxStatus } from '@sync-erp/database';
+import { tenantWebhookOutboxService } from './tenant-webhook-outbox.service';
+import { WEBHOOK_TEST_TIMEOUT_MS } from '@sync-erp/shared';
 
 export interface WebhookEvent {
   event: string;
@@ -10,9 +11,11 @@ export interface WebhookEvent {
 
 export interface WebhookDeliveryResult {
   success: boolean;
+  status?: TenantWebhookOutboxStatus;
   statusCode?: number;
   error?: string;
   duration?: number;
+  attempts?: number;
 }
 
 /**
@@ -49,85 +52,11 @@ export class WebhookService {
     event: string,
     payload: Record<string, unknown>
   ): Promise<WebhookDeliveryResult> {
-    // Find active API key with webhook URL for this company
-    const apiKey = await prisma.apiKey.findFirst({
-      where: {
-        companyId,
-        isActive: true,
-        webhookUrl: { not: null },
-      },
-      select: {
-        webhookUrl: true,
-        webhookSecret: true,
-      },
-    });
-
-    if (!apiKey?.webhookUrl) {
-      return { success: false, error: 'No webhook URL configured' };
-    }
-
-    const webhookEvent: WebhookEvent = {
+    return tenantWebhookOutboxService.enqueueDelivery({
+      companyId,
       event,
       payload,
-      timestamp: Date.now(),
-    };
-
-    const body = JSON.stringify(webhookEvent);
-    const signature = apiKey.webhookSecret
-      ? this.generateSignature(body, apiKey.webhookSecret)
-      : '';
-
-    const startTime = Date.now();
-
-    try {
-      const response = await fetch(apiKey.webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Signature': signature,
-          'X-Webhook-Event': event,
-          'X-Webhook-Timestamp': webhookEvent.timestamp.toString(),
-        },
-        body,
-        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
-      });
-
-      const duration = Date.now() - startTime;
-
-      if (response.ok) {
-        // eslint-disable-next-line no-console -- Webhook delivery success log
-        console.log(
-          `[WebhookService] Delivered ${event} to ${apiKey.webhookUrl} in ${duration}ms`
-        );
-        return {
-          success: true,
-          statusCode: response.status,
-          duration,
-        };
-      } else {
-        console.error(
-          `[WebhookService] Failed ${event}: ${response.status}`
-        );
-        return {
-          success: false,
-          statusCode: response.status,
-          error: `HTTP ${response.status}`,
-          duration,
-        };
-      }
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      console.error(
-        `[WebhookService] Error delivering ${event}:`,
-        error
-      );
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : 'Unknown error',
-        duration,
-      };
-    }
+    });
   }
 
   /**
