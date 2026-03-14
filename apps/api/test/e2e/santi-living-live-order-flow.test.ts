@@ -1,6 +1,7 @@
 import type { AddressInfo } from 'net';
 import type { Server } from 'http';
 import { createServer as createNetServer } from 'net';
+import { existsSync } from 'fs';
 import crypto from 'crypto';
 import path from 'path';
 import express from 'express';
@@ -67,11 +68,23 @@ type HttpApp = {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const codingRoot = path.resolve(__dirname, '../../../../../');
+const proxyServerModulePath = path.resolve(
+  codingRoot,
+  'santi-living/apps/proxy/src/server.ts'
+);
+const proxyClientModulePath = path.resolve(
+  codingRoot,
+  'santi-living/apps/web/src/lib/trpc-client.ts'
+);
+const hasSantiLivingWorkspace =
+  existsSync(proxyServerModulePath) && existsSync(proxyClientModulePath);
+const shouldRunLiveCrossRepoE2E =
+  process.env.RUN_SANTI_LIVING_LIVE_E2E === 'true';
 const proxyServerModuleUrl = pathToFileURL(
-  path.resolve(codingRoot, 'santi-living/apps/proxy/src/server.ts')
+  proxyServerModulePath
 ).href;
 const proxyClientModuleUrl = pathToFileURL(
-  path.resolve(codingRoot, 'santi-living/apps/web/src/lib/trpc-client.ts')
+  proxyClientModulePath
 ).href;
 
 const createBotStubApp = () => {
@@ -392,7 +405,11 @@ const cleanupCompanyOrders = async () => {
   ]);
 };
 
-describe('Santi Living live order flow E2E', () => {
+describe.skipIf(
+  !hasSantiLivingWorkspace || !shouldRunLiveCrossRepoE2E
+)(
+  'Santi Living live order flow E2E',
+  () => {
   let botServer: Server;
   let erpServer: Server;
   let proxyServer: Server;
@@ -784,4 +801,5 @@ describe('Santi Living live order flow E2E', () => {
     expect(botState.adminMessages).toHaveLength(1);
     expect(botState.orderNotifications).toHaveLength(0);
   });
-});
+  }
+);
