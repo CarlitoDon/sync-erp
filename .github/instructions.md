@@ -62,7 +62,14 @@ Each domain in `apps/api/src/modules/[domain]/` follows:
 | **Rules**      | `rules/*.ts`      | Pure business logic, stateless      |
 | **Repository** | `*.repository.ts` | Prisma queries, no business logic   |
 
-### 3. Schema-First Development
+### 3. BusinessShape-Aware Feature Development
+
+Features MUST be designed with the company's Business Shape in mind:
+- **Universal Features**: Logical for all shapes (TRADING, SERVICE, HYBRID). Must not be gated.
+- **Shape-Specific Features**: Must be gated by Policy checks (e.g. `if (shape === BusinessShape.TRADING)`).
+- **Adaptive UI**: Sidebar menus must adjust based on `businessShape` and data existence.
+
+### 4. Schema-First Development
 
 All API contracts start in `packages/shared/src/validators/`:
 
