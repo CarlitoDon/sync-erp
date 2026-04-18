@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
 import { SalesOrderService } from '../../modules/sales/sales-order.service';
-import { IdempotencyScope } from '@sync-erp/database';
+import { IdempotencyScope, Prisma } from '@sync-erp/database';
 import { CreateSalesOrderSchema } from '@sync-erp/shared';
 
 import { container, ServiceKeys } from '../../modules/common/di';
@@ -48,12 +48,12 @@ export const salesOrderRouter = router({
    * Update sales order
    */
   update: protectedProcedure
-    .input(z.object({ id: z.string(), data: z.unknown() }))
+    .input(z.object({ id: z.string(), data: z.record(z.string(), z.unknown()) }))
     .mutation(async ({ input, ctx }) => {
       return salesOrderService.update(
         input.id,
         ctx.companyId,
-        input.data
+        input.data as Prisma.OrderUpdateInput
       );
     }),
 
