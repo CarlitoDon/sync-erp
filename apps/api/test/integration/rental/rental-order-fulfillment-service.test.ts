@@ -14,8 +14,8 @@ import {
 } from '@sync-erp/database';
 import { RentalOrderFulfillmentService } from '@modules/rental/rental-order-fulfillment.service';
 import { RentalRepository } from '@modules/rental/rental.repository';
-import { JournalService } from '@modules/accounting/services/journal.service';
 import { RentalService } from '@modules/rental/rental.service';
+import { JournalService } from '@modules/accounting/services/journal.service';
 
 const rentalServiceFacade = new RentalService(); // For setup helper
 const repository = new RentalRepository();
@@ -100,7 +100,7 @@ describe('RentalOrderFulfillmentService Integration', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -287,7 +287,7 @@ describe('RentalOrderFulfillmentService Integration', () => {
       {
         orderId: order.id,
         depositAmount: 50000,
-        paymentMethod: 'CASH' as any,
+        paymentMethod: "CASH" as string,
         unitAssignments: [{ unitId: unit1Id }],
       },
       ACTOR_ID

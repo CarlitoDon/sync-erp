@@ -198,7 +198,7 @@ describe('Feature 042: Cash & Bank Integration', () => {
 
       // Bank account 1 should be credited (Cash out)
       const bankLine = journal?.lines.find(
-        (l) => l.accountId === (postedTx as any).sourceBank.accountId
+        (l) => l.accountId === (postedTx as unknown as { sourceBank: { accountId: string }; destinationBank: { accountId: string } }).sourceBank.accountId
       );
       expect(Number(bankLine?.credit)).toBe(75000);
       expect(Number(bankLine?.debit)).toBe(0);
@@ -248,7 +248,7 @@ describe('Feature 042: Cash & Bank Integration', () => {
       // Bank account 1 should be debited (Cash in)
       const bankLine = journal?.lines.find(
         (l) =>
-          l.accountId === (postedTx as any).destinationBank.accountId
+          l.accountId === (postedTx as unknown as { sourceBank: { accountId: string }; destinationBank: { accountId: string } }).destinationBank.accountId
       );
       expect(Number(bankLine?.debit)).toBe(500000);
 
@@ -286,14 +286,14 @@ describe('Feature 042: Cash & Bank Integration', () => {
 
       // Source bank (Bank 1) should be credited
       const sourceLine = journal?.lines.find(
-        (l) => l.accountId === (postedTx as any).sourceBank.accountId
+        (l) => l.accountId === (postedTx as unknown as { sourceBank: { accountId: string }; destinationBank: { accountId: string } }).sourceBank.accountId
       );
       expect(Number(sourceLine?.credit)).toBe(100000);
 
       // Destination bank (Bank 2) should be debited
       const destLine = journal?.lines.find(
         (l) =>
-          l.accountId === (postedTx as any).destinationBank.accountId
+          l.accountId === (postedTx as unknown as { sourceBank: { accountId: string }; destinationBank: { accountId: string } }).destinationBank.accountId
       );
       expect(Number(destLine?.debit)).toBe(100000);
     });

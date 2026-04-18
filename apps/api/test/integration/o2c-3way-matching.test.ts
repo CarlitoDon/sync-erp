@@ -40,7 +40,7 @@ describe('O2C: 3-Way Matching Validation (Mirroring P2P)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });

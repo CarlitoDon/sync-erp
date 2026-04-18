@@ -48,7 +48,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -571,10 +571,10 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       expect(journals[0].reference).toContain('Settle Prepaid');
 
       const lines = journals[0].lines;
-      const drAP = (lines as any[]).find(
+      const drAP = lines.find(
         (l) => l.account.code === '2100' && Number(l.debit) > 0
       );
-      const crAdvances = (lines as any[]).find(
+      const crAdvances = lines.find(
         (l) => l.account.code === '1600' && Number(l.credit) > 0
       );
 
@@ -627,7 +627,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
             companyId: COMPANY_ID_E2E,
             code: acc.code,
             name: acc.name,
-            type: acc.type as any,
+            type: acc.type as import("@sync-erp/database").AccountType,
             isActive: true,
           },
         });

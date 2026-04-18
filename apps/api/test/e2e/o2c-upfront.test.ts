@@ -65,7 +65,7 @@ describe('E2E: Cash Upfront Sales - Complete O2C Flow', () => {
           companyId: COMPANY_ID,
           ...acc,
           isActive: true,
-        } as any,
+        } as never,
       });
     }
 

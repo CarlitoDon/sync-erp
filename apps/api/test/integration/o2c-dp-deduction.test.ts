@@ -7,12 +7,11 @@ import {
 } from '@sync-erp/database';
 import { InvoiceService } from '../../src/modules/accounting/services/invoice.service';
 import { PaymentService } from '../../src/modules/accounting/services/payment.service';
-import { JournalService } from '../../src/modules/accounting/services/journal.service';
 import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
+
 
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
-const journalService = new JournalService();
 const salesOrderService = new SalesOrderService();
 
 const COMPANY_ID = 'test-o2c-dp-deduction-001';
@@ -58,7 +57,7 @@ describe('O2C Flow: DP Deduction in Final Invoice', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true, // Phase 1: Accounts active by default
         },
       });
@@ -203,7 +202,11 @@ describe('O2C Flow: DP Deduction in Final Invoice', () => {
     // Dr Deposit (2200): 222,000
     // Cr Sales (4100): 1,000,000
     // Cr VAT Payable (2300): 110,000
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
     const invoiceJournal = journals.find(
       (j) => j.sourceId === finalInvoice.id
     );

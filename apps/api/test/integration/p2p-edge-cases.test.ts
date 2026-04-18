@@ -70,7 +70,7 @@ describe('P2P Edge Cases: Comprehensive Error Handling', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });

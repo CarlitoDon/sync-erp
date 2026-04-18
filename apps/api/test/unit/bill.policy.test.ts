@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { BillPolicy } from '@modules/accounting/policies/bill.policy';
-import { InvoiceStatus, OrderStatus } from '@sync-erp/database';
+import { Invoice, InvoiceStatus, OrderStatus } from '@sync-erp/database';
 import { DomainErrorCodes } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
 
@@ -23,17 +23,17 @@ describe('BillPolicy', () => {
       status: InvoiceStatus.DRAFT,
       orderId: null,
       amount: new Decimal(100000),
-    } as any;
+    } as unknown as Invoice;
 
     const poLinkedBill = {
       ...draftBill,
       orderId: 'po-1',
-    };
+    } as unknown as Invoice;
 
     const postedBill = {
       ...draftBill,
       status: InvoiceStatus.POSTED,
-    };
+    } as unknown as Invoice;
 
     it('should pass for DRAFT bill with no PO link', () => {
       expect(() =>
@@ -234,8 +234,8 @@ describe('BillPolicy', () => {
           fullReceivedQty
         );
         expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e.code).toBe(DomainErrorCodes.THREE_WAY_MATCH_FAILED);
+      } catch (e: unknown) {
+        expect((e as { code?: string }).code).toBe(DomainErrorCodes.THREE_WAY_MATCH_FAILED);
       }
     });
 
@@ -247,8 +247,8 @@ describe('BillPolicy', () => {
           partialReceivedQty
         );
         expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e.code).toBe(DomainErrorCodes.THREE_WAY_MATCH_FAILED);
+      } catch (e: unknown) {
+        expect((e as { code?: string }).code).toBe(DomainErrorCodes.THREE_WAY_MATCH_FAILED);
       }
     });
   });

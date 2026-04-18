@@ -17,7 +17,7 @@ import {
   PaymentMethodType,
   UnitCondition,
 } from '@sync-erp/database';
-import { DomainError } from '@sync-erp/shared';
+import { DomainError, asMock } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
 
 // No local mock for @sync-erp/database needed, relying on global setup
@@ -38,8 +38,8 @@ describe('RentalOrderFulfillmentService', () => {
     vi.clearAllMocks();
 
     service = new RentalOrderFulfillmentService(
-      mockRentalRepository as any,
-      mockJournalService as any
+      mockRentalRepository as unknown as import("../../../src/modules/rental/rental.repository").RentalRepository,
+      mockJournalService as unknown as import("../../../src/modules/accounting/services/journal.service").JournalService
     );
   });
 
@@ -61,11 +61,11 @@ describe('RentalOrderFulfillmentService', () => {
 
     it('should confirm order successfully with auto-assigned units', async () => {
       mockRentalRepository.findOrderById.mockResolvedValue(
-        mockOrder as any
+        mockOrder as unknown as import("@sync-erp/shared").PrismaRentalOrderWithRelations
       );
 
       // Mock order items
-      (prisma.rentalOrderItem.findMany as any).mockResolvedValue([
+      asMock(prisma.rentalOrderItem.findMany).mockResolvedValue([
         {
           rentalItemId: 'item-1',
           quantity: 1,
@@ -74,23 +74,23 @@ describe('RentalOrderFulfillmentService', () => {
       ]);
 
       // Mock available units
-      (prisma.rentalItemUnit.findMany as any).mockResolvedValue([
+      asMock(prisma.rentalItemUnit.findMany).mockResolvedValue([
         { id: 'unit-1', status: UnitStatus.AVAILABLE },
       ]);
-      (prisma.rentalItemUnit.updateMany as any).mockResolvedValue({
+      asMock(prisma.rentalItemUnit.updateMany).mockResolvedValue({
         count: 1,
       });
 
       mockRentalRepository.getCurrentPolicy.mockResolvedValue({
         defaultDepositPolicyType: DepositPolicyType.PER_UNIT,
-      } as any);
+      } as never);
 
-      (prisma.rentalDeposit.create as any).mockResolvedValue({
+      asMock(prisma.rentalDeposit.create).mockResolvedValue({
         id: 'deposit-1',
         amount: new Decimal(50000),
       });
 
-      (prisma.rentalOrder.update as any).mockResolvedValue({
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...mockOrder,
         status: RentalOrderStatus.CONFIRMED,
       });
@@ -123,7 +123,7 @@ describe('RentalOrderFulfillmentService', () => {
       mockRentalRepository.findOrderById.mockResolvedValue({
         ...mockOrder,
         status: RentalOrderStatus.CONFIRMED,
-      } as any);
+      } as never);
 
       await expect(
         service.confirmOrder(COMPANY_ID, input, ACTOR_ID)
@@ -158,16 +158,14 @@ describe('RentalOrderFulfillmentService', () => {
 
     beforeEach(() => {
       mockRentalRepository.findOrderById.mockResolvedValue(
-        mockOrder as any
+        mockOrder as unknown as import("@sync-erp/shared").PrismaRentalOrderWithRelations
       );
-      (
-        prisma.companyPaymentMethod.findFirst as any
-      ).mockResolvedValue(mockPaymentMethod);
+      asMock(prisma.companyPaymentMethod.findFirst).mockResolvedValue(mockPaymentMethod);
     });
 
     it('should manually confirm order successfully', async () => {
       // Mock order items
-      (prisma.rentalOrderItem.findMany as any).mockResolvedValue([
+      asMock(prisma.rentalOrderItem.findMany).mockResolvedValue([
         {
           rentalItemId: 'item-1',
           quantity: 1,
@@ -176,27 +174,25 @@ describe('RentalOrderFulfillmentService', () => {
       ]);
 
       // Mock available units
-      (prisma.rentalItemUnit.findMany as any).mockResolvedValue([
+      asMock(prisma.rentalItemUnit.findMany).mockResolvedValue([
         { id: 'unit-1', status: UnitStatus.AVAILABLE },
       ]);
-      (prisma.rentalItemUnit.updateMany as any).mockResolvedValue({
+      asMock(prisma.rentalItemUnit.updateMany).mockResolvedValue({
         count: 1,
       });
 
       mockRentalRepository.getCurrentPolicy.mockResolvedValue({
         defaultDepositPolicyType: DepositPolicyType.PER_UNIT,
-      } as any);
+      } as never);
 
-      (prisma.rentalDeposit.create as any).mockResolvedValue({
+      asMock(prisma.rentalDeposit.create).mockResolvedValue({
         id: 'deposit-1',
         amount: new Decimal(50000),
       });
 
-      (
-        prisma.rentalOrderUnitAssignment.createMany as any
-      ).mockResolvedValue({ count: 1 });
+      asMock(prisma.rentalOrderUnitAssignment.createMany).mockResolvedValue({ count: 1 });
 
-      (prisma.rentalOrder.update as any).mockResolvedValue({
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...mockOrder,
         status: RentalOrderStatus.CONFIRMED,
         depositAmount: new Decimal(50000),
@@ -225,7 +221,7 @@ describe('RentalOrderFulfillmentService', () => {
       const skipInput = { ...input, skipStockCheck: true };
 
       // Mock order items
-      (prisma.rentalOrderItem.findMany as any).mockResolvedValue([
+      asMock(prisma.rentalOrderItem.findMany).mockResolvedValue([
         {
           rentalItemId: 'item-1',
           quantity: 10, // Require 10
@@ -234,24 +230,24 @@ describe('RentalOrderFulfillmentService', () => {
       ]);
 
       // Mock available units (only 1 available)
-      (prisma.rentalItemUnit.findMany as any).mockResolvedValue([
+      asMock(prisma.rentalItemUnit.findMany).mockResolvedValue([
         { id: 'unit-1', status: UnitStatus.AVAILABLE },
       ]);
 
       // It should proceed despite insufficient stock
-      (prisma.rentalItemUnit.updateMany as any).mockResolvedValue({
+      asMock(prisma.rentalItemUnit.updateMany).mockResolvedValue({
         count: 1,
       });
 
       mockRentalRepository.getCurrentPolicy.mockResolvedValue(null); // Should create policy
-      (prisma.rentalPolicy.create as any).mockResolvedValue({
+      asMock(prisma.rentalPolicy.create).mockResolvedValue({
         defaultDepositPolicyType: DepositPolicyType.PER_UNIT,
       });
 
-      (prisma.rentalDeposit.create as any).mockResolvedValue({
+      asMock(prisma.rentalDeposit.create).mockResolvedValue({
         id: 'deposit-1',
       });
-      (prisma.rentalOrder.update as any).mockResolvedValue({
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...mockOrder,
         status: RentalOrderStatus.CONFIRMED,
       });
@@ -270,9 +266,7 @@ describe('RentalOrderFulfillmentService', () => {
     });
 
     it('should throw if payment method not found', async () => {
-      (
-        prisma.companyPaymentMethod.findFirst as any
-      ).mockResolvedValue(null);
+      asMock(prisma.companyPaymentMethod.findFirst).mockResolvedValue(null);
 
       await expect(
         service.manualConfirmOrder(COMPANY_ID, input, ACTOR_ID)
@@ -304,14 +298,14 @@ describe('RentalOrderFulfillmentService', () => {
 
     it('should release order and update units to RENTED', async () => {
       mockRentalRepository.findOrderById.mockResolvedValue(
-        mockOrder as any
+        mockOrder as unknown as import("@sync-erp/shared").PrismaRentalOrderWithRelations
       );
 
-      (prisma.itemConditionLog.create as any).mockResolvedValue({});
-      (prisma.rentalItemUnit.updateMany as any).mockResolvedValue({
+      asMock(prisma.itemConditionLog.create).mockResolvedValue({});
+      asMock(prisma.rentalItemUnit.updateMany).mockResolvedValue({
         count: 1,
       });
-      (prisma.rentalOrder.update as any).mockResolvedValue({
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...mockOrder,
         status: RentalOrderStatus.ACTIVE,
       });
@@ -333,7 +327,7 @@ describe('RentalOrderFulfillmentService', () => {
 
     it('should throw if photos are missing', async () => {
       mockRentalRepository.findOrderById.mockResolvedValue(
-        mockOrder as any
+        mockOrder as unknown as import("@sync-erp/shared").PrismaRentalOrderWithRelations
       );
 
       await expect(

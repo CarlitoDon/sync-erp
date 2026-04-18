@@ -1,11 +1,10 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { InventoryService } from '@modules/inventory/inventory.service';
-import { JournalService } from '@modules/accounting/services/journal.service';
 import { SalesOrderService } from '@modules/sales/sales-order.service';
 
+
 const inventoryService = new InventoryService();
-const journalService = new JournalService();
 const salesOrderService = new SalesOrderService();
 
 const COMPANY_ID = 'test-finance-integration-001';
@@ -39,7 +38,7 @@ describe('Finance Automation Integration', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -139,24 +138,28 @@ describe('Finance Automation Integration', () => {
       await salesOrderService.ship(COMPANY_ID, order.id);
 
       // 3. Verify Journal - look for shipment journal by sourceType
-      const journals = await journalService.list(COMPANY_ID);
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
       const shipmentJournal = journals.find(
-        (j: any) =>
-          j.sourceType === 'SHIPMENT' || j.reference?.includes('SHP:')
-      ) as any;
+        (j) =>
+          j.reference?.includes('SHP:')
+      );
 
       expect(shipmentJournal).toBeDefined();
-      expect(shipmentJournal.lines).toHaveLength(2);
+      expect(shipmentJournal!.lines).toHaveLength(2);
 
-      const drLine = shipmentJournal.lines.find(
-        (l: any) => l.account.code === '5000'
+      const drLine = shipmentJournal!.lines.find(
+        (l) => l.account.code === '5000'
       );
-      const crLine = shipmentJournal.lines.find(
-        (l: any) => l.account.code === '1400'
+      const crLine = shipmentJournal!.lines.find(
+        (l) => l.account.code === '1400'
       );
 
-      expect(Number(drLine?.debit)).toBe(200000);
-      expect(Number(crLine?.credit)).toBe(200000);
+      expect(Number(drLine!.debit)).toBe(200000);
+      expect(Number(crLine!.credit)).toBe(200000);
     });
   });
 
@@ -171,25 +174,29 @@ describe('Finance Automation Integration', () => {
         reference: 'Loss Check',
       });
 
-      const journals = await journalService.list(COMPANY_ID);
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
       // Fix: Look for the specific reference we passed
       const adjJournal = journals.find(
-        (j: any) => j.reference === 'Loss Check'
-      ) as any;
+        (j) => j.reference === 'Loss Check'
+      );
 
       expect(adjJournal).toBeDefined();
-      expect(adjJournal.lines).toHaveLength(2);
+      expect(adjJournal!.lines).toHaveLength(2);
 
       // Dr 5200 (Expense), Cr 1400 (Asset)
-      const drLine = adjJournal.lines.find(
-        (l: any) => l.account.code === '5200'
+      const drLine = adjJournal!.lines.find(
+        (l) => l.account.code === '5200'
       );
-      const crLine = adjJournal.lines.find(
-        (l: any) => l.account.code === '1400'
+      const crLine = adjJournal!.lines.find(
+        (l) => l.account.code === '1400'
       );
 
-      expect(Number(drLine?.debit)).toBe(100000);
-      expect(Number(crLine?.credit)).toBe(100000);
+      expect(Number(drLine!.debit)).toBe(100000);
+      expect(Number(crLine!.credit)).toBe(100000);
     });
 
     it('should create Asset journal for Positive Adjustment (Gain)', async () => {
@@ -201,24 +208,28 @@ describe('Finance Automation Integration', () => {
         reference: 'Gain Check',
       });
 
-      const journals = await journalService.list(COMPANY_ID);
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
       // Fix: Look for the specific reference we passed
       const adjJournal = journals.find(
-        (j: any) => j.reference === 'Gain Check'
-      ) as any;
+        (j) => j.reference === 'Gain Check'
+      );
 
       expect(adjJournal).toBeDefined();
 
       // Dr 1400 (Asset), Cr 5200 (Contra Expense/Revenue)
-      const drLine = adjJournal.lines.find(
-        (l: any) => l.account.code === '1400'
+      const drLine = adjJournal!.lines.find(
+        (l) => l.account.code === '1400'
       );
-      const crLine = adjJournal.lines.find(
-        (l: any) => l.account.code === '5200'
+      const crLine = adjJournal!.lines.find(
+        (l) => l.account.code === '5200'
       );
 
-      expect(Number(drLine?.debit)).toBe(120000);
-      expect(Number(crLine?.credit)).toBe(120000);
+      expect(Number(drLine!.debit)).toBe(120000);
+      expect(Number(crLine!.credit)).toBe(120000);
     });
 
     it('should block negative adjustment if insufficient stock', async () => {
@@ -236,15 +247,19 @@ describe('Finance Automation Integration', () => {
 
   describe('US3: Accounting Equation', () => {
     it('should maintain balanced debits and credits', async () => {
-      const journals = await journalService.list(COMPANY_ID);
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
       for (const journal of journals) {
-        const j = journal as any;
+        const j = journal!;
         const totalDebit = j.lines.reduce(
-          (sum: number, l: any) => sum + Number(l.debit),
+          (sum: number, l) => sum + Number(l.debit),
           0
         );
         const totalCredit = j.lines.reduce(
-          (sum: number, l: any) => sum + Number(l.credit),
+          (sum: number, l) => sum + Number(l.credit),
           0
         );
         expect(totalDebit).toBeCloseTo(totalCredit, 2);

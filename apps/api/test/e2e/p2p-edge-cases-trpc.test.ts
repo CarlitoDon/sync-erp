@@ -19,13 +19,13 @@ const USER_ID = 'test-user-001';
 
 // Create tRPC caller with test context
 const caller = appRouter.createCaller({
-  req: undefined as any,
-  res: undefined as any,
+  req: undefined as unknown as import("express").Request,
+  res: undefined as unknown as import("express").Response,
   userId: USER_ID,
   companyId: COMPANY_ID,
   businessShape: BusinessShape.RETAIL,
   correlationId: 'test-correlation',
-  userRole: 'ADMIN' as any,
+  userRole: "ADMIN" as string,
   userPermissions: ['*:*'], // full permissions for test purposes
   idempotencyKey: undefined,
 });
@@ -70,7 +70,7 @@ describe('P2P Edge Cases (tRPC): Comprehensive Error Handling', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });

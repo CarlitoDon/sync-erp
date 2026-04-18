@@ -126,7 +126,7 @@ describe('US3: Full Rental Asset Lifecycle', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -669,10 +669,10 @@ describe('US3: Full Rental Asset Lifecycle', () => {
     });
     // COGS journal should exist if shipment reference matches
     if (shipmentJournal) {
-      const cogsDebit = shipmentJournal.lines.find(
+      const cogsDebit = shipmentJournal!.lines.find(
         (l) => l.account.code === '5000'
       );
-      const invCreditCogs = shipmentJournal.lines.find(
+      const invCreditCogs = shipmentJournal!.lines.find(
         (l) => l.account.code === '1400'
       );
       expect(Number(cogsDebit?.debit)).toBeGreaterThan(0);

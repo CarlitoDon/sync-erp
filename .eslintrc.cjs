@@ -27,7 +27,7 @@ module.exports = {
       'warn',
       { argsIgnorePattern: '^_' },
     ],
-    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-explicit-any': 'error',
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     '@sync-erp/no-hardcoded-enum': 'error',
   },
@@ -57,7 +57,7 @@ module.exports = {
     {
       files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts'],
       rules: {
-        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-explicit-any': 'warn',
         '@typescript-eslint/no-non-null-assertion': 'off',
         '@typescript-eslint/no-unused-vars': 'off',
         'no-console': 'off',

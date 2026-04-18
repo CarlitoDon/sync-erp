@@ -122,6 +122,7 @@ export async function useRedisAuthState(): Promise<{
               const value = await readData(key);
               if (value) {
                 if (type === 'app-state-sync-key') {
+                  // BOUNDARY: Baileys SDK fromObject returns a different type than SignalDataTypeMap expects.
                   data[id] =
                     proto.Message.AppStateSyncKeyData.fromObject(
                       value

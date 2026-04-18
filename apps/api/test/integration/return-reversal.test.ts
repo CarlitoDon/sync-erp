@@ -1,10 +1,9 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma, JournalEntry } from '@sync-erp/database';
 import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
-import { JournalService } from '../../src/modules/accounting/services/journal.service';
+
 
 const salesOrderService = new SalesOrderService();
-const journalService = new JournalService();
 
 const COMPANY_ID = 'test-return-reversal-001';
 
@@ -36,7 +35,7 @@ describe('US3: Sales Return Reversal', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -137,21 +136,25 @@ describe('US3: Sales Return Reversal', () => {
     expect(returnedProduct?.stockQty).toBe(9); // 8 + 1
 
     // 5. Verify Journals
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
 
     // Find Return Journal (reference format: RET:RET-...)
     const returnJournal = journals.find((j: JournalEntry) =>
       j.reference?.includes('RET:')
-    ) as any;
+    );
 
     expect(returnJournal).toBeDefined();
 
     // Verify Lines: Dr 1400 (Asset), Cr 5000 (COGS)
     const assetLine = returnJournal?.lines.find(
-      (l: any) => l.account.code === '1400'
+      (l) => l.account.code === '1400'
     );
     const cogsLine = returnJournal?.lines.find(
-      (l: any) => l.account.code === '5000'
+      (l) => l.account.code === '5000'
     );
 
     expect(Number(assetLine?.debit)).toBe(150000);

@@ -7,6 +7,7 @@ import { BillService } from '@modules/accounting/services/bill.service';
 import { JournalService } from '@modules/accounting/services/journal.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
+
 // Initialize Services
 const salesOrderService = new SalesOrderService();
 const purchaseOrderService = new PurchaseOrderService();
@@ -52,7 +53,7 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -167,7 +168,11 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     await inventoryService.postGRN(COMPANY_ID, grn.id);
 
     // Check Accrual Journal
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
     const grnJournal = journals.find((j) =>
       j.reference?.includes('GRN')
     );
@@ -189,15 +194,15 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     const allJournals = await journalService.list(COMPANY_ID);
     const billJournal = allJournals.find(
       (j) => j.sourceType === 'BILL' && j.sourceId === bill.id
-    ) as any;
+    );
     expect(billJournal).toBeDefined();
 
     // Validate lines: Dr 2105 1M, Dr 1500 110k, Cr 2100 1.11M
-    const drAccrual = billJournal.lines.find(
-      (l: any) => l.account.code === '2105' && Number(l.debit) > 0
+    const drAccrual = billJournal!.lines.find(
+      (l) => l.account.code === '2105' && Number(l.debit) > 0
     );
-    const drVat = billJournal.lines.find(
-      (l: any) => l.account.code === '1500'
+    const drVat = billJournal!.lines.find(
+      (l) => l.account.code === '1500'
     );
     expect(drAccrual).toBeDefined();
     expect(Number(drVat?.debit)).toBe(110000);
@@ -230,14 +235,18 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     await invoiceService.post(invoice.id, COMPANY_ID);
 
     // 3. Verify Sales Journal
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
     const salesJournal = journals.find((j) =>
       j.reference?.includes('INV-E2E-001')
-    ) as any;
+    );
 
     // Dr AR 1.11M, Cr Rev 1M, Cr Tax 110k
-    const crTax = salesJournal.lines.find(
-      (l: any) => l.account.code === '2300'
+    const crTax = salesJournal!.lines.find(
+      (l) => l.account.code === '2300'
     );
     expect(Number(crTax?.credit)).toBe(110000);
   });
@@ -265,15 +274,19 @@ describe('E2E: Finance Tax, Returns & Accruals Cycle', () => {
     ]);
 
     // 3. Verify Return Journal - look for RET: prefix
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
     const returnJournal = journals.find((j: JournalEntry) =>
       j.reference?.startsWith('RET:')
-    ) as any;
+    );
 
     // Dr Inventory, Cr COGS
     expect(returnJournal).toBeDefined();
     const drInv = returnJournal?.lines.find(
-      (l: any) => l.account.code === '1400'
+      (l) => l.account.code === '1400'
     );
     expect(Number(drInv?.debit)).toBeGreaterThan(0);
   });

@@ -120,8 +120,7 @@ export default function ReturnsPage() {
     if (!order) return;
 
     // Use real unit assignments from the order
-    const typedOrder = order as unknown as RentalOrderWithRelations;
-    const assignments = typedOrder.unitAssignments || [];
+    const assignments = order.unitAssignments || [];
 
     if (assignments.length === 0) {
       toast.error(

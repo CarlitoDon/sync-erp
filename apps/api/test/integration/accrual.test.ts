@@ -5,6 +5,7 @@ import { JournalService } from '@modules/accounting/services/journal.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
+
 const billService = new BillService();
 const journalService = new JournalService();
 const procurementService = new PurchaseOrderService();
@@ -42,7 +43,7 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true, // Ensure active
         },
       });
@@ -140,7 +141,11 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     await inventoryService.postGRN(COMPANY_ID, grn.id);
 
     // 3. Verify Accrual Journal
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
     const grnJournal = journals.find((j) =>
       j.reference?.includes('GRN')
     );
@@ -149,11 +154,11 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     // Dr 1400 (Asset), Cr 2105 (Liability)
     // journalService.list returns includes?
     // JournalRepository.findAll includes lines and account.
-    const grnAsset = (grnJournal as any).lines.find(
-      (l: any) => l.account.code === '1400'
+    const grnAsset = grnJournal!.lines.find(
+      (l) => l.account.code === '1400'
     );
-    const grnLiab = (grnJournal as any).lines.find(
-      (l: any) => l.account.code === '2105'
+    const grnLiab = grnJournal!.lines.find(
+      (l) => l.account.code === '2105'
     );
 
     expect(Number(grnAsset?.debit)).toBe(500000);
@@ -184,14 +189,14 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     expect(billJournal).toBeDefined();
 
     // Dr 2105 (Liability - Clearing Accrual), Dr 1500 (VAT), Cr 2100 (AP)
-    const billAccrual = (billJournal as any).lines.find(
-      (l: any) => l.account.code === '2105'
+    const billAccrual = billJournal!.lines.find(
+      (l) => l.account.code === '2105'
     );
-    const billVat = (billJournal as any).lines.find(
-      (l: any) => l.account.code === '1500'
+    const billVat = billJournal!.lines.find(
+      (l) => l.account.code === '1500'
     );
-    const billAp = (billJournal as any).lines.find(
-      (l: any) => l.account.code === '2100'
+    const billAp = billJournal!.lines.find(
+      (l) => l.account.code === '2100'
     );
 
     expect(Number(billAccrual?.debit)).toBe(500000); // Clears the Credit from GRN

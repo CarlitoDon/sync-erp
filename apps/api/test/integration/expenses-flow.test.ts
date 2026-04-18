@@ -10,8 +10,9 @@ import {
 const TEST_COMPANY_ID = 'test-expenses-flow-001';
 
 describe('Expenses Flow', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ctx: any;
-  let caller: any;
+  let caller: ReturnType<typeof appRouter.createCaller>;
   let companyId: string;
   let partnerId: string;
 
@@ -44,7 +45,7 @@ describe('Expenses Flow', () => {
           companyId,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -62,7 +63,7 @@ describe('Expenses Flow', () => {
     partnerId = partner.id;
 
     ctx = await createContext({
-      info: {} as any,
+      info: {} as never,
       req: {
         headers: {
           'x-company-id': companyId,
@@ -72,8 +73,8 @@ describe('Expenses Flow', () => {
           idempotencyKey: undefined,
           companyId,
         },
-      } as any,
-      res: {} as any,
+      } as never,
+      res: {} as unknown as import("express").Response,
     });
     ctx.session = {
       companyId,
@@ -82,7 +83,7 @@ describe('Expenses Flow', () => {
     };
     ctx.companyId = companyId;
 
-    caller = appRouter.createCaller(ctx);
+    caller = appRouter.createCaller(ctx as Parameters<typeof appRouter.createCaller>[0]);
   });
 
   afterAll(async () => {
@@ -134,7 +135,7 @@ describe('Expenses Flow', () => {
     // 2. List Expenses
     const list = await caller.expense.list();
     expect(list).toBeDefined();
-    expect(list.find((e: any) => e.id === expense.id)).toBeDefined();
+    expect(list.find((e) => e.id === expense.id)).toBeDefined();
 
     // 3. Post Expense
     const posted = await caller.expense.post(expense.id);

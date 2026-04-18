@@ -41,8 +41,8 @@ describe('InventoryPolicy', () => {
       try {
         InventoryPolicy.ensureCanAdjustStock(BusinessShape.PENDING);
         expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e.code).toBe(DomainErrorCodes.SHAPE_PENDING);
+      } catch (e: unknown) {
+        expect((e as { code?: string }).code).toBe(DomainErrorCodes.SHAPE_PENDING);
       }
     });
 
@@ -50,8 +50,8 @@ describe('InventoryPolicy', () => {
       try {
         InventoryPolicy.ensureCanAdjustStock(BusinessShape.SERVICE);
         expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e.code).toBe(DomainErrorCodes.OPERATION_NOT_ALLOWED);
+      } catch (e: unknown) {
+        expect((e as { code?: string }).code).toBe(DomainErrorCodes.OPERATION_NOT_ALLOWED);
       }
     });
   });
@@ -89,8 +89,8 @@ describe('InventoryPolicy', () => {
       try {
         InventoryPolicy.ensureCanCreateWIP(BusinessShape.PENDING);
         expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e.code).toBe(DomainErrorCodes.SHAPE_PENDING);
+      } catch (e: unknown) {
+        expect((e as { code?: string }).code).toBe(DomainErrorCodes.SHAPE_PENDING);
       }
     });
 
@@ -98,8 +98,8 @@ describe('InventoryPolicy', () => {
       try {
         InventoryPolicy.ensureCanCreateWIP(BusinessShape.RETAIL);
         expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e.code).toBe(DomainErrorCodes.OPERATION_NOT_ALLOWED);
+      } catch (e: unknown) {
+        expect((e as { code?: string }).code).toBe(DomainErrorCodes.OPERATION_NOT_ALLOWED);
       }
     });
   });
@@ -183,8 +183,8 @@ describe('InventoryPolicy', () => {
           { key: 'inventory.enabled', value: false },
         ]);
         expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e.code).toBe(DomainErrorCodes.OPERATION_NOT_ALLOWED);
+      } catch (e: unknown) {
+        expect((e as { code?: string }).code).toBe(DomainErrorCodes.OPERATION_NOT_ALLOWED);
       }
     });
   });
@@ -206,9 +206,9 @@ describe('InventoryPolicy', () => {
       try {
         InventoryPolicy.ensureSufficientStock('Product A', 30, 50);
         expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e.code).toBe(DomainErrorCodes.INSUFFICIENT_STOCK);
-        expect(e.message).toContain('Product A');
+      } catch (e: unknown) {
+        expect((e as { code?: string }).code).toBe(DomainErrorCodes.INSUFFICIENT_STOCK);
+        expect((e as { message?: string }).message).toContain('Product A');
       }
     });
   });

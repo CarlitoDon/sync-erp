@@ -1,10 +1,9 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { InvoiceService } from '../../src/modules/accounting/services/invoice.service';
-import { JournalService } from '../../src/modules/accounting/services/journal.service';
+
 
 const invoiceService = new InvoiceService();
-const journalService = new JournalService();
 
 const COMPANY_ID = 'test-tax-sales-001';
 
@@ -39,7 +38,7 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -141,23 +140,27 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
     await invoiceService.post(invoice.id, COMPANY_ID);
 
     // 4. Verify Journal
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
     const invJournal = journals.find((j) =>
       j.reference?.includes(invoice.invoiceNumber!)
-    ) as any;
+    );
 
     expect(invJournal).toBeDefined();
-    expect(invJournal.lines).toHaveLength(3); // AR, Rev, Tax
+    expect(invJournal!.lines).toHaveLength(3); // AR, Rev, Tax
 
     // Verify Lines
-    const arLine = invJournal.lines.find(
-      (l: any) => l.account.code === '1300'
+    const arLine = invJournal!.lines.find(
+      (l) => l.account.code === '1300'
     );
-    const revLine = invJournal.lines.find(
-      (l: any) => l.account.code === '4100'
+    const revLine = invJournal!.lines.find(
+      (l) => l.account.code === '4100'
     );
-    const taxLine = invJournal.lines.find(
-      (l: any) => l.account.code === '2300'
+    const taxLine = invJournal!.lines.find(
+      (l) => l.account.code === '2300'
     );
 
     expect(Number(arLine?.debit)).toBe(222000); // Full Amount
@@ -197,15 +200,19 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
     await invoiceService.post(invoice.id, COMPANY_ID);
 
     // 4. Verify Journal
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
     const invJournal = journals.find((j) =>
       j.reference?.includes(invoice.invoiceNumber!)
-    ) as any;
+    );
 
-    expect(invJournal.lines).toHaveLength(2); // AR + Rev only
+    expect(invJournal!.lines).toHaveLength(2); // AR + Rev only
 
-    const taxLine = invJournal.lines.find(
-      (l: any) => l.account.code === '2300'
+    const taxLine = invJournal!.lines.find(
+      (l) => l.account.code === '2300'
     );
     expect(taxLine).toBeUndefined();
   });
