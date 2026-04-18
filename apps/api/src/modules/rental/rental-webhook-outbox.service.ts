@@ -647,9 +647,8 @@ export class RentalWebhookOutboxService {
         };
       }
 
-      const errorData = (await response
-        .json()
-        .catch(() => ({}))) as unknown;
+      const rawError = await response.json().catch(() => ({}));
+      const errorData = rawError as { message?: unknown; error?: unknown };
       
       let errorMessage = `Webhook failed: ${response.status}`;
       if (errorData) {
@@ -657,10 +656,13 @@ export class RentalWebhookOutboxService {
           errorMessage = errorData.message;
         } else if (typeof errorData.error === 'string') {
           errorMessage = errorData.error;
-        } else if (errorData.error && typeof errorData.error.message === 'string') {
-          errorMessage = errorData.error.message;
         } else if (errorData.error && typeof errorData.error === 'object') {
-          errorMessage = JSON.stringify(errorData.error);
+          const nestedError = errorData.error as { message?: unknown };
+          if (typeof nestedError.message === 'string') {
+            errorMessage = nestedError.message;
+          } else {
+            errorMessage = JSON.stringify(errorData.error);
+          }
         }
       }
 
