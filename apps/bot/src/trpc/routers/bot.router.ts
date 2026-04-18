@@ -25,11 +25,20 @@ export const botRouter = router({
         });
       }
 
-      // 2. Check Bot Status
+      // 2. Check Bot Status (Wait if waking up from sleep)
+      let retries = 15;
+      while (getStatus() === 'INITIALIZING' && retries > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        retries--;
+      }
+
       if (getStatus() !== 'READY') {
         throw new TRPCError({
           code: 'SERVICE_UNAVAILABLE',
-          message: 'Bot WhatsApp belum siap. Hubungi admin.',
+          message:
+            getStatus() === 'QR_PENDING'
+              ? 'Bot memerlukan scan QR. Silakan login ke Dashboard Admin.'
+              : 'Bot WhatsApp belum siap. Hubungi admin.',
         });
       }
 
@@ -126,11 +135,20 @@ export const botRouter = router({
         });
       }
 
-      // 2. Check Bot Status
+      // 2. Check Bot Status (Wait if waking up from sleep)
+      let retries = 15;
+      while (getStatus() === 'INITIALIZING' && retries > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        retries--;
+      }
+
       if (getStatus() !== 'READY') {
         throw new TRPCError({
           code: 'SERVICE_UNAVAILABLE',
-          message: 'Bot WhatsApp belum siap. Hubungi admin.',
+          message:
+            getStatus() === 'QR_PENDING'
+              ? 'Bot memerlukan scan QR. Silakan login ke Dashboard Admin.'
+              : 'Bot WhatsApp belum siap. Hubungi admin.',
         });
       }
 

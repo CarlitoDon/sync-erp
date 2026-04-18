@@ -25,6 +25,7 @@ import {
   type RentalItemWithRelations,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
+import { mapToRentalItem } from './rental.mapper';
 
 /**
  * Generate a unique unit code with format: [SKU_PREFIX]-[RANDOM_6_CHAR]
@@ -52,10 +53,11 @@ export class RentalItemService {
     companyId: string,
     filters?: { isActive?: boolean }
   ): Promise<RentalItemWithRelations[]> {
-    return this.repository.listRentalItems(
+    const items = await this.repository.listRentalItems(
       companyId,
       filters?.isActive
-    ) as unknown as RentalItemWithRelations[];
+    );
+    return items.map(mapToRentalItem);
   }
 
   async createItem(

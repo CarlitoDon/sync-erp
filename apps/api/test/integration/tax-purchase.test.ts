@@ -1,12 +1,11 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { BillService } from '@modules/accounting/services/bill.service';
-import { JournalService } from '@modules/accounting/services/journal.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
+
 const billService = new BillService();
-const journalService = new JournalService();
 const purchaseOrderService = new PurchaseOrderService();
 const inventoryService = new InventoryService();
 
@@ -46,7 +45,7 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -156,23 +155,27 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     await billService.post(bill.id, COMPANY_ID);
 
     // 4. Verify Journal
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
     const billJournal = journals.find((j) =>
       j.reference?.includes(bill.invoiceNumber!)
-    ) as any;
+    );
 
     expect(billJournal).toBeDefined();
-    expect(billJournal.lines).toHaveLength(3); // GRNI, Input VAT, AP
+    expect(billJournal!.lines).toHaveLength(3); // GRNI, Input VAT, AP
 
     // Verify Lines - With accrual accounting: Dr GRNI (2105), Dr Input VAT (1500), Cr AP (2100)
     const grniLine = billJournal!.lines.find(
-      (l: any) => l.account.code === '2105'
+      (l) => l.account.code === '2105'
     );
     const vatLine = billJournal!.lines.find(
-      (l: any) => l.account.code === '1500'
+      (l) => l.account.code === '1500'
     );
     const apLine = billJournal!.lines.find(
-      (l: any) => l.account.code === '2100'
+      (l) => l.account.code === '2100'
     );
 
     expect(Number(grniLine?.debit)).toBe(200000); // Clear GRNI accrual (Net Cost)
@@ -218,15 +221,19 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
     await billService.post(bill.id, COMPANY_ID);
 
     // 4. Verify Journal
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
     const billJournal = journals.find((j) =>
       j.reference?.includes(bill.invoiceNumber!)
-    ) as any;
+    );
 
-    expect(billJournal.lines).toHaveLength(2); // GRNI + AP only (no VAT)
+    expect(billJournal!.lines).toHaveLength(2); // GRNI + AP only (no VAT)
 
     const vatLine = billJournal!.lines.find(
-      (l: any) => l.account.code === '1500'
+      (l) => l.account.code === '1500'
     );
     expect(vatLine).toBeUndefined();
   });

@@ -1,12 +1,12 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { InventoryService } from '@modules/inventory/inventory.service';
-import { JournalService } from '@modules/accounting/services/journal.service';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { InvoiceService } from '@modules/accounting/services/invoice.service';
 import { PaymentService } from '@modules/accounting/services/payment.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { SalesOrderService } from '@modules/sales/sales-order.service';
+
 
 // Initialize Services
 const inventoryService = new InventoryService();
@@ -14,7 +14,6 @@ const salesOrderService = new SalesOrderService();
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
 const purchaseOrderService = new PurchaseOrderService();
-const journalService = new JournalService();
 const billService = new BillService();
 
 const COMPANY_ID = 'test-e2e-finance-cycle-001';
@@ -58,7 +57,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -198,21 +197,25 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       expect(Number(prod?.averageCost)).toBe(100);
 
       // Verify GRNI Accrual Journal exists (Dr Inventory, Cr GRNI)
-      const journals = await journalService.list(COMPANY_ID);
-      const grnJournal = journals.find((j: any) =>
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
+      const grnJournal = journals.find((j) =>
         j.reference?.includes('GRN')
-      ) as any;
+      );
       expect(grnJournal).toBeDefined();
 
       // Verify the journal lines (Dr 1400 Inventory, Cr 2105 GRNI)
-      const drLine = grnJournal.lines.find(
-        (l: any) => l.account.code === '1400'
+      const drLine = grnJournal!.lines.find(
+        (l) => l.account.code === '1400'
       );
-      const crLine = grnJournal.lines.find(
-        (l: any) => l.account.code === '2105'
+      const crLine = grnJournal!.lines.find(
+        (l) => l.account.code === '2105'
       );
-      expect(Number(drLine?.debit)).toBe(1000); // 10 * 100
-      expect(Number(crLine?.credit)).toBe(1000);
+      expect(Number(drLine!.debit)).toBe(1000); // 10 * 100
+      expect(Number(crLine!.credit)).toBe(1000);
     });
 
     it('3. Should Create and Post Bill (Dr GRNI 2105, Cr AP 2100)', async () => {
@@ -229,25 +232,29 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       // Post Bill
       await billService.post(bill.id, COMPANY_ID);
 
-      const journals = await journalService.list(COMPANY_ID);
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
       // Use flexible matching - journal reference includes "Bill:"
       const billJournal = journals.find(
-        (j: any) =>
+        (j) =>
           j.reference?.includes('Bill:') &&
           !j.reference?.includes('Reversal')
-      ) as any;
+      );
 
       expect(billJournal).toBeDefined();
       // Bill should clear GRNI accrual (Dr 2105) and record AP (Cr 2100)
-      const drLine = billJournal.lines.find(
-        (l: any) => l.account.code === '2105'
+      const drLine = billJournal!.lines.find(
+        (l) => l.account.code === '2105'
       ); // Clear GRNI
-      const crLine = billJournal.lines.find(
-        (l: any) => l.account.code === '2100'
+      const crLine = billJournal!.lines.find(
+        (l) => l.account.code === '2100'
       ); // Liability AP
 
-      expect(Number(drLine.debit)).toBe(1000);
-      expect(Number(crLine.credit)).toBe(1000);
+      expect(Number(drLine!.debit)).toBe(1000);
+      expect(Number(crLine!.credit)).toBe(1000);
     });
 
     it('4. Should Pay Bill (Dr AP 2100, Cr Cash 1100)', async () => {
@@ -257,22 +264,26 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
         method: 'CASH',
       });
 
-      const journals = await journalService.list(COMPANY_ID);
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
       // Use flexible matching - journal reference includes "Payment made:"
-      const payJournal = journals.find((j: any) =>
+      const payJournal = journals.find((j) =>
         j.reference?.includes('Payment made:')
-      ) as any;
+      );
 
       expect(payJournal).toBeDefined();
-      const drLine = payJournal.lines.find(
-        (l: any) => l.account.code === '2100'
+      const drLine = payJournal!.lines.find(
+        (l) => l.account.code === '2100'
       ); // Liability Decrease
-      const crLine = payJournal.lines.find(
-        (l: any) => l.account.code === '1100'
+      const crLine = payJournal!.lines.find(
+        (l) => l.account.code === '1100'
       ); // Asset Decrease
 
-      expect(Number(drLine.debit)).toBe(1000);
-      expect(Number(crLine.credit)).toBe(1000);
+      expect(Number(drLine!.debit)).toBe(1000);
+      expect(Number(crLine!.credit)).toBe(1000);
     });
   });
 
@@ -308,22 +319,26 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       expect(prod?.stockQty).toBe(5); // 10 - 5
 
       // Check Journal
-      const journals = await journalService.list(COMPANY_ID);
-      const shipJournal = journals.find((j: any) =>
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
+      const shipJournal = journals.find((j) =>
         j.reference?.includes('SHP')
-      ) as any;
+      );
 
       expect(shipJournal).toBeDefined();
       // Cost = 5 * 100 = 500
-      const drLine = shipJournal.lines.find(
-        (l: any) => l.account.code === '5000'
+      const drLine = shipJournal!.lines.find(
+        (l) => l.account.code === '5000'
       ); // Expense
-      const crLine = shipJournal.lines.find(
-        (l: any) => l.account.code === '1400'
+      const crLine = shipJournal!.lines.find(
+        (l) => l.account.code === '1400'
       ); // Asset
 
-      expect(Number(drLine.debit)).toBe(500);
-      expect(Number(crLine.credit)).toBe(500);
+      expect(Number(drLine!.debit)).toBe(500);
+      expect(Number(crLine!.credit)).toBe(500);
     });
 
     it('3. Should Create and Post Invoice (Dr AR 1300, Cr Revenue 4100)', async () => {
@@ -338,25 +353,29 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
 
       await invoiceService.post(invoiceId, COMPANY_ID);
 
-      const journals = await journalService.list(COMPANY_ID);
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
       // Use flexible matching - journal reference includes "Invoice:"
       const invJournal = journals.find(
-        (j: any) =>
+        (j) =>
           j.reference?.includes('Invoice:') &&
           !j.reference?.includes('Reversal')
-      ) as any;
+      );
 
       expect(invJournal).toBeDefined();
       // Revenue = 5 * 200 = 1000
-      const drLine = invJournal.lines.find(
-        (l: any) => l.account.code === '1300'
+      const drLine = invJournal!.lines.find(
+        (l) => l.account.code === '1300'
       ); // Asset (AR)
-      const crLine = invJournal.lines.find(
-        (l: any) => l.account.code === '4100'
+      const crLine = invJournal!.lines.find(
+        (l) => l.account.code === '4100'
       ); // Revenue
 
-      expect(Number(drLine.debit)).toBe(1000);
-      expect(Number(crLine.credit)).toBe(1000);
+      expect(Number(drLine!.debit)).toBe(1000);
+      expect(Number(crLine!.credit)).toBe(1000);
     });
 
     it('4. Should Receive Payment (Dr Cash 1100, Cr AR 1300)', async () => {
@@ -366,22 +385,26 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
         method: 'CASH',
       });
 
-      const journals = await journalService.list(COMPANY_ID);
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
       // Use flexible matching - journal reference includes "Payment received:"
-      const payJournal = journals.find((j: any) =>
+      const payJournal = journals.find((j) =>
         j.reference?.includes('Payment received:')
-      ) as any;
+      );
 
       expect(payJournal).toBeDefined();
-      const drLine = payJournal.lines.find(
-        (l: any) => l.account.code === '1100'
+      const drLine = payJournal!.lines.find(
+        (l) => l.account.code === '1100'
       ); // Asset (Cash)
-      const crLine = payJournal.lines.find(
-        (l: any) => l.account.code === '1300'
+      const crLine = payJournal!.lines.find(
+        (l) => l.account.code === '1300'
       ); // Asset Decrease (AR)
 
-      expect(Number(drLine.debit)).toBe(1000);
-      expect(Number(crLine.credit)).toBe(1000);
+      expect(Number(drLine!.debit)).toBe(1000);
+      expect(Number(crLine!.credit)).toBe(1000);
     });
   });
 });

@@ -24,6 +24,7 @@ import {
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
 import { calculateOptimalTier } from './rules/pricing';
+import { mapToRentalOrder } from './rental.mapper';
 
 export class RentalOrderLifecycleService {
   constructor(
@@ -47,11 +48,12 @@ export class RentalOrderLifecycleService {
     nextCursor: string | null;
   }> {
     const take = filters?.take ?? 50;
-    const items = (await this.repository.listRentalOrders(companyId, {
+    const rawItems = await this.repository.listRentalOrders(companyId, {
       ...filters,
       take: take + 1,
       cursor: filters?.cursor,
-    })) as unknown as PrismaRentalOrderWithRelations[];
+    });
+    const items = rawItems.map(mapToRentalOrder);
 
     const hasMore = items.length > take;
     const resultItems = hasMore ? items.slice(0, take) : items;

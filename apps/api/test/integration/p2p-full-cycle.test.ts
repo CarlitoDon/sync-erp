@@ -11,6 +11,7 @@ import { JournalService } from '@modules/accounting/services/journal.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
+
 const billService = new BillService();
 const paymentService = new PaymentService();
 const journalService = new JournalService();
@@ -58,7 +59,7 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -196,20 +197,24 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
       expect(auditLogs[0].correlationId).toBe(correlationId);
 
       // Step 5: Verify Journal entries (FR-011)
-      const journals = await journalService.list(COMPANY_ID);
+      const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
       const billJournal = journals.find(
-        (j: any) =>
+        (j) =>
           j.sourceType === JournalSourceType.BILL &&
           j.sourceId === billId
-      ) as any;
+      );
       expect(billJournal).toBeDefined();
 
-      const totalDebit = billJournal.lines.reduce(
-        (sum: number, l: any) => sum + Number(l.debit),
+      const totalDebit = billJournal!.lines.reduce(
+        (sum: number, l) => sum + Number(l.debit),
         0
       );
-      const totalCredit = billJournal.lines.reduce(
-        (sum: number, l: any) => sum + Number(l.credit),
+      const totalCredit = billJournal!.lines.reduce(
+        (sum: number, l) => sum + Number(l.credit),
         0
       );
       expect(totalDebit).toBeCloseTo(totalCredit, 2);
@@ -232,16 +237,16 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
       // Step 7: Verify Cash disbursement journal
       const allJournals = await journalService.list(COMPANY_ID);
       const paymentJournal = allJournals.find(
-        (j: any) => j.sourceType === JournalSourceType.PAYMENT
-      ) as any;
+        (j) => j.sourceType === JournalSourceType.PAYMENT
+      );
       expect(paymentJournal).toBeDefined();
 
-      const paymentDebit = paymentJournal.lines.reduce(
-        (sum: number, l: any) => sum + Number(l.debit),
+      const paymentDebit = paymentJournal!.lines.reduce(
+        (sum: number, l) => sum + Number(l.debit),
         0
       );
-      const paymentCredit = paymentJournal.lines.reduce(
-        (sum: number, l: any) => sum + Number(l.credit),
+      const paymentCredit = paymentJournal!.lines.reduce(
+        (sum: number, l) => sum + Number(l.credit),
         0
       );
       expect(paymentDebit).toBeCloseTo(paymentCredit, 2);

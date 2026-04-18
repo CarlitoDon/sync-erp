@@ -24,6 +24,7 @@ import type {
 } from '@sync-erp/database';
 import { RentalService } from '../../modules/rental/rental.service';
 import { container, ServiceKeys } from '../../modules/common/di';
+import { mapToPortableOrder } from '../../modules/rental/rental.mapper';
 
 const rentalService = container.resolve<RentalService>(
   ServiceKeys.RENTAL_SERVICE
@@ -126,9 +127,9 @@ export const rentalRouter = router({
               status: input?.status as RentalOrderStatus | undefined,
             }
           );
-          return result as unknown as {
-            items: PortableRentalOrder[];
-            nextCursor: string | null;
+          return {
+            items: result.items.map(mapToPortableOrder),
+            nextCursor: result.nextCursor
           };
         }
       ),
@@ -144,7 +145,7 @@ export const rentalRouter = router({
             ctx.companyId,
             input.id
           );
-          return result as PortableRentalOrder | null;
+          return result ? mapToPortableOrder(result) : null;
         }
       ),
 
@@ -157,7 +158,7 @@ export const rentalRouter = router({
             input,
             ctx.userId
           );
-          return result as PortableRentalOrder;
+          return mapToPortableOrder(result);
         }
       ),
 
@@ -170,7 +171,7 @@ export const rentalRouter = router({
             input,
             ctx.userId
           );
-          return result as PortableRentalOrder;
+          return mapToPortableOrder(result);
         }
       ),
 
@@ -184,7 +185,7 @@ export const rentalRouter = router({
             input,
             ctx.userId
           );
-          return result as PortableRentalOrder;
+          return mapToPortableOrder(result);
         }
       ),
 
@@ -197,7 +198,7 @@ export const rentalRouter = router({
             input,
             ctx.userId
           );
-          return result as PortableRentalOrder;
+          return mapToPortableOrder(result);
         }
       ),
 
@@ -213,7 +214,7 @@ export const rentalRouter = router({
             input.reason,
             ctx.userId
           );
-          return result as PortableRentalOrder;
+          return mapToPortableOrder(result);
         }
       ),
 
@@ -226,7 +227,7 @@ export const rentalRouter = router({
             input,
             ctx.userId
           );
-          return result as PortableRentalOrder;
+          return mapToPortableOrder(result);
         }
       ),
 
@@ -249,7 +250,7 @@ export const rentalRouter = router({
             input.paymentReference,
             input.failReason
           );
-          return result as PortableRentalOrder;
+          return mapToPortableOrder(result);
         }
       ),
   }),

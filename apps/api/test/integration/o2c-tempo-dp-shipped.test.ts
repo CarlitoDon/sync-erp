@@ -72,7 +72,7 @@ describe('BUG: O2C Flow with Shipment Before Invoice Post', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { InvoicePolicy } from '@modules/accounting/policies/invoice.policy';
-import { InvoiceStatus, OrderStatus } from '@sync-erp/database';
+import { Invoice, InvoiceStatus, OrderStatus } from '@sync-erp/database';
 import { DomainErrorCodes } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
 
@@ -22,12 +22,12 @@ describe('InvoicePolicy', () => {
       id: 'inv-1',
       status: InvoiceStatus.DRAFT,
       invoiceNumber: 'INV-001',
-    } as any;
+    } as unknown as Invoice;
 
     const postedInvoice = {
       ...draftInvoice,
       status: InvoiceStatus.POSTED,
-    };
+    } as unknown as Invoice;
 
     it('should pass for DRAFT invoice with valid data', () => {
       expect(() =>
@@ -242,8 +242,8 @@ describe('InvoicePolicy', () => {
           fullShippedQty
         );
         expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e.code).toBe(DomainErrorCodes.THREE_WAY_MATCH_FAILED);
+      } catch (e: unknown) {
+        expect((e as { code?: string }).code).toBe(DomainErrorCodes.THREE_WAY_MATCH_FAILED);
       }
     });
 
@@ -255,8 +255,8 @@ describe('InvoicePolicy', () => {
           partialShippedQty
         );
         expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e.code).toBe(DomainErrorCodes.THREE_WAY_MATCH_FAILED);
+      } catch (e: unknown) {
+        expect((e as { code?: string }).code).toBe(DomainErrorCodes.THREE_WAY_MATCH_FAILED);
       }
     });
   });

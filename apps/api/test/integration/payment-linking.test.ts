@@ -7,10 +7,10 @@ import {
 import { CashBankService } from '../../src/modules/cash-bank/cash-bank.service';
 import { CashBankRepository } from '../../src/modules/cash-bank/cash-bank.repository';
 import { AccountService } from '../../src/modules/accounting/services/account.service';
-import { JournalService } from '../../src/modules/accounting/services/journal.service';
 import { PaymentService } from '../../src/modules/accounting/services/payment.service';
 import { PaymentRepository } from '../../src/modules/accounting/repositories/payment.repository';
 import { InvoiceRepository } from '../../src/modules/accounting/repositories/invoice.repository';
+import { JournalService } from '../../src/modules/accounting/services/journal.service';
 
 // Initialize services
 const accountService = new AccountService();

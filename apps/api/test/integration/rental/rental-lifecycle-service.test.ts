@@ -16,8 +16,8 @@ import { RentalOrderLifecycleService } from '@modules/rental/rental-order-lifecy
 import { RentalRepository } from '@modules/rental/rental.repository';
 import { RentalService } from '@modules/rental/rental.service';
 import { DocumentNumberService } from '@modules/common/services/document-number.service';
-import { JournalService } from '@modules/accounting/services/journal.service';
 import { RentalWebhookService } from '@modules/rental/rental-webhook.service';
+import { JournalService } from '@modules/accounting/services/journal.service';
 
 const rentalServiceFacade = new RentalService(); // For setup helper
 const repository = new RentalRepository();

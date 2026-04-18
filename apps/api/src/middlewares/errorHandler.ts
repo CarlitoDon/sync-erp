@@ -52,6 +52,18 @@ function getPrismaErrorMessage(
   }
 }
 
+interface PrismaKnownError {
+  code: string;
+  message?: string;
+}
+
+function isPrismaKnownError(err: Error | AppError): err is Error & PrismaKnownError {
+  return (
+    'code' in err &&
+    typeof (err as { code?: unknown }).code === 'string'
+  );
+}
+
 export function errorHandler(
   err: Error | AppError,
   _req: Request,
@@ -59,12 +71,9 @@ export function errorHandler(
   _next: NextFunction
 ) {
   // Handle Prisma known request errors (constraint violations, not found, etc.)
-  // Check for Prisma error codes (duck typing since error classes aren't exported)
-  if (
-    'code' in (err as unknown as Record<string, unknown>) &&
-    typeof (err as unknown as Record<string, unknown>).code === 'string'
-  ) {
-    const prismaErr = (err as unknown as Record<string, unknown>) as { code: string };
+  if (isPrismaKnownError(err)) {
+    const prismaErr = err;
+
     console.error(
       '[ErrorHandler] Prisma Error:',
       prismaErr.code,

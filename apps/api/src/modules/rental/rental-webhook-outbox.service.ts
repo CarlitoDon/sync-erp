@@ -649,11 +649,20 @@ export class RentalWebhookOutboxService {
 
       const errorData = (await response
         .json()
-        .catch(() => ({}))) as { message?: string; error?: string };
-      const errorMessage =
-        errorData.message ||
-        errorData.error ||
-        `Webhook failed: ${response.status}`;
+        .catch(() => ({}))) as any;
+      
+      let errorMessage = `Webhook failed: ${response.status}`;
+      if (errorData) {
+        if (typeof errorData.message === 'string') {
+          errorMessage = errorData.message;
+        } else if (typeof errorData.error === 'string') {
+          errorMessage = errorData.error;
+        } else if (errorData.error && typeof errorData.error.message === 'string') {
+          errorMessage = errorData.error.message;
+        } else if (errorData.error && typeof errorData.error === 'object') {
+          errorMessage = JSON.stringify(errorData.error);
+        }
+      }
 
       return {
         success: false,

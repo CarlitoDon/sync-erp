@@ -44,7 +44,7 @@ describe('DP Bill Linking (Feature Implementation)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -186,7 +186,7 @@ describe('DP Bill Linking (Feature Implementation)', () => {
     expect(fetchedBill).toBeDefined();
     // Use 'as any' if types aren't fully updated in test context yet, but should be generated
     // prisma clients return types include relations if included in query
-    expect((fetchedBill as any).dpBill).toBeDefined();
-    expect((fetchedBill as any).dpBill.id).toBe(dpBill!.id);
+    expect((fetchedBill as unknown as { dpBill: { id: string } }).dpBill).toBeDefined();
+    expect((fetchedBill as unknown as { dpBill: { id: string } }).dpBill.id).toBe(dpBill!.id);
   });
 });

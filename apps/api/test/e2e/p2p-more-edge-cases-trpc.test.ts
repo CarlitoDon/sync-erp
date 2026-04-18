@@ -16,13 +16,13 @@ const COMPANY_ID = 'test-more-p2p-edge-cases-001';
 const USER_ID = 'test-user-001';
 
 const caller = appRouter.createCaller({
-  req: undefined as any,
-  res: undefined as any,
+  req: undefined as unknown as import("express").Request,
+  res: undefined as unknown as import("express").Response,
   userId: USER_ID,
   companyId: COMPANY_ID,
   businessShape: BusinessShape.RETAIL,
   correlationId: 'test-correlation',
-  userRole: 'ADMIN' as any,
+  userRole: "ADMIN" as string,
   userPermissions: ['*:*'],
   idempotencyKey: undefined,
 });

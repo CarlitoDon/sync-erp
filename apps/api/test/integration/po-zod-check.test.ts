@@ -10,12 +10,12 @@ const createCaller = async (userId: string, companyId: string) => {
       companyId,
     },
     headers: {},
-  } as any;
+  } as never;
 
   const ctx = await createContext({
     req,
-    res: {} as any,
-    info: {} as any,
+    res: {} as unknown as import("express").Response,
+    info: {} as never,
   });
 
   return appRouter.createCaller({

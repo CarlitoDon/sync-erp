@@ -119,13 +119,13 @@ describe('Backend Idempotency Integration', () => {
 
     // Create Caller with idempotency key
     const ctx = {
-      req: {} as any,
-      res: {} as any,
+      req: {} as unknown as import("express").Request,
+      res: {} as unknown as import("express").Response,
       userId: ACTOR_ID,
       companyId: COMPANY_ID,
       businessShape: BusinessShape.RETAIL,
       userPermissions: ['*:*'],
-      userRole: 'ADMIN' as any,
+      userRole: "ADMIN" as string,
       idempotencyKey,
       correlationId: undefined,
     };
@@ -177,13 +177,13 @@ describe('Backend Idempotency Integration', () => {
 
     const idempotencyKey = `key-conc-${Date.now()}`;
     const ctx = {
-      req: {} as any,
-      res: {} as any,
+      req: {} as unknown as import("express").Request,
+      res: {} as unknown as import("express").Response,
       userId: ACTOR_ID,
       companyId: COMPANY_ID,
       businessShape: BusinessShape.RETAIL,
       userPermissions: ['*:*'],
-      userRole: 'ADMIN' as any,
+      userRole: "ADMIN" as string,
       idempotencyKey,
       correlationId: undefined,
     };

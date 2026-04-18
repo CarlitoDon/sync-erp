@@ -5,18 +5,15 @@ import {
   InvoiceStatus,
   JournalSourceType,
   PaymentStatus,
-  JournalEntry,
-  JournalLine,
 } from '@sync-erp/database';
 import { InvoiceService } from '../../src/modules/accounting/services/invoice.service';
 import { PaymentService } from '../../src/modules/accounting/services/payment.service';
-import { JournalService } from '../../src/modules/accounting/services/journal.service';
 import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
 import { CustomerDepositService } from '../../src/modules/sales/customer-deposit.service';
 
+
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
-const journalService = new JournalService();
 const salesOrderService = new SalesOrderService();
 const customerDepositService = new CustomerDepositService();
 
@@ -59,7 +56,7 @@ describe('O2C Flow: Tax + Tempo + Down Payment', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as any,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -211,7 +208,11 @@ describe('O2C Flow: Tax + Tempo + Down Payment', () => {
 
     // 7. Verify Settlement Journal (Dr Customer Deposits, Cr AR)
     // Refresh journals list first
-    const journals = await journalService.list(COMPANY_ID);
+    const journals = await prisma.journalEntry.findMany({
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
 
     // Invoice Journal
     const invJournal = journals.find(
@@ -228,21 +229,21 @@ describe('O2C Flow: Tax + Tempo + Down Payment', () => {
     // The settlement uses the PAYMENT ID as sourceId in current implementation?
     // verify 'postSettleCustomerDeposit' implementation in journal service if needed
     // But we can find by account codes 2200 Dr and 1300 Cr
-    const settJournal = journals.find(
-      (j: JournalEntry) =>
-        (j as any).lines.some(
-          (l: JournalLine) => (l as any).account?.code === '2200' && Number(l.debit) > 0
-        ) &&
-        (j as any).lines.some(
-          (l: JournalLine) =>
-            (l as any).account?.code === '1300' && Number(l.credit) > 0
-        )
-    );
+    const settJournal = await prisma.journalEntry.findFirst({
+      where: {
+        companyId: COMPANY_ID,
+        lines: {
+          some: {
+            account: { code: '2200' },
+            debit: { gt: 0 },
+          },
+        },
+      },
+      include: { lines: { include: { account: true } } },
+    });
     expect(settJournal).toBeDefined();
-    // journalService.list output structure usually has accounts included or transformed.
-    // Assuming list() returns lines with account info.
-    const settDebit = (settJournal as any)?.lines.find(
-      (l: any) => l.account.code === '2200'
+    const settDebit = settJournal!.lines.find(
+      (l) => l.account.code === '2200'
     );
     expect(Number(settDebit?.debit)).toBe(222000);
 

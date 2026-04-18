@@ -14,6 +14,7 @@ import {
   RentalPaymentStatus,
   OrderSource,
 } from '@sync-erp/database';
+import { asMock } from "@sync-erp/shared";
 
 // Mock dependencies
 vi.mock('@modules/common/audit/audit-log.service', () => ({
@@ -27,7 +28,7 @@ vi.mock('@modules/rental/rental-webhook.service');
 
 describe('RentalOrderPaymentService', () => {
   let service: RentalOrderPaymentService;
-  let mockWebhookService: any;
+  let mockWebhookService: import("../../../src/modules/rental/rental-webhook.service").RentalWebhookService;
   const COMPANY_ID = 'test-company-id';
   const ACTOR_ID = 'test-actor-id';
   const ORDER_ID = 'order-1';
@@ -46,7 +47,7 @@ describe('RentalOrderPaymentService', () => {
         notifyNewOrder: vi.fn().mockResolvedValue(undefined),
         notifyOrderCreated: vi.fn().mockResolvedValue(undefined),
         notifyOrderCancelled: vi.fn().mockResolvedValue(undefined),
-      } as any;
+      } as never;
     });
 
     mockWebhookService = new RentalWebhookService();
@@ -68,10 +69,10 @@ describe('RentalOrderPaymentService', () => {
 
   describe('verifyPayment', () => {
     it('should confirm payment successfully', async () => {
-      (prisma.rentalOrder.findUnique as any).mockResolvedValue(
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue(
         mockOrder
       );
-      (prisma.rentalOrder.update as any).mockResolvedValue({
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...mockOrder,
         rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
       });
@@ -116,10 +117,10 @@ describe('RentalOrderPaymentService', () => {
         orderSource: OrderSource.WEBSITE,
         status: RentalOrderStatus.DRAFT,
       };
-      (prisma.rentalOrder.findUnique as any).mockResolvedValue(
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue(
         websiteOrder
       );
-      (prisma.rentalOrder.update as any).mockResolvedValue({
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...websiteOrder,
         rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
         status: RentalOrderStatus.CONFIRMED,
@@ -148,10 +149,10 @@ describe('RentalOrderPaymentService', () => {
         orderSource: OrderSource.ADMIN,
         status: RentalOrderStatus.DRAFT,
       };
-      (prisma.rentalOrder.findUnique as any).mockResolvedValue(
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue(
         adminOrder
       );
-      (prisma.rentalOrder.update as any).mockResolvedValue({
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...adminOrder,
         rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
         status: RentalOrderStatus.DRAFT, // Remains draft
@@ -175,10 +176,10 @@ describe('RentalOrderPaymentService', () => {
     });
 
     it('should reject payment successfully', async () => {
-      (prisma.rentalOrder.findUnique as any).mockResolvedValue(
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue(
         mockOrder
       );
-      (prisma.rentalOrder.update as any).mockResolvedValue({
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...mockOrder,
         rentalPaymentStatus: RentalPaymentStatus.FAILED,
       });
@@ -215,7 +216,7 @@ describe('RentalOrderPaymentService', () => {
     });
 
     it('should throw if order not found', async () => {
-      (prisma.rentalOrder.findUnique as any).mockResolvedValue(null);
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue(null);
 
       await expect(
         service.verifyPayment(
@@ -228,7 +229,7 @@ describe('RentalOrderPaymentService', () => {
     });
 
     it('should throw if status is not AWAITING_CONFIRM', async () => {
-      (prisma.rentalOrder.findUnique as any).mockResolvedValue({
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue({
         ...mockOrder,
         rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
       });

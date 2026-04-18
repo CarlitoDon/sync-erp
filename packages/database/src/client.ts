@@ -50,6 +50,7 @@ const connectionString = process.env.DATABASE_URL;
 const pool = new pg.Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 
+// BOUNDARY: Dev-mode singleton pattern.
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };

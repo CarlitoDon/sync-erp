@@ -10,3 +10,4 @@ export * from './utils/paymentTerms';
 export * from './utils/auth';
 export * from './config/environment';
 export * from './utils/formatters';
+export * from './utils/test-utils';
