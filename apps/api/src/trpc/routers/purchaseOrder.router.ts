@@ -48,7 +48,7 @@ export const purchaseOrderRouter = router({
    * Update purchase order
    */
   update: protectedProcedure
-    .input(z.object({ id: z.string(), data: z.any() }))
+    .input(z.object({ id: z.string(), data: z.unknown() }))
     .mutation(async ({ input, ctx }) => {
       return purchaseOrderService.update(
         input.id,

@@ -649,7 +649,7 @@ export class RentalWebhookOutboxService {
 
       const errorData = (await response
         .json()
-        .catch(() => ({}))) as any;
+        .catch(() => ({}))) as unknown;
       
       let errorMessage = `Webhook failed: ${response.status}`;
       if (errorData) {
