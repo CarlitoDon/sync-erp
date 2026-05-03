@@ -258,9 +258,13 @@ export class RentalExternalOrderService {
           );
         }
 
+        const isBotUnreachable = errorMessage.includes('Bot memerlukan') || errorMessage.includes('scan QR') || errorMessage.includes('Bot is not ready');
+        const userFriendlyMessage = isBotUnreachable
+          ? 'Mohon maaf, sistem sedang tidak dapat memproses pesanan otomatis. Silakan hubungi admin via WhatsApp untuk melanjutkan.'
+          : (errorMessage || 'Gagal validasi pesanan (WhatsApp tidak valid)');
+
         throw new DomainError(
-          errorMessage ||
-            'Gagal validasi pesanan (WhatsApp tidak valid)',
+          userFriendlyMessage,
           400,
           DomainErrorCodes.INVALID_INPUT
         );
