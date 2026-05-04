@@ -56,7 +56,7 @@ router.get('/sse', async (req, res) => {
 
     // Register the session before connect() emits the endpoint event.
     // Some clients POST immediately after receiving the endpoint, so
-    // registering late can create an MCP_SESSION_NOT_FOUND race.
+    // registering late can still create an MCP_SESSION_NOT_FOUND race.
     sessions.set(sessionId, {
       transport,
       createdAt: now,

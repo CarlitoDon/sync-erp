@@ -160,10 +160,21 @@ jobs:
 
       - name: Deploy package to Hostinger
         env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          SSH_PASSPHRASE: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
           DEPLOY_DIR: ${{ steps.target.outputs.deploy_dir }}
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
         run: |
+          eval $(ssh-agent -a $SSH_AUTH_SOCK)
+
+          echo 'echo "$SSH_PASSPHRASE"' > ~/.ssh/askpass
+          chmod +x ~/.ssh/askpass
+          export SSH_ASKPASS=~/.ssh/askpass
+          export DISPLAY=:0
+
+          ssh-add ~/.ssh/id_ed25519
+
           rsync -avz --delete \
             --exclude='.htaccess' \
             --exclude='.env' \
@@ -173,7 +184,7 @@ jobs:
             -e "ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
             deploy/api-mcp/ "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/public_html/${DEPLOY_DIR}/"
 
-          ssh -p 65002 -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "${HOSTINGER_USER}@${HOSTINGER_HOST}" <<EOF
+          ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${HOSTINGER_USER}@${HOSTINGER_HOST}" <<EOF
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH
             cd ~/public_html/${DEPLOY_DIR}
             npm install --production --no-audit --no-fund
