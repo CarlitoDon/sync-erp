@@ -1,6 +1,6 @@
 /**
- * Webhook service for Santi Living notifications
- * Calls santi-living erp-sync-service to trigger WA notifications
+ * Webhook service for rental notifications
+ * Enqueues deliveries through the rental webhook outbox for partner integrations
  */
 import { rentalWebhookOutboxService } from './rental-webhook-outbox.service';
 
@@ -28,7 +28,7 @@ interface NotifyOptions {
 
 export class RentalWebhookService {
   /**
-   * Notify santi-living about payment status change
+   * Notify partner integration about payment status change
    * Fires async - failures are logged but don't block the main operation
    */
   async notifyPaymentStatus(
@@ -80,7 +80,11 @@ export class RentalWebhookService {
     id: string;
     orderNumber?: string;
     totalAmount?: number | { toNumber(): number };
-    partner?: { name?: string; phone?: string; email?: string } | null;
+    partner?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+    } | null;
   }): Promise<void> {
     await this.notifyNewOrder({
       companyId: order.companyId,
