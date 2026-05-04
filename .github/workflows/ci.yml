@@ -170,7 +170,7 @@ jobs:
             --exclude='node_modules' \
             --exclude='tmp' \
             --exclude='stderr.log' \
-            -e "ssh -p 65002 -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            -e "ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
             deploy/api-mcp/ "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/public_html/${DEPLOY_DIR}/"
 
           ssh -p 65002 -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "${HOSTINGER_USER}@${HOSTINGER_HOST}" <<EOF
@@ -182,11 +182,11 @@ jobs:
           EOF
 
           rsync -avz --delete \
-            -e "ssh -p 65002 -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            -e "ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
             deploy/api-mcp/node_modules/@sync-erp/database/ \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/public_html/${DEPLOY_DIR}/node_modules/@sync-erp/database/"
 
-          ssh -p 65002 -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+          ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
             "cd ~/public_html/${DEPLOY_DIR} && mkdir -p tmp && touch tmp/restart.txt"
 
       - name: Verify API health
