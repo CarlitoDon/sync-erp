@@ -2,7 +2,7 @@
  * Company Tools
  */
 import type { ToolSpec } from '../types.js';
-import { apiQuery, apiMutation } from '../client.js';
+import { apiQuery } from '../client.js';
 import { getString } from './_helpers.js';
 
 export function getCompanyTools(): ToolSpec[] {
