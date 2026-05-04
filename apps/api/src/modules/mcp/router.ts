@@ -31,6 +31,8 @@ router.get('/health', (_req, res) => {
 router.use(requireMcpAuth);
 
 router.get('/sse', async (req, res) => {
+  let sessionId: string | undefined;
+
   try {
     const runtimeConfig = getMcpRuntimeConfig();
     await cleanupExpiredSessions();
@@ -49,7 +51,7 @@ router.get('/sse', async (req, res) => {
 
     const transport = new SSEServerTransport('/mcp/messages', res);
     const server = createMcpServer();
-    const sessionId = transport.sessionId;
+    sessionId = transport.sessionId;
     const now = Date.now();
 
     // Register the session before connect() emits the endpoint event.
@@ -63,18 +65,17 @@ router.get('/sse', async (req, res) => {
     });
 
     transport.onclose = () => {
-      sessions.delete(sessionId);
+      const currentSessionId = sessionId;
+      if (currentSessionId) {
+        sessions.delete(currentSessionId);
+      }
     };
 
     await server.connect(transport);
   } catch (error) {
-    if (error instanceof Error) {
-      const sessionId = Array.from(sessions.entries()).find(
-        ([, session]) => session.transport.res === res
-      )?.[0];
-      if (sessionId) {
-        sessions.delete(sessionId);
-      }
+    const currentSessionId = sessionId;
+    if (currentSessionId) {
+      sessions.delete(currentSessionId);
     }
     if (!res.headersSent) {
       res.status(500).json({
