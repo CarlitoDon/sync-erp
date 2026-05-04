@@ -55,7 +55,9 @@ Jobs:
 - `deploy_web`
   - hanya jalan pada `push` ke `main` atau `dev`
   - hanya jalan jika area frontend berubah
-  - deploy ke Vercel via Vercel CLI
+  - prioritas deploy via Vercel deploy hook
+  - fallback ke Vercel CLI jika hook belum dikonfigurasi atau hook tetap kena `429`
+  - retry otomatis untuk rate limit / kegagalan sementara
 
 ### Manual Fallback
 
@@ -74,13 +76,24 @@ File: `.github/workflows/deploy-api-hostinger.yml`
 
 ### Frontend / Vercel
 
-- `VERCEL_TOKEN`
 - `VERCEL_ORG_ID`
 - `VERCEL_PROJECT_ID_WEB`
+
+Pilih minimal salah satu jalur deploy berikut:
+
+- `VERCEL_DEPLOY_HOOK_PRODUCTION_WEB` dan `VERCEL_DEPLOY_HOOK_PREVIEW_WEB`
+- `VERCEL_TOKEN`
+
+Recommended:
+
+- `VERCEL_DEPLOY_HOOK_PRODUCTION_WEB`
+- `VERCEL_DEPLOY_HOOK_PREVIEW_WEB`
 
 ## Notes
 
 - CI dan CD sekarang dipusatkan di satu workflow utama agar status branch lebih mudah dibaca.
 - Deploy otomatis hanya terjadi setelah push ke branch deploy.
 - Deploy frontend dan backend dipisah per area perubahan agar lebih cepat dan lebih hemat runner time.
+- Untuk Vercel, deploy hook lebih disarankan daripada full CLI login flow karena lebih ringan dan lebih tahan rate limit.
+- Jika deploy hook terus menerima `429`, workflow akan fallback ke Vercel CLI selama `VERCEL_TOKEN` tersedia.
 - Untuk branch protection, disarankan mewajibkan workflow `CI/CD` lulus sebelum merge ke `main` atau `dev`.
