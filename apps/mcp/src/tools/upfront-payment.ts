@@ -3,7 +3,7 @@
  */
 import type { ToolSpec } from '../types.js';
 import { apiQuery, apiMutation } from '../client.js';
-import { getString, companyIdProp, idProp } from './_helpers.js';
+import { getString, companyIdProp } from './_helpers.js';
 
 export function getUpfrontPaymentTools(): ToolSpec[] {
   return [
