@@ -23,6 +23,21 @@ export class UserRepository {
     });
   }
 
+  async markEmailVerified(userId: string): Promise<User> {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerifiedAt: new Date(),
+      },
+    });
+  }
+
+  async delete(userId: string): Promise<User> {
+    return prisma.user.delete({
+      where: { id: userId },
+    });
+  }
+
   async findMembersByCompany(
     companyId: string
   ): Promise<(CompanyMember & { user: User; role: Role | null })[]> {

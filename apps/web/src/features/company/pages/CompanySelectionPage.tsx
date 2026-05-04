@@ -35,7 +35,7 @@ export function CompanySelectionPage() {
 
   const handleSelectCompany = (company: Company) => {
     setCurrentCompany(company);
-    navigate('/'); // Redirect to dashboard
+    navigate('/dashboard'); // Redirect to dashboard
   };
 
   const handleLogout = async () => {
@@ -52,7 +52,7 @@ export function CompanySelectionPage() {
       });
       await refreshCompanies(); // Reload list
       setCurrentCompany(newCompany); // Auto-select
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       const message =
         err instanceof Error
@@ -71,7 +71,7 @@ export function CompanySelectionPage() {
       });
       await refreshCompanies(); // Reload list
       setCurrentCompany(joinedCompany); // Auto-select
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to join company';
