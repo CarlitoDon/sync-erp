@@ -37,6 +37,7 @@ coverage/
 
 # Turbo
 .turbo/
+.trae/
 
 # Database
 *.db
