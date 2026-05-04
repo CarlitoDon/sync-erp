@@ -252,11 +252,13 @@ async function main() {
       where: { email: adminEmail },
       update: {
         passwordHash,
+        emailVerifiedAt: new Date(),
       },
       create: {
         email: adminEmail,
         name: 'System Admin',
         passwordHash,
+        emailVerifiedAt: new Date(),
       },
     });
 

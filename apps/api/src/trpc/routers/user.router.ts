@@ -2,6 +2,7 @@ import { router, protectedProcedure } from '../trpc';
 import { UserService } from '../../modules/user/user.service';
 import { CreateUserSchema } from '@sync-erp/shared';
 import { z } from 'zod';
+import { assertBillingLimitAvailable } from '../../modules/billing/billing-limits.service';
 
 import { container, ServiceKeys } from '../../modules/common/di';
 
@@ -32,6 +33,11 @@ export const userRouter = router({
   create: protectedProcedure
     .input(CreateUserSchema)
     .mutation(async ({ ctx, input }) => {
+      await assertBillingLimitAvailable({
+        metric: 'users',
+        companyId: ctx.companyId,
+      });
+
       return userService.create(input, ctx.companyId);
     }),
 });

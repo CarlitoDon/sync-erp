@@ -22,7 +22,7 @@ export default function Layout() {
         <header className="md:hidden glass sticky top-0 z-30 shadow-sm">
           <div className="flex items-center justify-between h-14 px-4">
             <MobileMenuButton />
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/dashboard" className="flex items-center gap-2">
               <div className="w-7 h-7 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xs">
                   S

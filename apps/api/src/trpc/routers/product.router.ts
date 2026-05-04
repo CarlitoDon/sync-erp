@@ -5,6 +5,7 @@ import {
   UpdateProductSchema,
 } from '@sync-erp/shared';
 import { z } from 'zod';
+import { assertBillingLimitAvailable } from '../../modules/billing/billing-limits.service';
 
 import { container, ServiceKeys } from '../../modules/common/di';
 
@@ -35,6 +36,11 @@ export const productRouter = router({
   create: protectedProcedure
     .input(CreateProductSchema)
     .mutation(async ({ ctx, input }) => {
+      await assertBillingLimitAvailable({
+        metric: 'products',
+        companyId: ctx.companyId,
+      });
+
       return productService.create(ctx.companyId, input);
     }),
 

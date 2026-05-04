@@ -53,7 +53,7 @@ describe('SidebarNav', () => {
 
       expect(
         screen.getByRole('link', { name: /dashboard/i })
-      ).toHaveAttribute('href', '/');
+      ).toHaveAttribute('href', '/dashboard');
     });
 
     it('has correct link for Suppliers', () => {
@@ -138,8 +138,8 @@ describe('SidebarNav', () => {
   });
 
   describe('Active State', () => {
-    it('highlights Dashboard when on root path', () => {
-      renderComponent('/');
+    it('highlights Dashboard when on dashboard path', () => {
+      renderComponent('/dashboard');
 
       const dashboardLink = screen.getByRole('link', {
         name: /dashboard/i,

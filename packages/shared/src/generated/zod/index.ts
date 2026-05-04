@@ -99,9 +99,15 @@ export const RentalWebhookOutboxScalarFieldEnumSchema = z.enum(['id','companyId'
 
 export const TenantWebhookOutboxScalarFieldEnumSchema = z.enum(['id','companyId','apiKeyId','event','payload','webhookUrl','webhookSecret','eventTimestamp','status','attempts','nextAttemptAt','lastAttemptAt','deliveredAt','lastError','lastStatusCode','createdAt','updatedAt']);
 
-export const UserScalarFieldEnumSchema = z.enum(['id','email','name','passwordHash','createdAt','updatedAt']);
+export const UserScalarFieldEnumSchema = z.enum(['id','email','name','passwordHash','emailVerifiedAt','createdAt','updatedAt']);
 
 export const SessionScalarFieldEnumSchema = z.enum(['id','userId','expiresAt','createdAt']);
+
+export const OAuthAccountScalarFieldEnumSchema = z.enum(['id','userId','provider','providerAccountId','email','createdAt','updatedAt']);
+
+export const EmailVerificationTokenScalarFieldEnumSchema = z.enum(['id','userId','tokenHash','expiresAt','consumedAt','createdAt']);
+
+export const AuthAuditLogScalarFieldEnumSchema = z.enum(['id','userId','email','action','correlationId','ipAddress','userAgent','metadata','createdAt']);
 
 export const CompanyMemberScalarFieldEnumSchema = z.enum(['id','userId','companyId','roleId','createdAt']);
 
@@ -204,6 +210,14 @@ export const QueryModeSchema = z.enum(['default','insensitive']);
 export const NullsOrderSchema = z.enum(['first','last']);
 
 export const JsonNullValueFilterSchema: z.ZodType<Prisma.JsonNullValueFilter> = z.enum(['DbNull','JsonNull','AnyNull',]).transform((value) => value === 'JsonNull' ? Prisma.JsonNull : value === 'DbNull' ? Prisma.DbNull : value === 'AnyNull' ? Prisma.AnyNull : value);
+
+export const OAuthProviderSchema = z.enum(['GOOGLE']);
+
+export type OAuthProviderType = `${z.infer<typeof OAuthProviderSchema>}`
+
+export const AuthAuditActionSchema = z.enum(['REGISTERED','VERIFICATION_EMAIL_SENT','VERIFICATION_EMAIL_FAILED','VERIFICATION_RESEND_REQUESTED','EMAIL_VERIFIED','LOGIN_BLOCKED_UNVERIFIED','GOOGLE_OAUTH_LINKED','GOOGLE_OAUTH_SUCCEEDED','GOOGLE_OAUTH_FAILED']);
+
+export type AuthAuditActionType = `${z.infer<typeof AuthAuditActionSchema>}`
 
 export const AccountTypeSchema = z.enum(['ASSET','LIABILITY','EQUITY','REVENUE','EXPENSE']);
 
@@ -505,6 +519,7 @@ export const UserSchema = z.object({
   email: z.string(),
   name: z.string(),
   passwordHash: z.string(),
+  emailVerifiedAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })
@@ -523,6 +538,55 @@ export const SessionSchema = z.object({
 })
 
 export type Session = z.infer<typeof SessionSchema>
+
+/////////////////////////////////////////
+// O AUTH ACCOUNT SCHEMA
+/////////////////////////////////////////
+
+export const OAuthAccountSchema = z.object({
+  provider: OAuthProviderSchema,
+  id: z.string(),
+  userId: z.string(),
+  providerAccountId: z.string(),
+  email: z.string(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type OAuthAccount = z.infer<typeof OAuthAccountSchema>
+
+/////////////////////////////////////////
+// EMAIL VERIFICATION TOKEN SCHEMA
+/////////////////////////////////////////
+
+export const EmailVerificationTokenSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  tokenHash: z.string(),
+  expiresAt: z.coerce.date(),
+  consumedAt: z.coerce.date().nullable(),
+  createdAt: z.coerce.date(),
+})
+
+export type EmailVerificationToken = z.infer<typeof EmailVerificationTokenSchema>
+
+/////////////////////////////////////////
+// AUTH AUDIT LOG SCHEMA
+/////////////////////////////////////////
+
+export const AuthAuditLogSchema = z.object({
+  action: AuthAuditActionSchema,
+  id: z.string(),
+  userId: z.string().nullable(),
+  email: z.string(),
+  correlationId: z.string().nullable(),
+  ipAddress: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  metadata: JsonValueSchema.nullable(),
+  createdAt: z.coerce.date(),
+})
+
+export type AuthAuditLog = z.infer<typeof AuthAuditLogSchema>
 
 /////////////////////////////////////////
 // COMPANY MEMBER SCHEMA
