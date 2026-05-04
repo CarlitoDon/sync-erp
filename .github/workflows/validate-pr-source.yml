@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check source branch
-        if: github.head_ref != 'dev'
+        if: github.head_ref != 'dev' && !startsWith(github.head_ref, 'cto/')
         run: |
-          echo "Error: Pull requests to 'main' must come from 'dev' branch."
+          echo "Error: Pull requests to 'main' must come from 'dev' or a 'cto/*' branch."
           echo "Current source branch: ${{ github.head_ref }}"
           exit 1
