@@ -35,6 +35,10 @@ export const AVAILABLE_INTEGRATIONS: IntegrationApp[] = [
     defaultConfig: {
       webhookUrl: '',
       syncEnabled: true,
+      paths: {
+        newOrder: '/api/orders/{token}/notify-admin',
+        paymentStatus: '/api/orders/{token}/notify-payment',
+      },
     },
   },
   {
@@ -65,7 +69,7 @@ export class IntegrationService {
    * List available apps combined with installation status for a company
    */
   async listIntegrations(companyId: string) {
-    const installed = await prisma.integration.findMany({
+    const installed = (await prisma.integration.findMany({
       where: { companyId },
       include: {
         apiKeys: {
@@ -74,7 +78,7 @@ export class IntegrationService {
           take: 1,
         },
       },
-    }) as IntegrationWithApiKeys[];
+    })) as IntegrationWithApiKeys[];
 
     return AVAILABLE_INTEGRATIONS.map((app) => {
       const existing = installed.find(
@@ -93,6 +97,22 @@ export class IntegrationService {
             }
           : null,
       };
+    });
+  }
+
+  /**
+   * Get the active integration for a company with its first active API key
+   */
+  async getActiveIntegrationForCompany(companyId: string) {
+    return prisma.integration.findFirst({
+      where: { companyId, isActive: true },
+      include: {
+        apiKeys: {
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+        },
+      },
     });
   }
 

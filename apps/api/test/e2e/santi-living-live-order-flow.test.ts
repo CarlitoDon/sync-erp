@@ -10,14 +10,25 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import superjson from 'superjson';
 import { z } from 'zod';
 import { fileURLToPath, pathToFileURL } from 'url';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { apiKeyService } from '@src/services/api-key.service';
 
 const COMPANY_ID = 'test-santi-living-live-e2e-001';
 const PROXY_API_SECRET = 'proxy-live-e2e-secret';
 const BOT_SECRET = 'bot-live-e2e-secret';
-const rejectedTransactionStatuses = ['expire', 'cancel', 'deny'] as const;
+const rejectedTransactionStatuses = [
+  'expire',
+  'cancel',
+  'deny',
+] as const;
 
 const botState = {
   adminMessages: [] as Array<{ phone: string; message: string }>,
@@ -77,7 +88,8 @@ const proxyClientModulePath = path.resolve(
   'santi-living/apps/web/src/lib/trpc-client.ts'
 );
 const hasSantiLivingWorkspace =
-  existsSync(proxyServerModulePath) && existsSync(proxyClientModulePath);
+  existsSync(proxyServerModulePath) &&
+  existsSync(proxyClientModulePath);
 const shouldRunLiveCrossRepoE2E =
   process.env.RUN_SANTI_LIVING_LIVE_E2E === 'true';
 const proxyServerModuleUrl = pathToFileURL(
@@ -118,7 +130,11 @@ const createBotStubApp = () => {
             items: z.array(
               z.object({
                 name: z.string(),
-                category: z.enum(['package', 'mattress', 'accessory']),
+                category: z.enum([
+                  'package',
+                  'mattress',
+                  'accessory',
+                ]),
                 quantity: z.number(),
                 pricePerDay: z.number(),
               })
@@ -128,7 +144,9 @@ const createBotStubApp = () => {
             endDate: z.string(),
             duration: z.number(),
             deliveryFee: z.number(),
-            paymentMethod: z.enum(['qris', 'transfer', 'gopay']).optional(),
+            paymentMethod: z
+              .enum(['qris', 'transfer', 'gopay'])
+              .optional(),
             addressFields: z
               .object({
                 street: z.string().optional(),
@@ -310,22 +328,25 @@ const postMidtransWebhook = async (input: {
     input.signatureKey ??
     createMidtransSignature(input.orderId, statusCode, grossAmount);
 
-  return await fetch(`${process.env.SANTI_PROXY_URL}/api/webhooks/midtrans`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      order_id: input.orderId,
-      status_code: statusCode,
-      gross_amount: grossAmount,
-      signature_key: signatureKey,
-      transaction_status: input.transactionStatus,
-      payment_type: input.paymentType,
-      transaction_id: input.transactionId,
-      fraud_status: input.fraudStatus,
-    }),
-  });
+  return await fetch(
+    `${process.env.SANTI_PROXY_URL}/api/webhooks/midtrans`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        order_id: input.orderId,
+        status_code: statusCode,
+        gross_amount: grossAmount,
+        signature_key: signatureKey,
+        transaction_status: input.transactionStatus,
+        payment_type: input.paymentType,
+        transaction_id: input.transactionId,
+        fraud_status: input.fraudStatus,
+      }),
+    }
+  );
 };
 
 const createWebsiteOrder = async (client: ProxyClient) => {
@@ -350,7 +371,12 @@ const createWebsiteOrder = async (client: ProxyClient) => {
         category: 'package' as const,
         quantity: 1,
         pricePerDay: 35000,
-        includes: ['kasur busa 90x200', 'sprei 90x200', 'bantal', 'selimut'],
+        includes: [
+          'kasur busa 90x200',
+          'sprei 90x200',
+          'bantal',
+          'selimut',
+        ],
       },
       {
         id: 'mattress-double',
@@ -407,9 +433,7 @@ const cleanupCompanyOrders = async () => {
 
 describe.skipIf(
   !hasSantiLivingWorkspace || !shouldRunLiveCrossRepoE2E
-)(
-  'Santi Living live order flow E2E',
-  () => {
+)('Santi Living live order flow E2E', () => {
   let botServer: Server;
   let erpServer: Server;
   let proxyServer: Server;
@@ -433,13 +457,14 @@ describe.skipIf(
     process.env.MIDTRANS_CLIENT_KEY = 'test-midtrans-client-key';
     process.env.SYNC_ERP_BOT_URL = `http://127.0.0.1:${botPort}`;
     process.env.SYNC_ERP_API_URL = `http://127.0.0.1:${erpPort}/api/trpc`;
-    process.env.SANTI_LIVING_WEBHOOK_URL = `http://127.0.0.1:${proxyPort}`;
-    process.env.SANTI_LIVING_WEBHOOK_API_KEY = PROXY_API_SECRET;
     process.env.SANTI_PROXY_URL = `http://127.0.0.1:${proxyPort}`;
     process.env.PUBLIC_PROXY_URL = `http://127.0.0.1:${proxyPort}`;
 
     await cleanupCompanyOrders();
     await prisma.apiKey.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.integration.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     await prisma.company.upsert({
@@ -453,13 +478,46 @@ describe.skipIf(
       },
     });
 
+    const integration = await prisma.integration.create({
+      data: {
+        companyId: COMPANY_ID,
+        appId: 'santi-living',
+        name: 'Santi Living',
+        isActive: true,
+        config: {
+          webhookUrl: `http://127.0.0.1:${proxyPort}`,
+          paths: {
+            newOrder: '/api/orders/{token}/notify-admin',
+            paymentStatus: '/api/orders/{token}/notify-payment',
+          },
+        },
+      },
+    });
+
+    await prisma.apiKey.create({
+      data: {
+        companyId: COMPANY_ID,
+        integrationId: integration.id,
+        keyHash: 'hash',
+        keyPrefix: 'sk_live',
+        name: 'Live E2E Key',
+        webhookUrl: `http://127.0.0.1:${proxyPort}`,
+        webhookSecret: `Bearer ${PROXY_API_SECRET}`,
+        isActive: true,
+      },
+    });
+
     const botApp = createBotStubApp();
     const botListener = await listen(botApp, botPort);
     botServer = botListener.server;
 
-    const apiKey = await apiKeyService.createKey(COMPANY_ID, 'Proxy Live E2E', {
-      permissions: ['rental:read', 'rental:write'],
-    });
+    const apiKey = await apiKeyService.createKey(
+      COMPANY_ID,
+      'Proxy Live E2E',
+      {
+        permissions: ['rental:read', 'rental:write'],
+      }
+    );
     process.env.SYNC_ERP_API_SECRET = apiKey.key;
 
     const { createApp } = await import('@src/app');
@@ -474,9 +532,7 @@ describe.skipIf(
     const proxyListener = await listen(proxyApp, proxyPort);
     proxyServer = proxyListener.server;
 
-    const { createProxyClient } = await import(
-      proxyClientModuleUrl
-    );
+    const { createProxyClient } = await import(proxyClientModuleUrl);
     proxyClient = createProxyClient() as unknown as ProxyClient;
   });
 
@@ -490,6 +546,9 @@ describe.skipIf(
   afterAll(async () => {
     await cleanupCompanyOrders();
     await prisma.apiKey.deleteMany({
+      where: { companyId: COMPANY_ID },
+    });
+    await prisma.integration.deleteMany({
       where: { companyId: COMPANY_ID },
     });
     await prisma.company.deleteMany({
@@ -523,7 +582,9 @@ describe.skipIf(
 
     expect(botState.adminMessages).toHaveLength(1);
     expect(botState.adminMessages[0]?.phone).toBe('62800000000000');
-    expect(botState.adminMessages[0]?.message).toContain(result.orderNumber);
+    expect(botState.adminMessages[0]?.message).toContain(
+      result.orderNumber
+    );
 
     expect(botState.orderNotifications).toHaveLength(1);
     expect(botState.orderNotifications[0]).toMatchObject({
@@ -553,23 +614,35 @@ describe.skipIf(
     const claimedOrder = await prisma.rentalOrder.findUnique({
       where: { id: created.id },
     });
-    expect(claimedOrder?.rentalPaymentStatus).toBe('AWAITING_CONFIRM');
+    expect(claimedOrder?.rentalPaymentStatus).toBe(
+      'AWAITING_CONFIRM'
+    );
     expect(claimedOrder?.paymentClaimedAt).toBeTruthy();
     expect(claimedOrder?.paymentMethod).toBe('transfer');
     expect(claimedOrder?.paymentReference).toBe('TRF-LIVE-001');
     expect(claimedOrder?.status).toBe('DRAFT');
 
-    await waitFor(
-      () => botState.adminMessages.length >= 2,
-      {
-        description: 'Payment claim notifications to admin and customer',
-      }
-    );
+    await waitFor(() => botState.adminMessages.length >= 2, {
+      description:
+        'Payment claim notifications to admin and customer',
+    });
 
-    const claimMessages = botState.adminMessages.map((entry) => entry.message);
-    expect(claimMessages.some((message) => message.includes('KONFIRMASI PEMBAYARAN BARU'))).toBe(true);
-    expect(claimMessages.some((message) => message.includes('Konfirmasi Pembayaran Diterima'))).toBe(true);
-    expect(botState.adminMessages.map((entry) => entry.phone)).toEqual(
+    const claimMessages = botState.adminMessages.map(
+      (entry) => entry.message
+    );
+    expect(
+      claimMessages.some((message) =>
+        message.includes('KONFIRMASI PEMBAYARAN BARU')
+      )
+    ).toBe(true);
+    expect(
+      claimMessages.some((message) =>
+        message.includes('Konfirmasi Pembayaran Diterima')
+      )
+    ).toBe(true);
+    expect(
+      botState.adminMessages.map((entry) => entry.phone)
+    ).toEqual(
       expect.arrayContaining(['62800000000000', '6281234567890'])
     );
 
@@ -595,18 +668,21 @@ describe.skipIf(
 
     expect(response.status).toBe(200);
 
-    await waitFor(async () => {
-      const order = await prisma.rentalOrder.findUnique({
-        where: { id: created.id },
-      });
+    await waitFor(
+      async () => {
+        const order = await prisma.rentalOrder.findUnique({
+          where: { id: created.id },
+        });
 
-      return (
-        order?.rentalPaymentStatus === 'CONFIRMED' &&
-        order.status === 'CONFIRMED'
-      );
-    }, {
-      description: 'ERP order confirmation after Midtrans webhook',
-    });
+        return (
+          order?.rentalPaymentStatus === 'CONFIRMED' &&
+          order.status === 'CONFIRMED'
+        );
+      },
+      {
+        description: 'ERP order confirmation after Midtrans webhook',
+      }
+    );
 
     const confirmedOrder = await prisma.rentalOrder.findUnique({
       where: { id: created.id },
@@ -616,17 +692,27 @@ describe.skipIf(
     expect(confirmedOrder?.paymentConfirmedAt).toBeTruthy();
     expect(confirmedOrder?.paymentReference).toBe(transactionId);
 
-    await waitFor(
-      () => botState.adminMessages.length >= 4,
-      {
-        description: 'Payment confirmed notifications to admin and customer',
-      }
-    );
+    await waitFor(() => botState.adminMessages.length >= 4, {
+      description:
+        'Payment confirmed notifications to admin and customer',
+    });
 
-    const allMessages = botState.adminMessages.map((entry) => entry.message);
-    expect(allMessages.some((message) => message.includes('PEMBAYARAN DITERIMA'))).toBe(true);
-    expect(allMessages.some((message) => message.includes('Pembayaran Berhasil!'))).toBe(true);
-    expect(botState.adminMessages.map((entry) => entry.phone)).toEqual(
+    const allMessages = botState.adminMessages.map(
+      (entry) => entry.message
+    );
+    expect(
+      allMessages.some((message) =>
+        message.includes('PEMBAYARAN DITERIMA')
+      )
+    ).toBe(true);
+    expect(
+      allMessages.some((message) =>
+        message.includes('Pembayaran Berhasil!')
+      )
+    ).toBe(true);
+    expect(
+      botState.adminMessages.map((entry) => entry.phone)
+    ).toEqual(
       expect.arrayContaining(['62800000000000', '6281234567890'])
     );
   });
@@ -647,15 +733,18 @@ describe.skipIf(
 
       expect(response.status).toBe(200);
 
-      await waitFor(async () => {
-        const order = await prisma.rentalOrder.findUnique({
-          where: { id: created.id },
-        });
+      await waitFor(
+        async () => {
+          const order = await prisma.rentalOrder.findUnique({
+            where: { id: created.id },
+          });
 
-        return order?.rentalPaymentStatus === 'FAILED';
-      }, {
-        description: `ERP order payment failure after Midtrans ${transactionStatus} webhook`,
-      });
+          return order?.rentalPaymentStatus === 'FAILED';
+        },
+        {
+          description: `ERP order payment failure after Midtrans ${transactionStatus} webhook`,
+        }
+      );
 
       const failedOrder = await prisma.rentalOrder.findUnique({
         where: { id: created.id },
@@ -667,12 +756,9 @@ describe.skipIf(
         `Midtrans transaction ${transactionStatus}`
       );
 
-      await waitFor(
-        () => botState.adminMessages.length >= 2,
-        {
-          description: `Payment rejected notifications for ${transactionStatus}`,
-        }
-      );
+      await waitFor(() => botState.adminMessages.length >= 2, {
+        description: `Payment rejected notifications for ${transactionStatus}`,
+      });
 
       const rejectedMessages = botState.adminMessages.map(
         (entry) => entry.message
@@ -687,7 +773,9 @@ describe.skipIf(
           message.includes('Pembayaran Belum Berhasil')
         )
       ).toBe(true);
-      expect(botState.adminMessages.map((entry) => entry.phone)).toEqual(
+      expect(
+        botState.adminMessages.map((entry) => entry.phone)
+      ).toEqual(
         expect.arrayContaining(['62800000000000', '6281234567890'])
       );
     }
@@ -734,12 +822,9 @@ describe.skipIf(
 
     expect(response.status).toBe(200);
 
-    await waitFor(
-      () => botState.adminMessages.length >= 1,
-      {
-        description: 'Admin challenge notification',
-      }
-    );
+    await waitFor(() => botState.adminMessages.length >= 1, {
+      description: 'Admin challenge notification',
+    });
 
     const order = await prisma.rentalOrder.findUnique({
       where: { id: created.id },
@@ -801,5 +886,4 @@ describe.skipIf(
     expect(botState.adminMessages).toHaveLength(1);
     expect(botState.orderNotifications).toHaveLength(0);
   });
-  }
-);
+});

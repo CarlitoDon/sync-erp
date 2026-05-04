@@ -29,6 +29,59 @@ const cleanupOutboxData = async () => {
   });
 };
 
+const cleanupIntegrationData = async () => {
+  await prisma.apiKey.deleteMany({
+    where: { companyId: { in: [COMPANY_ID, OTHER_COMPANY_ID] } },
+  });
+  await prisma.integration.deleteMany({
+    where: { companyId: { in: [COMPANY_ID, OTHER_COMPANY_ID] } },
+  });
+};
+
+const seedIntegration = async (companyId: string) => {
+  const existing = await prisma.integration.findFirst({
+    where: { companyId, appId: 'santi-living' },
+  });
+
+  if (existing) {
+    await prisma.apiKey.deleteMany({
+      where: { integrationId: existing.id },
+    });
+    await prisma.integration.delete({ where: { id: existing.id } });
+  }
+
+  const integration = await prisma.integration.create({
+    data: {
+      companyId,
+      appId: 'santi-living',
+      name: 'Santi Living',
+      isActive: true,
+      config: {
+        webhookUrl: 'http://proxy.test',
+        paths: {
+          newOrder: '/api/orders/{token}/notify-admin',
+          paymentStatus: '/api/orders/{token}/notify-payment',
+        },
+      },
+    },
+  });
+
+  await prisma.apiKey.create({
+    data: {
+      companyId,
+      integrationId: integration.id,
+      keyHash: 'hash',
+      keyPrefix: 'sk_test',
+      name: 'Test Key',
+      webhookUrl: 'http://proxy.test',
+      webhookSecret: 'Bearer proxy-test-secret',
+      isActive: true,
+    },
+  });
+
+  return integration;
+};
+
 const buildCaller = () =>
   appRouter.createCaller({
     req: {
@@ -73,19 +126,21 @@ describe('Admin Router - Rental Webhook Outbox', () => {
 
   afterAll(async () => {
     await cleanupOutboxData();
+    await cleanupIntegrationData();
     await prisma.company.deleteMany({
       where: { id: { in: [COMPANY_ID, OTHER_COMPANY_ID] } },
     });
   });
 
   beforeEach(async () => {
-    process.env.SANTI_LIVING_WEBHOOK_URL = 'http://proxy.test';
-    process.env.SANTI_LIVING_WEBHOOK_API_KEY = 'proxy-test-secret';
-
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
 
     await cleanupOutboxData();
+    await cleanupIntegrationData();
+
+    await seedIntegration(COMPANY_ID);
+    await seedIntegration(OTHER_COMPANY_ID);
 
     await prisma.rentalWebhookOutbox.createMany({
       data: [
@@ -172,53 +227,64 @@ describe('Admin Router - Rental Webhook Outbox', () => {
   it('replays DEAD_LETTER and FAILED entries via admin API and delivers after worker cycle', async () => {
     const caller = buildCaller();
 
-    const deadLetter = await prisma.rentalWebhookOutbox.findFirstOrThrow({
-      where: {
-        companyId: COMPANY_ID,
-        status: RentalWebhookOutboxStatus.DEAD_LETTER,
-      },
-    });
+    const deadLetter =
+      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+        where: {
+          companyId: COMPANY_ID,
+          status: RentalWebhookOutboxStatus.DEAD_LETTER,
+        },
+      });
 
     const firstReplay = await caller.admin.replayRentalWebhookOutbox({
       id: deadLetter.id,
     });
-    const secondReplay = await caller.admin.replayRentalWebhookOutbox({
-      id: deadLetter.id,
-    });
+    const secondReplay = await caller.admin.replayRentalWebhookOutbox(
+      {
+        id: deadLetter.id,
+      }
+    );
 
     expect(firstReplay.success).toBe(true);
     expect(secondReplay.success).toBe(false);
 
-    const replayed = await prisma.rentalWebhookOutbox.findUniqueOrThrow({
-      where: { id: deadLetter.id },
-    });
+    const replayed =
+      await prisma.rentalWebhookOutbox.findUniqueOrThrow({
+        where: { id: deadLetter.id },
+      });
     expect(replayed.status).toBe(RentalWebhookOutboxStatus.PENDING);
 
-    const bulkReplay = await caller.admin.replayRentalWebhookOutboxBulk({
-      statuses: [RentalWebhookOutboxStatus.FAILED],
-      limit: 100,
-    });
+    const bulkReplay =
+      await caller.admin.replayRentalWebhookOutboxBulk({
+        statuses: [RentalWebhookOutboxStatus.FAILED],
+        limit: 100,
+      });
 
     expect(bulkReplay.success).toBe(true);
     expect(bulkReplay.requeuedCount).toBe(1);
 
-    const failedEntry = await prisma.rentalWebhookOutbox.findFirstOrThrow({
-      where: {
-        companyId: COMPANY_ID,
-        orderPublicToken: 'admin-outbox-token-failed-001',
-      },
-    });
+    const failedEntry =
+      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+        where: {
+          companyId: COMPANY_ID,
+          orderPublicToken: 'admin-outbox-token-failed-001',
+        },
+      });
 
-    expect(failedEntry.status).toBe(RentalWebhookOutboxStatus.PENDING);
+    expect(failedEntry.status).toBe(
+      RentalWebhookOutboxStatus.PENDING
+    );
 
-    const foreignEntry = await prisma.rentalWebhookOutbox.findFirstOrThrow({
-      where: {
-        companyId: OTHER_COMPANY_ID,
-        orderPublicToken: 'admin-outbox-token-foreign-001',
-      },
-    });
+    const foreignEntry =
+      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+        where: {
+          companyId: OTHER_COMPANY_ID,
+          orderPublicToken: 'admin-outbox-token-foreign-001',
+        },
+      });
 
-    expect(foreignEntry.status).toBe(RentalWebhookOutboxStatus.FAILED);
+    expect(foreignEntry.status).toBe(
+      RentalWebhookOutboxStatus.FAILED
+    );
 
     fetchMock
       .mockResolvedValueOnce({
@@ -232,29 +298,32 @@ describe('Admin Router - Rental Webhook Outbox', () => {
         json: async () => ({ success: true }),
       } as Response);
 
-    const { rentalWebhookOutboxService } = await import(
-      '@modules/rental/rental-webhook-outbox.service'
-    );
+    const { rentalWebhookOutboxService } =
+      await import('@modules/rental/rental-webhook-outbox.service');
 
     await rentalWebhookOutboxService.processDueEntries();
 
-    const deliveredDeadLetter = await prisma.rentalWebhookOutbox.findFirstOrThrow({
-      where: {
-        companyId: COMPANY_ID,
-        orderPublicToken: 'admin-outbox-token-dead-001',
-      },
-    });
+    const deliveredDeadLetter =
+      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+        where: {
+          companyId: COMPANY_ID,
+          orderPublicToken: 'admin-outbox-token-dead-001',
+        },
+      });
 
-    const deliveredFailed = await prisma.rentalWebhookOutbox.findFirstOrThrow({
-      where: {
-        companyId: COMPANY_ID,
-        orderPublicToken: 'admin-outbox-token-failed-001',
-      },
-    });
+    const deliveredFailed =
+      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+        where: {
+          companyId: COMPANY_ID,
+          orderPublicToken: 'admin-outbox-token-failed-001',
+        },
+      });
 
     expect(deliveredDeadLetter.status).toBe(
       RentalWebhookOutboxStatus.DELIVERED
     );
-    expect(deliveredFailed.status).toBe(RentalWebhookOutboxStatus.DELIVERED);
+    expect(deliveredFailed.status).toBe(
+      RentalWebhookOutboxStatus.DELIVERED
+    );
   });
 });
