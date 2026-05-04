@@ -70,7 +70,7 @@ const seedIntegration = async (companyId: string) => {
     data: {
       companyId,
       integrationId: integration.id,
-      keyHash: 'hash',
+      keyHash: `hash-${companyId}`,
       keyPrefix: 'sk_test',
       name: 'Test Key',
       webhookUrl: 'http://proxy.test',
