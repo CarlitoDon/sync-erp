@@ -7,6 +7,8 @@ import {
 import { CompanyRepository } from './company.repository';
 import { CompanyPolicy } from './company.policy';
 import { InventoryPolicy } from '../inventory/inventory.policy';
+import { container, ServiceKeys } from '../common/di';
+import { AccountService } from '../accounting/services/account.service';
 import {
   CreateCompanyDto,
   JoinCompanyDto,
@@ -293,5 +295,12 @@ export class CompanyService {
         },
       });
     }
+
+    // Add the standard default accounts as a second pass so newly created
+    // companies can immediately post procurement and sales journals.
+    const accountService = container.resolve<AccountService>(
+      ServiceKeys.ACCOUNT_SERVICE
+    );
+    await accountService.seedDefaultAccounts(companyId);
   }
 }

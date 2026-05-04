@@ -49,12 +49,12 @@ router.get('/sse', async (req, res) => {
 
     const transport = new SSEServerTransport('/mcp/messages', res);
     const server = createMcpServer();
-
-    await server.connect(transport);
-
-    const now = Date.now();
     const sessionId = transport.sessionId;
+    const now = Date.now();
 
+    // Register the session before connect() emits the endpoint event.
+    // Some clients POST immediately after receiving the endpoint, so doing
+    // this after connect() creates a race that can yield MCP_SESSION_NOT_FOUND.
     sessions.set(sessionId, {
       transport,
       createdAt: now,
@@ -64,11 +64,18 @@ router.get('/sse', async (req, res) => {
 
     transport.onclose = () => {
       sessions.delete(sessionId);
-      void server.close().catch(() => {
-        /* ignore close errors during disconnect */
-      });
     };
+
+    await server.connect(transport);
   } catch (error) {
+    if (error instanceof Error) {
+      const sessionId = Array.from(sessions.entries()).find(
+        ([, session]) => session.transport.res === res
+      )?.[0];
+      if (sessionId) {
+        sessions.delete(sessionId);
+      }
+    }
     if (!res.headersSent) {
       res.status(500).json({
         success: false,

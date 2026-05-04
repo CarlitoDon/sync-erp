@@ -3,6 +3,7 @@ import { container, ServiceKeys } from '../../modules/common/di';
 import {
   CreateCompanySchema,
   JoinCompanySchema,
+  SelectShapeSchema,
 } from '@sync-erp/shared';
 import { TRPCError } from '@trpc/server';
 import { CompanyService } from '../../modules/company/company.service';
@@ -42,6 +43,39 @@ export const companyRouter = router({
       });
 
       return companyService.create(input, ctx.userId);
+    }),
+
+  /**
+   * Select company business shape once after creation.
+   */
+  selectShape: authenticatedProcedure
+    .input(
+      SelectShapeSchema.extend({
+        companyId: z.string().uuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const isMember = await companyService.isMember(ctx.userId!, input.companyId);
+      if (!isMember) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Not authorized to select company shape',
+        });
+      }
+
+      const company = await companyService.getById(input.companyId);
+      if (!company) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Company not found',
+        });
+      }
+
+      return companyService.selectShape(
+        input.companyId,
+        input.shape,
+        company.businessShape
+      );
     }),
 
   /**
