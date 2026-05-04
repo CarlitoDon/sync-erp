@@ -65,10 +65,18 @@ export function getPurchaseOrderTools(): ToolSpec[] {
       handler: async (args) => {
         const companyId = getString(args, 'companyId');
         const partnerId = getString(args, 'partnerId');
-        const items: unknown = JSON.parse(getString(args, 'items'));
+        const itemsRaw = getString(args, 'items');
+        const parsedItems = JSON.parse(itemsRaw) as Array<
+          Record<string, unknown>
+        >;
+        const items = parsedItems.map((item) => ({
+          ...item,
+          price: item.price ?? item.unitPrice,
+        }));
         return apiMutation(
           'purchaseOrder.create',
           buildInput([
+            ['type', 'PURCHASE'],
             ['partnerId', partnerId],
             ['items', items],
             ['reference', getOptionalString(args, 'reference')],

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "dev:stdio": "tsx src/stdio.ts",
+    "e2e:sse": "tsx src/e2e.ts",
     "smoke:sse": "tsx src/smoke.ts",
     "start": "node dist/index.js",
     "start:stdio": "node dist/stdio.js",

@@ -83,10 +83,18 @@ export function getInventoryTools(): ToolSpec[] {
         required: ['companyId', 'input'],
       },
       handler: async (args) => {
-        const input: unknown = JSON.parse(getString(args, 'input'));
+        const parsedInput = JSON.parse(getString(args, 'input')) as Record<
+          string,
+          unknown
+        >;
+        const input = {
+          ...parsedInput,
+          purchaseOrderId:
+            parsedInput.purchaseOrderId ?? parsedInput.orderId,
+        };
         return apiMutation(
           'inventory.createGRN',
-          input as Record<string, unknown>,
+          input,
           getString(args, 'companyId')
         );
       },
@@ -180,10 +188,17 @@ export function getInventoryTools(): ToolSpec[] {
         required: ['companyId', 'input'],
       },
       handler: async (args) => {
-        const input: unknown = JSON.parse(getString(args, 'input'));
+        const parsedInput = JSON.parse(getString(args, 'input')) as Record<
+          string,
+          unknown
+        >;
+        const input = {
+          ...parsedInput,
+          salesOrderId: parsedInput.salesOrderId ?? parsedInput.orderId,
+        };
         return apiMutation(
           'inventory.createShipment',
-          input as Record<string, unknown>,
+          input,
           getString(args, 'companyId')
         );
       },

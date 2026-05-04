@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import type { TextContent } from './types.js';
 
 function getEnv(name: string, fallback?: string): string {
   const value = process.env[name] ?? fallback;
@@ -38,7 +39,8 @@ function createAuthFetch() {
 }
 
 function getTextPayload(result: Awaited<ReturnType<Client['callTool']>>) {
-  const textBlock = result.content.find((item) => item.type === 'text');
+  const content = result.content as TextContent[];
+  const textBlock = content.find((item) => item.type === 'text');
   if (!textBlock || textBlock.type !== 'text') {
     throw new Error('MCP tool returned no text payload.');
   }

@@ -14,6 +14,10 @@ interface BillingLimitCheckInput {
   userId?: string;
 }
 
+function billingLimitsDisabled(): boolean {
+  return process.env.SYNC_ERP_DISABLE_BILLING_LIMITS === 'true';
+}
+
 async function getCurrentUsage({
   metric,
   companyId,
@@ -44,6 +48,10 @@ async function getCurrentUsage({
 export async function assertBillingLimitAvailable(
   input: BillingLimitCheckInput
 ): Promise<void> {
+  if (billingLimitsDisabled()) {
+    return;
+  }
+
   const plan = getBillingPlan(DEFAULT_BILLING_PLAN_KEY);
   const limit = plan.limits[input.metric];
 

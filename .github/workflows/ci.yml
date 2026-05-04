@@ -1,12 +1,60 @@
-name: CI
+name: CI/CD
 
 on:
   pull_request:
+    branches: [main, dev]
   push:
-    branches: [dev, main]
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sync_erp_test?schema=public
+  NODE_ENV: test
 
 jobs:
+  changes:
+    name: Detect Changed Areas
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'apps/mcp/**'
+              - 'packages/database/**'
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+            web:
+              - 'apps/web/**'
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+              - 'vercel.json'
+              - 'apps/web/vercel.json'
+
   ci:
+    name: Quality Gates
     runs-on: ubuntu-latest
 
     services:
@@ -24,13 +72,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      # Increase Node.js heap memory to 4GB to prevent OOM crashes during tests
-      NODE_OPTIONS: '--max-old-space-size=4096'
-      # Database URL for tests
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sync_erp_test?schema=public
-      NODE_ENV: test
-
     steps:
       - uses: actions/checkout@v4
 
@@ -38,8 +79,9 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: package-lock.json
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci
 
       - name: Setup test database
@@ -56,3 +98,154 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  deploy_api:
+    name: Deploy API to Hostinger
+    needs: [changes, ci]
+    if: github.event_name == 'push' && needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    concurrency:
+      group: deploy-api-${{ github.ref_name }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate --workspace=@sync-erp/database
+
+      - name: Build API
+        run: npm run build:api
+
+      - name: Prepare deployment package
+        run: |
+          rm -rf deploy/api-mcp
+          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database deploy/api-mcp/prisma
+          cp -R apps/api/dist deploy/api-mcp/
+          cp apps/api/package.pro.json deploy/api-mcp/package.json
+          cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
+          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
+          cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
+          if [ -d packages/database/src/generated ]; then
+            cp -R packages/database/src/generated deploy/api-mcp/node_modules/@sync-erp/database/
+          fi
+
+      - name: Resolve deployment target
+        id: target
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            echo "deploy_dir=apps/api" >> "$GITHUB_OUTPUT"
+            echo "health_host=https://api.santiliving.com" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_dir=apps/api-staging" >> "$GITHUB_OUTPUT"
+            echo "health_host=https://api-staging.santiliving.com" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p 65002 "${{ secrets.HOSTINGER_HOST }}" > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy package to Hostinger
+        env:
+          DEPLOY_DIR: ${{ steps.target.outputs.deploy_dir }}
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
+        run: |
+          rsync -avz --delete \
+            --exclude='.htaccess' \
+            --exclude='.env' \
+            --exclude='node_modules' \
+            --exclude='tmp' \
+            --exclude='stderr.log' \
+            -e "ssh -p 65002 -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            deploy/api-mcp/ "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/public_html/${DEPLOY_DIR}/"
+
+          ssh -p 65002 -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "${HOSTINGER_USER}@${HOSTINGER_HOST}" <<EOF
+            export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH
+            cd ~/public_html/${DEPLOY_DIR}
+            npm install --production --no-audit --no-fund
+            npm run db:generate
+            mkdir -p node_modules/@sync-erp/database tmp
+          EOF
+
+          rsync -avz --delete \
+            -e "ssh -p 65002 -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            deploy/api-mcp/node_modules/@sync-erp/database/ \
+            "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/public_html/${DEPLOY_DIR}/node_modules/@sync-erp/database/"
+
+          ssh -p 65002 -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+            "cd ~/public_html/${DEPLOY_DIR} && mkdir -p tmp && touch tmp/restart.txt"
+
+      - name: Verify API health
+        env:
+          HEALTH_HOST: ${{ steps.target.outputs.health_host }}
+        run: |
+          for path in /health /mcp/health; do
+            for i in 1 2 3 4 5 6; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_HOST}${path}" || true)
+              if [[ "$code" == "200" ]]; then
+                echo "Healthy: ${HEALTH_HOST}${path}"
+                break
+              fi
+              if [[ "$i" == "6" ]]; then
+                echo "Health check failed for ${HEALTH_HOST}${path} with HTTP ${code}"
+                exit 1
+              fi
+              sleep 10
+            done
+          done
+
+  deploy_web:
+    name: Deploy Web to Vercel
+    needs: [changes, ci]
+    if: github.event_name == 'push' && needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    concurrency:
+      group: deploy-web-${{ github.ref_name }}
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and deploy web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
+            vercel build --prod --token="${VERCEL_TOKEN}"
+            vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}"
+          else
+            vercel pull --yes --environment=preview --token="${VERCEL_TOKEN}"
+            vercel build --token="${VERCEL_TOKEN}"
+            vercel deploy --prebuilt --token="${VERCEL_TOKEN}"
+          fi
