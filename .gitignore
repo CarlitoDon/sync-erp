@@ -52,3 +52,8 @@ packages/database/src/generated/
 apps/bot/.wwebjs_auth
 supabase/.temp/
 apps/api/deploy/
+
+# Sensitive data
+cookies.txt
+*.session
+mcp-debug.log
