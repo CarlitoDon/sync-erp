@@ -8,6 +8,10 @@ import {
   Prisma,
 } from '@sync-erp/database';
 import { IdempotencyService } from '../modules/common/services/idempotency.service';
+import {
+  publicRateLimitService,
+  type PublicRateLimitConfig,
+} from '../modules/common/services/public-rate-limit.service';
 
 export interface Meta {
   idempotencyScope?: IdempotencyScope;
@@ -18,6 +22,22 @@ const t = initTRPC.context<Context>().meta<Meta>().create({
 });
 
 const idempotencyService = new IdempotencyService();
+
+function getPublicClientIdentifier(req: Context['req']): string {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const forwardedValue = Array.isArray(forwardedFor)
+    ? forwardedFor[0]
+    : forwardedFor;
+  const forwardedIp = forwardedValue?.split(',')[0]?.trim();
+  const ip =
+    forwardedIp ||
+    req.ip ||
+    req.socket.remoteAddress ||
+    'unknown-client';
+  const userAgent = req.headers['user-agent'] || 'unknown-agent';
+
+  return `${ip}:${userAgent}`;
+}
 
 const idempotencyMiddleware = t.middleware(
   async ({ ctx, meta, next }) => {
@@ -84,6 +104,25 @@ const idempotencyMiddleware = t.middleware(
  */
 export const router = t.router;
 export const publicProcedure = t.procedure;
+
+export const publicRateLimit = (config: PublicRateLimitConfig) =>
+  t.middleware(async ({ ctx, next }) => {
+    const identifier = getPublicClientIdentifier(ctx.req);
+    const result = publicRateLimitService.consume(
+      identifier,
+      config
+    );
+
+    if (!result.allowed) {
+      throw new TRPCError({
+        code: 'TOO_MANY_REQUESTS',
+        message:
+          'Too many authentication attempts. Please wait before trying again.',
+      });
+    }
+
+    return next();
+  });
 
 /**
  * Authenticated procedure - requires userId only (no company required)

@@ -16,6 +16,7 @@ const WhatsAppSettingsPage = lazy(() =>
 const PaymentMethodsPage = lazy(
   () => import('./pages/PaymentMethodsPage')
 );
+const BillingPage = lazy(() => import('./pages/BillingPage'));
 
 export const SettingsRoutes = (
   <>
@@ -48,6 +49,14 @@ export const SettingsRoutes = (
       element={
         <LazyRoute>
           <ApiDocsPage />
+        </LazyRoute>
+      }
+    />
+    <Route
+      path="settings/billing"
+      element={
+        <LazyRoute>
+          <BillingPage />
         </LazyRoute>
       }
     />

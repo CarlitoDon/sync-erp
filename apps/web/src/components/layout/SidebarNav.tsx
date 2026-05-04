@@ -27,7 +27,11 @@ export default function SidebarNav() {
   return (
     <nav className="flex-1 px-3 py-4 overflow-y-auto">
       {/* Dashboard */}
-      <SidebarItem path="/" label="Dashboard" icon={<HomeIcon />} />
+      <SidebarItem
+        path="/dashboard"
+        label="Dashboard"
+        icon={<HomeIcon />}
+      />
 
       {/* Sales Division */}
       <SidebarGroup label="Sales" icon={<CurrencyDollarIcon />}>
@@ -130,6 +134,11 @@ export default function SidebarNav() {
           path="/companies"
           label="Companies"
           icon={<BuildingOfficeIcon />}
+        />
+        <SidebarItem
+          path="/settings/billing"
+          label="Billing"
+          icon={<CreditCardIcon />}
         />
         <SidebarItem
           path="/settings/payment-methods"

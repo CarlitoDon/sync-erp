@@ -18,6 +18,7 @@
     "test:invariants": "vitest run --config test/invariants/vitest.config.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.0",
     "@prisma/client": "^7.2.0",
     "@sync-erp/database": "*",
     "@sync-erp/shared": "*",

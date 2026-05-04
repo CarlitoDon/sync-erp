@@ -43,10 +43,10 @@ export class AuthPolicy {
   /**
    * Ensure user exists for login.
    */
-  static ensureUserExists(user: unknown, email: string): void {
+  static ensureUserExists(user: unknown, _email: string): void {
     if (!user) {
       throw new DomainError(
-        `Email ${email} tidak terdaftar. Silakan daftar akun baru atau periksa kembali email Anda.`,
+        'Invalid email or password',
         401,
         DomainErrorCodes.FORBIDDEN
       );
@@ -59,7 +59,7 @@ export class AuthPolicy {
   static ensurePasswordValid(isValid: boolean): void {
     if (!isValid) {
       throw new DomainError(
-        'Password salah. Silakan coba lagi.',
+        'Invalid email or password',
         401,
         DomainErrorCodes.FORBIDDEN
       );

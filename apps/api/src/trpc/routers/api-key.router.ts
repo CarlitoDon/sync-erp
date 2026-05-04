@@ -4,6 +4,7 @@ import { prisma } from '@sync-erp/database';
 import { TRPCError } from '@trpc/server';
 import { apiKeyService } from '../../services/api-key.service';
 import { webhookService } from '../../services/webhook.service';
+import { assertBillingLimitAvailable } from '../../modules/billing/billing-limits.service';
 
 /**
  * API Key Management Router
@@ -31,6 +32,11 @@ export const apiKeyRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      await assertBillingLimitAvailable({
+        metric: 'apiKeys',
+        companyId: ctx.companyId,
+      });
+
       const expiresAt = input.expiresInDays
         ? new Date(
             Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000

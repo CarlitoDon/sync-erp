@@ -21,7 +21,7 @@ export default function CreateCompany() {
   const createMutation = trpc.company.create.useMutation({
     onSuccess: (company) => {
       setCurrentCompany(company);
-      navigate('/');
+      navigate('/dashboard');
     },
     onError: (err) => {
       setError(
