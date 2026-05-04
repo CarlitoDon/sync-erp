@@ -52,7 +52,7 @@ export function getSalesOrderTools(): ToolSpec[] {
     {
       name: 'sales_order_create',
       description:
-        'Create a new sales order. Requires partnerId and items array [{productId, quantity, unitPrice}]',
+        'Create a new sales order. Requires partnerId and items array [{productId, quantity, price}]',
       inputSchema: {
         type: 'object',
         properties: {
@@ -61,7 +61,7 @@ export function getSalesOrderTools(): ToolSpec[] {
           items: {
             type: 'string',
             description:
-              'JSON array of items: [{productId, quantity, unitPrice}]',
+              'JSON array of items: [{productId, quantity, price}]',
           },
           reference: { type: 'string', description: 'External reference' },
           notes: { type: 'string', description: 'Order notes' },
@@ -72,8 +72,17 @@ export function getSalesOrderTools(): ToolSpec[] {
         const companyId = getString(args, 'companyId');
         const partnerId = getString(args, 'partnerId');
         const itemsRaw = getString(args, 'items');
-        const items: unknown = JSON.parse(itemsRaw);
+        const parsedItems = JSON.parse(itemsRaw) as Array<
+          Record<string, unknown>
+        >;
+        const items = parsedItems.map((item) => ({
+          ...item,
+          price:
+            item.price ??
+            item.unitPrice,
+        }));
         const input = buildInput([
+          ['type', 'SALES'],
           ['partnerId', partnerId],
           ['items', items],
           ['reference', getOptionalString(args, 'reference')],

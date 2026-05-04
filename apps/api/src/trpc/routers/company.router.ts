@@ -6,6 +6,7 @@ import {
 } from '@sync-erp/shared';
 import { TRPCError } from '@trpc/server';
 import { CompanyService } from '../../modules/company/company.service';
+import { assertBillingLimitAvailable } from '../../modules/billing/billing-limits.service';
 import { z } from 'zod';
 
 const companyService = container.resolve<CompanyService>(
@@ -35,6 +36,11 @@ export const companyRouter = router({
   create: authenticatedProcedure
     .input(CreateCompanySchema)
     .mutation(async ({ ctx, input }) => {
+      await assertBillingLimitAvailable({
+        metric: 'companies',
+        userId: ctx.userId,
+      });
+
       return companyService.create(input, ctx.userId);
     }),
 

@@ -27,6 +27,8 @@ vi.mock('@/contexts/AuthContext', async () => {
 
 describe('LoginPage', () => {
   const mockLogin = vi.fn();
+  const mockResendVerification = vi.fn();
+  const mockLoginWithGoogle = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -35,6 +37,9 @@ describe('LoginPage', () => {
       isLoading: false,
       user: null,
       login: mockLogin,
+      resendVerification: mockResendVerification,
+      loginWithGoogle: mockLoginWithGoogle,
+      registerWithGoogle: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
       checkAuth: vi.fn(),
@@ -78,6 +83,15 @@ describe('LoginPage', () => {
       renderComponent();
       expect(
         screen.getByRole('button', { name: /sign in/i })
+      ).toBeInTheDocument();
+    });
+
+    it('renders continue with google button', () => {
+      renderComponent();
+      expect(
+        screen.getByRole('button', {
+          name: /continue with google/i,
+        })
       ).toBeInTheDocument();
     });
 
@@ -190,6 +204,56 @@ describe('LoginPage', () => {
         expect(
           screen.getByText(/invalid credentials/i)
         ).toBeInTheDocument();
+      });
+    });
+
+    it('starts Google auth when continue with google is clicked', () => {
+      renderComponent();
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: /continue with google/i,
+        })
+      );
+
+      expect(mockLoginWithGoogle).toHaveBeenCalled();
+    });
+
+    it('allows resend verification when account is not verified', async () => {
+      mockLogin.mockRejectedValueOnce(
+        new Error('Please verify your email before signing in.')
+      );
+      mockResendVerification.mockResolvedValueOnce({});
+      renderComponent();
+
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign in/i })
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', {
+            name: /resend verification email/i,
+          })
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: /resend verification email/i,
+        })
+      );
+
+      await waitFor(() => {
+        expect(mockResendVerification).toHaveBeenCalledWith({
+          email: 'test@example.com',
+        });
       });
     });
   });

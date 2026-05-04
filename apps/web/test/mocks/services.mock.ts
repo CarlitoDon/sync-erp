@@ -3,6 +3,8 @@ import { vi } from 'vitest';
 export const mockAuthService = {
   login: vi.fn(),
   register: vi.fn(),
+  resendVerification: vi.fn(),
+  verifyEmail: vi.fn(),
   getMe: vi.fn(),
   logout: vi.fn(),
 };

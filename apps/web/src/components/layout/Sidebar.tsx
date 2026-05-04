@@ -49,7 +49,7 @@ export default function Sidebar() {
           ${isCollapsed ? 'justify-center' : 'justify-between'}
         `}
         >
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">S</span>
             </div>

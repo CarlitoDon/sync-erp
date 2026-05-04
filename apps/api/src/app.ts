@@ -11,6 +11,8 @@ import { correlationMiddleware } from './middlewares/correlation';
 import { appRouter } from './trpc/router';
 import { createContext } from './trpc/context';
 import { publicRentalRouter } from './trpc/routers/public-rental.router';
+import { googleOAuthRouter } from './modules/auth/google-oauth.router';
+import { mcpRouter } from './modules/mcp/router';
 
 // CORS origin configuration - supports multiple origins and Vercel previews
 const getCorsOrigin = ():
@@ -61,6 +63,7 @@ const getCorsOrigin = ():
 
 export function createApp() {
   const app = express();
+  app.set('trust proxy', 1);
 
   app.use(helmet());
   app.use(correlationMiddleware);
@@ -84,6 +87,9 @@ export function createApp() {
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
+
+  app.use('/mcp', mcpRouter);
+  app.use('/api/auth/google', googleOAuthRouter);
 
   // Dedicated publicRental mount for external clients using the sub-router contract
   app.use(

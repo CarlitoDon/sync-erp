@@ -6,6 +6,9 @@ export const mockUseAuth = vi.fn(() => ({
   isLoading: false,
   login: vi.fn(),
   register: vi.fn(),
+  resendVerification: vi.fn(),
+  loginWithGoogle: vi.fn(),
+  registerWithGoogle: vi.fn(),
   logout: vi.fn(),
   checkAuth: vi.fn(),
 }));

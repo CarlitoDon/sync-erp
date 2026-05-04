@@ -1,12 +1,14 @@
-import { Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route } from 'react-router-dom';
 import { lazy } from 'react';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import Layout from '@/components/layout/Layout';
 import { LazyRoute } from '@/app/LazyRoute';
+import MarketingHomePage from '@/features/marketing/pages/MarketingHomePage';
 
 // Auth pages - not lazy loaded (initial entry points)
 import { RegisterPage } from '@/features/auth/components/RegisterPage';
 import { LoginPage } from '@/features/auth/components/LoginPage';
+import { VerifyEmailPage } from '@/features/auth/components/VerifyEmailPage';
 
 // Dashboard - not lazy (landing page after login)
 import Dashboard from '@/features/dashboard/pages/Dashboard';
@@ -30,11 +32,26 @@ const CompanySelectionPage = lazy(() =>
 );
 const CashBankPage = lazy(() => import('@/features/cash-bank'));
 
+const APP_HOSTNAMES = new Set(['sync-erp-app.vercel.app']);
+
+function RootRoute() {
+  if (
+    typeof window !== 'undefined' &&
+    APP_HOSTNAMES.has(window.location.hostname)
+  ) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <MarketingHomePage />;
+}
+
 export function AppRouter() {
   return (
     <Routes>
+      <Route path="/" element={<RootRoute />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
 
       <Route element={<ProtectedRoute requireCompany={false} />}>
         <Route
@@ -48,8 +65,8 @@ export function AppRouter() {
       </Route>
 
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
 
           {/* Feature Routes */}
           {CompanyRoutes}

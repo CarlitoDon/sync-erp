@@ -6,6 +6,7 @@ export interface CreateUserInput {
   email: string;
   name: string;
   passwordHash?: string;
+  emailVerifiedAt?: Date | null;
 }
 
 export class UserService {
@@ -21,6 +22,7 @@ export class UserService {
       email: data.email,
       name: data.name,
       passwordHash: data.passwordHash || '',
+      emailVerifiedAt: data.emailVerifiedAt,
     };
 
     if (companyId) {
@@ -40,6 +42,14 @@ export class UserService {
 
   async getByEmail(email: string): Promise<User | null> {
     return this.repository.findByEmail(email);
+  }
+
+  async markEmailVerified(userId: string): Promise<User> {
+    return this.repository.markEmailVerified(userId);
+  }
+
+  async delete(userId: string): Promise<User> {
+    return this.repository.delete(userId);
   }
 
   async listByCompany(companyId: string) {

@@ -27,6 +27,8 @@ vi.mock('@/contexts/AuthContext', async () => {
 
 describe('RegisterPage', () => {
   const mockRegister = vi.fn();
+  const mockResendVerification = vi.fn();
+  const mockRegisterWithGoogle = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -36,6 +38,9 @@ describe('RegisterPage', () => {
       user: null,
       login: vi.fn(),
       register: mockRegister,
+      resendVerification: mockResendVerification,
+      loginWithGoogle: vi.fn(),
+      registerWithGoogle: mockRegisterWithGoogle,
       logout: vi.fn(),
       checkAuth: vi.fn(),
     });
@@ -79,10 +84,26 @@ describe('RegisterPage', () => {
       expect(getInputByName('password')).toBeInTheDocument();
     });
 
+    it('renders confirm password input', () => {
+      renderComponent();
+      expect(
+        getInputByName('confirmPassword')
+      ).toBeInTheDocument();
+    });
+
     it('renders sign up button', () => {
       renderComponent();
       expect(
         screen.getByRole('button', { name: /sign up/i })
+      ).toBeInTheDocument();
+    });
+
+    it('renders continue with google button', () => {
+      renderComponent();
+      expect(
+        screen.getByRole('button', {
+          name: /continue with google/i,
+        })
       ).toBeInTheDocument();
     });
 
@@ -96,7 +117,9 @@ describe('RegisterPage', () => {
 
   describe('Form Submission', () => {
     it('calls register with form data on submit', async () => {
-      mockRegister.mockResolvedValueOnce({});
+      mockRegister.mockResolvedValueOnce({
+        verificationSentTo: 'test@example.com',
+      });
       renderComponent();
 
       fireEvent.change(getInputByName('name'), {
@@ -106,6 +129,9 @@ describe('RegisterPage', () => {
         target: { value: 'test@example.com' },
       });
       fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.change(getInputByName('confirmPassword'), {
         target: { value: 'password123' },
       });
       fireEvent.click(
@@ -121,8 +147,10 @@ describe('RegisterPage', () => {
       });
     });
 
-    it('navigates to / on successful registration', async () => {
-      mockRegister.mockResolvedValueOnce({});
+    it('shows verification screen on successful registration', async () => {
+      mockRegister.mockResolvedValueOnce({
+        verificationSentTo: 'test@example.com',
+      });
       renderComponent();
 
       fireEvent.change(getInputByName('name'), {
@@ -134,12 +162,59 @@ describe('RegisterPage', () => {
       fireEvent.change(getInputByName('password'), {
         target: { value: 'password123' },
       });
+      fireEvent.change(getInputByName('confirmPassword'), {
+        target: { value: 'password123' },
+      });
       fireEvent.click(
         screen.getByRole('button', { name: /sign up/i })
       );
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/');
+        expect(
+          screen.getByRole('heading', {
+            name: /verify your email/i,
+          })
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText(/test@example.com/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('shows verification link when returned by backend', async () => {
+      mockRegister.mockResolvedValueOnce({
+        verificationSentTo: 'test@example.com',
+        verificationUrl: 'http://localhost:5173/verify-email?token=abc',
+      });
+      renderComponent();
+
+      fireEvent.change(getInputByName('name'), {
+        target: { value: 'Test User' },
+      });
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.change(getInputByName('confirmPassword'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign up/i })
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('link', {
+            name: /open verification link/i,
+          })
+        ).toHaveAttribute(
+          'href',
+          'http://localhost:5173/verify-email?token=abc'
+        );
       });
     });
 
@@ -154,6 +229,9 @@ describe('RegisterPage', () => {
         target: { value: 'test@example.com' },
       });
       fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.change(getInputByName('confirmPassword'), {
         target: { value: 'password123' },
       });
       fireEvent.click(
@@ -182,6 +260,9 @@ describe('RegisterPage', () => {
       fireEvent.change(getInputByName('password'), {
         target: { value: 'password123' },
       });
+      fireEvent.change(getInputByName('confirmPassword'), {
+        target: { value: 'password123' },
+      });
       fireEvent.click(
         screen.getByRole('button', { name: /sign up/i })
       );
@@ -191,6 +272,46 @@ describe('RegisterPage', () => {
           screen.getByText(/email already exists/i)
         ).toBeInTheDocument();
       });
+    });
+
+    it('shows validation error when password confirmation does not match', async () => {
+      renderComponent();
+
+      fireEvent.change(getInputByName('name'), {
+        target: { value: 'Test User' },
+      });
+      fireEvent.change(getInputByName('email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(getInputByName('password'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.change(getInputByName('confirmPassword'), {
+        target: { value: 'password999' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: /sign up/i })
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/password confirmation does not match/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(mockRegister).not.toHaveBeenCalled();
+    });
+
+    it('starts Google auth when continue with google is clicked', () => {
+      renderComponent();
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: /continue with google/i,
+        })
+      );
+
+      expect(mockRegisterWithGoogle).toHaveBeenCalled();
     });
   });
 });

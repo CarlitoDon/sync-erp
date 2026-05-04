@@ -109,6 +109,12 @@ export type CreatePaymentInput = RouterInputs['payment']['create'];
 // Auth
 export type LoginInput = RouterInputs['auth']['login'];
 export type RegisterInput = RouterInputs['auth']['register'];
+export type VerifyEmailInput = RouterInputs['auth']['verifyEmail'];
+export type ResendVerificationInput =
+  RouterInputs['auth']['resendVerification'];
+export type RegisterResult = RouterOutputs['auth']['register'];
+export type ResendVerificationResult =
+  RouterOutputs['auth']['resendVerification'];
 
 // ===========================================
 // Re-export constants & enums from shared

@@ -38,6 +38,9 @@ import { PaymentService } from '../../accounting/services/payment.service';
 import { PurchaseOrderService } from '../../procurement/purchase-order.service';
 import { SalesOrderService } from '../../sales/sales-order.service';
 import { IdempotencyService } from '../services/idempotency.service';
+import { EmailService } from '../services/email.service';
+import { AuthAuditService } from '../../auth/auth-audit.service';
+import { GoogleOAuthService } from '../../auth/google-oauth.service';
 import { CompanyService } from '../../company/company.service';
 import { AuthService } from '../../auth/auth.service';
 import { UserService } from '../../user/user.service';
@@ -137,6 +140,18 @@ export function registerServices(): void {
     ServiceKeys.IDEMPOTENCY_SERVICE,
     () => new IdempotencyService()
   );
+  container.register(
+    ServiceKeys.EMAIL_SERVICE,
+    () => new EmailService()
+  );
+  container.register(
+    ServiceKeys.GOOGLE_OAUTH_SERVICE,
+    () => new GoogleOAuthService()
+  );
+  container.register(
+    ServiceKeys.AUTH_AUDIT_SERVICE,
+    () => new AuthAuditService()
+  );
 
   // Core Module Services
   container.register(
@@ -177,7 +192,9 @@ export function registerServices(): void {
     () =>
       new AuthService(
         container.resolve(ServiceKeys.AUTH_REPOSITORY),
-        container.resolve(ServiceKeys.USER_SERVICE)
+        container.resolve(ServiceKeys.USER_SERVICE),
+        container.resolve(ServiceKeys.EMAIL_SERVICE),
+        container.resolve(ServiceKeys.AUTH_AUDIT_SERVICE)
       )
   );
 
