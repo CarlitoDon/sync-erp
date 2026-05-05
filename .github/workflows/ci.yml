@@ -235,15 +235,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Resolve web deployment mode
         id: web_deploy
         env:
@@ -251,6 +242,19 @@ jobs:
           PREVIEW_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_PREVIEW_WEB }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
+          # This repo already uses Vercel's native Git integration for automatic
+          # production/preview deployments, so CI should treat that as the
+          # default path. Hooks/CLI remain available as an explicit override.
+          if [[ "${VERCEL_DEPLOY_VIA_CI}" != "true" ]]; then
+            echo "mode=git" >> "$GITHUB_OUTPUT"
+            if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+              echo "environment=production" >> "$GITHUB_OUTPUT"
+            else
+              echo "environment=preview" >> "$GITHUB_OUTPUT"
+            fi
+            exit 0
+          fi
+
           if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
             echo "environment=production" >> "$GITHUB_OUTPUT"
             if [[ -n "${PROD_HOOK}" ]]; then
@@ -276,6 +280,23 @@ jobs:
               exit 1
             fi
           fi
+
+      - uses: actions/setup-node@v4
+        if: steps.web_deploy.outputs.mode != 'git'
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        if: steps.web_deploy.outputs.mode != 'git'
+        run: npm ci
+
+      - name: Hand off to Vercel Git integration
+        if: steps.web_deploy.outputs.mode == 'git'
+        run: |
+          echo "Web deployment is managed by Vercel Git integration."
+          echo "The connected Vercel project will build the current commit automatically."
 
       - name: Trigger Vercel deploy hook
         id: deploy_hook
