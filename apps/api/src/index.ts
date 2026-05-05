@@ -1,12 +1,15 @@
 import { SHUTDOWN_TIMEOUT_MS } from '@sync-erp/shared';
 import { createApp } from './app';
-import { startRentalWebhookOutboxWorker } from './modules/rental/rental-webhook-outbox.service';
+import { startWebhookOutboxWorker } from './modules/rental/webhook-outbox.service';
 import { startTenantWebhookOutboxWorker } from './services/tenant-webhook-outbox.service';
+import { registerIntegrations } from './integrations/registry';
+
+registerIntegrations();
 
 const PORT = Number(process.env.PORT || 3001);
 const app = createApp();
 const stopRentalWebhookOutboxWorker =
-  startRentalWebhookOutboxWorker();
+  startWebhookOutboxWorker();
 const stopTenantWebhookOutboxWorker =
   startTenantWebhookOutboxWorker();
 

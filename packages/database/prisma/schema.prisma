@@ -60,7 +60,7 @@ model Company {
   warehouses            Warehouse[]
   rentalBundles         RentalBundle[]
   integrations          Integration[]
-  rentalWebhookOutbox   RentalWebhookOutbox[]
+  webhookOutbox         WebhookOutbox[]
   tenantWebhookOutbox   TenantWebhookOutbox[]
   subscription          CompanySubscription?
   billingCheckoutSessions BillingCheckoutSession[]
@@ -210,6 +210,9 @@ model Integration {
 
   // Relations
   apiKeys ApiKey[] // Keys associated with this integration
+  rentalOrders RentalOrder[]
+  rentalBundles RentalBundle[]
+  webhookOutbox WebhookOutbox[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -249,10 +252,11 @@ model ApiKey {
   @@index([isActive])
 }
 
-model RentalWebhookOutbox {
+model WebhookOutbox {
   id               String                    @id @default(cuid())
   companyId        String
-  deliveryType     RentalWebhookDeliveryType
+  integrationId    String?
+  event            String
   orderPublicToken String
   orderNumber      String?
   payload          Json
@@ -267,10 +271,11 @@ model RentalWebhookOutbox {
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   company          Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  integration      Integration?              @relation(fields: [integrationId], references: [id])
 
   @@index([companyId, createdAt])
   @@index([status, nextAttemptAt])
-  @@index([deliveryType, status, nextAttemptAt])
+  @@index([event, status, nextAttemptAt])
   @@index([orderPublicToken])
 }
 
@@ -971,6 +976,7 @@ model RentalItem {
 model RentalBundle {
   id          String   @id @default(uuid())
   companyId   String
+  integrationId String?
   externalId  String? // santi-living package ID (e.g., "package-single-standard")
   name        String // "Single Standard (Paket)"
   shortName   String? // "Single Standard (Pkt)"
@@ -986,6 +992,7 @@ model RentalBundle {
   updatedAt   DateTime @updatedAt
 
   company    Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  integration Integration?           @relation(fields: [integrationId], references: [id])
   // Components are REQUIRED - bundles must have at least one component (enforced in application)
   components RentalBundleComponent[]
   orderItems RentalOrderItem[]
@@ -1042,6 +1049,7 @@ model RentalItemUnit {
 model RentalOrder {
   id              String            @id @default(uuid())
   companyId       String
+  integrationId   String?
   partnerId       String
   orderNumber     String
   rentalStartDate DateTime
@@ -1093,6 +1101,7 @@ model RentalOrder {
   conditionLogs   ItemConditionLog[]
   deposit         RentalDeposit?
   company         Company                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  integration     Integration?                @relation(fields: [integrationId], references: [id])
   partner         Partner                     @relation(fields: [partnerId], references: [id])
   extensions      RentalOrderExtension[]
   items           RentalOrderItem[]

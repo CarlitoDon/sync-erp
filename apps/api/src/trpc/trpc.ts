@@ -276,6 +276,7 @@ export const apiKeyProcedure = t.procedure
         companyId: result.companyId,
         permissions: result.permissions,
         apiKeyId: result.keyId,
+        integrationId: result.integrationId ?? undefined,
         isApiKeyAuth: true,
       },
     });
