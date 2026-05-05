@@ -7,6 +7,7 @@ import {
 import { trpc } from '@/lib/trpc';
 import {
   BILLING_PLANS,
+  type BillingPlanKey,
   BILLING_USAGE_METRICS,
   type BillingPlan,
   type BillingUsageMetricKey,
@@ -38,9 +39,13 @@ function formatDate(date: Date | string | null | undefined): string {
 function PlanCard({
   plan,
   isCurrent,
+  onSelectPlan,
+  isSubmitting,
 }: {
   plan: BillingPlan;
   isCurrent: boolean;
+  onSelectPlan: (planKey: BillingPlanKey) => void;
+  isSubmitting: boolean;
 }) {
   return (
     <article
@@ -105,14 +110,50 @@ function PlanCard({
           </li>
         ))}
       </ul>
+
+      <button
+        type="button"
+        disabled={isCurrent || isSubmitting}
+        onClick={() => onSelectPlan(plan.key)}
+        className={`mt-5 inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
+          isCurrent
+            ? 'cursor-not-allowed bg-gray-100 text-gray-400'
+            : 'bg-primary-600 text-white hover:bg-primary-700'
+        }`}
+      >
+        {isCurrent
+          ? 'Current plan'
+          : isSubmitting
+            ? 'Opening checkout...'
+            : `Choose ${plan.name}`}
+      </button>
     </article>
   );
 }
 
 export default function BillingPage() {
   const { data, isLoading } = trpc.billing.getOverview.useQuery();
+  const checkoutMutation =
+    trpc.billing.createCheckoutSession.useMutation({
+      onSuccess(result) {
+        if (result.checkoutUrl) {
+          window.location.href = result.checkoutUrl;
+        }
+      },
+    });
   const currentPlan = data?.currentPlan;
   const usage = data?.usage;
+
+  const handlePlanSelect = (planKey: BillingPlanKey) => {
+    checkoutMutation.mutate({
+      planKey,
+      billingCycle: 'MONTHLY',
+      successUrl:
+        `${window.location.origin}/settings/billing?checkout=success`,
+      cancelUrl:
+        `${window.location.origin}/settings/billing?checkout=cancelled`,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -142,13 +183,24 @@ export default function BillingPage() {
             {data.company?.name ?? 'this company'}.
           </p>
         </div>
-        <a
-          href="mailto:sales@sync-erp.com?subject=Sync%20ERP%20billing%20upgrade"
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700"
-        >
-          Contact sales
-          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-        </a>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => handlePlanSelect('growth')}
+            disabled={checkoutMutation.isPending}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-primary-300"
+          >
+            Upgrade to Growth
+            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+          </button>
+          <a
+            href="mailto:sales@sync-erp.com?subject=Sync%20ERP%20billing%20upgrade"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+          >
+            Contact sales
+            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+          </a>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
@@ -198,12 +250,21 @@ export default function BillingPage() {
             </div>
           </div>
 
-          {!data.paymentProvider.configured && (
-            <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-              <div className="flex gap-2">
-                <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 flex-none" />
-                <p>{data.paymentProvider.message}</p>
-              </div>
+          <div
+            className={`mt-6 rounded-lg border p-4 text-sm ${
+              data.paymentProvider.configured
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-amber-200 bg-amber-50 text-amber-800'
+            }`}
+          >
+            <div className="flex gap-2">
+              <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 flex-none" />
+              <p>{data.paymentProvider.message}</p>
+            </div>
+          </div>
+          {checkoutMutation.error && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {checkoutMutation.error.message}
             </div>
           )}
         </section>
@@ -275,6 +336,8 @@ export default function BillingPage() {
                 key={plan.key}
                 plan={plan}
                 isCurrent={plan.key === currentPlan.key}
+                isSubmitting={checkoutMutation.isPending}
+                onSelectPlan={handlePlanSelect}
               />
             )
           )}

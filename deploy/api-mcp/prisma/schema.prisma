@@ -63,6 +63,8 @@ model Company {
   rentalWebhookOutbox   RentalWebhookOutbox[]
   tenantWebhookOutbox   TenantWebhookOutbox[]
   subscription          CompanySubscription?
+  billingCheckoutSessions BillingCheckoutSession[]
+  billingWebhookEvents  BillingWebhookEvent[]
 
   paymentMethods CompanyPaymentMethod[]
 }
@@ -98,6 +100,26 @@ enum BillingProvider {
   MIDTRANS
 }
 
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum BillingCheckoutSessionStatus {
+  OPEN
+  COMPLETED
+  CANCELED
+  FAILED
+  EXPIRED
+}
+
+enum BillingWebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
 model CompanySubscription {
   id                     String                    @id @default(cuid())
   companyId              String                    @unique
@@ -121,6 +143,53 @@ model CompanySubscription {
   @@index([status])
   @@index([planKey])
   @@index([provider, providerSubscriptionId])
+}
+
+model BillingCheckoutSession {
+  id                  String                       @id @default(cuid())
+  companyId           String
+  company             Company                      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  provider            BillingProvider             @default(MANUAL)
+  planKey             String
+  billingCycle        BillingCycle                @default(MONTHLY)
+  status              BillingCheckoutSessionStatus @default(OPEN)
+  providerSessionId   String?                     @unique
+  providerCheckoutUrl String?
+  amountIdr           Int?
+  currency            String                      @default("IDR")
+  successUrl          String?
+  cancelUrl           String?
+  expiresAt           DateTime
+  completedAt         DateTime?
+  canceledAt          DateTime?
+  failedAt            DateTime?
+  metadata            Json?
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+
+  @@index([companyId, status, createdAt])
+  @@index([provider, status, createdAt])
+}
+
+model BillingWebhookEvent {
+  id                     String                   @id @default(cuid())
+  provider               BillingProvider
+  eventId                String
+  eventType              String
+  status                 BillingWebhookEventStatus @default(RECEIVED)
+  companyId              String?
+  company                Company?                @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  payload                Json
+  processedAt            DateTime?
+  errorMessage           String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  @@unique([provider, eventId])
+  @@index([provider, status, createdAt])
+  @@index([companyId, createdAt])
 }
 
 /// Integrations (Apps) installed by the company

@@ -93,6 +93,10 @@ export const CompanyScalarFieldEnumSchema = z.enum(['id','name','businessShape',
 
 export const CompanySubscriptionScalarFieldEnumSchema = z.enum(['id','companyId','planKey','status','provider','providerCustomerId','providerSubscriptionId','trialStartsAt','trialEndsAt','currentPeriodStartsAt','currentPeriodEndsAt','graceEndsAt','cancelAtPeriodEnd','canceledAt','metadata','createdAt','updatedAt']);
 
+export const BillingCheckoutSessionScalarFieldEnumSchema = z.enum(['id','companyId','provider','planKey','billingCycle','status','providerSessionId','providerCheckoutUrl','amountIdr','currency','successUrl','cancelUrl','expiresAt','completedAt','canceledAt','failedAt','metadata','createdAt','updatedAt']);
+
+export const BillingWebhookEventScalarFieldEnumSchema = z.enum(['id','provider','eventId','eventType','status','companyId','providerCustomerId','providerSubscriptionId','payload','processedAt','errorMessage','createdAt','updatedAt']);
+
 export const IntegrationScalarFieldEnumSchema = z.enum(['id','companyId','appId','name','description','icon','isActive','config','createdAt','updatedAt']);
 
 export const ApiKeyScalarFieldEnumSchema = z.enum(['id','keyHash','keyPrefix','name','companyId','integrationId','permissions','webhookUrl','webhookSecret','rateLimit','isActive','expiresAt','lastUsedAt','createdAt','updatedAt']);
@@ -228,6 +232,18 @@ export type BillingSubscriptionStatusType = `${z.infer<typeof BillingSubscriptio
 export const BillingProviderSchema = z.enum(['MANUAL','STRIPE','XENDIT','MIDTRANS']);
 
 export type BillingProviderType = `${z.infer<typeof BillingProviderSchema>}`
+
+export const BillingCycleSchema = z.enum(['MONTHLY','ANNUAL']);
+
+export type BillingCycleType = `${z.infer<typeof BillingCycleSchema>}`
+
+export const BillingCheckoutSessionStatusSchema = z.enum(['OPEN','COMPLETED','CANCELED','FAILED','EXPIRED']);
+
+export type BillingCheckoutSessionStatusType = `${z.infer<typeof BillingCheckoutSessionStatusSchema>}`
+
+export const BillingWebhookEventStatusSchema = z.enum(['RECEIVED','PROCESSED','IGNORED','FAILED']);
+
+export type BillingWebhookEventStatusType = `${z.infer<typeof BillingWebhookEventStatusSchema>}`
 
 export const OAuthProviderSchema = z.enum(['GOOGLE']);
 
@@ -457,6 +473,56 @@ export const CompanySubscriptionSchema = z.object({
 })
 
 export type CompanySubscription = z.infer<typeof CompanySubscriptionSchema>
+
+/////////////////////////////////////////
+// BILLING CHECKOUT SESSION SCHEMA
+/////////////////////////////////////////
+
+export const BillingCheckoutSessionSchema = z.object({
+  provider: BillingProviderSchema,
+  billingCycle: BillingCycleSchema,
+  status: BillingCheckoutSessionStatusSchema,
+  id: z.string(),
+  companyId: z.string(),
+  planKey: z.string(),
+  providerSessionId: z.string().nullable(),
+  providerCheckoutUrl: z.string().nullable(),
+  amountIdr: z.number().nullable(),
+  currency: z.string(),
+  successUrl: z.string().nullable(),
+  cancelUrl: z.string().nullable(),
+  expiresAt: z.coerce.date(),
+  completedAt: z.coerce.date().nullable(),
+  canceledAt: z.coerce.date().nullable(),
+  failedAt: z.coerce.date().nullable(),
+  metadata: JsonValueSchema.nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type BillingCheckoutSession = z.infer<typeof BillingCheckoutSessionSchema>
+
+/////////////////////////////////////////
+// BILLING WEBHOOK EVENT SCHEMA
+/////////////////////////////////////////
+
+export const BillingWebhookEventSchema = z.object({
+  provider: BillingProviderSchema,
+  status: BillingWebhookEventStatusSchema,
+  id: z.string(),
+  eventId: z.string(),
+  eventType: z.string(),
+  companyId: z.string().nullable(),
+  providerCustomerId: z.string().nullable(),
+  providerSubscriptionId: z.string().nullable(),
+  payload: JsonValueSchema,
+  processedAt: z.coerce.date().nullable(),
+  errorMessage: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type BillingWebhookEvent = z.infer<typeof BillingWebhookEventSchema>
 
 /////////////////////////////////////////
 // INTEGRATION SCHEMA

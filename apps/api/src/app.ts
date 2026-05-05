@@ -13,6 +13,7 @@ import { createContext } from './trpc/context';
 import { publicRentalRouter } from './trpc/routers/public-rental.router';
 import { googleOAuthRouter } from './modules/auth/google-oauth.router';
 import { mcpRouter } from './modules/mcp/router';
+import { billingHttpRouter } from './modules/billing/billing-http.router';
 
 // CORS origin configuration - supports multiple origins and Vercel previews
 const getCorsOrigin = ():
@@ -90,6 +91,7 @@ export function createApp() {
 
   app.use('/mcp', mcpRouter);
   app.use('/api/auth/google', googleOAuthRouter);
+  app.use('/api/billing', billingHttpRouter);
 
   // Dedicated publicRental mount for external clients using the sub-router contract
   app.use(
