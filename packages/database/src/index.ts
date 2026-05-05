@@ -33,6 +33,8 @@ export type {
   CashTransaction,
   CashTransactionItem,
   CompanySubscription,
+  BillingCheckoutSession,
+  BillingWebhookEvent,
   // Feature 043: Rental Business
   RentalItem,
   RentalItemUnit,
@@ -66,6 +68,9 @@ export {
   CompanyOnboardingStep,
   BillingSubscriptionStatus,
   BillingProvider,
+  BillingCycle,
+  BillingCheckoutSessionStatus,
+  BillingWebhookEventStatus,
   IdempotencyScope,
   IdempotencyStatus,
   SagaType,

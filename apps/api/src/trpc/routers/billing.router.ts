@@ -1,14 +1,22 @@
 import { protectedProcedure, publicProcedure, router } from '../trpc';
-import { prisma } from '@sync-erp/database';
+import {
+  BillingCycle,
+  BillingProvider,
+  prisma,
+} from '@sync-erp/database';
 import {
   BILLING_PLANS,
   BILLING_TRIAL_DAYS,
   BILLING_USAGE_METRICS,
   getBillingPlan,
+  isBillingPlanKey,
 } from '@sync-erp/shared';
+import { z } from 'zod';
 import {
+  createBillingCheckoutSession,
   ensureCompanySubscription,
   getBillingProviderName,
+  getBillingProvider,
   isBillingProviderConfigured,
   resolveBillingPlanKey,
 } from '../../modules/billing/company-subscription.service';
@@ -22,6 +30,51 @@ export const billingRouter = router({
     plans: BILLING_PLANS,
     trialDays: BILLING_TRIAL_DAYS,
   })),
+
+  createCheckoutSession: protectedProcedure
+    .input(
+      z.object({
+        planKey: z.string().refine((value) => isBillingPlanKey(value)),
+        billingCycle: z.nativeEnum(BillingCycle).default(
+          BillingCycle.MONTHLY
+        ),
+        successUrl: z.string().url().optional(),
+        cancelUrl: z.string().url().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const company = await prisma.company.findUnique({
+        where: { id: ctx.companyId },
+        select: {
+          id: true,
+          createdAt: true,
+        },
+      });
+
+      if (!company) {
+        throw new Error('Company not found.');
+      }
+
+      await ensureCompanySubscription(company);
+
+      const session = await createBillingCheckoutSession({
+        companyId: ctx.companyId,
+        planKey: input.planKey,
+        billingCycle: input.billingCycle,
+        successUrl: input.successUrl,
+        cancelUrl: input.cancelUrl,
+      });
+
+      return {
+        id: session.id,
+        checkoutUrl: session.providerCheckoutUrl,
+        provider: session.provider,
+        billingCycle: session.billingCycle,
+        planKey: session.planKey,
+        status: session.status.toLowerCase(),
+        expiresAt: session.expiresAt,
+      };
+    }),
 
   getOverview: protectedProcedure.query(async ({ ctx }) => {
     const monthStart = getCurrentMonthStart();
@@ -148,9 +201,10 @@ export const billingRouter = router({
       paymentProvider: {
         configured: isBillingProviderConfigured(),
         provider: providerName,
-        message: providerName
-          ? `Billing provider ${providerName} is configured. Checkout integration is the next activation step.`
-          : 'Payment collection is not connected yet. Plans and limits are ready for checkout integration.',
+        message:
+          getBillingProvider() === BillingProvider.MANUAL
+            ? 'Manual checkout sandbox is active. You can test upgrade flow end-to-end from this page.'
+            : `Billing provider ${providerName} is configured and ready for checkout activation.`,
       },
     };
   }),
