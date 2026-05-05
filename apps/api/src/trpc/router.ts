@@ -26,6 +26,7 @@ import { integrationRouter } from './routers/integration.router'; // Integration
 import { botRouter } from './routers/bot.router';
 import { paymentMethodRouter } from './routers/payment-method.router'; // Company payment methods
 import { billingRouter } from './routers/billing.router';
+import { onboardingRouter } from './routers/onboarding.router';
 export { Prisma } from '@sync-erp/database';
 
 export const appRouter = router({
@@ -61,6 +62,7 @@ export const appRouter = router({
   dashboard: dashboardRouter,
   user: userRouter,
   company: companyRouter,
+  onboarding: onboardingRouter,
   admin: adminRouter,
   apiKey: apiKeyRouter, // Multi-tenant API key management
   integration: integrationRouter, // Integrations Marketplace

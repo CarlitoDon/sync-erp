@@ -30,6 +30,11 @@ const CompanySelectionPage = lazy(() =>
     (m) => ({ default: m.CompanySelectionPage })
   )
 );
+const OnboardingPage = lazy(() =>
+  import('@/features/onboarding/pages/OnboardingPage').then((m) => ({
+    default: m.default,
+  }))
+);
 const CashBankPage = lazy(() => import('@/features/cash-bank'));
 
 const APP_HOSTNAMES = new Set(['sync-erp-app.vercel.app']);
@@ -59,6 +64,17 @@ export function AppRouter() {
           element={
             <LazyRoute>
               <CompanySelectionPage />
+            </LazyRoute>
+          }
+        />
+      </Route>
+
+      <Route element={<ProtectedRoute />}>
+        <Route
+          path="/onboarding"
+          element={
+            <LazyRoute>
+              <OnboardingPage />
             </LazyRoute>
           }
         />

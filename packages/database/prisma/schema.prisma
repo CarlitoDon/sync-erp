@@ -21,6 +21,10 @@ model Company {
   id                    String                 @id @default(uuid())
   name                  String
   businessShape         BusinessShape          @default(PENDING)
+  onboardingStatus      CompanyOnboardingStatus @default(NOT_INITIALIZED)
+  onboardingStep        CompanyOnboardingStep   @default(WELCOME)
+  onboardingCompletedAt DateTime?
+  onboardingMeta        Json?
   inviteCode            String?                @unique @default(cuid())
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
@@ -60,6 +64,22 @@ model Company {
   tenantWebhookOutbox   TenantWebhookOutbox[]
 
   paymentMethods CompanyPaymentMethod[]
+}
+
+enum CompanyOnboardingStatus {
+  NOT_INITIALIZED
+  IN_PROGRESS
+  ACTIVE
+}
+
+enum CompanyOnboardingStep {
+  WELCOME
+  BUSINESS_SHAPE
+  CONFIGURE_SYSTEM
+  OPENING_BALANCE
+  FIRST_TRANSACTION
+  ALIVE_MOMENT
+  DONE
 }
 
 /// Integrations (Apps) installed by the company

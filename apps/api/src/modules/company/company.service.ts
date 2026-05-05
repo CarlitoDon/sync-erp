@@ -59,12 +59,59 @@ export class CompanyService {
   }
 
   async getById(id: string): Promise<Company | null> {
-    return this.repository.findById(id);
+    const company = await this.repository.findById(id);
+    if (
+      company &&
+      company.businessShape !== BusinessShape.PENDING &&
+      company.onboardingStatus === 'NOT_INITIALIZED'
+    ) {
+      return prisma.company.update({
+        where: { id: company.id },
+        data: {
+          onboardingStatus: 'ACTIVE',
+          onboardingStep: 'DONE',
+          onboardingCompletedAt: company.onboardingCompletedAt ?? new Date(),
+        },
+      });
+    }
+    return company;
   }
 
   async listForUser(userId: string): Promise<Company[]> {
     const memberships = await this.repository.findMemberships(userId);
-    return memberships.map((m) => m.company);
+    const companies = memberships.map((m) => m.company);
+
+    const promoteIds = companies
+      .filter(
+        (company) =>
+          company.businessShape !== BusinessShape.PENDING &&
+          company.onboardingStatus === 'NOT_INITIALIZED'
+      )
+      .map((company) => company.id);
+
+    if (promoteIds.length) {
+      await prisma.company.updateMany({
+        where: { id: { in: promoteIds } },
+        data: {
+          onboardingStatus: 'ACTIVE',
+          onboardingStep: 'DONE',
+          onboardingCompletedAt: new Date(),
+        },
+      });
+
+      return companies.map((company) =>
+        promoteIds.includes(company.id)
+          ? {
+              ...company,
+              onboardingStatus: 'ACTIVE',
+              onboardingStep: 'DONE',
+              onboardingCompletedAt: company.onboardingCompletedAt ?? new Date(),
+            }
+          : company
+      );
+    }
+
+    return companies;
   }
 
   async isMember(
