@@ -204,6 +204,8 @@ export const billingRouter = router({
         message:
           getBillingProvider() === BillingProvider.MANUAL
             ? 'Manual checkout sandbox is active. You can test upgrade flow end-to-end from this page.'
+            : !isBillingProviderConfigured()
+              ? `Billing provider ${providerName} is selected but not fully configured yet.`
             : `Billing provider ${providerName} is configured and ready for checkout activation.`,
       },
     };

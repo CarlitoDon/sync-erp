@@ -3,6 +3,8 @@ import {
   BillingCheckoutSessionStatus,
   BillingProvider,
   BillingCycle,
+  BillingWebhookEventStatus,
+  Prisma,
 } from '@sync-erp/database';
 import { prisma } from '@sync-erp/database';
 import {
@@ -16,12 +18,19 @@ import {
   signBillingWebhookPayload,
 } from './company-subscription.service';
 import {
+  mapMidtransNotificationToBillingWebhookPayload,
   processBillingWebhookEvent,
+  verifyMidtransWebhookSignature,
   verifyBillingWebhookSignature,
+  type MidtransWebhookNotification,
   type BillingWebhookPayload,
 } from './billing-webhook.service';
 
 export const billingHttpRouter = Router();
+
+function toJsonValue(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
 
 function formatCheckoutAmount(
   planKey: string,
@@ -268,6 +277,65 @@ billingHttpRouter.post('/webhooks/manual', async (req, res, next) => {
     const result = await processBillingWebhookEvent({
       provider: BillingProvider.MANUAL,
       payload: req.body as BillingWebhookPayload,
+    });
+
+    res.status(200).json({
+      ok: true,
+      duplicate: result.duplicate,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+billingHttpRouter.post('/webhooks/midtrans', async (req, res, next) => {
+  try {
+    const notification = req.body as MidtransWebhookNotification;
+
+    if (!verifyMidtransWebhookSignature(notification)) {
+      res.status(403).json({
+        ok: false,
+        error: 'Invalid Midtrans signature.',
+      });
+      return;
+    }
+
+    const payload =
+      mapMidtransNotificationToBillingWebhookPayload(
+        notification
+      );
+
+    if (!payload) {
+      await prisma.billingWebhookEvent.create({
+        data: {
+          provider: BillingProvider.MIDTRANS,
+          eventId: `${notification.transaction_id ?? notification.order_id}:${notification.transaction_status}:ignored`,
+          eventType: notification.transaction_status,
+          status: BillingWebhookEventStatus.IGNORED,
+          providerSubscriptionId:
+            notification.transaction_id ?? notification.order_id,
+          payload: toJsonValue(notification),
+        },
+      });
+
+      res.status(200).json({
+        ok: true,
+        ignored: true,
+      });
+      return;
+    }
+
+    payload.metadata = {
+      ...(payload.metadata ?? {}),
+      orderId: notification.order_id,
+      statusCode: notification.status_code,
+      grossAmount: notification.gross_amount,
+      transactionId: notification.transaction_id ?? null,
+    };
+
+    const result = await processBillingWebhookEvent({
+      provider: BillingProvider.MIDTRANS,
+      payload,
     });
 
     res.status(200).json({
