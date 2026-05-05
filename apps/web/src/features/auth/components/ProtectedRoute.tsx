@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
+import { BusinessShape, CompanyOnboardingStatus } from '@sync-erp/shared';
 
 interface ProtectedRouteProps {
   requireCompany?: boolean;
@@ -40,9 +41,10 @@ export const ProtectedRoute = ({
     currentCompany &&
     !location.pathname.startsWith('/onboarding')
   ) {
-    const onboardingStatus = (currentCompany as any).onboardingStatus;
-    const businessShape = (currentCompany as any).businessShape;
-    if (businessShape === 'PENDING' || onboardingStatus !== 'ACTIVE') {
+    if (
+      currentCompany.businessShape === BusinessShape.PENDING ||
+      currentCompany.onboardingStatus !== CompanyOnboardingStatus.ACTIVE
+    ) {
       return <Navigate to="/onboarding" replace />;
     }
   }
