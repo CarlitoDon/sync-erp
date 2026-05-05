@@ -38,6 +38,21 @@ export interface BillingWebhookPayload {
   metadata?: Record<string, unknown>;
 }
 
+export interface MidtransWebhookNotification {
+  order_id: string;
+  status_code: string;
+  gross_amount: string;
+  signature_key: string;
+  transaction_status: string;
+  transaction_id?: string;
+  payment_type?: string;
+  fraud_status?: string;
+  merchant_id?: string;
+  settlement_time?: string;
+  transaction_time?: string;
+  currency?: string;
+}
+
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
@@ -54,6 +69,21 @@ function parseDate(
   }
 
   return new Date(value);
+}
+
+function calculatePeriodEndFromCheckoutSession(input: {
+  currentPeriodStartsAt: Date;
+  billingCycle: BillingCycle;
+}): Date {
+  const next = new Date(input.currentPeriodStartsAt);
+
+  if (input.billingCycle === BillingCycle.ANNUAL) {
+    next.setFullYear(next.getFullYear() + 1);
+    return next;
+  }
+
+  next.setMonth(next.getMonth() + 1);
+  return next;
 }
 
 export function verifyBillingWebhookSignature(
@@ -77,6 +107,74 @@ export function verifyBillingWebhookSignature(
     Buffer.from(signature),
     Buffer.from(expected)
   );
+}
+
+export function verifyMidtransWebhookSignature(
+  notification: MidtransWebhookNotification
+): boolean {
+  const serverKey = process.env.MIDTRANS_SERVER_KEY;
+
+  if (!serverKey) {
+    return false;
+  }
+
+  const expected = crypto
+    .createHash('sha512')
+    .update(
+      `${notification.order_id}${notification.status_code}${notification.gross_amount}${serverKey}`
+    )
+    .digest('hex');
+
+  return expected === notification.signature_key;
+}
+
+export function mapMidtransNotificationToBillingWebhookPayload(
+  notification: MidtransWebhookNotification
+): BillingWebhookPayload | null {
+  const transactionStatus = notification.transaction_status;
+  const fraudStatus = notification.fraud_status;
+  const eventId = `${notification.transaction_id ?? notification.order_id}:${transactionStatus}`;
+
+  if (
+    transactionStatus === 'settlement' ||
+    (transactionStatus === 'capture' &&
+      fraudStatus !== 'challenge')
+  ) {
+    return {
+      eventId,
+      eventType: 'checkout.completed',
+      providerSubscriptionId:
+        notification.transaction_id ?? notification.order_id,
+      currentPeriodStartsAt: new Date().toISOString(),
+      metadata: {
+        source: 'midtrans',
+        paymentType: notification.payment_type ?? null,
+        rawTransactionStatus: transactionStatus,
+        fraudStatus: fraudStatus ?? null,
+        orderId: notification.order_id,
+      },
+    };
+  }
+
+  if (
+    transactionStatus === 'deny' ||
+    transactionStatus === 'cancel' ||
+    transactionStatus === 'expire' ||
+    transactionStatus === 'failure'
+  ) {
+    return {
+      eventId,
+      eventType: 'checkout.failed',
+      metadata: {
+        source: 'midtrans',
+        paymentType: notification.payment_type ?? null,
+        rawTransactionStatus: transactionStatus,
+        orderId: notification.order_id,
+      },
+    };
+  }
+
+  return null;
 }
 
 export async function processBillingWebhookEvent(input: {
@@ -125,14 +223,37 @@ export async function processBillingWebhookEvent(input: {
   try {
     switch (input.payload.eventType) {
       case 'checkout.completed': {
-        if (!input.payload.checkoutSessionId) {
-          throw new Error('Missing checkoutSessionId.');
-        }
-
+        const now = new Date();
         const checkoutSession =
-          await prisma.billingCheckoutSession.findUnique({
-            where: { id: input.payload.checkoutSessionId },
-          });
+          input.payload.checkoutSessionId
+            ? await prisma.billingCheckoutSession.findUnique({
+                where: { id: input.payload.checkoutSessionId },
+              })
+            : input.payload.providerSubscriptionId
+              ? await prisma.billingCheckoutSession.findFirst({
+                  where: {
+                    OR: [
+                      {
+                        providerSessionId:
+                          input.payload.providerSubscriptionId,
+                      },
+                      {
+                        providerSessionId:
+                          input.payload.metadata?.orderId as
+                            | string
+                            | undefined,
+                      },
+                    ],
+                  },
+                })
+              : input.payload.metadata?.orderId
+                ? await prisma.billingCheckoutSession.findFirst({
+                    where: {
+                      providerSessionId:
+                        input.payload.metadata.orderId as string,
+                    },
+                  })
+                : null;
 
         if (!checkoutSession) {
           throw new Error('Checkout session not found.');
@@ -165,10 +286,16 @@ export async function processBillingWebhookEvent(input: {
             currentPeriodStartsAt:
               parseDate(
                 input.payload.currentPeriodStartsAt
-              ) ?? new Date(),
+              ) ?? now,
             currentPeriodEndsAt:
               parseDate(input.payload.currentPeriodEndsAt) ??
-              checkoutSession.expiresAt,
+              calculatePeriodEndFromCheckoutSession({
+                currentPeriodStartsAt:
+                  parseDate(
+                    input.payload.currentPeriodStartsAt
+                  ) ?? now,
+                billingCycle: checkoutSession.billingCycle,
+              }),
             graceEndsAt: parseDate(input.payload.graceEndsAt),
             cancelAtPeriodEnd:
               input.payload.cancelAtPeriodEnd ?? false,
@@ -190,10 +317,16 @@ export async function processBillingWebhookEvent(input: {
             currentPeriodStartsAt:
               parseDate(
                 input.payload.currentPeriodStartsAt
-              ) ?? new Date(),
+              ) ?? now,
             currentPeriodEndsAt:
               parseDate(input.payload.currentPeriodEndsAt) ??
-              checkoutSession.expiresAt,
+              calculatePeriodEndFromCheckoutSession({
+                currentPeriodStartsAt:
+                  parseDate(
+                    input.payload.currentPeriodStartsAt
+                  ) ?? now,
+                billingCycle: checkoutSession.billingCycle,
+              }),
             graceEndsAt: parseDate(input.payload.graceEndsAt),
             cancelAtPeriodEnd:
               input.payload.cancelAtPeriodEnd ?? false,
@@ -207,9 +340,35 @@ export async function processBillingWebhookEvent(input: {
       }
 
       case 'checkout.failed': {
-        if (input.payload.checkoutSessionId) {
+        const checkoutSessionId =
+          input.payload.checkoutSessionId ??
+          (
+            await prisma.billingCheckoutSession.findFirst({
+              where: {
+                OR: [
+                  input.payload.providerSubscriptionId
+                    ? {
+                        providerSessionId:
+                          input.payload.providerSubscriptionId,
+                      }
+                    : undefined,
+                  input.payload.metadata?.orderId
+                    ? {
+                        providerSessionId:
+                          input.payload.metadata.orderId as string,
+                      }
+                    : undefined,
+                ].filter(Boolean) as Array<{
+                  providerSessionId: string;
+                }>,
+              },
+              select: { id: true },
+            })
+          )?.id;
+
+        if (checkoutSessionId) {
           await markCheckoutSessionStatus({
-            checkoutSessionId: input.payload.checkoutSessionId,
+            checkoutSessionId,
             status: BillingCheckoutSessionStatus.FAILED,
           });
         }

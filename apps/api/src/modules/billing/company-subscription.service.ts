@@ -23,6 +23,12 @@ function addDays(date: Date, days: number): Date {
   return next;
 }
 
+function addMinutes(date: Date, minutes: number): Date {
+  const next = new Date(date);
+  next.setMinutes(next.getMinutes() + minutes);
+  return next;
+}
+
 export function resolveBillingPlanKey(
   value: string | null | undefined
 ): BillingPlanKey {
@@ -54,6 +60,12 @@ export async function ensureCompanySubscription(
 }
 
 export function isBillingProviderConfigured(): boolean {
+  const provider = getBillingProvider();
+
+  if (provider === BillingProvider.MIDTRANS) {
+    return Boolean(getMidtransServerKey());
+  }
+
   return true;
 }
 
@@ -74,6 +86,51 @@ export function getBillingProvider(): BillingProvider {
     default:
       return BillingProvider.MANUAL;
   }
+}
+
+function getMidtransServerKey(): string | null {
+  return process.env.MIDTRANS_SERVER_KEY ?? null;
+}
+
+function isMidtransProduction(): boolean {
+  return process.env.MIDTRANS_IS_PRODUCTION === 'true';
+}
+
+function getMidtransAppBaseUrl(): string {
+  return isMidtransProduction()
+    ? 'https://app.midtrans.com'
+    : 'https://app.sandbox.midtrans.com';
+}
+
+function getMidtransAuthHeader(): string {
+  const serverKey = getMidtransServerKey();
+
+  if (!serverKey) {
+    throw new Error('MIDTRANS_SERVER_KEY is not configured.');
+  }
+
+  return `Basic ${Buffer.from(`${serverKey}:`).toString('base64')}`;
+}
+
+function createMidtransOrderId(checkoutSessionId: string): string {
+  return `billing-${checkoutSessionId}`;
+}
+
+function buildMidtransExpiryStartTime(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+
+  const datePart = [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join('-');
+  const timePart = [
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+  ].join(':');
+
+  return `${datePart} ${timePart} +0700`;
 }
 
 export function getWebAppUrl(): string {
@@ -133,6 +190,16 @@ export async function createBillingCheckoutSession(input: {
   );
   const webAppUrl = getWebAppUrl();
   const apiBaseUrl = getApiBaseUrl();
+  const expiresAt =
+    provider === BillingProvider.MIDTRANS
+      ? addMinutes(new Date(), 15)
+      : addDays(new Date(), 1);
+
+  if (!amountIdr) {
+    throw new Error(
+      'Selected plan does not have a direct self-serve checkout price.'
+    );
+  }
 
   const session = await prisma.billingCheckoutSession.create({
     data: {
@@ -147,18 +214,120 @@ export async function createBillingCheckoutSession(input: {
       cancelUrl:
         input.cancelUrl ??
         `${webAppUrl}/settings/billing?checkout=cancelled`,
-      expiresAt: addDays(new Date(), 1),
-      amountIdr: amountIdr ?? undefined,
+      expiresAt,
+      amountIdr,
       metadata: {
         source: 'app',
       },
     },
   });
 
+  if (provider !== BillingProvider.MIDTRANS) {
+    return prisma.billingCheckoutSession.update({
+      where: { id: session.id },
+      data: {
+        providerCheckoutUrl: `${apiBaseUrl}/api/billing/checkout/${session.id}`,
+      },
+    });
+  }
+
+  const company = await prisma.company.findUnique({
+    where: { id: input.companyId },
+    select: {
+      name: true,
+    },
+  });
+
+  if (!company) {
+    throw new Error('Company not found for billing checkout.');
+  }
+
+  const orderId = createMidtransOrderId(session.id);
+  const response = await fetch(
+    `${getMidtransAppBaseUrl()}/snap/v1/transactions`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: getMidtransAuthHeader(),
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        transaction_details: {
+          order_id: orderId,
+          gross_amount: amountIdr,
+        },
+        item_details: [
+          {
+            id: input.planKey,
+            name: `Sync ERP ${input.planKey} plan`,
+            price: amountIdr,
+            quantity: 1,
+          },
+        ],
+        enabled_payments: ['qris', 'gopay', 'bank_transfer'],
+        customer_details: {
+          first_name: company.name,
+        },
+        expiry: {
+          unit: 'minutes',
+          duration: 15,
+          start_time: buildMidtransExpiryStartTime(new Date()),
+        },
+        callbacks: {
+          finish:
+            input.successUrl ??
+            `${webAppUrl}/settings/billing?checkout=success`,
+          error:
+            input.cancelUrl ??
+            `${webAppUrl}/settings/billing?checkout=failed`,
+          pending:
+            `${webAppUrl}/settings/billing?checkout=pending`,
+        },
+        metadata: {
+          checkoutSessionId: session.id,
+          companyId: input.companyId,
+          billingCycle: input.billingCycle,
+          planKey: input.planKey,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const responseText = await response.text();
+
+    await prisma.billingCheckoutSession.update({
+      where: { id: session.id },
+      data: {
+        status: BillingCheckoutSessionStatus.FAILED,
+        failedAt: new Date(),
+        metadata: {
+          source: 'app',
+          providerError: responseText,
+        },
+      },
+    });
+
+    throw new Error(
+      `Midtrans checkout creation failed with status ${response.status}.`
+    );
+  }
+
+  const data = (await response.json()) as {
+    token?: string;
+    redirect_url?: string;
+  };
+
   return prisma.billingCheckoutSession.update({
     where: { id: session.id },
     data: {
-      providerCheckoutUrl: `${apiBaseUrl}/api/billing/checkout/${session.id}`,
+      providerSessionId: orderId,
+      providerCheckoutUrl: data.redirect_url,
+      metadata: {
+        source: 'app',
+        midtransSnapToken: data.token ?? null,
+      },
     },
   });
 }
