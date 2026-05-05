@@ -35,5 +35,17 @@ export const ProtectedRoute = ({
     return <Navigate to="/select-company" replace />;
   }
 
+  if (
+    requireCompany &&
+    currentCompany &&
+    !location.pathname.startsWith('/onboarding')
+  ) {
+    const onboardingStatus = (currentCompany as any).onboardingStatus;
+    const businessShape = (currentCompany as any).businessShape;
+    if (businessShape === 'PENDING' || onboardingStatus !== 'ACTIVE') {
+      return <Navigate to="/onboarding" replace />;
+    }
+  }
+
   return <Outlet />;
 };

@@ -89,7 +89,7 @@ export const isValidDecimalInput =
 
 export const TransactionIsolationLevelSchema = z.enum(['ReadUncommitted','ReadCommitted','RepeatableRead','Serializable']);
 
-export const CompanyScalarFieldEnumSchema = z.enum(['id','name','businessShape','inviteCode','createdAt','updatedAt']);
+export const CompanyScalarFieldEnumSchema = z.enum(['id','name','businessShape','onboardingStatus','onboardingStep','onboardingCompletedAt','onboardingMeta','inviteCode','createdAt','updatedAt']);
 
 export const IntegrationScalarFieldEnumSchema = z.enum(['id','companyId','appId','name','description','icon','isActive','config','createdAt','updatedAt']);
 
@@ -207,9 +207,17 @@ export const JsonNullValueInputSchema: z.ZodType<Prisma.JsonNullValueInput> = z.
 
 export const QueryModeSchema = z.enum(['default','insensitive']);
 
+export const JsonNullValueFilterSchema: z.ZodType<Prisma.JsonNullValueFilter> = z.enum(['DbNull','JsonNull','AnyNull',]).transform((value) => value === 'JsonNull' ? Prisma.JsonNull : value === 'DbNull' ? Prisma.DbNull : value === 'AnyNull' ? Prisma.AnyNull : value);
+
 export const NullsOrderSchema = z.enum(['first','last']);
 
-export const JsonNullValueFilterSchema: z.ZodType<Prisma.JsonNullValueFilter> = z.enum(['DbNull','JsonNull','AnyNull',]).transform((value) => value === 'JsonNull' ? Prisma.JsonNull : value === 'DbNull' ? Prisma.DbNull : value === 'AnyNull' ? Prisma.AnyNull : value);
+export const CompanyOnboardingStatusSchema = z.enum(['NOT_INITIALIZED','IN_PROGRESS','ACTIVE']);
+
+export type CompanyOnboardingStatusType = `${z.infer<typeof CompanyOnboardingStatusSchema>}`
+
+export const CompanyOnboardingStepSchema = z.enum(['WELCOME','BUSINESS_SHAPE','CONFIGURE_SYSTEM','OPENING_BALANCE','FIRST_TRANSACTION','ALIVE_MOMENT','DONE']);
+
+export type CompanyOnboardingStepType = `${z.infer<typeof CompanyOnboardingStepSchema>}`
 
 export const OAuthProviderSchema = z.enum(['GOOGLE']);
 
@@ -401,8 +409,12 @@ export type TenantWebhookOutboxStatusType = `${z.infer<typeof TenantWebhookOutbo
 
 export const CompanySchema = z.object({
   businessShape: BusinessShapeSchema,
+  onboardingStatus: CompanyOnboardingStatusSchema,
+  onboardingStep: CompanyOnboardingStepSchema,
   id: z.string(),
   name: z.string(),
+  onboardingCompletedAt: z.coerce.date().nullable(),
+  onboardingMeta: JsonValueSchema.nullable(),
   inviteCode: z.string().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

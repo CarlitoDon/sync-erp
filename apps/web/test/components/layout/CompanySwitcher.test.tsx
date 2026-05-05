@@ -35,6 +35,10 @@ const mockCompanies: Company[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     businessShape: 'RETAIL' as BusinessShape,
+    onboardingStatus: 'ACTIVE' as any,
+    onboardingStep: 'DONE' as any,
+    onboardingCompletedAt: null as any,
+    onboardingMeta: {} as any,
     inviteCode: 'ABC123',
   },
   {
@@ -43,6 +47,10 @@ const mockCompanies: Company[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     businessShape: 'SERVICE' as BusinessShape,
+    onboardingStatus: 'ACTIVE' as any,
+    onboardingStep: 'DONE' as any,
+    onboardingCompletedAt: null as any,
+    onboardingMeta: {} as any,
     inviteCode: 'DEF456',
   },
   {
@@ -51,6 +59,10 @@ const mockCompanies: Company[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     businessShape: 'MANUFACTURING' as BusinessShape,
+    onboardingStatus: 'ACTIVE' as any,
+    onboardingStep: 'DONE' as any,
+    onboardingCompletedAt: null as any,
+    onboardingMeta: {} as any,
     inviteCode: 'GHI789',
   },
 ];
