@@ -4,27 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button, CurrencyInput, Input } from '@/components/ui';
 import { useCompany } from '@/contexts/CompanyContext';
 import { trpc } from '@/lib/trpc';
+import {
+  BusinessShape,
+  CompanyOnboardingStatus,
+  CompanyOnboardingStep,
+} from '@sync-erp/shared';
+import type { RouterOutputs } from '@/types/api';
 
-type Step =
-  | 'WELCOME'
-  | 'BUSINESS_SHAPE'
-  | 'OPENING_BALANCE'
-  | 'FIRST_TRANSACTION'
-  | 'ALIVE_MOMENT'
-  | 'DONE';
+type Step = CompanyOnboardingStep;
+type OnboardingCompanyUpdate = RouterOutputs['onboarding']['start'];
+
+const STEPS = new Set(Object.values(CompanyOnboardingStep));
 
 function normalizeStep(raw: unknown): Step {
-  if (
-    raw === 'WELCOME' ||
-    raw === 'BUSINESS_SHAPE' ||
-    raw === 'OPENING_BALANCE' ||
-    raw === 'FIRST_TRANSACTION' ||
-    raw === 'ALIVE_MOMENT' ||
-    raw === 'DONE'
-  ) {
-    return raw;
+  if (typeof raw === 'string' && STEPS.has(raw as CompanyOnboardingStep)) {
+    return raw as CompanyOnboardingStep;
   }
-  return 'WELCOME';
+  return CompanyOnboardingStep.WELCOME;
 }
 
 export default function OnboardingPage() {
@@ -51,14 +47,14 @@ export default function OnboardingPage() {
   const [payNow, setPayNow] = useState(true);
 
   const step = useMemo(() => {
-    if (!onboardingState.data) return 'WELCOME';
+    if (!onboardingState.data) return CompanyOnboardingStep.WELCOME;
     return normalizeStep(onboardingState.data.onboardingStep);
   }, [onboardingState.data]);
 
   useEffect(() => {
     if (!currentCompany) return;
     if (!onboardingState.data) return;
-    if (onboardingState.data.onboardingStatus === 'ACTIVE') {
+    if (onboardingState.data.onboardingStatus === CompanyOnboardingStatus.ACTIVE) {
       navigate('/dashboard', { replace: true });
     }
   }, [currentCompany, onboardingState.data, navigate]);
@@ -69,7 +65,10 @@ export default function OnboardingPage() {
     if (onboardingState.isError) return;
     if (!onboardingState.data) return;
 
-    if (onboardingState.data.onboardingStatus === 'NOT_INITIALIZED') {
+    if (
+      onboardingState.data.onboardingStatus ===
+      CompanyOnboardingStatus.NOT_INITIALIZED
+    ) {
       start.mutate(undefined, {
         onSuccess: () => onboardingState.refetch(),
       });
@@ -135,18 +134,13 @@ export default function OnboardingPage() {
     );
   }
 
-  const setCompanyFromMutation = (data: {
-    id: string;
-    businessShape: string;
-    onboardingStatus: string;
-    onboardingStep: string;
-  }) => {
+  const setCompanyFromMutation = (data: OnboardingCompanyUpdate) => {
     if (!currentCompany) return;
     setCurrentCompany({
       ...currentCompany,
-      businessShape: data.businessShape as any,
-      onboardingStatus: data.onboardingStatus as any,
-      onboardingStep: data.onboardingStep as any,
+      businessShape: data.businessShape,
+      onboardingStatus: data.onboardingStatus,
+      onboardingStep: data.onboardingStep,
     });
   };
 
@@ -177,10 +171,10 @@ export default function OnboardingPage() {
           <Button
             onClick={() =>
               selectShape.mutate(
-                { shape: 'RETAIL' },
+                { shape: BusinessShape.RETAIL },
                 {
-                  onSuccess: (data: any) => {
-                    setCompanyFromMutation(data as any);
+                  onSuccess: (data: OnboardingCompanyUpdate) => {
+                    setCompanyFromMutation(data);
                     onboardingState.refetch();
                   },
                 }
@@ -194,10 +188,10 @@ export default function OnboardingPage() {
             variant="outline"
             onClick={() =>
               selectShape.mutate(
-                { shape: 'SERVICE' },
+                { shape: BusinessShape.SERVICE },
                 {
-                  onSuccess: (data: any) => {
-                    setCompanyFromMutation(data as any);
+                  onSuccess: (data: OnboardingCompanyUpdate) => {
+                    setCompanyFromMutation(data);
                     onboardingState.refetch();
                   },
                 }
@@ -211,10 +205,10 @@ export default function OnboardingPage() {
             variant="outline"
             onClick={() =>
               selectShape.mutate(
-                { shape: 'MANUFACTURING' },
+                { shape: BusinessShape.MANUFACTURING },
                 {
-                  onSuccess: (data: any) => {
-                    setCompanyFromMutation(data as any);
+                  onSuccess: (data: OnboardingCompanyUpdate) => {
+                    setCompanyFromMutation(data);
                     onboardingState.refetch();
                   },
                 }
@@ -257,8 +251,8 @@ export default function OnboardingPage() {
               submitOpeningBalance.mutate(
                 { cash, bank },
                 {
-                  onSuccess: (data: any) => {
-                    setCompanyFromMutation(data as any);
+                  onSuccess: (data: OnboardingCompanyUpdate) => {
+                    setCompanyFromMutation(data);
                     onboardingState.refetch();
                   },
                 }
@@ -366,8 +360,8 @@ export default function OnboardingPage() {
             className="w-full"
             onClick={() =>
               complete.mutate(undefined, {
-                onSuccess: (data: any) => {
-                  setCompanyFromMutation(data as any);
+                onSuccess: (data: OnboardingCompanyUpdate) => {
+                  setCompanyFromMutation(data);
                   navigate('/dashboard', { replace: true });
                 },
               })
