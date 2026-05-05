@@ -17,6 +17,12 @@ import {
 } from '@sync-erp/shared';
 import crypto from 'crypto';
 
+export function getBillingEnvValue(
+  key: string
+): string | undefined {
+  return process.env[key];
+}
+
 function addDays(date: Date, days: number): Date {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
@@ -74,7 +80,9 @@ export function getBillingProviderName(): string | null {
 }
 
 export function getBillingProvider(): BillingProvider {
-  const configured = process.env.BILLING_PROVIDER?.toUpperCase();
+  const configured = getBillingEnvValue(
+    'BILLING_PROVIDER'
+  )?.toUpperCase();
 
   switch (configured) {
     case BillingProvider.STRIPE:
@@ -84,16 +92,21 @@ export function getBillingProvider(): BillingProvider {
     case BillingProvider.MIDTRANS:
       return BillingProvider.MIDTRANS;
     default:
-      return BillingProvider.MANUAL;
+      return getBillingEnvValue('MIDTRANS_SERVER_KEY')
+        ? BillingProvider.MIDTRANS
+        : BillingProvider.MANUAL;
   }
 }
 
 function getMidtransServerKey(): string | null {
-  return process.env.MIDTRANS_SERVER_KEY ?? null;
+  return getBillingEnvValue('MIDTRANS_SERVER_KEY') ?? null;
 }
 
 function isMidtransProduction(): boolean {
-  return process.env.MIDTRANS_IS_PRODUCTION === 'true';
+  return (
+    getBillingEnvValue('MIDTRANS_IS_PRODUCTION') ===
+    'true'
+  );
 }
 
 function getMidtransAppBaseUrl(): string {

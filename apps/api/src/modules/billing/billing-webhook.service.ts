@@ -13,6 +13,7 @@ import {
   isBillingPlanKey,
 } from '@sync-erp/shared';
 import {
+  getBillingEnvValue,
   getBillingWebhookSecret,
   markCheckoutSessionStatus,
 } from './company-subscription.service';
@@ -112,7 +113,9 @@ export function verifyBillingWebhookSignature(
 export function verifyMidtransWebhookSignature(
   notification: MidtransWebhookNotification
 ): boolean {
-  const serverKey = process.env.MIDTRANS_SERVER_KEY;
+  const serverKey = getBillingEnvValue(
+    'MIDTRANS_SERVER_KEY'
+  );
 
   if (!serverKey) {
     return false;
