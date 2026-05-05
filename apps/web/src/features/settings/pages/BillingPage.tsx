@@ -179,6 +179,18 @@ export default function BillingPage() {
               </span>
             </div>
             <div className="flex justify-between border-t border-gray-100 pt-3">
+              <span className="text-gray-500">Current period ends</span>
+              <span className="font-semibold text-gray-900">
+                {formatDate(data.subscription?.currentPeriodEndsAt)}
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-gray-100 pt-3">
+              <span className="text-gray-500">Grace ends</span>
+              <span className="font-semibold text-gray-900">
+                {formatDate(data.subscription?.graceEndsAt)}
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-gray-100 pt-3">
               <span className="text-gray-500">Monthly price</span>
               <span className="font-semibold text-gray-900">
                 {formatPlanPrice(currentPlan)}

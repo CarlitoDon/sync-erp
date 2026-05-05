@@ -2,17 +2,42 @@ import {
   Company,
   CompanyMember,
   BusinessShape,
+  BillingProvider,
+  BillingSubscriptionStatus,
 } from '@sync-erp/database';
 import { prisma } from '@sync-erp/database';
+import {
+  BILLING_TRIAL_DAYS,
+  DEFAULT_BILLING_PLAN_KEY,
+} from '@sync-erp/shared';
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
 
 export class CompanyRepository {
   async create(data: {
     name: string;
     userId?: string;
   }): Promise<Company> {
+    const now = new Date();
+
     return prisma.company.create({
       data: {
         name: data.name,
+        subscription: {
+          create: {
+            planKey: DEFAULT_BILLING_PLAN_KEY,
+            status: BillingSubscriptionStatus.TRIALING,
+            provider: BillingProvider.MANUAL,
+            trialStartsAt: now,
+            trialEndsAt: addDays(now, BILLING_TRIAL_DAYS),
+            currentPeriodStartsAt: now,
+            currentPeriodEndsAt: addDays(now, BILLING_TRIAL_DAYS),
+          },
+        },
         ...(data.userId && {
           members: {
             create: {

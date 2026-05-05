@@ -91,6 +91,8 @@ export const TransactionIsolationLevelSchema = z.enum(['ReadUncommitted','ReadCo
 
 export const CompanyScalarFieldEnumSchema = z.enum(['id','name','businessShape','onboardingStatus','onboardingStep','onboardingCompletedAt','onboardingMeta','inviteCode','createdAt','updatedAt']);
 
+export const CompanySubscriptionScalarFieldEnumSchema = z.enum(['id','companyId','planKey','status','provider','providerCustomerId','providerSubscriptionId','trialStartsAt','trialEndsAt','currentPeriodStartsAt','currentPeriodEndsAt','graceEndsAt','cancelAtPeriodEnd','canceledAt','metadata','createdAt','updatedAt']);
+
 export const IntegrationScalarFieldEnumSchema = z.enum(['id','companyId','appId','name','description','icon','isActive','config','createdAt','updatedAt']);
 
 export const ApiKeyScalarFieldEnumSchema = z.enum(['id','keyHash','keyPrefix','name','companyId','integrationId','permissions','webhookUrl','webhookSecret','rateLimit','isActive','expiresAt','lastUsedAt','createdAt','updatedAt']);
@@ -218,6 +220,14 @@ export type CompanyOnboardingStatusType = `${z.infer<typeof CompanyOnboardingSta
 export const CompanyOnboardingStepSchema = z.enum(['WELCOME','BUSINESS_SHAPE','CONFIGURE_SYSTEM','OPENING_BALANCE','FIRST_TRANSACTION','ALIVE_MOMENT','DONE']);
 
 export type CompanyOnboardingStepType = `${z.infer<typeof CompanyOnboardingStepSchema>}`
+
+export const BillingSubscriptionStatusSchema = z.enum(['TRIALING','ACTIVE','PAST_DUE','CANCELED','EXPIRED']);
+
+export type BillingSubscriptionStatusType = `${z.infer<typeof BillingSubscriptionStatusSchema>}`
+
+export const BillingProviderSchema = z.enum(['MANUAL','STRIPE','XENDIT','MIDTRANS']);
+
+export type BillingProviderType = `${z.infer<typeof BillingProviderSchema>}`
 
 export const OAuthProviderSchema = z.enum(['GOOGLE']);
 
@@ -421,6 +431,32 @@ export const CompanySchema = z.object({
 })
 
 export type Company = z.infer<typeof CompanySchema>
+
+/////////////////////////////////////////
+// COMPANY SUBSCRIPTION SCHEMA
+/////////////////////////////////////////
+
+export const CompanySubscriptionSchema = z.object({
+  status: BillingSubscriptionStatusSchema,
+  provider: BillingProviderSchema.nullable(),
+  id: z.string(),
+  companyId: z.string(),
+  planKey: z.string(),
+  providerCustomerId: z.string().nullable(),
+  providerSubscriptionId: z.string().nullable(),
+  trialStartsAt: z.coerce.date().nullable(),
+  trialEndsAt: z.coerce.date().nullable(),
+  currentPeriodStartsAt: z.coerce.date().nullable(),
+  currentPeriodEndsAt: z.coerce.date().nullable(),
+  graceEndsAt: z.coerce.date().nullable(),
+  cancelAtPeriodEnd: z.boolean(),
+  canceledAt: z.coerce.date().nullable(),
+  metadata: JsonValueSchema.nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type CompanySubscription = z.infer<typeof CompanySubscriptionSchema>
 
 /////////////////////////////////////////
 // INTEGRATION SCHEMA

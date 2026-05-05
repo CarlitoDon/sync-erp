@@ -32,6 +32,7 @@ export type {
   BankAccount,
   CashTransaction,
   CashTransactionItem,
+  CompanySubscription,
   // Feature 043: Rental Business
   RentalItem,
   RentalItemUnit,
@@ -63,6 +64,8 @@ export {
   CostingMethod,
   CompanyOnboardingStatus,
   CompanyOnboardingStep,
+  BillingSubscriptionStatus,
+  BillingProvider,
   IdempotencyScope,
   IdempotencyStatus,
   SagaType,

@@ -4,15 +4,14 @@ import {
   BILLING_PLANS,
   BILLING_TRIAL_DAYS,
   BILLING_USAGE_METRICS,
-  DEFAULT_BILLING_PLAN_KEY,
   getBillingPlan,
 } from '@sync-erp/shared';
-
-function addDays(date: Date, days: number): Date {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
+import {
+  ensureCompanySubscription,
+  getBillingProviderName,
+  isBillingProviderConfigured,
+  resolveBillingPlanKey,
+} from '../../modules/billing/company-subscription.service';
 
 function getCurrentMonthStart(now = new Date()): Date {
   return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -29,6 +28,7 @@ export const billingRouter = router({
 
     const [
       company,
+      existingSubscription,
       companyCount,
       users,
       products,
@@ -45,6 +45,9 @@ export const billingRouter = router({
           name: true,
           createdAt: true,
         },
+      }),
+      prisma.companySubscription.findUnique({
+        where: { companyId: ctx.companyId },
       }),
       prisma.companyMember.count({
         where: { userId: ctx.userId },
@@ -87,21 +90,47 @@ export const billingRouter = router({
       }),
     ]);
 
-    const currentPlan = getBillingPlan(DEFAULT_BILLING_PLAN_KEY);
+    const subscription =
+      company &&
+      (existingSubscription ??
+        (await ensureCompanySubscription(company)));
+    const currentPlanKey = resolveBillingPlanKey(
+      subscription?.planKey
+    );
+    const currentPlan = getBillingPlan(currentPlanKey);
     const monthlyDocuments =
       orders + invoices + payments + rentalOrders;
-    const trialEndsAt = company
-      ? addDays(company.createdAt, BILLING_TRIAL_DAYS)
-      : null;
+    const trialEndsAt = subscription?.trialEndsAt ?? null;
+    const status =
+      subscription?.status?.toLowerCase() ?? 'trialing';
+    const providerName = getBillingProviderName();
 
     return {
       company,
-      status: 'trialing' as const,
+      status,
       trialEndsAt,
-      currentPlanKey: currentPlan.key,
+      currentPlanKey,
       currentPlan,
       plans: BILLING_PLANS,
       trialDays: BILLING_TRIAL_DAYS,
+      subscription: subscription
+        ? {
+            id: subscription.id,
+            provider: subscription.provider,
+            planKey: currentPlanKey,
+            status,
+            trialStartsAt: subscription.trialStartsAt,
+            trialEndsAt: subscription.trialEndsAt,
+            currentPeriodStartsAt:
+              subscription.currentPeriodStartsAt,
+            currentPeriodEndsAt:
+              subscription.currentPeriodEndsAt,
+            graceEndsAt: subscription.graceEndsAt,
+            cancelAtPeriodEnd:
+              subscription.cancelAtPeriodEnd,
+            canceledAt: subscription.canceledAt,
+          }
+        : null,
       metrics: BILLING_USAGE_METRICS,
       usage: {
         companies: companyCount,
@@ -117,10 +146,11 @@ export const billingRouter = router({
         rentalOrders,
       },
       paymentProvider: {
-        configured: false,
-        provider: null as string | null,
-        message:
-          'Payment collection is not connected yet. Plans and limits are ready for checkout integration.',
+        configured: isBillingProviderConfigured(),
+        provider: providerName,
+        message: providerName
+          ? `Billing provider ${providerName} is configured. Checkout integration is the next activation step.`
+          : 'Payment collection is not connected yet. Plans and limits are ready for checkout integration.',
       },
     };
   }),

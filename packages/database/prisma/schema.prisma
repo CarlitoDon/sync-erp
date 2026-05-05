@@ -62,6 +62,7 @@ model Company {
   integrations          Integration[]
   rentalWebhookOutbox   RentalWebhookOutbox[]
   tenantWebhookOutbox   TenantWebhookOutbox[]
+  subscription          CompanySubscription?
 
   paymentMethods CompanyPaymentMethod[]
 }
@@ -80,6 +81,46 @@ enum CompanyOnboardingStep {
   FIRST_TRANSACTION
   ALIVE_MOMENT
   DONE
+}
+
+enum BillingSubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum BillingProvider {
+  MANUAL
+  STRIPE
+  XENDIT
+  MIDTRANS
+}
+
+model CompanySubscription {
+  id                     String                    @id @default(cuid())
+  companyId              String                    @unique
+  company                Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  planKey                String                    @default("starter")
+  status                 BillingSubscriptionStatus @default(TRIALING)
+  provider               BillingProvider?
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  trialStartsAt          DateTime?
+  trialEndsAt            DateTime?
+  currentPeriodStartsAt  DateTime?
+  currentPeriodEndsAt    DateTime?
+  graceEndsAt            DateTime?
+  cancelAtPeriodEnd      Boolean                   @default(false)
+  canceledAt             DateTime?
+  metadata               Json?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+
+  @@index([status])
+  @@index([planKey])
+  @@index([provider, providerSubscriptionId])
 }
 
 /// Integrations (Apps) installed by the company

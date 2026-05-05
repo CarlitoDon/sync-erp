@@ -235,6 +235,16 @@ export function formatAnnualPlanPrice(plan: BillingPlan): string {
   return `${formatRupiah(plan.annualPriceIdr)}/tahun`;
 }
 
+export function isBillingPlanKey(
+  value: string | null | undefined
+): value is BillingPlanKey {
+  if (!value) {
+    return false;
+  }
+
+  return BILLING_PLANS.some((plan) => plan.key === value);
+}
+
 export function isLimitExceeded(
   limit: BillingLimitValue,
   usage: number

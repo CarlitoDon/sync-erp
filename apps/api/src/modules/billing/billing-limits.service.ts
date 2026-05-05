@@ -7,6 +7,7 @@ import {
   formatBillingLimit,
   getBillingPlan,
 } from '@sync-erp/shared';
+import { resolveBillingPlanKey } from './company-subscription.service';
 
 interface BillingLimitCheckInput {
   metric: BillingUsageMetricKey;
@@ -52,7 +53,17 @@ export async function assertBillingLimitAvailable(
     return;
   }
 
-  const plan = getBillingPlan(DEFAULT_BILLING_PLAN_KEY);
+  let planKey = DEFAULT_BILLING_PLAN_KEY;
+
+  if (input.companyId) {
+    const subscription = await prisma.companySubscription.findUnique({
+      where: { companyId: input.companyId },
+      select: { planKey: true },
+    });
+    planKey = resolveBillingPlanKey(subscription?.planKey);
+  }
+
+  const plan = getBillingPlan(planKey);
   const limit = plan.limits[input.metric];
 
   if (limit === 'unlimited') {
