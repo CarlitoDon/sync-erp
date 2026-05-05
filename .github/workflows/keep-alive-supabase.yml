@@ -16,13 +16,39 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Ensure PostgreSQL client
+        run: |
+          set -euo pipefail
+          if command -v psql >/dev/null 2>&1; then
+            psql --version
+            exit 0
+          fi
+
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
       - name: Ping Supabase Staging
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
           SUPABASE_URL: https://ctesbnhcqubamrtcxxqi.supabase.co
           SUPABASE_KEY: ${{ secrets.SUPABASE_STAGING_ANON_KEY }}
         run: |
           set -euo pipefail
           echo "Pinging Supabase Staging to prevent auto-pause..."
+          if [ -n "${DATABASE_URL:-}" ]; then
+            echo "Using direct PostgreSQL keep-alive probe for staging..."
+            if PGPASSWORD="" PGCONNECT_TIMEOUT=10 psql "${DATABASE_URL}" \
+              -v ON_ERROR_STOP=1 \
+              -c "select 1;" >/tmp/supabase-staging-db.txt 2>/tmp/supabase-staging-db.err; then
+              echo "✅ Staging database query succeeded"
+              sed -n '1,20p' /tmp/supabase-staging-db.txt || true
+              exit 0
+            fi
+
+            echo "::warning::Direct PostgreSQL probe failed for staging. Falling back to HTTP reachability probe."
+            sed -n '1,40p' /tmp/supabase-staging-db.err || true
+          fi
+
           if [ -z "${SUPABASE_KEY:-}" ]; then
             echo "::warning::SUPABASE_STAGING_ANON_KEY is not configured. Falling back to unauthenticated reachability probe."
             AUTH_ARGS=()
@@ -58,13 +84,39 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Ensure PostgreSQL client
+        run: |
+          set -euo pipefail
+          if command -v psql >/dev/null 2>&1; then
+            psql --version
+            exit 0
+          fi
+
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
       - name: Ping Supabase Production
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SUPABASE_URL: https://vktglrwmbrhtddpmekda.supabase.co
           SUPABASE_KEY: ${{ secrets.SUPABASE_PROD_ANON_KEY }}
         run: |
           set -euo pipefail
           echo "Pinging Supabase Production to prevent auto-pause..."
+          if [ -n "${DATABASE_URL:-}" ]; then
+            echo "Using direct PostgreSQL keep-alive probe for production..."
+            if PGPASSWORD="" PGCONNECT_TIMEOUT=10 psql "${DATABASE_URL}" \
+              -v ON_ERROR_STOP=1 \
+              -c "select 1;" >/tmp/supabase-production-db.txt 2>/tmp/supabase-production-db.err; then
+              echo "✅ Production database query succeeded"
+              sed -n '1,20p' /tmp/supabase-production-db.txt || true
+              exit 0
+            fi
+
+            echo "::warning::Direct PostgreSQL probe failed for production. Falling back to HTTP reachability probe."
+            sed -n '1,40p' /tmp/supabase-production-db.err || true
+          fi
+
           if [ -z "${SUPABASE_KEY:-}" ]; then
             echo "::warning::SUPABASE_PROD_ANON_KEY is not configured. Falling back to unauthenticated reachability probe."
             AUTH_ARGS=()
