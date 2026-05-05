@@ -10,7 +10,6 @@ import {
 } from 'vitest';
 import {
   prisma,
-  RentalWebhookDeliveryType,
   RentalWebhookOutboxStatus,
 } from '@sync-erp/database';
 import { appRouter } from '@src/trpc/router';
@@ -20,7 +19,7 @@ const COMPANY_ID = 'test-rental-webhook-outbox-admin-001';
 const OTHER_COMPANY_ID = 'test-rental-webhook-outbox-admin-002';
 
 const cleanupOutboxData = async () => {
-  await prisma.rentalWebhookOutbox.deleteMany({
+  await prisma.webhookOutbox.deleteMany({
     where: {
       companyId: {
         in: [COMPANY_ID, OTHER_COMPANY_ID],
@@ -142,11 +141,11 @@ describe('Admin Router - Rental Webhook Outbox', () => {
     await seedIntegration(COMPANY_ID);
     await seedIntegration(OTHER_COMPANY_ID);
 
-    await prisma.rentalWebhookOutbox.createMany({
+    await prisma.webhookOutbox.createMany({
       data: [
         {
           companyId: COMPANY_ID,
-          deliveryType: RentalWebhookDeliveryType.NEW_ORDER,
+          event: 'order.created',
           orderPublicToken: 'admin-outbox-token-dead-001',
           orderNumber: 'RNT-ADMIN-0001',
           payload: {
@@ -163,7 +162,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
         },
         {
           companyId: COMPANY_ID,
-          deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
+          event: 'payment.status.changed',
           orderPublicToken: 'admin-outbox-token-failed-001',
           orderNumber: 'RNT-ADMIN-0002',
           payload: {
@@ -180,7 +179,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
         },
         {
           companyId: OTHER_COMPANY_ID,
-          deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
+          event: 'payment.status.changed',
           orderPublicToken: 'admin-outbox-token-foreign-001',
           orderNumber: 'RNT-ADMIN-OTHER-0001',
           payload: {
@@ -228,7 +227,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
     const caller = buildCaller();
 
     const deadLetter =
-      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+      await prisma.webhookOutbox.findFirstOrThrow({
         where: {
           companyId: COMPANY_ID,
           status: RentalWebhookOutboxStatus.DEAD_LETTER,
@@ -248,7 +247,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
     expect(secondReplay.success).toBe(false);
 
     const replayed =
-      await prisma.rentalWebhookOutbox.findUniqueOrThrow({
+      await prisma.webhookOutbox.findUniqueOrThrow({
         where: { id: deadLetter.id },
       });
     expect(replayed.status).toBe(RentalWebhookOutboxStatus.PENDING);
@@ -263,7 +262,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
     expect(bulkReplay.requeuedCount).toBe(1);
 
     const failedEntry =
-      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+      await prisma.webhookOutbox.findFirstOrThrow({
         where: {
           companyId: COMPANY_ID,
           orderPublicToken: 'admin-outbox-token-failed-001',
@@ -275,7 +274,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
     );
 
     const foreignEntry =
-      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+      await prisma.webhookOutbox.findFirstOrThrow({
         where: {
           companyId: OTHER_COMPANY_ID,
           orderPublicToken: 'admin-outbox-token-foreign-001',
@@ -298,13 +297,13 @@ describe('Admin Router - Rental Webhook Outbox', () => {
         json: async () => ({ success: true }),
       } as Response);
 
-    const { rentalWebhookOutboxService } =
-      await import('@modules/rental/rental-webhook-outbox.service');
+    const { webhookOutboxService } =
+      await import('@modules/rental/webhook-outbox.service');
 
-    await rentalWebhookOutboxService.processDueEntries();
+    await webhookOutboxService.processDueEntries();
 
     const deliveredDeadLetter =
-      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+      await prisma.webhookOutbox.findFirstOrThrow({
         where: {
           companyId: COMPANY_ID,
           orderPublicToken: 'admin-outbox-token-dead-001',
@@ -312,7 +311,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
       });
 
     const deliveredFailed =
-      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+      await prisma.webhookOutbox.findFirstOrThrow({
         where: {
           companyId: COMPANY_ID,
           orderPublicToken: 'admin-outbox-token-failed-001',
