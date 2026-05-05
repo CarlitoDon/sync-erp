@@ -2,6 +2,8 @@ import {
   Company,
   CompanyMember,
   BusinessShape,
+  CompanyOnboardingStatus,
+  CompanyOnboardingStep,
   prisma,
 } from '@sync-erp/database';
 import { CompanyRepository } from './company.repository';
@@ -63,13 +65,13 @@ export class CompanyService {
     if (
       company &&
       company.businessShape !== BusinessShape.PENDING &&
-      company.onboardingStatus === 'NOT_INITIALIZED'
+      company.onboardingStatus === CompanyOnboardingStatus.NOT_INITIALIZED
     ) {
       return prisma.company.update({
         where: { id: company.id },
         data: {
-          onboardingStatus: 'ACTIVE',
-          onboardingStep: 'DONE',
+          onboardingStatus: CompanyOnboardingStatus.ACTIVE,
+          onboardingStep: CompanyOnboardingStep.DONE,
           onboardingCompletedAt: company.onboardingCompletedAt ?? new Date(),
         },
       });
@@ -85,7 +87,7 @@ export class CompanyService {
       .filter(
         (company) =>
           company.businessShape !== BusinessShape.PENDING &&
-          company.onboardingStatus === 'NOT_INITIALIZED'
+          company.onboardingStatus === CompanyOnboardingStatus.NOT_INITIALIZED
       )
       .map((company) => company.id);
 
@@ -93,8 +95,8 @@ export class CompanyService {
       await prisma.company.updateMany({
         where: { id: { in: promoteIds } },
         data: {
-          onboardingStatus: 'ACTIVE',
-          onboardingStep: 'DONE',
+          onboardingStatus: CompanyOnboardingStatus.ACTIVE,
+          onboardingStep: CompanyOnboardingStep.DONE,
           onboardingCompletedAt: new Date(),
         },
       });
@@ -103,8 +105,8 @@ export class CompanyService {
         promoteIds.includes(company.id)
           ? {
               ...company,
-              onboardingStatus: 'ACTIVE',
-              onboardingStep: 'DONE',
+              onboardingStatus: CompanyOnboardingStatus.ACTIVE,
+              onboardingStep: CompanyOnboardingStep.DONE,
               onboardingCompletedAt: company.onboardingCompletedAt ?? new Date(),
             }
           : company

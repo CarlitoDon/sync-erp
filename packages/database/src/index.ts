@@ -61,6 +61,8 @@ export {
   AccountType,
   BusinessShape,
   CostingMethod,
+  CompanyOnboardingStatus,
+  CompanyOnboardingStep,
   IdempotencyScope,
   IdempotencyStatus,
   SagaType,

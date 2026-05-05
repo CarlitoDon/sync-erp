@@ -1,7 +1,15 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc';
-import { prisma, type BusinessShape } from '@sync-erp/database';
+import {
+  prisma,
+  BusinessShape,
+  PartnerType,
+  CompanyOnboardingStatus,
+  CompanyOnboardingStep,
+  PaymentTerms,
+  PaymentMethodType,
+} from '@sync-erp/database';
 import { container, ServiceKeys } from '../../modules/common/di';
 import type { CompanyService } from '../../modules/company/company.service';
 import type { AccountService } from '../../modules/accounting/services/account.service';
@@ -15,7 +23,9 @@ import { JournalCoreService } from '../../modules/accounting/services/journal-co
 import type { JournalRepository } from '../../modules/accounting/repositories/journal.repository';
 
 const SelectBusinessShapeSchema = z.object({
-  shape: z.enum(['RETAIL', 'MANUFACTURING', 'SERVICE']),
+  shape: z
+    .nativeEnum(BusinessShape)
+    .refine((shape) => shape !== BusinessShape.PENDING),
 });
 
 const SubmitOpeningBalanceSchema = z.object({
@@ -30,13 +40,6 @@ const RunFirstTransactionRetailSchema = z.object({
   unitPrice: z.number().positive(),
   payNow: z.boolean().optional(),
 });
-
-function coerceBusinessShape(shape: string): BusinessShape {
-  if (shape === 'RETAIL' || shape === 'MANUFACTURING' || shape === 'SERVICE') {
-    return shape;
-  }
-  throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid business shape' });
-}
 
 async function getCompanyOrThrow(companyId: string) {
   const company = await prisma.company.findUnique({
@@ -61,30 +64,30 @@ async function getCompanyOrThrow(companyId: string) {
 
 function computeNextStep(company: {
   businessShape: BusinessShape;
-  onboardingStatus: string;
-  onboardingStep: string;
+  onboardingStatus: CompanyOnboardingStatus;
+  onboardingStep: CompanyOnboardingStep;
 }) {
-  if (company.onboardingStatus === 'ACTIVE') {
+  if (company.onboardingStatus === CompanyOnboardingStatus.ACTIVE) {
     return { blockedReason: null, nextAction: null };
   }
 
-  if (company.businessShape === 'PENDING') {
+  if (company.businessShape === BusinessShape.PENDING) {
     return { blockedReason: 'PENDING_SHAPE', nextAction: 'SELECT_SHAPE' };
   }
 
-  if (company.onboardingStep === 'WELCOME') {
+  if (company.onboardingStep === CompanyOnboardingStep.WELCOME) {
     return { blockedReason: 'ONBOARDING_NOT_STARTED', nextAction: 'START' };
   }
 
-  if (company.onboardingStep === 'OPENING_BALANCE') {
+  if (company.onboardingStep === CompanyOnboardingStep.OPENING_BALANCE) {
     return { blockedReason: 'OPENING_BALANCE_REQUIRED', nextAction: 'SUBMIT_OPENING_BALANCE' };
   }
 
-  if (company.onboardingStep === 'FIRST_TRANSACTION') {
+  if (company.onboardingStep === CompanyOnboardingStep.FIRST_TRANSACTION) {
     return { blockedReason: 'FIRST_TRANSACTION_REQUIRED', nextAction: 'RUN_FIRST_TRANSACTION' };
   }
 
-  if (company.onboardingStep === 'ALIVE_MOMENT') {
+  if (company.onboardingStep === CompanyOnboardingStep.ALIVE_MOMENT) {
     return { blockedReason: 'FINALIZE_REQUIRED', nextAction: 'COMPLETE' };
   }
 
@@ -113,17 +116,19 @@ export const onboardingRouter = router({
     const companyId = ctx.companyId!;
     const company = await getCompanyOrThrow(companyId);
 
-    if (company.onboardingStatus === 'ACTIVE') {
+    if (company.onboardingStatus === CompanyOnboardingStatus.ACTIVE) {
       return company;
     }
 
     const nextStep =
-      company.businessShape === 'PENDING' ? 'BUSINESS_SHAPE' : 'OPENING_BALANCE';
+      company.businessShape === BusinessShape.PENDING
+        ? CompanyOnboardingStep.BUSINESS_SHAPE
+        : CompanyOnboardingStep.OPENING_BALANCE;
 
     return prisma.company.update({
       where: { id: companyId },
       data: {
-        onboardingStatus: 'IN_PROGRESS',
+        onboardingStatus: CompanyOnboardingStatus.IN_PROGRESS,
         onboardingStep: nextStep,
       },
       select: {
@@ -143,19 +148,19 @@ export const onboardingRouter = router({
       const companyId = ctx.companyId!;
       const company = await getCompanyOrThrow(companyId);
 
-      if (company.onboardingStatus === 'ACTIVE') {
+      if (company.onboardingStatus === CompanyOnboardingStatus.ACTIVE) {
         throw new TRPCError({
           code: 'CONFLICT',
           message: 'Company onboarding already completed',
         });
       }
 
-      if (company.businessShape !== 'PENDING') {
+      if (company.businessShape !== BusinessShape.PENDING) {
         return prisma.company.update({
           where: { id: companyId },
           data: {
-            onboardingStatus: 'IN_PROGRESS',
-            onboardingStep: 'OPENING_BALANCE',
+            onboardingStatus: CompanyOnboardingStatus.IN_PROGRESS,
+            onboardingStep: CompanyOnboardingStep.OPENING_BALANCE,
           },
           select: {
             id: true,
@@ -174,15 +179,15 @@ export const onboardingRouter = router({
 
       await companyService.selectShape(
         companyId,
-        coerceBusinessShape(input.shape),
+        input.shape,
         company.businessShape
       );
 
       return prisma.company.update({
         where: { id: companyId },
         data: {
-          onboardingStatus: 'IN_PROGRESS',
-          onboardingStep: 'OPENING_BALANCE',
+          onboardingStatus: CompanyOnboardingStatus.IN_PROGRESS,
+          onboardingStep: CompanyOnboardingStep.OPENING_BALANCE,
         },
         select: {
           id: true,
@@ -201,21 +206,21 @@ export const onboardingRouter = router({
       const companyId = ctx.companyId!;
       const company = await getCompanyOrThrow(companyId);
 
-      if (company.onboardingStatus === 'ACTIVE') {
+      if (company.onboardingStatus === CompanyOnboardingStatus.ACTIVE) {
         throw new TRPCError({
           code: 'CONFLICT',
           message: 'Company onboarding already completed',
         });
       }
 
-      if (company.businessShape === 'PENDING') {
+      if (company.businessShape === BusinessShape.PENDING) {
         throw new TRPCError({
           code: 'PRECONDITION_FAILED',
           message: 'Select business shape before continuing onboarding',
         });
       }
 
-      if (company.onboardingStep !== 'OPENING_BALANCE') {
+      if (company.onboardingStep !== CompanyOnboardingStep.OPENING_BALANCE) {
         throw new TRPCError({
           code: 'PRECONDITION_FAILED',
           message: 'Onboarding step mismatch',
@@ -305,7 +310,7 @@ export const onboardingRouter = router({
       return prisma.company.update({
         where: { id: companyId },
         data: {
-          onboardingStep: 'FIRST_TRANSACTION',
+          onboardingStep: CompanyOnboardingStep.FIRST_TRANSACTION,
           onboardingMeta: {
             ...baseMeta,
             openingBalance: {
@@ -333,21 +338,21 @@ export const onboardingRouter = router({
       const companyId = ctx.companyId!;
       const company = await getCompanyOrThrow(companyId);
 
-      if (company.onboardingStatus === 'ACTIVE') {
+      if (company.onboardingStatus === CompanyOnboardingStatus.ACTIVE) {
         throw new TRPCError({
           code: 'CONFLICT',
           message: 'Company onboarding already completed',
         });
       }
 
-      if (company.businessShape !== 'RETAIL') {
+      if (company.businessShape !== BusinessShape.RETAIL) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'First transaction v1 only supports Retail',
         });
       }
 
-      if (company.onboardingStep !== 'FIRST_TRANSACTION') {
+      if (company.onboardingStep !== CompanyOnboardingStep.FIRST_TRANSACTION) {
         throw new TRPCError({
           code: 'PRECONDITION_FAILED',
           message: 'Onboarding step mismatch',
@@ -390,7 +395,7 @@ export const onboardingRouter = router({
       const supplier = await prisma.partner.findFirst({
         where: {
           companyId,
-          type: 'SUPPLIER',
+          type: PartnerType.SUPPLIER,
           name: input.supplierName,
         },
       });
@@ -400,7 +405,7 @@ export const onboardingRouter = router({
         : (
             await partnerService.create(companyId, {
               name: input.supplierName,
-              type: 'SUPPLIER',
+              type: PartnerType.SUPPLIER,
             })
           ).id;
 
@@ -435,7 +440,7 @@ export const onboardingRouter = router({
       const createdPo = await purchaseOrderService.create(companyId, {
         type: 'PURCHASE',
         partnerId: supplierId,
-        paymentTerms: 'NET30',
+        paymentTerms: PaymentTerms.NET30,
         items: [
           {
             productId,
@@ -488,7 +493,7 @@ export const onboardingRouter = router({
           invoiceId: postedBill.id,
           amount: Number(postedBill.amount),
           businessDate: new Date(),
-          method: 'CASH',
+          method: PaymentMethodType.CASH,
           reference: `${reference}-PAY`,
           correlationId: `${reference}-PAY`,
         });
@@ -506,7 +511,7 @@ export const onboardingRouter = router({
       await prisma.company.update({
         where: { id: companyId },
         data: {
-          onboardingStep: 'ALIVE_MOMENT',
+          onboardingStep: CompanyOnboardingStep.ALIVE_MOMENT,
           onboardingMeta: {
             ...baseMeta,
             firstTransaction: {
@@ -533,11 +538,11 @@ export const onboardingRouter = router({
     const companyId = ctx.companyId!;
     const company = await getCompanyOrThrow(companyId);
 
-    if (company.onboardingStatus === 'ACTIVE') {
+    if (company.onboardingStatus === CompanyOnboardingStatus.ACTIVE) {
       return company;
     }
 
-    if (company.onboardingStep !== 'ALIVE_MOMENT') {
+    if (company.onboardingStep !== CompanyOnboardingStep.ALIVE_MOMENT) {
       throw new TRPCError({
         code: 'PRECONDITION_FAILED',
         message: 'Onboarding step mismatch',
@@ -547,8 +552,8 @@ export const onboardingRouter = router({
     return prisma.company.update({
       where: { id: companyId },
       data: {
-        onboardingStatus: 'ACTIVE',
-        onboardingStep: 'DONE',
+        onboardingStatus: CompanyOnboardingStatus.ACTIVE,
+        onboardingStep: CompanyOnboardingStep.DONE,
         onboardingCompletedAt: new Date(),
       },
       select: {
