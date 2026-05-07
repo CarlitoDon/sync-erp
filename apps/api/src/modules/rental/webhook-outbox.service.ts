@@ -1,7 +1,6 @@
 import {
   prisma,
   Prisma,
-  RentalWebhookDeliveryType,
   RentalWebhookOutboxStatus,
 } from '@sync-erp/database';
 import { WEBHOOK_TIMEOUT_MS } from '@sync-erp/shared';
@@ -10,8 +9,8 @@ import {
   readPositiveInt,
 } from '../../services/webhook-outbox-config';
 import { integrationService } from '../../services/integration.service';
-
-type PaymentStatusAction = 'confirmed' | 'rejected' | 'claimed';
+import { integrationRegistry } from '../../integrations/registry';
+import { getWebhookPath } from '../../integrations/santi-living/webhooks/payload-builder'; // we will move this logic later
 
 type DeliveryResult = {
   success: boolean;
@@ -58,16 +57,6 @@ type FetchSuccess = {
 
 type FetchResult = FetchSuccess | FetchFailure;
 
-type DeliveryRequest = {
-  url: string;
-  headers: Record<string, string>;
-  body: Record<string, unknown>;
-};
-
-type InvalidDeliveryRequest = {
-  error: string;
-};
-
 const DEFAULT_MAX_ATTEMPTS = 8;
 const DEFAULT_RETRY_BASE_MS = 30_000;
 const DEFAULT_RETRY_MAX_MS = 15 * 60_000;
@@ -78,7 +67,6 @@ const asObject = (value: Prisma.JsonValue) => {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as Record<string, Prisma.JsonValue>;
   }
-
   return {} as Record<string, Prisma.JsonValue>;
 };
 
@@ -90,68 +78,61 @@ const readString = (
   return typeof value === 'string' ? value : undefined;
 };
 
-const readNumber = (
-  payload: Record<string, Prisma.JsonValue>,
-  key: string
-) => {
-  const value = payload[key];
-  return typeof value === 'number' ? value : undefined;
-};
-
-export class RentalWebhookOutboxService {
-  async enqueueNewOrder(
+export class WebhookOutboxService {
+  async enqueue(
+    event: string,
     input: {
       companyId: string;
-      token: string;
-      orderNumber: string;
-      customerName: string;
-      customerPhone: string;
-      totalAmount: number;
-    },
-    options: {
+      integrationId?: string;
+      orderPublicToken: string;
+      orderNumber?: string;
+      payload: unknown;
       autoRetry?: boolean;
-    } = {}
+    }
   ): Promise<DeliveryResult> {
-    return this.enqueueDelivery({
-      companyId: input.companyId,
-      deliveryType: RentalWebhookDeliveryType.NEW_ORDER,
-      orderPublicToken: input.token,
-      orderNumber: input.orderNumber,
-      autoRetry: options.autoRetry ?? true,
-      payload: {
-        customerName: input.customerName,
-        customerPhone: input.customerPhone,
-        totalAmount: input.totalAmount,
-      },
-    });
-  }
+    const activeIntegration = input.integrationId
+      ? await prisma.integration.findUnique({
+          where: { id: input.integrationId },
+        })
+      : await integrationService.getActiveIntegrationForCompany(
+          input.companyId
+        );
 
-  async enqueuePaymentStatus(input: {
-    companyId: string;
-    token: string;
-    orderNumber?: string;
-    action: PaymentStatusAction;
-    paymentReference?: string;
-    failReason?: string;
-    paymentMethod?: string;
-  }): Promise<DeliveryResult> {
-    return this.enqueueDelivery({
-      companyId: input.companyId,
-      deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
-      orderPublicToken: input.token,
-      orderNumber: input.orderNumber,
-      autoRetry: true,
-      payload: {
-        action: input.action,
-        paymentReference: input.paymentReference,
-        failReason: input.failReason,
-        paymentMethod: input.paymentMethod,
+    if (!activeIntegration) {
+      return {
+        success: true,
+        deliveryId: '',
+        status: RentalWebhookOutboxStatus.DELIVERED,
+        attempts: 0,
+        skipped: true,
+      };
+    }
+
+    const delivery = await prisma.webhookOutbox.create({
+      data: {
+        companyId: input.companyId,
+        integrationId: activeIntegration.id,
+        event,
+        orderPublicToken: input.orderPublicToken,
+        orderNumber: input.orderNumber,
+        autoRetry: input.autoRetry ?? true,
+        payload: input.payload as Prisma.InputJsonValue,
       },
     });
+
+    return (
+      (await this.processDelivery(delivery.id)) ?? {
+        success: false,
+        deliveryId: delivery.id,
+        status: RentalWebhookOutboxStatus.FAILED,
+        attempts: delivery.attempts,
+        error: 'Delivery was not claimable',
+      }
+    );
   }
 
   async processDueEntries(limit = 20): Promise<ProcessSummary> {
-    const dueEntries = await prisma.rentalWebhookOutbox.findMany({
+    const dueEntries = await prisma.webhookOutbox.findMany({
       where: {
         status: {
           in: [
@@ -195,7 +176,7 @@ export class RentalWebhookOutboxService {
 
     if (summary.processed > 0) {
       const queueCounts = await this.getQueueCounts();
-      console.warn('[RentalWebhookOutbox] Retry cycle summary', {
+      console.warn('[WebhookOutbox] Retry cycle summary', {
         ...summary,
         queue: queueCounts,
       });
@@ -207,7 +188,7 @@ export class RentalWebhookOutboxService {
 
       if (queueCounts.deadLetter >= deadLetterThreshold) {
         console.warn(
-          '[RentalWebhookOutbox] Dead-letter queue exceeds threshold',
+          '[WebhookOutbox] Dead-letter queue exceeds threshold',
           {
             deadLetterCount: queueCounts.deadLetter,
             threshold: deadLetterThreshold,
@@ -226,25 +207,25 @@ export class RentalWebhookOutboxService {
 
     const [pending, processing, failed, deadLetter] =
       await Promise.all([
-        prisma.rentalWebhookOutbox.count({
+        prisma.webhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.PENDING,
           },
         }),
-        prisma.rentalWebhookOutbox.count({
+        prisma.webhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.PROCESSING,
           },
         }),
-        prisma.rentalWebhookOutbox.count({
+        prisma.webhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.FAILED,
           },
         }),
-        prisma.rentalWebhookOutbox.count({
+        prisma.webhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.DEAD_LETTER,
@@ -252,12 +233,7 @@ export class RentalWebhookOutboxService {
         }),
       ]);
 
-    return {
-      pending,
-      processing,
-      failed,
-      deadLetter,
-    };
+    return { pending, processing, failed, deadLetter };
   }
 
   async getHealthSignal(
@@ -276,58 +252,44 @@ export class RentalWebhookOutboxService {
       deadLetterWarnThreshold,
       ...(healthy
         ? {}
-        : {
-            reason: 'Dead-letter queue exceeded warning threshold',
-          }),
+        : { reason: 'Dead-letter queue exceeded warning threshold' }),
     };
   }
 
   async listDeliveries(input: {
     companyId: string;
     statuses?: RentalWebhookOutboxStatus[];
-    deliveryType?: RentalWebhookDeliveryType;
+    event?: string;
     limit?: number;
     offset?: number;
   }) {
     const limit = Math.min(Math.max(input.limit ?? 20, 1), 200);
     const offset = Math.max(input.offset ?? 0, 0);
 
-    const where: Prisma.RentalWebhookOutboxWhereInput = {
+    const where: Prisma.WebhookOutboxWhereInput = {
       companyId: input.companyId,
       ...(input.statuses?.length
         ? { status: { in: input.statuses } }
         : {}),
-      ...(input.deliveryType
-        ? { deliveryType: input.deliveryType }
-        : {}),
+      ...(input.event ? { event: input.event } : {}),
     };
 
     const [data, total] = await Promise.all([
-      prisma.rentalWebhookOutbox.findMany({
+      prisma.webhookOutbox.findMany({
         where,
         orderBy: [{ updatedAt: 'desc' }],
         skip: offset,
         take: limit,
       }),
-      prisma.rentalWebhookOutbox.count({ where }),
+      prisma.webhookOutbox.count({ where }),
     ]);
 
-    return {
-      data,
-      pagination: {
-        total,
-        limit,
-        offset,
-      },
-    };
+    return { data, pagination: { total, limit, offset } };
   }
 
   async getDeliveryDetail(input: { companyId: string; id: string }) {
-    return prisma.rentalWebhookOutbox.findFirst({
-      where: {
-        id: input.id,
-        companyId: input.companyId,
-      },
+    return prisma.webhookOutbox.findFirst({
+      where: { id: input.id, companyId: input.companyId },
     });
   }
 
@@ -335,18 +297,13 @@ export class RentalWebhookOutboxService {
     id: string,
     options?: { companyId?: string }
   ): Promise<boolean> {
-    const where: Prisma.RentalWebhookOutboxWhereInput = {
+    const where: Prisma.WebhookOutboxWhereInput = {
       id,
       ...(options?.companyId ? { companyId: options.companyId } : {}),
     };
 
-    const entry = await prisma.rentalWebhookOutbox.findFirst({
-      where,
-    });
-
-    if (!entry) {
-      return false;
-    }
+    const entry = await prisma.webhookOutbox.findFirst({ where });
+    if (!entry) return false;
 
     if (
       entry.status !== RentalWebhookOutboxStatus.FAILED &&
@@ -355,7 +312,7 @@ export class RentalWebhookOutboxService {
       return false;
     }
 
-    await prisma.rentalWebhookOutbox.update({
+    await prisma.webhookOutbox.update({
       where: { id: entry.id },
       data: {
         status: RentalWebhookOutboxStatus.PENDING,
@@ -376,41 +333,28 @@ export class RentalWebhookOutboxService {
     limit?: number;
   }): Promise<number> {
     const limit = Math.min(Math.max(input.limit ?? 100, 1), 500);
-    const filterStatuses =
-      input.statuses && input.statuses.length > 0
-        ? input.statuses
-        : [
-            RentalWebhookOutboxStatus.FAILED,
-            RentalWebhookOutboxStatus.DEAD_LETTER,
-          ];
+    const filterStatuses = input.statuses?.length
+      ? input.statuses
+      : [
+          RentalWebhookOutboxStatus.FAILED,
+          RentalWebhookOutboxStatus.DEAD_LETTER,
+        ];
 
-    const candidates = await prisma.rentalWebhookOutbox.findMany({
+    const candidates = await prisma.webhookOutbox.findMany({
       where: {
         companyId: input.companyId,
-        status: {
-          in: filterStatuses,
-        },
-        ...(input.ids?.length
-          ? {
-              id: {
-                in: input.ids,
-              },
-            }
-          : {}),
+        status: { in: filterStatuses },
+        ...(input.ids?.length ? { id: { in: input.ids } } : {}),
       },
       orderBy: [{ updatedAt: 'desc' }],
       take: limit,
       select: { id: true },
     });
 
-    if (candidates.length === 0) {
-      return 0;
-    }
+    if (candidates.length === 0) return 0;
 
-    const result = await prisma.rentalWebhookOutbox.updateMany({
-      where: {
-        id: { in: candidates.map((item) => item.id) },
-      },
+    const result = await prisma.webhookOutbox.updateMany({
+      where: { id: { in: candidates.map((item) => item.id) } },
       data: {
         status: RentalWebhookOutboxStatus.PENDING,
         nextAttemptAt: new Date(),
@@ -423,64 +367,16 @@ export class RentalWebhookOutboxService {
     return result.count;
   }
 
-  private async enqueueDelivery(input: {
-    companyId: string;
-    deliveryType: RentalWebhookDeliveryType;
-    orderPublicToken: string;
-    orderNumber?: string;
-    autoRetry: boolean;
-    payload: Prisma.InputJsonObject;
-  }): Promise<DeliveryResult> {
-    const activeIntegration =
-      await integrationService.getActiveIntegrationForCompany(
-        input.companyId
-      );
-
-    if (!activeIntegration) {
-      return {
-        success: true,
-        deliveryId: '',
-        status: RentalWebhookOutboxStatus.DELIVERED,
-        attempts: 0,
-        skipped: true,
-      };
-    }
-
-    const delivery = await prisma.rentalWebhookOutbox.create({
-      data: {
-        companyId: input.companyId,
-        deliveryType: input.deliveryType,
-        orderPublicToken: input.orderPublicToken,
-        orderNumber: input.orderNumber,
-        autoRetry: input.autoRetry,
-        payload: input.payload,
-      },
-    });
-
-    return (
-      (await this.processDelivery(delivery.id)) ?? {
-        success: false,
-        deliveryId: delivery.id,
-        status: RentalWebhookOutboxStatus.FAILED,
-        attempts: delivery.attempts,
-        error: 'Delivery was not claimable',
-      }
-    );
-  }
-
   private async processDelivery(
     id: string
   ): Promise<DeliveryResult | null> {
     const claimedEntry = await this.claimDelivery(id);
-
-    if (!claimedEntry) {
-      return null;
-    }
+    if (!claimedEntry) return null;
 
     const fetchResult = await this.performFetch(claimedEntry);
 
     if (fetchResult.success) {
-      await prisma.rentalWebhookOutbox.update({
+      await prisma.webhookOutbox.update({
         where: { id: claimedEntry.id },
         data: {
           status: RentalWebhookOutboxStatus.DELIVERED,
@@ -500,14 +396,13 @@ export class RentalWebhookOutboxService {
     }
 
     const failureResult = fetchResult as FetchFailure;
-
     const nextStatus = this.resolveFailureStatus(
       claimedEntry.autoRetry,
       claimedEntry.attempts,
       failureResult.permanent
     );
 
-    await prisma.rentalWebhookOutbox.update({
+    await prisma.webhookOutbox.update({
       where: { id: claimedEntry.id },
       data: {
         status: nextStatus,
@@ -534,7 +429,7 @@ export class RentalWebhookOutboxService {
   }
 
   private async claimDelivery(id: string) {
-    const candidate = await prisma.rentalWebhookOutbox.findFirst({
+    const candidate = await prisma.webhookOutbox.findFirst({
       where: {
         id,
         status: {
@@ -546,28 +441,20 @@ export class RentalWebhookOutboxService {
       },
     });
 
-    if (!candidate) {
-      return null;
-    }
+    if (!candidate) return null;
 
-    const now = new Date();
-    const claimed = await prisma.rentalWebhookOutbox.updateMany({
-      where: {
-        id: candidate.id,
-        status: candidate.status,
-      },
+    const claimed = await prisma.webhookOutbox.updateMany({
+      where: { id: candidate.id, status: candidate.status },
       data: {
         status: RentalWebhookOutboxStatus.PROCESSING,
         attempts: { increment: 1 },
-        lastAttemptAt: now,
+        lastAttemptAt: new Date(),
       },
     });
 
-    if (claimed.count === 0) {
-      return null;
-    }
+    if (claimed.count === 0) return null;
 
-    return prisma.rentalWebhookOutbox.findUniqueOrThrow({
+    return prisma.webhookOutbox.findUniqueOrThrow({
       where: { id: candidate.id },
     });
   }
@@ -581,11 +468,9 @@ export class RentalWebhookOutboxService {
       process.env.RENTAL_WEBHOOK_OUTBOX_MAX_ATTEMPTS,
       DEFAULT_MAX_ATTEMPTS
     );
-
     if (!autoRetry || permanent || attempts >= maxAttempts) {
       return RentalWebhookOutboxStatus.DEAD_LETTER;
     }
-
     return RentalWebhookOutboxStatus.FAILED;
   }
 
@@ -598,7 +483,6 @@ export class RentalWebhookOutboxService {
       process.env.RENTAL_WEBHOOK_OUTBOX_RETRY_MAX_MS,
       DEFAULT_RETRY_MAX_MS
     );
-
     return Math.min(
       retryBaseMs * 2 ** Math.max(attempts - 1, 0),
       retryMaxMs
@@ -607,21 +491,21 @@ export class RentalWebhookOutboxService {
 
   private async performFetch(entry: {
     id: string;
-    deliveryType: RentalWebhookDeliveryType;
+    event: string;
+    integrationId: string | null;
     orderPublicToken: string;
     orderNumber: string | null;
     payload: Prisma.JsonValue;
+    companyId: string;
   }): Promise<FetchResult> {
-    const outboxEntry =
-      await prisma.rentalWebhookOutbox.findUniqueOrThrow({
-        where: { id: entry.id },
-        select: { companyId: true },
-      });
-
-    const activeIntegration =
-      await integrationService.getActiveIntegrationForCompany(
-        outboxEntry.companyId
-      );
+    const activeIntegration = entry.integrationId
+      ? await prisma.integration.findUnique({
+          where: { id: entry.integrationId },
+          include: { apiKeys: true },
+        })
+      : await integrationService.getActiveIntegrationForCompany(
+          entry.companyId
+        );
 
     if (!activeIntegration) {
       return {
@@ -663,75 +547,64 @@ export class RentalWebhookOutboxService {
       };
     }
 
-    const pathsConfig = asObject(integrationConfig.paths ?? null);
-    const payload = asObject(entry.payload);
-    const request =
-      entry.deliveryType === RentalWebhookDeliveryType.NEW_ORDER
-        ? this.buildNewOrderRequest(
-            baseUrl,
-            secret,
-            pathsConfig,
-            entry.id,
-            entry.orderPublicToken,
-            entry.orderNumber,
-            payload
-          )
-        : this.buildPaymentStatusRequest(
-            baseUrl,
-            secret,
-            pathsConfig,
-            entry.id,
-            entry.orderPublicToken,
-            payload
-          );
+    const plugin = integrationRegistry.get(activeIntegration.appId);
 
-    if ('error' in request) {
-      return {
-        success: false,
-        permanent: true,
-        error: request.error,
-      };
+    let requestBody = entry.payload;
+    if (plugin?.buildWebhookPayload) {
+      requestBody = plugin.buildWebhookPayload(
+        entry.event,
+        entry.payload,
+        integrationConfig
+      ) as Prisma.JsonValue;
     }
 
+    let urlPath = '/api/webhook';
+    if (activeIntegration.appId === 'santi-living') {
+      const pathsConfig = asObject(integrationConfig.paths ?? null);
+      urlPath = getWebhookPath(
+        entry.event,
+        entry.orderPublicToken,
+        pathsConfig
+      );
+    }
+
+    const url = `${baseUrl}${urlPath}`;
+
     try {
-      const response = await fetch(request.url, {
+      const response = await fetch(url, {
         method: 'POST',
-        headers: request.headers,
-        body: JSON.stringify(request.body),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: secret,
+          'X-Webhook-Delivery-Id': entry.id,
+          'Idempotency-Key': entry.id,
+        },
+        body: JSON.stringify(requestBody),
         signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
 
       if (response.ok) {
-        return {
-          success: true,
-          statusCode: response.status,
-        };
+        return { success: true, statusCode: response.status };
       }
 
       const rawError = await response.json().catch(() => ({}));
-      const errorData = rawError as {
-        message?: unknown;
-        error?: unknown;
-      };
-
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorData = rawError as any;
       let errorMessage = `Webhook failed: ${response.status}`;
+
       if (errorData) {
-        if (typeof errorData.message === 'string') {
+        if (typeof errorData.message === 'string')
           errorMessage = errorData.message;
-        } else if (typeof errorData.error === 'string') {
+        else if (typeof errorData.error === 'string')
           errorMessage = errorData.error;
-        } else if (
+        else if (
           errorData.error &&
           typeof errorData.error === 'object'
         ) {
-          const nestedError = errorData.error as {
-            message?: unknown;
-          };
-          if (typeof nestedError.message === 'string') {
-            errorMessage = nestedError.message;
-          } else {
-            errorMessage = JSON.stringify(errorData.error);
-          }
+          errorMessage =
+            typeof errorData.error.message === 'string'
+              ? errorData.error.message
+              : JSON.stringify(errorData.error);
         }
       }
 
@@ -752,99 +625,11 @@ export class RentalWebhookOutboxService {
       };
     }
   }
-
-  private buildNewOrderRequest(
-    baseUrl: string,
-    secret: string,
-    pathsConfig: Record<string, Prisma.JsonValue>,
-    deliveryId: string,
-    token: string,
-    orderNumber: string | null,
-    payload: Record<string, Prisma.JsonValue>
-  ): DeliveryRequest | InvalidDeliveryRequest {
-    const customerName = readString(payload, 'customerName');
-    const customerPhone = readString(payload, 'customerPhone');
-    const totalAmount = readNumber(payload, 'totalAmount');
-
-    if (
-      !customerName ||
-      !customerPhone ||
-      totalAmount === undefined ||
-      !orderNumber
-    ) {
-      return {
-        error:
-          'Rental webhook outbox payload is invalid for new order',
-      };
-    }
-
-    const pathTemplate =
-      typeof pathsConfig.newOrder === 'string'
-        ? pathsConfig.newOrder
-        : '/api/orders/{token}/notify-admin';
-
-    return {
-      url: `${baseUrl}${pathTemplate.replace('{token}', token)}`,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: secret,
-        'X-Webhook-Delivery-Id': deliveryId,
-        'Idempotency-Key': deliveryId,
-      },
-      body: {
-        action: 'new_order',
-        orderNumber,
-        customerName,
-        customerPhone,
-        totalAmount,
-      },
-    };
-  }
-
-  private buildPaymentStatusRequest(
-    baseUrl: string,
-    secret: string,
-    pathsConfig: Record<string, Prisma.JsonValue>,
-    deliveryId: string,
-    token: string,
-    payload: Record<string, Prisma.JsonValue>
-  ): DeliveryRequest | InvalidDeliveryRequest {
-    const action = readString(payload, 'action');
-
-    if (!action) {
-      return {
-        error:
-          'Rental webhook outbox payload is invalid for payment status',
-      };
-    }
-
-    const pathTemplate =
-      typeof pathsConfig.paymentStatus === 'string'
-        ? pathsConfig.paymentStatus
-        : '/api/orders/{token}/notify-payment';
-
-    return {
-      url: `${baseUrl}${pathTemplate.replace('{token}', token)}`,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: secret,
-        'X-Webhook-Delivery-Id': deliveryId,
-        'Idempotency-Key': deliveryId,
-      },
-      body: {
-        action,
-        paymentReference: readString(payload, 'paymentReference'),
-        failReason: readString(payload, 'failReason'),
-        paymentMethod: readString(payload, 'paymentMethod'),
-      },
-    };
-  }
 }
 
-export const rentalWebhookOutboxService =
-  new RentalWebhookOutboxService();
+export const webhookOutboxService = new WebhookOutboxService();
 
-export const startRentalWebhookOutboxWorker = () => {
+export const startWebhookOutboxWorker = () => {
   const pollIntervalMs = readPositiveInt(
     process.env.RENTAL_WEBHOOK_OUTBOX_POLL_INTERVAL_MS,
     DEFAULT_POLL_INTERVAL_MS
@@ -852,16 +637,13 @@ export const startRentalWebhookOutboxWorker = () => {
   let isRunning = false;
 
   const run = async () => {
-    if (isRunning) {
-      return;
-    }
-
+    if (isRunning) return;
     isRunning = true;
     try {
-      await rentalWebhookOutboxService.processDueEntries();
+      await webhookOutboxService.processDueEntries();
     } catch (error) {
       console.error(
-        '[RentalWebhookOutbox] Worker failed to process due entries:',
+        '[WebhookOutbox] Worker failed to process due entries:',
         error
       );
     } finally {
@@ -872,7 +654,6 @@ export const startRentalWebhookOutboxWorker = () => {
   const timer = setInterval(() => {
     void run();
   }, pollIntervalMs);
-
   timer.unref();
   void run();
 

@@ -75,6 +75,7 @@ export const createContext = async ({
     businessShape,
     userRole,
     userPermissions, // Granular RBAC: ['bill:void', 'payment:void', ...]
+    integrationId: undefined as string | undefined,
   };
 };
 

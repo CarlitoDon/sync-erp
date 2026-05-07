@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { BillPolicy } from '@modules/accounting/policies/bill.policy';
-import { Invoice, InvoiceStatus, OrderStatus } from '@sync-erp/database';
+import {
+  Invoice,
+  InvoiceStatus,
+  OrderStatus,
+} from '@sync-erp/database';
 import { DomainErrorCodes } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
 
@@ -235,7 +239,9 @@ describe('BillPolicy', () => {
         );
         expect.fail('Should have thrown');
       } catch (e: unknown) {
-        expect((e as { code?: string }).code).toBe(DomainErrorCodes.THREE_WAY_MATCH_FAILED);
+        expect((e as { code?: string }).code).toBe(
+          DomainErrorCodes.THREE_WAY_MATCH_FAILED
+        );
       }
     });
 
@@ -248,7 +254,9 @@ describe('BillPolicy', () => {
         );
         expect.fail('Should have thrown');
       } catch (e: unknown) {
-        expect((e as { code?: string }).code).toBe(DomainErrorCodes.THREE_WAY_MATCH_FAILED);
+        expect((e as { code?: string }).code).toBe(
+          DomainErrorCodes.THREE_WAY_MATCH_FAILED
+        );
       }
     });
   });

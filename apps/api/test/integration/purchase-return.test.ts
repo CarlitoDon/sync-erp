@@ -126,7 +126,10 @@ describe('P2P: Purchase Return (Mirroring O2C Return)', () => {
     expect(product?.stockQty).toBe(10);
 
     // Verify PO is COMPLETED
-    const po = await purchaseOrderService.getById(order.id, COMPANY_ID);
+    const po = await purchaseOrderService.getById(
+      order.id,
+      COMPANY_ID
+    );
     expect(po?.status).toBe(OrderStatus.COMPLETED);
 
     // 3. Return partial goods (5 units)

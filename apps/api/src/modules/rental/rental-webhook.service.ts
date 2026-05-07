@@ -2,7 +2,7 @@
  * Webhook service for rental notifications
  * Enqueues deliveries through the rental webhook outbox for partner integrations
  */
-import { rentalWebhookOutboxService } from './rental-webhook-outbox.service';
+import { webhookOutboxService } from './webhook-outbox.service';
 
 interface NotifyPaymentStatusParams {
   companyId: string;
@@ -35,7 +35,17 @@ export class RentalWebhookService {
     params: NotifyPaymentStatusParams
   ): Promise<void> {
     const result =
-      await rentalWebhookOutboxService.enqueuePaymentStatus(params);
+      await webhookOutboxService.enqueue('payment.status.changed', {
+        companyId: params.companyId,
+        orderPublicToken: params.token,
+        payload: {
+          action: params.action,
+          paymentReference: params.paymentReference,
+          failReason: params.failReason,
+          paymentMethod: params.paymentMethod,
+          token: params.token,
+        }
+      });
 
     if (!result.success) {
       console.error(
@@ -54,12 +64,19 @@ export class RentalWebhookService {
     params: NotifyNewOrderParams,
     options: NotifyOptions = {}
   ): Promise<void> {
-    const result = await rentalWebhookOutboxService.enqueueNewOrder(
-      params,
-      {
+    const result = await webhookOutboxService.enqueue('order.created', {
+        companyId: params.companyId,
+        orderPublicToken: params.token,
+        orderNumber: params.orderNumber,
         autoRetry: !options.throwOnFailure,
-      }
-    );
+        payload: {
+          orderNumber: params.orderNumber,
+          customerName: params.customerName,
+          customerPhone: params.customerPhone,
+          totalAmount: params.totalAmount,
+          token: params.token,
+        }
+    });
 
     if (!result.success) {
       console.error(
