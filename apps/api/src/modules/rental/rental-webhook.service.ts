@@ -6,6 +6,7 @@ import { webhookOutboxService } from './webhook-outbox.service';
 
 interface NotifyPaymentStatusParams {
   companyId: string;
+  integrationId?: string;
   token: string;
   action: 'confirmed' | 'rejected' | 'claimed';
   paymentReference?: string;
@@ -15,6 +16,7 @@ interface NotifyPaymentStatusParams {
 
 interface NotifyNewOrderParams {
   companyId: string;
+  integrationId?: string;
   token: string;
   orderNumber: string;
   customerName: string;
@@ -37,6 +39,7 @@ export class RentalWebhookService {
     const result =
       await webhookOutboxService.enqueue('payment.status.changed', {
         companyId: params.companyId,
+        integrationId: params.integrationId,
         orderPublicToken: params.token,
         payload: {
           action: params.action,
@@ -66,6 +69,7 @@ export class RentalWebhookService {
   ): Promise<void> {
     const result = await webhookOutboxService.enqueue('order.created', {
         companyId: params.companyId,
+        integrationId: params.integrationId,
         orderPublicToken: params.token,
         orderNumber: params.orderNumber,
         autoRetry: !options.throwOnFailure,
@@ -95,6 +99,7 @@ export class RentalWebhookService {
   async notifyOrderCreated(order: {
     companyId: string;
     id: string;
+    integrationId?: string | null;
     orderNumber?: string;
     totalAmount?: number | { toNumber(): number };
     partner?: {
@@ -105,6 +110,7 @@ export class RentalWebhookService {
   }): Promise<void> {
     await this.notifyNewOrder({
       companyId: order.companyId,
+      integrationId: order.integrationId ?? undefined,
       token: order.id,
       orderNumber: order.orderNumber || 'UNKNOWN',
       customerName: order.partner?.name || 'Guest',

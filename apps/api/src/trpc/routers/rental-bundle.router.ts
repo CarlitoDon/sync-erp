@@ -96,8 +96,8 @@ export const rentalBundleRouter = router({
       return bundleService.findByExternalId(input);
     }),
 
-  // Sync bundles from santi-living products.json
-  syncFromSantiLiving: publicProcedure
+  // Sync external bundles
+  syncExternalBundles: publicProcedure
     .input(
       z.object({
         companyId: z.string(),
@@ -117,6 +117,6 @@ export const rentalBundleRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      return bundleService.syncFromSantiLiving(input);
+      return bundleService.syncExternalBundles(input);
     }),
 });

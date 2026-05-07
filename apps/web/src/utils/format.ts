@@ -27,11 +27,9 @@ export const formatDateTime = (date: string | Date) => {
 };
 
 /**
- * Get Santi Living asset URL (images, etc)
- * In development: uses localhost:4321 (Astro dev server)
- * In production: uses santiliving.com
+ * Get external asset URL for integrations (images, etc)
  */
-export const getSantiLivingAssetUrl = (path: string): string => {
+export const getExternalAssetUrl = (integrationConfig: Record<string, unknown> | null, path: string): string => {
   if (!path) return '';
 
   // If already a full URL, return as-is
@@ -39,10 +37,7 @@ export const getSantiLivingAssetUrl = (path: string): string => {
     return path;
   }
 
-  const isDev = import.meta.env.DEV;
-  const baseUrl = isDev
-    ? 'http://localhost:4321'
-    : 'https://santiliving.com';
+  const baseUrl = (integrationConfig?.assetBaseUrl as string) || '';
 
   // Ensure path starts with /
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
