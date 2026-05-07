@@ -16,7 +16,9 @@ describe('Public Rental Contract', () => {
   ].sort();
 
   it('exposes expected publicRental procedures', () => {
-    const procedureKeys = Object.keys(publicRentalRouter._def.procedures).sort();
+    const procedureKeys = Object.keys(
+      publicRentalRouter._def.procedures
+    ).sort();
     expect(procedureKeys).toEqual(expectedProcedures);
   });
 
@@ -25,7 +27,9 @@ describe('Public Rental Contract', () => {
       .filter((key) => key.startsWith('publicRental.'))
       .map((key) => key.replace('publicRental.', ''))
       .sort();
-    const facadeProcedures = Object.keys(publicRentalRouter._def.procedures).sort();
+    const facadeProcedures = Object.keys(
+      publicRentalRouter._def.procedures
+    ).sort();
 
     expect(appProcedures).toEqual(expectedProcedures);
     expect(facadeProcedures).toEqual(expectedProcedures);

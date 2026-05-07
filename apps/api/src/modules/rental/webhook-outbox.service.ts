@@ -90,9 +90,13 @@ export class WebhookOutboxService {
       autoRetry?: boolean;
     }
   ): Promise<DeliveryResult> {
-    const activeIntegration = input.integrationId 
-      ? await prisma.integration.findUnique({ where: { id: input.integrationId } })
-      : await integrationService.getActiveIntegrationForCompany(input.companyId);
+    const activeIntegration = input.integrationId
+      ? await prisma.integration.findUnique({
+          where: { id: input.integrationId },
+        })
+      : await integrationService.getActiveIntegrationForCompany(
+          input.companyId
+        );
 
     if (!activeIntegration) {
       return {
@@ -112,7 +116,7 @@ export class WebhookOutboxService {
         orderPublicToken: input.orderPublicToken,
         orderNumber: input.orderNumber,
         autoRetry: input.autoRetry ?? true,
-        payload: input.payload as any,
+        payload: input.payload as Prisma.InputJsonValue,
       },
     });
 
@@ -196,29 +200,45 @@ export class WebhookOutboxService {
     return summary;
   }
 
-  async getQueueCounts(companyId?: string): Promise<OutboxQueueCounts> {
+  async getQueueCounts(
+    companyId?: string
+  ): Promise<OutboxQueueCounts> {
     const where = companyId ? { companyId } : {};
 
     const [pending, processing, failed, deadLetter] =
       await Promise.all([
         prisma.webhookOutbox.count({
-          where: { ...where, status: RentalWebhookOutboxStatus.PENDING },
+          where: {
+            ...where,
+            status: RentalWebhookOutboxStatus.PENDING,
+          },
         }),
         prisma.webhookOutbox.count({
-          where: { ...where, status: RentalWebhookOutboxStatus.PROCESSING },
+          where: {
+            ...where,
+            status: RentalWebhookOutboxStatus.PROCESSING,
+          },
         }),
         prisma.webhookOutbox.count({
-          where: { ...where, status: RentalWebhookOutboxStatus.FAILED },
+          where: {
+            ...where,
+            status: RentalWebhookOutboxStatus.FAILED,
+          },
         }),
         prisma.webhookOutbox.count({
-          where: { ...where, status: RentalWebhookOutboxStatus.DEAD_LETTER },
+          where: {
+            ...where,
+            status: RentalWebhookOutboxStatus.DEAD_LETTER,
+          },
         }),
       ]);
 
     return { pending, processing, failed, deadLetter };
   }
 
-  async getHealthSignal(companyId?: string): Promise<OutboxHealthSignal> {
+  async getHealthSignal(
+    companyId?: string
+  ): Promise<OutboxHealthSignal> {
     const counts = await this.getQueueCounts(companyId);
     const deadLetterWarnThreshold = readPositiveInt(
       process.env.RENTAL_WEBHOOK_OUTBOX_DEAD_LETTER_WARN_THRESHOLD,
@@ -230,7 +250,9 @@ export class WebhookOutboxService {
       healthy,
       deadLetterCount: counts.deadLetter,
       deadLetterWarnThreshold,
-      ...(healthy ? {} : { reason: 'Dead-letter queue exceeded warning threshold' }),
+      ...(healthy
+        ? {}
+        : { reason: 'Dead-letter queue exceeded warning threshold' }),
     };
   }
 
@@ -246,7 +268,9 @@ export class WebhookOutboxService {
 
     const where: Prisma.WebhookOutboxWhereInput = {
       companyId: input.companyId,
-      ...(input.statuses?.length ? { status: { in: input.statuses } } : {}),
+      ...(input.statuses?.length
+        ? { status: { in: input.statuses } }
+        : {}),
       ...(input.event ? { event: input.event } : {}),
     };
 
@@ -311,7 +335,10 @@ export class WebhookOutboxService {
     const limit = Math.min(Math.max(input.limit ?? 100, 1), 500);
     const filterStatuses = input.statuses?.length
       ? input.statuses
-      : [RentalWebhookOutboxStatus.FAILED, RentalWebhookOutboxStatus.DEAD_LETTER];
+      : [
+          RentalWebhookOutboxStatus.FAILED,
+          RentalWebhookOutboxStatus.DEAD_LETTER,
+        ];
 
     const candidates = await prisma.webhookOutbox.findMany({
       where: {
@@ -340,7 +367,9 @@ export class WebhookOutboxService {
     return result.count;
   }
 
-  private async processDelivery(id: string): Promise<DeliveryResult | null> {
+  private async processDelivery(
+    id: string
+  ): Promise<DeliveryResult | null> {
     const claimedEntry = await this.claimDelivery(id);
     if (!claimedEntry) return null;
 
@@ -379,7 +408,10 @@ export class WebhookOutboxService {
         status: nextStatus,
         nextAttemptAt:
           nextStatus === RentalWebhookOutboxStatus.FAILED
-            ? new Date(Date.now() + this.calculateBackoffMs(claimedEntry.attempts))
+            ? new Date(
+                Date.now() +
+                  this.calculateBackoffMs(claimedEntry.attempts)
+              )
             : new Date(),
         lastError: failureResult.error,
         lastStatusCode: failureResult.statusCode ?? null,
@@ -401,7 +433,10 @@ export class WebhookOutboxService {
       where: {
         id,
         status: {
-          in: [RentalWebhookOutboxStatus.PENDING, RentalWebhookOutboxStatus.FAILED],
+          in: [
+            RentalWebhookOutboxStatus.PENDING,
+            RentalWebhookOutboxStatus.FAILED,
+          ],
         },
       },
     });
@@ -419,11 +454,20 @@ export class WebhookOutboxService {
 
     if (claimed.count === 0) return null;
 
-    return prisma.webhookOutbox.findUniqueOrThrow({ where: { id: candidate.id } });
+    return prisma.webhookOutbox.findUniqueOrThrow({
+      where: { id: candidate.id },
+    });
   }
 
-  private resolveFailureStatus(autoRetry: boolean, attempts: number, permanent: boolean) {
-    const maxAttempts = readPositiveInt(process.env.RENTAL_WEBHOOK_OUTBOX_MAX_ATTEMPTS, DEFAULT_MAX_ATTEMPTS);
+  private resolveFailureStatus(
+    autoRetry: boolean,
+    attempts: number,
+    permanent: boolean
+  ) {
+    const maxAttempts = readPositiveInt(
+      process.env.RENTAL_WEBHOOK_OUTBOX_MAX_ATTEMPTS,
+      DEFAULT_MAX_ATTEMPTS
+    );
     if (!autoRetry || permanent || attempts >= maxAttempts) {
       return RentalWebhookOutboxStatus.DEAD_LETTER;
     }
@@ -431,9 +475,18 @@ export class WebhookOutboxService {
   }
 
   private calculateBackoffMs(attempts: number) {
-    const retryBaseMs = readPositiveInt(process.env.RENTAL_WEBHOOK_OUTBOX_RETRY_BASE_MS, DEFAULT_RETRY_BASE_MS);
-    const retryMaxMs = readPositiveInt(process.env.RENTAL_WEBHOOK_OUTBOX_RETRY_MAX_MS, DEFAULT_RETRY_MAX_MS);
-    return Math.min(retryBaseMs * 2 ** Math.max(attempts - 1, 0), retryMaxMs);
+    const retryBaseMs = readPositiveInt(
+      process.env.RENTAL_WEBHOOK_OUTBOX_RETRY_BASE_MS,
+      DEFAULT_RETRY_BASE_MS
+    );
+    const retryMaxMs = readPositiveInt(
+      process.env.RENTAL_WEBHOOK_OUTBOX_RETRY_MAX_MS,
+      DEFAULT_RETRY_MAX_MS
+    );
+    return Math.min(
+      retryBaseMs * 2 ** Math.max(attempts - 1, 0),
+      retryMaxMs
+    );
   }
 
   private async performFetch(entry: {
@@ -445,15 +498,26 @@ export class WebhookOutboxService {
     payload: Prisma.JsonValue;
     companyId: string;
   }): Promise<FetchResult> {
-    const activeIntegration = entry.integrationId 
-      ? await prisma.integration.findUnique({ where: { id: entry.integrationId }, include: { apiKeys: true } })
-      : await integrationService.getActiveIntegrationForCompany(entry.companyId);
+    const activeIntegration = entry.integrationId
+      ? await prisma.integration.findUnique({
+          where: { id: entry.integrationId },
+          include: { apiKeys: true },
+        })
+      : await integrationService.getActiveIntegrationForCompany(
+          entry.companyId
+        );
 
     if (!activeIntegration) {
-      return { success: false, permanent: true, error: 'No active integration configured' };
+      return {
+        success: false,
+        permanent: true,
+        error: 'No active integration configured',
+      };
     }
 
-    const integrationConfig = asObject(activeIntegration.config as Prisma.JsonValue);
+    const integrationConfig = asObject(
+      activeIntegration.config as Prisma.JsonValue
+    );
     const apiKey = activeIntegration.apiKeys[0];
 
     const baseUrl = (
@@ -468,24 +532,40 @@ export class WebhookOutboxService {
       '';
 
     if (!baseUrl) {
-      return { success: false, permanent: true, error: 'Webhook base URL not configured' };
+      return {
+        success: false,
+        permanent: true,
+        error: 'Webhook base URL not configured',
+      };
     }
 
     if (!secret) {
-      return { success: false, permanent: true, error: 'Webhook secret not configured' };
+      return {
+        success: false,
+        permanent: true,
+        error: 'Webhook secret not configured',
+      };
     }
 
     const plugin = integrationRegistry.get(activeIntegration.appId);
-    
+
     let requestBody = entry.payload;
     if (plugin?.buildWebhookPayload) {
-      requestBody = plugin.buildWebhookPayload(entry.event, entry.payload, integrationConfig) as Prisma.JsonValue;
+      requestBody = plugin.buildWebhookPayload(
+        entry.event,
+        entry.payload,
+        integrationConfig
+      ) as Prisma.JsonValue;
     }
 
     let urlPath = '/api/webhook';
     if (activeIntegration.appId === 'santi-living') {
       const pathsConfig = asObject(integrationConfig.paths ?? null);
-      urlPath = getWebhookPath(entry.event, entry.orderPublicToken, pathsConfig);
+      urlPath = getWebhookPath(
+        entry.event,
+        entry.orderPublicToken,
+        pathsConfig
+      );
     }
 
     const url = `${baseUrl}${urlPath}`;
@@ -508,14 +588,23 @@ export class WebhookOutboxService {
       }
 
       const rawError = await response.json().catch(() => ({}));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const errorData = rawError as any;
       let errorMessage = `Webhook failed: ${response.status}`;
-      
+
       if (errorData) {
-        if (typeof errorData.message === 'string') errorMessage = errorData.message;
-        else if (typeof errorData.error === 'string') errorMessage = errorData.error;
-        else if (errorData.error && typeof errorData.error === 'object') {
-          errorMessage = typeof errorData.error.message === 'string' ? errorData.error.message : JSON.stringify(errorData.error);
+        if (typeof errorData.message === 'string')
+          errorMessage = errorData.message;
+        else if (typeof errorData.error === 'string')
+          errorMessage = errorData.error;
+        else if (
+          errorData.error &&
+          typeof errorData.error === 'object'
+        ) {
+          errorMessage =
+            typeof errorData.error.message === 'string'
+              ? errorData.error.message
+              : JSON.stringify(errorData.error);
         }
       }
 
@@ -529,7 +618,10 @@ export class WebhookOutboxService {
       return {
         success: false,
         permanent: false,
-        error: error instanceof Error ? error.message : 'Unknown webhook error',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown webhook error',
       };
     }
   }
@@ -538,7 +630,10 @@ export class WebhookOutboxService {
 export const webhookOutboxService = new WebhookOutboxService();
 
 export const startWebhookOutboxWorker = () => {
-  const pollIntervalMs = readPositiveInt(process.env.RENTAL_WEBHOOK_OUTBOX_POLL_INTERVAL_MS, DEFAULT_POLL_INTERVAL_MS);
+  const pollIntervalMs = readPositiveInt(
+    process.env.RENTAL_WEBHOOK_OUTBOX_POLL_INTERVAL_MS,
+    DEFAULT_POLL_INTERVAL_MS
+  );
   let isRunning = false;
 
   const run = async () => {
@@ -547,15 +642,22 @@ export const startWebhookOutboxWorker = () => {
     try {
       await webhookOutboxService.processDueEntries();
     } catch (error) {
-      console.error('[WebhookOutbox] Worker failed to process due entries:', error);
+      console.error(
+        '[WebhookOutbox] Worker failed to process due entries:',
+        error
+      );
     } finally {
       isRunning = false;
     }
   };
 
-  const timer = setInterval(() => { void run(); }, pollIntervalMs);
+  const timer = setInterval(() => {
+    void run();
+  }, pollIntervalMs);
   timer.unref();
   void run();
 
-  return () => { clearInterval(timer); };
+  return () => {
+    clearInterval(timer);
+  };
 };

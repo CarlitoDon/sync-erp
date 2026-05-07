@@ -7,7 +7,6 @@ import { PaymentService } from '@modules/accounting/services/payment.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { SalesOrderService } from '@modules/sales/sales-order.service';
 
-
 // Initialize Services
 const inventoryService = new InventoryService();
 const salesOrderService = new SalesOrderService();
@@ -57,7 +56,7 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as import("@sync-erp/database").AccountType,
+          type: acc.type as import('@sync-erp/database').AccountType,
           isActive: true,
         },
       });
@@ -198,10 +197,10 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
 
       // Verify GRNI Accrual Journal exists (Dr Inventory, Cr GRNI)
       const journals = await prisma.journalEntry.findMany({
-      where: { companyId: COMPANY_ID },
-      include: { lines: { include: { account: true } } },
-      orderBy: { date: 'desc' },
-    });
+        where: { companyId: COMPANY_ID },
+        include: { lines: { include: { account: true } } },
+        orderBy: { date: 'desc' },
+      });
       const grnJournal = journals.find((j) =>
         j.reference?.includes('GRN')
       );
@@ -233,10 +232,10 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       await billService.post(bill.id, COMPANY_ID);
 
       const journals = await prisma.journalEntry.findMany({
-      where: { companyId: COMPANY_ID },
-      include: { lines: { include: { account: true } } },
-      orderBy: { date: 'desc' },
-    });
+        where: { companyId: COMPANY_ID },
+        include: { lines: { include: { account: true } } },
+        orderBy: { date: 'desc' },
+      });
       // Use flexible matching - journal reference includes "Bill:"
       const billJournal = journals.find(
         (j) =>
@@ -265,10 +264,10 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       });
 
       const journals = await prisma.journalEntry.findMany({
-      where: { companyId: COMPANY_ID },
-      include: { lines: { include: { account: true } } },
-      orderBy: { date: 'desc' },
-    });
+        where: { companyId: COMPANY_ID },
+        include: { lines: { include: { account: true } } },
+        orderBy: { date: 'desc' },
+      });
       // Use flexible matching - journal reference includes "Payment made:"
       const payJournal = journals.find((j) =>
         j.reference?.includes('Payment made:')
@@ -320,10 +319,10 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
 
       // Check Journal
       const journals = await prisma.journalEntry.findMany({
-      where: { companyId: COMPANY_ID },
-      include: { lines: { include: { account: true } } },
-      orderBy: { date: 'desc' },
-    });
+        where: { companyId: COMPANY_ID },
+        include: { lines: { include: { account: true } } },
+        orderBy: { date: 'desc' },
+      });
       const shipJournal = journals.find((j) =>
         j.reference?.includes('SHP')
       );
@@ -354,10 +353,10 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       await invoiceService.post(invoiceId, COMPANY_ID);
 
       const journals = await prisma.journalEntry.findMany({
-      where: { companyId: COMPANY_ID },
-      include: { lines: { include: { account: true } } },
-      orderBy: { date: 'desc' },
-    });
+        where: { companyId: COMPANY_ID },
+        include: { lines: { include: { account: true } } },
+        orderBy: { date: 'desc' },
+      });
       // Use flexible matching - journal reference includes "Invoice:"
       const invJournal = journals.find(
         (j) =>
@@ -386,10 +385,10 @@ describe('E2E Finance Cycle: Procure-to-Pay & Order-to-Cash', () => {
       });
 
       const journals = await prisma.journalEntry.findMany({
-      where: { companyId: COMPANY_ID },
-      include: { lines: { include: { account: true } } },
-      orderBy: { date: 'desc' },
-    });
+        where: { companyId: COMPANY_ID },
+        include: { lines: { include: { account: true } } },
+        orderBy: { date: 'desc' },
+      });
       // Use flexible matching - journal reference includes "Payment received:"
       const payJournal = journals.find((j) =>
         j.reference?.includes('Payment received:')

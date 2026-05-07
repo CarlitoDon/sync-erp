@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { EmailService } from '../../src/modules/common/services/email.service';
 
 describe('EmailService Unit', () => {
@@ -15,7 +22,9 @@ describe('EmailService Unit', () => {
 
   it('uses log provider by default', async () => {
     const service = new EmailService();
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation(() => {});
 
     const result = await service.sendVerificationEmail({
       to: 'user@example.com',
@@ -33,8 +42,12 @@ describe('EmailService Unit', () => {
   it('falls back to log provider when resend is configured without api key', async () => {
     process.env.SYNC_ERP_EMAIL_PROVIDER = 'resend';
     delete process.env.RESEND_API_KEY;
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const warnSpy = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => {});
+    const logSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation(() => {});
     const service = new EmailService();
 
     const result = await service.sendVerificationEmail({
@@ -59,7 +72,8 @@ describe('EmailService Unit', () => {
     const result = await service.sendVerificationEmail({
       to: 'user@example.com',
       name: 'User',
-      verificationUrl: 'https://app.sync-erp.com/verify-email?token=abc',
+      verificationUrl:
+        'https://app.sync-erp.com/verify-email?token=abc',
     });
 
     expect(result).toEqual({
@@ -78,7 +92,8 @@ describe('EmailService Unit', () => {
     const result = await service.sendVerificationEmail({
       to: 'user@example.com',
       name: 'User',
-      verificationUrl: 'https://app.sync-erp.com/verify-email?token=abc',
+      verificationUrl:
+        'https://app.sync-erp.com/verify-email?token=abc',
     });
 
     expect(result).toEqual({

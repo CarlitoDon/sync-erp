@@ -1,7 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-export async function seedSantiLiving(prisma: any, companyId: string) {
+export async function seedSantiLiving(
+  prisma: any,
+  companyId: string
+) {
   const existingApp = await prisma.integration.findUnique({
-    where: { companyId_appId: { companyId, appId: 'santi-living' } }
+    where: { companyId_appId: { companyId, appId: 'santi-living' } },
   });
 
   if (!existingApp) {
@@ -14,9 +18,10 @@ export async function seedSantiLiving(prisma: any, companyId: string) {
         isActive: true,
         config: {
           webhookUrl: 'https://webhook.santi.living/api/orders',
-          assetBaseUrl: 'https://storage.googleapis.com/santi-living-public',
-        }
-      }
+          assetBaseUrl:
+            'https://storage.googleapis.com/santi-living-public',
+        },
+      },
     });
   }
 }

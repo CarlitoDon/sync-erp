@@ -94,6 +94,7 @@ const buildCaller = () =>
     businessShape: undefined,
     userRole: undefined,
     userPermissions: [],
+    integrationId: undefined,
   });
 
 describe('Admin Router - Rental Webhook Outbox', () => {
@@ -226,13 +227,12 @@ describe('Admin Router - Rental Webhook Outbox', () => {
   it('replays DEAD_LETTER and FAILED entries via admin API and delivers after worker cycle', async () => {
     const caller = buildCaller();
 
-    const deadLetter =
-      await prisma.webhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: COMPANY_ID,
-          status: RentalWebhookOutboxStatus.DEAD_LETTER,
-        },
-      });
+    const deadLetter = await prisma.webhookOutbox.findFirstOrThrow({
+      where: {
+        companyId: COMPANY_ID,
+        status: RentalWebhookOutboxStatus.DEAD_LETTER,
+      },
+    });
 
     const firstReplay = await caller.admin.replayRentalWebhookOutbox({
       id: deadLetter.id,
@@ -246,10 +246,9 @@ describe('Admin Router - Rental Webhook Outbox', () => {
     expect(firstReplay.success).toBe(true);
     expect(secondReplay.success).toBe(false);
 
-    const replayed =
-      await prisma.webhookOutbox.findUniqueOrThrow({
-        where: { id: deadLetter.id },
-      });
+    const replayed = await prisma.webhookOutbox.findUniqueOrThrow({
+      where: { id: deadLetter.id },
+    });
     expect(replayed.status).toBe(RentalWebhookOutboxStatus.PENDING);
 
     const bulkReplay =
@@ -261,25 +260,23 @@ describe('Admin Router - Rental Webhook Outbox', () => {
     expect(bulkReplay.success).toBe(true);
     expect(bulkReplay.requeuedCount).toBe(1);
 
-    const failedEntry =
-      await prisma.webhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: COMPANY_ID,
-          orderPublicToken: 'admin-outbox-token-failed-001',
-        },
-      });
+    const failedEntry = await prisma.webhookOutbox.findFirstOrThrow({
+      where: {
+        companyId: COMPANY_ID,
+        orderPublicToken: 'admin-outbox-token-failed-001',
+      },
+    });
 
     expect(failedEntry.status).toBe(
       RentalWebhookOutboxStatus.PENDING
     );
 
-    const foreignEntry =
-      await prisma.webhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: OTHER_COMPANY_ID,
-          orderPublicToken: 'admin-outbox-token-foreign-001',
-        },
-      });
+    const foreignEntry = await prisma.webhookOutbox.findFirstOrThrow({
+      where: {
+        companyId: OTHER_COMPANY_ID,
+        orderPublicToken: 'admin-outbox-token-foreign-001',
+      },
+    });
 
     expect(foreignEntry.status).toBe(
       RentalWebhookOutboxStatus.FAILED

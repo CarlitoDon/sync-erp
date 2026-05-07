@@ -11,7 +11,6 @@ import { PaymentService } from '../../src/modules/accounting/services/payment.se
 import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
 import { CustomerDepositService } from '../../src/modules/sales/customer-deposit.service';
 
-
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
 const salesOrderService = new SalesOrderService();
@@ -56,7 +55,7 @@ describe('O2C Flow: Tax + Tempo + Down Payment', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as import("@sync-erp/database").AccountType,
+          type: acc.type as import('@sync-erp/database').AccountType,
           isActive: true,
         },
       });
