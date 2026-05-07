@@ -37,9 +37,27 @@ const cleanupIntegrationData = async () => {
   });
 };
 
+import { integrationRegistry } from '@src/integrations/registry';
+
 const seedIntegration = async (companyId: string) => {
+  if (!integrationRegistry.get('test-plugin')) {
+    integrationRegistry.register({
+      manifest: {
+        appId: 'test-plugin',
+        name: 'Test Plugin',
+        description: 'Test Plugin',
+        icon: 'Test',
+        capabilities: [],
+        defaultConfig: {},
+      },
+      getWebhookPath: (event, token, config) => {
+        return event === 'order.created' ? `/api/orders/${token}/notify-admin` : `/api/orders/${token}/notify-payment`;
+      }
+    });
+  }
+
   const existing = await prisma.integration.findFirst({
-    where: { companyId, appId: 'santi-living' },
+    where: { companyId, appId: 'test-plugin' },
   });
 
   if (existing) {
@@ -52,15 +70,11 @@ const seedIntegration = async (companyId: string) => {
   const integration = await prisma.integration.create({
     data: {
       companyId,
-      appId: 'santi-living',
-      name: 'Santi Living',
+      appId: 'test-plugin',
+      name: 'Test Plugin',
       isActive: true,
       config: {
         webhookUrl: 'http://proxy.test',
-        paths: {
-          newOrder: '/api/orders/{token}/notify-admin',
-          paymentStatus: '/api/orders/{token}/notify-payment',
-        },
       },
     },
   });

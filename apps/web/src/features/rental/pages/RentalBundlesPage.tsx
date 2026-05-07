@@ -12,7 +12,7 @@ import {
 } from '@/components/ui';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { Card } from '@/components/ui/Card';
-import { formatCurrency, getSantiLivingAssetUrl } from '@/utils/format';
+import { formatCurrency, getExternalAssetUrl } from '@/utils/format';
 import {
   ArrowPathIcon,
   CubeTransparentIcon,
@@ -36,7 +36,7 @@ export default function RentalBundlesPage() {
   );
 
   const syncMutation =
-    trpc.rentalBundle.syncFromSantiLiving.useMutation({
+    trpc.rentalBundle.syncExternalBundles.useMutation({
       onSuccess: (data) => {
         toast.success(`Berhasil sinkronisasi ${data.synced} bundle`);
         refetch();
@@ -60,7 +60,7 @@ export default function RentalBundlesPage() {
   const handleSync = async () => {
     const proceed = await confirm({
       title: 'Sinkronisasi Bundle',
-      message: 'Sinkronisasi bundle dari master data Santi Living?',
+      message: 'Sinkronisasi bundle dari external master data?',
       confirmText: 'Sinkronisasi',
     });
     if (!proceed) return;
@@ -147,7 +147,7 @@ export default function RentalBundlesPage() {
             <ArrowPathIcon
               className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`}
             />
-            Sync dari Santi Living
+            Sync External Bundles
           </Button>
         }
       />
@@ -161,7 +161,7 @@ export default function RentalBundlesPage() {
             {bundle.imagePath && (
               <div className="h-48 w-full bg-gray-100 relative">
                 <img
-                  src={getSantiLivingAssetUrl(bundle.imagePath)}
+                  src={getExternalAssetUrl(null, bundle.imagePath || '')}
                   alt={bundle.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {

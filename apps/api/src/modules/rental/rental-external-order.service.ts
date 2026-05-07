@@ -24,6 +24,9 @@ const getWebhookService = (): RentalWebhookService | null => {
 };
 
 export interface CreatePublicOrderInput {
+  integrationId?: string;
+  createdBy?: string;
+  skuPrefix?: string;
   companyId: string;
   partnerId: string;
   rentalStartDate: Date;
@@ -35,7 +38,7 @@ export interface CreatePublicOrderInput {
     name?: string;
     pricePerDay?: number;
     category?: 'package' | 'mattress' | 'accessory';
-    components?: string[];
+    components?: { quantity: number; label: string }[];
   }[];
   notes?: string;
   deliveryFee?: number;
@@ -54,6 +57,7 @@ export interface CreatePublicOrderInput {
 }
 
 export interface UpdatePublicOrderInput {
+  integrationId?: string;
   token: string;
   customerName?: string;
   customerPhone?: string;
@@ -80,7 +84,7 @@ export interface UpdatePublicOrderInput {
     name?: string;
     pricePerDay?: number;
     category?: 'package' | 'mattress' | 'accessory';
-    components?: string[];
+    components?: { quantity: number; label: string }[];
   }[];
 }
 
@@ -168,6 +172,8 @@ export class RentalExternalOrderService {
       items: input.items,
       durationDays,
       allowAutoCreate: true,
+      integrationId: input.integrationId,
+      skuPrefix: input.skuPrefix,
     });
 
     const finalSubtotal = subtotal - (input.discountAmount || 0);
@@ -193,7 +199,8 @@ export class RentalExternalOrderService {
         totalAmount,
         policySnapshot: {},
         notes: input.notes,
-        createdBy: 'santi-living-website',
+        integrationId: input.integrationId,
+        createdBy: input.createdBy || 'API',
         deliveryFee: input.deliveryFee,
         deliveryAddress: input.deliveryAddress,
         street: input.street,
@@ -339,6 +346,7 @@ export class RentalExternalOrderService {
         items: input.items,
         durationDays,
         allowAutoCreate: true,
+        integrationId: input.integrationId,
       });
 
       subtotal = recalculated.subtotal;
@@ -650,6 +658,8 @@ export class RentalExternalOrderService {
     items: ExternalOrderItemInput[];
     durationDays: number;
     allowAutoCreate: boolean;
+    integrationId?: string;
+    skuPrefix?: string;
   }): Promise<{
     subtotal: number;
     orderItems: ResolvedOrderItem[];
@@ -662,7 +672,9 @@ export class RentalExternalOrderService {
         const bundle = await this.resolveBundle(
           params.companyId,
           item,
-          params.allowAutoCreate
+          params.allowAutoCreate,
+          params.integrationId,
+          params.skuPrefix
         );
         const itemTotal =
           Number(bundle.dailyRate) *
@@ -684,7 +696,8 @@ export class RentalExternalOrderService {
         const rentalItem = await this.resolveRentalItem(
           params.companyId,
           item,
-          params.allowAutoCreate
+          params.allowAutoCreate,
+          params.skuPrefix
         );
         const itemTotal =
           Number(rentalItem.dailyRate) *
@@ -715,7 +728,9 @@ export class RentalExternalOrderService {
   private async resolveBundle(
     companyId: string,
     item: ExternalOrderItemInput,
-    allowAutoCreate: boolean
+    allowAutoCreate: boolean,
+    integrationId?: string,
+    skuPrefix?: string
   ): Promise<RateBearingRecord> {
     let bundle = await prisma.rentalBundle.findFirst({
       where: {
@@ -737,7 +752,7 @@ export class RentalExternalOrderService {
       item.name &&
       item.pricePerDay
     ) {
-      bundle = await this.createBundleWithComponents(companyId, item);
+      bundle = await this.createBundleWithComponents(companyId, item, integrationId, skuPrefix);
     }
 
     if (!bundle) {
@@ -753,7 +768,9 @@ export class RentalExternalOrderService {
 
   private async createBundleWithComponents(
     companyId: string,
-    item: ExternalOrderItemInput
+    item: ExternalOrderItemInput,
+    integrationId?: string,
+    skuPrefix?: string
   ): Promise<RateBearingRecord> {
     if (!item.rentalBundleId || !item.name || !item.pricePerDay) {
       throw new DomainError(
@@ -771,6 +788,7 @@ export class RentalExternalOrderService {
       const newBundle = await tx.rentalBundle.create({
         data: {
           companyId,
+          integrationId,
           externalId: bundleExternalId,
           name: bundleName,
           dailyRate: bundlePricePerDay,
@@ -785,11 +803,12 @@ export class RentalExternalOrderService {
       });
 
       for (const component of item.components || []) {
-        const { quantity, label } = this.parseComponentLabel(component);
+        const { quantity, label } = component;
         const rentalItem = await this.findOrCreateComponentRentalItem(
           tx,
           companyId,
-          label
+          label,
+          skuPrefix
         );
 
         await tx.rentalBundleComponent.create({
@@ -809,7 +828,8 @@ export class RentalExternalOrderService {
   private async resolveRentalItem(
     companyId: string,
     item: ExternalOrderItemInput,
-    allowAutoCreate: boolean
+    allowAutoCreate: boolean,
+    skuPrefix?: string
   ): Promise<RateBearingRecord> {
     let rentalItem = await prisma.rentalItem.findFirst({
       where: {
@@ -841,7 +861,7 @@ export class RentalExternalOrderService {
     }
 
     if (!rentalItem && item.components?.[0]) {
-      const componentSku = this.toExternalSku(item.components[0]);
+      const componentSku = this.toExternalSku(item.components[0].label, skuPrefix);
       const freshLookup = await prisma.rentalItem.findFirst({
         where: {
           companyId,
@@ -883,7 +903,7 @@ export class RentalExternalOrderService {
       item.name &&
       item.pricePerDay
     ) {
-      rentalItem = await this.findOrCreateRentalItem(companyId, item);
+      rentalItem = await this.findOrCreateRentalItem(companyId, item, skuPrefix);
     }
 
     if (!rentalItem) {
@@ -899,7 +919,8 @@ export class RentalExternalOrderService {
 
   private async findOrCreateRentalItem(
     companyId: string,
-    item: ExternalOrderItemInput
+    item: ExternalOrderItemInput,
+    skuPrefix?: string
   ): Promise<RateBearingRecord> {
     if (!item.rentalItemId || !item.name || !item.pricePerDay) {
       throw new DomainError(
@@ -911,11 +932,11 @@ export class RentalExternalOrderService {
 
     const componentName = item.components?.[0];
     const productName = componentName
-      ? this.capitalizeLabel(componentName)
+      ? this.capitalizeLabel(componentName.label)
       : item.name;
     const productSku = componentName
-      ? this.toExternalSku(componentName)
-      : this.toExternalSku(item.rentalItemId);
+      ? this.toExternalSku(componentName.label, skuPrefix)
+      : this.toExternalSku(item.rentalItemId, skuPrefix);
 
     let product = await prisma.product.findFirst({
       where: {
@@ -993,7 +1014,8 @@ export class RentalExternalOrderService {
   private async findOrCreateComponentRentalItem(
     tx: Prisma.TransactionClient,
     companyId: string,
-    label: string
+    label: string,
+    skuPrefix?: string
   ): Promise<{ id: string }> {
     const existing = await tx.rentalItem.findFirst({
       where: {
@@ -1017,7 +1039,7 @@ export class RentalExternalOrderService {
     const product = await tx.product.create({
       data: {
         companyId,
-        sku: this.toExternalSku(label),
+        sku: this.toExternalSku(label, skuPrefix),
         name: this.capitalizeLabel(label),
         price: 0,
       },
@@ -1043,19 +1065,9 @@ export class RentalExternalOrderService {
     });
   }
 
-  private parseComponentLabel(componentLabel: string) {
-    const quantityMatch = componentLabel.match(/^(\d+)\s+(.+)$/);
-
-    return {
-      quantity: quantityMatch
-        ? parseInt(quantityMatch[1], 10)
-        : 1,
-      label: quantityMatch ? quantityMatch[2] : componentLabel,
-    };
-  }
-
-  private toExternalSku(value: string) {
-    return `SL-${value.toLowerCase().replace(/\s+/g, '-')}`;
+  private toExternalSku(value: string, skuPrefix?: string) {
+    const formatted = value.toLowerCase().replace(/\s+/g, '-');
+    return skuPrefix ? `${skuPrefix}${formatted}` : formatted;
   }
 
   private normalizePhone(value: string) {
