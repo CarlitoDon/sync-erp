@@ -46,9 +46,12 @@ const buildCaller = (authorization?: string) =>
     businessShape: undefined,
     userRole: undefined,
     userPermissions: [],
+    integrationId: undefined,
   });
 
-const cleanupCompanyData = async (companyIds: string[] = [COMPANY_ID, COMPANY_B_ID]) => {
+const cleanupCompanyData = async (
+  companyIds: string[] = [COMPANY_ID, COMPANY_B_ID]
+) => {
   await prisma.$transaction([
     prisma.webhookOutbox.deleteMany({
       where: { companyId: { in: companyIds } },
@@ -139,7 +142,9 @@ describe('Public Rental Router Integration', () => {
     });
 
     mockWebhookService.notifyNewOrder.mockResolvedValue(undefined);
-    mockWebhookService.notifyPaymentStatus.mockResolvedValue(undefined);
+    mockWebhookService.notifyPaymentStatus.mockResolvedValue(
+      undefined
+    );
 
     await cleanupCompanyData();
 
@@ -472,7 +477,9 @@ describe('Public Rental Router Integration', () => {
     expect(order?.status).toBe('CONFIRMED');
     expect(order?.paymentConfirmedAt).toBeTruthy();
     expect(order?.paymentReference).toBe('midtrans-int-001');
-    expect(mockWebhookService.notifyPaymentStatus).toHaveBeenCalledWith(
+    expect(
+      mockWebhookService.notifyPaymentStatus
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         companyId: COMPANY_ID,
         token: created.publicToken,
@@ -532,8 +539,12 @@ describe('Public Rental Router Integration', () => {
     expect(order?.rentalPaymentStatus).toBe('FAILED');
     expect(order?.status).toBe('DRAFT');
     expect(order?.paymentFailedAt).toBeTruthy();
-    expect(order?.paymentFailReason).toBe('Midtrans transaction expire');
-    expect(mockWebhookService.notifyPaymentStatus).toHaveBeenCalledWith(
+    expect(order?.paymentFailReason).toBe(
+      'Midtrans transaction expire'
+    );
+    expect(
+      mockWebhookService.notifyPaymentStatus
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         companyId: COMPANY_ID,
         token: created.publicToken,

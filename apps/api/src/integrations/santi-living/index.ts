@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IntegrationPlugin } from '../types.js';
 import { santiLivingManifest } from './manifest.js';
 import { buildWebhookPayload } from './webhooks/payload-builder.js';
@@ -18,5 +19,5 @@ export const santiLivingPlugin: IntegrationPlugin = {
     });
     return router;
     */
-  }
+  },
 };

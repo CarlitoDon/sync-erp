@@ -126,7 +126,7 @@ describe('US3: Full Rental Asset Lifecycle', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as import("@sync-erp/database").AccountType,
+          type: acc.type as import('@sync-erp/database').AccountType,
           isActive: true,
         },
       });

@@ -27,16 +27,18 @@ describe('RentalOrderLifecycleService', () => {
     vi.clearAllMocks();
 
     service = new RentalOrderLifecycleService(
-      mockRentalRepository as unknown as import("../../../src/modules/rental/rental.repository").RentalRepository,
-      mockDocumentNumberService as unknown as import("../../../src/modules/common/services/document-number.service").DocumentNumberService,
-      mockJournalService as unknown as import("../../../src/modules/accounting/services/journal.service").JournalService,
-      mockRentalWebhookService as unknown as import("../../../src/modules/rental/rental-webhook.service").RentalWebhookService
+      mockRentalRepository as unknown as import('../../../src/modules/rental/rental.repository').RentalRepository,
+      mockDocumentNumberService as unknown as import('../../../src/modules/common/services/document-number.service').DocumentNumberService,
+      mockJournalService as unknown as import('../../../src/modules/accounting/services/journal.service').JournalService,
+      mockRentalWebhookService as unknown as import('../../../src/modules/rental/rental-webhook.service').RentalWebhookService
     );
 
     // Setup default safe mocks for Prisma
     asMock(prisma.rentalItem.findMany).mockResolvedValue([]);
     asMock(prisma.rentalBundle.findMany).mockResolvedValue([]);
-    asMock(prisma.rentalOrderUnitAssignment.findMany).mockResolvedValue([]);
+    asMock(
+      prisma.rentalOrderUnitAssignment.findMany
+    ).mockResolvedValue([]);
     asMock(prisma.auditLog.create).mockResolvedValue({});
   });
 
@@ -166,10 +168,14 @@ describe('RentalOrderLifecycleService', () => {
       mockRentalRepository.findOrderById.mockResolvedValue(order);
 
       // Mock transaction
-      asMock(prisma.$transaction).mockImplementation((cb: (p: typeof import("@sync-erp/database").prisma) => void) =>
-        cb(prisma)
+      asMock(prisma.$transaction).mockImplementation(
+        (
+          cb: (p: typeof import('@sync-erp/database').prisma) => void
+        ) => cb(prisma)
       );
-      asMock(prisma.rentalOrderUnitAssignment.findMany).mockResolvedValue([]);
+      asMock(
+        prisma.rentalOrderUnitAssignment.findMany
+      ).mockResolvedValue([]);
       asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...order,
         status: RentalOrderStatus.CANCELLED,
@@ -204,10 +210,14 @@ describe('RentalOrderLifecycleService', () => {
       mockRentalRepository.findOrderById.mockResolvedValue(order);
 
       // Mock transaction
-      asMock(prisma.$transaction).mockImplementation((cb: (p: typeof import("@sync-erp/database").prisma) => void) =>
-        cb(prisma)
+      asMock(prisma.$transaction).mockImplementation(
+        (
+          cb: (p: typeof import('@sync-erp/database').prisma) => void
+        ) => cb(prisma)
       );
-      asMock(prisma.rentalOrderUnitAssignment.findMany).mockResolvedValue([]);
+      asMock(
+        prisma.rentalOrderUnitAssignment.findMany
+      ).mockResolvedValue([]);
       asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...order,
         status: RentalOrderStatus.CANCELLED,

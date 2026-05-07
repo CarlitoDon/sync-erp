@@ -17,7 +17,9 @@ export interface SyncFromSantiLivingInput {
   bundles: SyncBundleItem[];
 }
 
-export async function syncFromSantiLiving(input: SyncFromSantiLivingInput) {
+export async function syncFromSantiLiving(
+  input: SyncFromSantiLivingInput
+) {
   const results = [];
 
   for (const bundle of input.bundles) {
@@ -76,7 +78,10 @@ export async function syncFromSantiLiving(input: SyncFromSantiLivingInput) {
 
         // Find or create RentalItem
         let rentalItem = await prisma.rentalItem.findFirst({
-          where: { companyId: input.companyId, productId: product.id },
+          where: {
+            companyId: input.companyId,
+            productId: product.id,
+          },
         });
 
         if (!rentalItem) {

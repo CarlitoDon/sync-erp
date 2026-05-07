@@ -100,7 +100,7 @@ describe('RentalOrderFulfillmentService Integration', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as import("@sync-erp/database").AccountType,
+          type: acc.type as import('@sync-erp/database').AccountType,
           isActive: true,
         },
       });
@@ -287,7 +287,7 @@ describe('RentalOrderFulfillmentService Integration', () => {
       {
         orderId: order.id,
         depositAmount: 50000,
-        paymentMethod: "CASH" as string,
+        paymentMethod: 'CASH' as string,
         unitAssignments: [{ unitId: unit1Id }],
       },
       ACTOR_ID

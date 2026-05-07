@@ -6,7 +6,9 @@ class IntegrationRegistry {
 
   register(plugin: IntegrationPlugin) {
     if (this.plugins.has(plugin.manifest.appId)) {
-      throw new Error(`Integration ${plugin.manifest.appId} is already registered.`);
+      throw new Error(
+        `Integration ${plugin.manifest.appId} is already registered.`
+      );
     }
     this.plugins.set(plugin.manifest.appId, plugin);
   }

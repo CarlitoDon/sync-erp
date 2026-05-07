@@ -114,8 +114,9 @@ describe('WebhookOutboxService', () => {
   it('gracefully skips enqueue when no active integration is configured', async () => {
     await cleanupIntegrationData();
 
-    const result =
-      await webhookOutboxService.enqueue("payment.status.changed", {
+    const result = await webhookOutboxService.enqueue(
+      'payment.status.changed',
+      {
         companyId: COMPANY_ID,
         orderPublicToken: 'skip-token-001',
         orderNumber: 'RNT-202603-SKIP01',
@@ -124,8 +125,9 @@ describe('WebhookOutboxService', () => {
           paymentMethod: 'qris',
           paymentReference: 'midtrans-skip',
           token: 'skip-token-001',
-        }
-      });
+        },
+      }
+    );
 
     expect(result.success).toBe(true);
     expect(result.skipped).toBe(true);
@@ -147,8 +149,9 @@ describe('WebhookOutboxService', () => {
       json: async () => ({ message: 'Proxy unavailable' }),
     } as Response);
 
-    const queued =
-      await webhookOutboxService.enqueue("payment.status.changed", {
+    const queued = await webhookOutboxService.enqueue(
+      'payment.status.changed',
+      {
         companyId: COMPANY_ID,
         orderPublicToken: 'payment-token-001',
         orderNumber: 'RNT-202603-00001',
@@ -157,20 +160,20 @@ describe('WebhookOutboxService', () => {
           paymentMethod: 'qris',
           paymentReference: 'midtrans-001',
           token: 'payment-token-001',
-        }
-      });
+        },
+      }
+    );
 
     expect(queued.success).toBe(false);
     expect(queued.status).toBe(RentalWebhookOutboxStatus.FAILED);
     expect(queued.attempts).toBe(1);
 
-    const failedEntry =
-      await prisma.webhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: COMPANY_ID,
-          orderPublicToken: 'payment-token-001',
-        },
-      });
+    const failedEntry = await prisma.webhookOutbox.findFirstOrThrow({
+      where: {
+        companyId: COMPANY_ID,
+        orderPublicToken: 'payment-token-001',
+      },
+    });
 
     const firstFetchCall = fetchMock.mock.calls[0];
     const firstFetchOptions = firstFetchCall?.[1] as
@@ -202,8 +205,7 @@ describe('WebhookOutboxService', () => {
       },
     });
 
-    const summary =
-      await webhookOutboxService.processDueEntries();
+    const summary = await webhookOutboxService.processDueEntries();
 
     expect(summary).toMatchObject({
       processed: 1,
@@ -283,13 +285,12 @@ describe('WebhookOutboxService', () => {
       )
     ).rejects.toThrow('Invalid WhatsApp Number');
 
-    const deadLetter =
-      await prisma.webhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: COMPANY_ID,
-          orderPublicToken: 'new-order-token-replay-001',
-        },
-      });
+    const deadLetter = await prisma.webhookOutbox.findFirstOrThrow({
+      where: {
+        companyId: COMPANY_ID,
+        orderPublicToken: 'new-order-token-replay-001',
+      },
+    });
 
     expect(deadLetter.status).toBe(
       RentalWebhookOutboxStatus.DEAD_LETTER
@@ -307,18 +308,16 @@ describe('WebhookOutboxService', () => {
       json: async () => ({ success: true }),
     } as Response);
 
-    const summary =
-      await webhookOutboxService.processDueEntries();
+    const summary = await webhookOutboxService.processDueEntries();
 
     expect(summary).toMatchObject({
       processed: 1,
       delivered: 1,
     });
 
-    const delivered =
-      await prisma.webhookOutbox.findUniqueOrThrow({
-        where: { id: deadLetter.id },
-      });
+    const delivered = await prisma.webhookOutbox.findUniqueOrThrow({
+      where: { id: deadLetter.id },
+    });
     expect(delivered.status).toBe(
       RentalWebhookOutboxStatus.DELIVERED
     );
@@ -331,7 +330,7 @@ describe('WebhookOutboxService', () => {
       json: async () => ({ message: 'Proxy unavailable' }),
     } as Response);
 
-    await webhookOutboxService.enqueue("payment.status.changed", {
+    await webhookOutboxService.enqueue('payment.status.changed', {
       companyId: COMPANY_ID,
       orderPublicToken: 'payment-token-requeue-idempotent-001',
       orderNumber: 'RNT-202603-00004',
@@ -340,7 +339,7 @@ describe('WebhookOutboxService', () => {
         paymentMethod: 'qris',
         paymentReference: 'midtrans-002',
         token: 'payment-token-requeue-idempotent-001',
-      }
+      },
     });
 
     const failed = await prisma.webhookOutbox.findFirstOrThrow({
@@ -352,14 +351,18 @@ describe('WebhookOutboxService', () => {
 
     expect(failed.status).toBe(RentalWebhookOutboxStatus.FAILED);
 
-    const firstReplay =
-      await webhookOutboxService.requeueDelivery(failed.id, {
+    const firstReplay = await webhookOutboxService.requeueDelivery(
+      failed.id,
+      {
         companyId: COMPANY_ID,
-      });
-    const secondReplay =
-      await webhookOutboxService.requeueDelivery(failed.id, {
+      }
+    );
+    const secondReplay = await webhookOutboxService.requeueDelivery(
+      failed.id,
+      {
         companyId: COMPANY_ID,
-      });
+      }
+    );
 
     expect(firstReplay).toBe(true);
     expect(secondReplay).toBe(false);
@@ -388,20 +391,18 @@ describe('WebhookOutboxService', () => {
       )
     ).rejects.toThrow('Invalid WhatsApp Number');
 
-    const deadLetter =
-      await prisma.webhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: COMPANY_ID,
-          orderPublicToken: 'new-order-token-no-auto-retry-001',
-        },
-      });
+    const deadLetter = await prisma.webhookOutbox.findFirstOrThrow({
+      where: {
+        companyId: COMPANY_ID,
+        orderPublicToken: 'new-order-token-no-auto-retry-001',
+      },
+    });
 
     await webhookOutboxService.processDueEntries();
 
-    const unchanged =
-      await prisma.webhookOutbox.findUniqueOrThrow({
-        where: { id: deadLetter.id },
-      });
+    const unchanged = await prisma.webhookOutbox.findUniqueOrThrow({
+      where: { id: deadLetter.id },
+    });
 
     expect(unchanged.status).toBe(
       RentalWebhookOutboxStatus.DEAD_LETTER
@@ -420,8 +421,9 @@ describe('WebhookOutboxService', () => {
       json: async () => ({ message: 'Too many requests' }),
     } as Response);
 
-    const firstAttempt =
-      await webhookOutboxService.enqueue("payment.status.changed", {
+    const firstAttempt = await webhookOutboxService.enqueue(
+      'payment.status.changed',
+      {
         companyId: COMPANY_ID,
         orderPublicToken: 'payment-token-retryable-429-001',
         orderNumber: 'RNT-202603-00006',
@@ -430,8 +432,9 @@ describe('WebhookOutboxService', () => {
           paymentMethod: 'qris',
           paymentReference: 'midtrans-429',
           token: 'payment-token-retryable-429-001',
-        }
-      });
+        },
+      }
+    );
 
     expect(firstAttempt.success).toBe(false);
     expect(firstAttempt.status).toBe(
@@ -439,13 +442,12 @@ describe('WebhookOutboxService', () => {
     );
     expect(firstAttempt.statusCode).toBe(429);
 
-    const failedEntry =
-      await prisma.webhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: COMPANY_ID,
-          orderPublicToken: 'payment-token-retryable-429-001',
-        },
-      });
+    const failedEntry = await prisma.webhookOutbox.findFirstOrThrow({
+      where: {
+        companyId: COMPANY_ID,
+        orderPublicToken: 'payment-token-retryable-429-001',
+      },
+    });
 
     await prisma.webhookOutbox.update({
       where: { id: failedEntry.id },
@@ -460,8 +462,7 @@ describe('WebhookOutboxService', () => {
       json: async () => ({ message: 'Too many requests again' }),
     } as Response);
 
-    const summary =
-      await webhookOutboxService.processDueEntries();
+    const summary = await webhookOutboxService.processDueEntries();
 
     expect(summary).toMatchObject({
       processed: 1,
@@ -470,10 +471,9 @@ describe('WebhookOutboxService', () => {
       deadLettered: 1,
     });
 
-    const deadLetter =
-      await prisma.webhookOutbox.findUniqueOrThrow({
-        where: { id: failedEntry.id },
-      });
+    const deadLetter = await prisma.webhookOutbox.findUniqueOrThrow({
+      where: { id: failedEntry.id },
+    });
 
     expect(deadLetter.status).toBe(
       RentalWebhookOutboxStatus.DEAD_LETTER

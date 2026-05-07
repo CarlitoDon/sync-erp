@@ -45,7 +45,10 @@ describe('BUG: O2C Flow with Shipment Before Invoice Post', () => {
     // 1. Setup Company
     await prisma.company.upsert({
       where: { id: COMPANY_ID },
-      create: { id: COMPANY_ID, name: 'Test O2C Shipped Bug Company' },
+      create: {
+        id: COMPANY_ID,
+        name: 'Test O2C Shipped Bug Company',
+      },
       update: {},
     });
 
@@ -72,7 +75,7 @@ describe('BUG: O2C Flow with Shipment Before Invoice Post', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as import("@sync-erp/database").AccountType,
+          type: acc.type as import('@sync-erp/database').AccountType,
           isActive: true,
         },
       });
@@ -180,16 +183,21 @@ describe('BUG: O2C Flow with Shipment Before Invoice Post', () => {
       where: { id: order.id },
     });
     expect(Number(orderAfterDeposit?.paidAmount)).toBe(222000);
-    expect(orderAfterDeposit?.paymentStatus).toBe(PaymentStatus.PARTIAL);
+    expect(orderAfterDeposit?.paymentStatus).toBe(
+      PaymentStatus.PARTIAL
+    );
 
     // ================================================
     // STEP 4: Ship goods BEFORE creating invoice (Real-world scenario)
     // ================================================
-    const shipment = await inventoryService.createShipment(COMPANY_ID, {
-      salesOrderId: order.id,
-      notes: 'Manual shipment before invoice',
-      items: [{ productId, quantity: 10 }],
-    });
+    const shipment = await inventoryService.createShipment(
+      COMPANY_ID,
+      {
+        salesOrderId: order.id,
+        notes: 'Manual shipment before invoice',
+        items: [{ productId, quantity: 10 }],
+      }
+    );
     expect(shipment.status).toBe(DocumentStatus.DRAFT);
 
     // Post shipment
@@ -204,9 +212,12 @@ describe('BUG: O2C Flow with Shipment Before Invoice Post', () => {
     // ================================================
     // STEP 5: Create Invoice from SO
     // ================================================
-    const invoice = await invoiceService.createFromSalesOrder(COMPANY_ID, {
-      orderId: order.id,
-    });
+    const invoice = await invoiceService.createFromSalesOrder(
+      COMPANY_ID,
+      {
+        orderId: order.id,
+      }
+    );
     expect(Number(invoice.amount)).toBe(1110000);
     expect(invoice.status).toBe(InvoiceStatus.DRAFT);
 
@@ -226,7 +237,10 @@ describe('BUG: O2C Flow with Shipment Before Invoice Post', () => {
     );
 
     // Verify invoice is posted
-    const postedInvoice = await invoiceService.getById(invoice.id, COMPANY_ID);
+    const postedInvoice = await invoiceService.getById(
+      invoice.id,
+      COMPANY_ID
+    );
     expect(postedInvoice?.status).toBe(InvoiceStatus.POSTED);
 
     // Balance should be Total - Deposit = 1,110,000 - 222,000 = 888,000
@@ -243,7 +257,10 @@ describe('BUG: O2C Flow with Shipment Before Invoice Post', () => {
     expect(Number(payment.amount)).toBe(888000);
 
     // Verify final state
-    const finalInvoice = await invoiceService.getById(invoice.id, COMPANY_ID);
+    const finalInvoice = await invoiceService.getById(
+      invoice.id,
+      COMPANY_ID
+    );
     expect(Number(finalInvoice?.balance)).toBe(0);
     expect(finalInvoice?.status).toBe(InvoiceStatus.PAID);
   });

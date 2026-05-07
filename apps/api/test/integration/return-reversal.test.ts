@@ -2,7 +2,6 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma, JournalEntry } from '@sync-erp/database';
 import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
 
-
 const salesOrderService = new SalesOrderService();
 
 const COMPANY_ID = 'test-return-reversal-001';
@@ -35,7 +34,7 @@ describe('US3: Sales Return Reversal', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as import("@sync-erp/database").AccountType,
+          type: acc.type as import('@sync-erp/database').AccountType,
           isActive: true,
         },
       });
