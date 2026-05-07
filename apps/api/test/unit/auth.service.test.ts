@@ -77,9 +77,9 @@ describe('AuthService Unit', () => {
           'We could not send the verification email. Please try again.',
       },
     });
-    expect(repository.deleteEmailVerificationToken).toHaveBeenCalledWith(
-      'token-1'
-    );
+    expect(
+      repository.deleteEmailVerificationToken
+    ).toHaveBeenCalledWith('token-1');
     expect(userService.delete).toHaveBeenCalledWith('user-1');
     expect(authAuditService.record).toHaveBeenCalledWith(
       expect.objectContaining({
