@@ -28,6 +28,11 @@ export interface IntegrationPlugin {
     payload: unknown,
     config: Record<string, unknown>
   ): unknown;
+  getWebhookPath?(
+    event: string,
+    orderPublicToken: string,
+    config: Record<string, unknown>
+  ): string;
   getOrderAdapter?(): IntegrationOrderAdapter;
   registerRoutes?(router: any): void; // Can be used to inject additional tRPC routers
 }

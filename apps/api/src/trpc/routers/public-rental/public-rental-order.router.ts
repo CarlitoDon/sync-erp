@@ -11,6 +11,8 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { RentalExternalOrderService } from '../../../modules/rental/rental-external-order.service';
 import { DomainError } from '@sync-erp/shared';
+import { integrationRegistry } from '../../../integrations/registry';
+import { prisma } from '@sync-erp/database';
 
 const service = new RentalExternalOrderService();
 
@@ -181,10 +183,28 @@ export const publicRentalOrderRouter = router({
           });
         }
 
-        const order = await service.createOrder({
-          ...input,
-          companyId: ctx.companyId,
-        });
+        let finalInput: any = { ...input, companyId: ctx.companyId, integrationId: ctx.integrationId };
+
+        if (ctx.integrationId) {
+           const integration = await prisma.integration.findUnique({ where: { id: ctx.integrationId } });
+           if (integration) {
+             const plugin = integrationRegistry.get(integration.appId);
+             const adapter = plugin?.getOrderAdapter?.();
+             if (adapter) {
+               finalInput.createdBy = adapter.createdBy;
+               finalInput.skuPrefix = adapter.skuPrefix;
+               
+               if (adapter.parseComponents) {
+                 finalInput.items = finalInput.items.map((item: any) => ({
+                   ...item,
+                   components: item.components ? adapter.parseComponents!(item.components) : undefined
+                 }));
+               }
+             }
+           }
+        }
+
+        const order = await service.createOrder(finalInput);
 
         return {
           id: order.id,
@@ -256,8 +276,24 @@ export const publicRentalOrderRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
+        let finalInput: any = { ...input, integrationId: ctx.integrationId };
+
+        if (ctx.integrationId && input.items) {
+           const integration = await prisma.integration.findUnique({ where: { id: ctx.integrationId } });
+           if (integration) {
+             const plugin = integrationRegistry.get(integration.appId);
+             const adapter = plugin?.getOrderAdapter?.();
+             if (adapter && adapter.parseComponents) {
+               finalInput.items = finalInput.items.map((item: any) => ({
+                 ...item,
+                 components: item.components ? adapter.parseComponents!(item.components) : undefined
+               }));
+             }
+           }
+        }
+
         const updated = await service.updateOrder(
-          input,
+          finalInput,
           ctx.companyId
         );
 

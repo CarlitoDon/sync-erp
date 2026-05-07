@@ -1,6 +1,7 @@
 import { router, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import { integrationService } from '../../services/integration.service';
+import { integrationRegistry } from '../../integrations/registry';
 import { apiKeyService } from '../../services/api-key.service';
 import { DEFAULT_RATE_LIMIT } from '@sync-erp/shared';
 
@@ -29,11 +30,14 @@ export const integrationRouter = router({
       // For now, let's just create a new one specific to this app
 
       const keyName = `${integration.name} Key`;
+      const plugin = integrationRegistry.get(integration.appId);
+      const capabilities = plugin?.manifest?.capabilities ?? ['rental:read', 'rental:write'];
+
       const keyResult = await apiKeyService.createKey(
         ctx.companyId,
         keyName,
         {
-          permissions: ['rental:read', 'rental:write'], // Default perms
+          permissions: capabilities,
           rateLimit: DEFAULT_RATE_LIMIT,
         }
       );
@@ -71,11 +75,14 @@ export const integrationRouter = router({
 
       // Auto-generate a key for custom integrations immediately
       const keyName = `${integration.name} Key`;
+      const plugin = integrationRegistry.get(integration.appId);
+      const capabilities = plugin?.manifest?.capabilities ?? ['rental:read', 'rental:write'];
+
       const keyResult = await apiKeyService.createKey(
         ctx.companyId,
         keyName,
         {
-          permissions: ['rental:read', 'rental:write'],
+          permissions: capabilities,
           rateLimit: DEFAULT_RATE_LIMIT,
         }
       );
@@ -137,11 +144,14 @@ export const integrationRouter = router({
       );
 
       const keyName = `${integration.name} Key - ${new Date().toLocaleDateString()}`;
+      const plugin = integrationRegistry.get(integration.appId);
+      const capabilities = plugin?.manifest?.capabilities ?? ['rental:read', 'rental:write'];
+
       const keyResult = await apiKeyService.createKey(
         ctx.companyId,
         keyName,
         {
-          permissions: ['rental:read', 'rental:write'],
+          permissions: capabilities,
         }
       );
 

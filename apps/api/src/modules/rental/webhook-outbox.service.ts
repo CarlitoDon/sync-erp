@@ -10,7 +10,6 @@ import {
 } from '../../services/webhook-outbox-config';
 import { integrationService } from '../../services/integration.service';
 import { integrationRegistry } from '../../integrations/registry';
-import { getWebhookPath } from '../../integrations/santi-living/webhooks/payload-builder'; // we will move this logic later
 
 type DeliveryResult = {
   success: boolean;
@@ -559,12 +558,11 @@ export class WebhookOutboxService {
     }
 
     let urlPath = '/api/webhook';
-    if (activeIntegration.appId === 'santi-living') {
-      const pathsConfig = asObject(integrationConfig.paths ?? null);
-      urlPath = getWebhookPath(
+    if (plugin?.getWebhookPath) {
+      urlPath = plugin.getWebhookPath(
         entry.event,
         entry.orderPublicToken,
-        pathsConfig
+        integrationConfig
       );
     }
 

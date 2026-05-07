@@ -151,7 +151,7 @@ export async function update(input: UpdateInput) {
 }
 
 // ============================================
-// Sync from Santi Living
+// Sync External Bundles
 // ============================================
 
 export interface SyncBundleItem {
@@ -166,13 +166,13 @@ export interface SyncBundleItem {
   includes: string[]; // ["2 bantal", "kasur busa", etc.]
 }
 
-export interface SyncFromSantiLivingInput {
+export interface SyncExternalBundlesInput {
   companyId: string;
   bundles: SyncBundleItem[];
 }
 
-export async function syncFromSantiLiving(
-  input: SyncFromSantiLivingInput
+export async function syncExternalBundles(
+  input: SyncExternalBundlesInput
 ) {
   const results = [];
 
