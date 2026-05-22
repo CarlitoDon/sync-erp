@@ -6,6 +6,12 @@ import {
 } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { RegisterInput } from '@/types/api';
+import { setBillingPlanIntent } from '@/features/billing/planIntent';
+import {
+  DEFAULT_BILLING_PLAN_KEY,
+  getBillingPlan,
+  isBillingPlanKey,
+} from '@sync-erp/shared';
 
 interface RegisterFormState extends RegisterInput {
   confirmPassword: string;
@@ -35,6 +41,14 @@ export const RegisterPage: React.FC = () => {
     email: string;
     verificationUrl?: string;
   } | null>(null);
+  const selectedPlan = useMemo(() => {
+    const rawPlan = searchParams.get('plan');
+    const planKey = isBillingPlanKey(rawPlan)
+      ? rawPlan
+      : DEFAULT_BILLING_PLAN_KEY;
+
+    return getBillingPlan(planKey);
+  }, [searchParams]);
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -92,6 +106,7 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
 
     try {
+      setBillingPlanIntent(selectedPlan.key);
       const result = await register({
         email: normalizedEmail,
         name: normalizedName,
@@ -112,6 +127,11 @@ export const RegisterPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleGoogleRegister = () => {
+    setBillingPlanIntent(selectedPlan.key);
+    registerWithGoogle();
   };
 
   const handleResendVerification = async () => {
@@ -220,6 +240,17 @@ export const RegisterPage: React.FC = () => {
         <h2 className="mb-6 text-2xl font-bold text-gray-900">
           Create Account
         </h2>
+
+        <div className="mb-5 rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900">
+          <p className="font-semibold">
+            Starting with {selectedPlan.name}
+          </p>
+          <p className="mt-1 leading-6">
+            {selectedPlan.key === DEFAULT_BILLING_PLAN_KEY
+              ? 'Free plan is active by default for one company. You can upgrade any time from Billing.'
+              : 'We will keep this plan intent after registration, then send you to Billing after company onboarding.'}
+          </p>
+        </div>
 
         {error && (
           <div
@@ -352,7 +383,7 @@ export const RegisterPage: React.FC = () => {
 
           <button
             type="button"
-            onClick={registerWithGoogle}
+            onClick={handleGoogleRegister}
             disabled={loading}
             className="w-full rounded border border-gray-300 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >

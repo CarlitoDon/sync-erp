@@ -4,6 +4,7 @@ import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import { PageContainer } from '@/components/layout/PageLayout';
 import { Input } from '@/components/ui';
+import { getPostCompanyRedirect } from '@/features/billing/planIntent';
 import {
   Card,
   CardHeader,
@@ -21,7 +22,7 @@ export default function CreateCompany() {
   const createMutation = trpc.company.create.useMutation({
     onSuccess: (company) => {
       setCurrentCompany(company);
-      navigate('/dashboard');
+      navigate(getPostCompanyRedirect());
     },
     onError: (err) => {
       setError(

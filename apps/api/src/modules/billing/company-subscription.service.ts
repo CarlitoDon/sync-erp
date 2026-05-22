@@ -224,12 +224,8 @@ export async function createBillingCheckoutSession(input: {
       planKey: input.planKey,
       billingCycle: input.billingCycle,
       providerSessionId: `bcs_${crypto.randomUUID()}`,
-      successUrl:
-        input.successUrl ??
-        `${webAppUrl}/settings/billing?checkout=success`,
-      cancelUrl:
-        input.cancelUrl ??
-        `${webAppUrl}/settings/billing?checkout=cancelled`,
+      successUrl: input.successUrl,
+      cancelUrl: input.cancelUrl,
       expiresAt,
       amountIdr,
       metadata: {
@@ -237,12 +233,20 @@ export async function createBillingCheckoutSession(input: {
       },
     },
   });
+  const successUrl =
+    input.successUrl ??
+    `${webAppUrl}/settings/billing?checkout=success&checkoutSessionId=${session.id}`;
+  const cancelUrl =
+    input.cancelUrl ??
+    `${webAppUrl}/settings/billing?checkout=cancelled&checkoutSessionId=${session.id}`;
 
   if (provider !== BillingProvider.MIDTRANS) {
     return prisma.billingCheckoutSession.update({
       where: { id: session.id },
       data: {
         providerCheckoutUrl: `${apiBaseUrl}/api/billing/checkout/${session.id}`,
+        successUrl,
+        cancelUrl,
       },
     });
   }
@@ -291,14 +295,13 @@ export async function createBillingCheckoutSession(input: {
           start_time: buildMidtransExpiryStartTime(new Date()),
         },
         callbacks: {
-          finish:
-            input.successUrl ??
-            `${webAppUrl}/settings/billing?checkout=success`,
-          error:
-            input.cancelUrl ??
-            `${webAppUrl}/settings/billing?checkout=failed`,
+          finish: successUrl,
+          error: cancelUrl.replace(
+            'checkout=cancelled',
+            'checkout=failed'
+          ),
           pending:
-            `${webAppUrl}/settings/billing?checkout=pending`,
+            `${webAppUrl}/settings/billing?checkout=pending&checkoutSessionId=${session.id}`,
         },
         metadata: {
           checkoutSessionId: session.id,
@@ -340,6 +343,8 @@ export async function createBillingCheckoutSession(input: {
     data: {
       providerSessionId: orderId,
       providerCheckoutUrl: data.redirect_url,
+      successUrl,
+      cancelUrl,
       metadata: {
         source: 'app',
         midtransSnapToken: data.token ?? null,

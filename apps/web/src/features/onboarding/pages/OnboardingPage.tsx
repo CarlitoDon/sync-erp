@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button, CurrencyInput, Input } from '@/components/ui';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -10,6 +10,10 @@ import {
   CompanyOnboardingStep,
 } from '@sync-erp/shared';
 import type { RouterOutputs } from '@/types/api';
+import {
+  getBillingPlanIntent,
+  getPostCompanyRedirect,
+} from '@/features/billing/planIntent';
 
 type Step = CompanyOnboardingStep;
 type OnboardingCompanyUpdate = RouterOutputs['onboarding']['start'];
@@ -25,6 +29,7 @@ function normalizeStep(raw: unknown): Step {
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentCompany, setCurrentCompany } = useCompany();
 
   const onboardingState = trpc.onboarding.getState.useQuery(undefined, {
@@ -142,6 +147,17 @@ export default function OnboardingPage() {
       onboardingStatus: data.onboardingStatus,
       onboardingStep: data.onboardingStep,
     });
+  };
+
+  const getPostOnboardingPath = () => {
+    if (
+      searchParams.get('next') === 'billing' ||
+      getBillingPlanIntent()
+    ) {
+      return getPostCompanyRedirect();
+    }
+
+    return '/dashboard';
   };
 
   const shell = (content: React.ReactNode) => (
@@ -362,7 +378,7 @@ export default function OnboardingPage() {
               complete.mutate(undefined, {
                 onSuccess: (data: OnboardingCompanyUpdate) => {
                   setCompanyFromMutation(data);
-                  navigate('/dashboard', { replace: true });
+                  navigate(getPostOnboardingPath(), { replace: true });
                 },
               })
             }
@@ -386,7 +402,7 @@ export default function OnboardingPage() {
   }
 
   if (step === 'DONE') {
-    navigate('/dashboard', { replace: true });
+    navigate(getPostOnboardingPath(), { replace: true });
     return null;
   }
 

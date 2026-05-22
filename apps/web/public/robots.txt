@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Keep protected application content crawlable only where login crawler access
+# is explicitly configured in AdSense/Search Console.

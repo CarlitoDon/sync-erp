@@ -29,6 +29,12 @@ export const mockPrisma = {
     findMany: vi.fn(),
     upsert: vi.fn(),
   },
+  billingCheckoutSession: {
+    create: vi.fn(),
+    update: vi.fn(),
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+  },
   user: {
     create: vi.fn(),
     findUnique: vi.fn(),

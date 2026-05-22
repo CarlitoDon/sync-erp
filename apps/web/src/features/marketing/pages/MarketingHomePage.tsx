@@ -46,6 +46,7 @@ interface WorkflowItem {
 
 const navigation = [
   { label: 'Platform', href: '#platform' },
+  { label: 'AI ERP', href: '#ai-erp' },
   { label: 'Modul', href: '#modules' },
   { label: 'Harga', href: '#pricing' },
   { label: 'Alur kerja', href: '#workflows' },
@@ -54,9 +55,9 @@ const navigation = [
 
 const proofPoints = [
   'Free untuk 1 company',
+  'AI-ready command center',
   'Multi-company',
   'Sales sampai finance',
-  'Inventory real-time',
 ];
 
 const heroStats = [
@@ -650,6 +651,83 @@ export default function MarketingHomePage() {
           </div>
         </section>
 
+        <section id="ai-erp" className="bg-slate-950 py-20 text-white sm:py-24">
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-8">
+            <div>
+              <SectionEyebrow icon={SparklesIcon}>
+                AI-based ERP direction
+              </SectionEyebrow>
+              <h2 className="text-3xl font-semibold leading-tight sm:text-4xl">
+                ERP yang bergerak menuju command center seperti chat.
+              </h2>
+              <p className="mt-5 text-base leading-8 text-slate-300">
+                Sync ERP disiapkan sebagai system of record yang bisa
+                dikendalikan lewat UI tradisional, API, dan MCP. Arah
+                produk berikutnya adalah halaman depan aplikasi yang
+                terasa seperti workspace AI: tanya data, jalankan tool,
+                dan tindaklanjuti proses operasional dari satu command
+                surface.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href={registerHref}
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-cyan-50"
+                >
+                  Mulai dari Free
+                  <ArrowRightIcon className="h-4 w-4" />
+                </a>
+                <a
+                  href="#pricing"
+                  className="inline-flex items-center justify-center gap-2 rounded-md border border-white/20 bg-white/[0.08] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.14]"
+                >
+                  Lihat upgrade path
+                </a>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-5 shadow-2xl shadow-cyan-950/30">
+              <div className="rounded-xl bg-slate-900 p-4">
+                <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+                  <span className="h-3 w-3 rounded-full bg-rose-400" />
+                  <span className="h-3 w-3 rounded-full bg-amber-300" />
+                  <span className="h-3 w-3 rounded-full bg-emerald-400" />
+                  <span className="ml-2 text-xs font-medium text-slate-400">
+                    Sync ERP AI workspace
+                  </span>
+                </div>
+                <div className="mt-5 space-y-4">
+                  {[
+                    {
+                      role: 'Operator',
+                      text: 'Tampilkan order overdue minggu ini dan prioritas penagihannya.',
+                    },
+                    {
+                      role: 'Sync ERP',
+                      text: 'Ada 12 order overdue. Saya siapkan ringkasan customer, aging, nilai invoice, dan action follow-up.',
+                    },
+                    {
+                      role: 'Tool call',
+                      text: 'rental.orders.listOverdue -> accounting.invoices.getAging -> whatsapp.queueDraft',
+                    },
+                  ].map((message) => (
+                    <div
+                      key={message.role}
+                      className="rounded-lg border border-white/10 bg-white/[0.06] p-4"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
+                        {message.role}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-200">
+                        {message.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="modules" className="bg-slate-50 py-20 sm:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
@@ -872,7 +950,15 @@ export default function MarketingHomePage() {
             <BrandMark />
             <span className="font-medium text-slate-700">Sync ERP</span>
           </div>
-          <p>&copy; 2026 Sync ERP. Public marketing website.</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <a href="/privacy" className="hover:text-slate-800">
+              Privacy
+            </a>
+            <a href="/terms" className="hover:text-slate-800">
+              Terms
+            </a>
+            <p>&copy; 2026 Sync ERP. Public marketing website.</p>
+          </div>
         </div>
       </footer>
     </div>

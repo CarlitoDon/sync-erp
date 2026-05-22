@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ArrowTopRightOnSquareIcon,
   BanknotesIcon,
@@ -15,8 +17,14 @@ import {
   formatBillingLimit,
   formatPlanPrice,
   getLimitUsagePercent,
+  isBillingPlanKey,
   isLimitExceeded,
 } from '@sync-erp/shared';
+import {
+  clearBillingPlanIntent,
+  getBillingPlanIntent,
+  setBillingPlanIntent,
+} from '@/features/billing/planIntent';
 
 const usageMetricKeys: BillingUsageMetricKey[] = [
   'companies',
@@ -25,6 +33,32 @@ const usageMetricKeys: BillingUsageMetricKey[] = [
   'monthlyDocuments',
   'apiKeys',
 ];
+
+const checkoutStatusCopy: Record<
+  string,
+  { title: string; body: string; tone: string }
+> = {
+  success: {
+    title: 'Payment confirmation received',
+    body: 'We are refreshing your billing status. If the provider webhook is delayed, this page will update after the webhook is processed.',
+    tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  },
+  pending: {
+    title: 'Payment is still pending',
+    body: 'Your checkout is open or waiting for provider confirmation. Keep this page and check again after payment is completed.',
+    tone: 'border-amber-200 bg-amber-50 text-amber-800',
+  },
+  failed: {
+    title: 'Payment failed',
+    body: 'The provider reported a failed payment. You can retry checkout or contact sales if the charge actually succeeded.',
+    tone: 'border-red-200 bg-red-50 text-red-800',
+  },
+  cancelled: {
+    title: 'Checkout cancelled',
+    body: 'No plan change was applied. You can restart checkout whenever you are ready.',
+    tone: 'border-gray-200 bg-gray-50 text-gray-700',
+  },
+};
 
 function formatDate(date: Date | string | null | undefined): string {
   if (!date) return '-';
@@ -164,7 +198,9 @@ function PlanCard({
 }
 
 export default function BillingPage() {
-  const { data, isLoading } = trpc.billing.getOverview.useQuery();
+  const [searchParams] = useSearchParams();
+  const { data, isLoading, refetch } =
+    trpc.billing.getOverview.useQuery();
   const checkoutMutation =
     trpc.billing.createCheckoutSession.useMutation({
       onSuccess(result) {
@@ -175,15 +211,33 @@ export default function BillingPage() {
     });
   const currentPlan = data?.currentPlan;
   const usage = data?.usage;
+  const checkoutStatus = searchParams.get('checkout');
+  const checkoutCopy = checkoutStatus
+    ? checkoutStatusCopy[checkoutStatus]
+    : null;
+  const intentPlanParam = searchParams.get('intentPlan');
+  const intentPlanKey = isBillingPlanKey(intentPlanParam)
+    ? intentPlanParam
+    : getBillingPlanIntent();
+  const intentPlan =
+    intentPlanKey && intentPlanKey !== currentPlan?.key
+      ? (data?.plans.length ? data.plans : BILLING_PLANS).find(
+          (plan) => plan.key === intentPlanKey
+        )
+      : null;
+
+  useEffect(() => {
+    if (checkoutStatus === 'success') {
+      clearBillingPlanIntent();
+      void refetch();
+    }
+  }, [checkoutStatus, refetch]);
 
   const handlePlanSelect = (planKey: BillingPlanKey) => {
+    setBillingPlanIntent(planKey);
     checkoutMutation.mutate({
       planKey,
       billingCycle: 'MONTHLY',
-      successUrl:
-        `${window.location.origin}/settings/billing?checkout=success`,
-      cancelUrl:
-        `${window.location.origin}/settings/billing?checkout=cancelled`,
     });
   };
 
@@ -234,6 +288,41 @@ export default function BillingPage() {
           </a>
         </div>
       </div>
+
+      {checkoutCopy && (
+        <div
+          className={`rounded-lg border p-4 text-sm ${checkoutCopy.tone}`}
+        >
+          <p className="font-semibold">{checkoutCopy.title}</p>
+          <p className="mt-1 leading-6">{checkoutCopy.body}</p>
+        </div>
+      )}
+
+      {intentPlan && (
+        <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-semibold">
+                Continue your {intentPlan.name} upgrade
+              </p>
+              <p className="mt-1 leading-6">
+                You selected {intentPlan.name} from the public pricing
+                page. Complete checkout to remove ads and unlock the
+                plan limits.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handlePlanSelect(intentPlan.key)}
+              disabled={checkoutMutation.isPending}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-cyan-300"
+            >
+              Continue checkout
+              <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
         <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">

@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { trpc } from '@/lib/trpc';
 import type { Company } from '@/types/api';
 import { Card, CardContent } from '@/components/ui/Card';
+import { getPostCompanyRedirect } from '@/features/billing/planIntent';
 
 export function CompanySelectionPage() {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export function CompanySelectionPage() {
 
   const handleSelectCompany = (company: Company) => {
     setCurrentCompany(company);
-    navigate('/dashboard'); // Redirect to dashboard
+    navigate(getPostCompanyRedirect()); // Redirect to dashboard or pending plan checkout
   };
 
   const handleLogout = async () => {
@@ -52,7 +53,7 @@ export function CompanySelectionPage() {
       });
       await refreshCompanies(); // Reload list
       setCurrentCompany(newCompany); // Auto-select
-      navigate('/dashboard');
+      navigate(getPostCompanyRedirect());
     } catch (err) {
       const message =
         err instanceof Error

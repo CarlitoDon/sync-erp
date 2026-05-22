@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import Layout from '@/components/layout/Layout';
 import { LazyRoute } from '@/app/LazyRoute';
 import MarketingHomePage from '@/features/marketing/pages/MarketingHomePage';
+import LegalPage from '@/features/legal/pages/LegalPage';
 
 // Auth pages - not lazy loaded (initial entry points)
 import { RegisterPage } from '@/features/auth/components/RegisterPage';
@@ -54,6 +55,8 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<RootRoute />} />
+      <Route path="/privacy" element={<LegalPage type="privacy" />} />
+      <Route path="/terms" element={<LegalPage type="terms" />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
