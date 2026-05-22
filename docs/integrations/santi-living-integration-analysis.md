@@ -301,7 +301,7 @@ ERP_SYNC_SERVICE_URL=http://localhost:3002
 # apps/erp-sync-service/.env
 SYNC_ERP_API_URL=http://localhost:3001/api/trpc
 BOT_SERVICE_URL=http://localhost:3000
-BOT_SERVICE_API_KEY=santi_secret_auth_token_2026
+BOT_SERVICE_API_KEY=replace_with_bot_service_api_key
 API_KEY=erp_sync_secret_2026
 SANTI_LIVING_COMPANY_ID=demo-company-rental
 ```
