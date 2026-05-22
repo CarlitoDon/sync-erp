@@ -72,8 +72,12 @@ export const publicRentalPaymentRouter = router({
           paymentMethod: input.paymentMethod,
         },
         select: {
+          id: true,
           orderNumber: true,
+          rentalPaymentStatus: true,
+          totalAmount: true,
           paymentMethod: true,
+          paymentReference: true,
         },
       });
 

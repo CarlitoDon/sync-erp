@@ -855,15 +855,33 @@ export class RentalExternalOrderService {
     return `api:${input.externalSource || 'external'}`;
   }
 
-  private buildPolicySnapshot(input: CreatePublicOrderInput) {
+  private buildPolicySnapshot(
+    input: CreatePublicOrderInput
+  ): Prisma.InputJsonObject {
+    const integration: Record<string, Prisma.InputJsonValue> = {};
+
+    if (input.externalId !== undefined) {
+      integration.externalId = input.externalId;
+    }
+    if (input.externalSource !== undefined) {
+      integration.externalSource = input.externalSource;
+    }
+    if (input.createdByApiKeyId !== undefined) {
+      integration.createdByApiKeyId = input.createdByApiKeyId;
+    }
+    if (input.metadata !== undefined) {
+      integration.metadata = this.toInputJsonValue(input.metadata);
+    }
+
     return {
-      integration: {
-        externalId: input.externalId,
-        externalSource: input.externalSource,
-        createdByApiKeyId: input.createdByApiKeyId,
-        metadata: input.metadata,
-      },
+      integration: integration as Prisma.InputJsonObject,
     };
+  }
+
+  private toInputJsonValue(
+    value: Record<string, unknown>
+  ): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
   }
 
   private async notifyRentalEvent(
