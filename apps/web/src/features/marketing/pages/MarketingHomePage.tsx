@@ -168,7 +168,7 @@ const pipeline = [
   { label: 'Cash flow', value: '82%' },
 ];
 
-const APP_ORIGIN = 'https://sync-erp-app.vercel.app';
+const APP_ORIGIN = 'https://app.sync-erp.com';
 
 function getAppHref(path: string) {
   if (typeof window === 'undefined') {

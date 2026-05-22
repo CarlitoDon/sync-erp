@@ -24,7 +24,8 @@ Sync ERP is ready for controlled pilot selling, not yet for unmonitored public s
 
 - [ ] Deploy API with `SYNC_ERP_WEB_URL`, `SYNC_ERP_API_BASE_URL`, `CORS_ALLOWED_ORIGINS`, database URL, auth/session secrets, and billing webhook secret.
 - [ ] Configure Google OAuth with `SYNC_ERP_AUTH_STATE_SECRET`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI=https://api.sync-erp.com/api/auth/google/callback`.
-- [ ] Deploy Web with `VITE_API_URL`, `VITE_GOOGLE_ADSENSE_ENABLED`, `VITE_GOOGLE_ADSENSE_CLIENT_ID`, and production AdSense slot IDs.
+- [x] Configure Vercel web env `VITE_SYNC_ERP_API_URL` for production and preview API domains.
+- [ ] Deploy Web with `VITE_SYNC_ERP_API_URL`, `VITE_GOOGLE_ADSENSE_ENABLED`, `VITE_GOOGLE_ADSENSE_CLIENT_ID`, and production AdSense slot IDs.
 - [ ] Configure billing provider: `BILLING_PROVIDER=MIDTRANS`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_IS_PRODUCTION=true`.
 - [ ] Register Midtrans webhook URL: `/api/billing/webhooks/midtrans`.
 - [ ] Verify checkout success, pending, failed, and cancelled redirects from `/settings/billing`.
@@ -33,6 +34,16 @@ Sync ERP is ready for controlled pilot selling, not yet for unmonitored public s
 - [ ] Add a stable crawler login in AdSense for protected free pages if ads are expected inside the logged-in app.
 - [ ] Enable API logs, error tracking, database backup, and uptime monitoring.
 - [ ] Run `rtk tsc --noEmit`, `rtk lint`, API build, web build, and targeted billing tests before release.
+
+## DNS Checklist
+
+- [x] Add Vercel project domains: `sync-erp.com`, `app.sync-erp.com`, and `staging.sync-erp.com`.
+- [ ] Point `sync-erp.com` to Vercel with `A sync-erp.com 76.76.21.21`.
+- [ ] Point `app.sync-erp.com` to Vercel with `A app.sync-erp.com 76.76.21.21`.
+- [ ] Point `staging.sync-erp.com` to Vercel with `A staging.sync-erp.com 76.76.21.21`.
+- [ ] Point `api.sync-erp.com` to Hostinger with `A api.sync-erp.com 46.17.173.54`.
+- [ ] Point `api-staging.sync-erp.com` to Hostinger with `A api-staging.sync-erp.com 46.17.173.54`.
+- [ ] Re-check DNS propagation and HTTPS health after records are updated.
 
 ## AdSense Monetization Checklist
 

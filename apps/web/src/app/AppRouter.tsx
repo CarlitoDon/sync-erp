@@ -38,7 +38,10 @@ const OnboardingPage = lazy(() =>
 );
 const CashBankPage = lazy(() => import('@/features/cash-bank'));
 
-const APP_HOSTNAMES = new Set(['sync-erp-app.vercel.app']);
+const APP_HOSTNAMES = new Set([
+  'app.sync-erp.com',
+  'sync-erp-app.vercel.app',
+]);
 
 function RootRoute() {
   if (

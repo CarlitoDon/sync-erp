@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 function getApiBaseUrl() {
   const configuredUrl =
     import.meta.env.VITE_SYNC_ERP_API_URL ||
-    'http://localhost:3000/api/trpc';
+    'http://localhost:3001/api/trpc';
 
   return configuredUrl.replace(/\/trpc\/?$/, '');
 }

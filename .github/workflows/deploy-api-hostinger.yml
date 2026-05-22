@@ -139,7 +139,7 @@ jobs:
 
       - name: Verify API health (external)
         env:
-          API_HOST: ${{ steps.vars.outputs.env_name == 'production' && 'api.santiliving.com' || 'api-staging.santiliving.com' }}
+          API_HOST: ${{ steps.vars.outputs.env_name == 'production' && 'api.sync-erp.com' || 'api-staging.sync-erp.com' }}
         run: |
           echo "Checking API health at https://$API_HOST/health"
           MAX_RETRIES=5
