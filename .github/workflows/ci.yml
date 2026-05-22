@@ -159,7 +159,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p 65002 "${{ secrets.HOSTINGER_HOST }}" > ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -p 65002 "${{ secrets.HOSTINGER_HOST }}" > ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy package to Hostinger
         env:
