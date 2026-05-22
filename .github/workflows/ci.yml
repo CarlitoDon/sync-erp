@@ -179,7 +179,7 @@ jobs:
           ssh-add ~/.ssh/id_ed25519
           SSH_OPTS="-p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o BatchMode=yes"
 
-          rsync -avz --delete-delay --timeout=120 --contimeout=30 \
+          rsync -avz --delete-delay --timeout=120 \
             --exclude='.htaccess' \
             --exclude='.env' \
             --exclude='node_modules' \
@@ -212,7 +212,7 @@ jobs:
             mkdir -p node_modules/@sync-erp/database tmp
           EOF
 
-          rsync -avz --delete-delay --timeout=120 --contimeout=30 \
+          rsync -avz --delete-delay --timeout=120 \
             -e "ssh ${SSH_OPTS}" \
             deploy/api-mcp/node_modules/@sync-erp/database/ \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/public_html/${DEPLOY_DIR}/node_modules/@sync-erp/database/"
