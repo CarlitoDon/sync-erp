@@ -106,7 +106,7 @@ jobs:
     needs: [changes, ci]
     if: github.event_name == 'push' && needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     environment:
       name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     concurrency:
@@ -181,14 +181,11 @@ jobs:
           SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
           SCP_OPTS="-P 65002 ${SSH_COMMON_OPTS}"
           API_ARCHIVE="$(mktemp)"
-          DB_ARCHIVE="$(mktemp)"
           REMOTE_API_ARCHIVE="sync-erp-api-${GITHUB_SHA}.tar.gz"
-          REMOTE_DB_ARCHIVE="sync-erp-database-${GITHUB_SHA}.tar.gz"
 
           tar -C deploy/api-mcp \
             --exclude='./.htaccess' \
             --exclude='./.env' \
-            --exclude='./node_modules' \
             --exclude='./tmp' \
             --exclude='./stderr.log' \
             -czf "$API_ARCHIVE" .
@@ -211,7 +208,6 @@ jobs:
               ! -name 'stderr.log' \
               -exec rm -rf {} +
             tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target"
-            rm -f "$HOME/${REMOTE_API_ARCHIVE}"
             cd "$target"
 
             fingerprint="$(sha256sum package.json | awk '{print $1}')"
@@ -229,27 +225,13 @@ jobs:
               echo "$fingerprint" > .package-deps.sha256
             fi
 
-            timeout 180 npm run db:generate
-            mkdir -p node_modules/@sync-erp/database tmp
+            rm -rf node_modules/@sync-erp/database
+            tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target" ./node_modules/@sync-erp/database
+            rm -f "$HOME/${REMOTE_API_ARCHIVE}"
+            mkdir -p tmp
           EOF
 
-          tar -C deploy/api-mcp/node_modules/@sync-erp/database -czf "$DB_ARCHIVE" .
-
-          timeout 600 scp -C ${SCP_OPTS} \
-            "$DB_ARCHIVE" \
-            "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_DB_ARCHIVE}"
-
-          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_DB_ARCHIVE='${REMOTE_DB_ARCHIVE}' bash -s" <<'EOF'
-            set -euo pipefail
-            target="$HOME/public_html/${DEPLOY_DIR}/node_modules/@sync-erp/database"
-
-            mkdir -p "$target"
-            find "$target" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-            tar -xzf "$HOME/${REMOTE_DB_ARCHIVE}" -C "$target"
-            rm -f "$HOME/${REMOTE_DB_ARCHIVE}"
-          EOF
-
-          rm -f "$API_ARCHIVE" "$DB_ARCHIVE"
+          rm -f "$API_ARCHIVE"
 
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
             "cd ~/public_html/${DEPLOY_DIR} && mkdir -p tmp && touch tmp/restart.txt"
