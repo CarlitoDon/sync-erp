@@ -23,6 +23,7 @@ Sync ERP is ready for controlled pilot selling, not yet for unmonitored public s
 ## Production Deploy Checklist
 
 - [ ] Deploy API with `SYNC_ERP_WEB_URL`, `SYNC_ERP_API_BASE_URL`, `CORS_ALLOWED_ORIGINS`, database URL, auth/session secrets, and billing webhook secret.
+- [ ] Configure Google OAuth with `SYNC_ERP_AUTH_STATE_SECRET`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI=https://api.sync-erp.com/api/auth/google/callback`.
 - [ ] Deploy Web with `VITE_API_URL`, `VITE_GOOGLE_ADSENSE_ENABLED`, `VITE_GOOGLE_ADSENSE_CLIENT_ID`, and production AdSense slot IDs.
 - [ ] Configure billing provider: `BILLING_PROVIDER=MIDTRANS`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_IS_PRODUCTION=true`.
 - [ ] Register Midtrans webhook URL: `/api/billing/webhooks/midtrans`.
@@ -57,6 +58,17 @@ Sync ERP is ready for controlled pilot selling, not yet for unmonitored public s
 - [ ] Billing page shows payment result state after redirect.
 - [ ] Billing page reflects the upgraded plan after webhook processing.
 - [ ] Failed or cancelled checkout leaves the existing plan unchanged.
+
+## Google OAuth Checklist
+
+- [x] Google Cloud production project created: `sync-erp-prod-20260522`.
+- [x] Google Auth Platform configured as external app.
+- [x] OAuth publishing status set to production.
+- [x] OAuth web client created for production, staging, and local callback URLs.
+- [x] Google data access verification not required for current basic scopes.
+- [ ] Complete Google branding verification if consent-screen branding must be shown to public users.
+- [ ] Deploy API with the generated Google OAuth client secret.
+- [ ] Verify `/api/auth/google/start?intent=register` redirects to Google and callback creates/links a user.
 
 ## Onboarding Sales Flow
 
