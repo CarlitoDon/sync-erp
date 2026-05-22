@@ -11,6 +11,8 @@ import {
   RentalOrderStatus,
   UnitStatus,
   JournalSourceType,
+  BillingProvider,
+  BillingSubscriptionStatus,
 } from '@sync-erp/database';
 import { RentalOrderFulfillmentService } from '@modules/rental/rental-order-fulfillment.service';
 import { RentalRepository } from '@modules/rental/rental.repository';
@@ -84,6 +86,14 @@ describe('RentalOrderFulfillmentService Integration', () => {
       data: {
         id: COMPANY_ID,
         name: 'Test Rental Fulfillment Company',
+      },
+    });
+    await prisma.companySubscription.create({
+      data: {
+        companyId: COMPANY_ID,
+        planKey: 'growth',
+        status: BillingSubscriptionStatus.ACTIVE,
+        provider: BillingProvider.MANUAL,
       },
     });
 

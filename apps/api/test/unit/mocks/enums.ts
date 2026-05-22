@@ -43,6 +43,34 @@ export enum BusinessShape {
   MANUFACTURING = 'MANUFACTURING',
   SERVICE = 'SERVICE',
 }
+
+export enum BillingSubscriptionStatus {
+  TRIALING = 'TRIALING',
+  ACTIVE = 'ACTIVE',
+  PAST_DUE = 'PAST_DUE',
+  CANCELED = 'CANCELED',
+  EXPIRED = 'EXPIRED',
+}
+
+export enum BillingProvider {
+  MANUAL = 'MANUAL',
+  STRIPE = 'STRIPE',
+  XENDIT = 'XENDIT',
+  MIDTRANS = 'MIDTRANS',
+}
+
+export enum BillingCycle {
+  MONTHLY = 'MONTHLY',
+  ANNUAL = 'ANNUAL',
+}
+
+export enum BillingCheckoutSessionStatus {
+  OPEN = 'OPEN',
+  COMPLETED = 'COMPLETED',
+  CANCELED = 'CANCELED',
+  FAILED = 'FAILED',
+  EXPIRED = 'EXPIRED',
+}
 export enum CostingMethod {
   AVG = 'AVG',
   FIFO = 'FIFO',

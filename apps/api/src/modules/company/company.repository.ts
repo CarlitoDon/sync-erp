@@ -23,6 +23,8 @@ export class CompanyRepository {
     userId?: string;
   }): Promise<Company> {
     const now = new Date();
+    const trialEndsAt = addDays(now, BILLING_TRIAL_DAYS);
+    const isDefaultFreePlan = DEFAULT_BILLING_PLAN_KEY === 'free';
 
     return prisma.company.create({
       data: {
@@ -30,12 +32,16 @@ export class CompanyRepository {
         subscription: {
           create: {
             planKey: DEFAULT_BILLING_PLAN_KEY,
-            status: BillingSubscriptionStatus.TRIALING,
+            status: isDefaultFreePlan
+              ? BillingSubscriptionStatus.ACTIVE
+              : BillingSubscriptionStatus.TRIALING,
             provider: BillingProvider.MANUAL,
-            trialStartsAt: now,
-            trialEndsAt: addDays(now, BILLING_TRIAL_DAYS),
+            trialStartsAt: isDefaultFreePlan ? null : now,
+            trialEndsAt: isDefaultFreePlan ? null : trialEndsAt,
             currentPeriodStartsAt: now,
-            currentPeriodEndsAt: addDays(now, BILLING_TRIAL_DAYS),
+            currentPeriodEndsAt: isDefaultFreePlan
+              ? null
+              : trialEndsAt,
           },
         },
         ...(data.userId && {

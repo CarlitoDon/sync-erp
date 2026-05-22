@@ -114,7 +114,7 @@ export default function RentalOrderDetail() {
             {order.orderSource === OrderSource.WEBSITE ? (
               <span
                 className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700"
-                title="Order dari Santi Living"
+                title="Order dari website eksternal"
               >
                 <GlobeAltIcon className="w-3.5 h-3.5" />
                 Website

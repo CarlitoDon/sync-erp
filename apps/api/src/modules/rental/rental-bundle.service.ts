@@ -6,6 +6,7 @@
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { DepositPolicyType } from '@sync-erp/database';
 import * as bundleRepo from './rental-bundle.repository';
+import { assertBillingFeatureAvailable } from '../billing/billing-limits.service';
 
 // ============================================
 // Queries
@@ -128,6 +129,13 @@ export interface CreateInput {
 }
 
 export async function create(input: CreateInput) {
+  if (input.imagePath) {
+    await assertBillingFeatureAvailable({
+      companyId: input.companyId,
+      feature: 'mediaAccess',
+    });
+  }
+
   return bundleRepo.create(input);
 }
 
@@ -151,7 +159,7 @@ export async function update(input: UpdateInput) {
 }
 
 // ============================================
-// Sync from Santi Living
+// Sync from an external storefront/catalog.
 // ============================================
 
 export interface SyncBundleItem {
@@ -166,14 +174,21 @@ export interface SyncBundleItem {
   includes: string[]; // ["2 bantal", "kasur busa", etc.]
 }
 
-export interface SyncFromSantiLivingInput {
+export interface SyncFromExternalCatalogInput {
   companyId: string;
   bundles: SyncBundleItem[];
 }
 
-export async function syncFromSantiLiving(
-  input: SyncFromSantiLivingInput
+export async function syncFromExternalCatalog(
+  input: SyncFromExternalCatalogInput
 ) {
+  if (input.bundles.some((bundle) => Boolean(bundle.imagePath))) {
+    await assertBillingFeatureAvailable({
+      companyId: input.companyId,
+      feature: 'mediaAccess',
+    });
+  }
+
   const results = [];
 
   for (const bundle of input.bundles) {

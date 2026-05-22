@@ -48,18 +48,21 @@ export async function ensureCompanySubscription(
 ): Promise<CompanySubscription> {
   const trialStartsAt = company.createdAt;
   const trialEndsAt = addDays(company.createdAt, BILLING_TRIAL_DAYS);
+  const isDefaultFreePlan = DEFAULT_BILLING_PLAN_KEY === 'free';
 
   return prisma.companySubscription.upsert({
     where: { companyId: company.id },
     create: {
       companyId: company.id,
       planKey: DEFAULT_BILLING_PLAN_KEY,
-      status: BillingSubscriptionStatus.TRIALING,
+      status: isDefaultFreePlan
+        ? BillingSubscriptionStatus.ACTIVE
+        : BillingSubscriptionStatus.TRIALING,
       provider: BillingProvider.MANUAL,
-      trialStartsAt,
-      trialEndsAt,
+      trialStartsAt: isDefaultFreePlan ? null : trialStartsAt,
+      trialEndsAt: isDefaultFreePlan ? null : trialEndsAt,
       currentPeriodStartsAt: trialStartsAt,
-      currentPeriodEndsAt: trialEndsAt,
+      currentPeriodEndsAt: isDefaultFreePlan ? null : trialEndsAt,
     },
     update: {},
   });

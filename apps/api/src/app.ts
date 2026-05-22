@@ -10,7 +10,8 @@ import { optionalAuthMiddleware } from './middlewares/auth';
 import { correlationMiddleware } from './middlewares/correlation';
 import { appRouter } from './trpc/router';
 import { createContext } from './trpc/context';
-import { publicRentalRouter } from './trpc/routers/public-rental.router';
+import { integrationV1Router } from './trpc/routers/integration-v1.router';
+import { integrationV1HttpRouter } from './routes/integration-v1.router';
 import { googleOAuthRouter } from './modules/auth/google-oauth.router';
 import { mcpRouter } from './modules/mcp/router';
 import { billingHttpRouter } from './modules/billing/billing-http.router';
@@ -92,13 +93,14 @@ export function createApp() {
   app.use('/mcp', mcpRouter);
   app.use('/api/auth/google', googleOAuthRouter);
   app.use('/api/billing', billingHttpRouter);
+  app.use('/api/v1', integrationV1HttpRouter);
 
-  // Dedicated publicRental mount for external clients using the sub-router contract
+  // Dedicated tRPC mount for typed external integrations.
   app.use(
-    '/api/trpc/publicRental',
+    '/api/trpc/integration/v1',
     optionalAuthMiddleware,
     trpcExpress.createExpressMiddleware({
-      router: publicRentalRouter,
+      router: integrationV1Router,
       createContext,
     })
   );

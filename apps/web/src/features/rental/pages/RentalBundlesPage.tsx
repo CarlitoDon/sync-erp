@@ -12,7 +12,8 @@ import {
 } from '@/components/ui';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { Card } from '@/components/ui/Card';
-import { formatCurrency, getSantiLivingAssetUrl } from '@/utils/format';
+import { useBillingFeatures } from '@/hooks/useBillingFeatures';
+import { formatCurrency, getExternalAssetUrl } from '@/utils/format';
 import {
   ArrowPathIcon,
   CubeTransparentIcon,
@@ -21,6 +22,8 @@ import { toast } from 'react-hot-toast';
 
 export default function RentalBundlesPage() {
   const { currentCompany } = useCompany();
+  const { isLoading: isBillingLoading, mediaAccess } =
+    useBillingFeatures();
   const [isSyncing, setIsSyncing] = useState(false);
   const confirm = useConfirm();
 
@@ -36,7 +39,7 @@ export default function RentalBundlesPage() {
   );
 
   const syncMutation =
-    trpc.rentalBundle.syncFromSantiLiving.useMutation({
+    trpc.rentalBundle.syncFromExternalCatalog.useMutation({
       onSuccess: (data) => {
         toast.success(`Berhasil sinkronisasi ${data.synced} bundle`);
         refetch();
@@ -55,12 +58,14 @@ export default function RentalBundlesPage() {
       <NoCompanySelected message="Pilih perusahaan untuk mengelola bundle rental." />
     );
 
-  // Hardcoded bundle data from santi-living for sync (in a real app this might come from an API or file)
+  // Starter catalog data for sync (in a real app this might come from an API or file)
   // For now, we'll just trigger the sync with the known data structure
   const handleSync = async () => {
+    if (isBillingLoading) return;
+
     const proceed = await confirm({
       title: 'Sinkronisasi Bundle',
-      message: 'Sinkronisasi bundle dari master data Santi Living?',
+      message: 'Sinkronisasi bundle dari master data eksternal?',
       confirmText: 'Sinkronisasi',
     });
     if (!proceed) return;
@@ -129,7 +134,9 @@ export default function RentalBundlesPage() {
 
     syncMutation.mutate({
       companyId: currentCompany.id,
-      bundles: bundlesToSync,
+      bundles: bundlesToSync.map(({ imagePath, ...bundle }) =>
+        mediaAccess ? { ...bundle, imagePath } : bundle
+      ),
     });
   };
 
@@ -141,13 +148,13 @@ export default function RentalBundlesPage() {
         actions={
           <Button
             onClick={handleSync}
-            disabled={isSyncing}
+            disabled={isSyncing || isBillingLoading}
             variant="outline"
           >
             <ArrowPathIcon
               className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`}
             />
-            Sync dari Santi Living
+            Sync dari Katalog Eksternal
           </Button>
         }
       />
@@ -158,10 +165,10 @@ export default function RentalBundlesPage() {
             key={bundle.id}
             className="overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow"
           >
-            {bundle.imagePath && (
+            {mediaAccess && bundle.imagePath && (
               <div className="h-48 w-full bg-gray-100 relative">
                 <img
-                  src={getSantiLivingAssetUrl(bundle.imagePath)}
+                  src={getExternalAssetUrl(bundle.imagePath)}
                   alt={bundle.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -254,10 +261,12 @@ export default function RentalBundlesPage() {
               Belum ada bundle
             </h3>
             <p className="text-gray-500 mb-4">
-              Silakan sinkronisasi bundle dari master data Santi
-              Living.
+              Silakan sinkronisasi bundle dari master data eksternal.
             </p>
-            <Button onClick={handleSync} disabled={isSyncing}>
+            <Button
+              onClick={handleSync}
+              disabled={isSyncing || isBillingLoading}
+            >
               <ArrowPathIcon
                 className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`}
               />

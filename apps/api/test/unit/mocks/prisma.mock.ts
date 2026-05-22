@@ -20,8 +20,14 @@ export const mockPrisma = {
     create: vi.fn(),
     findUnique: vi.fn(),
     findMany: vi.fn(),
+    count: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+  },
+  companySubscription: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    upsert: vi.fn(),
   },
   user: {
     create: vi.fn(),
@@ -112,9 +118,13 @@ export const mockPrisma = {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
+    count: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
     deleteMany: vi.fn(),
+  },
+  apiKey: {
+    count: vi.fn(),
   },
   salesOrder: {
     create: vi.fn(),

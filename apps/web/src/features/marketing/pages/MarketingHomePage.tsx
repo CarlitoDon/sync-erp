@@ -53,10 +53,10 @@ const navigation = [
 ];
 
 const proofPoints = [
+  'Free untuk 1 company',
   'Multi-company',
   'Sales sampai finance',
   'Inventory real-time',
-  'API dan WhatsApp-ready',
 ];
 
 const heroStats = [
@@ -399,6 +399,20 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
       </div>
 
       <ul className="mt-6 space-y-3 text-sm text-slate-600">
+        <li className="flex gap-2">
+          <CheckCircleIcon className="mt-0.5 h-4 w-4 flex-none text-emerald-600" />
+          <span>
+            {plan.limits.adsEnabled ? 'Didukung iklan' : 'Tanpa iklan'}
+          </span>
+        </li>
+        <li className="flex gap-2">
+          <CheckCircleIcon className="mt-0.5 h-4 w-4 flex-none text-emerald-600" />
+          <span>
+            {plan.limits.mediaAccess
+              ? 'Media upload aktif'
+              : 'Tanpa akses media'}
+          </span>
+        </li>
         {plan.features.slice(0, 5).map((feature) => (
           <li key={feature} className="flex gap-2">
             <CheckCircleIcon className="mt-0.5 h-4 w-4 flex-none text-emerald-600" />
@@ -684,22 +698,23 @@ export default function MarketingHomePage() {
                   Harga dan limit
                 </SectionEyebrow>
                 <h2 className="text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
-                  Tidak free. Mulai dengan trial, lanjut paket berbayar.
+                  Mulai gratis, upgrade saat bisnis butuh kapasitas lebih.
                 </h2>
                 <p className="mt-5 text-base leading-8 text-slate-600">
-                  Sync ERP memakai paket komersial yang jelas: limit
-                  user, company, dokumen bulanan, SKU, API key, dan
-                  akses integrasi sudah ditentukan dari awal.
+                  Sync ERP punya tier Free untuk satu company dengan
+                  iklan dan tanpa media. Paid tier membuka media,
+                  multi-company, API, WhatsApp, dan limit operasional
+                  yang lebih besar.
                 </p>
               </div>
               <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-cyan-900">
-                Trial {BILLING_TRIAL_DAYS} hari tersedia untuk setup
-                awal. Setelah trial, workspace perlu berada di Starter,
-                Growth, Scale, atau Enterprise.
+                Free plan aktif tanpa batas waktu untuk satu company.
+                Paid plan tetap bisa memakai trial {BILLING_TRIAL_DAYS}
+                hari saat upgrade flow diaktifkan.
               </div>
             </div>
 
-            <div className="mt-10 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-10 grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
               {BILLING_PLANS.map((plan) => (
                 <PricingCard key={plan.key} plan={plan} />
               ))}

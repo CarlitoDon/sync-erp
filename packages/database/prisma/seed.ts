@@ -552,7 +552,7 @@ async function main() {
         const isDevelopment = process.env.NODE_ENV === 'development';
 
         // 1. Ensure Integration Record exists
-        const appId = 'santi-living';
+        const appId = 'custom-storefront';
         const integration = await prisma.integration.upsert({
           where: {
             companyId_appId: { companyId: company.id, appId },
@@ -561,14 +561,14 @@ async function main() {
           create: {
             companyId: company.id,
             appId,
-            name: 'Santi Living',
-            description: 'Official Santi Living Integration',
+            name: 'Custom Storefront',
+            description: 'Generic storefront integration for Sync ERP API v1',
             icon: 'CubeIcon',
             isActive: true,
             config: {
-              webhookUrl: isDevelopment
-                ? 'http://localhost:3002/api/webhooks/sync-erp'
-                : 'https://proxy.santiliving.com/api/webhooks/order-confirmation',
+              apiBasePath: '/api/v1',
+              trpcBasePath: '/api/trpc/integration/v1',
+              webhookUrl: isDevelopment ? 'http://localhost:3002/api/webhooks/sync-erp' : '',
             },
           },
         });
@@ -576,7 +576,7 @@ async function main() {
         // Use development key for local dev, or fallback/production key for other envs (though this block is skipped in prod)
         const existingKey = isDevelopment
           ? 'dev_sync_erp_secret_key_2026'
-          : 'santi_secret_auth_token_2026';
+          : 'replace_with_production_api_key';
 
         const bcrypt = await import('bcryptjs');
         const keyHash = await bcrypt.hash(existingKey, 10);
@@ -588,25 +588,21 @@ async function main() {
             update: {
               isActive: true,
               name: isDevelopment
-                ? 'Santi Living Development'
-                : 'Santi Living Production',
+                ? 'Custom Storefront Development'
+                : 'Custom Storefront Production',
               integrationId: integration.id, // Link to integration
-              webhookUrl: isDevelopment
-                ? 'http://localhost:3002/api/webhooks/sync-erp'
-                : 'https://proxy.santiliving.com/api/webhooks/order-confirmation',
+              webhookUrl: isDevelopment ? 'http://localhost:3002/api/webhooks/sync-erp' : '',
             },
             create: {
               keyHash,
               keyPrefix,
               name: isDevelopment
-                ? 'Santi Living Development'
-                : 'Santi Living Production',
+                ? 'Custom Storefront Development'
+                : 'Custom Storefront Production',
               companyId: company.id,
               integrationId: integration.id, // Link to integration
               permissions: ['rental:read', 'rental:write'],
-              webhookUrl: isDevelopment
-                ? 'http://localhost:3002/api/webhooks/sync-erp'
-                : 'https://proxy.santiliving.com/api/webhooks/order-confirmation',
+              webhookUrl: isDevelopment ? 'http://localhost:3002/api/webhooks/sync-erp' : '',
             },
           })
           .catch(async () => {
@@ -614,7 +610,7 @@ async function main() {
             const existing = await prisma.apiKey.findFirst({
               where: {
                 companyId: company.id,
-                name: 'Santi Living Production',
+                name: 'Custom Storefront Production',
               },
             });
             if (!existing) {
@@ -631,17 +627,12 @@ async function main() {
                     companyId: company.id,
                     integrationId: integration.id,
                     name: isDevelopment
-                      ? 'Santi Living Development'
-                      : 'Santi Living Production',
+                      ? 'Custom Storefront Development'
+                      : 'Custom Storefront Production',
                     keyHash,
                     keyPrefix,
-                    permissions: [
-                      'publicRental.createOrder',
-                      'publicRental.confirmPayment',
-                    ],
-                    webhookUrl: isDevelopment
-                      ? 'http://localhost:3002/api/webhooks/sync-erp'
-                      : 'https://proxy.santiliving.com/api/webhooks/sync-erp',
+                    permissions: ['rental:read', 'rental:write'],
+                    webhookUrl: isDevelopment ? 'http://localhost:3002/api/webhooks/sync-erp' : '',
                     webhookSecret: 'whsec_test_123',
                     rateLimit: 1000,
                   },

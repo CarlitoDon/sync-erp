@@ -19,7 +19,7 @@ export const formatOrderMessage = (data: OrderPayload): string => {
   };
 
   let message = `Halo Kak *${data.customerName}*! 👋\n`;
-  message += `Terima kasih sudah memesan di *Sewa Kasur Jogja by Santi Mebel*.\n`;
+  message += `Terima kasih, pesanan rental Anda sudah kami terima.\n`;
   message += `Order ID: *${data.orderId || '-'}*\n\n`;
   message += `Pesanan Anda telah kami terima dengan rincian berikut:\n\n`;
 

@@ -319,9 +319,7 @@ export const ConvertStockToUnitSchema = z.object({
 
 const UnitReleaseSchema = z.object({
   unitId: z.string().uuid(),
-  beforePhotos: z
-    .array(z.string())
-    .min(1, 'At least one photo required'),
+  beforePhotos: z.array(z.string()).default([]),
   condition: z.enum(['NEW', 'GOOD', 'FAIR', 'NEEDS_REPAIR']),
   notes: z.string().optional(),
 });
@@ -351,7 +349,7 @@ export const ExtendRentalOrderSchema = z.object({
 
 const UnitReturnSchema = z.object({
   unitId: z.string().uuid(),
-  afterPhotos: z.array(z.string()), // Required if damaged
+  afterPhotos: z.array(z.string()).default([]),
   condition: z.enum(['NEW', 'GOOD', 'FAIR', 'NEEDS_REPAIR']),
   damageSeverity: z.enum(['MINOR', 'MAJOR', 'UNUSABLE']).optional(),
   damageNotes: z.string().optional(),

@@ -47,6 +47,21 @@ function PlanCard({
   onSelectPlan: (planKey: BillingPlanKey) => void;
   isSubmitting: boolean;
 }) {
+  const hasSelfServeCheckout =
+    plan.monthlyPriceIdr !== null && plan.monthlyPriceIdr > 0;
+  const isSelectionDisabled =
+    isCurrent || isSubmitting || !hasSelfServeCheckout;
+  let actionLabel = `Choose ${plan.name}`;
+
+  if (isCurrent) {
+    actionLabel = 'Current plan';
+  } else if (!hasSelfServeCheckout) {
+    actionLabel =
+      plan.monthlyPriceIdr === 0 ? 'Default free plan' : 'Contact sales';
+  } else if (isSubmitting) {
+    actionLabel = 'Opening checkout...';
+  }
+
   return (
     <article
       className={`rounded-lg border bg-white p-5 shadow-sm ${
@@ -102,6 +117,27 @@ function PlanCard({
         </div>
       </div>
 
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold">
+        <span
+          className={`rounded-md px-3 py-2 ${
+            plan.limits.mediaAccess
+              ? 'bg-emerald-50 text-emerald-700'
+              : 'bg-gray-100 text-gray-500'
+          }`}
+        >
+          {plan.limits.mediaAccess ? 'Media access' : 'No media'}
+        </span>
+        <span
+          className={`rounded-md px-3 py-2 ${
+            plan.limits.adsEnabled
+              ? 'bg-amber-50 text-amber-700'
+              : 'bg-emerald-50 text-emerald-700'
+          }`}
+        >
+          {plan.limits.adsEnabled ? 'Ads enabled' : 'No ads'}
+        </span>
+      </div>
+
       <ul className="mt-5 space-y-2 text-sm text-gray-600">
         {plan.features.slice(0, 4).map((feature) => (
           <li key={feature} className="flex gap-2">
@@ -113,19 +149,15 @@ function PlanCard({
 
       <button
         type="button"
-        disabled={isCurrent || isSubmitting}
+        disabled={isSelectionDisabled}
         onClick={() => onSelectPlan(plan.key)}
         className={`mt-5 inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
-          isCurrent
+          isSelectionDisabled
             ? 'cursor-not-allowed bg-gray-100 text-gray-400'
             : 'bg-primary-600 text-white hover:bg-primary-700'
         }`}
       >
-        {isCurrent
-          ? 'Current plan'
-          : isSubmitting
-            ? 'Opening checkout...'
-            : `Choose ${plan.name}`}
+        {actionLabel}
       </button>
     </article>
   );
@@ -179,7 +211,7 @@ export default function BillingPage() {
             Billing & Plan
           </h1>
           <p className="mt-1 text-gray-500">
-            Manage commercial plan, limits, and monthly usage for{' '}
+            Manage freemium plan, limits, and monthly usage for{' '}
             {data.company?.name ?? 'this company'}.
           </p>
         </div>
@@ -246,6 +278,20 @@ export default function BillingPage() {
               <span className="text-gray-500">Monthly price</span>
               <span className="font-semibold text-gray-900">
                 {formatPlanPrice(currentPlan)}
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-gray-100 pt-3">
+              <span className="text-gray-500">Ads</span>
+              <span className="font-semibold text-gray-900">
+                {currentPlan.limits.adsEnabled ? 'Enabled' : 'Hidden'}
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-gray-100 pt-3">
+              <span className="text-gray-500">Media</span>
+              <span className="font-semibold text-gray-900">
+                {currentPlan.limits.mediaAccess
+                  ? 'Available'
+                  : 'Hidden'}
               </span>
             </div>
           </div>
@@ -329,7 +375,7 @@ export default function BillingPage() {
             Pricing is IDR, excludes tax, and can be billed monthly or annually.
           </p>
         </div>
-        <div className="grid gap-4 xl:grid-cols-4">
+        <div className="grid gap-4 xl:grid-cols-5">
           {(data.plans.length ? data.plans : BILLING_PLANS).map(
             (plan) => (
               <PlanCard

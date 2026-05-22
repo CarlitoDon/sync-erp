@@ -40,7 +40,7 @@ const cleanupIntegrationData = async () => {
 
 const seedIntegration = async (companyId: string) => {
   const existing = await prisma.integration.findFirst({
-    where: { companyId, appId: 'santi-living' },
+    where: { companyId, appId: 'custom-storefront' },
   });
 
   if (existing) {
@@ -53,14 +53,14 @@ const seedIntegration = async (companyId: string) => {
   const integration = await prisma.integration.create({
     data: {
       companyId,
-      appId: 'santi-living',
-      name: 'Santi Living',
+      appId: 'custom-storefront',
+      name: 'Custom Storefront',
       isActive: true,
       config: {
-        webhookUrl: 'http://proxy.test',
+        webhookUrl: 'http://storefront.test',
         paths: {
-          newOrder: '/api/orders/{token}/notify-admin',
-          paymentStatus: '/api/orders/{token}/notify-payment',
+          newOrder: '/webhooks/rental/orders/{token}/created',
+          paymentStatus: '/webhooks/rental/orders/{token}/payment-status',
         },
       },
     },
@@ -73,8 +73,8 @@ const seedIntegration = async (companyId: string) => {
       keyHash: `hash-${companyId}`,
       keyPrefix: 'sk_test',
       name: 'Test Key',
-      webhookUrl: 'http://proxy.test',
-      webhookSecret: 'Bearer proxy-test-secret',
+      webhookUrl: 'http://storefront.test',
+      webhookSecret: 'Bearer storefront-test-secret',
       isActive: true,
     },
   });

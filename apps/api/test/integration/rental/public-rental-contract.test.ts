@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { appRouter } from '@src/trpc/router';
+import { integrationV1Router } from '@src/trpc/routers/integration-v1.router';
 import { publicRentalRouter } from '@src/trpc/routers/public-rental.router';
 
 describe('Public Rental Contract', () => {
@@ -13,6 +14,19 @@ describe('Public Rental Contract', () => {
     'updatePaymentMethod',
     'confirmPaymentByOrderNumber',
     'rejectPaymentByOrderNumber',
+  ].sort();
+
+  const expectedIntegrationV1Procedures = [
+    'rental.customers.create',
+    'rental.orders.create',
+    'rental.orders.get',
+    'rental.orders.getByToken',
+    'rental.orders.getByOrderNumber',
+    'rental.orders.update',
+    'rental.orders.cancel',
+    'rental.payments.claim',
+    'rental.payments.confirm',
+    'rental.payments.reject',
   ].sort();
 
   it('exposes expected publicRental procedures', () => {
@@ -29,5 +43,22 @@ describe('Public Rental Contract', () => {
 
     expect(appProcedures).toEqual(expectedProcedures);
     expect(facadeProcedures).toEqual(expectedProcedures);
+  });
+
+  it('exposes the generic integrationV1 rental procedure surface', () => {
+    const procedureKeys = Object.keys(
+      integrationV1Router._def.procedures
+    ).sort();
+
+    expect(procedureKeys).toEqual(expectedIntegrationV1Procedures);
+  });
+
+  it('maps appRouter integrationV1 to the same procedure surface', () => {
+    const appProcedures = Object.keys(appRouter._def.procedures)
+      .filter((key) => key.startsWith('integrationV1.'))
+      .map((key) => key.replace('integrationV1.', ''))
+      .sort();
+
+    expect(appProcedures).toEqual(expectedIntegrationV1Procedures);
   });
 });

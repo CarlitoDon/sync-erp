@@ -6,6 +6,8 @@ import {
   UnitCondition,
   DepositPolicyType,
   AccountType,
+  BillingProvider,
+  BillingSubscriptionStatus,
 } from '@sync-erp/database';
 import { RentalService } from '@modules/rental/rental.service';
 
@@ -51,6 +53,14 @@ describe('Rental Invoice Integration', () => {
       data: {
         id: COMPANY_ID,
         name: 'Rental Invoice Test Corp',
+      },
+    });
+    await prisma.companySubscription.create({
+      data: {
+        companyId: COMPANY_ID,
+        planKey: 'growth',
+        status: BillingSubscriptionStatus.ACTIVE,
+        provider: BillingProvider.MANUAL,
       },
     });
 

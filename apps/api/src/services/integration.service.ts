@@ -27,18 +27,16 @@ export interface IntegrationApp {
 
 export const AVAILABLE_INTEGRATIONS: IntegrationApp[] = [
   {
-    appId: 'santi-living',
-    name: 'Santi Living',
+    appId: 'custom-storefront',
+    name: 'Custom Storefront',
     description:
-      'Rental management and WhatsApp bot integration for Santi Living.',
+      'Connect an external storefront, website, or marketplace through Sync ERP API v1.',
     icon: 'CubeIcon',
     defaultConfig: {
       webhookUrl: '',
       syncEnabled: true,
-      paths: {
-        newOrder: '/api/orders/{token}/notify-admin',
-        paymentStatus: '/api/orders/{token}/notify-payment',
-      },
+      apiBasePath: '/api/v1',
+      trpcBasePath: '/api/trpc/integration/v1',
     },
   },
   {

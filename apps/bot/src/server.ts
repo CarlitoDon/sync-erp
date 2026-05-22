@@ -26,7 +26,7 @@ app.get('/health', (_req, res) => {
     status: 'ok',
     uptime: process.uptime(),
     startedAt: startTime.toISOString(),
-    service: 'santi-living-bot',
+    service: 'sync-erp-whatsapp-connector',
   });
 });
 

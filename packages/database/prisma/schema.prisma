@@ -124,7 +124,7 @@ model CompanySubscription {
   id                     String                    @id @default(cuid())
   companyId              String                    @unique
   company                Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  planKey                String                    @default("starter")
+  planKey                String                    @default("free")
   status                 BillingSubscriptionStatus @default(TRIALING)
   provider               BillingProvider?
   providerCustomerId     String?
@@ -199,8 +199,8 @@ model Integration {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // App Identifiers
-  appId       String // e.g., "santi-living", "rockhouse", "pos-lite"
-  name        String // Display Name "Santi Living"
+  appId       String // e.g., "custom-storefront", "rockhouse", "pos-lite"
+  name        String // Display name for the external integration
   description String?
   icon        String? // icon name or url
 
@@ -223,7 +223,7 @@ model ApiKey {
   id        String @id @default(cuid())
   keyHash   String @unique // bcrypt hash of the actual key
   keyPrefix String // First 8 chars for display (e.g., "sk_live_")
-  name      String // "Santi Living Production"
+  name      String // "Storefront Production"
 
   companyId     String
   company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -971,7 +971,7 @@ model RentalItem {
 model RentalBundle {
   id          String   @id @default(uuid())
   companyId   String
-  externalId  String? // santi-living package ID (e.g., "package-single-standard")
+  externalId  String? // External package/item ID (e.g., "package-single-standard")
   name        String // "Single Standard (Paket)"
   shortName   String? // "Single Standard (Pkt)"
   description String? // "Kasur + Sprei + Bantal + Selimut"
@@ -1064,7 +1064,7 @@ model RentalOrder {
   // Public access token for customer tracking
   publicToken String? @unique @default(uuid())
 
-  // Santi Living Integration Fields
+  // External storefront integration fields
   deliveryFee     Decimal?    @db.Decimal(15, 2)
   deliveryAddress String?     @db.Text // Full combined address for display
   street          String? // Jalan/nama jalan

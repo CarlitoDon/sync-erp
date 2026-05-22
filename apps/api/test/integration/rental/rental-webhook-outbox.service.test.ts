@@ -43,14 +43,14 @@ const seedIntegration = async (overrides?: {
   const integration = await prisma.integration.create({
     data: {
       companyId: COMPANY_ID,
-      appId: 'santi-living',
-      name: 'Santi Living',
+      appId: 'custom-storefront',
+      name: 'Custom Storefront',
       isActive: overrides?.isActive ?? true,
       config: {
-        webhookUrl: overrides?.webhookUrl ?? 'http://proxy.test',
+        webhookUrl: overrides?.webhookUrl ?? 'http://storefront.test',
         paths: overrides?.paths ?? {
-          newOrder: '/api/orders/{token}/notify-admin',
-          paymentStatus: '/api/orders/{token}/notify-payment',
+          newOrder: '/webhooks/rental/orders/{token}/created',
+          paymentStatus: '/webhooks/rental/orders/{token}/payment-status',
         },
       },
     },
@@ -63,9 +63,9 @@ const seedIntegration = async (overrides?: {
       keyHash: 'hash',
       keyPrefix: 'sk_test',
       name: 'Test Key',
-      webhookUrl: overrides?.webhookUrl ?? 'http://proxy.test',
+      webhookUrl: overrides?.webhookUrl ?? 'http://storefront.test',
       webhookSecret:
-        overrides?.webhookSecret ?? 'Bearer proxy-test-secret',
+        overrides?.webhookSecret ?? 'Bearer storefront-test-secret',
       isActive: true,
     },
   });

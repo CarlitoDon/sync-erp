@@ -20,7 +20,8 @@ import { customerDepositRouter } from './routers/customerDeposit.router'; // Cas
 import { cashBankRouter } from '../modules/cash-bank/cash-bank.router'; // Feature 042: Cash & Bank
 import { rentalRouter } from './routers/rental.router'; // Feature 043: Rental Business
 import { rentalBundleRouter } from './routers/rental-bundle.router'; // Package/Bundle support
-import { publicRentalRouter } from './routers/public-rental.router'; // Santi Living Integration
+import { integrationV1Router } from './routers/integration-v1.router';
+import { publicRentalRouter } from './routers/public-rental.router';
 import { apiKeyRouter } from './routers/api-key.router'; // Multi-tenant API key management
 import { integrationRouter } from './routers/integration.router'; // Integrations Marketplace
 import { botRouter } from './routers/bot.router';
@@ -33,7 +34,8 @@ export const appRouter = router({
   // Public routes (no auth required)
   auth: authRouter,
   health: healthRouter,
-  publicRental: publicRentalRouter, // External client access (santi-living)
+  integrationV1: integrationV1Router,
+  publicRental: publicRentalRouter, // Deprecated compatibility alias for older typed integrations.
   bill: billRouter,
   purchaseOrder: purchaseOrderRouter,
   invoice: invoiceRouter,

@@ -41,6 +41,9 @@ describe('RentalOrderFulfillmentService', () => {
       mockRentalRepository as unknown as import("../../../src/modules/rental/rental.repository").RentalRepository,
       mockJournalService as unknown as import("../../../src/modules/accounting/services/journal.service").JournalService
     );
+    asMock(prisma.companySubscription.findUnique).mockResolvedValue({
+      planKey: 'starter',
+    });
   });
 
   describe('confirmOrder', () => {
@@ -342,6 +345,59 @@ describe('RentalOrderFulfillmentService', () => {
           ACTOR_ID
         )
       ).rejects.toThrow('All units must have before photos');
+    });
+
+    it('should release without photos on the free plan', async () => {
+      asMock(prisma.companySubscription.findUnique).mockResolvedValue({
+        planKey: 'free',
+      });
+      mockRentalRepository.findOrderById.mockResolvedValue(
+        mockOrder as unknown as import("@sync-erp/shared").PrismaRentalOrderWithRelations
+      );
+      asMock(prisma.itemConditionLog.create).mockResolvedValue({});
+      asMock(prisma.rentalItemUnit.updateMany).mockResolvedValue({
+        count: 1,
+      });
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
+        ...mockOrder,
+        status: RentalOrderStatus.ACTIVE,
+      });
+
+      const result = await service.releaseOrder(
+        COMPANY_ID,
+        {
+          ...input,
+          unitAssignments: [
+            { ...input.unitAssignments[0], beforePhotos: [] },
+          ],
+        },
+        ACTOR_ID
+      );
+
+      expect(result.status).toBe(RentalOrderStatus.ACTIVE);
+      expect(prisma.itemConditionLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            beforePhotos: [],
+            notes: 'No damage',
+          }),
+        })
+      );
+    });
+
+    it('should reject submitted photos on the free plan', async () => {
+      asMock(prisma.companySubscription.findUnique).mockResolvedValue({
+        planKey: 'free',
+      });
+      mockRentalRepository.findOrderById.mockResolvedValue(
+        mockOrder as unknown as import("@sync-erp/shared").PrismaRentalOrderWithRelations
+      );
+
+      await expect(
+        service.releaseOrder(COMPANY_ID, input, ACTOR_ID)
+      ).rejects.toThrow(
+        'Media access is not available on your current plan'
+      );
     });
   });
 });

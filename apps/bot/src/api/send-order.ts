@@ -6,7 +6,6 @@ import {
   formatPhoneNumber,
   isValidIndonesianNumber,
 } from '../utils/phone';
-import { trpc } from '../lib/trpc';
 import { getUrlInfo } from '@whiskeysockets/baileys';
 
 // Type helper for error handling
@@ -49,40 +48,6 @@ export const sendOrder = async (req: Request, res: Response) => {
       error: 'Service Unavailable',
       message: 'Bot WhatsApp belum siap.',
     });
-  }
-
-  // 4a. Verify Order via TRPC (if URL provided)
-  if (payload.orderUrl) {
-    try {
-      // Extract token from URL
-      const tokenMatch = payload.orderUrl.match(
-        /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
-      );
-
-      if (tokenMatch) {
-        const token = tokenMatch[0];
-        console.log(`[SendOrder] Verifying order via TRPC: ${token}`);
-
-        const order = await trpc.publicRental.getByToken.query({
-          token,
-        });
-
-        if (order.orderNumber !== payload.orderId) {
-          console.warn(
-            `[SendOrder] Order ID Mismatch! Payload: ${payload.orderId}, TRPC: ${order.orderNumber}`
-          );
-          // Optional: Reject request if strict
-          // return res.status(400).json({ error: 'Order ID Mismatch' });
-        }
-
-        console.log(
-          `[SendOrder] TRPC Verification Success: ${order.orderNumber} (${order.status})`
-        );
-      }
-    } catch (err) {
-      console.error('[SendOrder] TRPC Validation Failed:', err);
-      // We continue - don't block notification on sync failure
-    }
   }
 
   // Baileys format: 628xxx@s.whatsapp.net

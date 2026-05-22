@@ -781,7 +781,7 @@ export class RentalWebhookOutboxService {
     const pathTemplate =
       typeof pathsConfig.newOrder === 'string'
         ? pathsConfig.newOrder
-        : '/api/orders/{token}/notify-admin';
+        : '/api/webhooks/sync-erp';
 
     return {
       url: `${baseUrl}${pathTemplate.replace('{token}', token)}`,
@@ -821,7 +821,7 @@ export class RentalWebhookOutboxService {
     const pathTemplate =
       typeof pathsConfig.paymentStatus === 'string'
         ? pathsConfig.paymentStatus
-        : '/api/orders/{token}/notify-payment';
+        : '/api/webhooks/sync-erp';
 
     return {
       url: `${baseUrl}${pathTemplate.replace('{token}', token)}`,

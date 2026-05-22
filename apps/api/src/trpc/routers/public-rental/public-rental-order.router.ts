@@ -44,7 +44,7 @@ export const publicRentalOrderRouter = router({
           notes: order.notes,
           createdAt: order.createdAt,
 
-          // Santi Living address fields
+          // External storefront address fields
           deliveryFee:
             order.deliveryFee === null ? null : Number(order.deliveryFee),
           deliveryAddress: order.deliveryAddress,
@@ -122,7 +122,7 @@ export const publicRentalOrderRouter = router({
   /**
    * Create rental order from external source
    * Creates order in DRAFT status, to be confirmed by admin
-   * Auto-creates bundles/items if not found (for santi-living integration)
+   * Auto-creates bundles/items if not found for external integrations.
    */
   createOrder: apiKeyProcedure
     .input(
@@ -137,7 +137,7 @@ export const publicRentalOrderRouter = router({
               rentalItemId: z.string().min(1).optional(),
               rentalBundleId: z.string().min(1).optional(),
               quantity: z.number().int().positive(),
-              // Metadata for auto-creation (from santi-living)
+              // Metadata for auto-creation from external catalog payloads.
               name: z.string().optional(),
               pricePerDay: z.number().positive().optional(),
               category: z
@@ -156,7 +156,7 @@ export const publicRentalOrderRouter = router({
         ),
         notes: z.string().optional(),
 
-        // Santi Living integration fields
+        // External storefront integration fields
         deliveryFee: z.number().nonnegative().optional(),
         deliveryAddress: z.string().optional(),
         street: z.string().optional(),
@@ -208,7 +208,7 @@ export const publicRentalOrderRouter = router({
 
   /**
    * Update order by public token
-   * Used by santi-living "Edit Pesanan" flow to update customer info, items, dates, etc.
+   * Used by external storefront edit-order flows.
    * Only DRAFT orders with PENDING payment can be updated.
    */
   updateOrder: apiKeyProcedure
@@ -283,7 +283,7 @@ export const publicRentalOrderRouter = router({
 
   /**
    * Delete order by ID (Internal/Rollback Use)
-   * Used by santi-living to rollback invalid orders
+   * Deprecated compatibility delete for older integration rollback flows.
    */
   deleteOrder: apiKeyProcedure
     .input(z.object({ id: z.string().uuid() }))

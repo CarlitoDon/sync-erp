@@ -4,6 +4,8 @@ import {
   DepositPolicyType,
   AccountType,
   UnitCondition,
+  BillingProvider,
+  BillingSubscriptionStatus,
 } from '@sync-erp/database';
 import { RentalService } from '@modules/rental/rental.service';
 
@@ -54,6 +56,14 @@ describe('Rental Deposit Refund Scenarios', () => {
     // Create Company
     await prisma.company.create({
       data: { id: COMPANY_ID, name: 'Deposit Refund Test Corp' },
+    });
+    await prisma.companySubscription.create({
+      data: {
+        companyId: COMPANY_ID,
+        planKey: 'growth',
+        status: BillingSubscriptionStatus.ACTIVE,
+        provider: BillingProvider.MANUAL,
+      },
     });
 
     // Seed Chart of Accounts

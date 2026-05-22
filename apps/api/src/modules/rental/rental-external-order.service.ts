@@ -9,19 +9,13 @@ import {
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
 import { DocumentNumberService } from '../common/services/document-number.service';
-import { container, ServiceKeys } from '../common/di';
-import type { RentalWebhookService } from './rental-webhook.service';
-
-// Lazy resolve webhook service
-const getWebhookService = (): RentalWebhookService | null => {
-  try {
-    return container.resolve<RentalWebhookService>(
-      ServiceKeys.RENTAL_WEBHOOK_SERVICE
-    );
-  } catch {
-    return null;
-  }
-};
+import { webhookService } from '../../services/webhook.service';
+import type {
+  RentalIntegrationClaimPaymentInput,
+  RentalIntegrationConfirmPaymentInput,
+  RentalIntegrationCustomerInput,
+  RentalIntegrationRejectPaymentInput,
+} from './rental-integration.schemas';
 
 export interface CreatePublicOrderInput {
   companyId: string;
@@ -51,6 +45,10 @@ export interface CreatePublicOrderInput {
   paymentMethod?: string;
   discountAmount?: number;
   discountLabel?: string;
+  externalId?: string;
+  externalSource?: string;
+  metadata?: Record<string, unknown>;
+  createdByApiKeyId?: string;
 }
 
 export interface UpdatePublicOrderInput {
@@ -104,9 +102,179 @@ export class RentalExternalOrderService {
   private readonly documentNumberService =
     new DocumentNumberService();
 
+  async findOrCreateCustomer(
+    companyId: string,
+    input: RentalIntegrationCustomerInput
+  ) {
+    const normalizedPhone = this.normalizePhone(input.phone);
+
+    let partner = await prisma.partner.findFirst({
+      where: {
+        companyId,
+        phone: normalizedPhone,
+      },
+    });
+
+    const nextData = {
+      companyId,
+      name: input.name,
+      phone: normalizedPhone,
+      email: input.email,
+      address: input.address,
+      street: input.street,
+      kelurahan: input.kelurahan,
+      kecamatan: input.kecamatan,
+      kota: input.kota,
+      provinsi: input.provinsi,
+      zip: input.zip,
+      latitude: input.latitude,
+      longitude: input.longitude,
+      type: PartnerType.CUSTOMER,
+    };
+
+    if (!partner) {
+      return prisma.partner.create({ data: nextData });
+    }
+
+    const addressChanged =
+      (input.address !== undefined &&
+        input.address !== partner.address) ||
+      (input.street !== undefined && input.street !== partner.street) ||
+      (input.kelurahan !== undefined &&
+        input.kelurahan !== partner.kelurahan) ||
+      (input.kecamatan !== undefined &&
+        input.kecamatan !== partner.kecamatan) ||
+      (input.kota !== undefined && input.kota !== partner.kota) ||
+      (input.provinsi !== undefined &&
+        input.provinsi !== partner.provinsi) ||
+      (input.zip !== undefined && input.zip !== partner.zip) ||
+      (input.latitude !== undefined &&
+        input.latitude !==
+          (partner.latitude === null
+            ? undefined
+            : Number(partner.latitude))) ||
+      (input.longitude !== undefined &&
+        input.longitude !==
+          (partner.longitude === null
+            ? undefined
+            : Number(partner.longitude)));
+
+    if (input.name !== partner.name || addressChanged) {
+      partner = await prisma.partner.create({ data: nextData });
+    }
+
+    return partner;
+  }
+
   async getByToken(token: string) {
     const order = await prisma.rentalOrder.findFirst({
       where: { publicToken: token },
+      include: {
+        partner: {
+          select: {
+            name: true,
+            phone: true,
+            address: true,
+            street: true,
+            kelurahan: true,
+            kecamatan: true,
+            kota: true,
+            provinsi: true,
+            zip: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
+        items: {
+          include: {
+            rentalItem: {
+              include: {
+                product: {
+                  select: {
+                    name: true,
+                    sku: true,
+                  },
+                },
+              },
+            },
+            rentalBundle: {
+              select: {
+                name: true,
+                shortName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new DomainError(
+        'Order not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
+    return order;
+  }
+
+  async getById(companyId: string, id: string) {
+    const order = await prisma.rentalOrder.findFirst({
+      where: { id, companyId },
+      include: {
+        partner: {
+          select: {
+            name: true,
+            phone: true,
+            address: true,
+            street: true,
+            kelurahan: true,
+            kecamatan: true,
+            kota: true,
+            provinsi: true,
+            zip: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
+        items: {
+          include: {
+            rentalItem: {
+              include: {
+                product: {
+                  select: {
+                    name: true,
+                    sku: true,
+                  },
+                },
+              },
+            },
+            rentalBundle: {
+              select: {
+                name: true,
+                shortName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new DomainError(
+        'Order not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
+    return order;
+  }
+
+  async getByOrderNumber(companyId: string, orderNumber: string) {
+    const order = await prisma.rentalOrder.findFirst({
+      where: { orderNumber, companyId },
       include: {
         partner: {
           select: {
@@ -191,9 +359,9 @@ export class RentalExternalOrderService {
         subtotal,
         depositAmount: 0,
         totalAmount,
-        policySnapshot: {},
+        policySnapshot: this.buildPolicySnapshot(input),
         notes: input.notes,
-        createdBy: 'santi-living-website',
+        createdBy: this.buildCreatedBy(input),
         deliveryFee: input.deliveryFee,
         deliveryAddress: input.deliveryAddress,
         street: input.street,
@@ -220,56 +388,9 @@ export class RentalExternalOrderService {
       },
     });
 
-    const webhookService = getWebhookService();
-    if (webhookService && order.publicToken) {
-      try {
-        await webhookService.notifyNewOrder(
-          {
-            companyId: input.companyId,
-            token: order.publicToken,
-            orderNumber: order.orderNumber,
-            customerName: order.partner.name,
-            customerPhone: order.partner.phone || '',
-            totalAmount: Number(order.totalAmount),
-          },
-          { throwOnFailure: true }
-        );
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : 'Unknown validation error';
-        console.error(
-          '[PublicRental] New order webhook/validation failed. Rolling back order:',
-          errorMessage
-        );
-
-        try {
-          await prisma.rentalOrderItem.deleteMany({
-            where: { rentalOrderId: order.id },
-          });
-          await prisma.rentalOrder.deleteMany({
-            where: { id: order.id },
-          });
-        } catch (rollbackErr) {
-          console.warn(
-            '[PublicRental] Rollback failed unexpectedly:',
-            rollbackErr
-          );
-        }
-
-        const isBotUnreachable = errorMessage.includes('Bot memerlukan') || errorMessage.includes('scan QR') || errorMessage.includes('Bot is not ready');
-        const userFriendlyMessage = isBotUnreachable
-          ? 'Mohon maaf, sistem sedang tidak dapat memproses pesanan otomatis. Silakan hubungi admin via WhatsApp untuk melanjutkan.'
-          : (errorMessage || 'Gagal validasi pesanan (WhatsApp tidak valid)');
-
-        throw new DomainError(
-          userFriendlyMessage,
-          400,
-          DomainErrorCodes.INVALID_INPUT
-        );
-      }
-    }
+    void this.notifyRentalEvent(input.companyId, 'rental.order.created', {
+      order,
+    });
 
     return order;
   }
@@ -396,7 +517,276 @@ export class RentalExternalOrderService {
       },
     });
 
+    void this.notifyRentalEvent(
+      updated.companyId,
+      'rental.order.updated',
+      { order: updated }
+    );
+
     return updated;
+  }
+
+  async cancelOrder(input: {
+    id: string;
+    companyId: string;
+    reason?: string;
+  }) {
+    const order = await prisma.rentalOrder.findFirst({
+      where: {
+        id: input.id,
+        companyId: input.companyId,
+      },
+    });
+
+    if (!order) {
+      throw new DomainError(
+        'Order not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
+    if (order.status === RentalOrderStatus.COMPLETED) {
+      throw new DomainError(
+        'Completed orders cannot be cancelled by integration API',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    const cancelled = await prisma.rentalOrder.update({
+      where: { id: order.id },
+      data: {
+        status: RentalOrderStatus.CANCELLED,
+        cancelledAt: new Date(),
+        notes: input.reason
+          ? [order.notes, `Cancellation reason: ${input.reason}`]
+              .filter(Boolean)
+              .join('\n')
+          : order.notes,
+      },
+      include: {
+        partner: { select: { name: true, phone: true } },
+        items: true,
+      },
+    });
+
+    void this.notifyRentalEvent(
+      cancelled.companyId,
+      'rental.order.cancelled',
+      { order: cancelled }
+    );
+
+    return cancelled;
+  }
+
+  async claimPayment(
+    companyId: string,
+    input: RentalIntegrationClaimPaymentInput
+  ) {
+    const order = await prisma.rentalOrder.findFirst({
+      where: {
+        publicToken: input.token,
+        companyId,
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        rentalPaymentStatus: true,
+        status: true,
+        companyId: true,
+        totalAmount: true,
+      },
+    });
+
+    if (!order) {
+      throw new DomainError(
+        'Order not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
+    if (order.rentalPaymentStatus !== RentalPaymentStatus.PENDING) {
+      throw new DomainError(
+        `Cannot claim payment. Current status: ${order.rentalPaymentStatus}`,
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    const updatedOrder = await prisma.rentalOrder.update({
+      where: { id: order.id },
+      data: {
+        rentalPaymentStatus: RentalPaymentStatus.AWAITING_CONFIRM,
+        paymentClaimedAt: new Date(),
+        paymentMethod: input.paymentMethod,
+        paymentReference: input.reference || null,
+      },
+      select: {
+        orderNumber: true,
+        rentalPaymentStatus: true,
+        paymentClaimedAt: true,
+        paymentMethod: true,
+        paymentReference: true,
+      },
+    });
+
+    void this.notifyPaymentEvent(companyId, 'rental.payment.claimed', {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      rentalPaymentStatus: RentalPaymentStatus.AWAITING_CONFIRM,
+      totalAmount: order.totalAmount,
+      paymentMethod: input.paymentMethod,
+      paymentReference: input.reference || null,
+    });
+
+    return {
+      success: true,
+      orderNumber: updatedOrder.orderNumber,
+      rentalPaymentStatus: updatedOrder.rentalPaymentStatus,
+      paymentClaimedAt: updatedOrder.paymentClaimedAt,
+    };
+  }
+
+  async confirmPaymentByOrderNumber(
+    companyId: string,
+    input: RentalIntegrationConfirmPaymentInput
+  ) {
+    const order = await prisma.rentalOrder.findFirst({
+      where: {
+        companyId,
+        orderNumber: input.orderNumber,
+      },
+    });
+
+    if (!order) {
+      throw new DomainError(
+        'Order not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
+    if (order.rentalPaymentStatus === RentalPaymentStatus.CONFIRMED) {
+      return { success: true, status: 'ALREADY_CONFIRMED' };
+    }
+
+    if (
+      order.orderSource === OrderSource.WEBSITE &&
+      input.amount === undefined
+    ) {
+      throw new DomainError(
+        'Payment amount is required for website orders',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    if (
+      input.amount !== undefined &&
+      Math.round(input.amount) !== Math.round(Number(order.totalAmount))
+    ) {
+      throw new DomainError(
+        'Payment amount does not match the current order total',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    const updatedOrder = await prisma.rentalOrder.update({
+      where: { id: order.id },
+      data: {
+        rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
+        paymentConfirmedAt: new Date(),
+        paymentMethod: input.paymentMethod,
+        paymentReference: input.transactionId,
+        ...(order.orderSource === OrderSource.WEBSITE &&
+        order.status === RentalOrderStatus.DRAFT
+          ? {
+              status: RentalOrderStatus.CONFIRMED,
+              confirmedAt: new Date(),
+            }
+          : {}),
+      },
+    });
+
+    void this.notifyPaymentEvent(companyId, 'rental.payment.confirmed', {
+      id: updatedOrder.id,
+      orderNumber: updatedOrder.orderNumber,
+      rentalPaymentStatus: updatedOrder.rentalPaymentStatus,
+      totalAmount: updatedOrder.totalAmount,
+      paymentMethod: updatedOrder.paymentMethod,
+      paymentReference: updatedOrder.paymentReference,
+    });
+
+    return {
+      success: true,
+      orderNumber: updatedOrder.orderNumber,
+      status: updatedOrder.status,
+    };
+  }
+
+  async rejectPaymentByOrderNumber(
+    companyId: string,
+    input: RentalIntegrationRejectPaymentInput
+  ) {
+    const order = await prisma.rentalOrder.findFirst({
+      where: {
+        companyId,
+        orderNumber: input.orderNumber,
+      },
+    });
+
+    if (!order) {
+      throw new DomainError(
+        'Order not found',
+        404,
+        DomainErrorCodes.NOT_FOUND
+      );
+    }
+
+    if (order.rentalPaymentStatus === RentalPaymentStatus.CONFIRMED) {
+      return {
+        success: true,
+        orderNumber: order.orderNumber,
+        status: 'ALREADY_CONFIRMED',
+      };
+    }
+
+    if (order.rentalPaymentStatus === RentalPaymentStatus.FAILED) {
+      return {
+        success: true,
+        orderNumber: order.orderNumber,
+        status: 'ALREADY_FAILED',
+      };
+    }
+
+    const updatedOrder = await prisma.rentalOrder.update({
+      where: { id: order.id },
+      data: {
+        rentalPaymentStatus: RentalPaymentStatus.FAILED,
+        paymentFailedAt: new Date(),
+        paymentFailReason: input.failReason,
+        paymentMethod: input.paymentMethod || order.paymentMethod,
+      },
+    });
+
+    void this.notifyPaymentEvent(companyId, 'rental.payment.rejected', {
+      id: updatedOrder.id,
+      orderNumber: updatedOrder.orderNumber,
+      rentalPaymentStatus: updatedOrder.rentalPaymentStatus,
+      totalAmount: updatedOrder.totalAmount,
+      paymentMethod: updatedOrder.paymentMethod,
+      paymentReference: updatedOrder.paymentReference,
+      failReason: input.failReason,
+    });
+
+    return {
+      success: true,
+      orderNumber: updatedOrder.orderNumber,
+      status: updatedOrder.rentalPaymentStatus,
+    };
   }
 
   async deleteOrder(id: string, expectedCompanyId?: string) {
@@ -455,6 +845,55 @@ export class RentalExternalOrderService {
       (endDate.getTime() - startDate.getTime()) /
         (1000 * 60 * 60 * 24)
     );
+  }
+
+  private buildCreatedBy(input: CreatePublicOrderInput) {
+    if (input.createdByApiKeyId) {
+      return `api-key:${input.createdByApiKeyId}`;
+    }
+
+    return `api:${input.externalSource || 'external'}`;
+  }
+
+  private buildPolicySnapshot(input: CreatePublicOrderInput) {
+    return {
+      integration: {
+        externalId: input.externalId,
+        externalSource: input.externalSource,
+        createdByApiKeyId: input.createdByApiKeyId,
+        metadata: input.metadata,
+      },
+    };
+  }
+
+  private async notifyRentalEvent(
+    companyId: string,
+    event:
+      | 'rental.order.created'
+      | 'rental.order.updated'
+      | 'rental.order.cancelled',
+    payload: Record<string, unknown>
+  ) {
+    try {
+      await webhookService.notifyTenant(companyId, event, payload);
+    } catch (error) {
+      console.error('[RentalIntegration] Webhook enqueue failed:', error);
+    }
+  }
+
+  private async notifyPaymentEvent(
+    companyId: string,
+    event:
+      | 'rental.payment.claimed'
+      | 'rental.payment.confirmed'
+      | 'rental.payment.rejected',
+    payload: Record<string, unknown>
+  ) {
+    try {
+      await webhookService.notifyTenant(companyId, event, payload);
+    } catch (error) {
+      console.error('[RentalIntegration] Payment webhook enqueue failed:', error);
+    }
   }
 
   private async updatePartnerFromInput(

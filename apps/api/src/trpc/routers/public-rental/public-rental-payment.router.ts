@@ -14,20 +14,7 @@ import {
   RentalPaymentStatus,
 } from '@sync-erp/database';
 import { TRPCError } from '@trpc/server';
-import { container, ServiceKeys } from '../../../modules/common/di';
-import type { RentalWebhookService } from '../../../modules/rental/rental-webhook.service';
 import { webhookService as tenantWebhookService } from '../../../services/webhook.service';
-
-// Lazy resolve webhook service (for admin notifications - Santi Living specific)
-const getWebhookService = (): RentalWebhookService | null => {
-  try {
-    return container.resolve<RentalWebhookService>(
-      ServiceKeys.RENTAL_WEBHOOK_SERVICE
-    );
-  } catch {
-    return null;
-  }
-};
 
 export const publicRentalPaymentRouter = router({
   /**
@@ -89,6 +76,22 @@ export const publicRentalPaymentRouter = router({
           paymentMethod: true,
         },
       });
+
+      tenantWebhookService
+        .notifyTenant(ctx.companyId, 'rental.payment.confirmed', {
+          id: updatedOrder.id,
+          orderNumber: updatedOrder.orderNumber,
+          rentalPaymentStatus: updatedOrder.rentalPaymentStatus,
+          totalAmount: updatedOrder.totalAmount,
+          paymentMethod: updatedOrder.paymentMethod,
+          paymentReference: updatedOrder.paymentReference,
+        })
+        .catch((err: unknown) => {
+          console.error(
+            '[PublicRental] Tenant payment webhook failed:',
+            err
+          );
+        });
 
       return {
         success: true,
@@ -159,27 +162,9 @@ export const publicRentalPaymentRouter = router({
         },
       });
 
-      // Fire webhook notification to admin (async, non-blocking)
-      const webhookService = getWebhookService();
-      if (webhookService) {
-        webhookService
-          .notifyPaymentStatus({
-            companyId: order.companyId,
-            token: input.token,
-            action: 'claimed',
-            paymentMethod: input.paymentMethod,
-          })
-          .catch((err: unknown) => {
-            console.error(
-              '[PublicRental] Payment claimed webhook failed:',
-              err
-            );
-          });
-      }
-
       // Fire multi-tenant webhook (async, non-blocking)
       tenantWebhookService
-        .notifyPaymentEvent(ctx.companyId, 'payment.received', {
+        .notifyTenant(ctx.companyId, 'rental.payment.claimed', {
           id: order.id,
           orderNumber: order.orderNumber || '',
           rentalPaymentStatus: 'AWAITING_CONFIRM',
@@ -277,25 +262,6 @@ export const publicRentalPaymentRouter = router({
         },
       });
 
-      // Fire webhook notification to admin & customer (async, non-blocking)
-      const webhookService = getWebhookService();
-      if (webhookService && order.publicToken) {
-        webhookService
-          .notifyPaymentStatus({
-            companyId: order.companyId,
-            token: order.publicToken,
-            action: 'confirmed',
-            paymentMethod: input.paymentMethod,
-            paymentReference: input.transactionId,
-          })
-          .catch((err: unknown) => {
-            console.error(
-              '[PublicRental] Payment confirmed webhook failed:',
-              err
-            );
-          });
-      }
-
       return {
         success: true,
         orderNumber: updatedOrder.orderNumber,
@@ -358,23 +324,22 @@ export const publicRentalPaymentRouter = router({
         },
       });
 
-      const webhookService = getWebhookService();
-      if (webhookService && order.publicToken) {
-        webhookService
-          .notifyPaymentStatus({
-            companyId: order.companyId,
-            token: order.publicToken,
-            action: 'rejected',
-            paymentMethod: input.paymentMethod || order.paymentMethod || undefined,
-            failReason: input.failReason,
-          })
-          .catch((err: unknown) => {
-            console.error(
-              '[PublicRental] Payment rejected webhook failed:',
-              err
-            );
-          });
-      }
+      tenantWebhookService
+        .notifyTenant(ctx.companyId, 'rental.payment.rejected', {
+          id: updatedOrder.id,
+          orderNumber: updatedOrder.orderNumber,
+          rentalPaymentStatus: updatedOrder.rentalPaymentStatus,
+          totalAmount: updatedOrder.totalAmount,
+          paymentMethod: updatedOrder.paymentMethod,
+          paymentReference: updatedOrder.paymentReference,
+          failReason: input.failReason,
+        })
+        .catch((err: unknown) => {
+          console.error(
+            '[PublicRental] Tenant payment webhook failed:',
+            err
+          );
+        });
 
       return {
         success: true,

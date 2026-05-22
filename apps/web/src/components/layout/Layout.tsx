@@ -1,13 +1,26 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileMenuButton from '@/components/layout/MobileMenuButton';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { AdSenseScript } from '@/components/ads/AdSenseScript';
+import { AdSenseSlot } from '@/components/ads/AdSenseSlot';
+import { getFooterAdSenseSlot } from '@/components/ads/adsense';
+import { useBillingFeatures } from '@/hooks/useBillingFeatures';
 
 export default function Layout() {
   const { isCollapsed } = useSidebar();
+  const location = useLocation();
+  const { adsEnabled } = useBillingFeatures();
+  const suppressAds =
+    location.search.includes('checkout=') ||
+    location.pathname.includes('/print') ||
+    location.pathname.includes('/export');
+  const showAds = adsEnabled && !suppressAds;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex">
+      <AdSenseScript enabled={showAds} />
+
       {/* Sidebar */}
       <Sidebar />
 
@@ -38,7 +51,16 @@ export default function Layout() {
 
         {/* Main Content */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
+          <AdSenseSlot
+            enabled={showAds}
+            className="mb-6 min-h-[90px]"
+          />
           <Outlet />
+          <AdSenseSlot
+            enabled={showAds}
+            slot={getFooterAdSenseSlot()}
+            className="mt-6 min-h-[90px]"
+          />
         </main>
 
         {/* Footer */}
