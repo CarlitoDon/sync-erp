@@ -37,6 +37,7 @@ jobs:
         with:
           filters: |
             api:
+              - '.github/workflows/ci.yml'
               - 'apps/api/**'
               - 'apps/mcp/**'
               - 'packages/database/**'
@@ -45,6 +46,7 @@ jobs:
               - 'package-lock.json'
               - 'turbo.json'
             web:
+              - '.github/workflows/ci.yml'
               - 'apps/web/**'
               - 'packages/shared/**'
               - 'package.json'
