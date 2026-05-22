@@ -104,6 +104,7 @@ jobs:
     needs: [changes, ci]
     if: github.event_name == 'push' && needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     environment:
       name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     concurrency:
@@ -174,30 +175,47 @@ jobs:
           export DISPLAY=:0
 
           ssh-add ~/.ssh/id_ed25519
+          SSH_OPTS="-p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o BatchMode=yes"
 
-          rsync -avz --delete \
+          rsync -avz --delete-delay --timeout=120 --contimeout=30 \
             --exclude='.htaccess' \
             --exclude='.env' \
             --exclude='node_modules' \
             --exclude='tmp' \
             --exclude='stderr.log' \
-            -e "ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+            -e "ssh ${SSH_OPTS}" \
             deploy/api-mcp/ "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/public_html/${DEPLOY_DIR}/"
 
-          ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${HOSTINGER_USER}@${HOSTINGER_HOST}" <<EOF
-            export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH
-            cd ~/public_html/${DEPLOY_DIR}
-            npm install --production --no-audit --no-fund
-            npm run db:generate
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' bash -s" <<'EOF'
+            set -euo pipefail
+            export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
+            cd "$HOME/public_html/${DEPLOY_DIR}"
+
+            fingerprint="$(sha256sum package.json | awk '{print $1}')"
+            installed_fingerprint=""
+            if [ -f .package-deps.sha256 ]; then
+              installed_fingerprint="$(cat .package-deps.sha256)"
+            fi
+
+            if [ -d node_modules ] && [ -d node_modules/@prisma/client ] && [ -d node_modules/express ] && { [ -z "$installed_fingerprint" ] || [ "$installed_fingerprint" = "$fingerprint" ]; }; then
+              echo "Reusing existing production node_modules."
+              echo "$fingerprint" > .package-deps.sha256
+            else
+              echo "Installing production dependencies."
+              timeout 600 npm install --omit=dev --ignore-scripts --no-audit --no-fund --loglevel=warn
+              echo "$fingerprint" > .package-deps.sha256
+            fi
+
+            timeout 180 npm run db:generate
             mkdir -p node_modules/@sync-erp/database tmp
           EOF
 
-          rsync -avz --delete \
-            -e "ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+          rsync -avz --delete-delay --timeout=120 --contimeout=30 \
+            -e "ssh ${SSH_OPTS}" \
             deploy/api-mcp/node_modules/@sync-erp/database/ \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/public_html/${DEPLOY_DIR}/node_modules/@sync-erp/database/"
 
-          ssh -p 65002 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
             "cd ~/public_html/${DEPLOY_DIR} && mkdir -p tmp && touch tmp/restart.txt"
 
       - name: Verify API health
@@ -224,6 +242,7 @@ jobs:
     needs: [changes, ci]
     if: github.event_name == 'push' && needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     concurrency:
