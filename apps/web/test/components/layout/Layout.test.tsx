@@ -17,6 +17,16 @@ vi.mock('@/components/layout/MobileMenuButton', () => ({
   ),
 }));
 
+vi.mock('@/hooks/useBillingFeatures', () => ({
+  useBillingFeatures: () => ({
+    adsEnabled: false,
+    currentPlan: null,
+    currentPlanKey: null,
+    isLoading: false,
+    mediaAccess: true,
+  }),
+}));
+
 // Mock the contexts
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: vi.fn(),
