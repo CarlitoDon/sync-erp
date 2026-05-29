@@ -8,6 +8,7 @@ import * as trpcExpress from '@trpc/server/adapters/express';
 import { errorHandler } from './middlewares/errorHandler';
 import { optionalAuthMiddleware } from './middlewares/auth';
 import { correlationMiddleware } from './middlewares/correlation';
+import { csrfProtection } from './middlewares/csrf';
 import { appRouter } from './trpc/router';
 import { createContext } from './trpc/context';
 import { integrationV1Router } from './trpc/routers/integration-v1.router';
@@ -15,53 +16,8 @@ import { integrationV1HttpRouter } from './routes/integration-v1.router';
 import { googleOAuthRouter } from './modules/auth/google-oauth.router';
 import { mcpRouter } from './modules/mcp/router';
 import { billingHttpRouter } from './modules/billing/billing-http.router';
-
-// CORS origin configuration - supports multiple origins and Vercel previews
-const getCorsOrigin = ():
-  | string
-  | string[]
-  | ((
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void
-    ) => void) => {
-  const corsOrigin =
-    process.env.CORS_ORIGIN ||
-    process.env.CORS_ALLOWED_ORIGINS ||
-    'http://localhost:5173';
-
-  const origins = corsOrigin.split(',').map((o) => o.trim());
-
-  return (
-    origin: string | undefined,
-    callback: (err: Error | null, allow?: boolean) => void
-  ) => {
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-
-    if (origins.includes(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    if (
-      origin &&
-      (origin.endsWith('.vercel.app') ||
-        origin === 'https://sync-erp.vercel.app')
-    ) {
-      callback(null, true);
-      return;
-    }
-
-    if (origin.startsWith('http://localhost:')) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error('Not allowed by CORS'));
-  };
-};
+import { attachmentHttpRouter } from './modules/attachment/attachment-http.router';
+import { getCorsOrigin } from './cors';
 
 export function createApp() {
   const app = express();
@@ -76,7 +32,10 @@ export function createApp() {
       credentials: true,
     })
   );
-  app.use(express.json());
+  app.use(express.json({ limit: process.env.SYNC_ERP_JSON_LIMIT || '25mb' }));
+
+  // CSRF protection for cookie-based mutations
+  app.use(csrfProtection);
 
   app.get('/', (_req, res) => {
     res.json({
@@ -90,9 +49,15 @@ export function createApp() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // CSRF token endpoint - client fetches this on initial load
+  app.get('/api/csrf-token', (req, res) => {
+    res.json({ csrfToken: req.cookies['csrf-token'] || null });
+  });
+
   app.use('/mcp', mcpRouter);
   app.use('/api/auth/google', googleOAuthRouter);
   app.use('/api/billing', billingHttpRouter);
+  app.use('/api/attachments', attachmentHttpRouter);
   app.use('/api/v1', integrationV1HttpRouter);
 
   // Dedicated tRPC mount for typed external integrations.
