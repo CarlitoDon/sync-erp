@@ -29,24 +29,30 @@ Alur utama sekarang:
 
 ### `CI/CD`
 
-File: `.github/workflows/ci.yml`
+File: `.github/workflows/ci-cd.yml`
 
 Jobs:
 
 - `changes`
   - mendeteksi area yang berubah agar deploy hanya jalan saat relevan
-- `ci`
+- `ci-api`
   - install dependencies
   - setup test database
   - lint
   - typecheck
   - test
-  - build
+  - build API (selective: `npm run build:api`)
+- `ci-web`
+  - install dependencies
+  - lint
+  - typecheck
+  - build Web (selective: `npm run build:web`)
+  - **berjalan paralel** dengan `ci-api`
 - `deploy_api`
   - hanya jalan pada `push` ke `main` atau `dev`
   - hanya jalan jika area backend berubah
-  - build API
-  - package artifact production
+  - menunggu `changes` + `ci-api` selesai
+  - build dan package artifact production
   - rsync ke Hostinger
   - install dependency production
   - generate Prisma client
@@ -55,6 +61,7 @@ Jobs:
 - `deploy_web`
   - hanya jalan pada `push` ke `main` atau `dev`
   - hanya jalan jika area frontend berubah
+  - menunggu `changes` + `ci-web` selesai
   - prioritas deploy via Vercel deploy hook
   - fallback ke Vercel CLI jika hook belum dikonfigurasi atau hook tetap kena `429`
   - retry otomatis untuk rate limit / kegagalan sementara

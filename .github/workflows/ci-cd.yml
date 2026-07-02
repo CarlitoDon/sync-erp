@@ -18,6 +18,9 @@ env:
   NODE_OPTIONS: --max-old-space-size=4096
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sync_erp_test?schema=public
   NODE_ENV: test
+  TURBO_CACHE: remote:rw
+  TURBO_REMOTE_ONLY: "true"
+  TURBO_DOWNLOAD_LOCAL_ENABLED: "true"
 
 jobs:
   changes:
@@ -37,7 +40,7 @@ jobs:
         with:
           filters: |
             api:
-              - '.github/workflows/ci.yml'
+              - '.github/workflows/ci-cd.yml'
               - 'apps/api/**'
               - 'apps/mcp/**'
               - 'packages/database/**'
@@ -46,7 +49,7 @@ jobs:
               - 'package-lock.json'
               - 'turbo.json'
             web:
-              - '.github/workflows/ci.yml'
+              - '.github/workflows/ci-cd.yml'
               - 'apps/web/**'
               - 'packages/shared/**'
               - 'package.json'
@@ -55,8 +58,8 @@ jobs:
               - 'vercel.json'
               - 'apps/web/vercel.json'
 
-  ci:
-    name: Quality Gates
+  ci-api:
+    name: Quality Gates (API)
     runs-on: ubuntu-latest
 
     services:
@@ -83,7 +86,17 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: cache-npm-api
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-
+
       - name: Install dependencies
+        if: steps.cache-npm-api.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Setup test database
@@ -98,12 +111,47 @@ jobs:
       - name: Test
         run: npm run test
 
-      - name: Build
-        run: npm run build
+      - name: Build API
+        run: npm run build:api
+
+  ci-web:
+    name: Quality Gates (Web)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: cache-npm-web
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install dependencies
+        if: steps.cache-npm-web.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build Web
+        run: npm run build:web
 
   deploy_api:
     name: Deploy API to Hostinger
-    needs: [changes, ci]
+    needs: [changes, ci-api]
     if: github.event_name == 'push' && needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -257,7 +305,7 @@ jobs:
 
   deploy_web:
     name: Deploy Web to Vercel
-    needs: [changes, ci]
+    needs: [changes, ci-web]
     if: github.event_name == 'push' && needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
