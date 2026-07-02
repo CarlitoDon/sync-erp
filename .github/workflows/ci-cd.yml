@@ -111,6 +111,10 @@ jobs:
       - name: Test
         run: npm run test
 
+      - name: Test (integration)
+        run: npm run test:integration --workspace=@sync-erp/api
+        continue-on-error: false
+
       - name: Build API
         run: npm run build:api
 

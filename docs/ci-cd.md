@@ -40,7 +40,8 @@ Jobs:
   - setup test database
   - lint
   - typecheck
-  - test
+  - unit test
+  - **integration test** — `test:integration` API
   - build API (selective: `npm run build:api`)
 - `ci-web`
   - install dependencies
@@ -72,6 +73,16 @@ File: `.github/workflows/deploy-api-hostinger.yml`
 
 - hanya untuk `workflow_dispatch`
 - dipakai jika butuh redeploy backend manual saat darurat
+
+### E2E (Playwright) — Non-blocking
+
+File: `.github/workflows/e2e-playwright.yml`
+
+- trigger: push ke `main`/`dev`, PR ke `main`/`dev`
+- **berjalan paralel** dan **independen** dari CI/CD
+- tidak memblokir deploy
+- menjalankan Playwright E2E test di apps/web
+- menyimpan report sebagai artifact
 
 ## Required GitHub Secrets
 
