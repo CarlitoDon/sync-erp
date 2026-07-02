@@ -51,18 +51,18 @@ export const Button = React.forwardRef<
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+      'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:pointer-events-none disabled:opacity-50';
 
     const variants = {
       primary:
-        'bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500',
+        'bg-slate-950 text-white shadow-sm hover:bg-slate-800',
       secondary:
-        'bg-secondary-600 text-white hover:bg-secondary-700 focus-visible:ring-secondary-500',
+        'bg-slate-100 text-slate-950 hover:bg-slate-200',
       outline:
-        'border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-900',
-      ghost: 'hover:bg-gray-100 text-gray-900',
+        'border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 hover:border-slate-400',
+      ghost: 'text-slate-700 hover:bg-slate-100 hover:text-slate-950',
       danger:
-        'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
+        'bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-500',
     };
 
     const sizes = {

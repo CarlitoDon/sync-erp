@@ -16,10 +16,10 @@ export const Dialog = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black/50 transition-opacity"
+        className="fixed inset-0 bg-slate-950/50 transition-opacity"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-50 w-full max-w-lg transform rounded-xl bg-white p-6 shadow-2xl transition-all">
+      <div className="relative z-50 w-full max-w-lg transform rounded-lg border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-950/20 transition-all">
         {children}
       </div>
     </div>
@@ -50,7 +50,7 @@ export const DialogTitle = ({
   className?: string;
 }) => (
   <h2
-    className={`text-lg font-semibold leading-none tracking-tight ${className}`}
+    className={`text-lg font-semibold leading-none tracking-tight text-slate-950 ${className}`}
   >
     {children}
   </h2>

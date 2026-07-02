@@ -43,6 +43,13 @@ export default function CreateOrderModal({
     handleQuickCreateSuccess,
   } = useCreateOrder({ isOpen, onSuccess, onClose });
 
+  const deliveryFee = Number(orderForm.deliveryFee || 0);
+  const discountAmount = Number(orderForm.discountAmount || 0);
+  const totalAmount = Math.max(
+    0,
+    subtotal - discountAmount + deliveryFee
+  );
+
   return (
     <>
       <QuickCreateCustomerModal
@@ -266,6 +273,28 @@ export default function CreateOrderModal({
                                 /hari
                               </p>
                             )}
+
+                            <div className="mt-2">
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                Harga/hari invoice
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                value={item.pricePerDay ?? ''}
+                                onChange={(e) =>
+                                  updateItem(
+                                    idx,
+                                    'pricePerDay',
+                                    e.target.value
+                                      ? Number(e.target.value)
+                                      : undefined
+                                  )
+                                }
+                                className="w-full px-3 py-2 border rounded-lg text-sm"
+                                placeholder="Kosongkan pakai master"
+                              />
+                            </div>
                           </div>
                           <div className="w-24">
                             <input
@@ -301,10 +330,66 @@ export default function CreateOrderModal({
               {/* Summary */}
               {orderForm.items.length > 0 && rentalDays > 0 && (
                 <div className="border-t pt-4 space-y-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Invoice delivery fee"
+                      type="number"
+                      min={0}
+                      value={orderForm.deliveryFee}
+                      onChange={(e) =>
+                        updateFormField('deliveryFee', e.target.value)
+                      }
+                      selectOnFocus
+                    />
+                    <Input
+                      label="Diskon invoice"
+                      type="number"
+                      min={0}
+                      value={orderForm.discountAmount}
+                      onChange={(e) =>
+                        updateFormField(
+                          'discountAmount',
+                          e.target.value
+                        )
+                      }
+                      selectOnFocus
+                    />
+                  </div>
+                  <Input
+                    label="Delivery address/area"
+                    value={orderForm.deliveryAddress}
+                    onChange={(e) =>
+                      updateFormField(
+                        'deliveryAddress',
+                        e.target.value
+                      )
+                    }
+                    placeholder="Use the invoice address"
+                  />
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-medium">
                       {formatCurrency(subtotal)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Delivery fee</span>
+                    <span className="font-medium">
+                      {formatCurrency(deliveryFee)}
+                    </span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Diskon</span>
+                      <span className="font-medium">
+                        -{formatCurrency(discountAmount)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-700">Total</span>
+                    <span className="font-semibold">
+                      {formatCurrency(totalAmount)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">

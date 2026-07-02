@@ -19,6 +19,8 @@ const CSRF_HEADER = 'x-csrf-token';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+type RequestWithCsrfToken = Request & { csrfToken?: string };
+
 /**
  * Generate a cryptographically secure CSRF token.
  */
@@ -48,6 +50,9 @@ export function csrfProtection(
       maxAge: 24 * 60 * 60 * 1000, // 24 hours (shorter than session)
     });
   }
+
+  // Attach token to request for use in route handlers
+  (req as RequestWithCsrfToken).csrfToken = token;
 
   // Skip validation for safe methods
   if (SAFE_METHODS.has(req.method)) {

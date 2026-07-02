@@ -7,9 +7,9 @@ import {
   PartnerType,
 } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
-import { Decimal } from 'decimal.js';
 import { DocumentNumberService } from '../common/services/document-number.service';
 import { webhookService } from '../../services/webhook.service';
+import { Decimal } from 'decimal.js';
 import type {
   RentalIntegrationClaimPaymentInput,
   RentalIntegrationConfirmPaymentInput,
@@ -28,6 +28,7 @@ export interface CreatePublicOrderInput {
     quantity: number;
     name?: string;
     pricePerDay?: number;
+    lineTotal?: number;
     category?: 'package' | 'mattress' | 'accessory';
     components?: string[];
   }[];
@@ -77,6 +78,7 @@ export interface UpdatePublicOrderInput {
     quantity: number;
     name?: string;
     pricePerDay?: number;
+    lineTotal?: number;
     category?: 'package' | 'mattress' | 'accessory';
     components?: string[];
   }[];
@@ -89,8 +91,8 @@ type ResolvedOrderItem = {
   rentalBundleId?: string;
   quantity: number;
   unitPrice: Prisma.Decimal | number;
-  subtotal: number;
-  pricingTier: 'DAILY';
+  subtotal: Prisma.Decimal | number;
+  pricingTier: 'DAILY' | 'CUSTOM';
 };
 
 type RateBearingRecord = {
@@ -338,8 +340,10 @@ export class RentalExternalOrderService {
       allowAutoCreate: true,
     });
 
-    const finalSubtotal = subtotal - (input.discountAmount || 0);
-    const totalAmount = finalSubtotal + (input.deliveryFee || 0);
+    const discountAmount = this.toMoney(input.discountAmount || 0);
+    const deliveryFee = this.toMoney(input.deliveryFee || 0);
+    const finalSubtotal = subtotal.minus(discountAmount);
+    const totalAmount = finalSubtotal.plus(deliveryFee);
     const orderNumber = await this.documentNumberService.generate(
       input.companyId,
       'RNT'
@@ -362,7 +366,7 @@ export class RentalExternalOrderService {
         policySnapshot: this.buildPolicySnapshot(input),
         notes: input.notes,
         createdBy: this.buildCreatedBy(input),
-        deliveryFee: input.deliveryFee,
+        deliveryFee,
         deliveryAddress: input.deliveryAddress,
         street: input.street,
         kelurahan: input.kelurahan,
@@ -373,7 +377,7 @@ export class RentalExternalOrderService {
         latitude: input.latitude,
         longitude: input.longitude,
         paymentMethod: input.paymentMethod,
-        discountAmount: input.discountAmount,
+        discountAmount,
         discountLabel: input.discountLabel,
         orderSource: OrderSource.WEBSITE,
         items: {
@@ -401,7 +405,11 @@ export class RentalExternalOrderService {
   ) {
     const order = await prisma.rentalOrder.findFirst({
       where: { publicToken: input.token },
-      include: { partner: true, items: true },
+      include: {
+        partner: true,
+        items: true,
+        _count: { select: { extensions: true } },
+      },
     });
 
     if (!order) {
@@ -450,9 +458,21 @@ export class RentalExternalOrderService {
     const startDate = input.rentalStartDate || order.rentalStartDate;
     const endDate = input.rentalEndDate || order.rentalEndDate;
     const durationDays = this.getDurationDays(startDate, endDate);
+    if (
+      order._count.extensions > 0 &&
+      (input.items?.length ||
+        input.rentalStartDate !== undefined ||
+        input.rentalEndDate !== undefined)
+    ) {
+      throw new DomainError(
+        'Cannot replace items or dates on an order that already has extensions',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
 
-    let subtotal = Number(order.subtotal);
-    let totalAmount = Number(order.totalAmount);
+    let subtotal = new Decimal(order.subtotal);
+    let totalAmount = new Decimal(order.totalAmount);
 
     if (input.items && input.items.length > 0) {
       const recalculated = await this.buildOrderItems({
@@ -484,11 +504,14 @@ export class RentalExternalOrderService {
         where: { rentalOrderId: order.id },
       });
 
-      subtotal = 0;
+      subtotal = new Decimal(0);
       for (const item of existingItems) {
-        const newSubtotal =
-          Number(item.unitPrice) * durationDays * item.quantity;
-        subtotal += newSubtotal;
+        const newSubtotal = this.toMoney(
+          new Decimal(item.unitPrice)
+            .times(durationDays)
+            .times(item.quantity)
+        );
+        subtotal = subtotal.plus(newSubtotal);
         await prisma.rentalOrderItem.update({
           where: { id: item.id },
           data: { subtotal: newSubtotal },
@@ -496,12 +519,14 @@ export class RentalExternalOrderService {
       }
     }
 
-    const discountAmount =
-      input.discountAmount ?? Number(order.discountAmount || 0);
-    const deliveryFee =
-      input.deliveryFee ?? Number(order.deliveryFee || 0);
-    const finalSubtotal = subtotal - discountAmount;
-    totalAmount = finalSubtotal + deliveryFee;
+    const discountAmount = this.toMoney(
+      input.discountAmount ?? order.discountAmount ?? 0
+    );
+    const deliveryFee = this.toMoney(
+      input.deliveryFee ?? order.deliveryFee ?? 0
+    );
+    const finalSubtotal = subtotal.minus(discountAmount);
+    totalAmount = finalSubtotal.plus(deliveryFee);
 
     const updated = await prisma.rentalOrder.update({
       where: { id: order.id },
@@ -1036,8 +1061,8 @@ export class RentalExternalOrderService {
 
   private buildOrderUpdateData(
     input: UpdatePublicOrderInput,
-    subtotal: number,
-    totalAmount: number,
+    subtotal: Prisma.Decimal | Decimal | number,
+    totalAmount: Prisma.Decimal | Decimal | number,
     partnerId?: string
   ) {
     const orderUpdate: Record<string, unknown> = {
@@ -1108,10 +1133,10 @@ export class RentalExternalOrderService {
     durationDays: number;
     allowAutoCreate: boolean;
   }): Promise<{
-    subtotal: number;
+    subtotal: Decimal;
     orderItems: ResolvedOrderItem[];
   }> {
-    let subtotal = 0;
+    let subtotal = new Decimal(0);
     const orderItems: ResolvedOrderItem[] = [];
 
     for (const item of params.items) {
@@ -1121,18 +1146,32 @@ export class RentalExternalOrderService {
           item,
           params.allowAutoCreate
         );
-        const itemTotal =
-          Number(bundle.dailyRate) *
-          params.durationDays *
-          item.quantity;
+        const dailyRate = this.resolveInvoiceDailyRate(
+          item,
+          bundle.dailyRate
+        );
+        const itemTotal = this.resolveInvoiceLineTotal(
+          item,
+          dailyRate,
+          params.durationDays
+        );
+        const unitPrice = this.resolveInvoiceUnitPrice(
+          item,
+          dailyRate,
+          params.durationDays
+        );
 
-        subtotal += itemTotal;
+        subtotal = subtotal.plus(itemTotal);
         orderItems.push({
           rentalBundleId: bundle.id,
           quantity: item.quantity,
-          unitPrice: bundle.dailyRate,
+          unitPrice,
           subtotal: itemTotal,
-          pricingTier: 'DAILY',
+          pricingTier:
+            item.pricePerDay !== undefined ||
+            item.lineTotal !== undefined
+              ? 'CUSTOM'
+              : 'DAILY',
         });
         continue;
       }
@@ -1143,18 +1182,32 @@ export class RentalExternalOrderService {
           item,
           params.allowAutoCreate
         );
-        const itemTotal =
-          Number(rentalItem.dailyRate) *
-          params.durationDays *
-          item.quantity;
+        const dailyRate = this.resolveInvoiceDailyRate(
+          item,
+          rentalItem.dailyRate
+        );
+        const itemTotal = this.resolveInvoiceLineTotal(
+          item,
+          dailyRate,
+          params.durationDays
+        );
+        const unitPrice = this.resolveInvoiceUnitPrice(
+          item,
+          dailyRate,
+          params.durationDays
+        );
 
-        subtotal += itemTotal;
+        subtotal = subtotal.plus(itemTotal);
         orderItems.push({
           rentalItemId: rentalItem.id,
           quantity: item.quantity,
-          unitPrice: rentalItem.dailyRate,
+          unitPrice,
           subtotal: itemTotal,
-          pricingTier: 'DAILY',
+          pricingTier:
+            item.pricePerDay !== undefined ||
+            item.lineTotal !== undefined
+              ? 'CUSTOM'
+              : 'DAILY',
         });
         continue;
       }
@@ -1167,6 +1220,63 @@ export class RentalExternalOrderService {
     }
 
     return { subtotal, orderItems };
+  }
+
+  private resolveInvoiceDailyRate(
+    item: ExternalOrderItemInput,
+    fallbackDailyRate: Prisma.Decimal
+  ): Decimal {
+    if (item.pricePerDay === undefined) {
+      return new Decimal(fallbackDailyRate);
+    }
+
+    if (item.pricePerDay <= 0) {
+      throw new DomainError(
+        'pricePerDay must be positive when provided',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    return new Decimal(item.pricePerDay);
+  }
+
+  private resolveInvoiceLineTotal(
+    item: ExternalOrderItemInput,
+    dailyRate: Decimal,
+    durationDays: number
+  ): Decimal {
+    if (item.lineTotal !== undefined) {
+      return this.toMoney(item.lineTotal);
+    }
+
+    return this.toMoney(
+      dailyRate.times(durationDays).times(item.quantity)
+    );
+  }
+
+  private resolveInvoiceUnitPrice(
+    item: ExternalOrderItemInput,
+    dailyRate: Decimal,
+    durationDays: number
+  ): Decimal {
+    if (item.pricePerDay !== undefined) {
+      return this.toMoney(item.pricePerDay);
+    }
+
+    if (item.lineTotal !== undefined) {
+      return this.toMoney(
+        new Decimal(item.lineTotal)
+          .div(durationDays)
+          .div(item.quantity)
+      );
+    }
+
+    return this.toMoney(dailyRate);
+  }
+
+  private toMoney(value: Prisma.Decimal | Decimal | number): Decimal {
+    return new Decimal(value).toDecimalPlaces(2);
   }
 
   private async resolveBundle(
@@ -1302,7 +1412,17 @@ export class RentalExternalOrderService {
       const freshLookup = await prisma.rentalItem.findFirst({
         where: {
           companyId,
-          product: { sku: componentSku },
+          OR: [
+            { product: { sku: componentSku } },
+            {
+              product: {
+                name: {
+                  contains: item.components[0],
+                  mode: 'insensitive',
+                },
+              },
+            },
+          ],
         },
         select: {
           id: true,
@@ -1312,25 +1432,6 @@ export class RentalExternalOrderService {
 
       if (freshLookup) {
         rentalItem = freshLookup;
-
-        if (
-          item.pricePerDay &&
-          item.pricePerDay > Number(freshLookup.dailyRate)
-        ) {
-          await prisma.rentalItem.update({
-            where: { id: freshLookup.id },
-            data: {
-              dailyRate: item.pricePerDay,
-              weeklyRate: item.pricePerDay * 6,
-              monthlyRate: item.pricePerDay * 25,
-            },
-          });
-
-          rentalItem = {
-            ...freshLookup,
-            dailyRate: new Decimal(item.pricePerDay),
-          };
-        }
       }
     }
 
@@ -1410,22 +1511,6 @@ export class RentalExternalOrderService {
     });
 
     if (existingRentalItem) {
-      if (item.pricePerDay > Number(existingRentalItem.dailyRate)) {
-        await prisma.rentalItem.update({
-          where: { id: existingRentalItem.id },
-          data: {
-            dailyRate: item.pricePerDay,
-            weeklyRate: item.pricePerDay * 6,
-            monthlyRate: item.pricePerDay * 25,
-          },
-        });
-
-        return {
-          ...existingRentalItem,
-          dailyRate: new Decimal(item.pricePerDay),
-        };
-      }
-
       return existingRentalItem;
     }
 
@@ -1512,7 +1597,7 @@ export class RentalExternalOrderService {
   }
 
   private toExternalSku(value: string) {
-    return `SL-${value.toLowerCase().replace(/\s+/g, '-')}`;
+    return `EXT-${value.toLowerCase().replace(/\s+/g, '-')}`;
   }
 
   private normalizePhone(value: string) {

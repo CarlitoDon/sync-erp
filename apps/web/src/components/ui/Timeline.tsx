@@ -24,13 +24,13 @@ interface TimelineProps {
 }
 
 const colorMap: Record<TimelineEvent['color'], string> = {
-  blue: 'bg-blue-500',
-  green: 'bg-green-500',
-  purple: 'bg-purple-500',
+  blue: 'bg-cyan-500',
+  green: 'bg-emerald-500',
+  purple: 'bg-slate-500',
   amber: 'bg-amber-500',
   emerald: 'bg-emerald-500',
   red: 'bg-red-500',
-  gray: 'bg-gray-300',
+  gray: 'bg-slate-300',
 };
 
 export function Timeline({ events, className = '' }: TimelineProps) {
@@ -95,7 +95,7 @@ export function Timeline({ events, className = '' }: TimelineProps) {
                     {event.title}
                   </p>
                   <p
-                    className={`text-xs ${event.descriptionClassName || 'text-gray-500'}`}
+                    className={`text-xs ${event.descriptionClassName || 'text-slate-500'}`}
                   >
                     {event.description}
                   </p>
@@ -157,19 +157,19 @@ export function Timeline({ events, className = '' }: TimelineProps) {
                           {child.href ? (
                             <a
                               href={child.href}
-                              className={`font-medium text-sm hover:underline text-blue-600 ${child.titleClassName || ''}`}
+                              className={`text-sm font-medium text-cyan-700 hover:underline ${child.titleClassName || ''}`}
                             >
                               {child.title}
                             </a>
                           ) : (
                             <p
-                              className={`font-medium text-sm ${child.titleClassName || ''}`}
+                            className={`text-sm font-medium ${child.titleClassName || ''}`}
                             >
                               {child.title}
                             </p>
                           )}
                           <p
-                            className={`text-xs ${child.descriptionClassName || 'text-gray-500'}`}
+                            className={`text-xs ${child.descriptionClassName || 'text-slate-500'}`}
                           >
                             {child.description}
                           </p>

@@ -23,19 +23,19 @@ interface ActionButtonProps {
 
 const variantStyles: Record<ActionButtonVariant, string> = {
   primary:
-    'border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-400',
+    'border-cyan-200 bg-cyan-50 text-cyan-800 hover:border-cyan-300 hover:bg-cyan-100',
   success:
-    'border-green-300 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-400',
+    'border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100',
   danger:
-    'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-400',
+    'border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100',
   warning:
-    'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 hover:border-yellow-400',
+    'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100',
   secondary:
-    'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 hover:border-gray-400',
+    'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50',
   destructive:
-    'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-400',
+    'border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100',
   outline:
-    'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400',
+    'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50',
 };
 
 export default function ActionButton({
@@ -73,7 +73,7 @@ export default function ActionButton({
       disabled={disabled || showLoading}
       title={title}
       className={`
-        inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-md border transition-colors
+        inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-sm font-medium transition-colors
         ${variantStyles[variant]}
         ${disabled || showLoading ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}

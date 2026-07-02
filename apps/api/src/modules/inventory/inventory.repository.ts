@@ -21,6 +21,7 @@ export interface StockMovementInput {
   quantity: number;
   reference?: string;
   unitCost?: number;
+  date?: Date;
 }
 
 export class InventoryRepository {
@@ -44,6 +45,7 @@ export class InventoryRepository {
         type: data.type,
         quantity: data.quantity,
         reference: data.reference,
+        date: data.date,
       },
     });
 
@@ -175,10 +177,11 @@ export class InventoryRepository {
   async generateFulfillmentNumber(
     companyId: string,
     type: FulfillmentType,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate: Date = new Date()
   ): Promise<string> {
     const db = tx || prisma;
-    const year = new Date().getFullYear();
+    const year = businessDate.getFullYear();
     let prefix: string;
     if (type === FulfillmentType.RECEIPT) {
       prefix = SequenceType.GRN;
@@ -242,7 +245,8 @@ export class InventoryRepository {
     const number = await this.generateFulfillmentNumber(
       data.companyId,
       data.type,
-      tx
+      tx,
+      data.date
     );
 
     return db.fulfillment.create({

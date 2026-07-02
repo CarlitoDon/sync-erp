@@ -185,6 +185,12 @@ export class RentalRepository {
         },
         partner: true,
         deposit: true,
+        extensions: {
+          orderBy: { extensionNumber: 'asc' },
+          include: {
+            items: true,
+          },
+        },
         unitAssignments: {
           include: {
             rentalItemUnit: {
@@ -327,6 +333,12 @@ export class RentalRepository {
         },
         partner: true,
         deposit: true,
+        extensions: {
+          orderBy: { extensionNumber: 'asc' },
+          include: {
+            items: true,
+          },
+        },
         unitAssignments: {
           include: {
             rentalItemUnit: {

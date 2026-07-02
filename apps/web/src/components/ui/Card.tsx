@@ -11,7 +11,7 @@ export function Card({
 }: CardProps) {
   return (
     <div
-      className={`bg-white rounded-xl shadow-sm border border-gray-200 ${className}`}
+      className={`rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200/60 ${className}`}
       {...props}
     >
       {children}
@@ -38,7 +38,7 @@ export function CardTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={`text-lg font-semibold text-gray-900 ${className}`}
+      className={`text-lg font-semibold text-slate-950 ${className}`}
       {...props}
     >
       {children}
@@ -53,7 +53,7 @@ export function CardDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={`text-sm text-gray-500 mt-1 ${className}`}
+      className={`mt-1 text-sm text-slate-500 ${className}`}
       {...props}
     >
       {children}

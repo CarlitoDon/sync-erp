@@ -79,10 +79,13 @@ export class PurchaseOrderService {
       PurchaseOrderPolicy.ensureCanPurchasePhysicalGoods(shape);
     }
 
+    const documentDate = data.date ?? new Date();
+
     // Generate order number
     const orderNumber = await this.documentNumberService.generate(
       companyId,
-      'PO'
+      'PO',
+      documentDate
     );
 
     // Calculate totals (including tax)
@@ -114,9 +117,11 @@ export class PurchaseOrderService {
       type: OrderType.PURCHASE,
       status: OrderStatus.DRAFT,
       orderNumber,
+      date: documentDate,
       totalAmount,
       taxRate: taxRate,
       paymentTerms: paymentTerms, // Strictly typed from Zod
+      notes: data.notes ?? null,
       // If UPFRONT, set initial paymentStatus to PENDING
       paymentStatus:
         paymentTerms === PaymentTerms.UPFRONT
@@ -247,7 +252,7 @@ export class PurchaseOrderService {
 
     PurchaseOrderPolicy.validateUpdate(
       order.status,
-      { orderNumber: data.orderNumber as string | undefined },
+      data as { orderNumber?: string } & Record<string, unknown>,
       order.orderNumber || ''
     );
 

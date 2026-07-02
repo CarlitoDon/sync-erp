@@ -6,6 +6,8 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL =
   'https://openidconnect.googleapis.com/v1/userinfo';
 const STATE_TTL_MS = 10 * 60 * 1000;
+const PLACEHOLDER_PATTERN =
+  /^(your_|replace_|change-?me|placeholder)/i;
 
 export type GoogleOAuthIntent = 'login' | 'register';
 
@@ -50,12 +52,25 @@ export interface GoogleOAuthProfile {
 
 export class GoogleOAuthService {
   isConfigured(): boolean {
-    return Boolean(
-      process.env.GOOGLE_OAUTH_CLIENT_ID &&
-        process.env.GOOGLE_OAUTH_CLIENT_SECRET &&
-        process.env.GOOGLE_OAUTH_REDIRECT_URI &&
-        process.env.SYNC_ERP_AUTH_STATE_SECRET
-    );
+    return this.getMissingConfigKeys().length === 0;
+  }
+
+  getMissingConfigKeys(): string[] {
+    const missingKeys: string[] = [];
+
+    if (isMissingConfigValue(process.env.GOOGLE_OAUTH_CLIENT_ID)) {
+      missingKeys.push('GOOGLE_OAUTH_CLIENT_ID');
+    }
+    if (
+      isMissingConfigValue(process.env.GOOGLE_OAUTH_CLIENT_SECRET)
+    ) {
+      missingKeys.push('GOOGLE_OAUTH_CLIENT_SECRET');
+    }
+    if (isMissingConfigValue(this.getStateSecret())) {
+      missingKeys.push('SYNC_ERP_AUTH_STATE_SECRET');
+    }
+
+    return missingKeys;
   }
 
   getWebAppUrl(): string {
@@ -216,18 +231,69 @@ export class GoogleOAuthService {
       .digest('hex');
   }
 
+  private getHttpApiBaseUrl(): string {
+    const configuredUrl =
+      process.env.SYNC_ERP_API_BASE_URL ||
+      process.env.SYNC_ERP_API_URL ||
+      process.env.VITE_SYNC_ERP_API_URL ||
+      'http://localhost:3001/api/trpc';
+
+    const normalizedUrl = configuredUrl
+      .trim()
+      .replace(/\/+$/, '')
+      .replace(/\/api\/trpc$/, '/api')
+      .replace(/\/trpc$/, '');
+
+    return normalizedUrl.endsWith('/api')
+      ? normalizedUrl
+      : `${normalizedUrl}/api`;
+  }
+
+  private getRedirectUri(): string {
+    return (
+      process.env.GOOGLE_OAUTH_REDIRECT_URI ||
+      `${this.getHttpApiBaseUrl()}/auth/google/callback`
+    );
+  }
+
+  private getStateSecret(): string | undefined {
+    if (
+      !isMissingConfigValue(process.env.SYNC_ERP_AUTH_STATE_SECRET)
+    ) {
+      return process.env.SYNC_ERP_AUTH_STATE_SECRET;
+    }
+
+    const isProductionLike =
+      process.env.NODE_ENV === 'production' ||
+      process.env.NODE_ENV === 'staging';
+    if (isProductionLike) {
+      return undefined;
+    }
+
+    return isMissingConfigValue(process.env.SYNC_ERP_API_SECRET)
+      ? undefined
+      : process.env.SYNC_ERP_API_SECRET;
+  }
+
   private getConfig(): GoogleOAuthConfig {
     const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-    const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI;
-    const stateSecret = process.env.SYNC_ERP_AUTH_STATE_SECRET;
+    const redirectUri = this.getRedirectUri();
+    const stateSecret = this.getStateSecret();
 
-    if (
-      !clientId ||
-      !clientSecret ||
-      !redirectUri ||
-      !stateSecret
-    ) {
+    if (!isConfiguredValue(clientId)) {
+      throw new Error(
+        'Google OAuth is not configured. Missing client or state settings.'
+      );
+    }
+
+    if (!isConfiguredValue(clientSecret)) {
+      throw new Error(
+        'Google OAuth is not configured. Missing client or state settings.'
+      );
+    }
+
+    if (!isConfiguredValue(stateSecret)) {
       throw new Error(
         'Google OAuth is not configured. Missing client or state settings.'
       );
@@ -240,4 +306,12 @@ export class GoogleOAuthService {
       stateSecret,
     };
   }
+}
+
+function isMissingConfigValue(value: string | undefined): boolean {
+  return !value || PLACEHOLDER_PATTERN.test(value.trim());
+}
+
+function isConfiguredValue(value: string | undefined): value is string {
+  return !isMissingConfigValue(value);
 }

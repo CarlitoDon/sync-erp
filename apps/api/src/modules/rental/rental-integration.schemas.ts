@@ -32,6 +32,7 @@ export const RentalIntegrationOrderItemSchema = z
     quantity: z.number().int().positive(),
     name: z.string().optional(),
     pricePerDay: z.number().positive().optional(),
+    lineTotal: z.number().positive().optional(),
     category: z.enum(['package', 'mattress', 'accessory']).optional(),
     components: z.array(z.string()).optional(),
   })

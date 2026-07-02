@@ -26,7 +26,6 @@ import {
   BILLING_TRIAL_DAYS,
   type BillingPlan,
   formatBillingLimit,
-  formatPlanPrice,
 } from '@sync-erp/shared';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
@@ -168,7 +167,7 @@ const pipeline = [
   { label: 'Cash flow', value: '82%' },
 ];
 
-const APP_ORIGIN = 'https://app.sync-erp.com';
+const APP_ORIGIN = 'https://sync-erp.vercel.app';
 
 function getAppHref(path: string) {
   if (typeof window === 'undefined') {
@@ -179,6 +178,35 @@ function getAppHref(path: string) {
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
 
   return isLocalhost ? path : `${APP_ORIGIN}${path}`;
+}
+
+function formatMarketingPrice(plan: BillingPlan): {
+  price: string;
+  suffix: string;
+} {
+  if (plan.monthlyPriceIdr === null) {
+    return { price: 'Custom', suffix: 'SLA & scope khusus' };
+  }
+
+  if (plan.monthlyPriceIdr === 0) {
+    return { price: 'Gratis', suffix: 'untuk 1 company' };
+  }
+
+  if (plan.monthlyPriceIdr >= 1_000_000) {
+    const value = plan.monthlyPriceIdr / 1_000_000;
+    const formatted = new Intl.NumberFormat('id-ID', {
+      maximumFractionDigits: 2,
+    }).format(value);
+
+    return { price: `Rp ${formatted}jt`, suffix: '/ bulan' };
+  }
+
+  const value = plan.monthlyPriceIdr / 1_000;
+  const formatted = new Intl.NumberFormat('id-ID', {
+    maximumFractionDigits: 0,
+  }).format(value);
+
+  return { price: `Rp ${formatted}rb`, suffix: '/ bulan' };
 }
 
 function BrandMark() {
@@ -338,85 +366,90 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
     plan.key === 'enterprise'
       ? 'mailto:sales@sync-erp.com?subject=Sync%20ERP%20Enterprise'
       : getAppHref(`/register?plan=${plan.key}`);
+  const pricing = formatMarketingPrice(plan);
+  const highlightedFeatures = plan.features.slice(0, 3);
 
   return (
     <article
-      className={`rounded-lg border bg-white p-6 shadow-sm ${
+      className={`flex h-full min-h-[35rem] flex-col rounded-3xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${
         plan.recommended
-          ? 'border-cyan-300 ring-2 ring-cyan-100'
+          ? 'border-cyan-300 shadow-cyan-100/80 ring-2 ring-cyan-100'
           : 'border-slate-200'
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
           <h3 className="text-xl font-semibold text-slate-950">
             {plan.name}
           </h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <p className="mt-2 min-h-[3.5rem] text-sm leading-6 text-slate-600">
             {plan.tagline}
           </p>
         </div>
         {plan.recommended && (
-          <span className="rounded-md bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
+          <span className="shrink-0 rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 ring-1 ring-cyan-100">
             Paling pas
           </span>
         )}
       </div>
 
-      <div className="mt-6">
-        <p className="text-3xl font-semibold text-slate-950">
-          {formatPlanPrice(plan)}
-        </p>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
+      <div className="mt-6 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+        <div className="flex items-end gap-2">
+          <p className="text-3xl font-semibold tracking-tight text-slate-950">
+            {pricing.price}
+          </p>
+          <p className="pb-1 text-sm font-medium text-slate-500">
+            {pricing.suffix}
+          </p>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
           {plan.description}
         </p>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-md bg-slate-50 p-3">
-          <p className="text-slate-500">Users</p>
-          <p className="font-semibold text-slate-900">
+      <div className="mt-5 grid grid-cols-2 gap-2 text-sm">
+        <div className="rounded-2xl border border-slate-100 bg-white p-3">
+          <p className="text-xs text-slate-500">Users</p>
+          <p className="mt-1 font-semibold text-slate-950">
             {formatBillingLimit(plan.limits.users)}
           </p>
         </div>
-        <div className="rounded-md bg-slate-50 p-3">
-          <p className="text-slate-500">Docs / bulan</p>
-          <p className="font-semibold text-slate-900">
+        <div className="rounded-2xl border border-slate-100 bg-white p-3">
+          <p className="text-xs text-slate-500">Docs/bulan</p>
+          <p className="mt-1 font-semibold text-slate-950">
             {formatBillingLimit(plan.limits.monthlyDocuments)}
           </p>
         </div>
-        <div className="rounded-md bg-slate-50 p-3">
-          <p className="text-slate-500">Companies</p>
-          <p className="font-semibold text-slate-900">
+        <div className="rounded-2xl border border-slate-100 bg-white p-3">
+          <p className="text-xs text-slate-500">Company</p>
+          <p className="mt-1 font-semibold text-slate-950">
             {formatBillingLimit(plan.limits.companies)}
           </p>
         </div>
-        <div className="rounded-md bg-slate-50 p-3">
-          <p className="text-slate-500">API keys</p>
-          <p className="font-semibold text-slate-900">
+        <div className="rounded-2xl border border-slate-100 bg-white p-3">
+          <p className="text-xs text-slate-500">API keys</p>
+          <p className="mt-1 font-semibold text-slate-950">
             {formatBillingLimit(plan.limits.apiKeys)}
           </p>
         </div>
       </div>
 
-      <ul className="mt-6 space-y-3 text-sm text-slate-600">
+      <ul className="mt-6 flex-1 space-y-3 text-sm leading-6 text-slate-600">
         <li className="flex gap-2">
-          <CheckCircleIcon className="mt-0.5 h-4 w-4 flex-none text-emerald-600" />
-          <span>
-            {plan.limits.adsEnabled ? 'Didukung iklan' : 'Tanpa iklan'}
-          </span>
+          <CheckCircleIcon className="mt-1 h-4 w-4 flex-none text-emerald-600" />
+          <span>{plan.limits.adsEnabled ? 'Didukung iklan' : 'Tanpa iklan'}</span>
         </li>
         <li className="flex gap-2">
-          <CheckCircleIcon className="mt-0.5 h-4 w-4 flex-none text-emerald-600" />
+          <CheckCircleIcon className="mt-1 h-4 w-4 flex-none text-emerald-600" />
           <span>
             {plan.limits.mediaAccess
               ? 'Media upload aktif'
               : 'Tanpa akses media'}
           </span>
         </li>
-        {plan.features.slice(0, 5).map((feature) => (
+        {highlightedFeatures.map((feature) => (
           <li key={feature} className="flex gap-2">
-            <CheckCircleIcon className="mt-0.5 h-4 w-4 flex-none text-emerald-600" />
+            <CheckCircleIcon className="mt-1 h-4 w-4 flex-none text-emerald-600" />
             <span>{feature}</span>
           </li>
         ))}
@@ -424,9 +457,9 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
 
       <a
         href={ctaHref}
-        className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold transition ${
+        className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
           plan.recommended
-            ? 'bg-slate-950 text-white hover:bg-slate-800'
+            ? 'bg-slate-950 text-white shadow-lg shadow-slate-950/15 hover:bg-slate-800'
             : 'border border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50'
         }`}
       >
@@ -511,8 +544,8 @@ export default function MarketingHomePage() {
       <main>
         <section className="relative isolate overflow-hidden border-b border-slate-200">
           <HeroBackdrop />
-          <div className="relative mx-auto flex min-h-[86svh] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-            <div className="max-w-3xl lg:max-w-2xl">
+          <div className="relative mx-auto grid min-h-[86svh] max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(28rem,1.1fr)] lg:gap-14 lg:px-8">
+            <div className="min-w-0">
               <div className="mb-6 inline-flex items-center gap-2 rounded-md border border-cyan-200 bg-white/80 px-3 py-2 text-sm font-medium text-cyan-800 shadow-sm">
                 <SparklesIcon className="h-4 w-4" />
                 ERP publik untuk tim operasional yang sedang tumbuh
@@ -552,29 +585,27 @@ export default function MarketingHomePage() {
                   </div>
                 ))}
               </div>
+
+              <div className="mt-12 grid gap-3 sm:grid-cols-3">
+                {heroStats.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-lg border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur"
+                  >
+                    <p className="text-3xl font-semibold text-slate-950">
+                      {item.value}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      {item.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <DashboardPreview className="mt-12 lg:hidden" />
-
-            <div className="mt-12 grid gap-3 sm:grid-cols-3 lg:max-w-2xl">
-              {heroStats.map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-lg border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur"
-                >
-                  <p className="text-3xl font-semibold text-slate-950">
-                    {item.value}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    {item.label}
-                  </p>
-                </div>
-              ))}
+            <div className="min-w-0 lg:-mr-20 xl:-mr-28">
+              <DashboardPreview className="mx-auto w-full max-w-5xl lg:rotate-1" />
             </div>
-          </div>
-
-          <div className="pointer-events-none absolute right-[-7rem] top-28 hidden w-[58rem] rotate-1 lg:block xl:right-[-3rem]">
-            <DashboardPreview />
           </div>
         </section>
 
@@ -792,7 +823,7 @@ export default function MarketingHomePage() {
               </div>
             </div>
 
-            <div className="mt-10 grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
+            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {BILLING_PLANS.map((plan) => (
                 <PricingCard key={plan.key} plan={plan} />
               ))}
@@ -957,6 +988,20 @@ export default function MarketingHomePage() {
             <a href="/terms" className="hover:text-slate-800">
               Terms
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                import('@/features/legal/components/CookieConsent').then(
+                  (m) => {
+                    m.resetConsent();
+                    window.location.reload();
+                  }
+                );
+              }}
+              className="hover:text-slate-800"
+            >
+              Kelola Cookie
+            </button>
             <p>&copy; 2026 Sync ERP. Public marketing website.</p>
           </div>
         </div>

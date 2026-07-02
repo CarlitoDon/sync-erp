@@ -21,7 +21,7 @@ import {
 import { prisma } from '@sync-erp/database';
 import { apiKeyService } from '@src/services/api-key.service';
 
-const COMPANY_ID = 'test-santi-living-live-e2e-001';
+const COMPANY_ID = 'test-rental-storefront-live-e2e-001';
 const PROXY_API_SECRET = 'proxy-live-e2e-secret';
 const BOT_SECRET = 'bot-live-e2e-secret';
 const rejectedTransactionStatuses = [
@@ -81,17 +81,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const codingRoot = path.resolve(__dirname, '../../../../../');
 const proxyServerModulePath = path.resolve(
   codingRoot,
-  'santi-living/apps/proxy/src/server.ts'
+  'external-rental-storefront/apps/proxy/src/server.ts'
 );
 const proxyClientModulePath = path.resolve(
   codingRoot,
-  'santi-living/apps/web/src/lib/trpc-client.ts'
+  'external-rental-storefront/apps/web/src/lib/trpc-client.ts'
 );
-const hasSantiLivingWorkspace =
+const hasExternalStorefrontWorkspace =
   existsSync(proxyServerModulePath) &&
   existsSync(proxyClientModulePath);
 const shouldRunLiveCrossRepoE2E =
-  process.env.RUN_SANTI_LIVING_LIVE_E2E === 'true';
+  process.env.RUN_EXTERNAL_RENTAL_STOREFRONT_E2E === 'true';
 const proxyServerModuleUrl = pathToFileURL(
   proxyServerModulePath
 ).href;
@@ -329,7 +329,7 @@ const postMidtransWebhook = async (input: {
     createMidtransSignature(input.orderId, statusCode, grossAmount);
 
   return await fetch(
-    `${process.env.SANTI_PROXY_URL}/api/webhooks/midtrans`,
+    `${process.env.EXTERNAL_STOREFRONT_PROXY_URL}/api/webhooks/midtrans`,
     {
       method: 'POST',
       headers: {
@@ -432,8 +432,8 @@ const cleanupCompanyOrders = async () => {
 };
 
 describe.skipIf(
-  !hasSantiLivingWorkspace || !shouldRunLiveCrossRepoE2E
-)('Santi Living live order flow E2E', () => {
+  !hasExternalStorefrontWorkspace || !shouldRunLiveCrossRepoE2E
+)('External rental storefront live order flow E2E', () => {
   let botServer: Server;
   let erpServer: Server;
   let proxyServer: Server;
@@ -449,15 +449,15 @@ describe.skipIf(
     process.env.NODE_ENV = 'test';
     process.env.PROXY_API_SECRET = PROXY_API_SECRET;
     process.env.PROXY_API_KEY = '';
-    process.env.SANTI_LIVING_COMPANY_ID = COMPANY_ID;
-    process.env.PUBLIC_BASE_URL = 'https://santi.test';
+    process.env.EXTERNAL_STOREFRONT_COMPANY_ID = COMPANY_ID;
+    process.env.PUBLIC_BASE_URL = 'https://rental-storefront.test';
     process.env.SYNC_ERP_BOT_SECRET = BOT_SECRET;
     process.env.ADMIN_WHATSAPP_NUMBER = '62800000000000';
     process.env.MIDTRANS_SERVER_KEY = 'test-midtrans-server-key';
     process.env.MIDTRANS_CLIENT_KEY = 'test-midtrans-client-key';
     process.env.SYNC_ERP_BOT_URL = `http://127.0.0.1:${botPort}`;
     process.env.SYNC_ERP_API_URL = `http://127.0.0.1:${erpPort}/api/trpc`;
-    process.env.SANTI_PROXY_URL = `http://127.0.0.1:${proxyPort}`;
+    process.env.EXTERNAL_STOREFRONT_PROXY_URL = `http://127.0.0.1:${proxyPort}`;
     process.env.PUBLIC_PROXY_URL = `http://127.0.0.1:${proxyPort}`;
 
     await cleanupCompanyOrders();
@@ -471,18 +471,18 @@ describe.skipIf(
       where: { id: COMPANY_ID },
       create: {
         id: COMPANY_ID,
-        name: 'Santi Living Live E2E',
+        name: 'External Rental Storefront Live E2E',
       },
       update: {
-        name: 'Santi Living Live E2E',
+        name: 'External Rental Storefront Live E2E',
       },
     });
 
     const integration = await prisma.integration.create({
       data: {
         companyId: COMPANY_ID,
-        appId: 'santi-living',
-        name: 'Santi Living',
+        appId: 'external-rental-storefront',
+        name: 'External Rental Storefront',
         isActive: true,
         config: {
           webhookUrl: `http://127.0.0.1:${proxyPort}`,
@@ -592,7 +592,7 @@ describe.skipIf(
       customerName: 'Budi Santoso',
       customerWhatsapp: '6281234567890',
       totalPrice: 165000,
-      orderUrl: `https://santi-living.com/sewa-kasur/pesanan/${result.publicToken}`,
+      orderUrl: `https://rental-storefront.example/orders/${result.publicToken}`,
     });
   });
 

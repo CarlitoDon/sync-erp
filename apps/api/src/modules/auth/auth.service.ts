@@ -7,7 +7,11 @@ import {
 } from '@sync-erp/database';
 import { RegisterPayload, LoginPayload } from '@sync-erp/shared';
 import { AuthRepository } from './auth.repository';
-import { UserService } from '../user/user.service';
+import {
+  PublicUser,
+  toPublicUser,
+  UserService,
+} from '../user/user.service';
 import { EmailService } from '../common/services/email.service';
 import {
   AuthAuditService,
@@ -23,7 +27,7 @@ import { type GoogleOAuthProfile } from './google-oauth.service';
 
 export interface AuthResult {
   success: boolean;
-  user?: User;
+  user?: PublicUser;
   session?: Session;
   verificationRequired?: boolean;
   verificationSentTo?: string;
@@ -182,7 +186,7 @@ export class AuthService {
 
       return {
         success: true,
-        user,
+        user: toPublicUser(user),
         verificationRequired: true,
         verificationSentTo: verification.verificationSentTo,
         verificationUrl: verification.verificationUrl,
@@ -251,7 +255,7 @@ export class AuthService {
 
     return {
       success: true,
-      user,
+      user: toPublicUser(user),
       session,
     };
   }
@@ -347,7 +351,7 @@ export class AuthService {
 
     return {
       success: true,
-      user,
+      user: toPublicUser(user),
       session,
     };
   }
@@ -486,7 +490,7 @@ export class AuthService {
 
       return {
         success: true,
-        user,
+        user: toPublicUser(user),
         session,
       };
     } catch (error) {
@@ -514,9 +518,17 @@ export class AuthService {
   }
 
   async getSession(sessionId: string) {
-    return this.repository.getSession(sessionId);
+    const session = await this.repository.getSession(sessionId);
+    if (!session) return null;
+
+    return {
+      ...session,
+      user: toPublicUser(session.user),
+    };
   }
-  async getProfile(userId: string): Promise<User | null> {
-    return this.userService.getById(userId);
+
+  async getProfile(userId: string): Promise<PublicUser | null> {
+    const user = await this.userService.getById(userId);
+    return user ? toPublicUser(user) : null;
   }
 }

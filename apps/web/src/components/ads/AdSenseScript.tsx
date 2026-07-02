@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import {
   getAdSenseClientId,
   isAdSenseEnvEnabled,
+  isAutoAdsEnabled,
 } from './adsense';
 
 interface AdSenseScriptProps {
@@ -16,6 +17,7 @@ export function AdSenseScript({
   const resolvedClientId = clientId ?? getAdSenseClientId();
   const shouldLoad =
     enabled && isAdSenseEnvEnabled() && Boolean(resolvedClientId);
+  const autoAds = isAutoAdsEnabled();
 
   useEffect(() => {
     if (!shouldLoad || !resolvedClientId) return;
@@ -33,8 +35,13 @@ export function AdSenseScript({
     script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(
       resolvedClientId
     )}`;
+
+    if (autoAds) {
+      script.dataset.adClient = resolvedClientId;
+    }
+
     document.head.appendChild(script);
-  }, [resolvedClientId, shouldLoad]);
+  }, [resolvedClientId, shouldLoad, autoAds]);
 
   return null;
 }

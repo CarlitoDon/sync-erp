@@ -2,7 +2,9 @@ import {
   JournalSourceType,
   PaymentMethodType,
   Prisma,
+  prisma,
 } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { JournalCoreService } from './journal-core.service';
 
 export class JournalSalesService {
@@ -79,12 +81,19 @@ export class JournalSalesService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
+    const resolvedContraAccountCode =
+      contraAccountCode ??
+      (await this.resolvePaymentContraAccountCode(
+        companyId,
+        method,
+        tx
+      ));
     const data = this.preparePaymentReceivedJournal(
       paymentId,
       invoiceNumber,
       amount,
       method,
-      contraAccountCode,
+      resolvedContraAccountCode,
       businessDate
     );
     return this.core.resolveAndCreate(companyId, data, tx);
@@ -99,12 +108,18 @@ export class JournalSalesService {
     contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
+    const resolvedContraAccountCode =
+      contraAccountCode ??
+      (await this.resolvePaymentContraAccountCode(
+        companyId,
+        method,
+        tx
+      ));
     const data = this.preparePaymentReceivedReversalJournal(
       paymentId,
       invoiceNumber,
       amount,
-      method,
-      contraAccountCode
+      resolvedContraAccountCode
     );
     return this.core.resolveAndCreate(companyId, data, tx);
   }
@@ -151,11 +166,18 @@ export class JournalSalesService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
+    const contraAccountCode =
+      await this.resolvePaymentContraAccountCode(
+        companyId,
+        method,
+        tx
+      );
     const data = this.prepareCustomerDepositJournal(
       paymentId,
       orderNumber,
       amount,
       method,
+      contraAccountCode,
       businessDate
     );
     return this.core.resolveAndCreate(companyId, data, tx);
@@ -296,20 +318,16 @@ export class JournalSalesService {
     invoiceNumber: string,
     amount: number,
     method: string,
-    contraAccountCode?: string,
+    contraAccountCode: string,
     businessDate?: Date
   ) {
-    const cashAccount =
-      contraAccountCode ||
-      (method === PaymentMethodType.BANK ? '1200' : '1100'); // Bank or Cash
-
     return {
       reference: `Payment received: ${invoiceNumber}`,
       memo: `Payment via ${method}`,
       sourceType: JournalSourceType.PAYMENT,
       sourceId: paymentId,
       lines: [
-        { accountCode: cashAccount, debit: amount },
+        { accountCode: contraAccountCode, debit: amount },
         { accountCode: '1300', credit: amount },
       ],
       date: businessDate,
@@ -320,13 +338,8 @@ export class JournalSalesService {
     paymentId: string,
     invoiceNumber: string,
     amount: number,
-    method: string,
-    contraAccountCode?: string
+    contraAccountCode: string
   ) {
-    const cashAccount =
-      contraAccountCode ||
-      (method === PaymentMethodType.BANK ? '1200' : '1100');
-
     return {
       reference: `Payment Reversal: ${invoiceNumber}`,
       memo: `Reversal of voided payment`,
@@ -334,7 +347,7 @@ export class JournalSalesService {
       sourceId: `${paymentId}:reversal`, // Unique ID for reversal
       lines: [
         { accountCode: '1300', debit: amount }, // Restore AR
-        { accountCode: cashAccount, credit: amount }, // Reverse Cash
+        { accountCode: contraAccountCode, credit: amount }, // Reverse Cash
       ],
     };
   }
@@ -383,17 +396,16 @@ export class JournalSalesService {
     orderNumber: string,
     amount: number,
     method: string,
+    contraAccountCode: string,
     businessDate?: Date
   ) {
-    const cashAccount =
-      method === PaymentMethodType.BANK ? '1200' : '1100';
     return {
       reference: `Customer Deposit: SO ${orderNumber}`,
       memo: `Customer advance payment via ${method}`,
       sourceType: JournalSourceType.PAYMENT,
       sourceId: paymentId,
       lines: [
-        { accountCode: cashAccount, debit: amount }, // Cash/Bank (Asset)
+        { accountCode: contraAccountCode, debit: amount }, // Cash/Bank (Asset)
         { accountCode: '2200', credit: amount }, // Customer Deposits (Liability)
       ],
       date: businessDate,
@@ -416,4 +428,57 @@ export class JournalSalesService {
       ],
     };
   }
+
+  private async resolvePaymentContraAccountCode(
+    companyId: string,
+    method: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<string> {
+    const candidateCodes =
+      method === PaymentMethodType.BANK ||
+      method === PaymentMethodType.QRIS ||
+      method === PaymentMethodType.EWALLET
+        ? ['1211', '1200']
+        : ['1000', '1100'];
+
+    for (const code of candidateCodes) {
+      const account = tx
+        ? await tx.account.findUnique({
+            where: { companyId_code: { companyId, code } },
+          })
+        : await prisma.account.findUnique({
+            where: { companyId_code: { companyId, code } },
+          });
+
+      if (account && isValidPaymentContraAccount(method, account.name)) {
+        return account.code;
+      }
+    }
+
+    throw new DomainError(
+      `No valid settlement account found for ${method} payment`,
+      400,
+      DomainErrorCodes.INVALID_INPUT
+    );
+  }
+}
+
+function isValidPaymentContraAccount(method: string, accountName: string) {
+  const normalized = accountName.toLowerCase();
+  if (
+    normalized.includes('inventory') ||
+    normalized.includes('receivable')
+  ) {
+    return false;
+  }
+
+  if (
+    method === PaymentMethodType.BANK ||
+    method === PaymentMethodType.QRIS ||
+    method === PaymentMethodType.EWALLET
+  ) {
+    return normalized.includes('bank');
+  }
+
+  return normalized.includes('cash');
 }

@@ -5,15 +5,23 @@ import {
   AuditLogAction,
   EntityType,
 } from '@sync-erp/database';
-import { CreateBillFromPOSchema } from '@sync-erp/shared';
+import {
+  CancelBillInstallmentSchema,
+  CreateBillFromPOSchema,
+  CreateBillInstallmentScheduleSchema,
+  ListBillInstallmentsSchema,
+  MarkBillInstallmentPaidSchema,
+} from '@sync-erp/shared';
 import { z } from 'zod';
 import { BillService } from '../../modules/accounting/services/bill.service';
+import { BillInstallmentService } from '../../modules/accounting/services/bill-installment.service';
 import { ensureHasPermission } from '../../modules/common/utils/permission.utils';
 import { recordAudit } from '../../modules/common/audit/audit-log.service';
 
 const billService = container.resolve<BillService>(
   ServiceKeys.BILL_SERVICE
 );
+const billInstallmentService = new BillInstallmentService();
 
 export const billRouter = router({
   /**
@@ -70,9 +78,19 @@ export const billRouter = router({
    */
   post: protectedProcedure
     .meta({ idempotencyScope: IdempotencyScope.INVOICE_POST }) // Bills are posted as Invoices in ledger
-    .input(z.object({ id: z.string().uuid() }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        businessDate: z.coerce.date().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
-      return billService.post(input.id, ctx.companyId);
+      return billService.post(
+        input.id,
+        ctx.companyId,
+        input.businessDate,
+        ctx.userId
+      );
     }),
 
   /**
@@ -106,6 +124,35 @@ export const billRouter = router({
 
       return billService.delete(input.id, ctx.companyId);
     }),
+
+  installments: router({
+    list: protectedProcedure
+      .input(ListBillInstallmentsSchema)
+      .query(async ({ ctx, input }) => {
+        return billInstallmentService.list(ctx.companyId, input.billId);
+      }),
+
+    createSchedule: protectedProcedure
+      .input(CreateBillInstallmentScheduleSchema)
+      .mutation(async ({ ctx, input }) => {
+        return billInstallmentService.createSchedule(
+          ctx.companyId,
+          input
+        );
+      }),
+
+    markPaid: protectedProcedure
+      .input(MarkBillInstallmentPaidSchema)
+      .mutation(async ({ ctx, input }) => {
+        return billInstallmentService.markPaid(ctx.companyId, input);
+      }),
+
+    cancel: protectedProcedure
+      .input(CancelBillInstallmentSchema)
+      .mutation(async ({ ctx, input }) => {
+        return billInstallmentService.cancel(ctx.companyId, input);
+      }),
+  }),
 
   /**
    * FR-051: Log acknowledged price variance

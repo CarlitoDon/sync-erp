@@ -1,0 +1,29 @@
+# Local/runtime data
+storage/
+.env
+.env.*
+!.env.example
+!.env.production
+!.env.staging
+
+# Dependencies and caches
+node_modules/
+.turbo/
+coverage/
+
+# Build and deployment artifacts
+dist/
+build/
+apps/*/dist/
+apps/api/deploy/
+deploy/
+*.zip
+
+# Local tool state
+.trae/
+.wwebjs_auth/
+apps/bot/.wwebjs_auth/
+supabase/.temp/
+cookies.txt
+*.session
+*.log

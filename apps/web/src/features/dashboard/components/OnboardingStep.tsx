@@ -24,31 +24,31 @@ export default function OnboardingStep({
   };
 
   return (
-    <div className="rounded-lg overflow-hidden">
+    <div className="overflow-hidden rounded-lg">
       <Link
         to={step.targetPath}
-        className={`flex items-center gap-3 p-3 transition-all duration-200 group ${
+        className={`group flex items-center gap-3 p-3 transition-all duration-200 ${
           step.isCompleted
-            ? 'bg-green-50 hover:bg-green-100'
-            : 'bg-gray-50 hover:bg-blue-50'
+            ? 'bg-emerald-50 hover:bg-emerald-100'
+            : 'bg-slate-50 hover:bg-cyan-50'
         }`}
       >
         {/* Status Icon */}
         <div className="flex-shrink-0">
           {step.isCompleted ? (
-            <CheckCircleSolidIcon className="w-6 h-6 text-green-500" />
+            <CheckCircleSolidIcon className="h-6 w-6 text-emerald-500" />
           ) : (
-            <div className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-slate-300">
               <span className="text-sm">{step.icon}</span>
             </div>
           )}
         </div>
 
         {/* Title */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <p
             className={`text-sm font-medium ${
-              step.isCompleted ? 'text-green-700' : 'text-gray-900'
+              step.isCompleted ? 'text-emerald-700' : 'text-slate-950'
             }`}
           >
             {step.title}
@@ -59,13 +59,13 @@ export default function OnboardingStep({
         {step.description && (
           <button
             onClick={handleToggle}
-            className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+            className="rounded-full p-1 transition-colors hover:bg-slate-200"
             aria-label={
               isExpanded ? 'Collapse details' : 'Expand details'
             }
           >
             <ChevronDownIcon
-              className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+              className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${
                 isExpanded ? 'rotate-180' : ''
               }`}
             />
@@ -74,18 +74,18 @@ export default function OnboardingStep({
 
         {/* Arrow */}
         <ChevronRightIcon
-          className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${
+          className={`h-5 w-5 flex-shrink-0 transition-transform duration-200 ${
             step.isCompleted
-              ? 'text-green-400'
-              : 'text-gray-400 group-hover:translate-x-1 group-hover:text-blue-500'
+              ? 'text-emerald-400'
+              : 'text-slate-400 group-hover:translate-x-1 group-hover:text-cyan-600'
           }`}
         />
       </Link>
 
       {/* Expandable Description */}
       {isExpanded && step.description && (
-        <div className="px-3 py-2 bg-gray-100 border-t border-gray-200">
-          <p className="text-xs text-gray-600 pl-9">
+        <div className="border-t border-slate-200 bg-slate-100 px-3 py-2">
+          <p className="pl-9 text-xs text-slate-600">
             {step.description}
           </p>
         </div>

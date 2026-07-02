@@ -1,14 +1,17 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { trpc } from '@/lib/trpc';
 import type { Company } from '@/types/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { getPostCompanyRedirect } from '@/features/billing/planIntent';
+import { BrandMark } from '@/components/brand/BrandMark';
+import { Button, Input } from '@/components/ui';
 
 export function CompanySelectionPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { logout } = useAuth(); // Allow logout if stuck
   const {
     companies,
@@ -30,6 +33,14 @@ export function CompanySelectionPage() {
   const [error, setError] = useState<string | null>(null);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('inviteCode')?.trim();
+    if (!codeFromUrl) return;
+
+    setInviteCode(codeFromUrl);
+    setView('join');
+  }, [searchParams]);
 
   const isSubmitting =
     createMutation.isPending || joinMutation.isPending;
@@ -89,19 +100,22 @@ export function CompanySelectionPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-500">Loading companies...</div>
+      <div className="auth-grid-background flex min-h-screen items-center justify-center">
+        <div className="text-slate-500">Loading companies...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="auth-grid-background flex min-h-screen flex-col justify-center px-4 py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <div className="mx-auto flex justify-center">
+          <BrandMark />
+        </div>
+        <h2 className="mt-5 text-center text-3xl font-bold text-slate-950">
           Select a Company
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-slate-600">
           You need to select a company context to proceed.
         </p>
       </div>
@@ -111,7 +125,7 @@ export function CompanySelectionPage() {
           <CardContent className="py-8 px-4 sm:px-10">
             {error && (
               <div
-                className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative"
+                className="relative mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700"
                 role="alert"
               >
                 <span className="block sm:inline">{error}</span>
@@ -122,29 +136,29 @@ export function CompanySelectionPage() {
             {view === 'list' && (
               <div className="space-y-4">
                 {companies.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500">
+                  <div className="py-4 text-center text-slate-500">
                     <p>You are not a member of any company yet.</p>
                   </div>
                 ) : (
-                  <ul className="divide-y divide-gray-200">
+                  <ul className="divide-y divide-slate-200">
                     {companies.map((company) => (
                       <li
                         key={company.id}
-                        className="py-4 flex justify-between items-center group cursor-pointer hover:bg-gray-50 p-2 rounded"
+                        className="group flex cursor-pointer items-center justify-between rounded-md p-2 py-4 hover:bg-slate-50"
                         onClick={() => handleSelectCompany(company)}
                       >
                         <div>
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-slate-950">
                             {company.name}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-slate-500">
                             Created:{' '}
                             {new Date(
                               company.createdAt
                             ).toLocaleDateString()}
                           </p>
                         </div>
-                        <button className="ml-4 bg-white border border-gray-300 rounded-md shadow-sm px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button className="ml-4 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2">
                           Select
                         </button>
                       </li>
@@ -153,18 +167,19 @@ export function CompanySelectionPage() {
                 )}
 
                 <div className="mt-6 flex flex-col gap-3">
-                  <button
+                  <Button
                     onClick={() => setView('create')}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="w-full"
                   >
                     Create New Company
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={() => setView('join')}
-                    className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="w-full"
                   >
                     Join Existing Company
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -172,48 +187,39 @@ export function CompanySelectionPage() {
             {/* Create View */}
             {view === 'create' && (
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                <h3 className="mb-4 text-lg font-semibold text-slate-950">
                   Create Company
                 </h3>
                 <form
                   onSubmit={handleCreateCompany}
                   className="space-y-4"
                 >
-                  <div>
-                    <label
-                      htmlFor="companyName"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Company Name
-                    </label>
-                    <input
-                      type="text"
-                      id="companyName"
-                      required
-                      value={newCompanyName}
-                      onChange={(e) =>
-                        setNewCompanyName(e.target.value)
-                      }
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="My Great Company"
-                    />
-                  </div>
+                  <Input
+                    label="Company Name"
+                    type="text"
+                    id="companyName"
+                    required
+                    value={newCompanyName}
+                    onChange={(e) => setNewCompanyName(e.target.value)}
+                    placeholder="My Great Company"
+                  />
                   <div className="flex justify-end gap-3">
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={resetForms}
                       disabled={isSubmitting}
-                      className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                      isLoading={isSubmitting}
+                      loadingText="Creating..."
                     >
-                      {isSubmitting ? 'Creating...' : 'Create'}
-                    </button>
+                      Create
+                    </Button>
                   </div>
                 </form>
               </div>
@@ -222,55 +228,48 @@ export function CompanySelectionPage() {
             {/* Join View */}
             {view === 'join' && (
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                <h3 className="mb-4 text-lg font-semibold text-slate-950">
                   Join Company
                 </h3>
                 <form
                   onSubmit={handleJoinCompany}
                   className="space-y-4"
                 >
-                  <div>
-                    <label
-                      htmlFor="inviteCode"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Invite Code
-                    </label>
-                    <input
-                      type="text"
-                      id="inviteCode"
-                      required
-                      value={inviteCode}
-                      onChange={(e) => setInviteCode(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="Enter code"
-                    />
-                  </div>
+                  <Input
+                    label="Invite Code"
+                    type="text"
+                    id="inviteCode"
+                    required
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    placeholder="Enter code"
+                  />
                   <div className="flex justify-end gap-3">
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={resetForms}
                       disabled={isSubmitting}
-                      className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                      isLoading={isSubmitting}
+                      loadingText="Joining..."
                     >
-                      {isSubmitting ? 'Joining...' : 'Join'}
-                    </button>
+                      Join
+                    </Button>
                   </div>
                 </form>
               </div>
             )}
 
-            <div className="mt-6 border-t pt-4">
+            <div className="mt-6 border-t border-slate-200 pt-4">
               <button
                 onClick={handleLogout}
-                className="w-full flex justify-center py-2 px-4 text-sm font-medium text-gray-500 hover:text-gray-700"
+                className="flex w-full justify-center px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
               >
                 Log out
               </button>

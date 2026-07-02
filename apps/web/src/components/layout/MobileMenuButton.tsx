@@ -7,7 +7,7 @@ export default function MobileMenuButton() {
   return (
     <button
       onClick={toggleMobileOpen}
-      className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+      className="rounded-md p-2 text-slate-700 transition-colors hover:bg-slate-100 md:hidden"
       aria-label="Open menu"
     >
       <Bars3Icon className="w-6 h-6" />

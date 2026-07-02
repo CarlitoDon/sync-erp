@@ -25,6 +25,7 @@ declare global {
       };
       user?: User;
       session?: Session;
+      csrfToken?: string;
       /**
        * Company context with businessShape for Policy checks.
        * Available after authMiddleware runs.

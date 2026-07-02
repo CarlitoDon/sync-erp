@@ -160,7 +160,10 @@ describe('Layout', () => {
     it('renders copyright text', () => {
       renderWithProviders();
 
-      expect(screen.getByText(/© 2024 Sync ERP/)).toBeInTheDocument();
+      const currentYear = new Date().getFullYear();
+      expect(
+        screen.getByText(new RegExp(`© ${currentYear} Sync ERP`))
+      ).toBeInTheDocument();
     });
 
     it('renders ERP description', () => {

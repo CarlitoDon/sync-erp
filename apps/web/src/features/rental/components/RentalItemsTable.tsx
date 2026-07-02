@@ -4,7 +4,7 @@ import {
   CardTitle,
   CardContent,
 } from '@/components/ui';
-import { formatCurrency } from '@/utils/format';
+import { formatCurrency, formatDateTime } from '@/utils/format';
 import { RentalOrderCalculations } from '../hooks/useRentalOrderCalculations';
 
 interface RentalOrderItem {
@@ -12,6 +12,8 @@ interface RentalOrderItem {
   quantity: number;
   unitPrice: number | string;
   subtotal: number | string;
+  baseEndDate?: Date | string;
+  effectiveEndDate?: Date | string;
   rentalBundleId?: string | null;
   rentalBundle?: {
     name: string;
@@ -58,6 +60,9 @@ export function RentalItemsTable({
                 <th className="px-4 py-3 text-center font-medium text-gray-500">
                   Day(s)
                 </th>
+                <th className="px-4 py-3 text-center font-medium text-gray-500">
+                  Effective End
+                </th>
                 <th className="px-4 py-3 text-right font-medium text-gray-500">
                   Price
                 </th>
@@ -92,6 +97,24 @@ export function RentalItemsTable({
                   <td className="px-4 py-3 text-center">
                     {calculations.durationDays}
                   </td>
+                  <td className="px-4 py-3 text-center">
+                    {item.effectiveEndDate ? (
+                      <div>
+                        <p className="text-gray-700">
+                          {formatDateTime(item.effectiveEndDate)}
+                        </p>
+                        {item.baseEndDate &&
+                          new Date(item.effectiveEndDate) >
+                            new Date(item.baseEndDate) && (
+                            <p className="text-xs text-blue-600">
+                              Extended
+                            </p>
+                          )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     {formatCurrency(Number(item.unitPrice))}
                   </td>
@@ -103,7 +126,7 @@ export function RentalItemsTable({
             </tbody>
             <tfoot className="bg-gray-50 font-medium">
               <tr>
-                <td className="px-4 py-3" colSpan={4}>
+                <td className="px-4 py-3" colSpan={5}>
                   Subtotal
                 </td>
                 <td className="px-4 py-3 text-right">

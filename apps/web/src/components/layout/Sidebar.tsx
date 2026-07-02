@@ -9,6 +9,7 @@ import {
   ChevronDoubleRightIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
+import { BrandMark } from '@/components/brand/BrandMark';
 
 export default function Sidebar() {
   const { isCollapsed, toggleCollapse, isMobileOpen, closeMobile } =
@@ -35,7 +36,7 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-screen bg-white border-r border-gray-200
+          fixed top-0 left-0 z-50 h-screen border-r border-slate-800 bg-slate-950 text-white
           flex flex-col transition-all duration-300 ease-in-out
           ${isCollapsed ? 'w-16' : 'w-64'}
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -45,16 +46,14 @@ export default function Sidebar() {
         {/* Logo Header */}
         <div
           className={`
-          flex items-center h-16 px-4 border-b border-gray-200
+          flex items-center h-16 px-4 border-b border-white/10
           ${isCollapsed ? 'justify-center' : 'justify-between'}
         `}
         >
           <Link to="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">S</span>
-            </div>
+            <BrandMark tone="light" />
             {!isCollapsed && (
-              <span className="text-lg font-semibold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+              <span className="text-lg font-semibold text-white">
                 Sync ERP
               </span>
             )}
@@ -64,7 +63,7 @@ export default function Sidebar() {
           {!isCollapsed && (
             <button
               onClick={toggleCollapse}
-              className="hidden md:flex p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="hidden rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white md:flex"
               title="Collapse sidebar"
             >
               <ChevronDoubleLeftIcon className="w-5 h-5" />
@@ -76,7 +75,7 @@ export default function Sidebar() {
         {isCollapsed && (
           <button
             onClick={toggleCollapse}
-            className="hidden md:flex mx-auto mt-4 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            className="mx-auto mt-4 hidden rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white md:flex"
             title="Expand sidebar"
           >
             <ChevronDoubleRightIcon className="w-5 h-5" />
@@ -89,7 +88,7 @@ export default function Sidebar() {
         {/* Footer */}
         <div
           className={`
-          mt-auto border-t border-gray-200 p-3 space-y-2
+          mt-auto border-t border-white/10 p-3 space-y-2
           ${isCollapsed ? 'items-center' : ''}
         `}
         >
@@ -102,12 +101,12 @@ export default function Sidebar() {
 
           {/* User Info */}
           {!isCollapsed && user && (
-            <div className="px-3 py-2 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium text-gray-900 truncate">
+            <div className="rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2">
+              <p className="truncate text-sm font-medium text-white">
                 {user.name}
               </p>
               {currentCompany && (
-                <p className="text-xs text-gray-500 truncate">
+                <p className="truncate text-xs text-slate-400">
                   {currentCompany.name}
                 </p>
               )}
@@ -118,7 +117,7 @@ export default function Sidebar() {
           <button
             onClick={handleLogout}
             className={`
-              flex items-center gap-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors
+              flex items-center gap-2 w-full px-3 py-2 text-red-300 hover:bg-red-500/10 hover:text-red-200 rounded-md transition-colors
               ${isCollapsed ? 'justify-center' : ''}
             `}
             title={isCollapsed ? 'Logout' : undefined}

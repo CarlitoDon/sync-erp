@@ -28,6 +28,11 @@ export type PrismaRentalOrderWithRelations =
       };
       partner: true;
       deposit: true;
+      extensions: {
+        include: {
+          items: true;
+        };
+      };
       unitAssignments: {
         include: {
           rentalItemUnit: {

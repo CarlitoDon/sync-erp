@@ -42,6 +42,31 @@ export enum BusinessShape {
   RETAIL = 'RETAIL',
   MANUFACTURING = 'MANUFACTURING',
   SERVICE = 'SERVICE',
+  RENTAL = 'RENTAL',
+}
+
+export enum PermissionModule {
+  COMPANY = 'COMPANY',
+  SALES = 'SALES',
+  PURCHASING = 'PURCHASING',
+  INVENTORY = 'INVENTORY',
+  FINANCE = 'FINANCE',
+  USERS = 'USERS',
+  RENTAL = 'RENTAL',
+}
+
+export enum PermissionAction {
+  CREATE = 'CREATE',
+  READ = 'READ',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE',
+  APPROVE = 'APPROVE',
+  VOID = 'VOID',
+}
+
+export enum PermissionScope {
+  ALL = 'ALL',
+  OWN = 'OWN',
 }
 
 export enum BillingSubscriptionStatus {
@@ -243,6 +268,12 @@ export enum PaymentStatus {
   PARTIALLY_PAID = 'PARTIALLY_PAID',
   PAID = 'PAID',
   REFUNDED = 'REFUNDED',
+}
+
+export enum BillInstallmentStatus {
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum RentalPaymentStatus {

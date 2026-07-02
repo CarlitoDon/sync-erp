@@ -107,6 +107,12 @@ export async function findAccountByCode(
   });
 }
 
+export async function findAccountById(id: string, companyId: string) {
+  return prisma.account.findFirst({
+    where: { id, companyId },
+  });
+}
+
 // ============================================
 // Write Operations
 // ============================================

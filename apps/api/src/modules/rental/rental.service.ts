@@ -27,10 +27,13 @@ import { RentalPolicyService } from './rental-policy.service';
 import { RentalWebhookService } from './rental-webhook.service';
 import { RentalExternalOrderService } from './rental-external-order.service';
 import { RentalAvailabilityService } from './rental-availability.service';
+import { RentalOrderHistoricalSettlementService } from './rental-order-historical-settlement.service';
 import {
   type CreateRentalItemInput,
+  type ConvertStockToUnitInput,
   type CreateRentalOrderInput,
   type ConfirmRentalOrderInput,
+  type HistoricalRentalSettlementInput,
   type ManualConfirmRentalOrderInput,
   type ReleaseRentalOrderInput,
   type ProcessReturnInput,
@@ -47,6 +50,7 @@ export class RentalService {
   private readonly policyService: RentalPolicyService;
   public readonly externalOrderService: RentalExternalOrderService;
   private readonly availabilityService: RentalAvailabilityService;
+  private readonly historicalSettlementService: RentalOrderHistoricalSettlementService;
 
   constructor(webhookService?: RentalWebhookService) {
     this.itemService = new RentalItemService();
@@ -59,6 +63,8 @@ export class RentalService {
     this.policyService = new RentalPolicyService();
     this.externalOrderService = new RentalExternalOrderService();
     this.availabilityService = new RentalAvailabilityService();
+    this.historicalSettlementService =
+      new RentalOrderHistoricalSettlementService();
   }
 
   // ==========================================
@@ -84,13 +90,15 @@ export class RentalService {
     companyId: string,
     itemId: string,
     quantity: number,
-    userId: string
+    userId: string,
+    options?: Omit<ConvertStockToUnitInput, 'rentalItemId' | 'quantity'>
   ): Promise<number> {
     return this.itemService.convertStockToUnits(
       companyId,
       itemId,
       quantity,
-      userId
+      userId,
+      options
     );
   }
 
@@ -224,6 +232,18 @@ export class RentalService {
       userId,
       paymentReference,
       failReason
+    );
+  }
+
+  async settleHistoricalCompletedOrder(
+    companyId: string,
+    input: HistoricalRentalSettlementInput,
+    userId: string
+  ): Promise<RentalOrder> {
+    return this.historicalSettlementService.settleCompletedOrder(
+      companyId,
+      input,
+      userId
     );
   }
 

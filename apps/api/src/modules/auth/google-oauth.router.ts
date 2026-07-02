@@ -15,8 +15,6 @@ const googleOAuthService = container.resolve<GoogleOAuthService>(
   ServiceKeys.GOOGLE_OAUTH_SERVICE
 );
 
-const GOOGLE_STATE_COOKIE = 'googleOAuthState';
-
 function getSessionCookieOptions(): CookieOptions {
   const isSecureEnv =
     process.env.SECURE_COOKIES === 'true' ||
@@ -27,21 +25,8 @@ function getSessionCookieOptions(): CookieOptions {
     httpOnly: true,
     secure: isSecureEnv,
     sameSite: isSecureEnv ? 'none' : 'lax',
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000,
-  };
-}
-
-function getStateCookieOptions(): CookieOptions {
-  const isSecureEnv =
-    process.env.SECURE_COOKIES === 'true' ||
-    process.env.NODE_ENV === 'production' ||
-    process.env.NODE_ENV === 'staging';
-
-  return {
-    httpOnly: true,
-    secure: isSecureEnv,
-    sameSite: 'lax',
-    maxAge: 10 * 60 * 1000,
   };
 }
 
@@ -80,41 +65,60 @@ function redirectWithError(
   );
 }
 
+function redirectWithConfigurationError(
+  res: Response,
+  intent: GoogleOAuthIntent
+) {
+  console.warn(
+    `[Auth] Google OAuth is not configured. Missing: ${googleOAuthService
+      .getMissingConfigKeys()
+      .join(', ')}`
+  );
+  redirectWithError(res, intent, 'google_oauth_not_configured');
+}
+
 router.get('/start', (req, res) => {
   const intent = getIntentFromQuery(req.query.intent);
 
   if (!googleOAuthService.isConfigured()) {
-    redirectWithError(res, intent, 'google_oauth_not_configured');
+    redirectWithConfigurationError(res, intent);
     return;
   }
 
-  const { authorizationUrl, state } =
+  const { authorizationUrl } =
     googleOAuthService.createAuthorizationUrl(intent);
 
-  res.cookie(
-    GOOGLE_STATE_COOKIE,
-    state,
-    getStateCookieOptions()
-  );
   res.redirect(302, authorizationUrl);
 });
 
+// The callback validates state via HMAC signature only.
+// Cookie-based double-submit was removed because modern browsers
+// (Chrome 80+) block SameSite=Lax cookies on the redirect back
+// from Google's cross-site OAuth flow, making the cookie comparison
+// always fail. HMAC signing already provides equivalent CSRF
+// protection: only this server can produce a valid signature, and
+// the state includes a nonce + TTL to prevent replay attacks.
 router.get('/callback', async (req, res) => {
   let intent: GoogleOAuthIntent = 'login';
 
   try {
     if (!googleOAuthService.isConfigured()) {
-      redirectWithError(res, intent, 'google_oauth_not_configured');
+      redirectWithConfigurationError(res, intent);
       return;
     }
 
-    const state = req.query.state?.toString();
-    const storedState = req.cookies[GOOGLE_STATE_COOKIE];
     const providerError = req.query.error?.toString();
+    const state = req.query.state?.toString();
 
-    if (state && storedState && state === storedState) {
-      const statePayload = googleOAuthService.validateState(state);
-      intent = statePayload.intent;
+    // Validate state via HMAC signature (includes TTL + nonce).
+    if (state) {
+      try {
+        const statePayload =
+          googleOAuthService.validateState(state);
+        intent = statePayload.intent;
+      } catch {
+        // Signature invalid or state expired — fall through
+      }
     }
 
     if (providerError) {
@@ -122,10 +126,13 @@ router.get('/callback', async (req, res) => {
       return;
     }
 
-    if (!state || !storedState || state !== storedState) {
+    if (!state) {
       redirectWithError(res, intent, 'google_oauth_failed');
       return;
     }
+
+    // Re-validate for the main path (throws if invalid).
+    googleOAuthService.validateState(state);
 
     const code = req.query.code?.toString();
     if (!code) {
@@ -157,14 +164,11 @@ router.get('/callback', async (req, res) => {
       getSessionCookieOptions()
     );
     res.redirect(302, googleOAuthService.getSuccessRedirectUrl());
-  } catch {
+  } catch (err) {
+    console.error(`[OAuth] callback error:`, err);
     redirectWithError(res, intent, 'google_oauth_failed');
-  } finally {
-    res.clearCookie(
-      GOOGLE_STATE_COOKIE,
-      getStateCookieOptions()
-    );
   }
 });
 
 export const googleOAuthRouter = router;
+

@@ -127,11 +127,15 @@ export const OrderItemScalarFieldEnumSchema = z.enum(['id','orderId','productId'
 
 export const InventoryMovementScalarFieldEnumSchema = z.enum(['id','companyId','productId','warehouseId','orderId','fulfillmentId','type','quantity','reference','date','createdAt']);
 
-export const InvoiceScalarFieldEnumSchema = z.enum(['id','companyId','orderId','partnerId','type','status','invoiceNumber','dueDate','amount','subtotal','taxAmount','taxRate','balance','supplierInvoiceNumber','paymentTermsString','notes','version','createdAt','updatedAt','relatedInvoiceId','isDownPayment','dpBillId','fulfillmentId']);
+export const InvoiceScalarFieldEnumSchema = z.enum(['id','companyId','orderId','partnerId','type','status','invoiceNumber','date','dueDate','amount','subtotal','taxAmount','taxRate','balance','supplierInvoiceNumber','paymentTermsString','notes','version','createdAt','updatedAt','relatedInvoiceId','isDownPayment','dpBillId','fulfillmentId']);
 
 export const InvoiceItemScalarFieldEnumSchema = z.enum(['id','invoiceId','productId','description','quantity','price','amount']);
 
+export const AttachmentScalarFieldEnumSchema = z.enum(['id','companyId','entityType','entityId','originalFileName','mimeType','sizeBytes','checksumSha256','storageProvider','storageKey','uploadedByUserId','notes','createdAt','updatedAt']);
+
 export const PaymentScalarFieldEnumSchema = z.enum(['id','companyId','invoiceId','orderId','paymentType','settledAt','settlementBillId','amount','date','method','reference','accountId','version','createdAt']);
+
+export const BillInstallmentScheduleScalarFieldEnumSchema = z.enum(['id','companyId','billId','sequence','dueDate','amount','status','paidAt','paymentId','notes','createdAt','updatedAt']);
 
 export const AccountScalarFieldEnumSchema = z.enum(['id','companyId','code','name','type','isActive','createdAt','updatedAt','isGroup','parentId']);
 
@@ -179,11 +183,13 @@ export const RentalBundleScalarFieldEnumSchema = z.enum(['id','companyId','exter
 
 export const RentalBundleComponentScalarFieldEnumSchema = z.enum(['id','bundleId','rentalItemId','quantity','componentLabel']);
 
-export const RentalItemUnitScalarFieldEnumSchema = z.enum(['id','rentalItemId','companyId','unitCode','condition','status','totalRentalDays','totalRentalCount','lastDeepCleaningAt','retiredAt','retirementReason','flaggedForRetirement','createdAt','updatedAt']);
+export const RentalItemUnitScalarFieldEnumSchema = z.enum(['id','rentalItemId','companyId','unitCode','acquiredAt','acquisitionCost','sourceOrderId','sourceOrderItemId','sourceFulfillmentId','sourceBillId','sourceBatchCode','sizeLabel','color','sourceNotes','condition','status','totalRentalDays','totalRentalCount','lastDeepCleaningAt','retiredAt','retirementReason','flaggedForRetirement','createdAt','updatedAt']);
 
 export const RentalOrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','orderNumber','rentalStartDate','rentalEndDate','dueDateTime','status','subtotal','depositAmount','totalAmount','policySnapshot','notes','confirmedAt','activatedAt','completedAt','cancelledAt','createdAt','updatedAt','createdBy','publicToken','deliveryFee','deliveryAddress','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','paymentMethod','discountAmount','discountLabel','orderSource','rentalPaymentStatus','paymentClaimedAt','paymentConfirmedAt','paymentConfirmedBy','paymentReference','paymentFailedAt','paymentFailReason']);
 
-export const RentalOrderExtensionScalarFieldEnumSchema = z.enum(['id','rentalOrderId','companyId','extensionNumber','previousEndDate','newEndDate','additionalDays','additionalAmount','additionalDeposit','reason','isPaid','paidAt','paymentId','createdAt','createdBy']);
+export const RentalOrderExtensionScalarFieldEnumSchema = z.enum(['id','rentalOrderId','companyId','extensionNumber','previousEndDate','newEndDate','additionalDays','additionalAmount','deliveryFee','deliveryFeeLabel','additionalDeposit','reason','isPaid','paidAt','paymentId','createdAt','createdBy']);
+
+export const RentalOrderExtensionItemScalarFieldEnumSchema = z.enum(['id','rentalOrderExtensionId','companyId','rentalOrderItemId','rentalItemId','rentalBundleId','quantity','previousEndDate','newEndDate','additionalDays','unitPrice','additionalAmount','notes','createdAt']);
 
 export const RentalOrderItemScalarFieldEnumSchema = z.enum(['id','rentalOrderId','rentalItemId','rentalBundleId','quantity','unitPrice','pricingTier','subtotal']);
 
@@ -252,6 +258,14 @@ export type OAuthProviderType = `${z.infer<typeof OAuthProviderSchema>}`
 export const AuthAuditActionSchema = z.enum(['REGISTERED','VERIFICATION_EMAIL_SENT','VERIFICATION_EMAIL_FAILED','VERIFICATION_RESEND_REQUESTED','EMAIL_VERIFIED','LOGIN_BLOCKED_UNVERIFIED','GOOGLE_OAUTH_LINKED','GOOGLE_OAUTH_SUCCEEDED','GOOGLE_OAUTH_FAILED']);
 
 export type AuthAuditActionType = `${z.infer<typeof AuthAuditActionSchema>}`
+
+export const AttachmentEntityTypeSchema = z.enum(['BILL','INVOICE','PURCHASE_ORDER','SALES_ORDER','GOODS_RECEIPT','SHIPMENT','PAYMENT','EXPENSE','RENTAL_ORDER','RENTAL_ITEM','PRODUCT','PARTNER']);
+
+export type AttachmentEntityTypeType = `${z.infer<typeof AttachmentEntityTypeSchema>}`
+
+export const BillInstallmentStatusSchema = z.enum(['PENDING','PAID','CANCELLED']);
+
+export type BillInstallmentStatusType = `${z.infer<typeof BillInstallmentStatusSchema>}`
 
 export const AccountTypeSchema = z.enum(['ASSET','LIABILITY','EQUITY','REVENUE','EXPENSE']);
 
@@ -838,6 +852,7 @@ export const InvoiceSchema = z.object({
   orderId: z.string().nullable(),
   partnerId: z.string(),
   invoiceNumber: z.string().nullable(),
+  date: z.coerce.date(),
   dueDate: z.coerce.date(),
   amount: z.instanceof(PrismaDecimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'Invoice']"}),
   subtotal: z.instanceof(PrismaDecimal, { message: "Field 'subtotal' must be a Decimal. Location: ['Models', 'Invoice']"}),
@@ -875,6 +890,29 @@ export const InvoiceItemSchema = z.object({
 export type InvoiceItem = z.infer<typeof InvoiceItemSchema>
 
 /////////////////////////////////////////
+// ATTACHMENT SCHEMA
+/////////////////////////////////////////
+
+export const AttachmentSchema = z.object({
+  entityType: AttachmentEntityTypeSchema,
+  id: z.string(),
+  companyId: z.string(),
+  entityId: z.string(),
+  originalFileName: z.string(),
+  mimeType: z.string(),
+  sizeBytes: z.number(),
+  checksumSha256: z.string(),
+  storageProvider: z.string(),
+  storageKey: z.string(),
+  uploadedByUserId: z.string().nullable(),
+  notes: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type Attachment = z.infer<typeof AttachmentSchema>
+
+/////////////////////////////////////////
 // PAYMENT SCHEMA
 /////////////////////////////////////////
 
@@ -896,6 +934,27 @@ export const PaymentSchema = z.object({
 })
 
 export type Payment = z.infer<typeof PaymentSchema>
+
+/////////////////////////////////////////
+// BILL INSTALLMENT SCHEDULE SCHEMA
+/////////////////////////////////////////
+
+export const BillInstallmentScheduleSchema = z.object({
+  status: BillInstallmentStatusSchema,
+  id: z.string(),
+  companyId: z.string(),
+  billId: z.string(),
+  sequence: z.number(),
+  dueDate: z.coerce.date(),
+  amount: z.instanceof(PrismaDecimal, { message: "Field 'amount' must be a Decimal. Location: ['Models', 'BillInstallmentSchedule']"}),
+  paidAt: z.coerce.date().nullable(),
+  paymentId: z.string().nullable(),
+  notes: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type BillInstallmentSchedule = z.infer<typeof BillInstallmentScheduleSchema>
 
 /////////////////////////////////////////
 // ACCOUNT SCHEMA
@@ -1302,6 +1361,16 @@ export const RentalItemUnitSchema = z.object({
   rentalItemId: z.string(),
   companyId: z.string(),
   unitCode: z.string(),
+  acquiredAt: z.coerce.date().nullable(),
+  acquisitionCost: z.instanceof(PrismaDecimal, { message: "Field 'acquisitionCost' must be a Decimal. Location: ['Models', 'RentalItemUnit']"}).nullable(),
+  sourceOrderId: z.string().nullable(),
+  sourceOrderItemId: z.string().nullable(),
+  sourceFulfillmentId: z.string().nullable(),
+  sourceBillId: z.string().nullable(),
+  sourceBatchCode: z.string().nullable(),
+  sizeLabel: z.string().nullable(),
+  color: z.string().nullable(),
+  sourceNotes: z.string().nullable(),
   totalRentalDays: z.number(),
   totalRentalCount: z.number(),
   lastDeepCleaningAt: z.coerce.date().nullable(),
@@ -1378,6 +1447,8 @@ export const RentalOrderExtensionSchema = z.object({
   newEndDate: z.coerce.date(),
   additionalDays: z.number(),
   additionalAmount: z.instanceof(PrismaDecimal, { message: "Field 'additionalAmount' must be a Decimal. Location: ['Models', 'RentalOrderExtension']"}),
+  deliveryFee: z.instanceof(PrismaDecimal, { message: "Field 'deliveryFee' must be a Decimal. Location: ['Models', 'RentalOrderExtension']"}),
+  deliveryFeeLabel: z.string().nullable(),
   additionalDeposit: z.instanceof(PrismaDecimal, { message: "Field 'additionalDeposit' must be a Decimal. Location: ['Models', 'RentalOrderExtension']"}),
   reason: z.string().nullable(),
   isPaid: z.boolean(),
@@ -1388,6 +1459,29 @@ export const RentalOrderExtensionSchema = z.object({
 })
 
 export type RentalOrderExtension = z.infer<typeof RentalOrderExtensionSchema>
+
+/////////////////////////////////////////
+// RENTAL ORDER EXTENSION ITEM SCHEMA
+/////////////////////////////////////////
+
+export const RentalOrderExtensionItemSchema = z.object({
+  id: z.string(),
+  rentalOrderExtensionId: z.string(),
+  companyId: z.string(),
+  rentalOrderItemId: z.string().nullable(),
+  rentalItemId: z.string().nullable(),
+  rentalBundleId: z.string().nullable(),
+  quantity: z.number(),
+  previousEndDate: z.coerce.date(),
+  newEndDate: z.coerce.date(),
+  additionalDays: z.number(),
+  unitPrice: z.instanceof(PrismaDecimal, { message: "Field 'unitPrice' must be a Decimal. Location: ['Models', 'RentalOrderExtensionItem']"}),
+  additionalAmount: z.instanceof(PrismaDecimal, { message: "Field 'additionalAmount' must be a Decimal. Location: ['Models', 'RentalOrderExtensionItem']"}),
+  notes: z.string().nullable(),
+  createdAt: z.coerce.date(),
+})
+
+export type RentalOrderExtensionItem = z.infer<typeof RentalOrderExtensionItemSchema>
 
 /////////////////////////////////////////
 // RENTAL ORDER ITEM SCHEMA

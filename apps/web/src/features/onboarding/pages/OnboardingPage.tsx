@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button, CurrencyInput, Input } from '@/components/ui';
+import { Button, CurrencyInput, Input, Label } from '@/components/ui';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useCompany } from '@/contexts/CompanyContext';
 import { trpc } from '@/lib/trpc';
 import {
@@ -299,12 +301,19 @@ export default function OnboardingPage() {
             onChange={(e) => setSupplierName(e.target.value)}
             placeholder="Contoh: Supplier A"
           />
-          <Input
-            label="Nama produk"
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            placeholder="Contoh: Produk 1"
-          />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-1">
+              <Label>Nama produk</Label>
+              <Tooltip content="Ini adalah nama produk yang akan muncul di invoice dan laporan stok.">
+                <InformationCircleIcon className="h-4 w-4 text-slate-400" />
+              </Tooltip>
+            </div>
+            <Input
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              placeholder="Contoh: Produk 1"
+            />
+          </div>
           <Input
             label="Quantity"
             type="number"

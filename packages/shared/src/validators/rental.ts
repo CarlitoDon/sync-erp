@@ -14,6 +14,8 @@ import {
   ProductSchema,
   ProductCategorySchema,
   RentalOrderUnitAssignmentSchema,
+  RentalOrderExtensionSchema as GeneratedRentalOrderExtensionSchema,
+  RentalOrderExtensionItemSchema as GeneratedRentalOrderExtensionItemSchema,
   RentalReturnSchema as GeneratedRentalReturnSchema,
 } from '../generated/zod/index.js';
 
@@ -98,6 +100,11 @@ export type RentalItemWithRelations = z.infer<
   typeof RentalItemWithRelationsSchema
 >;
 
+const RentalOrderExtensionWithItemsSchema =
+  GeneratedRentalOrderExtensionSchema.extend({
+    items: z.array(GeneratedRentalOrderExtensionItemSchema).optional(),
+  });
+
 export const RentalOrderWithRelationsSchema =
   RentalOrderSchema.extend({
     items: z.array(
@@ -136,6 +143,7 @@ export const RentalOrderWithRelationsSchema =
       })
     ),
     partner: PartnerSchema,
+    extensions: z.array(RentalOrderExtensionWithItemsSchema).optional(),
     unitAssignments: z.array(
       RentalOrderUnitAssignmentSchema.extend({
         rentalItemUnit: RentalItemUnitSchema.extend({
@@ -241,6 +249,8 @@ const RentalOrderItemSchema = z
     rentalItemId: z.string().uuid().optional(),
     rentalBundleId: z.string().uuid().optional(),
     quantity: z.number().int().positive(),
+    pricePerDay: z.number().positive().optional(),
+    lineTotal: z.number().positive().optional(),
   })
   .refine((data) => !!data.rentalItemId || !!data.rentalBundleId, {
     message: 'Either rentalItemId or rentalBundleId is required',
@@ -264,6 +274,19 @@ export const CreateRentalOrderSchema = z
       .optional(),
     items: z.array(RentalOrderItemSchema).min(1),
     notes: z.string().optional(),
+    deliveryFee: z.number().nonnegative().optional(),
+    deliveryAddress: z.string().optional(),
+    street: z.string().optional(),
+    kelurahan: z.string().optional(),
+    kecamatan: z.string().optional(),
+    kota: z.string().optional(),
+    provinsi: z.string().optional(),
+    zip: z.string().optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+    paymentMethod: z.string().optional(),
+    discountAmount: z.number().nonnegative().optional(),
+    discountLabel: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -307,15 +330,66 @@ export const ManualConfirmRentalOrderSchema = z.object({
   notes: z.string().min(5, 'Notes required for manual confirmation'),
 });
 
+export const HistoricalRentalSettlementSchema = z.object({
+  orderId: z.string().uuid(),
+  paymentDate: z
+    .string()
+    .datetime()
+    .transform((str) => new Date(str)),
+  completedAt: z
+    .string()
+    .datetime()
+    .transform((str) => new Date(str))
+    .optional(),
+  paymentMethod: z
+    .enum(['CASH', 'BANK', 'QRIS', 'EWALLET', 'OTHER'])
+    .default('BANK'),
+  paymentReference: z.string().trim().min(1).max(120).optional(),
+  notes: z.string().trim().min(5).max(1000).optional(),
+});
+
 // Bulk add units
 // REMOVED: BulkAddUnitSchema - Manual bulk unit creation no longer supported
 // All units must be created via ConvertStockToUnitSchema
 
-// Convert Stock to Unit (Simplified: Auto-generate unit codes)
-export const ConvertStockToUnitSchema = z.object({
-  rentalItemId: z.string().uuid(),
-  quantity: z.number().min(1, 'Minimal 1 unit'),
+const RentalUnitMetadataSchema = z.object({
+  unitCode: z.string().trim().min(1).max(64).optional(),
+  acquiredAt: z.coerce.date().optional(),
+  acquisitionCost: z.number().positive().optional(),
+  sizeLabel: z.string().trim().min(1).max(50).optional(),
+  color: z.string().trim().min(1).max(50).optional(),
+  sourceNotes: z.string().trim().min(1).max(1000).optional(),
 });
+
+// Convert Stock to Unit. Source fields are optional so existing flows keep working.
+export const ConvertStockToUnitSchema = z
+  .object({
+    rentalItemId: z.string().uuid(),
+    quantity: z.number().int().min(1, 'Minimal 1 unit'),
+    sourceOrderId: z.string().uuid().optional(),
+    sourceOrderItemId: z.string().uuid().optional(),
+    sourceFulfillmentId: z.string().uuid().optional(),
+    sourceBillId: z.string().uuid().optional(),
+    sourceBatchCode: z.string().trim().min(1).max(100).optional(),
+    unitCodes: z.array(z.string().trim().min(1).max(64)).optional(),
+    unitMetadata: z.array(RentalUnitMetadataSchema).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.unitCodes && data.unitCodes.length !== data.quantity) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['unitCodes'],
+        message: 'unitCodes length must match quantity',
+      });
+    }
+    if (data.unitMetadata && data.unitMetadata.length !== data.quantity) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['unitMetadata'],
+        message: 'unitMetadata length must match quantity',
+      });
+    }
+  });
 
 const UnitReleaseSchema = z.object({
   unitId: z.string().uuid(),
@@ -334,14 +408,67 @@ export const CancelRentalOrderSchema = z.object({
   reason: z.string().min(5, 'Cancellation reason required'),
 });
 
-export const ExtendRentalOrderSchema = z.object({
-  orderId: z.string().uuid(),
-  newEndDate: z
-    .string()
-    .datetime()
-    .transform((str) => new Date(str)),
-  notes: z.string().optional(),
-});
+const ExtendRentalOrderItemSchema = z
+  .object({
+    rentalOrderItemId: z.string().uuid().optional(),
+    rentalItemId: z.string().uuid().optional(),
+    rentalBundleId: z.string().uuid().optional(),
+    quantity: z.number().int().positive().optional(),
+    unitPrice: z.number().nonnegative().optional(),
+    additionalAmount: z.number().nonnegative().optional(),
+    notes: z.string().optional(),
+  })
+  .refine(
+    (data) =>
+      !!data.rentalOrderItemId ||
+      !!data.rentalItemId ||
+      !!data.rentalBundleId,
+    {
+      message:
+        'Either rentalOrderItemId, rentalItemId, or rentalBundleId is required',
+      path: ['rentalOrderItemId'],
+    }
+  );
+
+export const ExtendRentalOrderSchema = z
+  .object({
+    orderId: z.string().uuid(),
+    newEndDate: z
+      .string()
+      .datetime()
+      .transform((str) => new Date(str)),
+    additionalAmount: z.number().nonnegative().optional(),
+    deliveryFee: z.number().nonnegative().optional(),
+    deliveryFeeLabel: z.string().optional(),
+    additionalDeposit: z.number().nonnegative().optional(),
+    items: z.array(ExtendRentalOrderItemSchema).min(1).optional(),
+    reason: z.string().optional(),
+    notes: z.string().optional(),
+    isPaid: z.boolean().optional(),
+    paidAt: z
+      .string()
+      .datetime()
+      .transform((str) => new Date(str))
+      .optional(),
+    paymentId: z.string().uuid().optional(),
+    businessDate: z
+      .string()
+      .datetime()
+      .transform((str) => new Date(str))
+      .optional(),
+    allowHistorical: z.boolean().optional(),
+    updateOrderTotal: z.boolean().optional(),
+    updateOrderDates: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.items && data.additionalAmount !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['additionalAmount'],
+        message: 'Use per-item additionalAmount when items are provided',
+      });
+    }
+  });
 
 // ==========================================
 // Returns & Settlement
@@ -430,6 +557,9 @@ export type UpdateRentalItemInput = z.infer<
 export type UpdateUnitStatusInput = z.infer<
   typeof UpdateUnitStatusSchema
 >;
+export type ConvertStockToUnitInput = z.infer<
+  typeof ConvertStockToUnitSchema
+>;
 export type CreateRentalOrderInput = z.infer<
   typeof CreateRentalOrderSchema
 >;
@@ -438,6 +568,9 @@ export type ConfirmRentalOrderInput = z.infer<
 >;
 export type ManualConfirmRentalOrderInput = z.infer<
   typeof ManualConfirmRentalOrderSchema
+>;
+export type HistoricalRentalSettlementInput = z.infer<
+  typeof HistoricalRentalSettlementSchema
 >;
 export type ReleaseRentalOrderInput = z.infer<
   typeof ReleaseRentalOrderSchema

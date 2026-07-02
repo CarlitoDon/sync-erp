@@ -58,6 +58,10 @@ export function getPurchaseOrderTools(): ToolSpec[] {
             description: 'JSON array of items: [{productId, quantity, unitPrice}]',
           },
           reference: { type: 'string' },
+          date: {
+            type: 'string',
+            description: 'Purchase order date as ISO date or datetime',
+          },
           notes: { type: 'string' },
         },
         required: ['companyId', 'partnerId', 'items'],
@@ -73,14 +77,22 @@ export function getPurchaseOrderTools(): ToolSpec[] {
           ...item,
           price: item.price ?? item.unitPrice,
         }));
+        const reference = getOptionalString(args, 'reference');
+        const notes = [
+          reference ? `Reference: ${reference}` : undefined,
+          getOptionalString(args, 'notes'),
+        ]
+          .filter((line): line is string => Boolean(line))
+          .join('\n');
+
         return apiMutation(
           'purchaseOrder.create',
           buildInput([
             ['type', 'PURCHASE'],
             ['partnerId', partnerId],
             ['items', items],
-            ['reference', getOptionalString(args, 'reference')],
-            ['notes', getOptionalString(args, 'notes')],
+            ['date', getOptionalString(args, 'date')],
+            ['notes', notes || undefined],
           ]),
           companyId
         );
@@ -100,6 +112,37 @@ export function getPurchaseOrderTools(): ToolSpec[] {
           { id: getString(args, 'id') },
           getString(args, 'companyId')
         ),
+    },
+    {
+      name: 'purchase_order_update',
+      description:
+        'Update a purchase order. Pass data as JSON object string with API Order update fields.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          companyId: companyIdProp,
+          id: idProp,
+          data: {
+            type: 'string',
+            description: 'JSON object with purchase order fields to update',
+          },
+        },
+        required: ['companyId', 'id', 'data'],
+      },
+      handler: async (args) => {
+        const data: unknown = JSON.parse(getString(args, 'data'));
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+          throw new Error('purchase_order_update data must be a JSON object');
+        }
+        return apiMutation(
+          'purchaseOrder.update',
+          {
+            id: getString(args, 'id'),
+            data: data as Record<string, unknown>,
+          },
+          getString(args, 'companyId')
+        );
+      },
     },
     {
       name: 'purchase_order_cancel',

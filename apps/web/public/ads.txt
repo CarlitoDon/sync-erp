@@ -1,4 +1,1 @@
-# Sync ERP AdSense setup
-# Replace this file in production with the exact line from Google AdSense.
-# Example:
-# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+google.com, pub-9645561898885163, DIRECT, f08c47fec0942fa0

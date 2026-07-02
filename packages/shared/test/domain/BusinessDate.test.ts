@@ -37,6 +37,13 @@ describe('BusinessDate', () => {
     expect(() => bd.ensureValid()).not.toThrow();
   });
 
+  it('should allow explicitly backdated onboarding transactions', () => {
+    const past = new Date('2020-01-01');
+    const bd = BusinessDate.from(past);
+
+    expect(() => bd.ensureNotBackdated()).not.toThrow();
+  });
+
   it('should allow current date within tolerance', () => {
     const now = new Date();
     // Add 4 minutes (within 5 min tolerance)

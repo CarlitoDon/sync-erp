@@ -10,11 +10,20 @@ export type McpRuntimeConfig = z.infer<typeof McpRuntimeConfigSchema>;
 
 let cachedConfig: McpRuntimeConfig | null = null;
 
-export function isMcpEnabled(): boolean {
-  return Boolean(
+function getBearerTokensFromEnv(): string[] {
+  const bearerTokenList =
+    process.env.SYNC_ERP_MCP_BEARER_TOKENS ||
     process.env.SYNC_ERP_MCP_BEARER_TOKEN ||
-      process.env.SYNC_ERP_MCP_BEARER_TOKENS
-  );
+    '';
+
+  return bearerTokenList
+    .split(',')
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+export function isMcpEnabled(): boolean {
+  return getBearerTokensFromEnv().length > 0;
 }
 
 export function getMcpRuntimeConfig(): McpRuntimeConfig {
@@ -22,16 +31,8 @@ export function getMcpRuntimeConfig(): McpRuntimeConfig {
     return cachedConfig;
   }
 
-  const bearerTokenList =
-    process.env.SYNC_ERP_MCP_BEARER_TOKENS ||
-    process.env.SYNC_ERP_MCP_BEARER_TOKEN ||
-    '';
-
   const rawConfig = {
-    bearerTokens: bearerTokenList
-      .split(',')
-      .map((token) => token.trim())
-      .filter(Boolean),
+    bearerTokens: getBearerTokensFromEnv(),
     maxSessions: Number(process.env.SYNC_ERP_MCP_MAX_SESSIONS || 50),
     sessionTtlMs: Number(
       process.env.SYNC_ERP_MCP_SESSION_TTL_MS || 15 * 60 * 1000

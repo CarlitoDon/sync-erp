@@ -2,7 +2,7 @@
  * User Tools
  */
 import type { ToolSpec } from '../types.js';
-import { apiQuery, apiMutation } from '../client.js';
+import { apiQuery } from '../client.js';
 import { getString, companyIdProp, idProp } from './_helpers.js';
 
 export function getUserTools(): ToolSpec[] {
@@ -32,29 +32,6 @@ export function getUserTools(): ToolSpec[] {
           { id: getString(args, 'id') },
           getString(args, 'companyId')
         ),
-    },
-    {
-      name: 'user_create',
-      description: 'Create a new user. Input JSON: {name, email, password, roleId?}',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          companyId: companyIdProp,
-          input: {
-            type: 'string',
-            description: 'JSON: {name, email, password, roleId?}',
-          },
-        },
-        required: ['companyId', 'input'],
-      },
-      handler: async (args) => {
-        const input: unknown = JSON.parse(getString(args, 'input'));
-        return apiMutation(
-          'user.create',
-          input as Record<string, unknown>,
-          getString(args, 'companyId')
-        );
-      },
     },
   ];
 }

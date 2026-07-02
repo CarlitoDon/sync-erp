@@ -7,6 +7,7 @@ import {
   getString,
   getOptionalString,
   getOptionalNumber,
+  getOptionalBoolean,
   companyIdProp,
   idProp,
   statusFilterProp,
@@ -46,6 +47,130 @@ export function getBillTools(): ToolSpec[] {
         ),
     },
     {
+      name: 'bill_installment_list',
+      description: 'List installment schedule lines for a bill',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          companyId: companyIdProp,
+          billId: { type: 'string', description: 'Bill UUID' },
+        },
+        required: ['companyId', 'billId'],
+      },
+      handler: async (args) =>
+        apiQuery(
+          'bill.installments.list',
+          { billId: getString(args, 'billId') },
+          getString(args, 'companyId')
+        ),
+    },
+    {
+      name: 'bill_installment_create_schedule',
+      description:
+        'Create a non-journal installment schedule for a bill. Pass input JSON {billId, installments:[{dueDate, amount, notes?}], replaceExisting?}.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          companyId: companyIdProp,
+          input: {
+            type: 'string',
+            description: 'JSON schedule payload',
+          },
+          billId: { type: 'string', description: 'Bill UUID' },
+          installments: {
+            type: 'string',
+            description:
+              'JSON array of installment lines when input is not provided',
+          },
+          replaceExisting: {
+            type: 'boolean',
+            description: 'Replace existing unpaid schedule lines',
+          },
+        },
+        required: ['companyId'],
+      },
+      handler: async (args) => {
+        const rawInput = getOptionalString(args, 'input');
+        const parsedInput = rawInput
+          ? (JSON.parse(rawInput) as Record<string, unknown>)
+          : undefined;
+        const rawInstallments = getOptionalString(args, 'installments');
+        const installments = rawInstallments
+          ? (JSON.parse(rawInstallments) as unknown)
+          : undefined;
+
+        return apiMutation(
+          'bill.installments.createSchedule',
+          parsedInput ??
+            buildInput([
+              ['billId', getOptionalString(args, 'billId')],
+              ['installments', installments],
+              [
+                'replaceExisting',
+                getOptionalBoolean(args, 'replaceExisting'),
+              ],
+            ]),
+          getString(args, 'companyId')
+        );
+      },
+    },
+    {
+      name: 'bill_installment_mark_paid',
+      description:
+        'Mark an installment as paid by linking it to an existing payment. Does not create payment or journal.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          companyId: companyIdProp,
+          installmentId: {
+            type: 'string',
+            description: 'Bill installment UUID',
+          },
+          paymentId: { type: 'string', description: 'Existing payment UUID' },
+          paidAt: {
+            type: 'string',
+            description: 'Optional paid date as ISO date/datetime',
+          },
+        },
+        required: ['companyId', 'installmentId', 'paymentId'],
+      },
+      handler: async (args) =>
+        apiMutation(
+          'bill.installments.markPaid',
+          buildInput([
+            ['installmentId', getString(args, 'installmentId')],
+            ['paymentId', getString(args, 'paymentId')],
+            ['paidAt', getOptionalString(args, 'paidAt')],
+          ]),
+          getString(args, 'companyId')
+        ),
+    },
+    {
+      name: 'bill_installment_cancel',
+      description: 'Cancel an unpaid bill installment schedule line',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          companyId: companyIdProp,
+          installmentId: {
+            type: 'string',
+            description: 'Bill installment UUID',
+          },
+          notes: { type: 'string', description: 'Cancellation notes' },
+        },
+        required: ['companyId', 'installmentId'],
+      },
+      handler: async (args) =>
+        apiMutation(
+          'bill.installments.cancel',
+          buildInput([
+            ['installmentId', getString(args, 'installmentId')],
+            ['notes', getOptionalString(args, 'notes')],
+          ]),
+          getString(args, 'companyId')
+        ),
+    },
+    {
       name: 'bill_create_from_po',
       description: 'Create a bill from a purchase order',
       inputSchema: {
@@ -53,7 +178,27 @@ export function getBillTools(): ToolSpec[] {
         properties: {
           companyId: companyIdProp,
           orderId: { type: 'string', description: 'Purchase order UUID' },
-          reference: { type: 'string', description: 'Vendor bill reference' },
+          reference: {
+            type: 'string',
+            description:
+              'Vendor bill reference, mapped to supplierInvoiceNumber',
+          },
+          supplierInvoiceNumber: {
+            type: 'string',
+            description: 'Vendor invoice/reference number',
+          },
+          dueDate: {
+            type: 'string',
+            description: 'Bill due date as ISO date or datetime',
+          },
+          businessDate: {
+            type: 'string',
+            description: 'Bill date as ISO date or datetime',
+          },
+          fulfillmentId: {
+            type: 'string',
+            description: 'Optional GRN/receipt UUID to bill',
+          },
         },
         required: ['companyId', 'orderId'],
       },
@@ -62,7 +207,14 @@ export function getBillTools(): ToolSpec[] {
           'bill.createFromPO',
           buildInput([
             ['orderId', getString(args, 'orderId')],
-            ['reference', getOptionalString(args, 'reference')],
+            [
+              'supplierInvoiceNumber',
+              getOptionalString(args, 'supplierInvoiceNumber') ??
+                getOptionalString(args, 'reference'),
+            ],
+            ['dueDate', getOptionalString(args, 'dueDate')],
+            ['businessDate', getOptionalString(args, 'businessDate')],
+            ['fulfillmentId', getOptionalString(args, 'fulfillmentId')],
           ]),
           getString(args, 'companyId')
         ),
@@ -94,13 +246,23 @@ export function getBillTools(): ToolSpec[] {
       description: 'Post a bill to the ledger',
       inputSchema: {
         type: 'object',
-        properties: { companyId: companyIdProp, id: idProp },
+        properties: {
+          companyId: companyIdProp,
+          id: idProp,
+          businessDate: {
+            type: 'string',
+            description: 'Posting date as ISO date or datetime',
+          },
+        },
         required: ['companyId', 'id'],
       },
       handler: async (args) =>
         apiMutation(
           'bill.post',
-          { id: getString(args, 'id') },
+          buildInput([
+            ['id', getString(args, 'id')],
+            ['businessDate', getOptionalString(args, 'businessDate')],
+          ]),
           getString(args, 'companyId')
         ),
     },

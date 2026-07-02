@@ -21,6 +21,7 @@ import {
 } from '../hooks';
 import { PaymentStatusBadge, StatusBadge } from '@/components/ui';
 import { OrderItemsTable } from '@/components/ui';
+import { AttachmentPanel } from '@/features/attachments/components/AttachmentPanel';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -168,6 +169,10 @@ export default function PurchaseOrderDetail() {
               supplierName={order.partner?.name || ''}
               taxRate={Number(order.taxRate) || 0}
               status={order.status}
+            />
+            <AttachmentPanel
+              entityType="PURCHASE_ORDER"
+              entityId={order.id}
             />
           </div>
         </div>

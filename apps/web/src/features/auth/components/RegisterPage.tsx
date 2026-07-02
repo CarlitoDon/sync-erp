@@ -12,6 +12,8 @@ import {
   getBillingPlan,
   isBillingPlanKey,
 } from '@sync-erp/shared';
+import { BrandMark } from '@/components/brand/BrandMark';
+import { Button, Input } from '@/components/ui';
 
 interface RegisterFormState extends RegisterInput {
   confirmPassword: string;
@@ -170,28 +172,36 @@ export const RegisterPage: React.FC = () => {
 
   if (successState) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-          <h2 className="mb-3 text-2xl font-bold text-gray-900">
-            Verify Your Email
-          </h2>
-          <p className="mb-4 text-sm text-gray-600">
+      <div className="auth-grid-background flex min-h-screen items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 shadow-xl shadow-slate-300/40">
+          <div className="mb-6 flex items-center gap-3">
+            <BrandMark />
+            <div>
+              <p className="text-sm font-medium text-slate-500">
+                Sync ERP
+              </p>
+              <h2 className="text-2xl font-bold text-slate-950">
+                Verify Your Email
+              </h2>
+            </div>
+          </div>
+          <p className="mb-4 text-sm leading-6 text-slate-600">
             We created your account for{' '}
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-slate-950">
               {successState.email}
             </span>
             . Please verify your email before signing in.
           </p>
 
           {notice && (
-            <div className="mb-4 rounded bg-green-50 p-3 text-sm text-green-700">
+            <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
               {notice}
             </div>
           )}
 
           {error && (
             <div
-              className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600"
+              className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
               role="alert"
             >
               {error}
@@ -199,32 +209,31 @@ export const RegisterPage: React.FC = () => {
           )}
 
           <div className="space-y-3">
-            <button
+            <Button
               type="button"
               onClick={handleResendVerification}
-              disabled={isResending}
-              className="w-full rounded bg-blue-600 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+              isLoading={isResending}
+              loadingText="Sending verification link..."
+              className="w-full"
             >
-              {isResending
-                ? 'Sending verification link...'
-                : 'Resend verification email'}
-            </button>
+              Resend verification email
+            </Button>
 
             {successState.verificationUrl && (
               <a
                 href={successState.verificationUrl}
-                className="block w-full rounded border border-gray-300 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="block w-full rounded-md border border-slate-300 bg-white py-2 text-center text-sm font-medium text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50"
               >
                 Open verification link
               </a>
             )}
           </div>
 
-          <p className="mt-4 text-center text-sm text-gray-600">
+          <p className="mt-4 text-center text-sm text-slate-600">
             Already verified?{' '}
             <Link
               to="/login"
-              className="text-blue-600 hover:text-blue-500"
+              className="font-medium text-cyan-700 hover:text-cyan-900"
             >
               Sign in
             </Link>
@@ -235,11 +244,19 @@ export const RegisterPage: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-        <h2 className="mb-6 text-2xl font-bold text-gray-900">
-          Create Account
-        </h2>
+    <div className="auth-grid-background flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 shadow-xl shadow-slate-300/40">
+        <div className="mb-7 flex items-center gap-3">
+          <BrandMark />
+          <div>
+            <p className="text-sm font-medium text-slate-500">
+              Sync ERP
+            </p>
+            <h2 className="text-2xl font-bold text-slate-950">
+              Create Account
+            </h2>
+          </div>
+        </div>
 
         <div className="mb-5 rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900">
           <p className="font-semibold">
@@ -254,7 +271,7 @@ export const RegisterPage: React.FC = () => {
 
         {error && (
           <div
-            className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600"
+            className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
             role="alert"
           >
             {error}
@@ -262,93 +279,59 @@ export const RegisterPage: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="register-name"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Name
-            </label>
-            <input
-              type="text"
-              id="register-name"
-              name="name"
-              required
-              value={formData.name}
-              onChange={handleChange}
-              autoComplete="name"
-              className="w-full rounded border p-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <Input
+            label="Name"
+            type="text"
+            id="register-name"
+            name="name"
+            required
+            value={formData.name}
+            onChange={handleChange}
+            autoComplete="name"
+          />
 
-          <div>
-            <label
-              htmlFor="register-email"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              id="register-email"
-              name="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              autoComplete="email"
-              className="w-full rounded border p-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <Input
+            label="Email"
+            type="email"
+            id="register-email"
+            name="email"
+            required
+            value={formData.email}
+            onChange={handleChange}
+            autoComplete="email"
+          />
 
-          <div>
-            <label
-              htmlFor="register-password"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Password
-            </label>
-            <input
-              type="password"
-              id="register-password"
-              name="password"
-              required
-              minLength={8}
-              value={formData.password}
-              onChange={handleChange}
-              autoComplete="new-password"
-              className="w-full rounded border p-2 focus:border-blue-500 focus:outline-none"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Use at least 8 characters with letters and numbers.
-            </p>
-          </div>
+          <Input
+            label="Password"
+            type="password"
+            id="register-password"
+            name="password"
+            required
+            minLength={8}
+            value={formData.password}
+            onChange={handleChange}
+            autoComplete="new-password"
+            helperText="Use at least 8 characters with letters and numbers."
+          />
 
-          <div>
-            <label
-              htmlFor="register-confirm-password"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              id="register-confirm-password"
-              name="confirmPassword"
-              required
-              minLength={8}
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              autoComplete="new-password"
-              className="w-full rounded border p-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <Input
+            label="Confirm Password"
+            type="password"
+            id="register-confirm-password"
+            name="confirmPassword"
+            required
+            minLength={8}
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            autoComplete="new-password"
+          />
 
-          <div className="rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
             <p
               className={
                 passwordChecks.minLength
-                  ? 'text-green-600'
-                  : 'text-gray-600'
+                  ? 'text-emerald-700'
+                  : 'text-slate-600'
               }
             >
               At least 8 characters
@@ -356,8 +339,8 @@ export const RegisterPage: React.FC = () => {
             <p
               className={
                 passwordChecks.hasLetter
-                  ? 'text-green-600'
-                  : 'text-gray-600'
+                  ? 'text-emerald-700'
+                  : 'text-slate-600'
               }
             >
               Contains letters
@@ -365,37 +348,39 @@ export const RegisterPage: React.FC = () => {
             <p
               className={
                 passwordChecks.hasNumber
-                  ? 'text-green-600'
-                  : 'text-gray-600'
+                  ? 'text-emerald-700'
+                  : 'text-slate-600'
               }
             >
               Contains numbers
             </p>
           </div>
 
-          <button
+          <Button
             type="submit"
-            disabled={loading}
-            className="w-full rounded bg-blue-600 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+            className="w-full"
+            isLoading={loading}
+            loadingText="Creating account..."
           >
-            {loading ? 'Creating account...' : 'Sign Up'}
-          </button>
+            Sign Up
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={handleGoogleRegister}
             disabled={loading}
-            className="w-full rounded border border-gray-300 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="w-full"
           >
             Continue with Google
-          </button>
+          </Button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="mt-4 text-center text-sm text-slate-600">
           Already have an account?{' '}
           <Link
             to="/login"
-            className="text-blue-600 hover:text-blue-500"
+            className="font-medium text-cyan-700 hover:text-cyan-900"
           >
             Log in
           </Link>

@@ -32,22 +32,22 @@ export function StatCard({
     return (
       <Card className="animate-pulse">
         <CardContent>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
-          <div className="h-8 bg-gray-200 rounded w-3/4" />
+          <div className="mb-4 h-4 w-1/2 rounded bg-slate-200" />
+          <div className="h-8 w-3/4 rounded bg-slate-200" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="transition-shadow hover:shadow-md">
       <CardContent>
-        <p className="text-sm font-medium text-gray-500">{title}</p>
-        <p className="mt-2 text-2xl font-semibold text-gray-900">
+        <p className="text-sm font-medium text-slate-500">{title}</p>
+        <p className="mt-2 text-2xl font-semibold text-slate-950">
           {formattedValue}
         </p>
         {description && (
-          <p className="mt-1 text-sm text-gray-500">{description}</p>
+          <p className="mt-1 text-sm text-slate-500">{description}</p>
         )}
       </CardContent>
     </Card>

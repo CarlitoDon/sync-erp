@@ -10,6 +10,7 @@ import {
   RentalOrderStatus,
   AuditLogAction,
   EntityType,
+  OrderSource,
 } from '@sync-erp/database';
 import { RentalRepository } from './rental.repository';
 import { DocumentNumberService } from '../common/services/document-number.service';
@@ -20,6 +21,7 @@ import {
   DomainError,
   DomainErrorCodes,
   type CreateRentalOrderInput,
+  type ExtendRentalOrderInput,
   type PrismaRentalOrderWithRelations,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
@@ -30,7 +32,7 @@ export class RentalOrderLifecycleService {
   constructor(
     private readonly repository: RentalRepository = new RentalRepository(),
     private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
-    private readonly journalService: JournalService = new JournalService(),
+    _journalService: JournalService = new JournalService(),
     private readonly webhookService: RentalWebhookService = new RentalWebhookService()
   ) {}
 
@@ -169,14 +171,38 @@ export class RentalOrderLifecycleService {
         continue;
       }
 
-      const tier = calculateOptimalTier(
-        rentalDays,
-        dailyRate,
-        weeklyRate,
-        monthlyRate
-      );
+      const tier =
+        orderItem.pricePerDay !== undefined ||
+        orderItem.lineTotal !== undefined
+        ? {
+            ratePerDay:
+              orderItem.pricePerDay !== undefined
+                ? new Decimal(orderItem.pricePerDay).toDecimalPlaces(2)
+                : new Decimal(orderItem.lineTotal ?? 0)
+                    .div(rentalDays)
+                    .div(orderItem.quantity)
+                    .toDecimalPlaces(2),
+            totalAmount:
+              orderItem.lineTotal !== undefined
+                ? new Decimal(orderItem.lineTotal).toDecimalPlaces(2)
+                : new Decimal(orderItem.pricePerDay ?? 0)
+                    .times(rentalDays)
+                    .toDecimalPlaces(2),
+            tier: 'CUSTOM' as const,
+          }
+        : calculateOptimalTier(
+            rentalDays,
+            dailyRate,
+            weeklyRate,
+            monthlyRate
+          );
 
-      const itemTotal = tier.totalAmount.times(orderItem.quantity);
+      const itemTotal =
+        orderItem.lineTotal !== undefined
+          ? tier.totalAmount
+          : tier.totalAmount
+              .times(orderItem.quantity)
+              .toDecimalPlaces(2);
       subtotal = subtotal.plus(itemTotal);
 
       orderItems.push({
@@ -190,6 +216,24 @@ export class RentalOrderLifecycleService {
         pricingTier: tier.tier,
       });
     }
+
+    const discountAmount = new Decimal(
+      data.discountAmount ?? 0
+    ).toDecimalPlaces(2);
+    if (discountAmount.greaterThan(subtotal)) {
+      throw new DomainError(
+        'Discount cannot exceed rental subtotal',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+    const deliveryFee = new Decimal(
+      data.deliveryFee ?? 0
+    ).toDecimalPlaces(2);
+    const totalAmount = subtotal
+      .minus(discountAmount)
+      .plus(deliveryFee)
+      .toDecimalPlaces(2);
 
     // Resolve dueDateTime default
     const dueDateTime = data.dueDateTime ?? data.rentalEndDate;
@@ -223,12 +267,36 @@ export class RentalOrderLifecycleService {
         status: RentalOrderStatus.DRAFT,
         subtotal,
         depositAmount: new Decimal(0),
-        totalAmount: subtotal,
+        totalAmount,
         policySnapshot:
           (policySnapshot as Prisma.InputJsonValue) ||
           Prisma.JsonNull,
         notes: data.notes,
         createdBy: userId,
+        deliveryFee:
+          data.deliveryFee !== undefined ? deliveryFee : undefined,
+        deliveryAddress: data.deliveryAddress,
+        street: data.street,
+        kelurahan: data.kelurahan,
+        kecamatan: data.kecamatan,
+        kota: data.kota,
+        provinsi: data.provinsi,
+        zip: data.zip,
+        latitude:
+          data.latitude !== undefined
+            ? new Decimal(data.latitude)
+            : undefined,
+        longitude:
+          data.longitude !== undefined
+            ? new Decimal(data.longitude)
+            : undefined,
+        paymentMethod: data.paymentMethod,
+        discountAmount:
+          data.discountAmount !== undefined
+            ? discountAmount
+            : undefined,
+        discountLabel: data.discountLabel,
+        orderSource: OrderSource.ADMIN,
         items: {
           create: orderItems,
         },
@@ -352,20 +420,15 @@ export class RentalOrderLifecycleService {
 
   async extendOrder(
     companyId: string,
-    input: {
-      orderId: string;
-      newEndDate: Date;
-      additionalDeposit?: number;
-      reason?: string;
-    },
+    input: ExtendRentalOrderInput,
     userId: string
-  ): Promise<RentalOrder> {
-    return prisma.$transaction(async (tx) => {
+  ): Promise<PrismaRentalOrderWithRelations> {
+    const orderId = await prisma.$transaction(async (tx) => {
       const order = await tx.rentalOrder.findUnique({
         where: { id: input.orderId },
         include: {
-          items: { include: { rentalItem: true } },
-          extensions: true,
+          items: { include: { rentalItem: true, rentalBundle: true } },
+          extensions: { include: { items: true } },
         },
       });
 
@@ -377,18 +440,27 @@ export class RentalOrderLifecycleService {
         );
       }
 
-      if (
-        order.status !== RentalOrderStatus.ACTIVE &&
-        order.status !== RentalOrderStatus.CONFIRMED
-      ) {
+      const extendableStatuses: RentalOrderStatus[] = input.allowHistorical
+        ? [
+            RentalOrderStatus.DRAFT,
+            RentalOrderStatus.CONFIRMED,
+            RentalOrderStatus.ACTIVE,
+            RentalOrderStatus.COMPLETED,
+          ]
+        : [RentalOrderStatus.CONFIRMED, RentalOrderStatus.ACTIVE];
+
+      if (!extendableStatuses.includes(order.status)) {
         throw new DomainError(
-          'Can only extend ACTIVE or CONFIRMED orders',
+          input.allowHistorical
+            ? 'Can only extend DRAFT, CONFIRMED, ACTIVE, or COMPLETED orders'
+            : 'Can only extend ACTIVE or CONFIRMED orders',
           400,
           DomainErrorCodes.OPERATION_NOT_ALLOWED
         );
       }
 
-      if (input.newEndDate <= order.rentalEndDate) {
+      const isItemLevelExtension = !!input.items?.length;
+      if (!isItemLevelExtension && input.newEndDate <= order.rentalEndDate) {
         throw new DomainError(
           'New end date must be after current end date',
           400,
@@ -396,40 +468,216 @@ export class RentalOrderLifecycleService {
         );
       }
 
-      const additionalDays = Math.ceil(
-        (input.newEndDate.getTime() - order.rentalEndDate.getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
+      const resolveOrderItem = (
+        extensionItem: NonNullable<ExtendRentalOrderInput['items']>[number]
+      ) => {
+        if (extensionItem.rentalOrderItemId) {
+          return order.items.find(
+            (item) => item.id === extensionItem.rentalOrderItemId
+          );
+        }
 
-      let additionalAmount = new Decimal(0);
-      for (const item of order.items) {
-        if (!item.rentalItem) continue;
+        const matches = order.items.filter((item) => {
+          if (extensionItem.rentalItemId) {
+            return item.rentalItemId === extensionItem.rentalItemId;
+          }
+          return item.rentalBundleId === extensionItem.rentalBundleId;
+        });
 
-        const tier = calculateOptimalTier(
-          additionalDays,
-          Number(item.rentalItem.dailyRate),
-          Number(item.rentalItem.weeklyRate),
-          Number(item.rentalItem.monthlyRate)
-        );
-        additionalAmount = additionalAmount.plus(
-          tier.totalAmount.times(item.quantity)
+        if (matches.length > 1) {
+          throw new DomainError(
+            'Multiple order items match extension item; use rentalOrderItemId',
+            400,
+            DomainErrorCodes.INVALID_INPUT
+          );
+        }
+
+        return matches[0];
+      };
+
+      const selectedItems: NonNullable<ExtendRentalOrderInput['items']> =
+        input.items ??
+        order.items.map((item) => ({
+          rentalOrderItemId: item.id,
+          quantity: item.quantity,
+        }));
+
+      const quantityByOrderItemId = new Map<string, number>();
+      let itemAdditionalAmount =
+        input.additionalAmount !== undefined
+          ? new Decimal(input.additionalAmount)
+          : new Decimal(0);
+      const deliveryFee = new Decimal(input.deliveryFee ?? 0);
+      let maxAdditionalDays = 0;
+      let itemLevelPreviousEndDate: Date | undefined;
+      const extensionItems: Prisma.RentalOrderExtensionItemCreateWithoutExtensionInput[] =
+        [];
+
+      if (input.additionalAmount === undefined || isItemLevelExtension) {
+        itemAdditionalAmount = new Decimal(0);
+
+        for (const selectedItem of selectedItems) {
+          const orderItem = resolveOrderItem(selectedItem);
+          if (!orderItem) {
+            throw new DomainError(
+              'Extension item not found on rental order',
+              400,
+              DomainErrorCodes.INVALID_INPUT
+            );
+          }
+
+          const quantity = selectedItem.quantity ?? orderItem.quantity;
+          const totalSelectedQuantity =
+            (quantityByOrderItemId.get(orderItem.id) ?? 0) + quantity;
+          if (quantity < 1 || totalSelectedQuantity > orderItem.quantity) {
+            throw new DomainError(
+              'Extension quantity exceeds original order item quantity',
+              400,
+              DomainErrorCodes.INVALID_INPUT
+            );
+          }
+          quantityByOrderItemId.set(orderItem.id, totalSelectedQuantity);
+
+          const previousEndDate = isItemLevelExtension
+            ? order.extensions
+                .flatMap((extension) => extension.items)
+                .filter(
+                  (extensionItem) =>
+                    extensionItem.rentalOrderItemId === orderItem.id
+                )
+                .reduce(
+                  (latest, extensionItem) =>
+                    extensionItem.newEndDate > latest
+                      ? extensionItem.newEndDate
+                      : latest,
+                  order.rentalEndDate
+                )
+            : order.rentalEndDate;
+
+          if (input.newEndDate <= previousEndDate) {
+            throw new DomainError(
+              'New end date must be after current item end date',
+              400,
+              DomainErrorCodes.INVALID_INPUT
+            );
+          }
+
+          const additionalDays = Math.ceil(
+            (input.newEndDate.getTime() - previousEndDate.getTime()) /
+              (1000 * 60 * 60 * 24)
+          );
+          maxAdditionalDays = Math.max(maxAdditionalDays, additionalDays);
+          itemLevelPreviousEndDate =
+            !itemLevelPreviousEndDate ||
+            previousEndDate < itemLevelPreviousEndDate
+              ? previousEndDate
+              : itemLevelPreviousEndDate;
+
+          const decimalQuantity = new Decimal(quantity);
+          const selectedUnitPrice =
+            selectedItem.unitPrice !== undefined
+              ? new Decimal(selectedItem.unitPrice)
+              : new Decimal(orderItem.unitPrice?.toString() ?? 0);
+          let unitPrice = selectedUnitPrice;
+          let lineAmount =
+            selectedItem.additionalAmount !== undefined
+              ? new Decimal(selectedItem.additionalAmount)
+              : new Decimal(0);
+
+          if (selectedItem.additionalAmount === undefined) {
+            if (unitPrice.gt(0)) {
+              lineAmount = unitPrice
+                .times(additionalDays)
+                .times(decimalQuantity);
+            } else {
+              const priceSource =
+                orderItem.rentalItem ?? orderItem.rentalBundle;
+              if (!priceSource) {
+                throw new DomainError(
+                  'Extension item has no price source',
+                  400,
+                  DomainErrorCodes.INVALID_INPUT
+                );
+              }
+
+              const dailyRate = Number(priceSource.dailyRate);
+              const weeklyRate = priceSource.weeklyRate
+                ? Number(priceSource.weeklyRate)
+                : dailyRate * 7;
+              const monthlyRate = priceSource.monthlyRate
+                ? Number(priceSource.monthlyRate)
+                : dailyRate * 30;
+              const tier = calculateOptimalTier(
+                additionalDays,
+                dailyRate,
+                weeklyRate,
+                monthlyRate
+              );
+              unitPrice = tier.ratePerDay;
+              lineAmount = tier.totalAmount.times(decimalQuantity);
+            }
+          } else if (unitPrice.eq(0)) {
+            unitPrice = lineAmount.div(additionalDays).div(decimalQuantity);
+          }
+
+          itemAdditionalAmount = itemAdditionalAmount.plus(lineAmount);
+          extensionItems.push({
+            company: { connect: { id: companyId } },
+            rentalOrderItem: { connect: { id: orderItem.id } },
+            rentalItem: orderItem.rentalItemId
+              ? { connect: { id: orderItem.rentalItemId } }
+              : undefined,
+            rentalBundle: orderItem.rentalBundleId
+              ? { connect: { id: orderItem.rentalBundleId } }
+              : undefined,
+            quantity,
+            previousEndDate,
+            newEndDate: input.newEndDate,
+            additionalDays,
+            unitPrice,
+            additionalAmount: lineAmount,
+            notes: selectedItem.notes,
+            createdAt: input.businessDate,
+          });
+        }
+      } else {
+        maxAdditionalDays = Math.ceil(
+          (input.newEndDate.getTime() - order.rentalEndDate.getTime()) /
+            (1000 * 60 * 60 * 24)
         );
       }
 
+      const totalAdditionalAmount = itemAdditionalAmount.plus(deliveryFee);
       const extensionNumber = (order.extensions?.length || 0) + 1;
+      const extensionReason = input.reason ?? input.notes;
+      const shouldUpdateOrderDates =
+        input.updateOrderDates ?? !isItemLevelExtension;
+      const aggregatePreviousEndDate =
+        isItemLevelExtension && itemLevelPreviousEndDate
+          ? itemLevelPreviousEndDate
+          : order.rentalEndDate;
 
       const extension = await tx.rentalOrderExtension.create({
         data: {
           rentalOrderId: order.id,
           companyId,
           extensionNumber,
-          previousEndDate: order.rentalEndDate,
+          previousEndDate: aggregatePreviousEndDate,
           newEndDate: input.newEndDate,
-          additionalDays,
-          additionalAmount,
+          additionalDays: maxAdditionalDays,
+          additionalAmount: totalAdditionalAmount,
+          deliveryFee,
+          deliveryFeeLabel: input.deliveryFeeLabel,
           additionalDeposit: input.additionalDeposit || 0,
-          reason: input.reason,
+          reason: extensionReason,
+          isPaid: input.isPaid ?? false,
+          paidAt: input.paidAt,
+          paymentId: input.paymentId,
+          createdAt: input.businessDate,
           createdBy: userId,
+          items: extensionItems.length
+            ? { create: extensionItems }
+            : undefined,
         },
       });
 
@@ -440,23 +688,23 @@ export class RentalOrderLifecycleService {
       const updatedOrder = await tx.rentalOrder.update({
         where: { id: order.id },
         data: {
-          rentalEndDate: input.newEndDate,
-          dueDateTime: newDueDateTime,
-          subtotal: order.subtotal.plus(additionalAmount),
+          rentalEndDate: shouldUpdateOrderDates
+            ? input.newEndDate
+            : order.rentalEndDate,
+          dueDateTime: shouldUpdateOrderDates
+            ? newDueDateTime
+            : order.dueDateTime,
+          subtotal:
+            input.updateOrderTotal === false
+              ? order.subtotal
+              : order.subtotal.plus(itemAdditionalAmount),
+          totalAmount:
+            input.updateOrderTotal === false
+              ? order.totalAmount
+              : order.totalAmount.plus(totalAdditionalAmount),
         },
         include: { items: true, extensions: true },
       });
-
-      if (additionalAmount.gt(0)) {
-        await this.journalService.postRentalDeposit(
-          companyId,
-          extension.id,
-          order.orderNumber!,
-          Number(additionalAmount),
-          'CASH',
-          tx
-        );
-      }
 
       await recordAudit({
         companyId,
@@ -464,15 +712,56 @@ export class RentalOrderLifecycleService {
         action: AuditLogAction.RENTAL_ORDER_EXTENDED,
         entityType: EntityType.RENTAL_ORDER,
         entityId: order.id,
-        businessDate: new Date(),
+        businessDate: input.businessDate ?? new Date(),
         payloadSnapshot: {
           extensionNumber,
-          additionalDays,
-          additionalAmount: additionalAmount.toString(),
+          additionalDays: maxAdditionalDays,
+          itemAdditionalAmount: itemAdditionalAmount.toString(),
+          deliveryFee: deliveryFee.toString(),
+          deliveryFeeLabel: input.deliveryFeeLabel,
+          additionalAmount: totalAdditionalAmount.toString(),
+          amountBasis:
+            isItemLevelExtension
+              ? 'selected_order_items'
+              : input.additionalAmount === undefined
+                ? 'captured_order_line_prices'
+                : 'manual_override',
+          extensionId: extension.id,
+          extensionItems: extensionItems.map((item) => ({
+            rentalOrderItemId: item.rentalOrderItem?.connect?.id,
+            rentalItemId: item.rentalItem?.connect?.id,
+            rentalBundleId: item.rentalBundle?.connect?.id,
+            quantity: item.quantity,
+            previousEndDate: toIsoString(item.previousEndDate),
+            newEndDate: toIsoString(item.newEndDate),
+            additionalDays: item.additionalDays,
+            unitPrice: item.unitPrice.toString(),
+            additionalAmount: item.additionalAmount.toString(),
+          })),
+          isPaid: input.isPaid ?? false,
+          paidAt: input.paidAt?.toISOString(),
+          paymentId: input.paymentId,
+          updateOrderTotal: input.updateOrderTotal !== false,
+          updateOrderDates: shouldUpdateOrderDates,
         },
       });
 
-      return updatedOrder;
+      return updatedOrder.id;
     });
+
+    const updatedOrder = await this.repository.findOrderById(orderId);
+    if (!updatedOrder) {
+      throw new DomainError(
+        'Extended order not found',
+        500,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+
+    return updatedOrder;
   }
+}
+
+function toIsoString(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }

@@ -5,6 +5,7 @@ interface OrderItem {
   rentalItemId?: string;
   rentalBundleId?: string;
   quantity: number;
+  pricePerDay?: number;
 }
 
 interface RentalItem {
@@ -86,17 +87,20 @@ export function useRentalPricing(
         return;
       }
 
-      // Calculate pricing tier - use the best rate for customer
-      let unitPrice = dailyRate * rentalDays;
+      let unitPrice = Number(item.pricePerDay || 0) * rentalDays;
 
-      if (rentalDays >= 30 && monthlyRate) {
-        if (monthlyRate < unitPrice) {
-          unitPrice = monthlyRate;
-        }
-      } else if (rentalDays >= 7 && weeklyRate) {
-        const weeklyPrice = weeklyRate * Math.ceil(rentalDays / 7);
-        if (weeklyPrice < unitPrice) {
-          unitPrice = weeklyPrice;
+      if (!item.pricePerDay) {
+        unitPrice = dailyRate * rentalDays;
+
+        if (rentalDays >= 30 && monthlyRate) {
+          if (monthlyRate < unitPrice) {
+            unitPrice = monthlyRate;
+          }
+        } else if (rentalDays >= 7 && weeklyRate) {
+          const weeklyPrice = weeklyRate * Math.ceil(rentalDays / 7);
+          if (weeklyPrice < unitPrice) {
+            unitPrice = weeklyPrice;
+          }
         }
       }
 

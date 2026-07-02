@@ -42,7 +42,7 @@ const ItemRow = memo(function ItemRow({
         {item.product ? (
           <Link
             to={`${productLinkPrefix}/${item.productId}`}
-            className="text-blue-600 hover:text-blue-800 hover:underline"
+            className="text-cyan-700 hover:text-cyan-900 hover:underline"
           >
             {item.product.name}
           </Link>
@@ -80,29 +80,29 @@ export function OrderItemsTable({
 }: OrderItemsTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+      <table className="min-w-full divide-y divide-slate-200">
+        <thead className="bg-slate-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
               Product
             </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
               Ordered
             </th>
             {showFulfilled && (
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                 {fulfillmentLabel}
               </th>
             )}
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
               Unit Price
             </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
               Total
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
+        <tbody className="divide-y divide-slate-200">
           {items.map((item) => (
             <ItemRow
               key={item.id}

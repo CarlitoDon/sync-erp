@@ -13,12 +13,13 @@ export type CostingMethodInput = z.infer<typeof CostingMethodSchema>;
 
 /**
  * Schema for POST /company/select-shape
- * Note: PENDING is not allowed as a selection value (only RETAIL, MANUFACTURING, SERVICE)
+ * Note: PENDING is not allowed as a selection value.
  */
 export const SelectShapeSchema = z.object({
-  shape: z.enum(['RETAIL', 'MANUFACTURING', 'SERVICE'], {
+  shape: z.enum(['RETAIL', 'MANUFACTURING', 'SERVICE', 'RENTAL'], {
     errorMap: () => ({
-      message: 'Shape must be one of: RETAIL, MANUFACTURING, SERVICE',
+      message:
+        'Shape must be one of: RETAIL, MANUFACTURING, SERVICE, RENTAL',
     }),
   }),
 });

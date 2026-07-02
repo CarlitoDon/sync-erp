@@ -121,12 +121,15 @@ export class InvoiceService {
       shipmentItems = fulfillment.items;
     }
 
+    const documentDate = data.businessDate || new Date();
+
     // Generate invoice number if not provided
     let invoiceNumber = data.invoiceNumber;
     if (!invoiceNumber) {
       invoiceNumber = await this.documentNumberService.generate(
         companyId,
-        'INV'
+        'INV',
+        documentDate
       );
     }
 
@@ -230,6 +233,7 @@ export class InvoiceService {
       type: InvoiceType.INVOICE,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
+      date: documentDate,
       dpBillId: dpInvoiceId, // Link to DP Invoice using same field as Bills
       notes:
         dpDeductedNow > 0
@@ -243,7 +247,7 @@ export class InvoiceService {
       dueDate:
         data.dueDate ||
         calculateDueDate(
-          new Date(),
+          documentDate,
           order.paymentTerms || PaymentTerms.NET30
         ),
     };
@@ -491,7 +495,6 @@ export class InvoiceService {
 
     if (businessDate) {
       BusinessDate.from(businessDate).ensureValid();
-      BusinessDate.from(businessDate).ensureNotBackdated();
     }
 
     // FR-010.1: Record Audit Log BEFORE transaction
@@ -665,7 +668,7 @@ export class InvoiceService {
             Number(updatedInvoice.subtotal),
             Number(updatedInvoice.taxAmount),
             tx,
-            businessDate
+            businessDate || updatedInvoice.date
           );
 
           // Return both invoice and order info for auto-settlement check

@@ -8,7 +8,12 @@ import { mockPrisma } from '../setup';
 import {
   createBillingCheckoutSession,
   ensureCompanySubscription,
+  getBillingWebhookSecret,
+  getMidtransConfigurationErrors,
+  isBillingProviderConfigured,
 } from '../../src/modules/billing/company-subscription.service';
+
+const originalEnv = { ...process.env };
 
 describe('company subscription service', () => {
   beforeEach(() => {
@@ -18,10 +23,7 @@ describe('company subscription service', () => {
   });
 
   afterEach(() => {
-    delete process.env.SYNC_ERP_WEB_URL;
-    delete process.env.SYNC_ERP_API_BASE_URL;
-    delete process.env.BILLING_PROVIDER;
-    delete process.env.MIDTRANS_SERVER_KEY;
+    process.env = { ...originalEnv };
   });
 
   it('creates new company subscriptions on the free plan by default', async () => {
@@ -88,5 +90,84 @@ describe('company subscription service', () => {
         }),
       })
     );
+  });
+
+  it('keeps the manual billing webhook fallback limited to development', () => {
+    process.env.NODE_ENV = 'development';
+    delete process.env.BILLING_WEBHOOK_SECRET;
+    delete process.env.SYNC_ERP_BOT_SECRET;
+
+    expect(getBillingWebhookSecret()).toBe('dev-billing-webhook-secret');
+  });
+
+  it('requires an explicit manual billing webhook secret in production', () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.BILLING_WEBHOOK_SECRET;
+    process.env.SYNC_ERP_BOT_SECRET = 'bot-secret-should-not-be-used';
+
+    expect(() => getBillingWebhookSecret()).toThrow(
+      'BILLING_WEBHOOK_SECRET must be configured in production or staging.'
+    );
+  });
+
+  it('uses the explicit manual billing webhook secret in production', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.BILLING_WEBHOOK_SECRET = 'billing-webhook-secret';
+
+    expect(getBillingWebhookSecret()).toBe('billing-webhook-secret');
+  });
+
+  it('rejects Midtrans production-like keys when sandbox mode is selected', () => {
+    process.env.BILLING_PROVIDER = 'MIDTRANS';
+    process.env.MIDTRANS_IS_PRODUCTION = 'false';
+    process.env.MIDTRANS_SERVER_KEY = 'Mid-server-example';
+    process.env.MIDTRANS_CLIENT_KEY = 'Mid-client-example';
+
+    expect(isBillingProviderConfigured()).toBe(false);
+    expect(getMidtransConfigurationErrors()).toEqual([
+      'MIDTRANS_SERVER_KEY appears to be a production key while MIDTRANS_IS_PRODUCTION=false.',
+      'MIDTRANS_CLIENT_KEY appears to be a production key while MIDTRANS_IS_PRODUCTION=false.',
+    ]);
+  });
+
+  it('blocks unsafe Midtrans checkout before creating a session', async () => {
+    process.env.BILLING_PROVIDER = 'MIDTRANS';
+    process.env.MIDTRANS_IS_PRODUCTION = 'false';
+    process.env.MIDTRANS_SERVER_KEY = 'Mid-server-example';
+    process.env.MIDTRANS_CLIENT_KEY = 'Mid-client-example';
+
+    await expect(
+      createBillingCheckoutSession({
+        companyId: 'company-1',
+        planKey: 'growth',
+        billingCycle: BillingCycle.MONTHLY,
+      })
+    ).rejects.toThrow('Midtrans configuration is not safe for checkout');
+    expect(
+      mockPrisma.billingCheckoutSession.create
+    ).not.toHaveBeenCalled();
+  });
+
+  it('accepts matching Midtrans production key mode for live deploys', () => {
+    process.env.BILLING_PROVIDER = 'MIDTRANS';
+    process.env.MIDTRANS_IS_PRODUCTION = 'true';
+    process.env.MIDTRANS_SERVER_KEY = 'Mid-server-example';
+    process.env.MIDTRANS_CLIENT_KEY = 'Mid-client-example';
+
+    expect(isBillingProviderConfigured()).toBe(true);
+    expect(getMidtransConfigurationErrors()).toEqual([]);
+  });
+
+  it('rejects Midtrans sandbox keys when production mode is selected', () => {
+    process.env.BILLING_PROVIDER = 'MIDTRANS';
+    process.env.MIDTRANS_IS_PRODUCTION = 'true';
+    process.env.MIDTRANS_SERVER_KEY = 'SB-Mid-server-example';
+    process.env.MIDTRANS_CLIENT_KEY = 'SB-Mid-client-example';
+
+    expect(isBillingProviderConfigured()).toBe(false);
+    expect(getMidtransConfigurationErrors()).toEqual([
+      'MIDTRANS_SERVER_KEY appears to be a sandbox key while MIDTRANS_IS_PRODUCTION=true.',
+      'MIDTRANS_CLIENT_KEY appears to be a sandbox key while MIDTRANS_IS_PRODUCTION=true.',
+    ]);
   });
 });

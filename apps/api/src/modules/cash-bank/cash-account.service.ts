@@ -21,10 +21,10 @@ export class CashAccountService {
     data: CreateBankAccountInput
   ): Promise<BankAccount & { account: Account }> {
     // 1. Auto-create Sub-Account based on Type
-    const parentCode =
-      data.accountType === BankAccountTypeSchema.enum.CASH
-        ? '1100'
-        : '1200';
+    const parentCode = await this.resolveParentAccountCode(
+      companyId,
+      data.accountType
+    );
 
     // Auto-generate code and create GL Account
     const glAccount = await this.accountService.createSubAccount(
@@ -56,6 +56,37 @@ export class CashAccountService {
       accountNumber: data.accountNumber,
       currency: data.currency,
     });
+  }
+
+  private async resolveParentAccountCode(
+    companyId: string,
+    accountType: CreateBankAccountInput['accountType']
+  ): Promise<string> {
+    const resolvedAccountType =
+      accountType ?? BankAccountTypeSchema.enum.BANK;
+    const candidates =
+      resolvedAccountType === BankAccountTypeSchema.enum.CASH
+        ? ['1000', '1100']
+        : ['1211', '1200'];
+
+    for (const code of candidates) {
+      const account = await this.accountService.getByCode(
+        companyId,
+        code
+      );
+      if (
+        account &&
+        isValidCashBankParent(account.name, resolvedAccountType)
+      ) {
+        return code;
+      }
+    }
+
+    throw new DomainError(
+      `No valid ${resolvedAccountType.toLowerCase()} parent account found`,
+      400,
+      DomainErrorCodes.INVALID_INPUT
+    );
   }
 
   async updateAccount(
@@ -116,4 +147,21 @@ export class CashAccountService {
     if (account && account.companyId !== companyId) return null;
     return account;
   }
+}
+
+function isValidCashBankParent(
+  accountName: string,
+  accountType: CreateBankAccountInput['accountType']
+) {
+  const normalized = accountName.toLowerCase();
+  if (
+    normalized.includes('inventory') ||
+    normalized.includes('receivable')
+  ) {
+    return false;
+  }
+
+  return accountType === BankAccountTypeSchema.enum.CASH
+    ? normalized.includes('cash')
+    : normalized.includes('bank');
 }

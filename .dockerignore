@@ -1,0 +1,17 @@
+.git
+.git/
+.git/**
+**/.git
+**/.git/**
+.gitignore
+node_modules
+**/node_modules
+.next
+dist
+build
+coverage
+.DS_Store
+*.log
+.env
+.env.*
+storage

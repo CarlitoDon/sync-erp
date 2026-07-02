@@ -2,12 +2,18 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query';
-import { httpBatchLink, TRPCLink } from '@trpc/client';
+import { httpBatchLink, TRPCLink, type Operation } from '@trpc/client';
 import { trpc } from './trpc';
 import hash from 'object-hash';
-import { AppRouter } from '../../../api/src/trpc/router';
+import type { AppRouter } from '../../../api/src/trpc/router';
 import { ReactNode } from 'react';
 import superjson from 'superjson';
+import {
+  CSRF_HEADER_NAME,
+  buildApiRequestHeaders,
+  ensureCsrfToken,
+  type HeaderRecord,
+} from './csrf';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,7 +36,7 @@ const idempotencyLink: TRPCLink<AppRouter> = () => {
       // Ignores order of keys in object
       const inputHash = hash(op.input || {}, { algorithm: 'md5' });
       op.context.headers = {
-        ...(op.context.headers as Record<string, unknown>),
+        ...mergeContextHeaders({}, op.context.headers),
         'idempotency-key': inputHash,
       };
     }
@@ -38,11 +44,80 @@ const idempotencyLink: TRPCLink<AppRouter> = () => {
   };
 };
 
+const trpcUrl = `${import.meta.env.VITE_SYNC_ERP_API_URL || 'http://localhost:3001/api/trpc'}`;
+
+type BuildTrpcHeadersOptions = {
+  trpcUrl: string;
+  opList: Operation[];
+  cookieString?: string;
+  fetchFn?: Parameters<typeof ensureCsrfToken>[2];
+  storage?: Pick<Storage, 'getItem'>;
+};
+
+function mergeContextHeaders(
+  target: HeaderRecord,
+  contextHeaders: unknown
+): HeaderRecord {
+  if (!contextHeaders) {
+    return target;
+  }
+
+  if (Array.isArray(contextHeaders)) {
+    for (const entry of contextHeaders) {
+      if (!Array.isArray(entry) || entry.length !== 2) {
+        continue;
+      }
+
+      const [key, value] = entry;
+      if (typeof key === 'string' && typeof value === 'string') {
+        target[key] = value;
+      }
+    }
+    return target;
+  }
+
+  if (typeof contextHeaders === 'object') {
+    for (const [key, value] of Object.entries(contextHeaders)) {
+      if (typeof value === 'string') {
+        target[key] = value;
+      }
+    }
+  }
+
+  return target;
+}
+
+export async function buildTrpcHeaders({
+  trpcUrl,
+  opList,
+  cookieString,
+  fetchFn,
+  storage = globalThis.localStorage,
+}: BuildTrpcHeadersOptions): Promise<HeaderRecord> {
+  let headers: HeaderRecord = buildApiRequestHeaders(trpcUrl);
+
+  for (const op of opList) {
+    headers = mergeContextHeaders(headers, op.context.headers);
+  }
+
+  const companyId = storage.getItem('currentCompanyId');
+  if (companyId) {
+    headers['x-company-id'] = companyId;
+  }
+
+  const csrfToken = await ensureCsrfToken(trpcUrl, cookieString, fetchFn);
+  if (csrfToken) {
+    headers[CSRF_HEADER_NAME] = csrfToken;
+  }
+
+  return headers;
+}
+
 const trpcClient = trpc.createClient({
   links: [
     idempotencyLink,
     httpBatchLink({
-      url: `${import.meta.env.VITE_SYNC_ERP_API_URL || 'http://localhost:3001/api/trpc'}`,
+      url: trpcUrl,
       // Include credentials for cookie auth
       fetch(url, options) {
         return fetch(url, {
@@ -50,12 +125,8 @@ const trpcClient = trpc.createClient({
           credentials: 'include',
         });
       },
-      headers() {
-        // CompanyId header added by httpClient interceptor
-        const companyId = localStorage.getItem('currentCompanyId');
-        return {
-          ...(companyId && { 'x-company-id': companyId }),
-        };
+      async headers({ opList }) {
+        return buildTrpcHeaders({ trpcUrl, opList });
       },
       transformer: superjson,
     }),

@@ -100,8 +100,8 @@ walk(testDir, (filepath) => {
   // Fix drLine/crLine possibly undefined
   content = content.replace(/Number\(drLine\??\./g, 'Number(drLine!.');
   content = content.replace(/Number\(crLine\??\./g, 'Number(crLine!.');
-  content = content.replace(/expect\(Number\(drLine\!\./g, 'expect(Number(drLine!.');
-  content = content.replace(/expect\(Number\(crLine\!\./g, 'expect(Number(crLine!.');
+  content = content.replace(/expect\(Number\(drLine!\./g, 'expect(Number(drLine!.');
+  content = content.replace(/expect\(Number\(crLine!\./g, 'expect(Number(crLine!.');
 
   // ============================================================
   // FIX 5: Invoice/Bill policy tests - use Partial<Invoice> pattern

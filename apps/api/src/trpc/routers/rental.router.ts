@@ -7,6 +7,7 @@ import {
   CreateRentalOrderSchema,
   ConfirmRentalOrderSchema,
   ManualConfirmRentalOrderSchema,
+  HistoricalRentalSettlementSchema,
   ReleaseRentalOrderSchema,
   ProcessReturnSchema,
   UpdateRentalPolicySchema,
@@ -74,7 +75,16 @@ export const rentalRouter = router({
           ctx.companyId,
           input.rentalItemId,
           input.quantity,
-          ctx.userId
+          ctx.userId,
+          {
+            sourceOrderId: input.sourceOrderId,
+            sourceOrderItemId: input.sourceOrderItemId,
+            sourceFulfillmentId: input.sourceFulfillmentId,
+            sourceBillId: input.sourceBillId,
+            sourceBatchCode: input.sourceBatchCode,
+            unitCodes: input.unitCodes,
+            unitMetadata: input.unitMetadata,
+          }
         );
       }),
 
@@ -250,6 +260,20 @@ export const rentalRouter = router({
             input.paymentReference,
             input.failReason
           );
+          return mapToPortableOrder(result);
+        }
+      ),
+
+    settleHistoricalCompleted: protectedProcedure
+      .input(HistoricalRentalSettlementSchema)
+      .mutation(
+        async ({ ctx, input }): Promise<PortableRentalOrder> => {
+          const result =
+            await rentalService.settleHistoricalCompletedOrder(
+              ctx.companyId,
+              input,
+              ctx.userId
+            );
           return mapToPortableOrder(result);
         }
       ),

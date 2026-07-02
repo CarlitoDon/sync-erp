@@ -7,7 +7,11 @@ import {
   it,
   vi,
 } from 'vitest';
-import { prisma, PartnerType } from '@sync-erp/database';
+import {
+  prisma,
+  DepositPolicyType,
+  PartnerType,
+} from '@sync-erp/database';
 import { appRouter } from '@src/trpc/router';
 import type { Context } from '@src/trpc/context';
 import { apiKeyService } from '@src/services/api-key.service';
@@ -237,13 +241,127 @@ describe('Public Rental Router Integration', () => {
       where: {
         companyId: COMPANY_ID,
         product: {
-          sku: 'SL-kasur-busa-120x200',
+          sku: 'EXT-kasur-busa-120x200',
         },
       },
     });
 
     expect(bundle).toBeTruthy();
     expect(autoCreatedItem).toBeTruthy();
+  });
+
+  it('uses source invoice price without mutating existing master rate', async () => {
+    const caller = buildCaller(`Bearer ${API_KEY}`);
+    const product = await prisma.product.create({
+      data: {
+        companyId: COMPANY_ID,
+        sku: 'RGE-160-BIRU',
+        name: 'RGE 160 Biru',
+        price: 0,
+      },
+    });
+    const rentalItem = await prisma.rentalItem.create({
+      data: {
+        companyId: COMPANY_ID,
+        productId: product.id,
+        dailyRate: 50000,
+        weeklyRate: 300000,
+        monthlyRate: 1100000,
+        depositPolicyType: DepositPolicyType.PERCENTAGE,
+        depositPercentage: 50,
+      },
+    });
+
+    const created = await caller.publicRental.createOrder({
+      companyId: COMPANY_ID,
+      partnerId,
+      rentalStartDate: new Date('2026-05-26T00:00:00.000Z'),
+      rentalEndDate: new Date('2026-06-01T00:00:00.000Z'),
+      deliveryFee: 25000,
+      items: [
+        {
+          rentalItemId: rentalItem.id,
+          quantity: 1,
+          name: 'Paket Queen 160',
+          pricePerDay: 55000,
+          category: 'package',
+        },
+      ],
+    });
+
+    const publicCaller = buildCaller();
+    const order = await publicCaller.publicRental.getByToken({
+      token: created.publicToken,
+    });
+
+    expect(order.subtotal).toBe(330000);
+    expect(order.totalAmount).toBe(355000);
+    expect(order.items[0]?.unitPrice).toBe(55000);
+
+    const persistedLine = await prisma.rentalOrderItem.findFirstOrThrow({
+      where: { rentalOrderId: created.id },
+    });
+    expect(persistedLine.pricingTier).toBe('CUSTOM');
+
+    const unchangedItem = await prisma.rentalItem.findUniqueOrThrow({
+      where: { id: rentalItem.id },
+    });
+    expect(Number(unchangedItem.dailyRate)).toBe(50000);
+  });
+
+  it('keeps exact source invoice line totals when daily rates divide unevenly', async () => {
+    const caller = buildCaller(`Bearer ${API_KEY}`);
+    const product = await prisma.product.create({
+      data: {
+        companyId: COMPANY_ID,
+        sku: 'RGE-100-EXACT',
+        name: 'RGE 100 Exact',
+        price: 0,
+      },
+    });
+    const rentalItem = await prisma.rentalItem.create({
+      data: {
+        companyId: COMPANY_ID,
+        productId: product.id,
+        dailyRate: 40000,
+        weeklyRate: 240000,
+        monthlyRate: 1000000,
+        depositPolicyType: DepositPolicyType.PERCENTAGE,
+        depositPercentage: 50,
+      },
+    });
+
+    const created = await caller.publicRental.createOrder({
+      companyId: COMPANY_ID,
+      partnerId,
+      rentalStartDate: new Date('2026-05-26T00:00:00.000Z'),
+      rentalEndDate: new Date('2026-06-01T00:00:00.000Z'),
+      deliveryFee: 43000,
+      items: [
+        {
+          rentalItemId: rentalItem.id,
+          quantity: 2,
+          name: 'Exact invoice line',
+          lineTotal: 647122,
+          category: 'mattress',
+        },
+      ],
+    });
+
+    const publicCaller = buildCaller();
+    const order = await publicCaller.publicRental.getByToken({
+      token: created.publicToken,
+    });
+
+    expect(order.subtotal).toBe(647122);
+    expect(order.totalAmount).toBe(690122);
+    expect(order.items[0]?.unitPrice).toBe(53926.83);
+
+    const persistedLine = await prisma.rentalOrderItem.findFirstOrThrow({
+      where: { rentalOrderId: created.id },
+    });
+    expect(Number(persistedLine.subtotal)).toBe(647122);
+    expect(persistedLine.pricingTier).toBe('CUSTOM');
   });
 
   it('updates external orders using the same resolver path without dropping requested items', async () => {

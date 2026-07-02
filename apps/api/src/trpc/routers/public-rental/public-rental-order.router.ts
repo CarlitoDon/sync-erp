@@ -140,6 +140,7 @@ export const publicRentalOrderRouter = router({
               // Metadata for auto-creation from external catalog payloads.
               name: z.string().optional(),
               pricePerDay: z.number().positive().optional(),
+              lineTotal: z.number().positive().optional(),
               category: z
                 .enum(['package', 'mattress', 'accessory'])
                 .optional(),
@@ -245,6 +246,7 @@ export const publicRentalOrderRouter = router({
               quantity: z.number().int().positive(),
               name: z.string().optional(),
               pricePerDay: z.number().positive().optional(),
+              lineTotal: z.number().positive().optional(),
               category: z
                 .enum(['package', 'mattress', 'accessory'])
                 .optional(),

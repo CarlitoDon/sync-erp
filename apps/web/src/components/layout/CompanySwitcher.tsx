@@ -16,32 +16,32 @@ export default function CompanySwitcher() {
 
   if (isLoading) {
     return (
-      <div className="text-sm text-gray-500 animate-pulse">
+      <div className="animate-pulse text-sm text-slate-400">
         Loading...
       </div>
     );
   }
 
   if (companies.length === 0) {
-    return <div className="text-sm text-gray-500">No companies</div>;
+    return <div className="text-sm text-slate-400">No companies</div>;
   }
 
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-primary-400 transition-colors"
+        className="flex items-center space-x-2 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 transition-colors hover:border-cyan-300/50 hover:bg-white/[0.1]"
       >
-        <div className="w-6 h-6 bg-gradient-to-br from-primary-400 to-primary-600 rounded-md flex items-center justify-center">
-          <span className="text-white text-xs font-bold">
+        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white text-slate-950">
+          <span className="text-xs font-bold">
             {currentCompany?.name?.charAt(0) || '?'}
           </span>
         </div>
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-white">
           {currentCompany?.name || 'Select Company'}
         </span>
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -56,26 +56,26 @@ export default function CompanySwitcher() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+        <div className="absolute right-0 z-50 mt-2 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl shadow-slate-950/10">
           {companies.map((company) => (
             <button
               key={company.id}
               onClick={() => handleSelect(company)}
-              className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2 ${
+              className={`flex w-full items-center space-x-2 px-4 py-2 text-left text-sm hover:bg-slate-50 ${
                 currentCompany?.id === company.id
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700'
+                  ? 'bg-cyan-50 text-cyan-800'
+                  : 'text-slate-700'
               }`}
             >
-              <div className="w-6 h-6 bg-gradient-to-br from-gray-400 to-gray-600 rounded-md flex items-center justify-center">
-                <span className="text-white text-xs font-bold">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-950">
+                <span className="text-xs font-bold text-white">
                   {company.name.charAt(0)}
                 </span>
               </div>
               <span>{company.name}</span>
               {currentCompany?.id === company.id && (
                 <svg
-                  className="w-4 h-4 ml-auto text-primary-600"
+                  className="ml-auto h-4 w-4 text-cyan-700"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -88,16 +88,16 @@ export default function CompanySwitcher() {
               )}
             </button>
           ))}
-          <div className="border-t border-gray-100 my-1"></div>
+          <div className="my-1 border-t border-slate-100"></div>
           <button
             onClick={() => {
               setIsOpen(false);
               navigate('/select-company');
             }}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+            className="flex w-full items-center space-x-2 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
           >
-            <div className="w-6 h-6 flex items-center justify-center">
-              <span className="text-gray-400 text-lg leading-none">
+            <div className="flex h-6 w-6 items-center justify-center">
+              <span className="text-lg leading-none text-slate-400">
                 +
               </span>
             </div>

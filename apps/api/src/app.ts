@@ -9,10 +9,15 @@ import { errorHandler } from './middlewares/errorHandler';
 import { optionalAuthMiddleware } from './middlewares/auth';
 import { correlationMiddleware } from './middlewares/correlation';
 import { csrfProtection } from './middlewares/csrf';
+import { sentryErrorMiddleware } from './middlewares/sentry';
 import { appRouter } from './trpc/router';
 import { createContext } from './trpc/context';
 import { integrationV1Router } from './trpc/routers/integration-v1.router';
 import { integrationV1HttpRouter } from './routes/integration-v1.router';
+import {
+  isSentryTestRouteEnabled,
+  testSentryRouter,
+} from './routes/test-sentry.router';
 import { googleOAuthRouter } from './modules/auth/google-oauth.router';
 import { mcpRouter } from './modules/mcp/router';
 import { billingHttpRouter } from './modules/billing/billing-http.router';
@@ -49,9 +54,14 @@ export function createApp() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  if (isSentryTestRouteEnabled()) {
+    app.use('/internal/observability', testSentryRouter);
+  }
+
   // CSRF token endpoint - client fetches this on initial load
   app.get('/api/csrf-token', (req, res) => {
-    res.json({ csrfToken: req.cookies['csrf-token'] || null });
+    const csrfToken = (req as express.Request & { csrfToken?: string }).csrfToken;
+    res.json({ csrfToken: csrfToken || null });
   });
 
   app.use('/mcp', mcpRouter);
@@ -79,6 +89,7 @@ export function createApp() {
     })
   );
 
+  app.use(sentryErrorMiddleware);
   app.use(errorHandler);
 
   app.use((_req, res) => {

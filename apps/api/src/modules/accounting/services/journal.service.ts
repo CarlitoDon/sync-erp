@@ -204,13 +204,15 @@ export class JournalService {
     companyId: string,
     reference: string,
     amount: number,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
     return this.procurement.postGoodsReceipt(
       companyId,
       reference,
       amount,
-      tx
+      tx,
+      businessDate
     );
   }
 
@@ -343,7 +345,8 @@ export class JournalService {
     amount: number,
     method: string,
     contraAccountCode?: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
     return this.procurement.postPaymentMade(
       companyId,
@@ -352,7 +355,8 @@ export class JournalService {
       amount,
       method,
       contraAccountCode,
-      tx
+      tx,
+      businessDate
     );
   }
 
@@ -535,7 +539,8 @@ export class JournalService {
     rentalRevenue: number,
     depositRefund: number,
     paymentMethod: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
     return this.rental.postRentalReturn(
       companyId,
@@ -545,7 +550,8 @@ export class JournalService {
       rentalRevenue,
       depositRefund,
       paymentMethod,
-      tx
+      tx,
+      businessDate
     );
   }
 }

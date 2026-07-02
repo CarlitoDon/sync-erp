@@ -100,9 +100,9 @@ export const formatOrderMessage = (data: OrderPayload): string => {
   }
 
   if (data.deliveryFee > 0) {
-    message += `Ongkir: ${formatCurrency(data.deliveryFee)}\n`;
+    message += `Delivery fee: ${formatCurrency(data.deliveryFee)}\n`;
   } else {
-    message += `Ongkir: Gratis (Free)\n`;
+    message += `Delivery fee: Free\n`;
   }
 
   message += `━━━━━━━━━━━━━\n`;

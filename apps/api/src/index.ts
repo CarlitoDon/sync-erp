@@ -1,3 +1,4 @@
+import './instrument';
 import { SHUTDOWN_TIMEOUT_MS } from '@sync-erp/shared';
 import { createApp } from './app';
 import { startTenantWebhookOutboxWorker } from './services/tenant-webhook-outbox.service';
