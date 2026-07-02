@@ -105,9 +105,13 @@ export async function buildTrpcHeaders({
     headers['x-company-id'] = companyId;
   }
 
-  const csrfToken = await ensureCsrfToken(trpcUrl, cookieString, fetchFn);
-  if (csrfToken) {
-    headers[CSRF_HEADER_NAME] = csrfToken;
+  const hasMutation = opList.some((op) => op.type === 'mutation');
+
+  if (hasMutation) {
+    const csrfToken = await ensureCsrfToken(trpcUrl, cookieString, fetchFn);
+    if (csrfToken) {
+      headers[CSRF_HEADER_NAME] = csrfToken;
+    }
   }
 
   return headers;
