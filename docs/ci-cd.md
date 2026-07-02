@@ -67,6 +67,27 @@ Jobs:
   - fallback ke Vercel CLI jika hook belum dikonfigurasi atau hook tetap kena `429`
   - retry otomatis untuk rate limit / kegagalan sementara
 
+### Deploy Bot (otomatis — terpisah)
+
+File: `.github/workflows/deploy-bot-hostinger.yml`
+
+- trigger: push ke `main`/`dev` (jika path `apps/bot` berubah)
+- CD standalone — tidak depend pada CI/CD utama
+- build, package, rsync/scp ke Hostinger
+- fingerprint-based dependency caching
+- restart Passenger (`tmp/restart.txt`)
+
+### Deploy MCP (otomatis — terpisah)
+
+File: `.github/workflows/deploy-mcp-hostinger.yml`
+
+- trigger: push ke `main`/`dev` (jika path `apps/mcp` berubah)
+- CD standalone — tidak depend pada CI/CD utama
+- build, package, scp ke Hostinger
+- fingerprint-based dependency caching
+- health check `/health` dan `/mcp/health` setelah deploy
+- restart Passenger (`tmp/restart.txt`)
+
 ### Manual Fallback
 
 File: `.github/workflows/deploy-api-hostinger.yml`
