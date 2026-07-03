@@ -10,6 +10,7 @@ import { publicProcedure, apiKeyProcedure, router } from '../../trpc';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { RentalExternalOrderService } from '../../../modules/rental/rental-external-order.service';
+import type { CreatePublicOrderInput, UpdatePublicOrderInput } from '../../../modules/rental/rental-external-order.service';
 import { DomainError } from '@sync-erp/shared';
 import { integrationRegistry } from '../../../integrations/registry';
 import { prisma } from '@sync-erp/database';
@@ -183,7 +184,7 @@ export const publicRentalOrderRouter = router({
           });
         }
 
-        let finalInput: any = { ...input, companyId: ctx.companyId, integrationId: ctx.integrationId };
+        const finalInput = { ...input, companyId: ctx.companyId, integrationId: ctx.integrationId } as CreatePublicOrderInput;
 
         if (ctx.integrationId) {
            const integration = await prisma.integration.findUnique({ where: { id: ctx.integrationId } });
@@ -195,7 +196,7 @@ export const publicRentalOrderRouter = router({
                finalInput.skuPrefix = adapter.skuPrefix;
                
                if (adapter.parseComponents) {
-                 finalInput.items = finalInput.items.map((item: any) => ({
+                 finalInput.items = finalInput.items.map((item) => ({
                    ...item,
                    components: item.components ? adapter.parseComponents!(item.components) : undefined
                  }));
@@ -276,7 +277,7 @@ export const publicRentalOrderRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        let finalInput: any = { ...input, integrationId: ctx.integrationId };
+        const finalInput = { ...input, integrationId: ctx.integrationId } as UpdatePublicOrderInput;
 
         if (ctx.integrationId && input.items) {
            const integration = await prisma.integration.findUnique({ where: { id: ctx.integrationId } });
@@ -284,7 +285,7 @@ export const publicRentalOrderRouter = router({
              const plugin = integrationRegistry.get(integration.appId);
              const adapter = plugin?.getOrderAdapter?.();
              if (adapter && adapter.parseComponents) {
-               finalInput.items = finalInput.items.map((item: any) => ({
+               finalInput.items = finalInput.items.map((item) => ({
                  ...item,
                  components: item.components ? adapter.parseComponents!(item.components) : undefined
                }));
