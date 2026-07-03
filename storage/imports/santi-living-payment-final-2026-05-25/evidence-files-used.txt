@@ -1,8 +1,0 @@
-yes	P001;P002;P003;BG003	Jurnal outstanding Rp9.553.331 and component invoices	/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-payment-final-2026-05-25/evidence/fajar_outstanding_jurnal_msg_49244.jpg
-yes	P001;P002;P003;BG003	Talenta loan detail with first two Rp1.590.000 credits	/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-payment-final-2026-05-25/evidence/fajar_talenta_loan_msg_93190.jpg
-yes	P001;P002;P003;BG003	Final transfer Rp4.783.331	/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-payment-final-2026-05-25/evidence/jago_transfer_pelunasan_msg_122773.jpg
-yes	P004	Invoice thumbnail P004	/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-payment-final-2026-05-25/evidence/sales_invoice_62205_thumb_p004.jpg
-yes	P005	Invoice thumbnail P005	/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-payment-final-2026-05-25/evidence/sales_invoice_63002_thumb_p005.jpg
-yes	P006	Jago transfer receipt Rp1.616.000 with note kasur 2 bantal 3	/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-payment-final-2026-05-25/evidence/jago_transfer_p006_msg_92508.jpg
-yes	P007	Invoice PDF P007	/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-payment-final-2026-05-25/evidence/sales_invoice_65396_p007.pdf
-yes	P001	Original SO baseline for P001	/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-payment-final-2026-05-25/evidence/sales_order_28686_p001.pdf

@@ -1,5 +1,0 @@
-order_ref_or_candidate,baseline_match,action_recommendation,chat_name,customer_name_or_phone,evidence_date,rental_start,rental_end,duration,location,item_lines,qty,price,ongkir,diskon,total,DP,sisa,payment_evidence_status,duplicate_revisi_superseded_note,confidence
-# NOTE: AUDIT BLOCKED - No conversation data extracted. Sidebar preview only.
-# KKN-QUOTE-001,,PENDING_CONFIRMATION,+62 813-2885-8960,+62 813-2885-8960,5/19/2026,2026-06-30,2026-07-30,30 malam,-,"Paket Single 90 (4pcs) + Paket Single 100 (6pcs)",10,see note,0,-5900000,5500000,,,UNKNOWN - sidebar preview only,,LOW
-# ONGKIR-MAGUWO-001,,NEEDS_DETAIL,Cust SL - Tri Minomartani / +62 878-9387-0098,-,Sunday,,,,,"ongkir 60k maguwo",,,60000,,,,,UNKNOWN - sidebar preview only,possible duplicate between Tri Minomartani and +62 878-9387-0098,LOW
-# ONGKIR-PICKUP-001,,NEEDS_DETAIL,+62 822-1327-9864,+62 822-1327-9864,5/10/2026,,,,,"ongkir antar-jemput pickup",,,50000,,,,,UNKNOWN - sidebar preview only,,LOW

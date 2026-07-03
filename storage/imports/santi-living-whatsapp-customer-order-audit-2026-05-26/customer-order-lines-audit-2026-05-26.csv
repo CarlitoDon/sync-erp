@@ -1,7 +1,0 @@
-order_ref_or_candidate,line_no,item_name,qty,unit_price,line_total,evidence_source,confidence
-# NOTE: AUDIT BLOCKED - No conversation data extracted. Sidebar preview only.
-# KKN-QUOTE-001,1,Paket Single 90 (kasur + sprei + bantal),4,35000,4200000,sidebar preview (30 nights),LOW
-# KKN-QUOTE-001,2,Paket Single 100 (kasur + sprei + bantal),6,40000,7200000,sidebar preview (30 nights),LOW
-# KKN-QUOTE-001,,,,,,,,,,,subtotal 11400000
-# KKN-QUOTE-001,3,Special long stay discount,,-5900000,,sidebar preview,LOW
-# KKN-QUOTE-001,,,,,,,,,,,GRAND TOTAL 5500000
