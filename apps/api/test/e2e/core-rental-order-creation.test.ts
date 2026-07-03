@@ -148,6 +148,6 @@ describe('Sync-ERP Core Order Creation E2E', () => {
         ],
         deliveryAddress: 'Jl. Malioboro No. 1, Yogyakarta',
     });
-    expect(result.orderNumber).toMatch(/^RNT-\\d{6}-\\d{5}$/);
+    expect(result.orderNumber).toMatch(/^RNT-\d{6}-\d{5}$/);
   });
 });
