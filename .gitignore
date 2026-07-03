@@ -58,3 +58,4 @@ apps/api/deploy/
 cookies.txt
 *.session
 mcp-debug.log
+storage/
