@@ -260,7 +260,7 @@ describe('Public Rental Router Integration', () => {
       where: {
         companyId: COMPANY_ID,
         product: {
-          sku: 'SL-kasur-busa-120x200',
+          sku: 'kasur-busa-120x200',
         },
       },
     });
