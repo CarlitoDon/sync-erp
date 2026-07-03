@@ -19,11 +19,19 @@ export interface SummaryCardsProps {
 }
 
 const colorClasses: Record<CardColor, string> = {
+<<<<<<< HEAD
   default: 'text-slate-950',
   blue: 'text-cyan-700',
   green: 'text-emerald-700',
   red: 'text-red-600',
   primary: 'text-cyan-700',
+=======
+  default: 'text-gray-900',
+  blue: 'text-blue-600',
+  green: 'text-green-600',
+  red: 'text-red-600',
+  primary: 'text-primary-600',
+>>>>>>> origin/dev
 };
 
 /**
@@ -46,14 +54,22 @@ export function SummaryCards({
   const gridClass =
     columns === 3
       ? 'grid-cols-1 md:grid-cols-3'
+<<<<<<< HEAD
       : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4';
+=======
+      : 'grid-cols-2 md:grid-cols-4';
+>>>>>>> origin/dev
 
   return (
     <div className={`grid ${gridClass} gap-4 md:gap-6 ${className}`}>
       {cards.map((card, index) => (
         <Card key={index}>
           <CardContent className="pt-6">
+<<<<<<< HEAD
             <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
+=======
+            <p className="text-sm text-gray-500 uppercase">
+>>>>>>> origin/dev
               {card.label}
             </p>
             <p

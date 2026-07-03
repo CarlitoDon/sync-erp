@@ -7,7 +7,10 @@ import {
   CreateRentalOrderSchema,
   ConfirmRentalOrderSchema,
   ManualConfirmRentalOrderSchema,
+<<<<<<< HEAD
   HistoricalRentalSettlementSchema,
+=======
+>>>>>>> origin/dev
   ReleaseRentalOrderSchema,
   ProcessReturnSchema,
   UpdateRentalPolicySchema,
@@ -75,6 +78,7 @@ export const rentalRouter = router({
           ctx.companyId,
           input.rentalItemId,
           input.quantity,
+<<<<<<< HEAD
           ctx.userId,
           {
             sourceOrderId: input.sourceOrderId,
@@ -85,6 +89,9 @@ export const rentalRouter = router({
             unitCodes: input.unitCodes,
             unitMetadata: input.unitMetadata,
           }
+=======
+          ctx.userId
+>>>>>>> origin/dev
         );
       }),
 
@@ -263,6 +270,7 @@ export const rentalRouter = router({
           return mapToPortableOrder(result);
         }
       ),
+<<<<<<< HEAD
 
     settleHistoricalCompleted: protectedProcedure
       .input(HistoricalRentalSettlementSchema)
@@ -277,6 +285,8 @@ export const rentalRouter = router({
           return mapToPortableOrder(result);
         }
       ),
+=======
+>>>>>>> origin/dev
   }),
 
   // ==========================================

@@ -315,7 +315,11 @@ export default function RentalOrdersPage() {
                       {order.orderSource === OrderSource.WEBSITE ? (
                         <span
                           className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 text-blue-700"
+<<<<<<< HEAD
                           title="Order dari website eksternal"
+=======
+                          title="Order dari Santi Living"
+>>>>>>> origin/dev
                         >
                           <GlobeAltIcon className="w-3 h-3" />
                           Website

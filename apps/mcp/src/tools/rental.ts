@@ -6,13 +6,17 @@ import { apiQuery, apiMutation } from '../client.js';
 import {
   getString,
   getOptionalString,
+<<<<<<< HEAD
   getOptionalNumber,
   getOptionalBoolean,
+=======
+>>>>>>> origin/dev
   companyIdProp,
   idProp,
   buildInput,
 } from './_helpers.js';
 
+<<<<<<< HEAD
 function toRecord(value: unknown): Record<string, unknown> | undefined {
   return typeof value === 'object' && value !== null
     ? (value as Record<string, unknown>)
@@ -123,6 +127,8 @@ function compactRentalOrderList(
   );
 }
 
+=======
+>>>>>>> origin/dev
 export function getRentalTools(): ToolSpec[] {
   return [
     // ── Items ────────────────────────────────────────
@@ -167,12 +173,17 @@ export function getRentalTools(): ToolSpec[] {
     },
     {
       name: 'rental_item_convert_stock',
+<<<<<<< HEAD
       description:
         'Convert stock items into rentable units. For source metadata, pass input JSON with rentalItemId, quantity, optional sourceOrderId/sourceFulfillmentId/sourceBillId/sourceBatchCode/unitCodes/unitMetadata.',
+=======
+      description: 'Convert stock items into rentable units',
+>>>>>>> origin/dev
       inputSchema: {
         type: 'object',
         properties: {
           companyId: companyIdProp,
+<<<<<<< HEAD
           input: {
             type: 'string',
             description:
@@ -218,6 +229,22 @@ export function getRentalTools(): ToolSpec[] {
           getString(args, 'companyId')
         );
       },
+=======
+          rentalItemId: { type: 'string', description: 'Rental item UUID' },
+          quantity: { type: 'number', description: 'Number of units to create' },
+        },
+        required: ['companyId', 'rentalItemId', 'quantity'],
+      },
+      handler: async (args) =>
+        apiMutation(
+          'rental.items.convertStock',
+          {
+            rentalItemId: getString(args, 'rentalItemId'),
+            quantity: args.quantity,
+          },
+          getString(args, 'companyId')
+        ),
+>>>>>>> origin/dev
     },
     {
       name: 'rental_unit_update_status',
@@ -257,6 +284,7 @@ export function getRentalTools(): ToolSpec[] {
           companyId: companyIdProp,
           status: {
             type: 'string',
+<<<<<<< HEAD
             description: 'Order lifecycle status, not payment status.',
             enum: ['DRAFT', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED'],
           },
@@ -293,10 +321,21 @@ export function getRentalTools(): ToolSpec[] {
       },
       handler: async (args) => {
         const response = await apiQuery(
+=======
+            enum: ['DRAFT', 'PENDING_PAYMENT', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED'],
+          },
+          partnerId: { type: 'string', description: 'Filter by partner' },
+        },
+        required: ['companyId'],
+      },
+      handler: async (args) =>
+        apiQuery(
+>>>>>>> origin/dev
           'rental.orders.list',
           buildInput([
             ['status', getOptionalString(args, 'status')],
             ['partnerId', getOptionalString(args, 'partnerId')],
+<<<<<<< HEAD
             ['take', getOptionalNumber(args, 'take')],
             ['cursor', getOptionalString(args, 'cursor')],
           ]),
@@ -309,6 +348,11 @@ export function getRentalTools(): ToolSpec[] {
           ? compactRentalOrderList(response, notesContains, rentalPaymentStatus)
           : response;
       },
+=======
+          ]),
+          getString(args, 'companyId')
+        ),
+>>>>>>> origin/dev
     },
     {
       name: 'rental_order_get',
@@ -328,7 +372,11 @@ export function getRentalTools(): ToolSpec[] {
     {
       name: 'rental_order_create',
       description:
+<<<<<<< HEAD
         'Create a rental order. Input JSON: {partnerId, rentalStartDate, rentalEndDate, items: [{rentalItemId|rentalBundleId, quantity, pricePerDay?, lineTotal?}], deliveryFee?, discountAmount?, notes?}. Use source invoice pricePerDay/lineTotal and deliveryFee when historical or package pricing differs from master rates. Use lineTotal when the invoice has an exact line subtotal that should not be re-derived from a daily rate.',
+=======
+        'Create a rental order. Input JSON: {partnerId, startDate, endDate, items: [{rentalItemId, quantity}], notes?}',
+>>>>>>> origin/dev
       inputSchema: {
         type: 'object',
         properties: {
@@ -427,17 +475,25 @@ export function getRentalTools(): ToolSpec[] {
     },
     {
       name: 'rental_order_extend',
+<<<<<<< HEAD
       description:
         'Extend rental order items or record a historical late-return extension. Input JSON: {orderId, newEndDate, items?: [{rentalOrderItemId|rentalItemId|rentalBundleId, quantity?, unitPrice?, additionalAmount?, notes?}], reason?, additionalAmount?, deliveryFee?, deliveryFeeLabel?, additionalDeposit?, isPaid?, paidAt?, paymentId?, businessDate?, allowHistorical?, updateOrderTotal?, updateOrderDates?}. Use items[] for partial/per-item extensions; use per-item additionalAmount for exact historical invoice or source item totals, and deliveryFee for extra delivery/pickup charges.',
+=======
+      description: 'Extend a rental order. Input JSON: {orderId, newEndDate, reason?}',
+>>>>>>> origin/dev
       inputSchema: {
         type: 'object',
         properties: {
           companyId: companyIdProp,
+<<<<<<< HEAD
           input: {
             type: 'string',
             description:
               'JSON: {orderId, newEndDate, items?: [{rentalOrderItemId|rentalItemId|rentalBundleId, quantity?, unitPrice?, additionalAmount?, notes?}], reason?, additionalAmount?, deliveryFee?, deliveryFeeLabel?, additionalDeposit?, isPaid?, paidAt?, paymentId?, businessDate?, allowHistorical?, updateOrderTotal?, updateOrderDates?}',
           },
+=======
+          input: { type: 'string', description: 'JSON: {orderId, newEndDate, reason?}' },
+>>>>>>> origin/dev
         },
         required: ['companyId', 'input'],
       },
@@ -476,6 +532,7 @@ export function getRentalTools(): ToolSpec[] {
           getString(args, 'companyId')
         ),
     },
+<<<<<<< HEAD
     {
       name: 'rental_order_settle_historical_completed',
       description:
@@ -501,6 +558,8 @@ export function getRentalTools(): ToolSpec[] {
         );
       },
     },
+=======
+>>>>>>> origin/dev
 
     // ── Availability ────────────────────────────────────────
     {

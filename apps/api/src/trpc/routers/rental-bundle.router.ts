@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { router, protectedProcedure, publicProcedure } from '../trpc';
 import * as bundleService from '../../modules/rental/rental-bundle.service';
+<<<<<<< HEAD
 import { assertBillingFeatureAvailable } from '../../modules/billing/billing-limits.service';
+=======
+>>>>>>> origin/dev
 
 export const rentalBundleRouter = router({
   // List bundles for company
@@ -81,6 +84,7 @@ export const rentalBundleRouter = router({
         isActive: z.boolean().optional(),
       })
     )
+<<<<<<< HEAD
     .mutation(async ({ input, ctx }) => {
       if (input.imagePath) {
         await assertBillingFeatureAvailable({
@@ -93,6 +97,13 @@ export const rentalBundleRouter = router({
     }),
 
   // Find by external catalog ID.
+=======
+    .mutation(async ({ input }) => {
+      return bundleService.update(input);
+    }),
+
+  // Find by external ID (for santi-living integration)
+>>>>>>> origin/dev
   findByExternalId: publicProcedure
     .input(
       z.object({
@@ -104,8 +115,13 @@ export const rentalBundleRouter = router({
       return bundleService.findByExternalId(input);
     }),
 
+<<<<<<< HEAD
   // Sync bundles from an external catalog payload.
   syncFromExternalCatalog: publicProcedure
+=======
+  // Sync external bundles
+  syncExternalBundles: publicProcedure
+>>>>>>> origin/dev
     .input(
       z.object({
         companyId: z.string(),
@@ -125,6 +141,10 @@ export const rentalBundleRouter = router({
       })
     )
     .mutation(async ({ input }) => {
+<<<<<<< HEAD
       return bundleService.syncFromExternalCatalog(input);
+=======
+      return bundleService.syncExternalBundles(input);
+>>>>>>> origin/dev
     }),
 });

@@ -21,10 +21,17 @@ export class CashAccountService {
     data: CreateBankAccountInput
   ): Promise<BankAccount & { account: Account }> {
     // 1. Auto-create Sub-Account based on Type
+<<<<<<< HEAD
     const parentCode = await this.resolveParentAccountCode(
       companyId,
       data.accountType
     );
+=======
+    const parentCode =
+      data.accountType === BankAccountTypeSchema.enum.CASH
+        ? '1100'
+        : '1200';
+>>>>>>> origin/dev
 
     // Auto-generate code and create GL Account
     const glAccount = await this.accountService.createSubAccount(
@@ -58,6 +65,7 @@ export class CashAccountService {
     });
   }
 
+<<<<<<< HEAD
   private async resolveParentAccountCode(
     companyId: string,
     accountType: CreateBankAccountInput['accountType']
@@ -89,6 +97,8 @@ export class CashAccountService {
     );
   }
 
+=======
+>>>>>>> origin/dev
   async updateAccount(
     id: string,
     companyId: string,
@@ -148,6 +158,7 @@ export class CashAccountService {
     return account;
   }
 }
+<<<<<<< HEAD
 
 function isValidCashBankParent(
   accountName: string,
@@ -165,3 +176,5 @@ function isValidCashBankParent(
     ? normalized.includes('cash')
     : normalized.includes('bank');
 }
+=======
+>>>>>>> origin/dev

@@ -29,17 +29,26 @@ Alur utama sekarang:
 
 ### `CI/CD`
 
+<<<<<<< HEAD
 File: `.github/workflows/ci-cd.yml`
+=======
+File: `.github/workflows/ci.yml`
+>>>>>>> origin/dev
 
 Jobs:
 
 - `changes`
   - mendeteksi area yang berubah agar deploy hanya jalan saat relevan
+<<<<<<< HEAD
 - `ci-api`
+=======
+- `ci`
+>>>>>>> origin/dev
   - install dependencies
   - setup test database
   - lint
   - typecheck
+<<<<<<< HEAD
   - unit test
   - **integration test** — `test:integration` API
   - build API (selective: `npm run build:api`)
@@ -54,6 +63,15 @@ Jobs:
   - hanya jalan jika area backend berubah
   - menunggu `changes` + `ci-api` selesai
   - build dan package artifact production
+=======
+  - test
+  - build
+- `deploy_api`
+  - hanya jalan pada `push` ke `main` atau `dev`
+  - hanya jalan jika area backend berubah
+  - build API
+  - package artifact production
+>>>>>>> origin/dev
   - rsync ke Hostinger
   - install dependency production
   - generate Prisma client
@@ -62,11 +80,15 @@ Jobs:
 - `deploy_web`
   - hanya jalan pada `push` ke `main` atau `dev`
   - hanya jalan jika area frontend berubah
+<<<<<<< HEAD
   - menunggu `changes` + `ci-web` selesai
+=======
+>>>>>>> origin/dev
   - prioritas deploy via Vercel deploy hook
   - fallback ke Vercel CLI jika hook belum dikonfigurasi atau hook tetap kena `429`
   - retry otomatis untuk rate limit / kegagalan sementara
 
+<<<<<<< HEAD
 ### Deploy Bot (otomatis — terpisah)
 
 File: `.github/workflows/deploy-bot-hostinger.yml`
@@ -88,6 +110,8 @@ File: `.github/workflows/deploy-mcp-hostinger.yml`
 - health check `/health` dan `/mcp/health` setelah deploy
 - restart Passenger (`tmp/restart.txt`)
 
+=======
+>>>>>>> origin/dev
 ### Manual Fallback
 
 File: `.github/workflows/deploy-api-hostinger.yml`
@@ -95,6 +119,7 @@ File: `.github/workflows/deploy-api-hostinger.yml`
 - hanya untuk `workflow_dispatch`
 - dipakai jika butuh redeploy backend manual saat darurat
 
+<<<<<<< HEAD
 ### E2E (Playwright) — Non-blocking
 
 File: `.github/workflows/e2e-playwright.yml`
@@ -105,6 +130,8 @@ File: `.github/workflows/e2e-playwright.yml`
 - menjalankan Playwright E2E test di apps/web
 - menyimpan report sebagai artifact
 
+=======
+>>>>>>> origin/dev
 ## Required GitHub Secrets
 
 ### Backend / Hostinger

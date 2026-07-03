@@ -21,7 +21,10 @@ export interface StockMovementInput {
   quantity: number;
   reference?: string;
   unitCost?: number;
+<<<<<<< HEAD
   date?: Date;
+=======
+>>>>>>> origin/dev
 }
 
 export class InventoryRepository {
@@ -45,7 +48,10 @@ export class InventoryRepository {
         type: data.type,
         quantity: data.quantity,
         reference: data.reference,
+<<<<<<< HEAD
         date: data.date,
+=======
+>>>>>>> origin/dev
       },
     });
 
@@ -177,11 +183,18 @@ export class InventoryRepository {
   async generateFulfillmentNumber(
     companyId: string,
     type: FulfillmentType,
+<<<<<<< HEAD
     tx?: Prisma.TransactionClient,
     businessDate: Date = new Date()
   ): Promise<string> {
     const db = tx || prisma;
     const year = businessDate.getFullYear();
+=======
+    tx?: Prisma.TransactionClient
+  ): Promise<string> {
+    const db = tx || prisma;
+    const year = new Date().getFullYear();
+>>>>>>> origin/dev
     let prefix: string;
     if (type === FulfillmentType.RECEIPT) {
       prefix = SequenceType.GRN;
@@ -245,8 +258,12 @@ export class InventoryRepository {
     const number = await this.generateFulfillmentNumber(
       data.companyId,
       data.type,
+<<<<<<< HEAD
       tx,
       data.date
+=======
+      tx
+>>>>>>> origin/dev
     );
 
     return db.fulfillment.create({
@@ -265,6 +282,7 @@ export class InventoryRepository {
             quantity: item.quantity,
             orderItemId: item.orderItemId,
           })),
+<<<<<<< HEAD
         },
       },
       include: { items: true },
@@ -309,6 +327,59 @@ export class InventoryRepository {
           none: {
             status: { not: InvoiceStatus.VOID }, // Exclude if any active invoice exists
           },
+=======
+>>>>>>> origin/dev
+        },
+      },
+      select: { id: true, number: true },
+    });
+  }
+
+<<<<<<< HEAD
+  async listFulfillments(
+=======
+  async findFulfillmentById(
+    id: string,
+>>>>>>> origin/dev
+    companyId: string,
+    type?: FulfillmentType,
+    tx?: Prisma.TransactionClient
+  ) {
+    const db = tx || prisma;
+<<<<<<< HEAD
+=======
+    return db.fulfillment.findFirst({
+      where: { id, companyId },
+      include: {
+        items: {
+          include: { product: true, orderItem: true },
+        },
+        order: true,
+        invoices: { select: { id: true, status: true } }, // Feature 041: Include linked invoices with status
+      },
+    });
+  }
+
+  /**
+   * Feature 041: Find all POSTED receipts for an order that don't have active bills
+   * Used for auto-linking logic when creating a Bill
+   */
+  async findUnbilledFulfillmentsByOrderId(
+    companyId: string,
+    orderId: string,
+    tx?: Prisma.TransactionClient
+  ) {
+    const db = tx || prisma;
+    return db.fulfillment.findMany({
+      where: {
+        companyId,
+        orderId,
+        type: FulfillmentType.RECEIPT,
+        status: DocumentStatus.POSTED,
+        invoices: {
+          none: {
+            status: { not: InvoiceStatus.VOID }, // Exclude if any active invoice exists
+          },
         },
       },
       select: { id: true, number: true },
@@ -321,6 +392,7 @@ export class InventoryRepository {
     tx?: Prisma.TransactionClient
   ) {
     const db = tx || prisma;
+>>>>>>> origin/dev
     return db.fulfillment.findMany({
       where: { companyId, ...(type && { type }) },
       include: { order: true },

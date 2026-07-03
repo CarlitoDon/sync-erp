@@ -12,6 +12,7 @@ interface FulfillmentStatus {
 const receiptStatusMap: Record<string, FulfillmentStatus> = {
   [OrderStatusSchema.enum.RECEIVED]: {
     label: 'Fully Received',
+<<<<<<< HEAD
     color: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
   },
   [OrderStatusSchema.enum.COMPLETED]: {
@@ -29,12 +30,32 @@ const receiptStatusMap: Record<string, FulfillmentStatus> = {
   [OrderStatusSchema.enum.CANCELLED]: {
     label: 'Cancelled',
     color: 'border border-red-200 bg-red-50 text-red-700',
+=======
+    color: 'text-green-600 bg-green-50',
+  },
+  [OrderStatusSchema.enum.COMPLETED]: {
+    label: 'Fully Received',
+    color: 'text-green-600 bg-green-50',
+  },
+  [OrderStatusSchema.enum.PARTIALLY_RECEIVED]: {
+    label: 'Partial',
+    color: 'text-amber-600 bg-amber-50',
+  },
+  [OrderStatusSchema.enum.CONFIRMED]: {
+    label: 'Pending',
+    color: 'text-blue-600 bg-blue-50',
+  },
+  [OrderStatusSchema.enum.CANCELLED]: {
+    label: 'Cancelled',
+    color: 'text-red-600 bg-red-50',
+>>>>>>> origin/dev
   },
 };
 
 const shipmentStatusMap: Record<string, FulfillmentStatus> = {
   [OrderStatusSchema.enum.SHIPPED]: {
     label: 'Fully Shipped',
+<<<<<<< HEAD
     color: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
   },
   [OrderStatusSchema.enum.COMPLETED]: {
@@ -52,12 +73,35 @@ const shipmentStatusMap: Record<string, FulfillmentStatus> = {
   [OrderStatusSchema.enum.CANCELLED]: {
     label: 'Cancelled',
     color: 'border border-red-200 bg-red-50 text-red-700',
+=======
+    color: 'text-green-600 bg-green-50',
+  },
+  [OrderStatusSchema.enum.COMPLETED]: {
+    label: 'Fully Shipped',
+    color: 'text-green-600 bg-green-50',
+  },
+  [OrderStatusSchema.enum.PARTIALLY_SHIPPED]: {
+    label: 'Partial',
+    color: 'text-amber-600 bg-amber-50',
+  },
+  [OrderStatusSchema.enum.CONFIRMED]: {
+    label: 'Pending',
+    color: 'text-blue-600 bg-blue-50',
+  },
+  [OrderStatusSchema.enum.CANCELLED]: {
+    label: 'Cancelled',
+    color: 'text-red-600 bg-red-50',
+>>>>>>> origin/dev
   },
 };
 
 const defaultStatus: FulfillmentStatus = {
   label: 'N/A',
+<<<<<<< HEAD
   color: 'border border-slate-200 bg-slate-50 text-slate-500',
+=======
+  color: 'text-gray-400 bg-gray-50',
+>>>>>>> origin/dev
 };
 
 export interface FulfillmentStatusBadgeProps {
@@ -88,7 +132,11 @@ export function FulfillmentStatusBadge({
 
   return (
     <span
+<<<<<<< HEAD
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${color} ${className}`}
+=======
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color} ${className}`}
+>>>>>>> origin/dev
     >
       {label}
     </span>

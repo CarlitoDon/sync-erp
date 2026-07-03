@@ -53,12 +53,20 @@ export default function FormModal({
         </span>
 
         <div
+<<<<<<< HEAD
           className={`relative z-10 inline-block max-h-[90vh] transform overflow-y-auto rounded-lg border border-slate-200 bg-white text-left align-bottom shadow-xl shadow-slate-950/20 transition-all sm:my-8 sm:w-full sm:align-middle ${maxWidthClasses[maxWidth]}`}
+=======
+          className={`relative z-10 inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:w-full max-h-[90vh] overflow-y-auto ${maxWidthClasses[maxWidth]}`}
+>>>>>>> origin/dev
         >
           {/* Header */}
           <div className="rounded-lg bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
             <h3
+<<<<<<< HEAD
               className="sticky top-0 mb-4 bg-white pb-2 text-lg font-semibold leading-6 text-slate-950"
+=======
+              className="text-lg leading-6 font-medium text-gray-900 mb-4 sticky top-0 bg-white pb-2"
+>>>>>>> origin/dev
               id="modal-title"
             >
               {title}

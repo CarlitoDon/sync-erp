@@ -6,10 +6,15 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "dev:stdio": "tsx src/stdio.ts",
+<<<<<<< HEAD
     "e2e:http": "tsx src/e2e.ts",
     "e2e:sse": "npm run e2e:http",
     "smoke:http": "tsx src/smoke.ts",
     "smoke:sse": "npm run smoke:http",
+=======
+    "e2e:sse": "tsx src/e2e.ts",
+    "smoke:sse": "tsx src/smoke.ts",
+>>>>>>> origin/dev
     "start": "node dist/index.js",
     "start:stdio": "node dist/stdio.js",
     "build": "tsup src/index.ts src/stdio.ts --format esm --clean --dts",

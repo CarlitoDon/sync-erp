@@ -18,6 +18,7 @@ datasource db {
 }
 
 model Company {
+<<<<<<< HEAD
   id                      String                    @id @default(uuid())
   name                    String
   businessShape           BusinessShape             @default(PENDING)
@@ -68,6 +69,55 @@ model Company {
   subscription            CompanySubscription?
   billingCheckoutSessions BillingCheckoutSession[]
   billingWebhookEvents    BillingWebhookEvent[]
+=======
+  id                    String                 @id @default(uuid())
+  name                  String
+  businessShape         BusinessShape          @default(PENDING)
+  onboardingStatus      CompanyOnboardingStatus @default(NOT_INITIALIZED)
+  onboardingStep        CompanyOnboardingStep   @default(WELCOME)
+  onboardingCompletedAt DateTime?
+  onboardingMeta        Json?
+  inviteCode            String?                @unique @default(cuid())
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  accounts              Account[]
+  apiKeys               ApiKey[]
+  auditLogs             AuditLog[]
+  bankAccounts          BankAccount[]
+  cashTransactions      CashTransaction[]
+  members               CompanyMember[]
+  customerRentalRisks   CustomerRentalRisk[]
+  documentSequences     DocumentSequence[]
+  fulfillments          Fulfillment[]
+  idempotencyKeys       IdempotencyKey[]
+  movements             InventoryMovement[]
+  invoices              Invoice[]
+  journals              JournalEntry[]
+  orders                Order[]
+  partners              Partner[]
+  payments              Payment[]
+  products              Product[]
+  categories            ProductCategory[]
+  rentalDamagePolicies  RentalDamagePolicy[]
+  rentalDeposits        RentalDeposit[]
+  rentalItems           RentalItem[]
+  rentalItemUnits       RentalItemUnit[]
+  rentalOrders          RentalOrder[]
+  rentalOrderExtensions RentalOrderExtension[]
+  rentalPolicies        RentalPolicy[]
+  rentalReturns         RentalReturn[]
+  roles                 Role[]
+  sagaLogs              SagaLog[]
+  configs               SystemConfig[]
+  warehouses            Warehouse[]
+  rentalBundles         RentalBundle[]
+  integrations          Integration[]
+  webhookOutbox         WebhookOutbox[]
+  tenantWebhookOutbox   TenantWebhookOutbox[]
+  subscription          CompanySubscription?
+  billingCheckoutSessions BillingCheckoutSession[]
+  billingWebhookEvents  BillingWebhookEvent[]
+>>>>>>> origin/dev
 
   paymentMethods CompanyPaymentMethod[]
 }
@@ -127,7 +177,11 @@ model CompanySubscription {
   id                     String                    @id @default(cuid())
   companyId              String                    @unique
   company                Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
   planKey                String                    @default("free")
+=======
+  planKey                String                    @default("starter")
+>>>>>>> origin/dev
   status                 BillingSubscriptionStatus @default(TRIALING)
   provider               BillingProvider?
   providerCustomerId     String?
@@ -152,6 +206,7 @@ model BillingCheckoutSession {
   id                  String                       @id @default(cuid())
   companyId           String
   company             Company                      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
   provider            BillingProvider              @default(MANUAL)
   planKey             String
   billingCycle        BillingCycle                 @default(MONTHLY)
@@ -160,6 +215,16 @@ model BillingCheckoutSession {
   providerCheckoutUrl String?
   amountIdr           Int?
   currency            String                       @default("IDR")
+=======
+  provider            BillingProvider             @default(MANUAL)
+  planKey             String
+  billingCycle        BillingCycle                @default(MONTHLY)
+  status              BillingCheckoutSessionStatus @default(OPEN)
+  providerSessionId   String?                     @unique
+  providerCheckoutUrl String?
+  amountIdr           Int?
+  currency            String                      @default("IDR")
+>>>>>>> origin/dev
   successUrl          String?
   cancelUrl           String?
   expiresAt           DateTime
@@ -167,28 +232,46 @@ model BillingCheckoutSession {
   canceledAt          DateTime?
   failedAt            DateTime?
   metadata            Json?
+<<<<<<< HEAD
   createdAt           DateTime                     @default(now())
   updatedAt           DateTime                     @updatedAt
+=======
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+>>>>>>> origin/dev
 
   @@index([companyId, status, createdAt])
   @@index([provider, status, createdAt])
 }
 
 model BillingWebhookEvent {
+<<<<<<< HEAD
   id                     String                    @id @default(cuid())
+=======
+  id                     String                   @id @default(cuid())
+>>>>>>> origin/dev
   provider               BillingProvider
   eventId                String
   eventType              String
   status                 BillingWebhookEventStatus @default(RECEIVED)
   companyId              String?
+<<<<<<< HEAD
   company                Company?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+=======
+  company                Company?                @relation(fields: [companyId], references: [id], onDelete: SetNull)
+>>>>>>> origin/dev
   providerCustomerId     String?
   providerSubscriptionId String?
   payload                Json
   processedAt            DateTime?
   errorMessage           String?
+<<<<<<< HEAD
   createdAt              DateTime                  @default(now())
   updatedAt              DateTime                  @updatedAt
+=======
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+>>>>>>> origin/dev
 
   @@unique([provider, eventId])
   @@index([provider, status, createdAt])
@@ -202,8 +285,13 @@ model Integration {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // App Identifiers
+<<<<<<< HEAD
   appId       String // e.g., "custom-storefront", "rockhouse", "pos-lite"
   name        String // Display name for the external integration
+=======
+  appId       String // e.g., "santi-living", "rockhouse", "pos-lite"
+  name        String // Display Name "Santi Living"
+>>>>>>> origin/dev
   description String?
   icon        String? // icon name or url
 
@@ -213,6 +301,12 @@ model Integration {
 
   // Relations
   apiKeys ApiKey[] // Keys associated with this integration
+<<<<<<< HEAD
+=======
+  rentalOrders RentalOrder[]
+  rentalBundles RentalBundle[]
+  webhookOutbox WebhookOutbox[]
+>>>>>>> origin/dev
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -226,7 +320,11 @@ model ApiKey {
   id        String @id @default(cuid())
   keyHash   String @unique // bcrypt hash of the actual key
   keyPrefix String // First 8 chars for display (e.g., "sk_live_")
+<<<<<<< HEAD
   name      String // "Storefront Production"
+=======
+  name      String // "Santi Living Production"
+>>>>>>> origin/dev
 
   companyId     String
   company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -252,10 +350,18 @@ model ApiKey {
   @@index([isActive])
 }
 
+<<<<<<< HEAD
 model RentalWebhookOutbox {
   id               String                    @id @default(cuid())
   companyId        String
   deliveryType     RentalWebhookDeliveryType
+=======
+model WebhookOutbox {
+  id               String                    @id @default(cuid())
+  companyId        String
+  integrationId    String?
+  event            String
+>>>>>>> origin/dev
   orderPublicToken String
   orderNumber      String?
   payload          Json
@@ -270,21 +376,34 @@ model RentalWebhookOutbox {
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   company          Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
 
   @@index([companyId, createdAt])
   @@index([status, nextAttemptAt])
   @@index([deliveryType, status, nextAttemptAt])
+=======
+  integration      Integration?              @relation(fields: [integrationId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@index([status, nextAttemptAt])
+  @@index([event, status, nextAttemptAt])
+>>>>>>> origin/dev
   @@index([orderPublicToken])
 }
 
 model TenantWebhookOutbox {
+<<<<<<< HEAD
   id             String                    @id @default(cuid())
+=======
+  id             String                   @id @default(cuid())
+>>>>>>> origin/dev
   companyId      String
   apiKeyId       String?
   event          String
   payload        Json
   webhookUrl     String
   webhookSecret  String?
+<<<<<<< HEAD
   eventTimestamp DateTime                  @default(now())
   status         TenantWebhookOutboxStatus @default(PENDING)
   attempts       Int                       @default(0)
@@ -297,6 +416,20 @@ model TenantWebhookOutbox {
   updatedAt      DateTime                  @updatedAt
   company        Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   apiKey         ApiKey?                   @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+=======
+  eventTimestamp DateTime                 @default(now())
+  status         TenantWebhookOutboxStatus @default(PENDING)
+  attempts       Int                      @default(0)
+  nextAttemptAt  DateTime                 @default(now())
+  lastAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  lastError      String?                  @db.Text
+  lastStatusCode Int?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  company        Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  apiKey         ApiKey?                  @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+>>>>>>> origin/dev
 
   @@index([companyId, createdAt])
   @@index([status, nextAttemptAt])
@@ -317,7 +450,10 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   authAuditLogs           AuthAuditLog[]
   oauthAccounts           OAuthAccount[]
+<<<<<<< HEAD
   uploadedAttachments     Attachment[]
+=======
+>>>>>>> origin/dev
 }
 
 model Session {
@@ -490,7 +626,10 @@ model Order {
   partner            Partner             @relation(fields: [partnerId], references: [id])
   items              OrderItem[]
   upfrontPayments    Payment[]           @relation("OrderUpfrontPayments")
+<<<<<<< HEAD
   sourceRentalUnits  RentalItemUnit[]    @relation("RentalUnitSourceOrder")
+=======
+>>>>>>> origin/dev
 
   @@index([companyId])
   @@index([companyId, type])
@@ -498,6 +637,7 @@ model Order {
 }
 
 model OrderItem {
+<<<<<<< HEAD
   id                String            @id @default(uuid())
   orderId           String
   productId         String
@@ -508,6 +648,17 @@ model OrderItem {
   order             Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product           Product           @relation(fields: [productId], references: [id])
   sourceRentalUnits RentalItemUnit[]  @relation("RentalUnitSourceOrderItem")
+=======
+  id               String            @id @default(uuid())
+  orderId          String
+  productId        String
+  quantity         Int
+  price            Decimal           @db.Decimal(15, 2)
+  cost             Decimal?          @db.Decimal(15, 2)
+  fulfillmentItems FulfillmentItem[]
+  order            Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Product           @relation(fields: [productId], references: [id])
+>>>>>>> origin/dev
 
   @@index([orderId])
 }
@@ -548,6 +699,7 @@ model Invoice {
   invoiceNumber         String?
   date                  DateTime                  @default(now())
   dueDate               DateTime
+<<<<<<< HEAD
   amount                Decimal                   @db.Decimal(15, 2)
   subtotal              Decimal                   @default(0) @db.Decimal(15, 2)
   taxAmount             Decimal                   @default(0) @db.Decimal(15, 2)
@@ -575,6 +727,33 @@ model Invoice {
   payments              Payment[]
   billInstallments      BillInstallmentSchedule[] @relation("BillInstallments")
   sourceRentalUnits     RentalItemUnit[]          @relation("RentalUnitSourceBill")
+=======
+  amount                Decimal       @db.Decimal(15, 2)
+  subtotal              Decimal       @default(0) @db.Decimal(15, 2)
+  taxAmount             Decimal       @default(0) @db.Decimal(15, 2)
+  taxRate               Decimal       @default(0) @db.Decimal(5, 2)
+  balance               Decimal       @db.Decimal(15, 2)
+  supplierInvoiceNumber String?
+  paymentTermsString    String?
+  notes                 String?
+  version               Int           @default(1)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  relatedInvoiceId      String?
+  isDownPayment         Boolean       @default(false)
+  dpBillId              String?
+  fulfillmentId         String?
+  company               Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dpBill                Invoice?      @relation("DpBills", fields: [dpBillId], references: [id])
+  finalBills            Invoice[]     @relation("DpBills")
+  fulfillment           Fulfillment?  @relation("FulfillmentInvoices", fields: [fulfillmentId], references: [id])
+  order                 Order?        @relation(fields: [orderId], references: [id])
+  partner               Partner       @relation(fields: [partnerId], references: [id])
+  relatedInvoice        Invoice?      @relation("CreditNotes", fields: [relatedInvoiceId], references: [id])
+  creditNotes           Invoice[]     @relation("CreditNotes")
+  items                 InvoiceItem[]
+  payments              Payment[]
+>>>>>>> origin/dev
 
   @@index([companyId])
   @@index([companyId, type])
@@ -596,6 +775,7 @@ model InvoiceItem {
   @@index([productId])
 }
 
+<<<<<<< HEAD
 enum AttachmentEntityType {
   BILL
   INVOICE
@@ -653,6 +833,26 @@ model Payment {
   invoice          Invoice?                  @relation(fields: [invoiceId], references: [id])
   order            Order?                    @relation("OrderUpfrontPayments", fields: [orderId], references: [id])
   billInstallments BillInstallmentSchedule[] @relation("BillInstallmentPayment")
+=======
+model Payment {
+  id               String            @id @default(uuid())
+  companyId        String
+  invoiceId        String?
+  orderId          String?
+  paymentType      String            @default("INVOICE")
+  settledAt        DateTime?
+  settlementBillId String?
+  amount           Decimal           @db.Decimal(15, 2)
+  date             DateTime          @default(now())
+  method           PaymentMethodType
+  reference        String?
+  accountId        String?
+  version          Int               @default(1)
+  createdAt        DateTime          @default(now())
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice          Invoice?          @relation(fields: [invoiceId], references: [id])
+  order            Order?            @relation("OrderUpfrontPayments", fields: [orderId], references: [id])
+>>>>>>> origin/dev
 
   @@index([companyId])
   @@index([invoiceId])
@@ -660,6 +860,7 @@ model Payment {
   @@index([paymentType])
 }
 
+<<<<<<< HEAD
 enum BillInstallmentStatus {
   PENDING
   PAID
@@ -690,6 +891,8 @@ model BillInstallmentSchedule {
   @@index([paymentId])
 }
 
+=======
+>>>>>>> origin/dev
 model Account {
   id                   String                 @id @default(uuid())
   companyId            String
@@ -943,7 +1146,10 @@ model Fulfillment {
   items              FulfillmentItem[]
   inventoryMovements InventoryMovement[]
   invoices           Invoice[]           @relation("FulfillmentInvoices")
+<<<<<<< HEAD
   sourceRentalUnits  RentalItemUnit[]    @relation("RentalUnitSourceFulfillment")
+=======
+>>>>>>> origin/dev
 
   @@index([companyId])
   @@index([orderId])
@@ -1038,7 +1244,10 @@ model RentalItem {
   product              Product                 @relation(fields: [productId], references: [id])
   units                RentalItemUnit[]
   orderItems           RentalOrderItem[]
+<<<<<<< HEAD
   orderExtensionItems  RentalOrderExtensionItem[]
+=======
+>>>>>>> origin/dev
   bundleComponents     RentalBundleComponent[]
 
   @@index([companyId])
@@ -1051,7 +1260,12 @@ model RentalItem {
 model RentalBundle {
   id          String   @id @default(uuid())
   companyId   String
+<<<<<<< HEAD
   externalId  String? // External package/item ID (e.g., "package-single-standard")
+=======
+  integrationId String?
+  externalId  String? // santi-living package ID (e.g., "package-single-standard")
+>>>>>>> origin/dev
   name        String // "Single Standard (Paket)"
   shortName   String? // "Single Standard (Pkt)"
   description String? // "Kasur + Sprei + Bantal + Selimut"
@@ -1066,10 +1280,17 @@ model RentalBundle {
   updatedAt   DateTime @updatedAt
 
   company    Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
   // Components are REQUIRED - bundles must have at least one component (enforced in application)
   components RentalBundleComponent[]
   orderItems RentalOrderItem[]
   orderExtensionItems RentalOrderExtensionItem[]
+=======
+  integration Integration?           @relation(fields: [integrationId], references: [id])
+  // Components are REQUIRED - bundles must have at least one component (enforced in application)
+  components RentalBundleComponent[]
+  orderItems RentalOrderItem[]
+>>>>>>> origin/dev
 
   @@unique([companyId, externalId])
   @@index([companyId])
@@ -1097,6 +1318,7 @@ model RentalItemUnit {
   rentalItemId         String
   companyId            String
   unitCode             String
+<<<<<<< HEAD
   acquiredAt           DateTime?
   acquisitionCost      Decimal?                    @db.Decimal(15, 2)
   sourceOrderId        String?
@@ -1107,6 +1329,8 @@ model RentalItemUnit {
   sizeLabel            String?
   color                String?
   sourceNotes          String?                     @db.Text
+=======
+>>>>>>> origin/dev
   condition            UnitCondition
   status               UnitStatus                  @default(AVAILABLE)
   totalRentalDays      Int                         @default(0)
@@ -1122,26 +1346,36 @@ model RentalItemUnit {
   depositAllocations   RentalDepositAllocation[]
   company              Company                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   rentalItem           RentalItem                  @relation(fields: [rentalItemId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
   sourceOrder          Order?                      @relation("RentalUnitSourceOrder", fields: [sourceOrderId], references: [id], onDelete: SetNull)
   sourceOrderItem      OrderItem?                  @relation("RentalUnitSourceOrderItem", fields: [sourceOrderItemId], references: [id], onDelete: SetNull)
   sourceFulfillment    Fulfillment?                @relation("RentalUnitSourceFulfillment", fields: [sourceFulfillmentId], references: [id], onDelete: SetNull)
   sourceBill           Invoice?                    @relation("RentalUnitSourceBill", fields: [sourceBillId], references: [id], onDelete: SetNull)
+=======
+>>>>>>> origin/dev
   assignments          RentalOrderUnitAssignment[]
 
   @@unique([companyId, unitCode])
   @@index([companyId])
   @@index([rentalItemId, status])
   @@index([companyId, status])
+<<<<<<< HEAD
   @@index([sourceOrderId])
   @@index([sourceOrderItemId])
   @@index([sourceFulfillmentId])
   @@index([sourceBillId])
   @@index([companyId, sourceBatchCode])
+=======
+>>>>>>> origin/dev
 }
 
 model RentalOrder {
   id              String            @id @default(uuid())
   companyId       String
+<<<<<<< HEAD
+=======
+  integrationId   String?
+>>>>>>> origin/dev
   partnerId       String
   orderNumber     String
   rentalStartDate DateTime
@@ -1164,7 +1398,11 @@ model RentalOrder {
   // Public access token for customer tracking
   publicToken String? @unique @default(uuid())
 
+<<<<<<< HEAD
   // External storefront integration fields
+=======
+  // Santi Living Integration Fields
+>>>>>>> origin/dev
   deliveryFee     Decimal?    @db.Decimal(15, 2)
   deliveryAddress String?     @db.Text // Full combined address for display
   street          String? // Jalan/nama jalan
@@ -1193,6 +1431,10 @@ model RentalOrder {
   conditionLogs   ItemConditionLog[]
   deposit         RentalDeposit?
   company         Company                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
+=======
+  integration     Integration?                @relation(fields: [integrationId], references: [id])
+>>>>>>> origin/dev
   partner         Partner                     @relation(fields: [partnerId], references: [id])
   extensions      RentalOrderExtension[]
   items           RentalOrderItem[]
@@ -1217,8 +1459,11 @@ model RentalOrderExtension {
   newEndDate        DateTime
   additionalDays    Int
   additionalAmount  Decimal     @db.Decimal(15, 2)
+<<<<<<< HEAD
   deliveryFee       Decimal     @default(0) @db.Decimal(15, 2)
   deliveryFeeLabel  String?
+=======
+>>>>>>> origin/dev
   additionalDeposit Decimal     @default(0) @db.Decimal(15, 2)
   reason            String?
   isPaid            Boolean     @default(false)
@@ -1227,13 +1472,17 @@ model RentalOrderExtension {
   createdAt         DateTime    @default(now())
   createdBy         String
   company           Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
   items             RentalOrderExtensionItem[]
+=======
+>>>>>>> origin/dev
   rentalOrder       RentalOrder @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
 
   @@index([rentalOrderId])
   @@index([companyId])
 }
 
+<<<<<<< HEAD
 model RentalOrderExtensionItem {
   id                     String               @id @default(uuid())
   rentalOrderExtensionId String
@@ -1262,6 +1511,8 @@ model RentalOrderExtensionItem {
   @@index([rentalBundleId])
 }
 
+=======
+>>>>>>> origin/dev
 model RentalOrderItem {
   id             String        @id @default(uuid())
   rentalOrderId  String
@@ -1274,7 +1525,10 @@ model RentalOrderItem {
   rentalItem     RentalItem?   @relation(fields: [rentalItemId], references: [id])
   rentalBundle   RentalBundle? @relation(fields: [rentalBundleId], references: [id])
   rentalOrder    RentalOrder   @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
   extensions     RentalOrderExtensionItem[]
+=======
+>>>>>>> origin/dev
 
   @@index([rentalOrderId])
   @@index([rentalItemId])

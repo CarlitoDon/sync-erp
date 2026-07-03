@@ -21,7 +21,10 @@ import {
 } from '../hooks';
 import { PaymentStatusBadge, StatusBadge } from '@/components/ui';
 import { OrderItemsTable } from '@/components/ui';
+<<<<<<< HEAD
 import { AttachmentPanel } from '@/features/attachments/components/AttachmentPanel';
+=======
+>>>>>>> origin/dev
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -170,10 +173,13 @@ export default function PurchaseOrderDetail() {
               taxRate={Number(order.taxRate) || 0}
               status={order.status}
             />
+<<<<<<< HEAD
             <AttachmentPanel
               entityType="PURCHASE_ORDER"
               entityId={order.id}
             />
+=======
+>>>>>>> origin/dev
           </div>
         </div>
       </PageContainer>

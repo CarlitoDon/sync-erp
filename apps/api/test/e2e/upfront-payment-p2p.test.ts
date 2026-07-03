@@ -68,7 +68,11 @@ describe('Feature 036: Canonical P2P Cash Upfront Flow', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
+<<<<<<< HEAD
           type: acc.type as import("@sync-erp/database").AccountType,
+=======
+          type: acc.type as import('@sync-erp/database').AccountType,
+>>>>>>> origin/dev
           isActive: true,
         },
       });

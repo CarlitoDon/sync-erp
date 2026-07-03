@@ -9,7 +9,10 @@ import { InvoiceService } from '../../src/modules/accounting/services/invoice.se
 import { PaymentService } from '../../src/modules/accounting/services/payment.service';
 import { SalesOrderService } from '../../src/modules/sales/sales-order.service';
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/dev
 const invoiceService = new InvoiceService();
 const paymentService = new PaymentService();
 const salesOrderService = new SalesOrderService();
@@ -57,7 +60,11 @@ describe('O2C Flow: DP Deduction in Final Invoice', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
+<<<<<<< HEAD
           type: acc.type as import("@sync-erp/database").AccountType,
+=======
+          type: acc.type as import('@sync-erp/database').AccountType,
+>>>>>>> origin/dev
           isActive: true, // Phase 1: Accounts active by default
         },
       });

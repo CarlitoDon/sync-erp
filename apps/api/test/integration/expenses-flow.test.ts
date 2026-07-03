@@ -45,7 +45,11 @@ describe('Expenses Flow', () => {
           companyId,
           code: acc.code,
           name: acc.name,
+<<<<<<< HEAD
           type: acc.type as import("@sync-erp/database").AccountType,
+=======
+          type: acc.type as import('@sync-erp/database').AccountType,
+>>>>>>> origin/dev
           isActive: true,
         },
       });
@@ -74,7 +78,11 @@ describe('Expenses Flow', () => {
           companyId,
         },
       } as never,
+<<<<<<< HEAD
       res: {} as unknown as import("express").Response,
+=======
+      res: {} as unknown as import('express').Response,
+>>>>>>> origin/dev
     });
     ctx.session = {
       companyId,
@@ -83,7 +91,13 @@ describe('Expenses Flow', () => {
     };
     ctx.companyId = companyId;
 
+<<<<<<< HEAD
     caller = appRouter.createCaller(ctx as Parameters<typeof appRouter.createCaller>[0]);
+=======
+    caller = appRouter.createCaller(
+      ctx as Parameters<typeof appRouter.createCaller>[0]
+    );
+>>>>>>> origin/dev
   });
 
   afterAll(async () => {

@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+=======
+>>>>>>> origin/dev
 import {
   ArrowTopRightOnSquareIcon,
   BanknotesIcon,
@@ -17,6 +20,7 @@ import {
   formatBillingLimit,
   formatPlanPrice,
   getLimitUsagePercent,
+<<<<<<< HEAD
   isBillingPlanKey,
   isLimitExceeded,
 } from '@sync-erp/shared';
@@ -25,6 +29,10 @@ import {
   getBillingPlanIntent,
   setBillingPlanIntent,
 } from '@/features/billing/planIntent';
+=======
+  isLimitExceeded,
+} from '@sync-erp/shared';
+>>>>>>> origin/dev
 
 const usageMetricKeys: BillingUsageMetricKey[] = [
   'companies',
@@ -34,6 +42,7 @@ const usageMetricKeys: BillingUsageMetricKey[] = [
   'apiKeys',
 ];
 
+<<<<<<< HEAD
 const checkoutStatusCopy: Record<
   string,
   { title: string; body: string; tone: string }
@@ -60,6 +69,8 @@ const checkoutStatusCopy: Record<
   },
 };
 
+=======
+>>>>>>> origin/dev
 function formatDate(date: Date | string | null | undefined): string {
   if (!date) return '-';
 
@@ -81,6 +92,7 @@ function PlanCard({
   onSelectPlan: (planKey: BillingPlanKey) => void;
   isSubmitting: boolean;
 }) {
+<<<<<<< HEAD
   const hasSelfServeCheckout =
     plan.monthlyPriceIdr !== null && plan.monthlyPriceIdr > 0;
   const isSelectionDisabled =
@@ -96,6 +108,8 @@ function PlanCard({
     actionLabel = 'Opening checkout...';
   }
 
+=======
+>>>>>>> origin/dev
   return (
     <article
       className={`rounded-lg border bg-white p-5 shadow-sm ${
@@ -151,6 +165,7 @@ function PlanCard({
         </div>
       </div>
 
+<<<<<<< HEAD
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold">
         <span
           className={`rounded-md px-3 py-2 ${
@@ -172,6 +187,8 @@ function PlanCard({
         </span>
       </div>
 
+=======
+>>>>>>> origin/dev
       <ul className="mt-5 space-y-2 text-sm text-gray-600">
         {plan.features.slice(0, 4).map((feature) => (
           <li key={feature} className="flex gap-2">
@@ -183,24 +200,43 @@ function PlanCard({
 
       <button
         type="button"
+<<<<<<< HEAD
         disabled={isSelectionDisabled}
         onClick={() => onSelectPlan(plan.key)}
         className={`mt-5 inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
           isSelectionDisabled
+=======
+        disabled={isCurrent || isSubmitting}
+        onClick={() => onSelectPlan(plan.key)}
+        className={`mt-5 inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
+          isCurrent
+>>>>>>> origin/dev
             ? 'cursor-not-allowed bg-gray-100 text-gray-400'
             : 'bg-primary-600 text-white hover:bg-primary-700'
         }`}
       >
+<<<<<<< HEAD
         {actionLabel}
+=======
+        {isCurrent
+          ? 'Current plan'
+          : isSubmitting
+            ? 'Opening checkout...'
+            : `Choose ${plan.name}`}
+>>>>>>> origin/dev
       </button>
     </article>
   );
 }
 
 export default function BillingPage() {
+<<<<<<< HEAD
   const [searchParams] = useSearchParams();
   const { data, isLoading, refetch } =
     trpc.billing.getOverview.useQuery();
+=======
+  const { data, isLoading } = trpc.billing.getOverview.useQuery();
+>>>>>>> origin/dev
   const checkoutMutation =
     trpc.billing.createCheckoutSession.useMutation({
       onSuccess(result) {
@@ -211,6 +247,7 @@ export default function BillingPage() {
     });
   const currentPlan = data?.currentPlan;
   const usage = data?.usage;
+<<<<<<< HEAD
   const checkoutStatus = searchParams.get('checkout');
   const checkoutCopy = checkoutStatus
     ? checkoutStatusCopy[checkoutStatus]
@@ -238,6 +275,17 @@ export default function BillingPage() {
     checkoutMutation.mutate({
       planKey,
       billingCycle: 'MONTHLY',
+=======
+
+  const handlePlanSelect = (planKey: BillingPlanKey) => {
+    checkoutMutation.mutate({
+      planKey,
+      billingCycle: 'MONTHLY',
+      successUrl:
+        `${window.location.origin}/settings/billing?checkout=success`,
+      cancelUrl:
+        `${window.location.origin}/settings/billing?checkout=cancelled`,
+>>>>>>> origin/dev
     });
   };
 
@@ -265,7 +313,11 @@ export default function BillingPage() {
             Billing & Plan
           </h1>
           <p className="mt-1 text-gray-500">
+<<<<<<< HEAD
             Manage freemium plan, limits, and monthly usage for{' '}
+=======
+            Manage commercial plan, limits, and monthly usage for{' '}
+>>>>>>> origin/dev
             {data.company?.name ?? 'this company'}.
           </p>
         </div>
@@ -289,6 +341,7 @@ export default function BillingPage() {
         </div>
       </div>
 
+<<<<<<< HEAD
       {checkoutCopy && (
         <div
           className={`rounded-lg border p-4 text-sm ${checkoutCopy.tone}`}
@@ -324,6 +377,8 @@ export default function BillingPage() {
         </div>
       )}
 
+=======
+>>>>>>> origin/dev
       <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
         <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3">
@@ -369,6 +424,7 @@ export default function BillingPage() {
                 {formatPlanPrice(currentPlan)}
               </span>
             </div>
+<<<<<<< HEAD
             <div className="flex justify-between border-t border-gray-100 pt-3">
               <span className="text-gray-500">Ads</span>
               <span className="font-semibold text-gray-900">
@@ -383,6 +439,8 @@ export default function BillingPage() {
                   : 'Hidden'}
               </span>
             </div>
+=======
+>>>>>>> origin/dev
           </div>
 
           <div
@@ -464,7 +522,11 @@ export default function BillingPage() {
             Pricing is IDR, excludes tax, and can be billed monthly or annually.
           </p>
         </div>
+<<<<<<< HEAD
         <div className="grid gap-4 xl:grid-cols-5">
+=======
+        <div className="grid gap-4 xl:grid-cols-4">
+>>>>>>> origin/dev
           {(data.plans.length ? data.plans : BILLING_PLANS).map(
             (plan) => (
               <PlanCard

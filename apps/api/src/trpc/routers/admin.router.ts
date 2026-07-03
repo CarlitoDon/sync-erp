@@ -2,12 +2,19 @@ import { router, protectedProcedure } from '../trpc';
 import { container, ServiceKeys } from '../../modules/common/di';
 import { z } from 'zod';
 import {
+<<<<<<< HEAD
   RentalWebhookDeliveryType,
+=======
+>>>>>>> origin/dev
   RentalWebhookOutboxStatus,
   TenantWebhookOutboxStatus,
 } from '@sync-erp/database';
 import { AdminService } from '../../modules/admin/service';
+<<<<<<< HEAD
 import { rentalWebhookOutboxService } from '../../modules/rental/rental-webhook-outbox.service';
+=======
+import { webhookOutboxService } from '../../modules/rental/webhook-outbox.service';
+>>>>>>> origin/dev
 import { tenantWebhookOutboxService } from '../../services/tenant-webhook-outbox.service';
 
 const adminService = container.resolve<AdminService>(
@@ -59,10 +66,17 @@ export const adminRouter = router({
   getRentalWebhookOutboxStats: protectedProcedure
     .query(async ({ ctx }) => {
       const [counts, health] = await Promise.all([
+<<<<<<< HEAD
         rentalWebhookOutboxService.getQueueCounts(
           ctx.companyId!
         ),
         rentalWebhookOutboxService.getHealthSignal(
+=======
+        webhookOutboxService.getQueueCounts(
+          ctx.companyId!
+        ),
+        webhookOutboxService.getHealthSignal(
+>>>>>>> origin/dev
           ctx.companyId!
         ),
       ]);
@@ -82,15 +96,23 @@ export const adminRouter = router({
         statuses: z
           .array(z.nativeEnum(RentalWebhookOutboxStatus))
           .optional(),
+<<<<<<< HEAD
         deliveryType: z
           .nativeEnum(RentalWebhookDeliveryType)
           .optional(),
+=======
+        event: z.string().optional(),
+>>>>>>> origin/dev
         limit: z.number().int().min(1).max(200).default(20),
         offset: z.number().int().min(0).default(0),
       })
     )
     .query(async ({ ctx, input }) => {
+<<<<<<< HEAD
       return rentalWebhookOutboxService.listDeliveries({
+=======
+      return webhookOutboxService.listDeliveries({
+>>>>>>> origin/dev
         companyId: ctx.companyId!,
         statuses:
           input.statuses && input.statuses.length > 0
@@ -99,7 +121,11 @@ export const adminRouter = router({
                 RentalWebhookOutboxStatus.FAILED,
                 RentalWebhookOutboxStatus.DEAD_LETTER,
               ],
+<<<<<<< HEAD
         deliveryType: input.deliveryType,
+=======
+        event: input.event,
+>>>>>>> origin/dev
         limit: input.limit,
         offset: input.offset,
       });
@@ -111,7 +137,11 @@ export const adminRouter = router({
   getRentalWebhookOutboxDetail: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
+<<<<<<< HEAD
       return rentalWebhookOutboxService.getDeliveryDetail({
+=======
+      return webhookOutboxService.getDeliveryDetail({
+>>>>>>> origin/dev
         companyId: ctx.companyId!,
         id: input.id,
       });
@@ -124,7 +154,11 @@ export const adminRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const requeued =
+<<<<<<< HEAD
         await rentalWebhookOutboxService.requeueDelivery(input.id, {
+=======
+        await webhookOutboxService.requeueDelivery(input.id, {
+>>>>>>> origin/dev
           companyId: ctx.companyId!,
         });
 
@@ -146,7 +180,11 @@ export const adminRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const requeuedCount =
+<<<<<<< HEAD
         await rentalWebhookOutboxService.requeueDeliveries({
+=======
+        await webhookOutboxService.requeueDeliveries({
+>>>>>>> origin/dev
           companyId: ctx.companyId!,
           ids: input.ids,
           statuses: input.statuses,

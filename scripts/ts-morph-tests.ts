@@ -69,7 +69,11 @@ for (const sourceFile of sourceFiles) {
   
   // Custom manual replacements for remaining known any violations
   let text = sourceFile.getFullText();
+<<<<<<< HEAD
   const preTextLength = text.length;
+=======
+  let preTextLength = text.length;
+>>>>>>> origin/dev
   
   text = text.replace(/catch \(e: any\)/g, 'catch (e: unknown)');
   

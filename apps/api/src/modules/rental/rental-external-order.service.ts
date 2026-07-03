@@ -7,6 +7,7 @@ import {
   PartnerType,
 } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+<<<<<<< HEAD
 import { DocumentNumberService } from '../common/services/document-number.service';
 import { webhookService } from '../../services/webhook.service';
 import { Decimal } from 'decimal.js';
@@ -18,6 +19,28 @@ import type {
 } from './rental-integration.schemas';
 
 export interface CreatePublicOrderInput {
+=======
+import { Decimal } from 'decimal.js';
+import { DocumentNumberService } from '../common/services/document-number.service';
+import { container, ServiceKeys } from '../common/di';
+import type { RentalWebhookService } from './rental-webhook.service';
+
+// Lazy resolve webhook service
+const getWebhookService = (): RentalWebhookService | null => {
+  try {
+    return container.resolve<RentalWebhookService>(
+      ServiceKeys.RENTAL_WEBHOOK_SERVICE
+    );
+  } catch {
+    return null;
+  }
+};
+
+export interface CreatePublicOrderInput {
+  integrationId?: string;
+  createdBy?: string;
+  skuPrefix?: string;
+>>>>>>> origin/dev
   companyId: string;
   partnerId: string;
   rentalStartDate: Date;
@@ -28,9 +51,14 @@ export interface CreatePublicOrderInput {
     quantity: number;
     name?: string;
     pricePerDay?: number;
+<<<<<<< HEAD
     lineTotal?: number;
     category?: 'package' | 'mattress' | 'accessory';
     components?: string[];
+=======
+    category?: 'package' | 'mattress' | 'accessory';
+    components?: { quantity: number; label: string }[];
+>>>>>>> origin/dev
   }[];
   notes?: string;
   deliveryFee?: number;
@@ -46,6 +74,7 @@ export interface CreatePublicOrderInput {
   paymentMethod?: string;
   discountAmount?: number;
   discountLabel?: string;
+<<<<<<< HEAD
   externalId?: string;
   externalSource?: string;
   metadata?: Record<string, unknown>;
@@ -53,6 +82,12 @@ export interface CreatePublicOrderInput {
 }
 
 export interface UpdatePublicOrderInput {
+=======
+}
+
+export interface UpdatePublicOrderInput {
+  integrationId?: string;
+>>>>>>> origin/dev
   token: string;
   customerName?: string;
   customerPhone?: string;
@@ -78,9 +113,14 @@ export interface UpdatePublicOrderInput {
     quantity: number;
     name?: string;
     pricePerDay?: number;
+<<<<<<< HEAD
     lineTotal?: number;
     category?: 'package' | 'mattress' | 'accessory';
     components?: string[];
+=======
+    category?: 'package' | 'mattress' | 'accessory';
+    components?: { quantity: number; label: string }[];
+>>>>>>> origin/dev
   }[];
 }
 
@@ -91,8 +131,13 @@ type ResolvedOrderItem = {
   rentalBundleId?: string;
   quantity: number;
   unitPrice: Prisma.Decimal | number;
+<<<<<<< HEAD
   subtotal: Prisma.Decimal | number;
   pricingTier: 'DAILY' | 'CUSTOM';
+=======
+  subtotal: number;
+  pricingTier: 'DAILY';
+>>>>>>> origin/dev
 };
 
 type RateBearingRecord = {
@@ -104,6 +149,7 @@ export class RentalExternalOrderService {
   private readonly documentNumberService =
     new DocumentNumberService();
 
+<<<<<<< HEAD
   async findOrCreateCustomer(
     companyId: string,
     input: RentalIntegrationCustomerInput
@@ -168,6 +214,8 @@ export class RentalExternalOrderService {
     return partner;
   }
 
+=======
+>>>>>>> origin/dev
   async getByToken(token: string) {
     const order = await prisma.rentalOrder.findFirst({
       where: { publicToken: token },
@@ -221,6 +269,7 @@ export class RentalExternalOrderService {
     return order;
   }
 
+<<<<<<< HEAD
   async getById(companyId: string, id: string) {
     const order = await prisma.rentalOrder.findFirst({
       where: { id, companyId },
@@ -327,6 +376,8 @@ export class RentalExternalOrderService {
     return order;
   }
 
+=======
+>>>>>>> origin/dev
   async createOrder(input: CreatePublicOrderInput) {
     const durationDays = this.getDurationDays(
       input.rentalStartDate,
@@ -338,12 +389,21 @@ export class RentalExternalOrderService {
       items: input.items,
       durationDays,
       allowAutoCreate: true,
+<<<<<<< HEAD
     });
 
     const discountAmount = this.toMoney(input.discountAmount || 0);
     const deliveryFee = this.toMoney(input.deliveryFee || 0);
     const finalSubtotal = subtotal.minus(discountAmount);
     const totalAmount = finalSubtotal.plus(deliveryFee);
+=======
+      integrationId: input.integrationId,
+      skuPrefix: input.skuPrefix,
+    });
+
+    const finalSubtotal = subtotal - (input.discountAmount || 0);
+    const totalAmount = finalSubtotal + (input.deliveryFee || 0);
+>>>>>>> origin/dev
     const orderNumber = await this.documentNumberService.generate(
       input.companyId,
       'RNT'
@@ -363,10 +423,18 @@ export class RentalExternalOrderService {
         subtotal,
         depositAmount: 0,
         totalAmount,
+<<<<<<< HEAD
         policySnapshot: this.buildPolicySnapshot(input),
         notes: input.notes,
         createdBy: this.buildCreatedBy(input),
         deliveryFee,
+=======
+        policySnapshot: {},
+        notes: input.notes,
+        integrationId: input.integrationId,
+        createdBy: input.createdBy || 'API',
+        deliveryFee: input.deliveryFee,
+>>>>>>> origin/dev
         deliveryAddress: input.deliveryAddress,
         street: input.street,
         kelurahan: input.kelurahan,
@@ -377,7 +445,11 @@ export class RentalExternalOrderService {
         latitude: input.latitude,
         longitude: input.longitude,
         paymentMethod: input.paymentMethod,
+<<<<<<< HEAD
         discountAmount,
+=======
+        discountAmount: input.discountAmount,
+>>>>>>> origin/dev
         discountLabel: input.discountLabel,
         orderSource: OrderSource.WEBSITE,
         items: {
@@ -392,9 +464,62 @@ export class RentalExternalOrderService {
       },
     });
 
+<<<<<<< HEAD
     void this.notifyRentalEvent(input.companyId, 'rental.order.created', {
       order,
     });
+=======
+    const webhookService = getWebhookService();
+    if (webhookService && order.publicToken) {
+      try {
+        await webhookService.notifyNewOrder(
+          {
+            companyId: input.companyId,
+            token: order.publicToken,
+            orderNumber: order.orderNumber,
+            customerName: order.partner.name,
+            customerPhone: order.partner.phone || '',
+            totalAmount: Number(order.totalAmount),
+          },
+          { throwOnFailure: true }
+        );
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : 'Unknown validation error';
+        console.error(
+          '[PublicRental] New order webhook/validation failed. Rolling back order:',
+          errorMessage
+        );
+
+        try {
+          await prisma.rentalOrderItem.deleteMany({
+            where: { rentalOrderId: order.id },
+          });
+          await prisma.rentalOrder.deleteMany({
+            where: { id: order.id },
+          });
+        } catch (rollbackErr) {
+          console.warn(
+            '[PublicRental] Rollback failed unexpectedly:',
+            rollbackErr
+          );
+        }
+
+        const isBotUnreachable = errorMessage.includes('Bot memerlukan') || errorMessage.includes('scan QR') || errorMessage.includes('Bot is not ready');
+        const userFriendlyMessage = isBotUnreachable
+          ? 'Mohon maaf, sistem sedang tidak dapat memproses pesanan otomatis. Silakan hubungi admin via WhatsApp untuk melanjutkan.'
+          : (errorMessage || 'Gagal validasi pesanan (WhatsApp tidak valid)');
+
+        throw new DomainError(
+          userFriendlyMessage,
+          400,
+          DomainErrorCodes.INVALID_INPUT
+        );
+      }
+    }
+>>>>>>> origin/dev
 
     return order;
   }
@@ -405,11 +530,15 @@ export class RentalExternalOrderService {
   ) {
     const order = await prisma.rentalOrder.findFirst({
       where: { publicToken: input.token },
+<<<<<<< HEAD
       include: {
         partner: true,
         items: true,
         _count: { select: { extensions: true } },
       },
+=======
+      include: { partner: true, items: true },
+>>>>>>> origin/dev
     });
 
     if (!order) {
@@ -458,6 +587,7 @@ export class RentalExternalOrderService {
     const startDate = input.rentalStartDate || order.rentalStartDate;
     const endDate = input.rentalEndDate || order.rentalEndDate;
     const durationDays = this.getDurationDays(startDate, endDate);
+<<<<<<< HEAD
     if (
       order._count.extensions > 0 &&
       (input.items?.length ||
@@ -473,6 +603,11 @@ export class RentalExternalOrderService {
 
     let subtotal = new Decimal(order.subtotal);
     let totalAmount = new Decimal(order.totalAmount);
+=======
+
+    let subtotal = Number(order.subtotal);
+    let totalAmount = Number(order.totalAmount);
+>>>>>>> origin/dev
 
     if (input.items && input.items.length > 0) {
       const recalculated = await this.buildOrderItems({
@@ -480,6 +615,10 @@ export class RentalExternalOrderService {
         items: input.items,
         durationDays,
         allowAutoCreate: true,
+<<<<<<< HEAD
+=======
+        integrationId: input.integrationId,
+>>>>>>> origin/dev
       });
 
       subtotal = recalculated.subtotal;
@@ -504,6 +643,7 @@ export class RentalExternalOrderService {
         where: { rentalOrderId: order.id },
       });
 
+<<<<<<< HEAD
       subtotal = new Decimal(0);
       for (const item of existingItems) {
         const newSubtotal = this.toMoney(
@@ -512,6 +652,13 @@ export class RentalExternalOrderService {
             .times(item.quantity)
         );
         subtotal = subtotal.plus(newSubtotal);
+=======
+      subtotal = 0;
+      for (const item of existingItems) {
+        const newSubtotal =
+          Number(item.unitPrice) * durationDays * item.quantity;
+        subtotal += newSubtotal;
+>>>>>>> origin/dev
         await prisma.rentalOrderItem.update({
           where: { id: item.id },
           data: { subtotal: newSubtotal },
@@ -519,6 +666,7 @@ export class RentalExternalOrderService {
       }
     }
 
+<<<<<<< HEAD
     const discountAmount = this.toMoney(
       input.discountAmount ?? order.discountAmount ?? 0
     );
@@ -527,6 +675,14 @@ export class RentalExternalOrderService {
     );
     const finalSubtotal = subtotal.minus(discountAmount);
     totalAmount = finalSubtotal.plus(deliveryFee);
+=======
+    const discountAmount =
+      input.discountAmount ?? Number(order.discountAmount || 0);
+    const deliveryFee =
+      input.deliveryFee ?? Number(order.deliveryFee || 0);
+    const finalSubtotal = subtotal - discountAmount;
+    totalAmount = finalSubtotal + deliveryFee;
+>>>>>>> origin/dev
 
     const updated = await prisma.rentalOrder.update({
       where: { id: order.id },
@@ -542,6 +698,7 @@ export class RentalExternalOrderService {
       },
     });
 
+<<<<<<< HEAD
     void this.notifyRentalEvent(
       updated.companyId,
       'rental.order.updated',
@@ -814,6 +971,11 @@ export class RentalExternalOrderService {
     };
   }
 
+=======
+    return updated;
+  }
+
+>>>>>>> origin/dev
   async deleteOrder(id: string, expectedCompanyId?: string) {
     const order = await prisma.rentalOrder.findUnique({
       where: { id },
@@ -872,6 +1034,7 @@ export class RentalExternalOrderService {
     );
   }
 
+<<<<<<< HEAD
   private buildCreatedBy(input: CreatePublicOrderInput) {
     if (input.createdByApiKeyId) {
       return `api-key:${input.createdByApiKeyId}`;
@@ -939,6 +1102,8 @@ export class RentalExternalOrderService {
     }
   }
 
+=======
+>>>>>>> origin/dev
   private async updatePartnerFromInput(
     partnerId: string,
     input: UpdatePublicOrderInput
@@ -1061,8 +1226,13 @@ export class RentalExternalOrderService {
 
   private buildOrderUpdateData(
     input: UpdatePublicOrderInput,
+<<<<<<< HEAD
     subtotal: Prisma.Decimal | Decimal | number,
     totalAmount: Prisma.Decimal | Decimal | number,
+=======
+    subtotal: number,
+    totalAmount: number,
+>>>>>>> origin/dev
     partnerId?: string
   ) {
     const orderUpdate: Record<string, unknown> = {
@@ -1132,11 +1302,21 @@ export class RentalExternalOrderService {
     items: ExternalOrderItemInput[];
     durationDays: number;
     allowAutoCreate: boolean;
+<<<<<<< HEAD
   }): Promise<{
     subtotal: Decimal;
     orderItems: ResolvedOrderItem[];
   }> {
     let subtotal = new Decimal(0);
+=======
+    integrationId?: string;
+    skuPrefix?: string;
+  }): Promise<{
+    subtotal: number;
+    orderItems: ResolvedOrderItem[];
+  }> {
+    let subtotal = 0;
+>>>>>>> origin/dev
     const orderItems: ResolvedOrderItem[] = [];
 
     for (const item of params.items) {
@@ -1144,6 +1324,7 @@ export class RentalExternalOrderService {
         const bundle = await this.resolveBundle(
           params.companyId,
           item,
+<<<<<<< HEAD
           params.allowAutoCreate
         );
         const dailyRate = this.resolveInvoiceDailyRate(
@@ -1172,6 +1353,24 @@ export class RentalExternalOrderService {
             item.lineTotal !== undefined
               ? 'CUSTOM'
               : 'DAILY',
+=======
+          params.allowAutoCreate,
+          params.integrationId,
+          params.skuPrefix
+        );
+        const itemTotal =
+          Number(bundle.dailyRate) *
+          params.durationDays *
+          item.quantity;
+
+        subtotal += itemTotal;
+        orderItems.push({
+          rentalBundleId: bundle.id,
+          quantity: item.quantity,
+          unitPrice: bundle.dailyRate,
+          subtotal: itemTotal,
+          pricingTier: 'DAILY',
+>>>>>>> origin/dev
         });
         continue;
       }
@@ -1180,6 +1379,7 @@ export class RentalExternalOrderService {
         const rentalItem = await this.resolveRentalItem(
           params.companyId,
           item,
+<<<<<<< HEAD
           params.allowAutoCreate
         );
         const dailyRate = this.resolveInvoiceDailyRate(
@@ -1208,6 +1408,23 @@ export class RentalExternalOrderService {
             item.lineTotal !== undefined
               ? 'CUSTOM'
               : 'DAILY',
+=======
+          params.allowAutoCreate,
+          params.skuPrefix
+        );
+        const itemTotal =
+          Number(rentalItem.dailyRate) *
+          params.durationDays *
+          item.quantity;
+
+        subtotal += itemTotal;
+        orderItems.push({
+          rentalItemId: rentalItem.id,
+          quantity: item.quantity,
+          unitPrice: rentalItem.dailyRate,
+          subtotal: itemTotal,
+          pricingTier: 'DAILY',
+>>>>>>> origin/dev
         });
         continue;
       }
@@ -1222,6 +1439,7 @@ export class RentalExternalOrderService {
     return { subtotal, orderItems };
   }
 
+<<<<<<< HEAD
   private resolveInvoiceDailyRate(
     item: ExternalOrderItemInput,
     fallbackDailyRate: Prisma.Decimal
@@ -1283,6 +1501,14 @@ export class RentalExternalOrderService {
     companyId: string,
     item: ExternalOrderItemInput,
     allowAutoCreate: boolean
+=======
+  private async resolveBundle(
+    companyId: string,
+    item: ExternalOrderItemInput,
+    allowAutoCreate: boolean,
+    integrationId?: string,
+    skuPrefix?: string
+>>>>>>> origin/dev
   ): Promise<RateBearingRecord> {
     let bundle = await prisma.rentalBundle.findFirst({
       where: {
@@ -1304,7 +1530,11 @@ export class RentalExternalOrderService {
       item.name &&
       item.pricePerDay
     ) {
+<<<<<<< HEAD
       bundle = await this.createBundleWithComponents(companyId, item);
+=======
+      bundle = await this.createBundleWithComponents(companyId, item, integrationId, skuPrefix);
+>>>>>>> origin/dev
     }
 
     if (!bundle) {
@@ -1320,7 +1550,13 @@ export class RentalExternalOrderService {
 
   private async createBundleWithComponents(
     companyId: string,
+<<<<<<< HEAD
     item: ExternalOrderItemInput
+=======
+    item: ExternalOrderItemInput,
+    integrationId?: string,
+    skuPrefix?: string
+>>>>>>> origin/dev
   ): Promise<RateBearingRecord> {
     if (!item.rentalBundleId || !item.name || !item.pricePerDay) {
       throw new DomainError(
@@ -1338,6 +1574,10 @@ export class RentalExternalOrderService {
       const newBundle = await tx.rentalBundle.create({
         data: {
           companyId,
+<<<<<<< HEAD
+=======
+          integrationId,
+>>>>>>> origin/dev
           externalId: bundleExternalId,
           name: bundleName,
           dailyRate: bundlePricePerDay,
@@ -1352,11 +1592,20 @@ export class RentalExternalOrderService {
       });
 
       for (const component of item.components || []) {
+<<<<<<< HEAD
         const { quantity, label } = this.parseComponentLabel(component);
         const rentalItem = await this.findOrCreateComponentRentalItem(
           tx,
           companyId,
           label
+=======
+        const { quantity, label } = component;
+        const rentalItem = await this.findOrCreateComponentRentalItem(
+          tx,
+          companyId,
+          label,
+          skuPrefix
+>>>>>>> origin/dev
         );
 
         await tx.rentalBundleComponent.create({
@@ -1376,7 +1625,12 @@ export class RentalExternalOrderService {
   private async resolveRentalItem(
     companyId: string,
     item: ExternalOrderItemInput,
+<<<<<<< HEAD
     allowAutoCreate: boolean
+=======
+    allowAutoCreate: boolean,
+    skuPrefix?: string
+>>>>>>> origin/dev
   ): Promise<RateBearingRecord> {
     let rentalItem = await prisma.rentalItem.findFirst({
       where: {
@@ -1408,6 +1662,7 @@ export class RentalExternalOrderService {
     }
 
     if (!rentalItem && item.components?.[0]) {
+<<<<<<< HEAD
       const componentSku = this.toExternalSku(item.components[0]);
       const freshLookup = await prisma.rentalItem.findFirst({
         where: {
@@ -1423,6 +1678,13 @@ export class RentalExternalOrderService {
               },
             },
           ],
+=======
+      const componentSku = this.toExternalSku(item.components[0].label, skuPrefix);
+      const freshLookup = await prisma.rentalItem.findFirst({
+        where: {
+          companyId,
+          product: { sku: componentSku },
+>>>>>>> origin/dev
         },
         select: {
           id: true,
@@ -1432,6 +1694,28 @@ export class RentalExternalOrderService {
 
       if (freshLookup) {
         rentalItem = freshLookup;
+<<<<<<< HEAD
+=======
+
+        if (
+          item.pricePerDay &&
+          item.pricePerDay > Number(freshLookup.dailyRate)
+        ) {
+          await prisma.rentalItem.update({
+            where: { id: freshLookup.id },
+            data: {
+              dailyRate: item.pricePerDay,
+              weeklyRate: item.pricePerDay * 6,
+              monthlyRate: item.pricePerDay * 25,
+            },
+          });
+
+          rentalItem = {
+            ...freshLookup,
+            dailyRate: new Decimal(item.pricePerDay),
+          };
+        }
+>>>>>>> origin/dev
       }
     }
 
@@ -1441,7 +1725,11 @@ export class RentalExternalOrderService {
       item.name &&
       item.pricePerDay
     ) {
+<<<<<<< HEAD
       rentalItem = await this.findOrCreateRentalItem(companyId, item);
+=======
+      rentalItem = await this.findOrCreateRentalItem(companyId, item, skuPrefix);
+>>>>>>> origin/dev
     }
 
     if (!rentalItem) {
@@ -1457,7 +1745,12 @@ export class RentalExternalOrderService {
 
   private async findOrCreateRentalItem(
     companyId: string,
+<<<<<<< HEAD
     item: ExternalOrderItemInput
+=======
+    item: ExternalOrderItemInput,
+    skuPrefix?: string
+>>>>>>> origin/dev
   ): Promise<RateBearingRecord> {
     if (!item.rentalItemId || !item.name || !item.pricePerDay) {
       throw new DomainError(
@@ -1469,11 +1762,19 @@ export class RentalExternalOrderService {
 
     const componentName = item.components?.[0];
     const productName = componentName
+<<<<<<< HEAD
       ? this.capitalizeLabel(componentName)
       : item.name;
     const productSku = componentName
       ? this.toExternalSku(componentName)
       : this.toExternalSku(item.rentalItemId);
+=======
+      ? this.capitalizeLabel(componentName.label)
+      : item.name;
+    const productSku = componentName
+      ? this.toExternalSku(componentName.label, skuPrefix)
+      : this.toExternalSku(item.rentalItemId, skuPrefix);
+>>>>>>> origin/dev
 
     let product = await prisma.product.findFirst({
       where: {
@@ -1511,6 +1812,25 @@ export class RentalExternalOrderService {
     });
 
     if (existingRentalItem) {
+<<<<<<< HEAD
+=======
+      if (item.pricePerDay > Number(existingRentalItem.dailyRate)) {
+        await prisma.rentalItem.update({
+          where: { id: existingRentalItem.id },
+          data: {
+            dailyRate: item.pricePerDay,
+            weeklyRate: item.pricePerDay * 6,
+            monthlyRate: item.pricePerDay * 25,
+          },
+        });
+
+        return {
+          ...existingRentalItem,
+          dailyRate: new Decimal(item.pricePerDay),
+        };
+      }
+
+>>>>>>> origin/dev
       return existingRentalItem;
     }
 
@@ -1535,7 +1855,12 @@ export class RentalExternalOrderService {
   private async findOrCreateComponentRentalItem(
     tx: Prisma.TransactionClient,
     companyId: string,
+<<<<<<< HEAD
     label: string
+=======
+    label: string,
+    skuPrefix?: string
+>>>>>>> origin/dev
   ): Promise<{ id: string }> {
     const existing = await tx.rentalItem.findFirst({
       where: {
@@ -1559,7 +1884,11 @@ export class RentalExternalOrderService {
     const product = await tx.product.create({
       data: {
         companyId,
+<<<<<<< HEAD
         sku: this.toExternalSku(label),
+=======
+        sku: this.toExternalSku(label, skuPrefix),
+>>>>>>> origin/dev
         name: this.capitalizeLabel(label),
         price: 0,
       },
@@ -1585,6 +1914,7 @@ export class RentalExternalOrderService {
     });
   }
 
+<<<<<<< HEAD
   private parseComponentLabel(componentLabel: string) {
     const quantityMatch = componentLabel.match(/^(\d+)\s+(.+)$/);
 
@@ -1598,6 +1928,11 @@ export class RentalExternalOrderService {
 
   private toExternalSku(value: string) {
     return `EXT-${value.toLowerCase().replace(/\s+/g, '-')}`;
+=======
+  private toExternalSku(value: string, skuPrefix?: string) {
+    const formatted = value.toLowerCase().replace(/\s+/g, '-');
+    return skuPrefix ? `${skuPrefix}${formatted}` : formatted;
+>>>>>>> origin/dev
   }
 
   private normalizePhone(value: string) {

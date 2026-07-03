@@ -11,6 +11,11 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { RentalExternalOrderService } from '../../../modules/rental/rental-external-order.service';
 import { DomainError } from '@sync-erp/shared';
+<<<<<<< HEAD
+=======
+import { integrationRegistry } from '../../../integrations/registry';
+import { prisma } from '@sync-erp/database';
+>>>>>>> origin/dev
 
 const service = new RentalExternalOrderService();
 
@@ -44,7 +49,11 @@ export const publicRentalOrderRouter = router({
           notes: order.notes,
           createdAt: order.createdAt,
 
+<<<<<<< HEAD
           // External storefront address fields
+=======
+          // Santi Living address fields
+>>>>>>> origin/dev
           deliveryFee:
             order.deliveryFee === null ? null : Number(order.deliveryFee),
           deliveryAddress: order.deliveryAddress,
@@ -122,7 +131,11 @@ export const publicRentalOrderRouter = router({
   /**
    * Create rental order from external source
    * Creates order in DRAFT status, to be confirmed by admin
+<<<<<<< HEAD
    * Auto-creates bundles/items if not found for external integrations.
+=======
+   * Auto-creates bundles/items if not found (for santi-living integration)
+>>>>>>> origin/dev
    */
   createOrder: apiKeyProcedure
     .input(
@@ -137,10 +150,16 @@ export const publicRentalOrderRouter = router({
               rentalItemId: z.string().min(1).optional(),
               rentalBundleId: z.string().min(1).optional(),
               quantity: z.number().int().positive(),
+<<<<<<< HEAD
               // Metadata for auto-creation from external catalog payloads.
               name: z.string().optional(),
               pricePerDay: z.number().positive().optional(),
               lineTotal: z.number().positive().optional(),
+=======
+              // Metadata for auto-creation (from santi-living)
+              name: z.string().optional(),
+              pricePerDay: z.number().positive().optional(),
+>>>>>>> origin/dev
               category: z
                 .enum(['package', 'mattress', 'accessory'])
                 .optional(),
@@ -157,7 +176,11 @@ export const publicRentalOrderRouter = router({
         ),
         notes: z.string().optional(),
 
+<<<<<<< HEAD
         // External storefront integration fields
+=======
+        // Santi Living integration fields
+>>>>>>> origin/dev
         deliveryFee: z.number().nonnegative().optional(),
         deliveryAddress: z.string().optional(),
         street: z.string().optional(),
@@ -182,10 +205,35 @@ export const publicRentalOrderRouter = router({
           });
         }
 
+<<<<<<< HEAD
         const order = await service.createOrder({
           ...input,
           companyId: ctx.companyId,
         });
+=======
+        let finalInput: any = { ...input, companyId: ctx.companyId, integrationId: ctx.integrationId };
+
+        if (ctx.integrationId) {
+           const integration = await prisma.integration.findUnique({ where: { id: ctx.integrationId } });
+           if (integration) {
+             const plugin = integrationRegistry.get(integration.appId);
+             const adapter = plugin?.getOrderAdapter?.();
+             if (adapter) {
+               finalInput.createdBy = adapter.createdBy;
+               finalInput.skuPrefix = adapter.skuPrefix;
+               
+               if (adapter.parseComponents) {
+                 finalInput.items = finalInput.items.map((item: any) => ({
+                   ...item,
+                   components: item.components ? adapter.parseComponents!(item.components) : undefined
+                 }));
+               }
+             }
+           }
+        }
+
+        const order = await service.createOrder(finalInput);
+>>>>>>> origin/dev
 
         return {
           id: order.id,
@@ -209,7 +257,11 @@ export const publicRentalOrderRouter = router({
 
   /**
    * Update order by public token
+<<<<<<< HEAD
    * Used by external storefront edit-order flows.
+=======
+   * Used by santi-living "Edit Pesanan" flow to update customer info, items, dates, etc.
+>>>>>>> origin/dev
    * Only DRAFT orders with PENDING payment can be updated.
    */
   updateOrder: apiKeyProcedure
@@ -246,7 +298,10 @@ export const publicRentalOrderRouter = router({
               quantity: z.number().int().positive(),
               name: z.string().optional(),
               pricePerDay: z.number().positive().optional(),
+<<<<<<< HEAD
               lineTotal: z.number().positive().optional(),
+=======
+>>>>>>> origin/dev
               category: z
                 .enum(['package', 'mattress', 'accessory'])
                 .optional(),
@@ -258,8 +313,29 @@ export const publicRentalOrderRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
+<<<<<<< HEAD
         const updated = await service.updateOrder(
           input,
+=======
+        let finalInput: any = { ...input, integrationId: ctx.integrationId };
+
+        if (ctx.integrationId && input.items) {
+           const integration = await prisma.integration.findUnique({ where: { id: ctx.integrationId } });
+           if (integration) {
+             const plugin = integrationRegistry.get(integration.appId);
+             const adapter = plugin?.getOrderAdapter?.();
+             if (adapter && adapter.parseComponents) {
+               finalInput.items = finalInput.items.map((item: any) => ({
+                 ...item,
+                 components: item.components ? adapter.parseComponents!(item.components) : undefined
+               }));
+             }
+           }
+        }
+
+        const updated = await service.updateOrder(
+          finalInput,
+>>>>>>> origin/dev
           ctx.companyId
         );
 
@@ -285,7 +361,11 @@ export const publicRentalOrderRouter = router({
 
   /**
    * Delete order by ID (Internal/Rollback Use)
+<<<<<<< HEAD
    * Deprecated compatibility delete for older integration rollback flows.
+=======
+   * Used by santi-living to rollback invalid orders
+>>>>>>> origin/dev
    */
   deleteOrder: apiKeyProcedure
     .input(z.object({ id: z.string().uuid() }))

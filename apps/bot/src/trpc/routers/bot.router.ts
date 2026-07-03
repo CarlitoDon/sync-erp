@@ -10,6 +10,7 @@ import {
 import { TRPCError } from '@trpc/server';
 
 export const botRouter = router({
+<<<<<<< HEAD
   verifyPhone: protectedProcedure
     .input(
       z.object({
@@ -70,6 +71,8 @@ export const botRouter = router({
       };
     }),
 
+=======
+>>>>>>> origin/dev
   /**
    * Send Order Confirmation (Full Details)
    */

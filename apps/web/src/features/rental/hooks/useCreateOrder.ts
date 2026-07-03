@@ -10,7 +10,10 @@ interface OrderItem {
   rentalItemId?: string;
   rentalBundleId?: string;
   quantity: number;
+<<<<<<< HEAD
   pricePerDay?: number;
+=======
+>>>>>>> origin/dev
 }
 
 export type { OrderItem };
@@ -53,10 +56,13 @@ export function useCreateOrder({
     rentalEndDate: '',
     dueDateTime: '',
     notes: '',
+<<<<<<< HEAD
     deliveryFee: '',
     discountAmount: '',
     deliveryAddress: '',
     paymentMethod: '',
+=======
+>>>>>>> origin/dev
     items: [] as OrderItem[],
   });
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
@@ -96,10 +102,13 @@ export function useCreateOrder({
       rentalEndDate: '',
       dueDateTime: '',
       notes: '',
+<<<<<<< HEAD
       deliveryFee: '',
       discountAmount: '',
       deliveryAddress: '',
       paymentMethod: '',
+=======
+>>>>>>> origin/dev
       items: [],
     });
   }, []);
@@ -123,7 +132,11 @@ export function useCreateOrder({
     (
       idx: number,
       field: keyof OrderItem,
+<<<<<<< HEAD
       value: string | number | undefined | 'item' | 'bundle'
+=======
+      value: string | number | 'item' | 'bundle'
+>>>>>>> origin/dev
     ) => {
       setOrderForm((prev) => {
         const newItems = [...prev.items];
@@ -196,6 +209,7 @@ export function useCreateOrder({
             ).toISOString(),
             dueDateTime: dueDateTime.toISOString(),
             notes: orderForm.notes || undefined,
+<<<<<<< HEAD
             deliveryFee: orderForm.deliveryFee
               ? Number(orderForm.deliveryFee)
               : undefined,
@@ -204,6 +218,8 @@ export function useCreateOrder({
               : undefined,
             deliveryAddress: orderForm.deliveryAddress || undefined,
             paymentMethod: orderForm.paymentMethod || undefined,
+=======
+>>>>>>> origin/dev
             items: orderForm.items
               .filter(
                 (i) =>
@@ -216,7 +232,10 @@ export function useCreateOrder({
                 rentalBundleId:
                   i.type === 'bundle' ? i.rentalBundleId : undefined,
                 quantity: i.quantity,
+<<<<<<< HEAD
                 pricePerDay: i.pricePerDay || undefined,
+=======
+>>>>>>> origin/dev
               })),
           }),
         'Order berhasil dibuat'

@@ -7,11 +7,15 @@ import {
 } from '@sync-erp/database';
 import { RegisterPayload, LoginPayload } from '@sync-erp/shared';
 import { AuthRepository } from './auth.repository';
+<<<<<<< HEAD
 import {
   PublicUser,
   toPublicUser,
   UserService,
 } from '../user/user.service';
+=======
+import { UserService } from '../user/user.service';
+>>>>>>> origin/dev
 import { EmailService } from '../common/services/email.service';
 import {
   AuthAuditService,
@@ -186,7 +190,11 @@ export class AuthService {
 
       return {
         success: true,
+<<<<<<< HEAD
         user: toPublicUser(user),
+=======
+        user,
+>>>>>>> origin/dev
         verificationRequired: true,
         verificationSentTo: verification.verificationSentTo,
         verificationUrl: verification.verificationUrl,
@@ -306,6 +314,222 @@ export class AuthService {
       verificationRequired: true,
       verificationSentTo: email,
     };
+<<<<<<< HEAD
+=======
+  }
+
+  async verifyEmail(
+    rawToken: string,
+    context?: AuthAuditContext
+  ): Promise<AuthResult> {
+    const tokenHash = hashEmailVerificationToken(rawToken);
+    const verificationToken =
+      await this.repository.getActiveEmailVerificationToken(tokenHash);
+
+    if (!verificationToken) {
+      return {
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message:
+            'Verification link is invalid or has expired. Please request a new one.',
+        },
+      };
+    }
+
+    const user = verificationToken.user.emailVerifiedAt
+      ? verificationToken.user
+      : await this.userService.markEmailVerified(
+          verificationToken.userId
+        );
+
+    await this.repository.markEmailVerificationTokenConsumed(
+      verificationToken.id
+    );
+    await this.repository.deleteOtherEmailVerificationTokens(
+      user.id,
+      verificationToken.id
+    );
+    await this.authAuditService.record({
+      userId: user.id,
+      email: user.email,
+      action: AuthAuditAction.EMAIL_VERIFIED,
+      context,
+    });
+
+    const session = await this.repository.createSession(user.id);
+
+    return {
+      success: true,
+      user,
+      session,
+    };
+  }
+
+  async authenticateWithGoogle(
+    profile: GoogleOAuthProfile,
+    context?: AuthAuditContext
+  ): Promise<AuthResult> {
+    const email = profile.email.trim().toLowerCase();
+    const name =
+      profile.name.trim().replace(/\s+/g, ' ') || email;
+
+    if (!profile.emailVerified) {
+      await this.authAuditService.record({
+        email,
+        action: AuthAuditAction.GOOGLE_OAUTH_FAILED,
+        metadata: {
+          provider: 'GOOGLE',
+          reason: 'google_email_not_verified',
+        },
+        context,
+      });
+      return {
+        success: false,
+        error: {
+          code: 'PRECONDITION_FAILED',
+          message: 'Your Google account email is not verified.',
+        },
+      };
+    }
+
+    try {
+      const linkedAccount = await this.repository.findOAuthAccount(
+        OAuthProvider.GOOGLE,
+        profile.subject
+      );
+
+      let user = linkedAccount?.user;
+      let linkedExistingAccount = false;
+      let createdUser = false;
+
+      if (!user) {
+        const existingUser = await this.userService.getByEmail(email);
+
+        if (existingUser) {
+          const existingGoogleLink =
+            await this.repository.findOAuthAccountByUser(
+              OAuthProvider.GOOGLE,
+              existingUser.id
+            );
+
+          if (
+            existingGoogleLink &&
+            existingGoogleLink.providerAccountId !== profile.subject
+          ) {
+            await this.authAuditService.record({
+              userId: existingUser.id,
+              email,
+              action: AuthAuditAction.GOOGLE_OAUTH_FAILED,
+              metadata: {
+                provider: 'GOOGLE',
+                reason: 'google_account_link_conflict',
+              },
+              context,
+            });
+            return {
+              success: false,
+              error: {
+                code: 'CONFLICT',
+                message:
+                  'This email is already linked to a different Google account.',
+              },
+            };
+          }
+
+          user = existingUser.emailVerifiedAt
+            ? existingUser
+            : await this.userService.markEmailVerified(existingUser.id);
+
+          if (!existingGoogleLink) {
+            await this.repository.createOAuthAccount(
+              user.id,
+              OAuthProvider.GOOGLE,
+              profile.subject,
+              email
+            );
+            linkedExistingAccount = true;
+          }
+        } else {
+          user = await this.userService.create({
+            email,
+            name,
+            passwordHash:
+              await this.createOAuthPlaceholderPasswordHash(),
+            emailVerifiedAt: new Date(),
+          });
+          await this.repository.createOAuthAccount(
+            user.id,
+            OAuthProvider.GOOGLE,
+            profile.subject,
+            email
+          );
+          createdUser = true;
+        }
+      } else if (!user.emailVerifiedAt) {
+        user = await this.userService.markEmailVerified(user.id);
+      }
+
+      if (linkedExistingAccount || createdUser) {
+        await this.authAuditService.record({
+          userId: user.id,
+          email: user.email,
+          action: AuthAuditAction.GOOGLE_OAUTH_LINKED,
+          metadata: {
+            provider: 'GOOGLE',
+            linkedExistingAccount,
+            createdUser,
+          },
+          context,
+        });
+      }
+
+      const session = await this.repository.createSession(user.id);
+
+      await this.authAuditService.record({
+        userId: user.id,
+        email: user.email,
+        action: AuthAuditAction.GOOGLE_OAUTH_SUCCEEDED,
+        metadata: {
+          provider: 'GOOGLE',
+          linkedExistingAccount,
+          createdUser,
+        },
+        context,
+      });
+
+      return {
+        success: true,
+        user,
+        session,
+      };
+    } catch (error) {
+      await this.authAuditService.record({
+        email,
+        action: AuthAuditAction.GOOGLE_OAUTH_FAILED,
+        metadata: {
+          provider: 'GOOGLE',
+          reason:
+            error instanceof Error
+              ? error.message
+              : 'unknown error',
+        },
+        context,
+      });
+      return {
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message:
+            'We could not complete Google sign-in. Please try again.',
+        },
+      };
+    }
+  }
+
+  async getSession(sessionId: string) {
+    return this.repository.getSession(sessionId);
+>>>>>>> origin/dev
   }
 
   async verifyEmail(

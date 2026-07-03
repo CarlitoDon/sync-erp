@@ -1,6 +1,10 @@
 import { prisma } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { Prisma } from '@sync-erp/database';
+<<<<<<< HEAD
+=======
+import { integrationRegistry } from '../integrations/registry';
+>>>>>>> origin/dev
 
 type IntegrationWithApiKeys = {
   id: string;
@@ -17,6 +21,7 @@ type IntegrationWithApiKeys = {
   }>;
 };
 
+<<<<<<< HEAD
 export interface IntegrationApp {
   appId: string;
   name: string;
@@ -53,6 +58,8 @@ export const AVAILABLE_INTEGRATIONS: IntegrationApp[] = [
   },
 ];
 
+=======
+>>>>>>> origin/dev
 export class IntegrationService {
   private static instance: IntegrationService;
 
@@ -78,6 +85,11 @@ export class IntegrationService {
       },
     })) as IntegrationWithApiKeys[];
 
+<<<<<<< HEAD
+=======
+    const AVAILABLE_INTEGRATIONS = integrationRegistry.list().map(p => p.manifest);
+
+>>>>>>> origin/dev
     return AVAILABLE_INTEGRATIONS.map((app) => {
       const existing = installed.find(
         (i: IntegrationWithApiKeys) => i.appId === app.appId
@@ -118,16 +130,25 @@ export class IntegrationService {
    * Install an integration (Create record + Initial API Key)
    */
   async install(companyId: string, appId: string) {
+<<<<<<< HEAD
     const appDef = AVAILABLE_INTEGRATIONS.find(
       (a) => a.appId === appId
     );
     if (!appDef) {
+=======
+    const plugin = integrationRegistry.get(appId);
+    if (!plugin) {
+>>>>>>> origin/dev
       throw new DomainError(
         `App ${appId} not found in marketplace`,
         404,
         DomainErrorCodes.NOT_FOUND
       );
     }
+<<<<<<< HEAD
+=======
+    const appDef = plugin.manifest;
+>>>>>>> origin/dev
 
     // Check if already installed
     const existing = await prisma.integration.findUnique({

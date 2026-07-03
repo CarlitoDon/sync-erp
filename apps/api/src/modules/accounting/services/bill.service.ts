@@ -22,10 +22,13 @@ import {
 } from '@sync-erp/shared';
 import { JournalService } from './journal.service';
 import { normalizeTaxRate } from '../../common/utils/finance.utils';
+<<<<<<< HEAD
 import {
   BillInstallmentService,
   EMPTY_BILL_INSTALLMENT_SUMMARY,
 } from './bill-installment.service';
+=======
+>>>>>>> origin/dev
 
 export interface CreateBillInput {
   orderId: string;
@@ -54,8 +57,12 @@ export class BillService {
     private readonly inventoryRepository: InventoryRepository = new InventoryRepository(),
     private readonly purchaseOrderRepository: PurchaseOrderRepository = new PurchaseOrderRepository(),
     private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
+<<<<<<< HEAD
     private readonly journalService: JournalService = new JournalService(),
     private readonly billInstallmentService: BillInstallmentService = new BillInstallmentService()
+=======
+    private readonly journalService: JournalService = new JournalService()
+>>>>>>> origin/dev
   ) {}
 
   async createFromPurchaseOrder(
@@ -157,8 +164,11 @@ export class BillService {
       }
     }
 
+<<<<<<< HEAD
     const documentDate = data.businessDate || new Date();
 
+=======
+>>>>>>> origin/dev
     // Always auto-generate internal Bill number
     const invoiceNumber = await this.documentNumberService.generate(
       companyId,
@@ -213,6 +223,51 @@ export class BillService {
     const taxMultiplier = normalizeTaxRate(taxRate);
     const taxAmount = subtotal * taxMultiplier;
     let amount = subtotal + taxAmount;
+<<<<<<< HEAD
+=======
+
+    // Deduct DP amount if DP Bill was paid
+    const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
+    let dpDeductedNow = 0;
+    let dpBillId: string | undefined;
+
+    if (dpAmount > 0) {
+      // Find the PAID DP Bill
+      const dpBill = await this.repository.findFirst({
+        orderId: data.orderId,
+        companyId,
+        type: InvoiceType.BILL,
+        status: InvoiceStatus.PAID,
+        isDownPayment: true,
+      });
+
+      if (dpBill) {
+        dpBillId = dpBill.id;
+        const alreadyDeducted =
+          await this.repository.sumDeductedDpByOrderId(
+            data.orderId,
+            companyId,
+            InvoiceType.BILL
+          );
+        const remainingDp = dpAmount - alreadyDeducted;
+
+        if (remainingDp > 0) {
+          // Calculate proportional DP allocation for this bill
+          // Formula: (billGross / poTotal) × dpAmount
+          const poTotal = Number(order.totalAmount) || 1; // Guard div by zero
+          const proportionalDp = (amount / poTotal) * dpAmount;
+
+          // Cap by remaining DP (in case previous bills already used some)
+          dpDeductedNow = Math.min(
+            proportionalDp,
+            remainingDp,
+            amount
+          );
+          amount = amount - dpDeductedNow;
+        }
+      }
+    }
+>>>>>>> origin/dev
 
     // Deduct DP amount if DP Bill was paid
     const dpAmount = order.dpAmount ? Number(order.dpAmount) : 0;
@@ -264,7 +319,10 @@ export class BillService {
       type: InvoiceType.BILL,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
+<<<<<<< HEAD
       date: documentDate,
+=======
+>>>>>>> origin/dev
       dpBillId, // Feature: Link to DP Bill
       supplierInvoiceNumber: data.supplierInvoiceNumber,
       notes:
@@ -279,7 +337,11 @@ export class BillService {
       dueDate:
         data.dueDate ||
         calculateDueDate(
+<<<<<<< HEAD
           documentDate,
+=======
+          new Date(),
+>>>>>>> origin/dev
           order.paymentTerms || PaymentTerms.NET30
         ),
       paymentTermsString:
@@ -480,6 +542,79 @@ export class BillService {
       installmentSummary:
         summaries.get(bill.id) ?? EMPTY_BILL_INSTALLMENT_SUMMARY,
     }));
+  }
+
+  /**
+   * Create a Debit Note for Bill reversal (P2P returns/credits).
+   * Issued by buyer to claim credit from supplier.
+   * Similar to InvoiceService.createCreditNote but for AP (buyer's perspective).
+   */
+  async createDebitNote(
+    companyId: string,
+    originalBillId: string,
+    _reason?: string
+  ): Promise<Invoice> {
+    const original = await this.repository.findById(
+      originalBillId,
+      companyId,
+      InvoiceType.BILL
+    );
+
+    if (!original) {
+      throw new DomainError(
+        'Original bill not found',
+        404,
+        DomainErrorCodes.BILL_NOT_FOUND
+      );
+    }
+
+    // Check status is reversible
+    if (
+      original.status !== InvoiceStatus.POSTED &&
+      original.status !== InvoiceStatus.PAID
+    ) {
+      throw new DomainError(
+        `Cannot reverse bill with status ${original.status}. Only POSTED or PAID bills can be credited.`,
+        422,
+        DomainErrorCodes.BILL_INVALID_STATE
+      );
+    }
+
+    // Generate Debit Note Number
+    const dnNumber = await this.documentNumberService.generate(
+      companyId,
+      'DN'
+    );
+
+    // Create Debit Note (using DEBIT_NOTE type - buyer's perspective)
+    const debitNote = await this.repository.create({
+      companyId,
+      partnerId: original.partnerId,
+      type: InvoiceType.DEBIT_NOTE,
+      status: InvoiceStatus.POSTED, // Auto-post for reversal
+      invoiceNumber: dnNumber,
+      relatedInvoiceId: original.id,
+      orderId: original.orderId,
+      amount: original.amount,
+      subtotal: original.subtotal,
+      taxAmount: original.taxAmount,
+      taxRate: original.taxRate,
+      balance: 0,
+      dueDate: new Date(),
+      notes: `Debit Note for Bill ${original.invoiceNumber || originalBillId}`,
+    });
+
+    // Post journal to reverse AP: Dr AP (2100), Cr Purchase Returns (5200) / Accrual (2105)
+    await this.journalService.postDebitNote(
+      companyId,
+      debitNote.id,
+      dnNumber,
+      Number(debitNote.amount),
+      Number(debitNote.subtotal),
+      Number(debitNote.taxAmount)
+    );
+
+    return debitNote;
   }
 
   /**

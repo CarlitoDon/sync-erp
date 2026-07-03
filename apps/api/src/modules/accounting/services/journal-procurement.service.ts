@@ -2,9 +2,13 @@ import {
   JournalSourceType,
   PaymentMethodType,
   Prisma,
+<<<<<<< HEAD
   prisma,
 } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+=======
+} from '@sync-erp/database';
+>>>>>>> origin/dev
 import { JournalCoreService } from './journal-core.service';
 
 export class JournalProcurementService {
@@ -75,6 +79,7 @@ export class JournalProcurementService {
     companyId: string,
     reference: string,
     amount: number,
+<<<<<<< HEAD
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
@@ -83,6 +88,11 @@ export class JournalProcurementService {
       amount,
       businessDate
     );
+=======
+    tx?: Prisma.TransactionClient
+  ) {
+    const data = this.prepareGoodsReceiptJournal(reference, amount);
+>>>>>>> origin/dev
     return this.core.resolveAndCreate(companyId, data, tx);
   }
 
@@ -116,6 +126,7 @@ export class JournalProcurementService {
     amount: number,
     method: string,
     contraAccountCode?: string,
+<<<<<<< HEAD
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
@@ -126,13 +137,21 @@ export class JournalProcurementService {
         method,
         tx
       ));
+=======
+    tx?: Prisma.TransactionClient
+  ) {
+>>>>>>> origin/dev
     const data = this.preparePaymentMadeJournal(
       paymentId,
       billNumber,
       amount,
       method,
+<<<<<<< HEAD
       resolvedContraAccountCode,
       businessDate
+=======
+      contraAccountCode
+>>>>>>> origin/dev
     );
     return this.core.resolveAndCreate(companyId, data, tx);
   }
@@ -146,6 +165,7 @@ export class JournalProcurementService {
     contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
+<<<<<<< HEAD
     const resolvedContraAccountCode =
       contraAccountCode ??
       (await this.resolvePaymentContraAccountCode(
@@ -153,11 +173,18 @@ export class JournalProcurementService {
         method,
         tx
       ));
+=======
+>>>>>>> origin/dev
     const data = this.preparePaymentMadeReversalJournal(
       paymentId,
       billNumber,
       amount,
+<<<<<<< HEAD
       resolvedContraAccountCode
+=======
+      method,
+      contraAccountCode
+>>>>>>> origin/dev
     );
     return this.core.resolveAndCreate(companyId, data, tx);
   }
@@ -171,18 +198,24 @@ export class JournalProcurementService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
+<<<<<<< HEAD
     const contraAccountCode =
       await this.resolvePaymentContraAccountCode(
         companyId,
         method,
         tx
       );
+=======
+>>>>>>> origin/dev
     const data = this.prepareUpfrontPaymentJournal(
       paymentId,
       orderNumber,
       amount,
       method,
+<<<<<<< HEAD
       contraAccountCode,
+=======
+>>>>>>> origin/dev
       businessDate
     );
     return this.core.resolveAndCreate(companyId, data, tx);
@@ -320,8 +353,12 @@ export class JournalProcurementService {
 
   private prepareGoodsReceiptJournal(
     reference: string,
+<<<<<<< HEAD
     amount: number,
     businessDate?: Date
+=======
+    amount: number
+>>>>>>> origin/dev
   ) {
     return {
       reference,
@@ -330,7 +367,10 @@ export class JournalProcurementService {
         { accountCode: '1400', debit: amount }, // Asset
         { accountCode: '2105', credit: amount }, // Liability Suspense
       ],
+<<<<<<< HEAD
       date: businessDate,
+=======
+>>>>>>> origin/dev
     };
   }
 
@@ -367,9 +407,17 @@ export class JournalProcurementService {
     billNumber: string,
     amount: number,
     method: string,
+<<<<<<< HEAD
     contraAccountCode: string,
     businessDate?: Date
   ) {
+=======
+    contraAccountCode?: string
+  ) {
+    const cashAccount =
+      contraAccountCode ||
+      (method === PaymentMethodType.BANK ? '1200' : '1100');
+>>>>>>> origin/dev
     return {
       reference: `Payment made: ${billNumber}`,
       memo: `Payment via ${method}`,
@@ -377,9 +425,14 @@ export class JournalProcurementService {
       sourceId: paymentId,
       lines: [
         { accountCode: '2100', debit: amount },
+<<<<<<< HEAD
         { accountCode: contraAccountCode, credit: amount },
       ],
       date: businessDate,
+=======
+        { accountCode: cashAccount, credit: amount },
+      ],
+>>>>>>> origin/dev
     };
   }
 
@@ -387,15 +440,28 @@ export class JournalProcurementService {
     paymentId: string,
     billNumber: string,
     amount: number,
+<<<<<<< HEAD
     contraAccountCode: string
   ) {
+=======
+    method: string,
+    contraAccountCode?: string
+  ) {
+    const cashAccount =
+      contraAccountCode ||
+      (method === PaymentMethodType.BANK ? '1200' : '1100');
+>>>>>>> origin/dev
     return {
       reference: `Bill Payment Reversal: ${billNumber}`,
       memo: `Reversal of voided payment`,
       sourceType: JournalSourceType.PAYMENT,
       sourceId: `${paymentId}:reversal`, // Unique ID for reversal
       lines: [
+<<<<<<< HEAD
         { accountCode: contraAccountCode, debit: amount }, // Restore Cash
+=======
+        { accountCode: cashAccount, debit: amount }, // Restore Cash
+>>>>>>> origin/dev
         { accountCode: '2100', credit: amount }, // Restore AP
       ],
     };
@@ -406,9 +472,16 @@ export class JournalProcurementService {
     orderNumber: string,
     amount: number,
     method: string,
+<<<<<<< HEAD
     contraAccountCode: string,
     businessDate?: Date
   ) {
+=======
+    businessDate?: Date
+  ) {
+    const cashAccount =
+      method === PaymentMethodType.BANK ? '1200' : '1100';
+>>>>>>> origin/dev
     return {
       reference: `Upfront Payment: PO ${orderNumber}`,
       memo: `Advance payment to supplier via ${method}`,
@@ -416,7 +489,11 @@ export class JournalProcurementService {
       sourceId: paymentId,
       lines: [
         { accountCode: '1600', debit: amount }, // Advances to Supplier (Asset)
+<<<<<<< HEAD
         { accountCode: contraAccountCode, credit: amount }, // Cash/Bank (Asset)
+=======
+        { accountCode: cashAccount, credit: amount }, // Cash/Bank (Asset)
+>>>>>>> origin/dev
       ],
       date: businessDate,
     };
@@ -438,6 +515,7 @@ export class JournalProcurementService {
       ],
     };
   }
+<<<<<<< HEAD
 
   private async resolvePaymentContraAccountCode(
     companyId: string,
@@ -491,4 +569,6 @@ function isValidPaymentContraAccount(method: string, accountName: string) {
   }
 
   return normalized.includes('cash');
+=======
+>>>>>>> origin/dev
 }

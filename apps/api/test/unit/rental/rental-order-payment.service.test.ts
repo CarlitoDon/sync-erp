@@ -14,7 +14,11 @@ import {
   RentalPaymentStatus,
   OrderSource,
 } from '@sync-erp/database';
+<<<<<<< HEAD
 import { asMock } from "@sync-erp/shared";
+=======
+import { asMock } from '@sync-erp/shared';
+>>>>>>> origin/dev
 
 // Mock dependencies
 vi.mock('@modules/common/audit/audit-log.service', () => ({
@@ -28,7 +32,11 @@ vi.mock('@modules/rental/rental-webhook.service');
 
 describe('RentalOrderPaymentService', () => {
   let service: RentalOrderPaymentService;
+<<<<<<< HEAD
   let mockWebhookService: import("../../../src/modules/rental/rental-webhook.service").RentalWebhookService;
+=======
+  let mockWebhookService: import('../../../src/modules/rental/rental-webhook.service').RentalWebhookService;
+>>>>>>> origin/dev
   const COMPANY_ID = 'test-company-id';
   const ACTOR_ID = 'test-actor-id';
   const ORDER_ID = 'order-1';

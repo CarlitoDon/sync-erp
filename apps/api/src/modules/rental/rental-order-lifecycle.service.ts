@@ -10,7 +10,10 @@ import {
   RentalOrderStatus,
   AuditLogAction,
   EntityType,
+<<<<<<< HEAD
   OrderSource,
+=======
+>>>>>>> origin/dev
 } from '@sync-erp/database';
 import { RentalRepository } from './rental.repository';
 import { DocumentNumberService } from '../common/services/document-number.service';
@@ -21,7 +24,10 @@ import {
   DomainError,
   DomainErrorCodes,
   type CreateRentalOrderInput,
+<<<<<<< HEAD
   type ExtendRentalOrderInput,
+=======
+>>>>>>> origin/dev
   type PrismaRentalOrderWithRelations,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
@@ -32,7 +38,11 @@ export class RentalOrderLifecycleService {
   constructor(
     private readonly repository: RentalRepository = new RentalRepository(),
     private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
+<<<<<<< HEAD
     _journalService: JournalService = new JournalService(),
+=======
+    private readonly journalService: JournalService = new JournalService(),
+>>>>>>> origin/dev
     private readonly webhookService: RentalWebhookService = new RentalWebhookService()
   ) {}
 
@@ -171,6 +181,7 @@ export class RentalOrderLifecycleService {
         continue;
       }
 
+<<<<<<< HEAD
       const tier =
         orderItem.pricePerDay !== undefined ||
         orderItem.lineTotal !== undefined
@@ -203,6 +214,16 @@ export class RentalOrderLifecycleService {
           : tier.totalAmount
               .times(orderItem.quantity)
               .toDecimalPlaces(2);
+=======
+      const tier = calculateOptimalTier(
+        rentalDays,
+        dailyRate,
+        weeklyRate,
+        monthlyRate
+      );
+
+      const itemTotal = tier.totalAmount.times(orderItem.quantity);
+>>>>>>> origin/dev
       subtotal = subtotal.plus(itemTotal);
 
       orderItems.push({
@@ -217,6 +238,7 @@ export class RentalOrderLifecycleService {
       });
     }
 
+<<<<<<< HEAD
     const discountAmount = new Decimal(
       data.discountAmount ?? 0
     ).toDecimalPlaces(2);
@@ -235,6 +257,8 @@ export class RentalOrderLifecycleService {
       .plus(deliveryFee)
       .toDecimalPlaces(2);
 
+=======
+>>>>>>> origin/dev
     // Resolve dueDateTime default
     const dueDateTime = data.dueDateTime ?? data.rentalEndDate;
 
@@ -267,12 +291,17 @@ export class RentalOrderLifecycleService {
         status: RentalOrderStatus.DRAFT,
         subtotal,
         depositAmount: new Decimal(0),
+<<<<<<< HEAD
         totalAmount,
+=======
+        totalAmount: subtotal,
+>>>>>>> origin/dev
         policySnapshot:
           (policySnapshot as Prisma.InputJsonValue) ||
           Prisma.JsonNull,
         notes: data.notes,
         createdBy: userId,
+<<<<<<< HEAD
         deliveryFee:
           data.deliveryFee !== undefined ? deliveryFee : undefined,
         deliveryAddress: data.deliveryAddress,
@@ -297,6 +326,8 @@ export class RentalOrderLifecycleService {
             : undefined,
         discountLabel: data.discountLabel,
         orderSource: OrderSource.ADMIN,
+=======
+>>>>>>> origin/dev
         items: {
           create: orderItems,
         },
@@ -420,6 +451,7 @@ export class RentalOrderLifecycleService {
 
   async extendOrder(
     companyId: string,
+<<<<<<< HEAD
     input: ExtendRentalOrderInput,
     userId: string
   ): Promise<PrismaRentalOrderWithRelations> {
@@ -429,6 +461,22 @@ export class RentalOrderLifecycleService {
         include: {
           items: { include: { rentalItem: true, rentalBundle: true } },
           extensions: { include: { items: true } },
+=======
+    input: {
+      orderId: string;
+      newEndDate: Date;
+      additionalDeposit?: number;
+      reason?: string;
+    },
+    userId: string
+  ): Promise<RentalOrder> {
+    return prisma.$transaction(async (tx) => {
+      const order = await tx.rentalOrder.findUnique({
+        where: { id: input.orderId },
+        include: {
+          items: { include: { rentalItem: true } },
+          extensions: true,
+>>>>>>> origin/dev
         },
       });
 
@@ -440,6 +488,7 @@ export class RentalOrderLifecycleService {
         );
       }
 
+<<<<<<< HEAD
       const extendableStatuses: RentalOrderStatus[] = input.allowHistorical
         ? [
             RentalOrderStatus.DRAFT,
@@ -454,13 +503,25 @@ export class RentalOrderLifecycleService {
           input.allowHistorical
             ? 'Can only extend DRAFT, CONFIRMED, ACTIVE, or COMPLETED orders'
             : 'Can only extend ACTIVE or CONFIRMED orders',
+=======
+      if (
+        order.status !== RentalOrderStatus.ACTIVE &&
+        order.status !== RentalOrderStatus.CONFIRMED
+      ) {
+        throw new DomainError(
+          'Can only extend ACTIVE or CONFIRMED orders',
+>>>>>>> origin/dev
           400,
           DomainErrorCodes.OPERATION_NOT_ALLOWED
         );
       }
 
+<<<<<<< HEAD
       const isItemLevelExtension = !!input.items?.length;
       if (!isItemLevelExtension && input.newEndDate <= order.rentalEndDate) {
+=======
+      if (input.newEndDate <= order.rentalEndDate) {
+>>>>>>> origin/dev
         throw new DomainError(
           'New end date must be after current end date',
           400,
@@ -468,6 +529,7 @@ export class RentalOrderLifecycleService {
         );
       }
 
+<<<<<<< HEAD
       const resolveOrderItem = (
         extensionItem: NonNullable<ExtendRentalOrderInput['items']>[number]
       ) => {
@@ -656,12 +718,36 @@ export class RentalOrderLifecycleService {
         isItemLevelExtension && itemLevelPreviousEndDate
           ? itemLevelPreviousEndDate
           : order.rentalEndDate;
+=======
+      const additionalDays = Math.ceil(
+        (input.newEndDate.getTime() - order.rentalEndDate.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      let additionalAmount = new Decimal(0);
+      for (const item of order.items) {
+        if (!item.rentalItem) continue;
+
+        const tier = calculateOptimalTier(
+          additionalDays,
+          Number(item.rentalItem.dailyRate),
+          Number(item.rentalItem.weeklyRate),
+          Number(item.rentalItem.monthlyRate)
+        );
+        additionalAmount = additionalAmount.plus(
+          tier.totalAmount.times(item.quantity)
+        );
+      }
+
+      const extensionNumber = (order.extensions?.length || 0) + 1;
+>>>>>>> origin/dev
 
       const extension = await tx.rentalOrderExtension.create({
         data: {
           rentalOrderId: order.id,
           companyId,
           extensionNumber,
+<<<<<<< HEAD
           previousEndDate: aggregatePreviousEndDate,
           newEndDate: input.newEndDate,
           additionalDays: maxAdditionalDays,
@@ -678,6 +764,15 @@ export class RentalOrderLifecycleService {
           items: extensionItems.length
             ? { create: extensionItems }
             : undefined,
+=======
+          previousEndDate: order.rentalEndDate,
+          newEndDate: input.newEndDate,
+          additionalDays,
+          additionalAmount,
+          additionalDeposit: input.additionalDeposit || 0,
+          reason: input.reason,
+          createdBy: userId,
+>>>>>>> origin/dev
         },
       });
 
@@ -688,6 +783,7 @@ export class RentalOrderLifecycleService {
       const updatedOrder = await tx.rentalOrder.update({
         where: { id: order.id },
         data: {
+<<<<<<< HEAD
           rentalEndDate: shouldUpdateOrderDates
             ? input.newEndDate
             : order.rentalEndDate,
@@ -702,16 +798,36 @@ export class RentalOrderLifecycleService {
             input.updateOrderTotal === false
               ? order.totalAmount
               : order.totalAmount.plus(totalAdditionalAmount),
+=======
+          rentalEndDate: input.newEndDate,
+          dueDateTime: newDueDateTime,
+          subtotal: order.subtotal.plus(additionalAmount),
+>>>>>>> origin/dev
         },
         include: { items: true, extensions: true },
       });
 
+<<<<<<< HEAD
+=======
+      if (additionalAmount.gt(0)) {
+        await this.journalService.postRentalDeposit(
+          companyId,
+          extension.id,
+          order.orderNumber!,
+          Number(additionalAmount),
+          'CASH',
+          tx
+        );
+      }
+
+>>>>>>> origin/dev
       await recordAudit({
         companyId,
         actorId: userId,
         action: AuditLogAction.RENTAL_ORDER_EXTENDED,
         entityType: EntityType.RENTAL_ORDER,
         entityId: order.id,
+<<<<<<< HEAD
         businessDate: input.businessDate ?? new Date(),
         payloadSnapshot: {
           extensionNumber,
@@ -765,3 +881,17 @@ export class RentalOrderLifecycleService {
 function toIsoString(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
+=======
+        businessDate: new Date(),
+        payloadSnapshot: {
+          extensionNumber,
+          additionalDays,
+          additionalAmount: additionalAmount.toString(),
+        },
+      });
+
+      return updatedOrder;
+    });
+  }
+}
+>>>>>>> origin/dev

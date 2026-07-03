@@ -51,7 +51,13 @@ export default function Sidebar() {
         `}
         >
           <Link to="/dashboard" className="flex items-center gap-2">
+<<<<<<< HEAD
             <BrandMark tone="light" />
+=======
+            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">S</span>
+            </div>
+>>>>>>> origin/dev
             {!isCollapsed && (
               <span className="text-lg font-semibold text-white">
                 Sync ERP

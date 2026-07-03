@@ -13,6 +13,10 @@ import {
   resendVerificationSchema,
   verifyEmailSchema,
 } from '@sync-erp/shared';
+<<<<<<< HEAD
+=======
+import { z } from 'zod';
+>>>>>>> origin/dev
 import { AuthService } from '../../modules/auth/auth.service';
 import type { Context } from '../context';
 
@@ -30,7 +34,10 @@ function getCookieOptions(): CookieOptions {
     httpOnly: true,
     secure: isSecureEnv,
     sameSite: isSecureEnv ? 'none' : 'lax',
+<<<<<<< HEAD
     path: '/',
+=======
+>>>>>>> origin/dev
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 }
@@ -135,7 +142,11 @@ export const authRouter = router({
     .use(
       publicRateLimit({
         namespace: 'auth.resendVerification',
+<<<<<<< HEAD
         maxAttempts: 3,
+=======
+        maxAttempts: 5,
+>>>>>>> origin/dev
         windowMs: 15 * 60 * 1000,
       })
     )

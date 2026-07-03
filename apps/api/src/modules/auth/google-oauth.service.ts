@@ -6,8 +6,11 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL =
   'https://openidconnect.googleapis.com/v1/userinfo';
 const STATE_TTL_MS = 10 * 60 * 1000;
+<<<<<<< HEAD
 const PLACEHOLDER_PATTERN =
   /^(your_|replace_|change-?me|placeholder)/i;
+=======
+>>>>>>> origin/dev
 
 export type GoogleOAuthIntent = 'login' | 'register';
 
@@ -52,6 +55,7 @@ export interface GoogleOAuthProfile {
 
 export class GoogleOAuthService {
   isConfigured(): boolean {
+<<<<<<< HEAD
     return this.getMissingConfigKeys().length === 0;
   }
 
@@ -71,6 +75,14 @@ export class GoogleOAuthService {
     }
 
     return missingKeys;
+=======
+    return Boolean(
+      process.env.GOOGLE_OAUTH_CLIENT_ID &&
+        process.env.GOOGLE_OAUTH_CLIENT_SECRET &&
+        process.env.GOOGLE_OAUTH_REDIRECT_URI &&
+        process.env.SYNC_ERP_AUTH_STATE_SECRET
+    );
+>>>>>>> origin/dev
   }
 
   getWebAppUrl(): string {
@@ -231,6 +243,7 @@ export class GoogleOAuthService {
       .digest('hex');
   }
 
+<<<<<<< HEAD
   private getHttpApiBaseUrl(): string {
     const configuredUrl =
       process.env.SYNC_ERP_API_BASE_URL ||
@@ -294,6 +307,20 @@ export class GoogleOAuthService {
     }
 
     if (!isConfiguredValue(stateSecret)) {
+=======
+  private getConfig(): GoogleOAuthConfig {
+    const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+    const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI;
+    const stateSecret = process.env.SYNC_ERP_AUTH_STATE_SECRET;
+
+    if (
+      !clientId ||
+      !clientSecret ||
+      !redirectUri ||
+      !stateSecret
+    ) {
+>>>>>>> origin/dev
       throw new Error(
         'Google OAuth is not configured. Missing client or state settings.'
       );
@@ -307,6 +334,7 @@ export class GoogleOAuthService {
     };
   }
 }
+<<<<<<< HEAD
 
 function isMissingConfigValue(value: string | undefined): boolean {
   return !value || PLACEHOLDER_PATTERN.test(value.trim());
@@ -315,3 +343,5 @@ function isMissingConfigValue(value: string | undefined): boolean {
 function isConfiguredValue(value: string | undefined): value is string {
   return !isMissingConfigValue(value);
 }
+=======
+>>>>>>> origin/dev

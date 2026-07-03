@@ -14,7 +14,10 @@ import { getPaymentTermLabel } from '@sync-erp/shared';
 import { PageContainer } from '@/components/layout/PageLayout';
 import { PriceVarianceCard } from './PriceVarianceCard';
 import { Timeline, TimelineEvent } from '@/components/ui/Timeline';
+<<<<<<< HEAD
 import { AttachmentPanel } from '@/features/attachments/components/AttachmentPanel';
+=======
+>>>>>>> origin/dev
 import {
   Card,
   CardHeader,
@@ -335,8 +338,11 @@ export default function BillDetail() {
                 </Card>
               )}
 
+<<<<<<< HEAD
               <AttachmentPanel entityType="BILL" entityId={bill.id} />
 
+=======
+>>>>>>> origin/dev
               {/* Actions Card */}
               <Card>
                 <CardHeader className="pb-3">

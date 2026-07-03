@@ -17,7 +17,11 @@ import CancelOrderModal from '../modals/CancelOrderModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
 import ReturnModal from '../modals/ReturnModal';
 import VerifyPaymentModal from '../modals/VerifyPaymentModal';
+<<<<<<< HEAD
 import { OrderSource, type PortableRentalOrder } from '@sync-erp/shared';
+=======
+import { OrderSource } from '@sync-erp/shared';
+>>>>>>> origin/dev
 import {
   UserIcon,
   GlobeAltIcon,
@@ -32,6 +36,7 @@ import { UnitAssignmentsCard } from '../components/UnitAssignmentsCard';
 import { RentalActionsCard } from '../components/RentalActionsCard';
 import { RentalFinancialSummary } from '../components/RentalFinancialSummary';
 import { RentalPaymentStatusCard } from '../components/RentalPaymentStatusCard';
+<<<<<<< HEAD
 import { RentalExtensionsCard } from '../components/RentalExtensionsCard';
 
 function buildEffectiveEndDateByOrderItem(order: PortableRentalOrder) {
@@ -53,6 +58,8 @@ function buildEffectiveEndDateByOrderItem(order: PortableRentalOrder) {
   }
   return effectiveEndByItemId;
 }
+=======
+>>>>>>> origin/dev
 
 export default function RentalOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -75,7 +82,10 @@ export default function RentalOrderDetail() {
   const handleCancelOrder = () => modals.cancel.open();
   const handleRelease = () => modals.release.open();
   const handleReturn = () => modals.return.open();
+<<<<<<< HEAD
   const effectiveEndByItemId = buildEffectiveEndDateByOrderItem(order);
+=======
+>>>>>>> origin/dev
 
   return (
     <>
@@ -136,7 +146,11 @@ export default function RentalOrderDetail() {
             {order.orderSource === OrderSource.WEBSITE ? (
               <span
                 className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700"
+<<<<<<< HEAD
                 title="Order dari website eksternal"
+=======
+                title="Order dari Santi Living"
+>>>>>>> origin/dev
               >
                 <GlobeAltIcon className="w-3.5 h-3.5" />
                 Website
@@ -168,10 +182,13 @@ export default function RentalOrderDetail() {
                 ...item,
                 unitPrice: Number(item.unitPrice),
                 subtotal: Number(item.subtotal),
+<<<<<<< HEAD
                 baseEndDate: order.rentalEndDate,
                 effectiveEndDate:
                   effectiveEndByItemId.get(item.id) ??
                   order.rentalEndDate,
+=======
+>>>>>>> origin/dev
                 rentalBundle: item.rentalBundle
                   ? {
                       name: item.rentalBundle.name,
@@ -193,11 +210,14 @@ export default function RentalOrderDetail() {
               calculations={calculations}
             />
 
+<<<<<<< HEAD
             <RentalExtensionsCard
               extensions={order.extensions}
               orderItems={order.items}
             />
 
+=======
+>>>>>>> origin/dev
             <UnitAssignmentsCard
               assignments={order.unitAssignments ?? []}
               calculations={calculations}

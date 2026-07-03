@@ -24,6 +24,7 @@ interface TimelineProps {
 }
 
 const colorMap: Record<TimelineEvent['color'], string> = {
+<<<<<<< HEAD
   blue: 'bg-cyan-500',
   green: 'bg-emerald-500',
   purple: 'bg-slate-500',
@@ -31,6 +32,15 @@ const colorMap: Record<TimelineEvent['color'], string> = {
   emerald: 'bg-emerald-500',
   red: 'bg-red-500',
   gray: 'bg-slate-300',
+=======
+  blue: 'bg-blue-500',
+  green: 'bg-green-500',
+  purple: 'bg-purple-500',
+  amber: 'bg-amber-500',
+  emerald: 'bg-emerald-500',
+  red: 'bg-red-500',
+  gray: 'bg-gray-300',
+>>>>>>> origin/dev
 };
 
 export function Timeline({ events, className = '' }: TimelineProps) {
@@ -95,7 +105,11 @@ export function Timeline({ events, className = '' }: TimelineProps) {
                     {event.title}
                   </p>
                   <p
+<<<<<<< HEAD
                     className={`text-xs ${event.descriptionClassName || 'text-slate-500'}`}
+=======
+                    className={`text-xs ${event.descriptionClassName || 'text-gray-500'}`}
+>>>>>>> origin/dev
                   >
                     {event.description}
                   </p>
@@ -157,19 +171,31 @@ export function Timeline({ events, className = '' }: TimelineProps) {
                           {child.href ? (
                             <a
                               href={child.href}
+<<<<<<< HEAD
                               className={`text-sm font-medium text-cyan-700 hover:underline ${child.titleClassName || ''}`}
+=======
+                              className={`font-medium text-sm hover:underline text-blue-600 ${child.titleClassName || ''}`}
+>>>>>>> origin/dev
                             >
                               {child.title}
                             </a>
                           ) : (
                             <p
+<<<<<<< HEAD
                             className={`text-sm font-medium ${child.titleClassName || ''}`}
+=======
+                              className={`font-medium text-sm ${child.titleClassName || ''}`}
+>>>>>>> origin/dev
                             >
                               {child.title}
                             </p>
                           )}
                           <p
+<<<<<<< HEAD
                             className={`text-xs ${child.descriptionClassName || 'text-slate-500'}`}
+=======
+                            className={`text-xs ${child.descriptionClassName || 'text-gray-500'}`}
+>>>>>>> origin/dev
                           >
                             {child.description}
                           </p>

@@ -136,7 +136,12 @@ export class JournalCoreService {
 
     const journalDate = data.date ? new Date(data.date) : new Date();
 
+<<<<<<< HEAD
     BusinessDate.from(journalDate).ensureValid();
+=======
+    // Phase 1 Guard: Backdated check
+    BusinessDate.from(journalDate).ensureNotBackdated();
+>>>>>>> origin/dev
 
     const createData: Prisma.JournalEntryUncheckedCreateInput = {
       companyId,

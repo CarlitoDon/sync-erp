@@ -6,8 +6,11 @@ import {
   UnitCondition,
   DepositPolicyType,
   AccountType,
+<<<<<<< HEAD
   BillingProvider,
   BillingSubscriptionStatus,
+=======
+>>>>>>> origin/dev
 } from '@sync-erp/database';
 import { RentalService } from '@modules/rental/rental.service';
 
@@ -55,6 +58,7 @@ describe('Rental Invoice Integration', () => {
         name: 'Rental Invoice Test Corp',
       },
     });
+<<<<<<< HEAD
     await prisma.companySubscription.create({
       data: {
         companyId: COMPANY_ID,
@@ -63,6 +67,8 @@ describe('Rental Invoice Integration', () => {
         provider: BillingProvider.MANUAL,
       },
     });
+=======
+>>>>>>> origin/dev
 
     // Create Default Policy
     await prisma.rentalPolicy.create({

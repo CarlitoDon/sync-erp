@@ -86,7 +86,11 @@ export default function ApiDocsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="font-mono text-base">
+<<<<<<< HEAD
                 POST /api/v1/rental/orders
+=======
+                POST /trpc/publicRental.createOrder
+>>>>>>> origin/dev
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -113,7 +117,11 @@ export default function ApiDocsPage() {
            <Card>
             <CardHeader>
               <CardTitle className="font-mono text-base">
+<<<<<<< HEAD
                 POST /api/v1/rental/orders/:id/payments/claim
+=======
+                POST /trpc/publicRental.confirmPayment
+>>>>>>> origin/dev
               </CardTitle>
             </CardHeader>
             <CardContent>

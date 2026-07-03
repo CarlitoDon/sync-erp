@@ -2,10 +2,18 @@
  * Webhook service for rental notifications
  * Enqueues deliveries through the rental webhook outbox for partner integrations
  */
+<<<<<<< HEAD
 import { rentalWebhookOutboxService } from './rental-webhook-outbox.service';
 
 interface NotifyPaymentStatusParams {
   companyId: string;
+=======
+import { webhookOutboxService } from './webhook-outbox.service';
+
+interface NotifyPaymentStatusParams {
+  companyId: string;
+  integrationId?: string;
+>>>>>>> origin/dev
   token: string;
   action: 'confirmed' | 'rejected' | 'claimed';
   paymentReference?: string;
@@ -15,6 +23,10 @@ interface NotifyPaymentStatusParams {
 
 interface NotifyNewOrderParams {
   companyId: string;
+<<<<<<< HEAD
+=======
+  integrationId?: string;
+>>>>>>> origin/dev
   token: string;
   orderNumber: string;
   customerName: string;
@@ -35,7 +47,22 @@ export class RentalWebhookService {
     params: NotifyPaymentStatusParams
   ): Promise<void> {
     const result =
+<<<<<<< HEAD
       await rentalWebhookOutboxService.enqueuePaymentStatus(params);
+=======
+      await webhookOutboxService.enqueue('payment.status.changed', {
+        companyId: params.companyId,
+        integrationId: params.integrationId,
+        orderPublicToken: params.token,
+        payload: {
+          action: params.action,
+          paymentReference: params.paymentReference,
+          failReason: params.failReason,
+          paymentMethod: params.paymentMethod,
+          token: params.token,
+        }
+      });
+>>>>>>> origin/dev
 
     if (!result.success) {
       console.error(
@@ -54,12 +81,29 @@ export class RentalWebhookService {
     params: NotifyNewOrderParams,
     options: NotifyOptions = {}
   ): Promise<void> {
+<<<<<<< HEAD
     const result = await rentalWebhookOutboxService.enqueueNewOrder(
       params,
       {
         autoRetry: !options.throwOnFailure,
       }
     );
+=======
+    const result = await webhookOutboxService.enqueue('order.created', {
+        companyId: params.companyId,
+        integrationId: params.integrationId,
+        orderPublicToken: params.token,
+        orderNumber: params.orderNumber,
+        autoRetry: !options.throwOnFailure,
+        payload: {
+          orderNumber: params.orderNumber,
+          customerName: params.customerName,
+          customerPhone: params.customerPhone,
+          totalAmount: params.totalAmount,
+          token: params.token,
+        }
+    });
+>>>>>>> origin/dev
 
     if (!result.success) {
       console.error(
@@ -78,6 +122,10 @@ export class RentalWebhookService {
   async notifyOrderCreated(order: {
     companyId: string;
     id: string;
+<<<<<<< HEAD
+=======
+    integrationId?: string | null;
+>>>>>>> origin/dev
     orderNumber?: string;
     totalAmount?: number | { toNumber(): number };
     partner?: {
@@ -88,6 +136,10 @@ export class RentalWebhookService {
   }): Promise<void> {
     await this.notifyNewOrder({
       companyId: order.companyId,
+<<<<<<< HEAD
+=======
+      integrationId: order.integrationId ?? undefined,
+>>>>>>> origin/dev
       token: order.id,
       orderNumber: order.orderNumber || 'UNKNOWN',
       customerName: order.partner?.name || 'Guest',

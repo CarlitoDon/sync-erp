@@ -59,3 +59,7 @@ apps/api/deploy/
 cookies.txt
 *.session
 mcp-debug.log
+<<<<<<< HEAD
+=======
+storage/
+>>>>>>> origin/dev

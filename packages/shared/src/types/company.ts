@@ -34,6 +34,22 @@ export enum CompanyOnboardingStep {
   DONE = 'DONE',
 }
 
+export enum CompanyOnboardingStatus {
+  NOT_INITIALIZED = 'NOT_INITIALIZED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  ACTIVE = 'ACTIVE',
+}
+
+export enum CompanyOnboardingStep {
+  WELCOME = 'WELCOME',
+  BUSINESS_SHAPE = 'BUSINESS_SHAPE',
+  CONFIGURE_SYSTEM = 'CONFIGURE_SYSTEM',
+  OPENING_BALANCE = 'OPENING_BALANCE',
+  FIRST_TRANSACTION = 'FIRST_TRANSACTION',
+  ALIVE_MOMENT = 'ALIVE_MOMENT',
+  DONE = 'DONE',
+}
+
 // CostingMethod moved to constants/inventory.ts
 
 // ============================================

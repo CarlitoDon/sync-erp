@@ -7,6 +7,7 @@ import {
   it,
   vi,
 } from 'vitest';
+<<<<<<< HEAD
 import {
   prisma,
   DepositPolicyType,
@@ -16,12 +17,37 @@ import { appRouter } from '@src/trpc/router';
 import type { Context } from '@src/trpc/context';
 import { apiKeyService } from '@src/services/api-key.service';
 import { webhookService } from '@src/services/webhook.service';
+=======
+import { prisma, PartnerType } from '@sync-erp/database';
+import { appRouter } from '@src/trpc/router';
+import type { Context } from '@src/trpc/context';
+import { apiKeyService } from '@src/services/api-key.service';
+import {
+  container,
+  registerServices,
+  ServiceKeys,
+} from '@modules/common/di';
+import type { RentalWebhookService } from '@modules/rental/rental-webhook.service';
+>>>>>>> origin/dev
 
 const COMPANY_ID = 'test-public-rental-router-int-001';
 const COMPANY_B_ID = 'test-public-rental-router-int-002';
 const API_KEY = 'sk_test_public_rental_key';
 const API_KEY_B = 'sk_test_public_rental_key_b';
 
+<<<<<<< HEAD
+=======
+const mockWebhookService = {
+  notifyPaymentStatus: vi.fn(),
+  notifyNewOrder: vi.fn(),
+  notifyOrderCreated: vi.fn(),
+  notifyOrderCancelled: vi.fn(),
+} as unknown as RentalWebhookService & {
+  notifyNewOrder: ReturnType<typeof vi.fn>;
+  notifyPaymentStatus: ReturnType<typeof vi.fn>;
+};
+
+>>>>>>> origin/dev
 const buildCaller = (authorization?: string) =>
   appRouter.createCaller({
     req: {
@@ -35,11 +61,22 @@ const buildCaller = (authorization?: string) =>
     businessShape: undefined,
     userRole: undefined,
     userPermissions: [],
+<<<<<<< HEAD
   });
 
 const cleanupCompanyData = async (companyIds: string[] = [COMPANY_ID, COMPANY_B_ID]) => {
   await prisma.$transaction([
     prisma.rentalWebhookOutbox.deleteMany({
+=======
+    integrationId: undefined,
+  });
+
+const cleanupCompanyData = async (
+  companyIds: string[] = [COMPANY_ID, COMPANY_B_ID]
+) => {
+  await prisma.$transaction([
+    prisma.webhookOutbox.deleteMany({
+>>>>>>> origin/dev
       where: { companyId: { in: companyIds } },
     }),
     prisma.rentalBundleComponent.deleteMany({
@@ -73,11 +110,23 @@ describe('Public Rental Router Integration', () => {
   let partnerId: string;
   let partnerIdB: string;
   let validateKeySpy: ReturnType<typeof vi.spyOn>;
+<<<<<<< HEAD
   let notifyTenantSpy: ReturnType<typeof vi.spyOn>;
 
   beforeAll(async () => {
     validateKeySpy = vi.spyOn(apiKeyService, 'validateKey');
     notifyTenantSpy = vi.spyOn(webhookService, 'notifyTenant');
+=======
+
+  beforeAll(async () => {
+    container.register(
+      ServiceKeys.RENTAL_WEBHOOK_SERVICE,
+      () => mockWebhookService
+    );
+    container.reset();
+
+    validateKeySpy = vi.spyOn(apiKeyService, 'validateKey');
+>>>>>>> origin/dev
 
     await cleanupCompanyData();
     await prisma.company.upsert({
@@ -104,9 +153,12 @@ describe('Public Rental Router Integration', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+<<<<<<< HEAD
     notifyTenantSpy.mockResolvedValue({
       success: true,
     });
+=======
+>>>>>>> origin/dev
 
     validateKeySpy.mockImplementation(async (rawKey: string) => {
       if (rawKey === API_KEY_B) {
@@ -126,6 +178,14 @@ describe('Public Rental Router Integration', () => {
       };
     });
 
+<<<<<<< HEAD
+=======
+    mockWebhookService.notifyNewOrder.mockResolvedValue(undefined);
+    mockWebhookService.notifyPaymentStatus.mockResolvedValue(
+      undefined
+    );
+
+>>>>>>> origin/dev
     await cleanupCompanyData();
 
     const partner = await prisma.partner.create({
@@ -153,11 +213,19 @@ describe('Public Rental Router Integration', () => {
 
   afterAll(async () => {
     validateKeySpy.mockRestore();
+<<<<<<< HEAD
     notifyTenantSpy.mockRestore();
+=======
+>>>>>>> origin/dev
     await cleanupCompanyData();
     await prisma.company.deleteMany({
       where: { id: { in: [COMPANY_ID, COMPANY_B_ID] } },
     });
+<<<<<<< HEAD
+=======
+    container.clear();
+    registerServices();
+>>>>>>> origin/dev
   });
 
   it('creates external orders, auto-creates catalog records, and exposes numeric DTO fields', async () => {
@@ -207,6 +275,7 @@ describe('Public Rental Router Integration', () => {
     expect(created.publicToken).toBeDefined();
     expect(created.orderNumber).toMatch(/^RNT-\d{6}-\d{5}$/);
     expect(created.status).toBe('DRAFT');
+<<<<<<< HEAD
     expect(notifyTenantSpy).toHaveBeenCalledWith(
       COMPANY_ID,
       'rental.order.created',
@@ -217,6 +286,16 @@ describe('Public Rental Router Integration', () => {
           orderNumber: created.orderNumber,
         }),
       })
+=======
+    expect(mockWebhookService.notifyNewOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyId: COMPANY_ID,
+        token: created.publicToken,
+        orderNumber: created.orderNumber,
+        totalAmount: 165000,
+      }),
+      { throwOnFailure: true }
+>>>>>>> origin/dev
     );
 
     const publicCaller = buildCaller();
@@ -241,7 +320,11 @@ describe('Public Rental Router Integration', () => {
       where: {
         companyId: COMPANY_ID,
         product: {
+<<<<<<< HEAD
           sku: 'EXT-kasur-busa-120x200',
+=======
+          sku: 'SL-kasur-busa-120x200',
+>>>>>>> origin/dev
         },
       },
     });
@@ -250,6 +333,7 @@ describe('Public Rental Router Integration', () => {
     expect(autoCreatedItem).toBeTruthy();
   });
 
+<<<<<<< HEAD
   it('uses source invoice price without mutating existing master rate', async () => {
     const caller = buildCaller(`Bearer ${API_KEY}`);
     const product = await prisma.product.create({
@@ -364,6 +448,8 @@ describe('Public Rental Router Integration', () => {
     expect(persistedLine.pricingTier).toBe('CUSTOM');
   });
 
+=======
+>>>>>>> origin/dev
   it('updates external orders using the same resolver path without dropping requested items', async () => {
     const caller = buildCaller(`Bearer ${API_KEY}`);
     const created = await caller.publicRental.createOrder({
@@ -441,9 +527,15 @@ describe('Public Rental Router Integration', () => {
     expect(dbItems).toHaveLength(2);
   });
 
+<<<<<<< HEAD
   it('keeps external orders when generic webhook notification fails', async () => {
     const caller = buildCaller(`Bearer ${API_KEY}`);
     notifyTenantSpy.mockRejectedValueOnce(
+=======
+  it('rolls back external order creation when webhook notification fails', async () => {
+    const caller = buildCaller(`Bearer ${API_KEY}`);
+    mockWebhookService.notifyNewOrder.mockRejectedValueOnce(
+>>>>>>> origin/dev
       new Error('Invalid WhatsApp Number')
     );
 
@@ -464,23 +556,35 @@ describe('Public Rental Router Integration', () => {
           },
         ],
       })
+<<<<<<< HEAD
     ).resolves.toEqual(
       expect.objectContaining({
         orderNumber: expect.stringMatching(/^RNT-\d{6}-\d{5}$/),
         status: 'DRAFT',
       })
     );
+=======
+    ).rejects.toThrow('Invalid WhatsApp Number');
+>>>>>>> origin/dev
 
     expect(
       await prisma.rentalOrder.count({
         where: { companyId: COMPANY_ID },
       })
+<<<<<<< HEAD
     ).toBe(1);
+=======
+    ).toBe(0);
+>>>>>>> origin/dev
     expect(
       await prisma.rentalOrderItem.count({
         where: { rentalOrder: { companyId: COMPANY_ID } },
       })
+<<<<<<< HEAD
     ).toBe(1);
+=======
+    ).toBe(0);
+>>>>>>> origin/dev
   });
 
   it('requires api key authentication for deleteOrder', async () => {
@@ -577,6 +681,7 @@ describe('Public Rental Router Integration', () => {
     expect(order?.status).toBe('CONFIRMED');
     expect(order?.paymentConfirmedAt).toBeTruthy();
     expect(order?.paymentReference).toBe('midtrans-int-001');
+<<<<<<< HEAD
     expect(notifyTenantSpy).toHaveBeenCalledWith(
       COMPANY_ID,
       'rental.payment.confirmed',
@@ -584,6 +689,15 @@ describe('Public Rental Router Integration', () => {
         id: created.id,
         orderNumber: created.orderNumber,
         rentalPaymentStatus: 'CONFIRMED',
+=======
+    expect(
+      mockWebhookService.notifyPaymentStatus
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyId: COMPANY_ID,
+        token: created.publicToken,
+        action: 'confirmed',
+>>>>>>> origin/dev
         paymentMethod: 'qris',
         paymentReference: 'midtrans-int-001',
       })
@@ -639,6 +753,7 @@ describe('Public Rental Router Integration', () => {
     expect(order?.rentalPaymentStatus).toBe('FAILED');
     expect(order?.status).toBe('DRAFT');
     expect(order?.paymentFailedAt).toBeTruthy();
+<<<<<<< HEAD
     expect(order?.paymentFailReason).toBe('Midtrans transaction expire');
     expect(notifyTenantSpy).toHaveBeenCalledWith(
       COMPANY_ID,
@@ -647,6 +762,18 @@ describe('Public Rental Router Integration', () => {
         id: created.id,
         orderNumber: created.orderNumber,
         rentalPaymentStatus: 'FAILED',
+=======
+    expect(order?.paymentFailReason).toBe(
+      'Midtrans transaction expire'
+    );
+    expect(
+      mockWebhookService.notifyPaymentStatus
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyId: COMPANY_ID,
+        token: created.publicToken,
+        action: 'rejected',
+>>>>>>> origin/dev
         paymentMethod: 'qris',
         failReason: 'Midtrans transaction expire',
       })

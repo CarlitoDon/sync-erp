@@ -185,10 +185,13 @@ router.delete('/sessions/:sessionId', async (req, res) => {
 });
 
 async function cleanupExpiredSessions() {
+<<<<<<< HEAD
   if (!isMcpEnabled()) {
     return;
   }
 
+=======
+>>>>>>> origin/dev
   const { sessionTtlMs } = getMcpRuntimeConfig();
   const now = Date.now();
 

@@ -14,7 +14,11 @@ const createCaller = async (userId: string, companyId: string) => {
 
   const ctx = await createContext({
     req,
+<<<<<<< HEAD
     res: {} as unknown as import("express").Response,
+=======
+    res: {} as unknown as import('express').Response,
+>>>>>>> origin/dev
     info: {} as never,
   });
 
