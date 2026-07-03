@@ -67,7 +67,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
 
     // 4. Setup Product
     try {
-      await prisma.product.delete({
+      await prisma.product.deleteMany({
         where: {
           companyId_sku: {
             companyId: COMPANY_ID,
@@ -646,7 +646,7 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
 
       // 4. Setup Product
       try {
-        await prisma.product.delete({
+        await prisma.product.deleteMany({
           where: {
             companyId_sku: {
               companyId: COMPANY_ID_E2E,
