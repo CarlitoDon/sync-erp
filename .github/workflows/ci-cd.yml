@@ -86,17 +86,7 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: cache-npm-api
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            node-modules-
-
       - name: Install dependencies
-        if: steps.cache-npm-api.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Setup test database
@@ -131,17 +121,7 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: cache-npm-web
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            node-modules-
-
       - name: Install dependencies
-        if: steps.cache-npm-web.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Lint
