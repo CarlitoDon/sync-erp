@@ -196,9 +196,10 @@ export const publicRentalOrderRouter = router({
                finalInput.skuPrefix = adapter.skuPrefix;
                
                if (adapter.parseComponents) {
-                 finalInput.items = finalInput.items.map((item) => ({
+                 const parseComponents = adapter.parseComponents;
+                 finalInput.items = finalInput.items!.map((item) => ({
                    ...item,
-                   components: item.components ? adapter.parseComponents!(item.components) : undefined
+                   components: item.components ? parseComponents(item.components as unknown as string[]) : undefined
                  }));
                }
              }
@@ -284,12 +285,15 @@ export const publicRentalOrderRouter = router({
            if (integration) {
              const plugin = integrationRegistry.get(integration.appId);
              const adapter = plugin?.getOrderAdapter?.();
-             if (adapter && adapter.parseComponents) {
-               finalInput.items = finalInput.items.map((item) => ({
-                 ...item,
-                 components: item.components ? adapter.parseComponents!(item.components) : undefined
-               }));
-             }
+              if (adapter && adapter.parseComponents) {
+                const parseComponents = adapter.parseComponents;
+                finalInput.items = finalInput.items!.map((item) => ({
+                  ...item,
+                  components: item.components
+                    ? parseComponents(item.components as unknown as string[])
+                    : undefined,
+                }));
+              }
            }
         }
 
