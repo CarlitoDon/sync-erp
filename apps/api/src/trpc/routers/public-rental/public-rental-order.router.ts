@@ -204,6 +204,14 @@ export const publicRentalOrderRouter = router({
                }
              }
            }
+        } else if (finalInput.items) {
+          // No integration adapter — normalize string[] components to service format
+          finalInput.items = finalInput.items.map((item) => ({
+            ...item,
+            components: item.components
+              ? (item.components as unknown as string[]).map((c) => ({ quantity: 1, label: c }))
+              : undefined
+          }));
         }
 
         const order = await service.createOrder(finalInput);
@@ -295,6 +303,14 @@ export const publicRentalOrderRouter = router({
                 }));
               }
            }
+        } else if (finalInput.items) {
+          // No integration adapter — normalize string[] components to service format
+          finalInput.items = finalInput.items.map((item) => ({
+            ...item,
+            components: item.components
+              ? (item.components as unknown as string[]).map((c) => ({ quantity: 1, label: c }))
+              : undefined,
+          }));
         }
 
         const updated = await service.updateOrder(
