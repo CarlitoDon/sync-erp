@@ -8,6 +8,7 @@ import * as trpcExpress from '@trpc/server/adapters/express';
 import { errorHandler } from './middlewares/errorHandler';
 import { optionalAuthMiddleware } from './middlewares/auth';
 import { correlationMiddleware } from './middlewares/correlation';
+import { alsMiddleware } from './middlewares/als';
 import { csrfProtection } from './middlewares/csrf';
 import { sentryErrorMiddleware } from './middlewares/sentry';
 import { appRouter } from './trpc/router';
@@ -74,6 +75,7 @@ export function createApp() {
   app.use(
     '/api/trpc/integration/v1',
     optionalAuthMiddleware,
+    alsMiddleware,
     trpcExpress.createExpressMiddleware({
       router: integrationV1Router,
       createContext,
@@ -83,6 +85,7 @@ export function createApp() {
   app.use(
     '/api/trpc',
     optionalAuthMiddleware,
+    alsMiddleware,
     trpcExpress.createExpressMiddleware({
       router: appRouter,
       createContext,

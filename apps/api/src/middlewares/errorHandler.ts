@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
-import { ERROR_CODES } from '@sync-erp/shared';
+import { DomainError, ERROR_CODES } from '@sync-erp/shared';
 
 // Type for error details - validation errors or key-value pairs
 export type ErrorDetails =
@@ -132,6 +132,18 @@ export function errorHandler(
           path: e.path.join('.'),
           message: e.message,
         })),
+      },
+    });
+  }
+
+  // Handle DomainError (business rule violations)
+  if (err instanceof DomainError) {
+    console.error('[ErrorHandler] Domain Error:', err.message, err.code);
+    return res.status(err.statusCode).json({
+      success: false,
+      error: {
+        code: err.code,
+        message: err.message,
       },
     });
   }

@@ -544,9 +544,9 @@ export default function MarketingHomePage() {
       <main>
         <section className="relative isolate overflow-hidden border-b border-slate-200">
           <HeroBackdrop />
-          <div className="relative mx-auto grid min-h-[86svh] max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(28rem,1.1fr)] lg:gap-14 lg:px-8">
+          <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-8 sm:px-6 sm:py-14 lg:min-h-[86svh] lg:items-center lg:py-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(28rem,1.1fr)] lg:gap-14 lg:px-8">
             <div className="min-w-0">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-md border border-cyan-200 bg-white/80 px-3 py-2 text-sm font-medium text-cyan-800 shadow-sm">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-md border border-cyan-200 bg-white/80 px-3 py-2 text-sm font-medium text-cyan-800 shadow-sm">
                 <SparklesIcon className="h-4 w-4" />
                 ERP publik untuk tim operasional yang sedang tumbuh
               </div>
@@ -554,7 +554,7 @@ export default function MarketingHomePage() {
               <h1 className="text-5xl font-semibold leading-[1.05] text-slate-950 sm:text-6xl lg:text-7xl">
                 Sync ERP
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-700 sm:text-xl">
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-700 sm:text-xl">
                 Platform ERP multi-company untuk merapikan sales,
                 procurement, inventory, rental, finance, dan integrasi
                 dalam satu sistem yang siap dipakai tim bisnis modern.
@@ -577,7 +577,7 @@ export default function MarketingHomePage() {
                 </a>
               </div>
 
-              <div className="mt-8 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
+              <div className="mt-5 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
                 {proofPoints.map((point) => (
                   <div key={point} className="flex items-center gap-2">
                     <CheckCircleIcon className="h-5 w-5 flex-none text-emerald-600" />
@@ -586,7 +586,7 @@ export default function MarketingHomePage() {
                 ))}
               </div>
 
-              <div className="mt-12 grid gap-3 sm:grid-cols-3">
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
                 {heroStats.map((item) => (
                   <div
                     key={item.label}

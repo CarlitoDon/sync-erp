@@ -64,12 +64,17 @@ const DEFAULT_POLL_INTERVAL_MS = 30_000;
 const DEFAULT_DEAD_LETTER_WARN_THRESHOLD = 20;
 
 export class TenantWebhookOutboxService {
-  async enqueueDelivery(input: {
-    companyId: string;
-    event: string;
-    payload: Record<string, unknown>;
-  }): Promise<TenantWebhookDeliveryResult> {
-    const apiKey = await prisma.apiKey.findFirst({
+  async enqueueDelivery(
+    input: {
+      companyId: string;
+      event: string;
+      payload: Record<string, unknown>;
+    },
+    tx?: Prisma.TransactionClient
+  ): Promise<TenantWebhookDeliveryResult> {
+    const db = tx || prisma;
+
+    const apiKey = await db.apiKey.findFirst({
       where: {
         companyId: input.companyId,
         isActive: true,
@@ -91,7 +96,7 @@ export class TenantWebhookOutboxService {
       };
     }
 
-    const delivery = await prisma.tenantWebhookOutbox.create({
+    const delivery = await db.tenantWebhookOutbox.create({
       data: {
         companyId: input.companyId,
         apiKeyId: apiKey.id,

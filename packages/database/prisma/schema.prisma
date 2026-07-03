@@ -904,6 +904,22 @@ model SagaLog {
   @@index([correlationId])
 }
 
+model AutoAuditLog {
+  id            String   @id @default(uuid())
+  modelName     String
+  action        String
+  recordId      String?
+  companyId     String
+  actorId       String
+  correlationId String?
+  args          Json?
+  createdAt     DateTime @default(now())
+
+  @@index([companyId, createdAt])
+  @@index([modelName, action, createdAt])
+  @@index([recordId])
+}
+
 model AuditLog {
   id                String           @id @default(uuid())
   companyId         String

@@ -5,6 +5,12 @@ export {
   setCompanyContext,
 } from './client.js';
 
+export {
+  requestContext,
+  getRequestContext,
+} from './als.js';
+export type { RequestContext } from './als.js';
+
 // Re-export Prisma types for consumers
 export type {
   Company,

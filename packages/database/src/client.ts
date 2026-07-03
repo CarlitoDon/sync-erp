@@ -3,6 +3,7 @@ import { resolve } from 'path';
 import { PrismaClient } from './generated/client/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
+import { createAutoAuditExtension } from './auto-audit.js';
 
 // Use process.cwd() for CJS bundle compatibility
 const appDir = process.cwd();
@@ -73,6 +74,9 @@ export const prisma =
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
+
+// Register auto-audit middleware for all mutations
+prisma.$extends(createAutoAuditExtension());
 
 export { PrismaClient } from './generated/client/client.js';
 export { Prisma } from './generated/client/client.js';
