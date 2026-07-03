@@ -1,0 +1,67 @@
+🏠 Santi Living by Santi Mebel Godean
+Laporan Pesanan Sewa Kasur & Perlengkapan
+Periode: Mei - Agustus 2026 | Dicetak: 27 May 2026 10:27
+TOTAL PESANAN
+26
+TOTAL PENDAPATAN
+Rp8.811.000
+TOTAL DP
+Rp2.645.000
+SISA PELUNASAN
+Rp6.166.000
+TOTAL ONGKIR
+Rp1.159.000
+#1 RNT-202605-00026
+PELANGGAN
+Evi
+LOKASI
+Gowok
+TANGGAL KIRIM
+1 Agustus 2026
+TANGGAL AMBIL
+3 Agustus 2026
+ITEM QTY HARGA/HARI HARI SUBTOTAL
+Paket Single 90 2 Rp35.000 2 Rp140.000
+Add on Bantal 3 Rp7.000 2 Rp42.000
+Add on Sprei 3 Rp10.000 2 Rp60.000
+Add on Selimut 5 Rp10.000 2 Rp100.000
+Kipas Angin 2 Rp20.000 2 Rp80.000
+Subtotal
+SewaRp422.000
+Ongkir
+Rp60.000
+Total Bayar
+Rp482.000
+DP 30%
+Rp145.000
+Sisa
+PelunasanRp337.000
+DRAFT PENDING
+#2 RNT-202605-00025
+PELANGGAN
+Abdillah Ngestiharjo
+LOKASI
+Ngestiharjo
+TANGGAL KIRIM
+5 Juni 2026
+TANGGAL AMBIL
+6 Juni 2026
+ITEM QTY HARGA/HARI HARI SUBTOTAL
+Paket Single 90 5 Rp35.000 1 Rp175.000
+Paket Single 100 5 Rp40.000 1 Rp200.000
+Paket Double 120 5 Rp45.000 1 Rp225.000
+Add on Bantal 15 Rp7.000 1 Rp105.000
+Add on Sprei 15 Rp10.000 1 Rp150.000
+Subtotal
+SewaRp755.000
+Ongkir
+Rp55.000
+Total Bayar
+Rp810.000
+DP 30%
+Rp243.000
+Sisa
+PelunasanRp567.000
+DRAFT PENDING
+SL-INV-005
+SL-INV-019

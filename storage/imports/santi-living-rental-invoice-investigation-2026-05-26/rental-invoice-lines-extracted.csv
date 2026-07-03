@@ -1,0 +1,56 @@
+invoice_ref,line_no,item_label,item_type,sku_guess,qty,rate_per_day_idr,duration_nights,line_total_idr,evidence_chat,evidence_date
+SL-INV-001,1,Paket Single 100,package,RGE-100-BIRU,2,40000,1,80000,Cust SL - Oni Prambanan,13:06
+SL-INV-001,2,Paket Single 90,package,RGE-90-BIRU,2,35000,1,70000,Cust SL - Oni Prambanan,13:06
+SL-INV-001,3,Add on Selimut,addon,SELIMUT-UNTRACKED,4,10000,1,40000,Cust SL - Oni Prambanan,13:06
+SL-INV-002,1,Paket Single 100,package,RGE-100-BIRU,1,40000,2,80000,Cust SL - Meilina UMY,Yesterday
+SL-INV-003,1,Paket Single 90,package,RGE-90-BIRU,4,35000,2,280000,Cust SL - Tri Minomartani,Saturday
+SL-INV-003,2,Paket Double 120,package,RGE-120-BIRU,1,45000,2,90000,Cust SL - Tri Minomartani,Saturday
+SL-INV-004,1,Paket Queen 160,package,RGE-160-BIRU,1,55000,4,220000,Cust SL - Meilina UMY,Friday
+SL-INV-004,2,Paket Double 120,package,RGE-120-BIRU,1,45000,4,180000,Cust SL - Meilina UMY,Friday
+SL-INV-005,1,Paket Single 90,package,RGE-90-BIRU,2,35000,2,140000,+62 812-8025-011,Thursday
+SL-INV-005,2,Add on Bantal,addon,BANTAL-ADDON-UNSPECIFIED,3,7000,2,42000,+62 812-8025-011,Thursday
+SL-INV-005,3,Add on Sprei,addon,SPREI-UNTRACKED,3,10000,2,60000,+62 812-8025-011,Thursday
+SL-INV-005,4,Add on Selimut,addon,SELIMUT-UNTRACKED,5,10000,2,100000,+62 812-8025-011,Thursday
+SL-INV-005,5,Kipas Angin,addon,KIPAS-UNTRACKED,2,20000,2,80000,+62 812-8025-011,Thursday
+SL-INV-006,1,Paket Double 120,package,RGE-120-BIRU,1,45000,7,315000,Cust SL - Helena Tajem,Wednesday
+SL-INV-007,1,Paket Queen 160,package,RGE-160-BIRU,1,55000,1,55000,Cust SL - Bu Pujo Nogotirto,Wednesday
+SL-INV-007,2,Add on Bantal,addon,BANTAL-ADDON-UNSPECIFIED,2,7000,1,14000,Cust SL - Bu Pujo Nogotirto,Wednesday
+SL-INV-008,1,Paket Single 100,package,RGE-100-BIRU,1,40000,3,120000,Cust SL - M. Lutfi Sinduharjo,5/18/2026
+SL-INV-008,2,Add on Guling,addon,GULING-COMFY,1,7000,3,21000,Cust SL - M. Lutfi Sinduharjo,5/18/2026
+SL-INV-009,1,Paket Single 100,package,RGE-100-BIRU,3,40000,2,240000,Cust SL - Andi JaMal,5/18/2026
+SL-INV-009,2,Paket Double 120,package,RGE-120-BIRU,5,45000,2,450000,Cust SL - Andi JaMal,5/18/2026
+SL-INV-009,3,Paket Queen 160,package,RGE-160-BIRU,2,55000,2,220000,Cust SL - Andi JaMal,5/18/2026
+SL-INV-010,1,Paket Queen 160,package,RGE-160-BIRU,1,55000,6,330000,Cust SL - Supriyanto Ambarketawang,5/15/2026
+SL-INV-011,1,Paket Double 120,package,RGE-120-BIRU,1,45000,2,90000,+62 821-1693-9446,5/15/2026
+SL-INV-012,1,Paket Single 90,package,RGE-90-BIRU,3,35000,1,105000,Cust SL - Hernawan Donoharjo,5/15/2026
+SL-INV-012,2,Add on Guling,addon,GULING-COMFY,3,7000,1,21000,Cust SL - Hernawan Donoharjo,5/15/2026
+SL-INV-013,1,Paket Single 100,package,RGE-100-BIRU,1,40000,1,40000,Cust SL - Andhi Kalya Hotel,5/14/2026
+SL-INV-014,1,Paket Single 100,package,RGE-100-BIRU,1,40000,1,40000,Cust SL - Uwie Kraton,5/14/2026
+SL-INV-014,2,Selimut,addon,SELIMUT-UNTRACKED,1,10000,1,10000,Cust SL - Uwie Kraton,5/14/2026
+SL-INV-015,1,Paket Single 100,package,RGE-100-BIRU,4,40000,1,160000,Cust SL - Taufik Minggir,5/14/2026
+SL-INV-015,2,Paket Single 90,package,RGE-90-BIRU,1,35000,1,35000,Cust SL - Taufik Minggir,5/14/2026
+SL-INV-016,1,Paket Double 120,package,RGE-120-BIRU,2,45000,3,270000,Cust SL - Wahida Sedayu,5/12/2026
+SL-INV-017,1,Paket Queen 160,package,RGE-160-BIRU,1,55000,3,165000,Cust SL - Wening Mlati,5/11/2026
+SL-INV-018,1,Kasur Single 100,mattress_only,RGE-100-BIRU,1,30000,3,90000,Cust SL - Nita Seyegan,5/8/2026
+SL-INV-019,1,PAKET Single 90,package,RGE-90-BIRU,2,35000,1,70000,Cust SL - Abdillah Ngestiharjo,5/7/2026
+SL-INV-019,2,PAKET Single 100,package,RGE-100-BIRU,2,40000,1,80000,Cust SL - Abdillah Ngestiharjo,5/7/2026
+SL-INV-019,3,PAKET Double 120,package,RGE-120-BIRU,6,45000,1,270000,Cust SL - Abdillah Ngestiharjo,5/7/2026
+SL-INV-019,4,PAKET Queen 160,package,RGE-160-BIRU,5,55000,1,275000,Cust SL - Abdillah Ngestiharjo,5/7/2026
+SL-INV-019,5,Kipas Angin,addon,KIPAS-UNTRACKED,2,30000,1,60000,Cust SL - Abdillah Ngestiharjo,5/7/2026
+SL-INV-020,1,PAKET Single 90,package,RGE-90-BIRU,2,35000,1,70000,Cust SL - Adhitama HOS Cokro,5/7/2026
+SL-INV-020,2,PAKET Single 100,package,RGE-100-BIRU,2,40000,1,80000,Cust SL - Adhitama HOS Cokro,5/7/2026
+SL-INV-021,1,KASUR SAJA Queen 160,mattress_only,RGE-160-BIRU,1,45000,2,90000,Cust SL - Anik Ngestiharjo,5/5/2026
+SL-INV-022,1,PAKET Queen 160,package,RGE-160-BIRU,2,55000,3,330000,masku purunku,5/4/2026
+SL-INV-023,1,PAKET Queen 160,package,RGE-160-BIRU,6,55000,2,660000,masku purunku,5/4/2026
+SL-INV-023,2,PAKET Double 120,package,RGE-120-BIRU,4,45000,2,360000,masku purunku,5/4/2026
+SL-INV-023,3,Add on Bantal,addon,BANTAL-ADDON-UNSPECIFIED,15,7000,2,210000,masku purunku,5/4/2026
+SL-INV-024,1,PAKET Single 90,package,RGE-90-BIRU,2,35000,1,70000,masku purunku,5/4/2026
+SL-INV-025,1,PAKET Single 90,package,RGE-90-BIRU,2,35000,1,70000,Cust SL - Armyda Gamping,5/3/2026
+SL-INV-026,1,PAKET Queen 160,package,RGE-160-BIRU,6,55000,2,660000,Cust SL - Alex Seyegan,5/1/2026
+SL-INV-026,2,PAKET Double 120,package,RGE-120-BIRU,4,45000,2,360000,Cust SL - Alex Seyegan,5/1/2026
+SL-INV-026,3,Add on Bantal,addon,BANTAL-ADDON-UNSPECIFIED,15,7000,2,210000,Cust SL - Alex Seyegan,5/1/2026
+SL-INV-027,1,PAKET Queen 160,package,RGE-160-BIRU,2,55000,3,330000,Cust SL - Salsaa Sariharjo,5/1/2026
+SL-INV-028,1,Paket Double 120,package,RGE-120-BIRU,2,45000,2,180000,Cust SL - Intan Bumijo,4/30/2026
+SL-INV-029,1,Paket Double 120,package,RGE-120-BIRU,2,45000,1,90000,Cust SL - Intan Bumijo,4/29/2026
+SL-INV-030,1,PAKET Single 90,package,RGE-90-BIRU,4,35000,4,560000,Cust SL - Retno Sedayu,4/24/2026
+SL-INV-030,2,PAKET Single 100,package,RGE-100-BIRU,1,40000,4,160000,Cust SL - Retno Sedayu,4/24/2026

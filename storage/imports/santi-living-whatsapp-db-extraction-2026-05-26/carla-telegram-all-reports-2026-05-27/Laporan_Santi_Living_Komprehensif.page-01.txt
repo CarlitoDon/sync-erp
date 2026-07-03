@@ -1,0 +1,17 @@
+SANTI LIVING - Laporan Pesanan Komprehensif
+Sumber: Sync ERP + WhatsApp Business Web | Generated: 27 Mei 2026
+  EXECUTIVE SUMMARY
+  Total Customers di Sync ERP 55
+  Rental Orders di ERP 26
+  Order Complete di WhatsApp 47
+  Orders sudah di-ERP 26 (55%)
+  Orders BELUM di-ERP 21 (45%)
+  Total Revenue (ERP) Rp8.811.000
+  Total DP Terkumpul Rp1.875.000
+  Total Sisa Pelunasan Rp6.936.000
+  Rata-rata per Order Rp338.884
+  STATUS PEMBAYARAN
+  Belum ada DP (waiting) 11 orders = Rp2.570.000
+  Sudah DP, menunggu pelunasan 15 orders = Rp6.936.000
+  Sudah lunas 0 orders
+Halaman 1/3

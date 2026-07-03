@@ -1,0 +1,12 @@
+order_id,action,partner_action,order_id_created,order_number,total_amount,status,message
+ORD-001,exists,reuse,6fecd33b-033c-4aa8-8393-118f36cb2ec9,RNT-202605-00051,40000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-002,exists,reuse,7f4ce1b3-fc7f-4926-b068-35a91a539bed,RNT-202605-00052,140000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-007,exists,reuse,25c35a9f-4181-4004-acd7-4f0a1fcfacca,RNT-202605-00053,133000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-023,exists,reuse,853e638c-4af8-4a8b-a5dd-103a2fefcfa0,RNT-202605-00054,770000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-026,exists,reuse,53acd7c6-497b-4753-aa13-15c71ba169f4,RNT-202605-00055,1500000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-027,exists,reuse,54e3d526-c8b2-4b02-88f5-1dc0d40e0c39,RNT-202605-00056,60000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-029,exists,reuse,c1f91d8c-4c6d-4524-9f4d-0b7ad7328a7c,RNT-202605-00057,255000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-032,exists,reuse,051aceab-4aae-4c0b-ab4a-847e837d89bf,RNT-202605-00058,455000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-033,exists,reuse,77273c64-3080-452b-84d8-8d3cbfa7b6c9,RNT-202605-00059,140000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-034,exists,reuse,815a2440-547b-4443-a5d7-ad6b5f752f38,RNT-202605-00060,690000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-039,exists,reuse,df66fd3b-ccc0-441e-8486-ee42afdb3eab,RNT-202605-00061,155000,DRAFT,Already exists with matching sheet_order_id; no duplicate created

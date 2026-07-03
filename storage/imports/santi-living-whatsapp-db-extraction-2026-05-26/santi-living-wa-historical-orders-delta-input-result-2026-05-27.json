@@ -1,0 +1,28 @@
+{
+  "companyId": "f023d223-f787-4007-9660-1bfa155c6ec4",
+  "importBatch": "santi-living-wa-historical-orders-delta-2026-05-27",
+  "action": "created",
+  "order": {
+    "invoiceRef": "SL-WA-022",
+    "orderNumber": "RNT-202605-00049",
+    "orderId": "9289bba3-7645-41d5-8101-b29f2f73d66b",
+    "partnerName": "Cust SL d@π1€£ - Jakal KM9",
+    "startDate": "2026-02-20",
+    "endDate": "2026-02-22",
+    "total": 113000
+  },
+  "totals": {
+    "slWaCount": 22,
+    "slWaTotal": 7784000,
+    "slInvCount": 27,
+    "slInvTotal": 9016000,
+    "scopedCount": 49,
+    "scopedTotal": 16800000
+  },
+  "duplicateRefs": [],
+  "unresolvedAfterRetry": [
+    "Cust SL - Agashi UNY: Web retry removed explicit older-message button, but invoice before 2026-01-31 still not visible; existing native evidence has conflicting Rp20.000/Rp40.000 candidates.",
+    "Cust SL Harza Arbaha Wates KP: Web shows address/payment/refund context but no invoice total or item lines.",
+    "Cust SL - Intan Griya Alvita: Web shows route/address/review context and Paket 120 route note, but no invoice total."
+  ]
+}

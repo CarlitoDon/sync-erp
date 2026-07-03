@@ -1,0 +1,46 @@
+{
+  "companyId": "f023d223-f787-4007-9660-1bfa155c6ec4",
+  "partnerAction": "skipped",
+  "orderAction": "reused",
+  "orderId": "14d9d0c4-7d0b-4328-a40b-d6931e185905",
+  "orderNumber": "RNT-202605-00027",
+  "invoiceRef": "SL-INV-031",
+  "bayuOrders": [
+    {
+      "id": "14d9d0c4-7d0b-4328-a40b-d6931e185905",
+      "orderNumber": "RNT-202605-00027",
+      "partnerName": "Cust SL - Bayu Vila Gardenia",
+      "rentalStartDate": "2026-05-27T17:00:00.000Z",
+      "rentalEndDate": "2026-05-31T17:00:00.000Z",
+      "dueDateTime": "2026-06-01T11:00:00.000Z",
+      "subtotal": "160000",
+      "deliveryFee": "45000",
+      "totalAmount": "205000",
+      "status": "DRAFT",
+      "rentalPaymentStatus": "PENDING",
+      "dp": "62000",
+      "remaining": "143000"
+    }
+  ],
+  "requiredCurrentSourceCount": 27,
+  "currentSlInvOrderCount": 27,
+  "currentSlInvTotal": 9016000,
+  "expectedCurrentSlInvTotal": 9016000,
+  "statusCounts": {
+    "DRAFT": 27
+  },
+  "paymentStatusCounts": {
+    "PENDING": 27
+  },
+  "missingRequiredRefs": [],
+  "duplicateRefs": [],
+  "supersededExcluded": [
+    {
+      "customer": "Intan Candra",
+      "totalIdr": 120000,
+      "reviewNote": "superseded by current Intan Candra 2-night invoice Rp210.000 / SL-INV-028"
+    }
+  ],
+  "afterFixLedger": "/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-whatsapp-db-extraction-2026-05-26/santi-living-rental-orders-final-after-fix-ledger-2026-05-27.csv",
+  "unmappedAfterFix": "/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-whatsapp-db-extraction-2026-05-26/santi-living-rental-orders-unmapped-after-fix-2026-05-27.csv"
+}

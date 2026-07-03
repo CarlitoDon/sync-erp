@@ -1,0 +1,63 @@
+BCA
+
+Transfer Successful
+31 Jan 2026 09:26:56
+
+IDR 2,200,000.00
+Beneficiary Name IKA HENDRASANTI
+Beneficiary Account 802 - 067 - 3461
+Transaction Type Transfer to BCA Account
+Transfer Currency IDR - Indonesian Rupiah
+Source of Fund 037 - 4** - **74
+Source Currency IDR - Indonesian Rupiah
+Transfer Amount IDR 2,200,000.00
+Remarks Kasur an Salya
+Reference No. 95271202601310926563
+
+59TRF1137239470
+
+BCA
+
+Transfer Successful
+
+31 Jan 2026 09:26:56
+
+IDR 2,200,000.00
+
+Beneficiary Name
+
+IKA HENDRASANTI
+
+Beneficiary Account
+
+802 - 067 - 3461
+
+Transaction Type
+
+Transfer to BCA Account
+
+Transfer Currency
+
+IDR - Indonesian Rupiah
+
+Source of Fund
+
+037 - 4** - **74
+
+Source Currency
+
+IDR - Indonesian Rupiah
+
+Transfer Amount
+
+IDR 2,200,000.00
+
+Remarks
+
+Kasur an Salya
+
+Reference No.
+
+95271202601310926563
+
+59TRF1137239470

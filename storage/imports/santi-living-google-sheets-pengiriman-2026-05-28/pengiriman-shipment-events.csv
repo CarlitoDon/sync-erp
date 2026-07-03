@@ -1,0 +1,114 @@
+source_sheet,source_row,shipment_id,order_id,event_date,customer_name,location,route_order,method,event_type,is_fixed,evidence_note
+🔴 DATA Pengiriman - ORD,3,SHP-001,ORD-001,2026-01-30,Agashi,"7° 46' 26.634"" S 110° 22' 57.4212"" E",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,4,SHP-002,ORD-001,2026-02-01,Agashi,"7° 46' 26.634"" S 110° 22' 57.4212"" E",,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,5,SHP-003,ORD-002,2026-02-05,Via,Rumah Raharja,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,6,SHP-004,ORD-002,2026-02-09,Via,Rumah Raharja,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,7,SHP-005,ORD-003,2026-02-14,Adani,"7° 41' 56.3453"" S 110° 23' 14.1965"" E",,Display,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,8,SHP-007,ORD-004,2026-02-14,Harza,RM. Ono Sambele,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,9,SHP-006,ORD-003,2026-02-15,Adani,"7° 41' 56.3453"" S 110° 23' 14.1965"" E",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,10,SHP-008,ORD-004,2026-02-15,Harza,RM. Ono Sambele,,Display,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,11,SHP-009,ORD-006,2026-02-18,Vivi,"Gloria Motor Katamso, Yka",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,12,SHP-010,ORD-006,2026-02-19,Vivi,"Gloria Motor Katamso, Yka",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,13,SHP-011,ORD-007,2026-02-20,Danie,PESONA MENTARI REGENCY,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,14,SHP-012,ORD-007,2026-02-22,Danie,PESONA MENTARI REGENCY,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,15,SHP-013,ORD-012,2026-03-15,Abdul Azis,"7° 46' 29.7264"" S 110° 18' 51.2064"" E",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,16,SHP-014,ORD-012,2026-03-17,Abdul Azis,"7° 46' 29.7264"" S 110° 18' 51.2064"" E",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,17,SHP-014,ORD-010,2026-03-17,Felis/Ella,Jitar Dukuh,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,18,SHP-014,ORD-013,2026-03-17,Intan,Griya Alvita AK-4,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,19,SHP-015,ORD-009,2026-03-17,Lucky Enjang,BMT BIF Cabang Tajem,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,20,SHP-016,ORD-009,2026-03-18,Lucky Enjang,BMT BIF Cabang Tajem,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,21,SHP-017,ORD-011,2026-03-18,Yani Andari,HOS Warehouse,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,22,SHP-017,ORD-014,2026-03-18,Fendy,"7° 48' 52.3195"" S 110° 24' 26.6198"" E",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,23,SHP-018,ORD-005,2026-03-19,Nisrina,Jl. Masjid Besar No.905,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,24,SHP-018,ORD-017,2026-03-19,Abdul Azis,"7° 46' 29.7264"" S 110° 18' 51.2064"" E",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,25,SHP-019,ORD-013,2026-03-20,Intan,Griya Alvita AK-4,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,26,SHP-020,ORD-015,2026-03-20,Antoni,TUGU BINTANG DUSUN NYAMPLUNG,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,27,SHP-021,ORD-017,2026-03-22,Abdul Azis,"7° 46' 29.7264"" S 110° 18' 51.2064"" E",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,28,SHP-022,ORD-010,2026-03-23,Felis/Ella,Jitar Dukuh,1,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,29,SHP-022,ORD-005,2026-03-23,Nisrina,Jl. Masjid Besar No.905,2,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,30,SHP-022,ORD-018,2026-03-23,Alfrida,Kontrakan Gg.Mulyadi,3,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,31,SHP-022,ORD-016,2026-03-23,Feris,"7° 43' 19.7926"" S 110° 23' 33.1865"" E",4,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,32,SHP-023,ORD-015,2026-03-24,Antoni,TUGU BINTANG DUSUN NYAMPLUNG,1,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,33,SHP-023,ORD-011,2026-03-24,Yani Andari,HOS Warehouse,2,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,34,SHP-023,ORD-020,2026-03-24,Eksperian,Perumahan Taman Ayom,3,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,35,SHP-024,ORD-016,2026-03-25,Feris,"7° 43' 19.7926"" S 110° 23' 33.1865"" E",1,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,36,SHP-024,ORD-011,2026-03-25,Yani Andari,HOS Warehouse,2,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,37,SHP-025,ORD-016,2026-03-26,Feris,"7° 43' 19.7926"" S 110° 23' 33.1865"" E",1,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,38,SHP-025,ORD-019,2026-03-26,Dzaky,"7° 42' 47.7036"" S 110° 17' 7.3248"" E",2,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,39,SHP-026,ORD-021,2026-03-27,Muji,Jalan Kaliurang No.km 19,1,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,40,SHP-026,ORD-018,2026-03-27,Alfrida,Kontrakan Gg.Mulyadi,2,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,41,SHP-026,ORD-016,2026-03-27,Feris,"7° 43' 19.7926"" S 110° 23' 33.1865"" E",3,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,42,SHP-027,ORD-014,2026-03-28,Fendy,"7° 48' 52.3195"" S 110° 24' 26.6198"" E",,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,43,SHP-028,ORD-022,2026-03-28,Jhon BT,Gg. Saridi No.567,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,44,SHP-029,ORD-019,2026-03-29,Dzaky,"7° 42' 47.7036"" S 110° 17' 7.3248"" E",1,Mandiri,Jemput,false,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,45,SHP-029,ORD-020,2026-03-29,Eksperian,Perumahan Taman Ayom,2,Mandiri,Jemput,false,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,46,SHP-030,ORD-022,2026-03-31,Jhon BT,Gg. Saridi No.567,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,47,SHP-031,ORD-023,2026-04-02,Asti,BATIKEAKU 2,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,48,SHP-032,ORD-024,2026-04-03,Aries,"7° 44' 36.2404"" S 110° 24' 12.6673"" E",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,49,SHP-033,ORD-025,2026-04-06,Zami,Omah Cucu Teta,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,50,SHP-034,ORD-024,2026-04-06,Aries,"7° 44' 36.2404"" S 110° 24' 12.6673"" E",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,51,SHP-035,ORD-026,2026-04-09,Misfa,Young Independent Home Produksi,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,52,SHP-036,ORD-028,2026-04-10,Aryadi,"7° 48' 26.402"" S 110° 24' 13.4089"" E",,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,53,SHP-036,ORD-023,2026-04-10,Asti,BATIKEAKU 2,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,54,SHP-036,ORD-025,2026-04-10,Zami,Omah Cucu Teta,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,55,SHP-037,ORD-027,2026-04-10,Imron,Joglo Brongkol Hall,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,56,SHP-038,ORD-030,2026-04-11,Harmawan,The Swantari Terrace View Villa,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,57,SHP-038,ORD-027,2026-04-11,Imron,Joglo Brongkol Hall,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,58,SHP-039,ORD-029,2026-04-11,Emma,Komisi Penanggulangan AIDS,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,59,SHP-040,ORD-031,2026-04-12,Nawang,ZAHRA IN HERE,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,60,SHP-040,ORD-030,2026-04-12,Harmawan,The Swantari Terrace View Villa,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,61,SHP-041,ORD-028,2026-04-12,Aryadi,"7° 48' 26.402"" S 110° 24' 13.4089"" E",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,62,SHP-042,ORD-031,2026-04-13,Nawang,ZAHRA IN HERE,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,63,SHP-043,ORD-029,2026-04-13,Emma,Komisi Penanggulangan AIDS,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,64,SHP-044,ORD-026,2026-04-16,Misfa,Young Independent Home Produksi,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,65,SHP-045,ORD-032,2026-04-18,Yayoe,Kolam Renang Umbul Tirta,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,66,SHP-045,ORD-033,2026-04-18,Baby,Kost pak rakijo,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,67,SHP-046,ORD-032,2026-04-19,Yayoe,Kolam Renang Umbul Tirta,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,68,SHP-046,ORD-033,2026-04-19,Baby,Kost pak rakijo,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,69,SHP-047,ORD-034,2026-05-01,Ling Santa,Persada Homestay By WHouse,om denny,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,70,SHP-047,ORD-035,2026-05-01,Intan Candra,Jl. Bumijo Tengah No.3,om denny,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,71,SHP-048A,ORD-034,2026-05-03,Ling Santa,Persada Homestay By WHouse,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,72,SHP-048B,ORD-035,2026-05-03,Intan Candra,Jl. Bumijo Tengah No.3,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,73,SHP-049,ORD-036,2026-05-07,Alex,"State Elementary School, Bokong",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,74,SHP-050,ORD-036,2026-05-09,Alex,"State Elementary School, Bokong",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,75,SHP-051,ORD-037,2026-05-09,Armyda,"7° 48' 39.7901"" S 110° 17' 25.9807"" E",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,76,SHP-051,ORD-038,2026-05-09,Adhitama,BPKI Dinas Pariwisata DIY,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,77,SHP-052,ORD-037,2026-05-10,Armyda,"7° 48' 39.7901"" S 110° 17' 25.9807"" E",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,78,SHP-052,ORD-038,2026-05-10,Adhitama,BPKI Dinas Pariwisata DIY,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,79,SHP-053,ORD-039,2026-05-11,Qui - Jo,Gg. Bougenville 8-3,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,80,SHP-054,ORD-040,2026-05-13,Anik,Digituin Creative Lab,1,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,81,SHP-054,ORD-039,2026-05-13,Qui - Jo,Gg. Bougenville 8-3,2,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,82,SHP-055,ORD-041,2026-05-14,Salsaa,"7° 44' 45.9838"" S 110° 22' 16.9262"" E",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,83,SHP-055,ORD-042,2026-05-14,Nita,Nitasya MUA & MANA Kopi Office,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,84,SHP-055,ORD-043,2026-05-14,Wening,"7° 44' 22.978"" S 110° 19' 24.9078"" E",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,85,SHP-056,ORD-044,2026-05-14,Andhi,Kalya Hotel,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,86,SHP-057,ORD-040,2026-05-15,Anik,Digituin Creative Lab,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,87,SHP-058,ORD-044,2026-05-15,Andhi,Kalya Hotel,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,88,SHP-059,ORD-045,2026-05-15,Uwie,Singgah.ndalem,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,89,SHP-060,ORD-045,2026-05-16,Uwie,Singgah.ndalem,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,90,SHP-061,ORD-046,2026-05-16,Taufik,"7° 43' 33.7901"" S 110° 15' 46.994"" E",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,91,SHP-062,ORD-043,2026-05-17,Wening,"7° 44' 22.978"" S 110° 19' 24.9078"" E",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,92,SHP-062,ORD-042,2026-05-17,Nita,Nitasya MUA & MANA Kopi Office,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,93,SHP-062,ORD-046,2026-05-17,Taufik,"7° 43' 33.7901"" S 110° 15' 46.994"" E",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,94,SHP-063,ORD-041,2026-05-17,Salsaa,"7° 44' 45.9838"" S 110° 22' 16.9262"" E",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,95,SHP-063,ORD-047,2026-05-17,Hernawan,"Homestay Mondoroko ""Bu Renuk""",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,96,SHP-064,ORD-047,2026-05-18,Hernawan,"Homestay Mondoroko ""Bu Renuk""",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,97,SHP-065,ORD-048,2026-05-20,Wahida,Griya Nousha,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,98,SHP-066,ORD-049,2026-05-20,Helena,BMT BIF Cabang Tajem,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,99,SHP-067,ORD-050,2026-05-21,Bu Pujo,"7° 46' 12"" S 110° 19' 57.9"" E",,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,100,SHP-068,ORD-050,2026-05-22,Bu Pujo,"7° 46' 12"" S 110° 19' 57.9"" E",,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,101,SHP-069,ORD-048,2026-05-23,Wahida,Griya Nousha,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,102,SHP-070,ORD-051,2026-05-23,Meilina,Sambara HomeStay,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,103,SHP-071,ORD-049,2026-05-25,Helena,BMT BIF Cabang Tajem,,Fortuner,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,104,SHP-071,ORD-052,2026-05-25,Meilina,Sambara HomeStay,,Fortuner,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,105,SHP-072,ORD-053,2026-05-26,Retno,Royal Sedayu Residence,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,106,SHP-072,ORD-054,2026-05-26,Supriyanto,UD. SGS,,Mandiri,Antar,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,107,SHP-073,ORD-052,2026-05-26,Meilina,Sambara HomeStay,,Mandiri,Jemput,true,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,108,,ORD-055,2026-05-29,M. Lutfi,Homestay Sido Sare,,,Antar,false,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,109,,ORD-053,2026-05-30,Retno,Royal Sedayu Residence,,,Jemput,false,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,110,,ORD-056,2026-05-30,Andi,Gg. Loncang No.162-136,,,Antar,false,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,111,,ORD-057,2026-05-30,Tri Widh,"7° 44' 21.0905"" S 110° 24' 28.4566"" E",,,Antar,false,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,112,,ORD-054,2026-06-01,Supriyanto,UD. SGS,,,Jemput,false,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,113,,ORD-055,2026-06-01,M. Lutfi,Homestay Sido Sare,,,Jemput,false,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,114,,ORD-056,2026-06-01,Andi,Gg. Loncang No.162-136,,,Jemput,false,google_sheet_export_2026-05-28
+🔴 DATA Pengiriman - ORD,115,,ORD-057,2026-06-01,Tri Widh,"7° 44' 21.0905"" S 110° 24' 28.4566"" E",,,Jemput,false,google_sheet_export_2026-05-28

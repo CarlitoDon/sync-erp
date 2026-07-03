@@ -1,0 +1,48 @@
+SANTI LIVING - Laporan Pesanan LENGKAP
+Sync ERP + WhatsApp Business | 27 Mei 2026 | 46 Orders
+  RINGKASAN PER CUSTOMER UNIK
+# Customer Ord Total DP Sisa
+1 Alex Seyegan 1 Rp1.134.000 Rp340.000 Rp794.000
+2 Andi JaMal 1 Rp965.000 Rp290.000 Rp675.000
+3 Muji 3 Rp824.000 - Rp824.000
+4 Abdillah Ngestiharjo 1 Rp810.000 Rp243.000 Rp567.000
+5 Antoni 1 Rp804.000 - Rp804.000
+6 Retno Sedayu 1 Rp745.000 Rp220.000 Rp525.000
+7 Feris 1 Rp685.000 - Rp685.000
+8 Felis / Ella 1 Rp644.000 Rp300.000 Rp344.000
+9 Fendy 1 Rp642.000 - Rp642.000
+10 Dzaky 1 Rp552.000 - Rp552.000
+11 Nisrina 1 Rp518.000 - Rp518.000
+12 Evi Gowok 1 Rp482.000 Rp145.000 Rp337.000
+13 Abdul Aziz Salimi 2 Rp452.000 - Rp452.000
+14 Tri Minomartani 1 Rp430.000 Rp129.000 Rp301.000
+15 Meilina UMY 1 Rp430.000 Rp129.000 Rp301.000
+16 Aryadi 1 Rp420.000 Rp126.000 Rp294.000
+17 Salsaa Sariharjo 1 Rp375.000 Rp113.000 Rp262.000
+18 Alfrida 1 Rp370.000 - Rp370.000
+19 Helena Tajem 1 Rp369.000 Rp111.000 Rp258.000
+20 Supriyanto Ambarketawang 1 Rp355.000 Rp107.000 Rp248.000
+21 Oni Prambanan 1 Rp315.000 Rp95.000 Rp220.000
+22 Wahida Sedayu 1 Rp300.000 Rp90.000 Rp210.000
+23 Fendy (Perpanjangan) 1 Rp264.000 - Rp264.000
+24 Taufik Minggir 1 Rp235.000 Rp71.000 Rp164.000
+25 Intan Bumijo 1 Rp210.000 Rp63.000 Rp147.000
+26 Zami Fatih 1 Rp205.000 - Rp205.000
+27 Wening Mlati 1 Rp200.000 Rp60.000 Rp140.000
+28 M. Lutfi Sinduharjo 1 Rp196.000 Rp59.000 Rp137.000
+29 Hernawan Donoharjo 1 Rp186.000 Rp56.000 Rp130.000
+30 Adhitama HOS Cokro 1 Rp185.000 Rp56.000 Rp129.000
+31 Jhon BT 1 Rp183.000 Rp75.000 Rp108.000
+32 Nawang 2 Rp155.000 Rp50.000 Rp105.000
+33 Gissa Wedomartani 1 Rp150.000 Rp45.000 Rp105.000
+34 Harmawan 1 Rp145.000 Rp45.000 Rp100.000
+35 Nita Seyegan 1 Rp135.000 Rp41.000 Rp94.000
+36 Anik Ngestiharjo 1 Rp125.000 Rp38.000 Rp87.000
+37 Armyda Gamping 1 Rp105.000 Rp32.000 Rp73.000
+38 Meilina UMY (Tambahan) 1 Rp100.000 - Rp100.000
+39 Bu Pujo Nogotirto 1 Rp94.000 Rp28.000 Rp66.000
+40 Lucky Enjang 1 Rp93.000 Rp40.000 Rp53.000
+41 Uwie Kraton 1 Rp90.000 Rp27.000 Rp63.000
+42 Andhi Kalya Hotel 1 Rp90.000 - Rp90.000
+TOTAL (42 customers) Rp15.767.000 Rp3.224.000 Rp12.543.000
+Halaman 4/4

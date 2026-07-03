@@ -1,0 +1,47 @@
+SANTI LIVING - Laporan Pesanan Lengkap
+Sumber: Sync ERP + WhatsApp Business Web | Tanggal: 27 Mei 2026
+  DETAIL PESANAN PER CUSTOMER
+  #1 Evi Gowok  (RNT-202605-00026)
+Lokasi: Gowok
+Kirim: 1 Agustus 2026
+Ambil: 3 Agustus 2026
+Durasi: 2 malam
+Detail Pesanan:
+- Paket Single 90: 2 pcs x Rp35.000 x 2 = Rp140.000
+- Add on Bantal: 3 pcs x Rp7.000 x 2 = Rp42.000
+- Add on Sprei: 3 pcs x Rp10.000 x 2 = Rp60.000
+- Add on Selimut: 5 pcs x Rp10.000 x 2 = Rp100.000
+- Kipas Angin: 2 pcs x Rp20.000 x 2 = Rp80.000
+Ongkir: Rp60.000
+TOTAL: Rp482.000
+DP 30%: Rp145.000
+Sisa: Rp337.000
+  #2 Abdillah Anwar  (RNT-202605-00025)
+Lokasi: Ngestiharjo, Kasihan
+Kirim: 5 Juni 2026
+Ambil: 6 Juni 2026
+Durasi: 1 malam
+Detail Pesanan:
+- PAKET Single 90: 2 pcs x Rp35.000 = Rp70.000
+- PAKET Single 100: 2 pcs x Rp40.000 = Rp80.000
+- PAKET Double 120: 6 pcs x Rp45.000 = Rp270.000
+- PAKET Queen 160: 5 pcs x Rp55.000 = Rp275.000
+- Kipas Angin: 2 pcs x Rp30.000 = Rp60.000
+Ongkir: Rp55.000
+TOTAL: Rp810.000
+DP 30%: Rp243.000
+Sisa: Rp567.000
+  #3 Andi (Jl. Magelang)  (RNT-202605-00024)
+Lokasi: Jl. Magelang
+Kirim: 30 Mei 2026
+Ambil: 1 Juni 2026
+Durasi: 2 malam
+Detail Pesanan:
+- Paket Single 100: 3 pcs x Rp40.000 x 2 = Rp240.000
+- Paket Double 120: 5 pcs x Rp45.000 x 2 = Rp450.000
+- Paket Queen 160: 2 pcs x Rp55.000 x 2 = Rp220.000
+Ongkir: Rp55.000
+TOTAL: Rp965.000
+DP 30%: Rp290.000
+Sisa: Rp675.000
+Halaman 3/9

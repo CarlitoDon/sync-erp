@@ -1,0 +1,10 @@
+file,source_type,pages_or_type,main_content,reliability_notes
+santi_living_orders_report.pdf,PDF from Telegram,8,26 ERP orders; total Rp8.811.000; DP Rp2.645.000; sisa Rp6.166.000; ongkir Rp1.159.000,Earlier ERP snapshot; DP differs from later final script/current ledger.
+santi_living_whatsapp_leads_closings.pdf,PDF from Telegram,3,77 chats; 45 leads; 32 closing/customer; 26 nominal closings total Rp8.811.000 plus 6 zero-total closings,"Lead/closing label summary, not full rental-order ledger."
+Laporan_Pesanan_Santi_Living.pdf,PDF from Telegram,6,"WhatsApp labels: 47 Order Complete, 27 Lead, 7 Down Payment, 58 active",Label inventory; no full invoices for many rows.
+Laporan_Pesanan_Santi_Living_Lengkap.pdf,PDF from Telegram,8,15 detailed invoices plus 31 Order Complete rows without invoice detail,Intermediate; says many complete rows need chat verification.
+Laporan_Pesanan_Santi_Living_Lengkap_ERP.pdf,PDF from Telegram,9,26 ERP orders; total Rp8.811.000; DP Rp1.875.000; sisa Rp6.936.000,ERP-focused PDF; DP basis conflicts with other reports.
+Laporan_Santi_Living_Komprehensif.pdf,PDF from Telegram,3,26 ERP orders; 47 WhatsApp complete; says 20/21 not in ERP; ERP revenue Rp8.811.000,Intermediate reconciliation; list count says 21 but table lists 20.
+Laporan_Santi_Living_LENGKAP.pdf,PDF from Telegram,4,46 orders: 26 ERP + 20 WhatsApp; total Rp15.767.000; DP Rp3.224.000; sisa Rp12.543.000,Important but superseded by Carla state message 1745 because Aries was added later.
+img_40df8ddeedcb.jpg,JPG from Telegram,image,856x1 image strip; no usable content,Ignore as evidence.
+carla-state-message-1745-call-0.content.py,Carla state.db extracted script,n/a,Final 47 orders: 26 ERP + 21 WhatsApp; total Rp16.482.000; DP Rp3.524.000; sisa Rp12.958.000,Most complete Carla-produced artifact; includes Aries Rp715.000 and 4 no-invoice unresolved rows.

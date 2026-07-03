@@ -1,0 +1,46 @@
+order_id,customer_name,location,rental_start_date,rental_end_date,items_summary,total_idr,remaining_idr,source_priority,needs_whatsapp_attachment,recommended_action
+ORD-001,Agashi,"7° 46' 26.634"" S 110° 22' 57.4212"" E",2026-01-30,2026-02-01,Kasur 90x200,40000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-002,Via,Rumah Raharja,2026-02-05,2026-02-09,Paket 90x200,140000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-003,Adani,"7° 41' 56.3453"" S 110° 23' 14.1965"" E",2026-02-14,2026-02-15,"Paket 160x200, Paket 100x200",300000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-004,Harza,RM. Ono Sambele,2026-02-14,2026-02-15,"Paket 120x200, Paket 160x200",375000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-005,Nisrina,Jl. Masjid Besar No.905,2026-03-19,2026-03-23,Paket 160x200,518000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-006,Vivi,"Gloria Motor Katamso, Yka",2026-02-18,2026-02-19,"Paket 160x200, Ekstra Guling",110000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-007,Danie,PESONA MENTARI REGENCY,2026-02-20,2026-02-22,Paket 120x200,133000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-009,Lucky Enjang,BMT BIF Cabang Tajem,2026-03-17,2026-03-18,Paket 90x200,93000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-010,Felis/Ella,Jitar Dukuh,2026-03-17,2026-03-23,"Paket 160x200, Paket 100x200",618000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-011,Yani Andari,HOS Warehouse,2026-03-18,2026-03-24,"Paket 160x200, Paket 100x200, Paket 90x200",1206000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-012,Abdul Azis,"7° 46' 29.7264"" S 110° 18' 51.2064"" E",2026-03-15,2026-03-17,Paket 160x200,128000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-013,Intan,Griya Alvita AK-4,2026-03-17,2026-03-20,Paket 120x200,147000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-014,Fendy,"7° 48' 52.3195"" S 110° 24' 26.6198"" E",2026-03-18,2026-03-28,Paket 100x200,880000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-015,Antoni,TUGU BINTANG DUSUN NYAMPLUNG,2026-03-20,2026-03-24,Paket 120x200,784000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-016,Feris,"7° 43' 19.7926"" S 110° 23' 33.1865"" E",2026-03-23,2026-03-25,"Paket 100x200, Paket 120x200, Paket 160x200",638000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-017,Abdul Azis,"7° 46' 29.7264"" S 110° 18' 51.2064"" E",2026-03-19,2026-03-22,"Paket 160x200, Paket 120x200",324000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-018,Alfrida,Kontrakan Gg.Mulyadi,2026-03-23,2026-03-27,"Paket 160x200, Ekstra Bantal",348000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-019,Dzaky,"7° 42' 47.7036"" S 110° 17' 7.3248"" E",2026-03-26,2026-03-29,Paket 160x200,531000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-020,Eksperian,Perumahan Taman Ayom,2026-03-24,2026-03-26,Paket 160x200,118000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-021,Muji,Jalan Kaliurang No.km 19,2026-03-24,2026-03-27,"PAKET Double 120 → 4 pcs 
+PAKET Single 100 → 1 pcs",824000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-022,Jhon BT,Gg. Saridi No.567,2026-03-28,2026-03-30,"PAKET Queen 160→ 1 pc
+Sprei 100→ 1 pc",183000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-023,Asti,BATIKEAKU 2,2026-04-02,2026-04-10,PAKET Double 120→ 2 pcs,770000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-024,Aries,"7° 44' 36.2404"" S 110° 24' 12.6673"" E",2026-04-03,2026-04-06,"PAKET Single 90 → 1 pcs 
+PAKET Single 100 → 2 pcs 
+PAKET Single 120 → 3 pcs",715000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-025,Zami,Omah Cucu Teta,2026-04-06,2026-04-10,"PAKET Double 120→ 1 pcs 
+Free sewa guling 2",205000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-026,Misfa,Young Independent Home Produksi,2026-04-09,2026-04-16,PAKET Queen 160 → 4 pcs,1500000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-027,Imron,Joglo Brongkol Hall,2026-04-10,2026-04-11,PAKET Double 120 → 1 pcs,60000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-028,Aryadi,"7° 48' 26.402"" S 110° 24' 13.4089"" E",2026-04-10,2026-04-12,PAKET Double 120→ 4 pcs,420000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-029,Emma,Komisi Penanggulangan AIDS,2026-04-11,2026-04-13,PAKET Queen 160 → 2 pcs,255000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-030,Harmawan,The Swantari Terrace View Villa,2026-04-11,2026-04-12,PAKET Single 90 → 3 pcs,145000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-031,Nawang,ZAHRA IN HERE,2026-04-12,2026-04-13,PAKET Double 120 → 1 pcs,60000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-032,Yayoe,Kolam Renang Umbul Tirta,2026-04-18,2026-04-19,"PAKET Single 90 → 3 pcs
+PAKET Single 100 → 4 pcs
+PAKET Double 120 → 3 pcs",455000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-033,Baby,Kost pak rakijo,2026-04-18,2026-04-19,PAKET Queen 160 → 2 pcs,140000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-034,Ling Santa,Persada Homestay By WHouse,2026-05-01,2026-05-03,"PAKET Single 90 → 3 pcs 
+PAKET Single 100 → 3 pcs
+PAKET Double 120 → 1 pcs 
+Add on Selimut → 5 pcs",690000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found
+ORD-039,Qui - Jo,Gg. Bougenville 8-3,2026-05-11,2026-05-13,"PAKET Single 100 → 1 pcs
+Add on Selimut → 1 pcs",155000,0,google_sheet_pengiriman,yes_if_available,create draft rental order from sheet after approval; attach sheet evidence and later WhatsApp if found

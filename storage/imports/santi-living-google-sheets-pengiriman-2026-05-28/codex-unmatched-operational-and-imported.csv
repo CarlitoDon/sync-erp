@@ -1,0 +1,15 @@
+kind,ref,customer_name,start,end,items_or_note,total_idr,remaining_idr,source_row_or_order_number
+unmatched_main_pengiriman,13,Feris (extend p),2026-03-25,2026-03-26,"PAKET Double 120→ 2 pcs 
+PAKET Double 160→ 2 pcs",239000,0,13
+unmatched_main_pengiriman,14,Feris (extend p),2026-03-26,2026-03-27,"PAKET Double 120→ 1 pc
+PAKET Double 160→ 1 pc",131000,0,14
+unmatched_main_pengiriman,16,Yani (extend p),2026-03-24,2026-03-25,PAKET Queen 160 → 1 pc,80000,0,16
+unmatched_main_pengiriman,59,Bayu,2026-05-28,2026-06-01,PAKET Single 100 → 1 pcs,205000,105000,59
+unmatched_main_pengiriman,68,Abdillah Anwar,2026-06-05,2026-06-06,"PAKET Single 90 → 2 pcs 
+PAKET Single 100 → 2 pcs 
+PAKET Double 120 → 6 pcs 
+PAKET Queen 160 → 5 pcs
+Kipas Angin → 2 pcs",810000,410000,68
+unmatched_imported_invoice,SL-INV-005,Evi,2026-08-01,2026-08-03,Imported/WhatsApp candidate not found in Pengiriman ORD spine,482000,,RNT-202605-00026
+unmatched_imported_invoice,SL-INV-011,Gissa,2026-05-15,2026-05-17,Imported/WhatsApp candidate not found in Pengiriman ORD spine,150000,,RNT-202605-00010
+unmatched_imported_invoice,SL-INV-019,Abdillah Anwar,2026-06-05,2026-06-06,Imported/WhatsApp candidate not found in Pengiriman ORD spine,810000,,RNT-202605-00025

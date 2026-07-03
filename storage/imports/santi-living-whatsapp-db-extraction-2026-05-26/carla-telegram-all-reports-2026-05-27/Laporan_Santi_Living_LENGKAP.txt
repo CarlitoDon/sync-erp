@@ -1,0 +1,149 @@
+SANTI LIVING - Laporan Pesanan LENGKAP
+Sync ERP + WhatsApp Business | 27 Mei 2026 | 46 Orders
+  EXECUTIVE SUMMARY
+  Total Customers 71 (55 ERP + 16 WA)
+  Total Rental Orders 46 orders
+    Dari Sync ERP 26 orders
+    Dari WhatsApp (baru) 20 orders
+  Customer tanpa Invoice 5
+  TOTAL REVENUE Rp15.767.000
+    Dari ERP Rp8.811.000
+    Dari WhatsApp Rp6.956.000
+  Total DP Terkumpul Rp3.224.000
+  Total Sisa Pelunasan Rp12.543.000
+  Rata-rata per Order Rp342.760
+  KATEGORI:
+    Paket Standar (normal) 22 orders
+    Paket Lebaran 2026 15 orders
+    Paket + Add On 7 orders
+    Kasur Saja 2 orders
+Halaman 1/4
+
+SANTI LIVING - Laporan Pesanan LENGKAP
+Sync ERP + WhatsApp Business | 27 Mei 2026 | 46 Orders
+  SEMUA 46 RENTAL ORDERS
+No Src Customer Lokasi Kirim Ambil Mlm Tipe Items Total DP Sisa
+1 ERP Evi Gowok Gowok 1 Agu 26 3 Agu 26 2 Paket+Add S90x2, Bantalx3, Rp482.000 Rp145.000 Rp337.000
+2 ERP Abdillah Ngestihar Ngestiharjo 5 Jun 26 6 Jun 26 1 Paket S90x2, S100x2, D1 Rp810.000 Rp243.000 Rp567.000
+3 ERP Andi JaMal Jl. Magelan 30 Mei 26 1 Jun 26 2 Paket S100x3, D120x5, Q Rp965.000 Rp290.000 Rp675.000
+4 ERP Tri Minomartani Minomartani 30 Mei 26 1 Jun 26 2 Paket S90x4, D120x1 Rp430.000 Rp129.000 Rp301.000
+5 ERP Oni Prambanan Prambanan 30 Mei 26 31 Mei 26 1 Paket+Add S100x2, S90x2, Se Rp315.000 Rp95.000 Rp220.000
+6 ERP M. Lutfi Sinduharj Sinduharjo 29 Mei 26 1 Jun 26 3 Paket+Add S100x1, Gulingx1 Rp196.000 Rp59.000 Rp137.000
+7 ERP Retno Sedayu Royal Seday 26 Mei 26 30 Mei 26 4 Paket S90x4, S100x1 Rp745.000 Rp220.000 Rp525.000
+8 ERP Supriyanto Ambarke Ambarketawa 26 Mei 26 1 Jun 26 6 Paket Q160x1 Rp355.000 Rp107.000 Rp248.000
+9 ERP Meilina UMY (Tamba Dekat UMY 25 Mei 26 27 Mei 26 2 Paket S100x1 Rp100.000 - Rp100.000
+10 ERP Meilina UMY Dekat UMY 23 Mei 26 27 Mei 26 4 Paket Q160x1, D120x1, F Rp430.000 Rp129.000 Rp301.000
+11 ERP Bu Pujo Nogotirto Nogotirto 21 Mei 26 22 Mei 26 1 Paket+Add Q160x1, Bantalx2 Rp94.000 Rp28.000 Rp66.000
+12 ERP Wahida Sedayu Sedayu 20 Mei 26 23 Mei 26 3 Paket D120x2 Rp300.000 Rp90.000 Rp210.000
+13 ERP Helena Tajem Kost Fortun 20 Mei 26 27 Mei 26 7 Paket D120x1 Rp369.000 Rp111.000 Rp258.000
+14 ERP Hernawan Donoharjo Donoharjo 17 Mei 26 18 Mei 26 1 Paket+Add S90x3, Gulingx3 Rp186.000 Rp56.000 Rp130.000
+15 ERP Taufik Minggir Minggir 16 Mei 26 17 Mei 26 1 Paket S100x4, S90x1 Rp235.000 Rp71.000 Rp164.000
+16 ERP Uwie Kraton Ndalem Home 15 Mei 26 16 Mei 26 1 Paket+Add S100x1, Selimutx1 Rp90.000 Rp27.000 Rp63.000
+17 ERP Gissa Wedomartani Wedomartani 15 Mei 26 17 Mei 26 2 Paket D120x1 Rp150.000 Rp45.000 Rp105.000
+18 ERP Salsaa Sariharjo Sariharjo 14 Mei 26 17 Mei 26 3 Paket Q160x2 Rp375.000 Rp113.000 Rp262.000
+19 ERP Nita Seyegan Seyegan 14 Mei 26 17 Mei 26 3 Kasur Saja Kasur S100x1 Rp135.000 Rp41.000 Rp94.000
+20 ERP Wening Mlati Janturan Ml 14 Mei 26 17 Mei 26 3 Paket Q160x1 Rp200.000 Rp60.000 Rp140.000
+21 ERP Andhi Kalya Hotel Kalya Hotel 14 Mei 26 15 Mei 26 1 Paket S100x1 Rp90.000 - Rp90.000
+22 ERP Anik Ngestiharjo Ngestiharjo 13 Mei 26 15 Mei 26 2 Kasur Saja Kasur Q160x1 Rp125.000 Rp38.000 Rp87.000
+23 ERP Armyda Gamping Gamping 9 Mei 26 10 Mei 26 1 Paket S90x2 Rp105.000 Rp32.000 Rp73.000
+24 ERP Adhitama HOS Cokro HOS Cokro 9 Mei 26 10 Mei 26 1 Paket S90x2, S100x2 Rp185.000 Rp56.000 Rp129.000
+25 ERP Alex Seyegan Seyegan 7 Mei 26 9 Mei 26 2 Paket+Add Q160x6, D120x4, B Rp1.134.000 Rp340.000 Rp794.000
+26 ERP Intan Bumijo Bumijo Teng 1 Mei 26 3 Mei 26 2 Paket D120x2 Rp210.000 Rp63.000 Rp147.000
+27 WA Abdul Aziz Salimi Godean 15 Mar 26 17 Mar 26 2 Paket (Leb Q160x1 Rp128.000 - Rp128.000
+28 WA Abdul Aziz Salimi Godean 19 Mar 26 22 Mar 26 3 Paket (Leb Q160x1, D120x1 Rp324.000 - Rp324.000
+29 WA Alfrida Wirogunan 23 Mar 26 27 Mar 26 4 Paket (Leb Q160x1, Bantalx4 Rp370.000 - Rp370.000
+30 WA Antoni Seyegan 20 Mar 26 24 Mar 26 4 Paket (Leb D120x4 Rp804.000 - Rp804.000
+31 WA Dzaky Seyegan 26 Mar 26 29 Mar 26 3 Paket (Leb Q160x3 Rp552.000 - Rp552.000
+32 WA Fendy Banguntapan 18 Mar 26 25 Mar 26 7 Paket (Leb S100x2 Rp642.000 - Rp642.000
+33 WA Fendy (Perpanjanga Banguntapan 25 Mar 26 28 Mar 26 3 Paket (Leb S100x2 Rp264.000 - Rp264.000
+34 WA Felis / Ella Jitar Dukuh 17 Mar 26 23 Mar 26 6 Paket (Leb Q160x1, S100x1 Rp644.000 Rp300.000 Rp344.000
+35 WA Lucky Enjang BMT BIF Taj 17 Mar 26 18 Mar 26 1 Paket (Leb S90x1 Rp93.000 Rp40.000 Rp53.000
+36 WA Muji Jakal KM19 24 Mar 26 25 Mar 26 1 Paket (Leb D120x2(plain), S1 Rp320.000 - Rp320.000
+37 WA Muji Jakal KM19 25 Mar 26 26 Mar 26 1 Paket (Leb D120x2(plain), S1 Rp252.000 - Rp252.000
+38 WA Muji Jakal KM19 26 Mar 26 27 Mar 26 1 Paket (Leb D120x2(plain), S1 Rp252.000 - Rp252.000
+39 WA Nisrina Kotagede 19 Mar 26 23 Mar 26 4 Paket (Leb Q160x2 Rp518.000 - Rp518.000
+40 WA Nawang Klaci 3 Sey 12 Apr 26 13 Apr 26 1 Paket D120x1 Rp60.000 Rp20.000 Rp40.000
+41 WA Nawang Klaci 3 Sey 12 Apr 26 14 Apr 26 2 Paket S100x1 Rp95.000 Rp30.000 Rp65.000
+42 WA Feris Greenhills 23 Mar 26 25 Mar 26 2 Paket (Leb S100x1, D120x2, Q Rp685.000 - Rp685.000
+43 WA Zami Fatih Seyegan 6 Apr 26 10 Apr 26 4 Paket D120x1 Rp205.000 - Rp205.000
+44 WA Jhon BT Sidikan UH 28 Mar 26 30 Mar 26 2 Paket (Leb Q160x1, Sprei S10 Rp183.000 Rp75.000 Rp108.000
+45 WA Harmawan Swantari Te 11 Apr 26 12 Apr 26 1 Paket S90x3 Rp145.000 Rp45.000 Rp100.000
+46 WA Aryadi Banguntapan 10 Apr 26 12 Apr 26 2 Paket D120x4 Rp420.000 Rp126.000 Rp294.000
+TOTAL Rp15.767.000 Rp3.224.000 Rp12.543.000
+* Baris kuning = data dari WhatsApp (belum di Sync ERP)
+* "Paket" = kasur+sprei+bantal | "Kasur Saja" = tanpa aksesoris | "Paket+Add On" = paket+item tambahan
+* Harga Lebaran: S90=39rb, S100=44rb, D120=49rb, Q160=59rb per malam
+Halaman 2/4
+
+SANTI LIVING - Laporan Pesanan LENGKAP
+Sync ERP + WhatsApp Business | 27 Mei 2026 | 46 Orders
+  CUSTOMER TANPA INVOICE (5)
+Customer ada di WhatsApp tapi invoice tidak bisa diakses:
+  1. Aries Concat - Chat tersedia, invoice tidak ditemukan
+  2. Agashi UNY - Chat dari Feb 2026, invoice terenkripsi
+  3. d@pi1e - Jakal KM9 - Chat dari Feb 2026, invoice terenkripsi
+  4. Harza Arbaha Wates KP - Chat tersedia, invoice tidak ditemukan
+  5. Intan Griya Alvita - Chat tersedia, invoice tidak ditemukan
+  BREAKDOWN PER KATEGORI
+Kategori Orders Revenue % Share
+Paket 22 Rp6.979.000 44.3%
+Paket (Lebaran) 15 Rp6.031.000 38.3%
+Paket+Add On 7 Rp2.497.000 15.8%
+Kasur Saja 2 Rp260.000 1.6%
+HARGA PER MALAM:
+  Single 90 (Paket): Normal Rp35.000 | Lebaran Rp39.000
+  Single 100 (Paket): Normal Rp40.000 | Lebaran Rp44.000
+  Double 120 (Paket): Normal Rp45.000 | Lebaran Rp49.000
+  Queen 160 (Paket): Normal Rp55.000 | Lebaran Rp59.000
+  Kasur Saja S100: Normal Rp30.000 | Lebaran -
+  Kasur Saja Q160: Normal Rp45.000 | Lebaran -
+Halaman 3/4
+
+SANTI LIVING - Laporan Pesanan LENGKAP
+Sync ERP + WhatsApp Business | 27 Mei 2026 | 46 Orders
+  RINGKASAN PER CUSTOMER UNIK
+# Customer Ord Total DP Sisa
+1 Alex Seyegan 1 Rp1.134.000 Rp340.000 Rp794.000
+2 Andi JaMal 1 Rp965.000 Rp290.000 Rp675.000
+3 Muji 3 Rp824.000 - Rp824.000
+4 Abdillah Ngestiharjo 1 Rp810.000 Rp243.000 Rp567.000
+5 Antoni 1 Rp804.000 - Rp804.000
+6 Retno Sedayu 1 Rp745.000 Rp220.000 Rp525.000
+7 Feris 1 Rp685.000 - Rp685.000
+8 Felis / Ella 1 Rp644.000 Rp300.000 Rp344.000
+9 Fendy 1 Rp642.000 - Rp642.000
+10 Dzaky 1 Rp552.000 - Rp552.000
+11 Nisrina 1 Rp518.000 - Rp518.000
+12 Evi Gowok 1 Rp482.000 Rp145.000 Rp337.000
+13 Abdul Aziz Salimi 2 Rp452.000 - Rp452.000
+14 Tri Minomartani 1 Rp430.000 Rp129.000 Rp301.000
+15 Meilina UMY 1 Rp430.000 Rp129.000 Rp301.000
+16 Aryadi 1 Rp420.000 Rp126.000 Rp294.000
+17 Salsaa Sariharjo 1 Rp375.000 Rp113.000 Rp262.000
+18 Alfrida 1 Rp370.000 - Rp370.000
+19 Helena Tajem 1 Rp369.000 Rp111.000 Rp258.000
+20 Supriyanto Ambarketawang 1 Rp355.000 Rp107.000 Rp248.000
+21 Oni Prambanan 1 Rp315.000 Rp95.000 Rp220.000
+22 Wahida Sedayu 1 Rp300.000 Rp90.000 Rp210.000
+23 Fendy (Perpanjangan) 1 Rp264.000 - Rp264.000
+24 Taufik Minggir 1 Rp235.000 Rp71.000 Rp164.000
+25 Intan Bumijo 1 Rp210.000 Rp63.000 Rp147.000
+26 Zami Fatih 1 Rp205.000 - Rp205.000
+27 Wening Mlati 1 Rp200.000 Rp60.000 Rp140.000
+28 M. Lutfi Sinduharjo 1 Rp196.000 Rp59.000 Rp137.000
+29 Hernawan Donoharjo 1 Rp186.000 Rp56.000 Rp130.000
+30 Adhitama HOS Cokro 1 Rp185.000 Rp56.000 Rp129.000
+31 Jhon BT 1 Rp183.000 Rp75.000 Rp108.000
+32 Nawang 2 Rp155.000 Rp50.000 Rp105.000
+33 Gissa Wedomartani 1 Rp150.000 Rp45.000 Rp105.000
+34 Harmawan 1 Rp145.000 Rp45.000 Rp100.000
+35 Nita Seyegan 1 Rp135.000 Rp41.000 Rp94.000
+36 Anik Ngestiharjo 1 Rp125.000 Rp38.000 Rp87.000
+37 Armyda Gamping 1 Rp105.000 Rp32.000 Rp73.000
+38 Meilina UMY (Tambahan) 1 Rp100.000 - Rp100.000
+39 Bu Pujo Nogotirto 1 Rp94.000 Rp28.000 Rp66.000
+40 Lucky Enjang 1 Rp93.000 Rp40.000 Rp53.000
+41 Uwie Kraton 1 Rp90.000 Rp27.000 Rp63.000
+42 Andhi Kalya Hotel 1 Rp90.000 - Rp90.000
+TOTAL (42 customers) Rp15.767.000 Rp3.224.000 Rp12.543.000
+Halaman 4/4

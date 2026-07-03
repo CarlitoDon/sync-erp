@@ -1,0 +1,70 @@
+Harus Bayar SM? Ongkir Santi Terbayar? Jenis Pengirin Nomor Order SUM of Real On
+
+B FALSE B FALSE Display ORD-005 Rp45.696,00
+FALSE Total Rp45.696,00
+B TRUE B FALSE f§ Display ORD-003 Rp46.784,00
+® Mandiri ORD-001 Rp14.960,00
+
+ORD-004 Rp69.632,00
+
+ORD-006 Rp32.640,00
+
+TRUE Total
+
+Rp164.016,00
+
+Harus Bayar SM?
+
+Ongkir Santi Terbayar? Jenis Pengirin Nomor Order
+
+SUM of Real On
+
+—
+
+FALSE
+
+—
+
+FALSE
+
+® Display
+
+ORD-005
+
+Rp45.696,00
+
+FALSE Total
+
+Rp45.696,00
+
+= |
+
+TRUE
+
+= |
+
+FALSE
+
+® Display
+
+ORD-003
+
+Rp46.784,00
+
+® Mandiri
+
+ORD-001
+
+Rp14.960,00
+
+ORD-004
+
+Rp69.632,00
+
+ORD-006
+
+Rp32.640,00
+
+TRUE Total
+
+Rp164.016,00

@@ -1,0 +1,49 @@
+SANTI LIVING - Laporan Pesanan Lengkap
+Sumber: Sync ERP + WhatsApp Business Web | Tanggal: 27 Mei 2026
+  #4 Tri Widh (Minomartani)  (RNT-202605-00023)
+Lokasi: Minomartani
+Kirim: 30 Mei 2026
+Ambil: 1 Juni 2026
+Durasi: 2 malam
+Detail Pesanan:
+- Paket Single 90: 4 pcs x Rp35.000 x 2 = Rp280.000
+- Paket Double 120: 1 pcs x Rp45.000 x 2 = Rp90.000
+Ongkir: Rp60.000
+TOTAL: Rp430.000
+DP 30%: Rp129.000
+Sisa: Rp301.000
+  #5 Oni (Prambanan)  (RNT-202605-00022)
+Lokasi: Deso Ambar Village Prambanan
+Kirim: 30 Mei 2026
+Ambil: 31 Mei 2026
+Durasi: 1 malam
+Detail Pesanan:
+- Paket Single 100: 2 pcs x Rp40.000 = Rp80.000
+- Paket Single 90: 2 pcs x Rp35.000 = Rp70.000
+- Add on Selimut: 4 pcs x Rp10.000 = Rp40.000
+Ongkir: Rp125.000
+TOTAL: Rp315.000
+DP 30%: Rp95.000
+Sisa: Rp220.000
+  #6 M. Lutfi (Sinduharjo)  (RNT-202605-00021)
+Lokasi: Sinduharjo
+Kirim: 29 Mei 2026
+Ambil: 1 Juni 2026
+Durasi: 3 malam
+Detail Pesanan:
+- Paket Single 100: 1 pcs x Rp40.000 x 3 = Rp120.000
+- Add on Guling: 1 pcs x Rp7.000 x 3 = Rp21.000
+Ongkir: Rp55.000
+TOTAL: Rp196.000
+DP 30%: Rp59.000
+Sisa: Rp137.000
+  #7 Retno Sedayu  (RNT-202605-00020)
+Lokasi: Sedayu
+Kirim: 26 Mei 2026
+Ambil: 30 Mei 2026
+Durasi: 4 malam
+Detail Pesanan:
+- (Detail dari chat - subtotal Rp720.000 + ongkir Rp25.000)
+Ongkir: Rp25.000
+TOTAL: Rp745.000
+Halaman 4/9

@@ -1,0 +1,3 @@
+order_id,action,partner_action,order_id_created,order_number,total_amount,status,message
+ORD-013,exists,reuse,7f1558b1-74cb-4cd7-b661-b583313f9b2d,RNT-202605-00065,168000,DRAFT,Already exists with matching sheet_order_id; no duplicate created
+ORD-020,exists,reuse,e20a1722-956b-42a5-9390-adc8d6280490,RNT-202605-00066,295000,DRAFT,Already exists with matching sheet_order_id; no duplicate created

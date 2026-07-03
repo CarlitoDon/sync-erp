@@ -1,0 +1,72 @@
+Qlolo
+
+Transaction Success
+24 February 2026, 20:27 WIB
+
+Mass Transfer
+
+From Account
+
+GHANA HENDRA GHULAM
+BRI
+105501000478560
+
+Transaction ID 771303
+Beneficiary Bank BRI
+Success Total 4 Accounts
+
+Note PAK YOGA BUFALO DAVIN SALSAJAT
+
+Transfer Time Now
+Transfer Amount Rp39.151.200
+Admin Fee RpO
+
+Total Amount Rp39.151.200
+
+Qlolo
+
+Transaction Success
+
+24 February 2026, 20:27 WIB
+
+Mass Transfer
+
+From Account
+
+GHANA HENDRA GHULAM
+
+BRI
+
+105501000478560
+
+Transaction ID
+
+771303
+
+Beneficiary Bank
+
+BRI
+
+Success Total
+
+4 Accounts
+
+Note
+
+PAK YOGA BUFALO DAVIN SALSAJAT
+
+Transfer Time
+
+Now
+
+Transfer Amount
+
+Rp39.151.200
+
+Admin Fee
+
+Rpo
+
+Total Amount
+
+Rp39.151.200

@@ -1,0 +1,53 @@
+SANTI LIVING - Laporan Pesanan Lengkap
+Sumber: Sync ERP + WhatsApp Business Web | Tanggal: 27 Mei 2026
+  #21 Andhi Setiadhi (Kalya Hotel)  (RNT-202605-00006)
+Lokasi: Kalya Hotel
+Kirim: 14 Mei 2026
+Ambil: 15 Mei 2026
+Durasi: 1 malam
+Detail Pesanan:
+- Paket Single 100: 1 pcs x Rp40.000 = Rp40.000
+Ongkir: Rp50.000
+TOTAL: Rp90.000
+  #22 Anik (Ngestiharjo)  (RNT-202605-00005)
+Lokasi: Ngestiharjo
+Kirim: 13 Mei 2026
+Ambil: 15 Mei 2026
+Durasi: 2 malam
+Detail Pesanan:
+- (Detail dari chat - subtotal Rp90.000 + ongkir Rp35.000)
+Ongkir: Rp35.000
+TOTAL: Rp125.000
+  #23 Armyda (Gamping)  (RNT-202605-00004)
+Lokasi: Gamping
+Kirim: 9 Mei 2026
+Ambil: 10 Mei 2026
+Durasi: 1 malam
+Detail Pesanan:
+- (Detail dari chat - subtotal Rp70.000 + ongkir Rp35.000)
+Ongkir: Rp35.000
+TOTAL: Rp105.000
+  #24 Adhitama (HOS Cokro)  (RNT-202605-00003)
+Lokasi: HOS Cokro
+Kirim: 9 Mei 2026
+Ambil: 10 Mei 2026
+Durasi: 1 malam
+Detail Pesanan:
+- (Detail dari chat - subtotal Rp150.000 + ongkir Rp35.000)
+Ongkir: Rp35.000
+TOTAL: Rp185.000
+  #25 Alex (Seyegan)  (RNT-202605-00002)
+Lokasi: Seyegan
+Kirim: 7 Mei 2026
+Ambil: 9 Mei 2026
+Durasi: 2 hari
+Detail Pesanan:
+- PAKET Queen 160: 6 pcs x Rp55.000 x 2 = Rp660.000
+- PAKET Double 120: 4 pcs x Rp45.000 x 2 = Rp360.000
+- Add on Bantal: 15 pcs x Rp7.000 x 2 = Rp210.000
+- Diskon 10% (review gmaps): -Rp126.000
+Ongkir: Rp30.000
+TOTAL: Rp1.134.000
+DP 30%: Rp340.000
+Sisa: Rp794.000
+Halaman 8/9

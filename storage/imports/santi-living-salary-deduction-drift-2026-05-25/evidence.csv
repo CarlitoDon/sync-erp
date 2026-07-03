@@ -1,0 +1,18 @@
+date,chat,msg_id,evidence,amount_idr,classification,note
+2026-02-08,Jingga AR Santi Mebel,39159,"aku kemarin ambil kasur cicil per kasur 100rb per bulan ya",,setup_context,Early AR/Jingga installment instruction.
+2026-02-23,Fajar Sudrajad HRD,"49244;49245;49252","Jurnal total Rp9,553,331; dipotong 6 kali; sekitar 1,59 perbulan potongane",1590000,official_payroll_loan,Official Fajar/Talenta loan basis.
+2026-02-26,INTERNAL Santi Living,51478,"Cicil Per Bulan ke Santi Mebel Februari - Juli 2026 Rp1,562,222",1562222,expected_internal_deduction,Internal expected monthly deduction.
+2026-02-28,Ibuk,53686,"Gaji calculation uses tagihan kasur santi mebel 1,562,222",1562222,expected_personal_cashflow,Personal cashflow expected monthly deduction.
+2026-03-03,Jingga AR Santi Mebel,56161,"hallo mas untuk kekurangan gaji tf nanti ya",,correction_context,AR/Jingga salary-shortage transfer context.
+2026-03-03,Rani Santi Mebel,56671,"BCA Toko 8020673461 Ika Hendra / BCA 0374146374 Khusnudhoni Hendra M KEU459 Rp27.778,00",27778,drift_correction_transfer,First correction transfer instruction.
+2026-03-03,grup keuangan berdelapan,56801,"03 maret kekurangan gaji mas dhoni 27.778.pdf",27778,drift_correction_receipt,PDF receipt confirms successful transfer.
+2026-03-31,Rani Santi Mebel,77856,"BCA Toko 8020673461 Ika Hendra / BCA 0374146374 Khusnudhoni Hendra M KEU604 Rp27.778,00",27778,drift_correction_transfer,Second correction transfer instruction.
+2026-04-02,grup keuangan berdelapan,79439,"31 maret kekurangan gaji mas dhoni 27.778.pdf",27778,drift_correction_receipt,Supporting finance bundle.
+2026-05-02,Rani Santi Mebel,106402,"BCA Toko 8020673461 Ika Hendra / BCA 0374146374 Khusnudhoni Hendra M KEU803 Rp27.778,00",27778,drift_correction_transfer,Third correction transfer instruction.
+2026-05-02,grup keuangan berdelapan,106560,"02 mei kekurangan gaji mas dhoni 27.778.pdf",27778,drift_correction_receipt,Supporting finance bundle.
+2026-04-20,Fajar Sudrajad HRD,93190,"Talenta loan screenshot: installment 1 and 2 Rp1,590,000; remaining Rp6,373,331",1590000,official_payroll_loan,Confirms official loan ledger.
+2026-05-15,Fajar Sudrajad HRD,"122654;122773","Remaining Rp4,783,331 and Jago final payoff receipt",4783331,final_payoff,Final payoff from Santi Living operations.
+2026-05-16,grup keuangan berdelapan,123709,"Decrypted Livin Mandiri receipt to Floribertus Fajar Su; caption 16 mei Kurangan Gaji dimasukkan kasbon 1.060.000",1060000,separate_salary_kasbon_not_santi_living,Separate transfer to Fajar; not included in Rp27,778 drift total.
+2026-05-19,Rumah Cemoro Giant + Mungil,125340,"Decrypted Jago receipt Doni to Muthia; note kelebihan kasur gaji",27778,household_rumah_cemoro_not_santi_living,User clarified this belongs to Rumah Cemoro household daily ops/laundry and must not be posted to Sync ERP.
+2026-05-25,User clarification,manual,"After Rani transferred each monthly Rp27,778 correction to Doni, Doni forwarded it to Mila/Mungil/Muthia for Rumah Cemoro household needs",83334,user_confirmed_household_flow,This confirms the drift correction flow is personal household and not Santi Living.
+2026-05-25,Yudi Keuangan SM,131387,"Decrypted screenshot listing debt invoices #60074 #60132 #60133 #60136",9553331,loan_bucket_support,Yudi confirms this is the debt bucket that was later paid off.

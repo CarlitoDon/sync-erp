@@ -1,0 +1,24 @@
+name: Validate PR Source to Dev
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    branches:
+      - dev
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch
+        if: |
+          !startsWith(github.head_ref, 'feat/') && 
+          !startsWith(github.head_ref, 'fix/') && 
+          !startsWith(github.head_ref, 'chore/') && 
+          !startsWith(github.head_ref, 'refactor/') && 
+          !startsWith(github.head_ref, 'perf/') && 
+          !startsWith(github.head_ref, 'style/')
+        run: |
+          echo "Error: Pull requests to 'dev' must come from 'feat/*', 'fix/*', 'chore/*', 'refactor/*', 'perf/*', or 'style/*' branches."
+          echo "Current source branch: ${{ github.head_ref }}"
+          exit 1

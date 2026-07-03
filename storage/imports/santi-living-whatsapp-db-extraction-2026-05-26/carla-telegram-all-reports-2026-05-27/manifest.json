@@ -1,0 +1,82 @@
+[
+  {
+    "file": "/Users/wecik/Downloads/Telegram Desktop/santi_living_orders_report.pdf",
+    "name": "santi_living_orders_report.pdf",
+    "size": 180561,
+    "sha256": "b0aa405e06a1cbb4419bf713b07d7d184e18e3a1bc1d3242f3592c68a718d44b",
+    "type": "pdf",
+    "pages": 8,
+    "chars": 10237,
+    "text_file": "/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-whatsapp-db-extraction-2026-05-26/carla-telegram-all-reports-2026-05-27/santi_living_orders_report.txt"
+  },
+  {
+    "file": "/Users/wecik/Downloads/Telegram Desktop/img_40df8ddeedcb.jpg",
+    "name": "img_40df8ddeedcb.jpg",
+    "size": 5055,
+    "sha256": "f67364da7e0b68ed2b16cfec3292a45a099aa314f273ea6721682334d16162a9",
+    "type": "image",
+    "width": 856,
+    "height": 1,
+    "mode": "RGB"
+  },
+  {
+    "file": "/Users/wecik/Downloads/Telegram Desktop/Laporan_Santi_Living_LENGKAP.pdf",
+    "name": "Laporan_Santi_Living_LENGKAP.pdf",
+    "size": 13984,
+    "sha256": "e8cbff7b71050a9a5eb2433a927ef5a59393e88d83c9d0b50b57a2fcdc5d9faf",
+    "type": "pdf",
+    "pages": 4,
+    "chars": 8744,
+    "text_file": "/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-whatsapp-db-extraction-2026-05-26/carla-telegram-all-reports-2026-05-27/Laporan_Santi_Living_LENGKAP.txt"
+  },
+  {
+    "file": "/Users/wecik/Downloads/Telegram Desktop/Laporan_Santi_Living_Komprehensif.pdf",
+    "name": "Laporan_Santi_Living_Komprehensif.pdf",
+    "size": 8943,
+    "sha256": "de3daf5efc11406fb084a9c7f85de810f3cfae12f9074d9e9589f0e5d69e5575",
+    "type": "pdf",
+    "pages": 3,
+    "chars": 5966,
+    "text_file": "/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-whatsapp-db-extraction-2026-05-26/carla-telegram-all-reports-2026-05-27/Laporan_Santi_Living_Komprehensif.txt"
+  },
+  {
+    "file": "/Users/wecik/Downloads/Telegram Desktop/Laporan_Pesanan_Santi_Living_Lengkap_ERP.pdf",
+    "name": "Laporan_Pesanan_Santi_Living_Lengkap_ERP.pdf",
+    "size": 15472,
+    "sha256": "669bce49deb062e02e9fe0c425c19124dbc570f72a03f7ce389aa0e68830383d",
+    "type": "pdf",
+    "pages": 9,
+    "chars": 11419,
+    "text_file": "/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-whatsapp-db-extraction-2026-05-26/carla-telegram-all-reports-2026-05-27/Laporan_Pesanan_Santi_Living_Lengkap_ERP.txt"
+  },
+  {
+    "file": "/Users/wecik/Downloads/Telegram Desktop/Laporan_Pesanan_Santi_Living_Lengkap.pdf",
+    "name": "Laporan_Pesanan_Santi_Living_Lengkap.pdf",
+    "size": 13103,
+    "sha256": "40562f19a3005d75f94b05954ae0d106552805aba960e0dc49ad63dbc25281cb",
+    "type": "pdf",
+    "pages": 8,
+    "chars": 8620,
+    "text_file": "/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-whatsapp-db-extraction-2026-05-26/carla-telegram-all-reports-2026-05-27/Laporan_Pesanan_Santi_Living_Lengkap.txt"
+  },
+  {
+    "file": "/Users/wecik/Downloads/Telegram Desktop/Laporan_Pesanan_Santi_Living.pdf",
+    "name": "Laporan_Pesanan_Santi_Living.pdf",
+    "size": 10844,
+    "sha256": "a8697ba639fe84acfb3146723ab0d3c228beadd84ae5ecc1ad2ba9e48750e47e",
+    "type": "pdf",
+    "pages": 6,
+    "chars": 4984,
+    "text_file": "/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-whatsapp-db-extraction-2026-05-26/carla-telegram-all-reports-2026-05-27/Laporan_Pesanan_Santi_Living.txt"
+  },
+  {
+    "file": "/Users/wecik/Downloads/Telegram Desktop/santi_living_whatsapp_leads_closings.pdf",
+    "name": "santi_living_whatsapp_leads_closings.pdf",
+    "size": 10586,
+    "sha256": "8224660e8eb00ab1f85949607136b9599f15f41cbf18d92fdcc57dad85f28172",
+    "type": "pdf",
+    "pages": 3,
+    "chars": 7110,
+    "text_file": "/Users/wecik/Documents/Offline/Professional/Coding/sync-erp/storage/imports/santi-living-whatsapp-db-extraction-2026-05-26/carla-telegram-all-reports-2026-05-27/santi_living_whatsapp_leads_closings.txt"
+  }
+]

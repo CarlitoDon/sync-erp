@@ -1,0 +1,70 @@
+Qlolo
+
+Transaction Success
+13 February 2026, 18:52 WIB
+
+Mass Transfer
+
+From Account
+
+GHANA HENDRA GHULAM
+BRI
+105501000478560
+
+Transaction ID 762928
+Beneficiary Bank BRI
+Success Total 3 Accounts
+Note Davin Sofa TRF NENI TRF
+Transfer Time Now
+Transfer Amount Rp19.213.000
+Admin Fee RpO
+
+Total Amount Rp19.213.000
+
+Qlolo
+
+Transaction Success
+
+13 February 2026, 18:52 WIB
+
+Mass Transfer
+
+From Account
+
+GHANA HENDRA GHULAM
+
+BRI
+
+105501000478560
+
+Transaction ID
+
+762928
+
+Beneficiary Bank
+
+BRI
+
+Success Total
+
+3 Accounts
+
+Note
+
+Davin Sofa TRF NENI TRF
+
+Transfer Time
+
+Now
+
+Transfer Amount
+
+Rp19.213.000
+
+Admin Fee
+
+Rpo
+
+Total Amount
+
+Rp19.213.000

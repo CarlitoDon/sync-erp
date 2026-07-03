@@ -1,0 +1,101 @@
+source_sheet,source_row,monthly_no,customer_name,location,delivery_date,delivery_method,delivery_done,pickup_date,pickup_method,pickup_done,items_summary,remaining_idr,note,total_idr,penalty_idr,tip_idr,evidence_note
+🚚 Pengiriman,3,1,Abdul Aziz,Perum Griya Hijau Godean,2026-03-15,Mandiri,true,2026-03-17,Mandiri,true,PAKET Queen 160 → 1 pcs,0,,128000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,4,2,Lucky Enjang,BMT BIF Tajem,2026-03-17,Fortuner,true,2026-03-18,Fortuner,true,PAKET Single 90 (sprei + bantal) → 1 pcs,0,,93000,35000,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,5,3,Felis Ella,Link Suprihatin RT 3 RW  14,2026-03-17,Mandiri,true,2026-03-23,Mandiri,true,"PAKET Queen 160 → 1 pcs 
+PAKET Single 100 → 1 pcs",0,Review,618000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,6,4,Intan,Griya Alvita,2026-03-17,Mandiri,true,2026-03-20,Fortuner,true,PAKET Double 120 → 1 pcs,0,,168000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,7,5,Fendy,Link Gang beo perumahan berlian asri no A1,2026-03-18,Mandiri,true,2026-03-28,Fortuner,true,PAKET Single 100 → 2 pcs,0,Review,906000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,8,6,Yani,"Link Minoasri No 4
+(masuk lewat Jalan Persatuan CC)",2026-03-18,Mandiri,true,2026-03-24,Mandiri,true,"PAKET Queen 160 → 2 pcs 
+PAKET Single 100 → 1 pcs 
+PAKET Single 90 → 1 pc
+Kipas Angin → 1 pc",0,Review,1342000,0,24000,google_sheet_export_2026-05-28
+🚚 Pengiriman,9,7,Nisrina,Link Salasa Collection,2026-03-19,Mandiri,true,2026-03-23,Mandiri,true,PAKET Queen 160 → 2 pcs,0,,518000,0,60000,google_sheet_export_2026-05-28
+🚚 Pengiriman,10,8,Abdul Aziz,Perum Griya Hijau Godean,2026-03-19,Mandiri,true,2026-03-22,Mandiri,true,"PAKET Queen 160 → 1 pcs 
+PAKET Double 120 → 1 pcs",0,Review,324000,75000,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,11,9,Antoni,Link Seyegan,2026-03-20,Mandiri,true,2026-03-24,Mandiri,true,PAKET Double 120 → 4 pcs,0,,804000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,12,10,Feris,Link Greenhills sardonoharjo,2026-03-23,Mandiri,true,2026-03-25,Mandiri,true,"PAKET Single 100 → 1 pcs 
+PAKET Double 120→ 2 pcs 
+PAKET Double 160→ 3 pcs",0,Review,665000,0,50000,google_sheet_export_2026-05-28
+🚚 Pengiriman,13,11,Feris (extend p),Link Greenhills sardonoharjo,2026-03-25,Non-antar,true,2026-03-26,Mandiri,true,"PAKET Double 120→ 2 pcs 
+PAKET Double 160→ 2 pcs",0,,239000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,14,12,Feris (extend p),Link Greenhills sardonoharjo,2026-03-26,Non-antar,true,2026-03-27,Mandiri,true,"PAKET Double 120→ 1 pc
+PAKET Double 160→ 1 pc",0,,131000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,15,13,Alfrida,Link Wirogunan,2026-03-23,Mandiri,true,2026-03-27,Mandiri,true,"PAKET Double 160→ 1 pc 
+Add on bantal 4 pc",0,Review,370000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,16,14,Yani (extend p),"Minoasri No 4
+(masuk lewat Jalan Persatuan CC)",2026-03-24,Non-antar,true,2026-03-25,Mandiri,true,PAKET Queen 160 → 1 pc,0,Review,80000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,17,15,Experian,Ayom Kemusuk Kidul,2026-03-24,Mandiri,true,2026-03-29,Mandiri,true,PAKET Queen 160 → 1 pc,0,,313000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,18,16,Muji,Jakal km 19,2026-03-24,Mandiri,true,2026-03-27,Mandiri,true,"PAKET Double 120 → 4 pcs 
+PAKET Single 100 → 1 pcs",0,,824000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,19,17,Dzaky,Link Seyegan,2026-03-26,Mandiri,true,2026-03-29,Mandiri,true,PAKET Queen 160→ 3 pcs,0,,552000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,20,18,Jhon BT,XT Square,2026-03-28,Mandiri,true,2026-03-30,Mandiri,true,"PAKET Queen 160→ 1 pc
+Sprei 100→ 1 pc",0,Review,183000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,24,1,Asti,"Batikeaku 2, Bantul",2026-04-02,Fortuner,true,2026-04-10,Fortuner,true,PAKET Double 120→ 2 pcs,0,Review,770000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,25,2,Aries,Concat (bolak balik),2026-04-03,Mandiri,true,2026-04-06,Mandiri,true,"PAKET Single 90 → 1 pcs 
+PAKET Single 100 → 2 pcs 
+PAKET Single 120 → 3 pcs",0,,715000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,26,3,Zami,Seyegan,2026-04-06,Fortuner,true,2026-04-10,Fortuner,true,"PAKET Double 120→ 1 pcs 
+Free sewa guling 2",0,Review,205000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,27,4,Misfa,Tempel,2026-04-09,Mandiri,true,2026-04-16,Mandiri,true,PAKET Queen 160 → 4 pcs,0,Review,1500000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,28,5,Imron,Joglo Brongkol Godean,2026-04-10,Fortuner,true,2026-04-11,Fortuner,true,PAKET Double 120 → 1 pcs,0,,60000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,29,6,Aryadi,Banguntapan Bantul,2026-04-10,Fortuner,true,2026-04-12,Mandiri,false,PAKET Double 120→ 4 pcs,0,,420000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,30,7,Emma,Wirogunan,2026-04-11,Mandiri,true,2026-04-13,Mandiri,false,PAKET Queen 160 → 2 pcs,0,Review,255000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,31,8,Harmawan,Kulonprogo,2026-04-11,Fortuner,true,2026-04-12,Fortuner,false,PAKET Single 90 → 3 pcs,0,,145000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,32,9,Nawang,Klaci 3 Godean,2026-04-12,Fortuner,false,2026-04-13,Fortuner,false,PAKET Double 120 → 1 pcs,0,,60000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,33,10,Yayoe,Jl Wonosari,2026-04-18,Mandiri,false,2026-04-19,Mandiri,false,"PAKET Single 90 → 3 pcs
+PAKET Single 100 → 4 pcs
+PAKET Double 120 → 3 pcs",0,Review,455000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,34,11,Baby,Tamantirto,2026-04-18,Mandiri,false,2026-04-19,mandiri,false,PAKET Queen 160 → 2 pcs,0,Review,140000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,38,1,Ling Santa,Persada Homestay,2026-05-01,panther om deni,true,2026-05-03,mandiri,true,"PAKET Single 90 → 3 pcs 
+PAKET Single 100 → 3 pcs
+PAKET Double 120 → 1 pcs 
+Add on Selimut → 5 pcs",0,,690000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,39,2,Intan Candra,Bumijo Tengah,2026-05-01,panther om deni,true,2026-05-03,mandiri,true,PAKET Double 120 → 2 pcs,0,Review,210000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,40,3,Alex,Seyegan,2026-05-07,mandiri,true,2026-05-09,mandiri,true,"PAKET Queen 160 → 6 pcs 
+PAKET Double 120 → 4 pcs 
+Add on Bantal → 15 pcs",0,Review,1134000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,41,4,Armyda,Gamping,2026-05-09,mandiri,true,2026-05-10,mandiri,true,PAKET Single 90 → 2 pcs,0,,105000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,42,5,Adhitama,HOS Cokro,2026-05-09,mandiri,true,2026-05-10,mandiri,true,"PAKET Single 90 → 2 pcs
+PAKET Single 100 → 2 pcs",0,Review,185000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,43,6,Qui - Jo,Wedomartani,2026-05-11,fortuner,true,2026-05-13,mandiri,true,"PAKET Single 100 → 1 pcs
+Add on Selimut → 1 pcs",0,,155000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,44,7,Anik,Ngestiharjo,2026-05-13,mandiri,true,2026-05-15,mandiri,true,KASUR SAJA Queen 160 → 1 pcs,0,Review,125000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,45,8,Salsaa,Sariharjo,2026-05-14,mandiri,true,2026-05-17,mandiri,true,PAKET Queen 160 → 2 pcs,0,,375000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,46,9,Nita,Seyegan,2026-05-14,mandiri,true,2026-05-17,mandiri,true,KASUR SAJA Single 100 → 1 pcs,0,Review,135000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,47,10,Wening,Mlati,2026-05-14,mandiri,true,2026-05-17,mandiri,true,PAKET Queen 160 → 1 pcs,0,,200000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,48,11,Andhi,Kalya Hotel Kotagede,2026-05-14,fortuner,true,2026-05-15,fortuner,true,PAKET Single 100 → 1 pcs,0,,90000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,49,12,Uwie,Jl. Patehan Singgah.ndalem,2026-05-15,fortuner,true,2026-05-16,fortuner,true,"PAKET Single 100 → 1 pcs
+Add on Selimut → 1 pcs",0,,90000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,50,13,Taufik,Minggir,2026-05-16,mandiri,true,2026-05-17,mandiri,true,"PAKET Single 90 → 1 pcs
+PAKET Single 100 → 4 pcs",0,,235000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,51,14,Hernawan,Donoharjo,2026-05-17,mandiri,true,2026-05-18,mandiri,true,"PAKET Single 90 → 3 pcs
+Add on guling → 3 pcs",0,,186000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,52,15,Wahida,Sedayu,2026-05-20,fortuner,true,2026-05-24,fortuner,true,PAKET Double 120 → 2 pcs,0,Review,390000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,53,16,Helena,Maguwo,2026-05-20,fortuner,true,2026-05-25,fortuner,true,PAKET Double 120 → 1 pcs,0,Review,295000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,54,17,Bu Pujo,Nogotirto,2026-05-21,mandiri,true,2026-05-22,mandiri,true,"PAKET Queen 160 → 1 pcs 
+Add on guling → 2 pcs",0,Review,94000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,55,18,Meilina,UMY,2026-05-23,mandiri,true,2026-05-26,pagi,false,"PAKET Queen 160 → 1 pcs 
+PAKET Double 120 → 1 pcs 
+FREE 2 guling
+FREE 2 selimut",0,Review,430000,-84000,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,56,19,Meilina,UMY,2026-05-25,fortuner,true,2026-05-26,pagi,false,PAKET Double 100 → 1 pcs,0,,100000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,57,20,Retno,Sedayu,2026-05-26,mandiri,true,2026-05-30,pagi,false,"PAKET Single 90 → 4 pcs
+PAKET Single 100 → 1 pcs",525000,,745000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,58,21,Supriyanto,Ambarketawang,2026-05-26,mandiri,true,2026-06-01,pagi,false,PAKET Queen 160 → 1 pcs,248000,,355000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,59,22,Bayu,Bantul,2026-05-28,pagi,false,2026-06-01,,false,PAKET Single 100 → 1 pcs,105000,,205000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,60,23,M. Lutfi,Sinduharjo,2026-05-29,pagi,false,2026-06-01,sore,false,"PAKET Single 100 → 1 pcs
+Add on Guling → 1 pcs",137000,Review,196000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,61,24,Andi,Jl. Magelang,2026-05-30,pagi,false,2026-06-01,pagi,false,"PAKET Single 100 → 3 pcs
+PAKET Double 120 → 5 pcs 
+PAKET Queen 160 → 2 pcs",665000,,965000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,62,25,Tri Widh,Minomartani,2026-05-30,pagi,false,2026-06-01,sore,false,"PAKET Single 90 → 4 pcs
+PAKET Double 120 → 1 pcs",301000,,430000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,63,26,Oni,Deso Ambar Village - Prambanan,2026-05-30,pagi,,2026-05-31,,,"PAKET Single 90 → 1 pcs
+PAKET Single 100 → 1 pcs
+Add on Selimut → 2 pcs",154000,,220000,0,0,google_sheet_export_2026-05-28
+🚚 Pengiriman,68,1,Abdillah Anwar,Ngestiharjo Kasihan,2026-06-05,,false,2026-06-06,,false,"PAKET Single 90 → 2 pcs 
+PAKET Single 100 → 2 pcs 
+PAKET Double 120 → 6 pcs 
+PAKET Queen 160 → 5 pcs
+Kipas Angin → 2 pcs",410000,,810000,0,0,google_sheet_export_2026-05-28
