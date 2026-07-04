@@ -65,3 +65,5 @@ mcp-debug.log
 
 # Artifacts
 deploy/*.zip
+dist_*.tar.gz
+router4/
