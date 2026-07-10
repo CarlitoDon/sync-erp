@@ -13,25 +13,25 @@ export const Dialog = ({
 }: DialogProps) => {
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center ${
-        open ? 'pointer-events-auto' : 'pointer-events-none'
+      className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-[var(--duration-normal)] ease-[var(--ease-out)] ${
+        open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
       data-state={open ? 'open' : 'closed'}
     >
       <div
-        className={`fixed inset-0 bg-black/50 transition-all duration-[var(--duration-normal)] ease-[var(--ease-out)] ${
+        className={`fixed inset-0 bg-black/50 transition-opacity duration-[var(--duration-normal)] ease-[var(--ease-out)] ${
           open ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={() => onOpenChange(false)}
       />
       <div
-        className={`relative z-50 w-full max-w-lg transform rounded-xl bg-white p-6 shadow-2xl transition-all duration-[var(--duration-normal)] ease-[var(--ease-out)] ${
+        className={`relative z-50 w-full max-w-lg transform rounded-xl bg-white p-6 shadow-2xl transition-opacity transition-transform duration-[var(--duration-normal)] ease-[var(--ease-out)] ${
           open
             ? 'opacity-100 scale-100 translate-y-0'
             : 'opacity-0 scale-95 translate-y-2'
         }`}
       >
-        {children}
+        {open ? children : null}
       </div>
     </div>
   );

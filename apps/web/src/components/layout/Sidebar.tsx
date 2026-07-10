@@ -64,7 +64,7 @@ export default function Sidebar() {
           {!isCollapsed && (
             <button
               onClick={toggleCollapse}
-              className="hidden md:flex p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors active:scale-[0.97]"
+              className="hidden md:flex p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] active:scale-[0.97]"
               title="Collapse sidebar"
             >
               <ChevronDoubleLeftIcon className="w-5 h-5" />
@@ -76,7 +76,7 @@ export default function Sidebar() {
         {isCollapsed && (
           <button
             onClick={toggleCollapse}
-            className="hidden md:flex mx-auto mt-4 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors active:scale-[0.97]"
+            className="hidden md:flex mx-auto mt-4 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] active:scale-[0.97]"
             title="Expand sidebar"
           >
             <ChevronDoubleRightIcon className="w-5 h-5" />
@@ -118,7 +118,7 @@ export default function Sidebar() {
           <button
             onClick={handleLogout}
             className={`
-              flex items-center gap-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-[0.97]
+              flex items-center gap-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] active:scale-[0.97]
               ${isCollapsed ? 'justify-center' : ''}
             `}
             title={isCollapsed ? 'Logout' : undefined}
