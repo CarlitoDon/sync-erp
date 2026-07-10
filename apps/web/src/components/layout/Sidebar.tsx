@@ -27,7 +27,7 @@ export default function Sidebar() {
       {/* Mobile overlay */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-[var(--duration-normal)] ease-[var(--ease-out)]"
           onClick={closeMobile}
         />
       )}
@@ -36,7 +36,7 @@ export default function Sidebar() {
       <aside
         className={`
           fixed top-0 left-0 z-50 h-screen bg-white border-r border-gray-200
-          flex flex-col transition-all duration-300 ease-in-out
+          flex flex-col transition-all duration-[var(--duration-slow)] ease-[var(--ease-drawer)]
           ${isCollapsed ? 'w-16' : 'w-64'}
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0
@@ -64,7 +64,7 @@ export default function Sidebar() {
           {!isCollapsed && (
             <button
               onClick={toggleCollapse}
-              className="hidden md:flex p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="hidden md:flex p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors active:scale-[0.97]"
               title="Collapse sidebar"
             >
               <ChevronDoubleLeftIcon className="w-5 h-5" />
@@ -76,7 +76,7 @@ export default function Sidebar() {
         {isCollapsed && (
           <button
             onClick={toggleCollapse}
-            className="hidden md:flex mx-auto mt-4 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            className="hidden md:flex mx-auto mt-4 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors active:scale-[0.97]"
             title="Expand sidebar"
           >
             <ChevronDoubleRightIcon className="w-5 h-5" />
@@ -102,7 +102,7 @@ export default function Sidebar() {
 
           {/* User Info */}
           {!isCollapsed && user && (
-            <div className="px-3 py-2 bg-gray-50 rounded-lg">
+            <div className="px-3 py-2 bg-gray-50/80 backdrop-blur-sm rounded-lg">
               <p className="text-sm font-medium text-gray-900 truncate">
                 {user.name}
               </p>
@@ -118,7 +118,7 @@ export default function Sidebar() {
           <button
             onClick={handleLogout}
             className={`
-              flex items-center gap-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors
+              flex items-center gap-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-[0.97]
               ${isCollapsed ? 'justify-center' : ''}
             `}
             title={isCollapsed ? 'Logout' : undefined}
