@@ -9,6 +9,10 @@
       "destination": "https://api.santiliving.com/api/trpc/:path*"
     },
     {
+      "source": "/api/auth/:path*",
+      "destination": "https://api.santiliving.com/api/auth/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
