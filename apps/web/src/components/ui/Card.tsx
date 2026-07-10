@@ -11,7 +11,7 @@ export function Card({
 }: CardProps) {
   return (
     <div
-      className={`bg-white rounded-xl shadow-sm border border-gray-200 ${className}`}
+      className={`transition-all duration-[var(--duration-normal)] ease-[var(--ease-out)] hover:shadow-md hover:-translate-y-0.5 bg-white rounded-xl shadow-sm border border-gray-200 ${className}`}
       {...props}
     >
       {children}
