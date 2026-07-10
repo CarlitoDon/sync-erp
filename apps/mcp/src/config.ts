@@ -13,7 +13,16 @@ const ConfigSchema = z.object({
 
 export type Config = z.infer<typeof ConfigSchema>;
 
+const HttpRuntimeConfigSchema = z.object({
+  bearerTokens: z.array(z.string().min(16)),
+  maxSessions: z.number().int().positive().default(50),
+  sessionTtlMs: z.number().int().positive().default(15 * 60 * 1000),
+});
+
+export type HttpRuntimeConfig = z.infer<typeof HttpRuntimeConfigSchema>;
+
 let cachedConfig: Config | null = null;
+let cachedHttpRuntimeConfig: HttpRuntimeConfig | null = null;
 
 function loadConfig(): Config {
   const raw: unknown = {
@@ -53,4 +62,43 @@ export function getConfig(): Config {
   }
 
   return cachedConfig;
+}
+
+export function getHttpRuntimeConfig(): HttpRuntimeConfig {
+  if (cachedHttpRuntimeConfig) {
+    return cachedHttpRuntimeConfig;
+  }
+
+  const bearerTokenList =
+    process.env.SYNC_ERP_MCP_BEARER_TOKENS ??
+    process.env.SYNC_ERP_MCP_BEARER_TOKEN ??
+    process.env.MCP_BEARER_TOKEN ??
+    '';
+
+  const rawConfig = {
+    bearerTokens: bearerTokenList
+      .split(',')
+      .map((token) => token.trim())
+      .filter(Boolean),
+    maxSessions: Number(process.env.SYNC_ERP_MCP_MAX_SESSIONS ?? 50),
+    sessionTtlMs: Number(
+      process.env.SYNC_ERP_MCP_SESSION_TTL_MS ?? 15 * 60 * 1000
+    ),
+  };
+
+  const parsed = HttpRuntimeConfigSchema.safeParse(rawConfig);
+
+  if (!parsed.success) {
+    const message = parsed.error.issues
+      .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+      .join('; ');
+    throw new Error(`Invalid MCP HTTP runtime config: ${message}`);
+  }
+
+  cachedHttpRuntimeConfig = parsed.data;
+  return cachedHttpRuntimeConfig;
+}
+
+export function isHttpMcpEnabled(): boolean {
+  return getHttpRuntimeConfig().bearerTokens.length > 0;
 }

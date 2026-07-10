@@ -13,9 +13,9 @@ const stopRentalWebhookOutboxWorker =
 const stopTenantWebhookOutboxWorker =
   startTenantWebhookOutboxWorker();
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
-  console.warn(`🚀 Sync ERP API running on port ${PORT}`);
+  console.warn(`🚀 Sync ERP API running on 0.0.0.0:${PORT}`);
 });
 
 const gracefulShutdown = (signal: string) => {
