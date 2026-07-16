@@ -16,7 +16,7 @@ concurrency:
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
-  DATABASE_URL: postgresql://postgres:***@localhost:5432/sync_erp_test?schema=public
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sync_erp_test?schema=public
   NODE_ENV: test
   TURBO_CACHE: remote:rw
   TURBO_REMOTE_ONLY: "true"
