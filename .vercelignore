@@ -1,0 +1,14 @@
+apps/api
+apps/bot
+apps/mcp
+**/node_modules
+**/dist
+**/.turbo
+**/*.log
+**/*.db
+**/*.sqlite
+storage/
+supabase/
+specs/
+docs/
+deploy/

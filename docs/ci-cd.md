@@ -55,8 +55,7 @@ Jobs:
 - `deploy_web`
   - hanya jalan pada `push` ke `main` atau `dev`
   - hanya jalan jika area frontend berubah
-  - prioritas deploy via Vercel deploy hook
-  - fallback ke Vercel CLI jika hook belum dikonfigurasi atau hook tetap kena `429`
+  - deploy dijalankan penuh melalui Vercel CLI (token auth)
   - retry otomatis untuk rate limit / kegagalan sementara
 
 ### Manual Fallback
@@ -76,25 +75,15 @@ File: `.github/workflows/deploy-api-hostinger.yml`
 
 ### Frontend / Vercel
 
-- Default deploy frontend memakai Vercel Git integration yang sudah terhubung ke repo.
-- `VERCEL_ORG_ID` dan `VERCEL_PROJECT_ID_WEB` hanya dibutuhkan jika ingin memaksa deploy dari GitHub Actions.
-
-Jika ingin override dan deploy langsung dari GitHub Actions, set `VERCEL_DEPLOY_VIA_CI=true` lalu pilih minimal salah satu jalur berikut:
-
-- `VERCEL_DEPLOY_HOOK_PRODUCTION_WEB` dan `VERCEL_DEPLOY_HOOK_PREVIEW_WEB`
-- `VERCEL_TOKEN`
-
-Recommended:
-
-- `VERCEL_DEPLOY_HOOK_PRODUCTION_WEB`
-- `VERCEL_DEPLOY_HOOK_PREVIEW_WEB`
+- Default deploy frontend memakai secara penuh GitHub Actions (via Vercel CLI). Vercel Git integration dimatikan.
+- Hal ini mencegah deploy otomatis yang berlebihan (deploy ganda) dari Vercel ketika hanya area backend yang berubah.
+- Vercel Token (`VERCEL_TOKEN`), `VERCEL_ORG_ID`, dan `VERCEL_PROJECT_ID_WEB` WAJIB ada di dalam GitHub Secrets.
 
 ## Notes
 
 - CI dan CD sekarang dipusatkan di satu workflow utama agar status branch lebih mudah dibaca.
 - Deploy otomatis hanya terjadi setelah push ke branch deploy.
 - Deploy frontend dan backend dipisah per area perubahan agar lebih cepat dan lebih hemat runner time.
-- Untuk frontend, mode default adalah hand-off ke Vercel Git integration agar tidak perlu menjaga token CLI di GitHub.
-- Jika override CI diaktifkan, deploy hook lebih disarankan daripada full CLI login flow karena lebih ringan dan lebih tahan rate limit.
-- Jika deploy hook terus menerima `429`, workflow akan fallback ke Vercel CLI selama `VERCEL_TOKEN` tersedia.
+- Untuk frontend, mode saat ini adalah full Vercel CLI via GitHub Actions.
+- Karena sepenuhnya manual (by workflow changes), fitur Vercel deployment hook tidak dibutuhkan. Vercel akan diakses langsung dengan token.
 - Untuk branch protection, disarankan mewajibkan workflow `CI/CD` lulus sebelum merge ke `main` atau `dev`.

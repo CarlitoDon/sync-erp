@@ -67,3 +67,4 @@ mcp-debug.log
 deploy/*.zip
 dist_*.tar.gz
 router4/
+.env*
