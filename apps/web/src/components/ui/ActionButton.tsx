@@ -31,11 +31,19 @@ const variantStyles: Record<ActionButtonVariant, string> = {
   warning:
     'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100',
   secondary:
+<<<<<<< HEAD
     'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50',
   destructive:
     'border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100',
   outline:
     'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50',
+=======
+    'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 hover:border-gray-400',
+  destructive:
+    'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-400',
+  outline:
+    'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400',
+>>>>>>> origin/dev
 };
 
 export default function ActionButton({
@@ -73,7 +81,11 @@ export default function ActionButton({
       disabled={disabled || showLoading}
       title={title}
       className={`
+<<<<<<< HEAD
         inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-sm font-medium transition-colors
+=======
+        inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-md border transition-colors
+>>>>>>> origin/dev
         ${variantStyles[variant]}
         ${disabled || showLoading ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}

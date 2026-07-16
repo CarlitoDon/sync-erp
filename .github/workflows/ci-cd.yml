@@ -432,7 +432,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund --legacy-peer-deps
+        run: npm ci
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest

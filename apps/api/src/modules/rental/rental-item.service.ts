@@ -9,11 +9,16 @@ import { Prisma, prisma } from '@sync-erp/database';
 import {
   RentalItem,
   RentalItemUnit,
+<<<<<<< HEAD
   InvoiceType,
   OrderType,
   UnitStatus,
   UnitCondition,
   RentalOrderStatus,
+=======
+  UnitStatus,
+  UnitCondition,
+>>>>>>> origin/dev
   DepositPolicyType,
   EntityType,
   AuditLogAction,
@@ -25,7 +30,10 @@ import {
   DomainError,
   DomainErrorCodes,
   type CreateRentalItemInput,
+<<<<<<< HEAD
   type ConvertStockToUnitInput,
+=======
+>>>>>>> origin/dev
   type RentalItemWithRelations,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
@@ -48,6 +56,7 @@ function generateUniqueUnitCode(productSku: string): string {
   return `${prefix}-${random}`;
 }
 
+<<<<<<< HEAD
 function inferSizeLabel(value: string): string | undefined {
   const compact = value.replace(/\s+/g, ' ');
   const cmMatch = compact.match(/\b(\d{2,3})\s*cm\b/i);
@@ -76,6 +85,8 @@ function inferColor(value: string): string | undefined {
   return colors.find((color) => normalized.includes(color));
 }
 
+=======
+>>>>>>> origin/dev
 export class RentalItemService {
   constructor(
     private readonly repository: RentalRepository = new RentalRepository()
@@ -197,8 +208,12 @@ export class RentalItemService {
     companyId: string,
     itemId: string,
     quantity: number,
+<<<<<<< HEAD
     userId: string,
     options?: Omit<ConvertStockToUnitInput, 'rentalItemId' | 'quantity'>
+=======
+    userId: string
+>>>>>>> origin/dev
   ): Promise<number> {
     const item = await this.repository.findRentalItemById(itemId);
     if (!item || item.companyId !== companyId) {
@@ -227,6 +242,7 @@ export class RentalItemService {
     // 2. Execute Transaction: Move Stock OUT + Create Units with auto-generated codes
     const createdCodes: string[] = [];
     const count = await prisma.$transaction(async (tx) => {
+<<<<<<< HEAD
       const sourceOrder = options?.sourceOrderId
         ? await tx.order.findFirst({
             where: {
@@ -322,23 +338,34 @@ export class RentalItemService {
       );
       const inferredColor = inferColor(`${product.name} ${product.sku}`);
 
+=======
+>>>>>>> origin/dev
       // Generate unique unit codes with retry
       const unitsToCreate: Prisma.RentalItemUnitCreateManyInput[] =
         [];
 
       for (let i = 0; i < quantity; i++) {
+<<<<<<< HEAD
         const metadata = options?.unitMetadata?.[i];
         let unitCode = options?.unitCodes?.[i] ?? metadata?.unitCode ?? '';
+=======
+        let unitCode: string;
+>>>>>>> origin/dev
         let attempts = 0;
         const maxAttempts = 10;
 
         // Retry loop to ensure uniqueness
         do {
+<<<<<<< HEAD
           unitCode = unitCode || generateUniqueUnitCode(product.sku);
+=======
+          unitCode = generateUniqueUnitCode(product.sku);
+>>>>>>> origin/dev
           const exists = await tx.rentalItemUnit.findUnique({
             where: { companyId_unitCode: { companyId, unitCode } },
           });
           if (!exists) break;
+<<<<<<< HEAD
           if (options?.unitCodes?.[i] || metadata?.unitCode) {
             throw new DomainError(
               `Rental unit code already exists: ${unitCode}`,
@@ -347,6 +374,8 @@ export class RentalItemService {
             );
           }
           unitCode = '';
+=======
+>>>>>>> origin/dev
           attempts++;
         } while (attempts < maxAttempts);
 
@@ -363,6 +392,7 @@ export class RentalItemService {
           rentalItemId: itemId,
           companyId,
           unitCode,
+<<<<<<< HEAD
           acquiredAt:
             metadata?.acquiredAt ?? sourceOrder?.date ?? new Date(),
           acquisitionCost:
@@ -375,6 +405,8 @@ export class RentalItemService {
           sizeLabel: metadata?.sizeLabel ?? inferredSizeLabel,
           color: metadata?.color ?? inferredColor,
           sourceNotes: metadata?.sourceNotes,
+=======
+>>>>>>> origin/dev
           condition: UnitCondition.NEW,
           status: UnitStatus.AVAILABLE,
         });
@@ -416,11 +448,14 @@ export class RentalItemService {
         source: 'INVENTORY_STOCK',
         quantity,
         unitCodes: createdCodes,
+<<<<<<< HEAD
         sourceOrderId: options?.sourceOrderId,
         sourceOrderItemId: options?.sourceOrderItemId,
         sourceFulfillmentId: options?.sourceFulfillmentId,
         sourceBillId: options?.sourceBillId,
         sourceBatchCode: options?.sourceBatchCode,
+=======
+>>>>>>> origin/dev
       },
     });
 
@@ -473,13 +508,22 @@ export class RentalItemService {
 
   async checkAvailability(
     companyId: string,
+<<<<<<< HEAD
     startDate: Date,
     endDate: Date,
+=======
+    _startDate: Date,
+    _endDate: Date,
+>>>>>>> origin/dev
     itemId?: string
   ): Promise<Record<string, number>> {
     const whereClause: Prisma.RentalItemUnitWhereInput = {
       companyId,
+<<<<<<< HEAD
       status: { notIn: [UnitStatus.MAINTENANCE, UnitStatus.RETIRED] },
+=======
+      status: UnitStatus.AVAILABLE,
+>>>>>>> origin/dev
       ...(itemId && { rentalItemId: itemId }),
     };
 
@@ -497,6 +541,7 @@ export class RentalItemService {
       availability[group.rentalItemId] = group._count.rentalItemId;
     }
 
+<<<<<<< HEAD
     const overlappingAssignments =
       await prisma.rentalOrderUnitAssignment.findMany({
         where: {
@@ -531,6 +576,8 @@ export class RentalItemService {
       );
     }
 
+=======
+>>>>>>> origin/dev
     return availability;
   }
 

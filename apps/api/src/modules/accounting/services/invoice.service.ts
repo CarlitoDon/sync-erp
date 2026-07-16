@@ -121,8 +121,11 @@ export class InvoiceService {
       shipmentItems = fulfillment.items;
     }
 
+<<<<<<< HEAD
     const documentDate = data.businessDate || new Date();
 
+=======
+>>>>>>> origin/dev
     // Generate invoice number if not provided
     let invoiceNumber = data.invoiceNumber;
     if (!invoiceNumber) {
@@ -233,7 +236,10 @@ export class InvoiceService {
       type: InvoiceType.INVOICE,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
+<<<<<<< HEAD
       date: documentDate,
+=======
+>>>>>>> origin/dev
       dpBillId: dpInvoiceId, // Link to DP Invoice using same field as Bills
       notes:
         dpDeductedNow > 0
@@ -247,7 +253,11 @@ export class InvoiceService {
       dueDate:
         data.dueDate ||
         calculateDueDate(
+<<<<<<< HEAD
           documentDate,
+=======
+          new Date(),
+>>>>>>> origin/dev
           order.paymentTerms || PaymentTerms.NET30
         ),
     };

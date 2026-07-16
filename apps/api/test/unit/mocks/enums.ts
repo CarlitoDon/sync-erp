@@ -42,6 +42,7 @@ export enum BusinessShape {
   RETAIL = 'RETAIL',
   MANUFACTURING = 'MANUFACTURING',
   SERVICE = 'SERVICE',
+<<<<<<< HEAD
   RENTAL = 'RENTAL',
 }
 
@@ -95,6 +96,8 @@ export enum BillingCheckoutSessionStatus {
   CANCELED = 'CANCELED',
   FAILED = 'FAILED',
   EXPIRED = 'EXPIRED',
+=======
+>>>>>>> origin/dev
 }
 export enum CostingMethod {
   AVG = 'AVG',
@@ -270,12 +273,15 @@ export enum PaymentStatus {
   REFUNDED = 'REFUNDED',
 }
 
+<<<<<<< HEAD
 export enum BillInstallmentStatus {
   PENDING = 'PENDING',
   PAID = 'PAID',
   CANCELLED = 'CANCELLED',
 }
 
+=======
+>>>>>>> origin/dev
 export enum RentalPaymentStatus {
   AWAITING_CONFIRM = 'AWAITING_CONFIRM',
   CONFIRMED = 'CONFIRMED',

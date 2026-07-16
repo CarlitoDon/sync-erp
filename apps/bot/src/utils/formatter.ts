@@ -19,7 +19,11 @@ export const formatOrderMessage = (data: OrderPayload): string => {
   };
 
   let message = `Halo Kak *${data.customerName}*! 👋\n`;
+<<<<<<< HEAD
   message += `Terima kasih, pesanan rental Anda sudah kami terima.\n`;
+=======
+  message += `Terima kasih sudah memesan di *Sewa Kasur Jogja by Santi Mebel*.\n`;
+>>>>>>> origin/dev
   message += `Order ID: *${data.orderId || '-'}*\n\n`;
   message += `Pesanan Anda telah kami terima dengan rincian berikut:\n\n`;
 
@@ -100,9 +104,15 @@ export const formatOrderMessage = (data: OrderPayload): string => {
   }
 
   if (data.deliveryFee > 0) {
+<<<<<<< HEAD
     message += `Delivery fee: ${formatCurrency(data.deliveryFee)}\n`;
   } else {
     message += `Delivery fee: Free\n`;
+=======
+    message += `Ongkir: ${formatCurrency(data.deliveryFee)}\n`;
+  } else {
+    message += `Ongkir: Gratis (Free)\n`;
+>>>>>>> origin/dev
   }
 
   message += `━━━━━━━━━━━━━\n`;

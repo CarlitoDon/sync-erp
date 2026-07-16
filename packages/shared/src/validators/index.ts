@@ -122,8 +122,11 @@ export * from '../generated/zod/index.js';
 import { PaymentTermsSchema } from '../generated/zod/index.js';
 export const CreatePurchaseOrderSchema = CreateOrderSchema.extend({
   type: z.literal('PURCHASE'),
+<<<<<<< HEAD
   date: z.coerce.date().optional(),
   notes: z.string().optional(),
+=======
+>>>>>>> origin/dev
   paymentTerms: PaymentTermsSchema.optional().default('NET30'),
   // Down Payment (optional)
   dpPercent: z.number().min(0).max(100).optional(), // 0-100%
@@ -275,8 +278,11 @@ export const CreatePaymentSchema = z.object({
   method: PaymentMethodTypeSchema,
   reference: z.string().optional(),
   bankAccountId: z.string().uuid().optional(), // Link to BankAccount (Cash/Bank)
+<<<<<<< HEAD
   paymentMethodId: z.string().uuid().optional(), // Link to configured CompanyPaymentMethod
   paymentMethodCode: z.string().trim().min(1).optional(),
+=======
+>>>>>>> origin/dev
   businessDate: z.coerce.date().optional(), // G5: Explicit business date
   correlationId: z.string().uuid().optional(), // FR-010.1: Request tracing
 });

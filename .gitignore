@@ -57,4 +57,23 @@ apps/api/deploy/
 # Sensitive data — DO NOT COMMIT
 cookies.txt
 *.session
+<<<<<<< HEAD
 mcp-debug.log
+<<<<<<< HEAD
+=======
+storage/
+>>>>>>> origin/dev
+=======
+storage/
+mcp-debug.log
+
+# AI Agent config (Cline, Trae, etc.)
+.agent/
+.specify/
+
+# Artifacts
+deploy/*.zip
+dist_*.tar.gz
+router4/
+.env*
+>>>>>>> dev

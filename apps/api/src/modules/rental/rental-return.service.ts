@@ -34,7 +34,10 @@ import {
   calculateReturnSettlement,
 } from './rules/late-fee';
 import { z } from 'zod';
+<<<<<<< HEAD
 import { isBillingFeatureEnabled } from '../billing/billing-limits.service';
+=======
+>>>>>>> origin/dev
 
 // Zod Schema for type-safe JSON parsing
 const RentalPolicySnapshotSchema = z.object({
@@ -119,10 +122,13 @@ export class RentalReturnService {
 
       // Sum damage charges
       let damageCharges = new Decimal(0);
+<<<<<<< HEAD
       const hasMediaAccess = await isBillingFeatureEnabled({
         companyId,
         feature: 'mediaAccess',
       });
+=======
+>>>>>>> origin/dev
 
       // Batch fetch units
       const unitIds = input.units.map((u) => u.unitId);
@@ -145,6 +151,7 @@ export class RentalReturnService {
       });
 
       for (const u of input.units) {
+<<<<<<< HEAD
         const afterPhotos = u.afterPhotos ?? [];
 
         if (!hasMediaAccess && afterPhotos.length > 0) {
@@ -155,6 +162,8 @@ export class RentalReturnService {
           );
         }
 
+=======
+>>>>>>> origin/dev
         if (!u.damageSeverity) continue;
 
         const unit = unitsMap.get(u.unitId);
@@ -199,12 +208,19 @@ export class RentalReturnService {
               rentalOrderId: order.id,
               conditionType: 'RETURN',
               beforePhotos: [],
+<<<<<<< HEAD
               afterPhotos: unit.afterPhotos ?? [],
               condition: unit.condition,
               damageSeverity: unit.damageSeverity || null,
               notes:
                 unit.damageNotes ??
                 (hasMediaAccess ? undefined : 'No media access on current plan'),
+=======
+              afterPhotos: unit.afterPhotos,
+              condition: unit.condition,
+              damageSeverity: unit.damageSeverity || null,
+              notes: unit.damageNotes,
+>>>>>>> origin/dev
               recordedAt: input.actualReturnDate,
               assessedBy: userId,
             },

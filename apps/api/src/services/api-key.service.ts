@@ -8,6 +8,10 @@ export interface ApiKeyValidationResult {
   permissions: string[];
   keyId: string;
   rateLimit: number;
+<<<<<<< HEAD
+=======
+  integrationId: string | null;
+>>>>>>> origin/dev
 }
 
 export interface CreateKeyResult {
@@ -147,6 +151,10 @@ export class ApiKeyService {
         permissions: true,
         expiresAt: true,
         rateLimit: true,
+<<<<<<< HEAD
+=======
+        integrationId: true,
+>>>>>>> origin/dev
       },
     });
 
@@ -179,6 +187,10 @@ export class ApiKeyService {
           permissions: candidate.permissions,
           keyId: candidate.id,
           rateLimit: candidate.rateLimit,
+<<<<<<< HEAD
+=======
+          integrationId: candidate.integrationId,
+>>>>>>> origin/dev
         };
       }
     }

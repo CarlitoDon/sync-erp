@@ -118,7 +118,11 @@ export const LoginPage: React.FC = () => {
         )}
 
         {notice && (
+<<<<<<< HEAD
           <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+=======
+          <div className="mb-4 rounded bg-green-50 p-3 text-sm text-green-700">
+>>>>>>> origin/dev
             {notice}
           </div>
         )}
@@ -149,6 +153,7 @@ export const LoginPage: React.FC = () => {
             loadingText="Please wait..."
             disabled={loading}
           >
+<<<<<<< HEAD
             Sign In
           </Button>
 
@@ -177,6 +182,35 @@ export const LoginPage: React.FC = () => {
         )}
 
         <p className="mt-4 text-center text-sm text-slate-600">
+=======
+            {loading ? 'Please wait...' : 'Sign In'}
+          </button>
+
+          <button
+            type="button"
+            onClick={loginWithGoogle}
+            disabled={loading || isResending}
+            className="w-full rounded border border-gray-300 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Continue with Google
+          </button>
+        </form>
+
+        {error === EMAIL_NOT_VERIFIED_MESSAGE && formData.email && (
+          <button
+            type="button"
+            onClick={handleResendVerification}
+            disabled={isResending}
+            className="mt-4 w-full rounded border border-gray-300 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {isResending
+              ? 'Sending verification link...'
+              : 'Resend verification email'}
+          </button>
+        )}
+
+        <p className="mt-4 text-center text-sm text-gray-600">
+>>>>>>> origin/dev
           Don't have an account?{' '}
           <Link
             to="/register"

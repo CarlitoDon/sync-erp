@@ -6,7 +6,11 @@
   "rewrites": [
     {
       "source": "/api/trpc/:path*",
+<<<<<<< HEAD
       "destination": "https://api.sync-erp.com/api/trpc/:path*"
+=======
+      "destination": "https://api.santiliving.com/api/trpc/:path*"
+>>>>>>> origin/dev
     },
     {
       "source": "/(.*)",

@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server';
+<<<<<<< HEAD
 import { BillingSubscriptionStatus, prisma } from '@sync-erp/database';
 import {
   BILLING_PLANS,
@@ -7,6 +8,12 @@ import {
   type BillingFeatureKey,
   type BillingPlan,
   type BillingPlanKey,
+=======
+import { prisma } from '@sync-erp/database';
+import {
+  BILLING_USAGE_METRICS,
+  DEFAULT_BILLING_PLAN_KEY,
+>>>>>>> origin/dev
   type BillingUsageMetricKey,
   formatBillingLimit,
   getBillingPlan,
@@ -19,6 +26,7 @@ interface BillingLimitCheckInput {
   userId?: string;
 }
 
+<<<<<<< HEAD
 interface BillingFeatureCheckInput {
   feature: BillingFeatureKey;
   companyId: string;
@@ -39,10 +47,13 @@ const BILLING_FEATURE_LABELS: Record<BillingFeatureKey, string> = {
   prioritySupport: 'Priority support',
 };
 
+=======
+>>>>>>> origin/dev
 function billingLimitsDisabled(): boolean {
   return process.env.SYNC_ERP_DISABLE_BILLING_LIMITS === 'true';
 }
 
+<<<<<<< HEAD
 function getPlanRank(planKey: BillingPlanKey): number {
   return BILLING_PLANS.findIndex((plan) => plan.key === planKey);
 }
@@ -104,6 +115,8 @@ async function resolvePlanKeyForBillingCheck(
   return DEFAULT_BILLING_PLAN_KEY;
 }
 
+=======
+>>>>>>> origin/dev
 async function getCurrentUsage({
   metric,
   companyId,
@@ -138,7 +151,20 @@ export async function assertBillingLimitAvailable(
     return;
   }
 
+<<<<<<< HEAD
   const planKey = await resolvePlanKeyForBillingCheck(input);
+=======
+  let planKey = DEFAULT_BILLING_PLAN_KEY;
+
+  if (input.companyId) {
+    const subscription = await prisma.companySubscription.findUnique({
+      where: { companyId: input.companyId },
+      select: { planKey: true },
+    });
+    planKey = resolveBillingPlanKey(subscription?.planKey);
+  }
+
+>>>>>>> origin/dev
   const plan = getBillingPlan(planKey);
   const limit = plan.limits[input.metric];
 
@@ -159,6 +185,7 @@ export async function assertBillingLimitAvailable(
     message: `${metric.label} limit reached for ${plan.name}: ${formatBillingLimit(limit)}. Upgrade your plan to continue.`,
   });
 }
+<<<<<<< HEAD
 
 export async function getBillingPlanForCompany(
   companyId: string
@@ -195,3 +222,5 @@ export async function assertBillingFeatureAvailable(
     message: `${BILLING_FEATURE_LABELS[input.feature]} is not available on your current plan. Upgrade your plan to continue.`,
   });
 }
+=======
+>>>>>>> origin/dev

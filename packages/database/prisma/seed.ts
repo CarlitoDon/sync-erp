@@ -550,6 +550,7 @@ async function main() {
       // Create API Key for rental company (multi-tenant integration)
       if (companyDef.businessShape === 'RENTAL') {
         const isDevelopment = process.env.NODE_ENV === 'development';
+<<<<<<< HEAD
 
         // 1. Ensure Integration Record exists
         const appId = 'custom-storefront';
@@ -646,6 +647,11 @@ async function main() {
             }
           });
         console.warn('🔑 API Key created for', companyDef.name);
+=======
+        const { seedSantiLiving } = await import('../../apps/api/src/integrations/santi-living/seed.js');
+        await seedSantiLiving(prisma, company.id, isDevelopment);
+        console.warn('🔑 API Key and Integration created for', companyDef.name);
+>>>>>>> origin/dev
       }
 
       // System Config

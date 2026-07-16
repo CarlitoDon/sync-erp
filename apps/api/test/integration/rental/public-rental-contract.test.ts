@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { appRouter } from '@src/trpc/router';
+<<<<<<< HEAD
 import { integrationV1Router } from '@src/trpc/routers/integration-v1.router';
+=======
+>>>>>>> origin/dev
 import { publicRentalRouter } from '@src/trpc/routers/public-rental.router';
 
 describe('Public Rental Contract', () => {
@@ -16,6 +19,7 @@ describe('Public Rental Contract', () => {
     'rejectPaymentByOrderNumber',
   ].sort();
 
+<<<<<<< HEAD
   const expectedIntegrationV1Procedures = [
     'rental.customers.create',
     'rental.orders.create',
@@ -31,6 +35,12 @@ describe('Public Rental Contract', () => {
 
   it('exposes expected publicRental procedures', () => {
     const procedureKeys = Object.keys(publicRentalRouter._def.procedures).sort();
+=======
+  it('exposes expected publicRental procedures', () => {
+    const procedureKeys = Object.keys(
+      publicRentalRouter._def.procedures
+    ).sort();
+>>>>>>> origin/dev
     expect(procedureKeys).toEqual(expectedProcedures);
   });
 
@@ -39,11 +49,18 @@ describe('Public Rental Contract', () => {
       .filter((key) => key.startsWith('publicRental.'))
       .map((key) => key.replace('publicRental.', ''))
       .sort();
+<<<<<<< HEAD
     const facadeProcedures = Object.keys(publicRentalRouter._def.procedures).sort();
+=======
+    const facadeProcedures = Object.keys(
+      publicRentalRouter._def.procedures
+    ).sort();
+>>>>>>> origin/dev
 
     expect(appProcedures).toEqual(expectedProcedures);
     expect(facadeProcedures).toEqual(expectedProcedures);
   });
+<<<<<<< HEAD
 
   it('exposes the generic integrationV1 rental procedure surface', () => {
     const procedureKeys = Object.keys(
@@ -61,4 +78,6 @@ describe('Public Rental Contract', () => {
 
     expect(appProcedures).toEqual(expectedIntegrationV1Procedures);
   });
+=======
+>>>>>>> origin/dev
 });

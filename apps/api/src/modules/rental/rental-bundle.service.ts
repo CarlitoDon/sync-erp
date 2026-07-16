@@ -6,7 +6,10 @@
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { DepositPolicyType } from '@sync-erp/database';
 import * as bundleRepo from './rental-bundle.repository';
+<<<<<<< HEAD
 import { assertBillingFeatureAvailable } from '../billing/billing-limits.service';
+=======
+>>>>>>> origin/dev
 
 // ============================================
 // Queries
@@ -129,6 +132,7 @@ export interface CreateInput {
 }
 
 export async function create(input: CreateInput) {
+<<<<<<< HEAD
   if (input.imagePath) {
     await assertBillingFeatureAvailable({
       companyId: input.companyId,
@@ -136,6 +140,8 @@ export async function create(input: CreateInput) {
     });
   }
 
+=======
+>>>>>>> origin/dev
   return bundleRepo.create(input);
 }
 
@@ -159,7 +165,11 @@ export async function update(input: UpdateInput) {
 }
 
 // ============================================
+<<<<<<< HEAD
 // Sync from an external storefront/catalog.
+=======
+// Sync External Bundles
+>>>>>>> origin/dev
 // ============================================
 
 export interface SyncBundleItem {
@@ -174,11 +184,16 @@ export interface SyncBundleItem {
   includes: string[]; // ["2 bantal", "kasur busa", etc.]
 }
 
+<<<<<<< HEAD
 export interface SyncFromExternalCatalogInput {
+=======
+export interface SyncExternalBundlesInput {
+>>>>>>> origin/dev
   companyId: string;
   bundles: SyncBundleItem[];
 }
 
+<<<<<<< HEAD
 export async function syncFromExternalCatalog(
   input: SyncFromExternalCatalogInput
 ) {
@@ -189,6 +204,11 @@ export async function syncFromExternalCatalog(
     });
   }
 
+=======
+export async function syncExternalBundles(
+  input: SyncExternalBundlesInput
+) {
+>>>>>>> origin/dev
   const results = [];
 
   for (const bundle of input.bundles) {

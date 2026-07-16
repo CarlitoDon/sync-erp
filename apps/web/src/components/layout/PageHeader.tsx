@@ -66,8 +66,13 @@ export function PageHeader({
         <div className="flex items-center gap-4">
           <BackButton />
           <div>
+<<<<<<< HEAD
             <h1 className="text-2xl font-bold text-slate-950">{title}</h1>
             {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+=======
+            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+            {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+>>>>>>> origin/dev
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -84,8 +89,13 @@ export function PageHeader({
       className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${className}`}
     >
       <div>
+<<<<<<< HEAD
         <h1 className="text-2xl font-bold text-slate-950">{title}</h1>
         {description && <p className="mt-1 text-slate-500">{description}</p>}
+=======
+        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+        {description && <p className="mt-1 text-gray-500">{description}</p>}
+>>>>>>> origin/dev
       </div>
       {actions && <div className="flex items-center gap-3">{actions}</div>}
     </div>

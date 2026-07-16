@@ -4,7 +4,10 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import Layout from '@/components/layout/Layout';
 import { LazyRoute } from '@/app/LazyRoute';
 import MarketingHomePage from '@/features/marketing/pages/MarketingHomePage';
+<<<<<<< HEAD
 import LegalPage from '@/features/legal/pages/LegalPage';
+=======
+>>>>>>> origin/dev
 
 // Auth pages - not lazy loaded (initial entry points)
 import { RegisterPage } from '@/features/auth/components/RegisterPage';
@@ -38,10 +41,14 @@ const OnboardingPage = lazy(() =>
 );
 const CashBankPage = lazy(() => import('@/features/cash-bank'));
 
+<<<<<<< HEAD
 const APP_HOSTNAMES = new Set([
   'app.sync-erp.com',
   'sync-erp-app.vercel.app',
 ]);
+=======
+const APP_HOSTNAMES = new Set(['sync-erp-app.vercel.app']);
+>>>>>>> origin/dev
 
 function RootRoute() {
   if (
@@ -58,8 +65,11 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<RootRoute />} />
+<<<<<<< HEAD
       <Route path="/privacy" element={<LegalPage type="privacy" />} />
       <Route path="/terms" element={<LegalPage type="terms" />} />
+=======
+>>>>>>> origin/dev
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />

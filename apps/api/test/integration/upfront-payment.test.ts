@@ -48,7 +48,11 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
+<<<<<<< HEAD
           type: acc.type as import("@sync-erp/database").AccountType,
+=======
+          type: acc.type as import('@sync-erp/database').AccountType,
+>>>>>>> origin/dev
           isActive: true,
         },
       });
@@ -621,7 +625,11 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
             companyId: COMPANY_ID_E2E,
             code: acc.code,
             name: acc.name,
+<<<<<<< HEAD
             type: acc.type as import("@sync-erp/database").AccountType,
+=======
+            type: acc.type as import('@sync-erp/database').AccountType,
+>>>>>>> origin/dev
             isActive: true,
           },
         });

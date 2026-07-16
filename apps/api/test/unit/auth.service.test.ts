@@ -14,11 +14,17 @@ describe('AuthService Unit', () => {
     findOAuthAccountByUser: vi.fn(),
     createOAuthAccount: vi.fn(),
     createSession: vi.fn(),
+<<<<<<< HEAD
     getSession: vi.fn(),
   };
 
   const userService = {
     getById: vi.fn(),
+=======
+  };
+
+  const userService = {
+>>>>>>> origin/dev
     getByEmail: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
@@ -79,9 +85,15 @@ describe('AuthService Unit', () => {
           'We could not send the verification email. Please try again.',
       },
     });
+<<<<<<< HEAD
     expect(repository.deleteEmailVerificationToken).toHaveBeenCalledWith(
       'token-1'
     );
+=======
+    expect(
+      repository.deleteEmailVerificationToken
+    ).toHaveBeenCalledWith('token-1');
+>>>>>>> origin/dev
     expect(userService.delete).toHaveBeenCalledWith('user-1');
     expect(authAuditService.record).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -124,6 +136,7 @@ describe('AuthService Unit', () => {
     );
   });
 
+<<<<<<< HEAD
   it('does not expose password hashes on successful login', async () => {
     const passwordHash = await hashPassword('password123');
 
@@ -184,6 +197,8 @@ describe('AuthService Unit', () => {
     expect(session?.user).not.toHaveProperty('passwordHash');
   });
 
+=======
+>>>>>>> origin/dev
   it('creates a verified user and session from Google OAuth', async () => {
     repository.findOAuthAccount.mockResolvedValue(null);
     userService.getByEmail.mockResolvedValue(null);

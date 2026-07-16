@@ -10,6 +10,7 @@ export type McpRuntimeConfig = z.infer<typeof McpRuntimeConfigSchema>;
 
 let cachedConfig: McpRuntimeConfig | null = null;
 
+<<<<<<< HEAD
 function getBearerTokensFromEnv(): string[] {
   const bearerTokenList =
     process.env.SYNC_ERP_MCP_BEARER_TOKENS ||
@@ -24,6 +25,13 @@ function getBearerTokensFromEnv(): string[] {
 
 export function isMcpEnabled(): boolean {
   return getBearerTokensFromEnv().length > 0;
+=======
+export function isMcpEnabled(): boolean {
+  return Boolean(
+    process.env.SYNC_ERP_MCP_BEARER_TOKEN ||
+      process.env.SYNC_ERP_MCP_BEARER_TOKENS
+  );
+>>>>>>> origin/dev
 }
 
 export function getMcpRuntimeConfig(): McpRuntimeConfig {
@@ -31,6 +39,23 @@ export function getMcpRuntimeConfig(): McpRuntimeConfig {
     return cachedConfig;
   }
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+  const rawConfig = {
+    bearerTokens: getBearerTokensFromEnv(),
+=======
+=======
+  if (!isMcpEnabled()) {
+    // Return safe defaults when MCP is not configured — avoids crashes
+    // from session cleanup timers firing on unconfigured instances.
+    return {
+      bearerTokens: ['__not_configured__'],
+      maxSessions: 0,
+      sessionTtlMs: 1000,
+    } as McpRuntimeConfig;
+  }
+
+>>>>>>> dev
   const bearerTokenList =
     process.env.SYNC_ERP_MCP_BEARER_TOKENS ||
     process.env.SYNC_ERP_MCP_BEARER_TOKEN ||
@@ -41,6 +66,7 @@ export function getMcpRuntimeConfig(): McpRuntimeConfig {
       .split(',')
       .map((token) => token.trim())
       .filter(Boolean),
+>>>>>>> origin/dev
     maxSessions: Number(process.env.SYNC_ERP_MCP_MAX_SESSIONS || 50),
     sessionTtlMs: Number(
       process.env.SYNC_ERP_MCP_SESSION_TTL_MS || 15 * 60 * 1000

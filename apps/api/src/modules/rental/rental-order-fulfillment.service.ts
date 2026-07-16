@@ -27,7 +27,10 @@ import {
   type ReleaseRentalOrderInput,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
+<<<<<<< HEAD
 import { isBillingFeatureEnabled } from '../billing/billing-limits.service';
+=======
+>>>>>>> origin/dev
 
 export class RentalOrderFulfillmentService {
   constructor(
@@ -531,6 +534,7 @@ export class RentalOrderFulfillmentService {
 
       Policy.ensureCanRelease(order);
 
+<<<<<<< HEAD
       const hasMediaAccess = await isBillingFeatureEnabled({
         companyId,
         feature: 'mediaAccess',
@@ -550,6 +554,15 @@ export class RentalOrderFulfillmentService {
         }
 
         if (hasMediaAccess && beforePhotos.length === 0) {
+=======
+      // Validate all units have photos
+      const unitIds = input.unitAssignments.map((a) => a.unitId);
+      for (const assignment of input.unitAssignments) {
+        if (
+          !assignment.beforePhotos ||
+          assignment.beforePhotos.length === 0
+        ) {
+>>>>>>> origin/dev
           throw new DomainError(
             'All units must have before photos',
             400,
@@ -566,12 +579,19 @@ export class RentalOrderFulfillmentService {
               rentalItemUnit: { connect: { id: assignment.unitId } },
               rentalOrder: { connect: { id: order.id } },
               conditionType: 'RELEASE',
+<<<<<<< HEAD
               beforePhotos: assignment.beforePhotos ?? [],
               afterPhotos: [],
               condition: assignment.condition,
               notes:
                 assignment.notes ??
                 (hasMediaAccess ? undefined : 'No media access on current plan'),
+=======
+              beforePhotos: assignment.beforePhotos,
+              afterPhotos: [],
+              condition: assignment.condition,
+              notes: assignment.notes,
+>>>>>>> origin/dev
               recordedAt: new Date(),
               assessedBy: userId,
             },

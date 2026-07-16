@@ -12,7 +12,10 @@ import { DocumentNumberService } from '../common/services/document-number.servic
 import {
   CreateRentalOrderInput,
   ConfirmRentalOrderInput,
+<<<<<<< HEAD
   ExtendRentalOrderInput,
+=======
+>>>>>>> origin/dev
   ManualConfirmRentalOrderInput,
   ReleaseRentalOrderInput,
   PrismaRentalOrderWithRelations,
@@ -94,9 +97,20 @@ export class RentalOrderService {
 
   async extendOrder(
     companyId: string,
+<<<<<<< HEAD
     input: ExtendRentalOrderInput,
     userId: string
   ): Promise<PrismaRentalOrderWithRelations> {
+=======
+    input: {
+      orderId: string;
+      newEndDate: Date;
+      additionalDeposit?: number;
+      reason?: string;
+    },
+    userId: string
+  ): Promise<RentalOrder> {
+>>>>>>> origin/dev
     return this.lifecycleService.extendOrder(
       companyId,
       input,

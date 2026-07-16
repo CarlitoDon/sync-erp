@@ -5,6 +5,7 @@ import {
   AuditLogAction,
   EntityType,
 } from '@sync-erp/database';
+<<<<<<< HEAD
 import {
   CancelBillInstallmentSchema,
   CreateBillFromPOSchema,
@@ -15,13 +16,21 @@ import {
 import { z } from 'zod';
 import { BillService } from '../../modules/accounting/services/bill.service';
 import { BillInstallmentService } from '../../modules/accounting/services/bill-installment.service';
+=======
+import { CreateBillFromPOSchema } from '@sync-erp/shared';
+import { z } from 'zod';
+import { BillService } from '../../modules/accounting/services/bill.service';
+>>>>>>> origin/dev
 import { ensureHasPermission } from '../../modules/common/utils/permission.utils';
 import { recordAudit } from '../../modules/common/audit/audit-log.service';
 
 const billService = container.resolve<BillService>(
   ServiceKeys.BILL_SERVICE
 );
+<<<<<<< HEAD
 const billInstallmentService = new BillInstallmentService();
+=======
+>>>>>>> origin/dev
 
 export const billRouter = router({
   /**
@@ -57,6 +66,16 @@ export const billRouter = router({
 
   /**
    * Create Down Payment Bill for PO with DP requirement
+<<<<<<< HEAD
+   */
+  createDpBill: protectedProcedure
+    .input(
+      z.object({
+        orderId: z.string().uuid(),
+        amount: z.number().positive().optional(), // Custom DP amount (optional)
+      })
+    )
+=======
    */
   createDpBill: protectedProcedure
     .input(
@@ -78,6 +97,22 @@ export const billRouter = router({
    */
   post: protectedProcedure
     .meta({ idempotencyScope: IdempotencyScope.INVOICE_POST }) // Bills are posted as Invoices in ledger
+    .input(z.object({ id: z.string().uuid() }))
+>>>>>>> origin/dev
+    .mutation(async ({ ctx, input }) => {
+      return billService.createDownPaymentBill(
+        ctx.companyId,
+        input.orderId,
+        input.amount
+      );
+    }),
+
+  /**
+<<<<<<< HEAD
+   * Post bill to ledger
+   */
+  post: protectedProcedure
+    .meta({ idempotencyScope: IdempotencyScope.INVOICE_POST }) // Bills are posted as Invoices in ledger
     .input(
       z.object({
         id: z.string().uuid(),
@@ -94,6 +129,8 @@ export const billRouter = router({
     }),
 
   /**
+=======
+>>>>>>> origin/dev
    * Void bill (FR-024: requires reason)
    */
   void: protectedProcedure
@@ -125,6 +162,7 @@ export const billRouter = router({
       return billService.delete(input.id, ctx.companyId);
     }),
 
+<<<<<<< HEAD
   installments: router({
     list: protectedProcedure
       .input(ListBillInstallmentsSchema)
@@ -154,6 +192,8 @@ export const billRouter = router({
       }),
   }),
 
+=======
+>>>>>>> origin/dev
   /**
    * FR-051: Log acknowledged price variance
    */

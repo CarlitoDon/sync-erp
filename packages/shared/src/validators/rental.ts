@@ -14,8 +14,11 @@ import {
   ProductSchema,
   ProductCategorySchema,
   RentalOrderUnitAssignmentSchema,
+<<<<<<< HEAD
   RentalOrderExtensionSchema as GeneratedRentalOrderExtensionSchema,
   RentalOrderExtensionItemSchema as GeneratedRentalOrderExtensionItemSchema,
+=======
+>>>>>>> origin/dev
   RentalReturnSchema as GeneratedRentalReturnSchema,
 } from '../generated/zod/index.js';
 
@@ -100,11 +103,14 @@ export type RentalItemWithRelations = z.infer<
   typeof RentalItemWithRelationsSchema
 >;
 
+<<<<<<< HEAD
 const RentalOrderExtensionWithItemsSchema =
   GeneratedRentalOrderExtensionSchema.extend({
     items: z.array(GeneratedRentalOrderExtensionItemSchema).optional(),
   });
 
+=======
+>>>>>>> origin/dev
 export const RentalOrderWithRelationsSchema =
   RentalOrderSchema.extend({
     items: z.array(
@@ -143,7 +149,10 @@ export const RentalOrderWithRelationsSchema =
       })
     ),
     partner: PartnerSchema,
+<<<<<<< HEAD
     extensions: z.array(RentalOrderExtensionWithItemsSchema).optional(),
+=======
+>>>>>>> origin/dev
     unitAssignments: z.array(
       RentalOrderUnitAssignmentSchema.extend({
         rentalItemUnit: RentalItemUnitSchema.extend({
@@ -249,8 +258,11 @@ const RentalOrderItemSchema = z
     rentalItemId: z.string().uuid().optional(),
     rentalBundleId: z.string().uuid().optional(),
     quantity: z.number().int().positive(),
+<<<<<<< HEAD
     pricePerDay: z.number().positive().optional(),
     lineTotal: z.number().positive().optional(),
+=======
+>>>>>>> origin/dev
   })
   .refine((data) => !!data.rentalItemId || !!data.rentalBundleId, {
     message: 'Either rentalItemId or rentalBundleId is required',
@@ -274,6 +286,7 @@ export const CreateRentalOrderSchema = z
       .optional(),
     items: z.array(RentalOrderItemSchema).min(1),
     notes: z.string().optional(),
+<<<<<<< HEAD
     deliveryFee: z.number().nonnegative().optional(),
     deliveryAddress: z.string().optional(),
     street: z.string().optional(),
@@ -287,6 +300,8 @@ export const CreateRentalOrderSchema = z
     paymentMethod: z.string().optional(),
     discountAmount: z.number().nonnegative().optional(),
     discountLabel: z.string().optional(),
+=======
+>>>>>>> origin/dev
   })
   .refine(
     (data) => {
@@ -330,6 +345,7 @@ export const ManualConfirmRentalOrderSchema = z.object({
   notes: z.string().min(5, 'Notes required for manual confirmation'),
 });
 
+<<<<<<< HEAD
 export const HistoricalRentalSettlementSchema = z.object({
   orderId: z.string().uuid(),
   paymentDate: z
@@ -348,10 +364,13 @@ export const HistoricalRentalSettlementSchema = z.object({
   notes: z.string().trim().min(5).max(1000).optional(),
 });
 
+=======
+>>>>>>> origin/dev
 // Bulk add units
 // REMOVED: BulkAddUnitSchema - Manual bulk unit creation no longer supported
 // All units must be created via ConvertStockToUnitSchema
 
+<<<<<<< HEAD
 const RentalUnitMetadataSchema = z.object({
   unitCode: z.string().trim().min(1).max(64).optional(),
   acquiredAt: z.coerce.date().optional(),
@@ -394,6 +413,19 @@ export const ConvertStockToUnitSchema = z
 const UnitReleaseSchema = z.object({
   unitId: z.string().uuid(),
   beforePhotos: z.array(z.string()).default([]),
+=======
+// Convert Stock to Unit (Simplified: Auto-generate unit codes)
+export const ConvertStockToUnitSchema = z.object({
+  rentalItemId: z.string().uuid(),
+  quantity: z.number().min(1, 'Minimal 1 unit'),
+});
+
+const UnitReleaseSchema = z.object({
+  unitId: z.string().uuid(),
+  beforePhotos: z
+    .array(z.string())
+    .min(1, 'At least one photo required'),
+>>>>>>> origin/dev
   condition: z.enum(['NEW', 'GOOD', 'FAIR', 'NEEDS_REPAIR']),
   notes: z.string().optional(),
 });
@@ -408,6 +440,7 @@ export const CancelRentalOrderSchema = z.object({
   reason: z.string().min(5, 'Cancellation reason required'),
 });
 
+<<<<<<< HEAD
 const ExtendRentalOrderItemSchema = z
   .object({
     rentalOrderItemId: z.string().uuid().optional(),
@@ -469,6 +502,16 @@ export const ExtendRentalOrderSchema = z
       });
     }
   });
+=======
+export const ExtendRentalOrderSchema = z.object({
+  orderId: z.string().uuid(),
+  newEndDate: z
+    .string()
+    .datetime()
+    .transform((str) => new Date(str)),
+  notes: z.string().optional(),
+});
+>>>>>>> origin/dev
 
 // ==========================================
 // Returns & Settlement
@@ -476,7 +519,11 @@ export const ExtendRentalOrderSchema = z
 
 const UnitReturnSchema = z.object({
   unitId: z.string().uuid(),
+<<<<<<< HEAD
   afterPhotos: z.array(z.string()).default([]),
+=======
+  afterPhotos: z.array(z.string()), // Required if damaged
+>>>>>>> origin/dev
   condition: z.enum(['NEW', 'GOOD', 'FAIR', 'NEEDS_REPAIR']),
   damageSeverity: z.enum(['MINOR', 'MAJOR', 'UNUSABLE']).optional(),
   damageNotes: z.string().optional(),
@@ -557,9 +604,12 @@ export type UpdateRentalItemInput = z.infer<
 export type UpdateUnitStatusInput = z.infer<
   typeof UpdateUnitStatusSchema
 >;
+<<<<<<< HEAD
 export type ConvertStockToUnitInput = z.infer<
   typeof ConvertStockToUnitSchema
 >;
+=======
+>>>>>>> origin/dev
 export type CreateRentalOrderInput = z.infer<
   typeof CreateRentalOrderSchema
 >;
@@ -569,9 +619,12 @@ export type ConfirmRentalOrderInput = z.infer<
 export type ManualConfirmRentalOrderInput = z.infer<
   typeof ManualConfirmRentalOrderSchema
 >;
+<<<<<<< HEAD
 export type HistoricalRentalSettlementInput = z.infer<
   typeof HistoricalRentalSettlementSchema
 >;
+=======
+>>>>>>> origin/dev
 export type ReleaseRentalOrderInput = z.infer<
   typeof ReleaseRentalOrderSchema
 >;

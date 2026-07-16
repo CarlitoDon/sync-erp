@@ -79,6 +79,7 @@ export class PaymentService {
           // After validation, invoice is guaranteed non-null
           const invoice = invoiceOrNull!;
 
+<<<<<<< HEAD
           // Feature: Resolve configured payment method and Bank/Cash Account
           let contraAccountCode: string | undefined;
           if (data.paymentMethodId || data.paymentMethodCode) {
@@ -109,6 +110,10 @@ export class PaymentService {
             }
             contraAccountCode = paymentMethod.account?.code;
           }
+=======
+          // Feature: Resolve Bank/Cash Account
+          let contraAccountCode: string | undefined;
+>>>>>>> origin/dev
           if (data.bankAccountId) {
             const bankAccount =
               await this.cashBankRepository.getAccountById(
@@ -136,7 +141,10 @@ export class PaymentService {
               date: data.businessDate ?? new Date(),
               method: data.method,
               accountId: data.bankAccountId,
+<<<<<<< HEAD
               reference: data.reference,
+=======
+>>>>>>> origin/dev
             },
             tx
           );
@@ -172,8 +180,12 @@ export class PaymentService {
               data.amount,
               data.method,
               contraAccountCode,
+<<<<<<< HEAD
               tx,
               data.businessDate
+=======
+              tx
+>>>>>>> origin/dev
             );
           } else {
             await this.journalService.postPaymentReceived(

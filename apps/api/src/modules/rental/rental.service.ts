@@ -27,6 +27,7 @@ import { RentalPolicyService } from './rental-policy.service';
 import { RentalWebhookService } from './rental-webhook.service';
 import { RentalExternalOrderService } from './rental-external-order.service';
 import { RentalAvailabilityService } from './rental-availability.service';
+<<<<<<< HEAD
 import { RentalOrderHistoricalSettlementService } from './rental-order-historical-settlement.service';
 import {
   type CreateRentalItemInput,
@@ -34,6 +35,12 @@ import {
   type CreateRentalOrderInput,
   type ConfirmRentalOrderInput,
   type HistoricalRentalSettlementInput,
+=======
+import {
+  type CreateRentalItemInput,
+  type CreateRentalOrderInput,
+  type ConfirmRentalOrderInput,
+>>>>>>> origin/dev
   type ManualConfirmRentalOrderInput,
   type ReleaseRentalOrderInput,
   type ProcessReturnInput,
@@ -50,7 +57,10 @@ export class RentalService {
   private readonly policyService: RentalPolicyService;
   public readonly externalOrderService: RentalExternalOrderService;
   private readonly availabilityService: RentalAvailabilityService;
+<<<<<<< HEAD
   private readonly historicalSettlementService: RentalOrderHistoricalSettlementService;
+=======
+>>>>>>> origin/dev
 
   constructor(webhookService?: RentalWebhookService) {
     this.itemService = new RentalItemService();
@@ -63,8 +73,11 @@ export class RentalService {
     this.policyService = new RentalPolicyService();
     this.externalOrderService = new RentalExternalOrderService();
     this.availabilityService = new RentalAvailabilityService();
+<<<<<<< HEAD
     this.historicalSettlementService =
       new RentalOrderHistoricalSettlementService();
+=======
+>>>>>>> origin/dev
   }
 
   // ==========================================
@@ -90,15 +103,23 @@ export class RentalService {
     companyId: string,
     itemId: string,
     quantity: number,
+<<<<<<< HEAD
     userId: string,
     options?: Omit<ConvertStockToUnitInput, 'rentalItemId' | 'quantity'>
+=======
+    userId: string
+>>>>>>> origin/dev
   ): Promise<number> {
     return this.itemService.convertStockToUnits(
       companyId,
       itemId,
       quantity,
+<<<<<<< HEAD
       userId,
       options
+=======
+      userId
+>>>>>>> origin/dev
     );
   }
 
@@ -235,6 +256,7 @@ export class RentalService {
     );
   }
 
+<<<<<<< HEAD
   async settleHistoricalCompletedOrder(
     companyId: string,
     input: HistoricalRentalSettlementInput,
@@ -247,6 +269,8 @@ export class RentalService {
     );
   }
 
+=======
+>>>>>>> origin/dev
   async extendOrder(
     companyId: string,
     input: {

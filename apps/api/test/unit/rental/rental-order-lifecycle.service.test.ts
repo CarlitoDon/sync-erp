@@ -13,7 +13,10 @@ import {
 import {
   RentalOrderStatus,
   OrderSource,
+<<<<<<< HEAD
   Prisma,
+=======
+>>>>>>> origin/dev
   prisma,
 } from '@sync-erp/database';
 import { DomainError, asMock } from '@sync-erp/shared';
@@ -28,16 +31,29 @@ describe('RentalOrderLifecycleService', () => {
     vi.clearAllMocks();
 
     service = new RentalOrderLifecycleService(
+<<<<<<< HEAD
       mockRentalRepository as unknown as import("../../../src/modules/rental/rental.repository").RentalRepository,
       mockDocumentNumberService as unknown as import("../../../src/modules/common/services/document-number.service").DocumentNumberService,
       mockJournalService as unknown as import("../../../src/modules/accounting/services/journal.service").JournalService,
       mockRentalWebhookService as unknown as import("../../../src/modules/rental/rental-webhook.service").RentalWebhookService
+=======
+      mockRentalRepository as unknown as import('../../../src/modules/rental/rental.repository').RentalRepository,
+      mockDocumentNumberService as unknown as import('../../../src/modules/common/services/document-number.service').DocumentNumberService,
+      mockJournalService as unknown as import('../../../src/modules/accounting/services/journal.service').JournalService,
+      mockRentalWebhookService as unknown as import('../../../src/modules/rental/rental-webhook.service').RentalWebhookService
+>>>>>>> origin/dev
     );
 
     // Setup default safe mocks for Prisma
     asMock(prisma.rentalItem.findMany).mockResolvedValue([]);
     asMock(prisma.rentalBundle.findMany).mockResolvedValue([]);
+<<<<<<< HEAD
     asMock(prisma.rentalOrderUnitAssignment.findMany).mockResolvedValue([]);
+=======
+    asMock(
+      prisma.rentalOrderUnitAssignment.findMany
+    ).mockResolvedValue([]);
+>>>>>>> origin/dev
     asMock(prisma.auditLog.create).mockResolvedValue({});
   });
 
@@ -151,6 +167,7 @@ describe('RentalOrderLifecycleService', () => {
         )
       ).rejects.toThrow(/Some rental items not found/);
     });
+<<<<<<< HEAD
 
     it('should snapshot invoice-specific line price and delivery fee', async () => {
       mockDocumentNumberService.generate.mockResolvedValue('RO-004');
@@ -219,6 +236,8 @@ describe('RentalOrderLifecycleService', () => {
       );
       expect(nestedItems.create[0]?.pricingTier).toBe('CUSTOM');
     });
+=======
+>>>>>>> origin/dev
   });
 
   describe('cancelOrder', () => {
@@ -235,10 +254,21 @@ describe('RentalOrderLifecycleService', () => {
       mockRentalRepository.findOrderById.mockResolvedValue(order);
 
       // Mock transaction
+<<<<<<< HEAD
       asMock(prisma.$transaction).mockImplementation((cb: (p: typeof import("@sync-erp/database").prisma) => void) =>
         cb(prisma)
       );
       asMock(prisma.rentalOrderUnitAssignment.findMany).mockResolvedValue([]);
+=======
+      asMock(prisma.$transaction).mockImplementation(
+        (
+          cb: (p: typeof import('@sync-erp/database').prisma) => void
+        ) => cb(prisma)
+      );
+      asMock(
+        prisma.rentalOrderUnitAssignment.findMany
+      ).mockResolvedValue([]);
+>>>>>>> origin/dev
       asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...order,
         status: RentalOrderStatus.CANCELLED,
@@ -273,10 +303,21 @@ describe('RentalOrderLifecycleService', () => {
       mockRentalRepository.findOrderById.mockResolvedValue(order);
 
       // Mock transaction
+<<<<<<< HEAD
       asMock(prisma.$transaction).mockImplementation((cb: (p: typeof import("@sync-erp/database").prisma) => void) =>
         cb(prisma)
       );
       asMock(prisma.rentalOrderUnitAssignment.findMany).mockResolvedValue([]);
+=======
+      asMock(prisma.$transaction).mockImplementation(
+        (
+          cb: (p: typeof import('@sync-erp/database').prisma) => void
+        ) => cb(prisma)
+      );
+      asMock(
+        prisma.rentalOrderUnitAssignment.findMany
+      ).mockResolvedValue([]);
+>>>>>>> origin/dev
       asMock(prisma.rentalOrder.update).mockResolvedValue({
         ...order,
         status: RentalOrderStatus.CANCELLED,
@@ -314,6 +355,7 @@ describe('RentalOrderLifecycleService', () => {
       ).rejects.toThrow(DomainError);
     });
   });
+<<<<<<< HEAD
 
   describe('extendOrder', () => {
     it('should record a historical paid extension with exact manual amount', async () => {
@@ -649,4 +691,6 @@ describe('RentalOrderLifecycleService', () => {
       expect(orderUpdateArg.data.totalAmount.toString()).toBe('568000');
     });
   });
+=======
+>>>>>>> origin/dev
 });

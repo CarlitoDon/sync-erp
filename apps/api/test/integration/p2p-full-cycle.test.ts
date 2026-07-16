@@ -59,7 +59,11 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
+<<<<<<< HEAD
           type: acc.type as import("@sync-erp/database").AccountType,
+=======
+          type: acc.type as import('@sync-erp/database').AccountType,
+>>>>>>> origin/dev
           isActive: true,
         },
       });
@@ -198,10 +202,17 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
 
       // Step 5: Verify Journal entries (FR-011)
       const journals = await prisma.journalEntry.findMany({
+<<<<<<< HEAD
       where: { companyId: COMPANY_ID },
       include: { lines: { include: { account: true } } },
       orderBy: { date: 'desc' },
     });
+=======
+        where: { companyId: COMPANY_ID },
+        include: { lines: { include: { account: true } } },
+        orderBy: { date: 'desc' },
+      });
+>>>>>>> origin/dev
       const billJournal = journals.find(
         (j) =>
           j.sourceType === JournalSourceType.BILL &&
