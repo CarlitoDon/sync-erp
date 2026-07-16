@@ -228,7 +228,7 @@ jobs:
             else
               PORT=3001
             fi
-            printf '%%s\n' \
+            printf '%s\n' \
             "DATABASE_URL=\"$DATABASE_URL\"" \
             "JWT_SECRET=\"$JWT_SECRET\"" \
             "PORT=$PORT" \
