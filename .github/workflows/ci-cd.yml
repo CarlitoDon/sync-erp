@@ -108,6 +108,51 @@ jobs:
       - name: Build API
         run: npm run build:api
 
+      - name: Prepare deployment package
+        run: |
+          rm -rf deploy/api-mcp
+          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database deploy/api-mcp/prisma
+          cp -R apps/api/dist deploy/api-mcp/
+          cp apps/api/package.pro.json deploy/api-mcp/package.json
+          cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
+          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
+          cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
+          if [ -d packages/database/src/generated ]; then
+            cp -R packages/database/src/generated deploy/api-mcp/node_modules/@sync-erp/database/
+          fi
+
+          # CRITICAL: Include the generated Prisma client with query engine binary
+          # node_modules/.prisma/client/ contains the *.engine.node binary files
+          # that must match the target OS (Linux x64 debian-openssl-*)
+          if [ -d node_modules/.prisma/client ]; then
+            mkdir -p deploy/api-mcp/node_modules/.prisma
+            cp -R node_modules/.prisma/client deploy/api-mcp/node_modules/.prisma/
+            echo "Included .prisma/client with query engine binary"
+          else
+            echo "WARNING: .prisma/client/ not found in root node_modules. Checking workspace..."
+            if [ -d packages/database/node_modules/.prisma/client ]; then
+              mkdir -p deploy/api-mcp/node_modules/.prisma
+              cp -R packages/database/node_modules/.prisma/client deploy/api-mcp/node_modules/.prisma/
+              echo "Included .prisma/client from workspace node_modules"
+            fi
+          fi
+
+          # Include @prisma/client and @prisma/adapter-pg JS wrappers
+          for pkg in client adapter-pg; do
+            if [ -d "node_modules/@prisma/$pkg" ]; then
+              mkdir -p "deploy/api-mcp/node_modules/@prisma"
+              cp -R "node_modules/@prisma/$pkg" "deploy/api-mcp/node_modules/@prisma/"
+              echo "Included @prisma/$pkg"
+            fi
+          done
+
+      - name: Upload API build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-mcp-build
+          path: deploy/api-mcp/
+          retention-days: 7
+
   ci-web:
     name: Quality Gates (Web)
     runs-on: ubuntu-latest
@@ -133,10 +178,17 @@ jobs:
       - name: Build Web
         run: npm run build:web
 
+      - name: Upload Web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/dist/
+          retention-days: 7
+
   deploy_api:
     name: Deploy API to Hostinger
     needs: [changes, ci-api]
-    if: github.event_name == 'push' && needs.changes.outputs.api == 'true'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment:
@@ -145,40 +197,11 @@ jobs:
       group: deploy-api-${{ github.ref_name }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: Download API build artifact
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npm run db:generate --workspace=@sync-erp/database
-
-      - name: Build API
-        run: npm run build:api
-
-      - name: Prepare deployment package
-        run: |
-          rm -rf deploy/api-mcp
-          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database deploy/api-mcp/prisma
-          cp -R apps/api/dist deploy/api-mcp/
-          cp apps/api/package.pro.json deploy/api-mcp/package.json
-          cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
-          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
-          cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
-          if [ -d packages/database/src/generated ]; then
-            cp -R packages/database/src/generated deploy/api-mcp/node_modules/@sync-erp/database/
-          fi
-          
-          # Force create alias for PM2
-          mkdir -p node_modules/@sync-erp
-          rm -rf node_modules/@sync-erp/database
-          cp -r deploy/api-mcp/node_modules/@sync-erp/database node_modules/@sync-erp/
+          name: api-mcp-build
+          path: deploy/api-mcp/
 
       - name: Resolve deployment target
         id: target
@@ -186,9 +209,33 @@ jobs:
           if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
             echo "deploy_dir=apps/api" >> "$GITHUB_OUTPUT"
             echo "health_host=https://api.santiliving.com" >> "$GITHUB_OUTPUT"
+            echo "pm2_name=sync-erp-api" >> "$GITHUB_OUTPUT"
           else
             echo "deploy_dir=apps/api-staging" >> "$GITHUB_OUTPUT"
             echo "health_host=https://api-staging.santiliving.com" >> "$GITHUB_OUTPUT"
+            echo "pm2_name=sync-erp-api-staging" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate environment configuration
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DEPLOY_DIR: ${{ steps.target.outputs.deploy_dir }}
+        run: |
+          if [[ -n "$DATABASE_URL" ]]; then
+            if [[ "$DEPLOY_DIR" == "apps/api" ]]; then
+              PORT=3000
+            else
+              PORT=3001
+            fi
+            printf '%s\n' \
+            "DATABASE_URL=\"$DATABASE_URL\"" \
+            "JWT_SECRET=\"$JWT_SECRET\"" \
+            "PORT=$PORT" \
+            "NODE_ENV=production" > deploy/api-mcp/.env.deploy
+            echo "Generated .env.deploy from environment secrets"
+          else
+            echo "No DATABASE_URL secret set; skipping .env.deploy (will keep existing .env on Hostinger)"
           fi
 
       - name: Setup SSH
@@ -203,6 +250,7 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
           SSH_PASSPHRASE: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
           DEPLOY_DIR: ${{ steps.target.outputs.deploy_dir }}
+          PM2_NAME: ${{ steps.target.outputs.pm2_name }}
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
         run: |
@@ -231,7 +279,7 @@ jobs:
             "$API_ARCHIVE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_API_ARCHIVE}"
 
-          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' bash -s" <<'EOF'
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' PM2_NAME='${PM2_NAME}' bash -s" <<'EOF'
             set -euo pipefail
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
@@ -246,6 +294,13 @@ jobs:
               -exec rm -rf {} +
             tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target"
             cd "$target"
+
+            # Safely update environment file if a deploy-managed .env.deploy is present
+            if [ -f .env.deploy ]; then
+              mv .env.deploy .env
+              chmod 600 .env
+              echo "Updated .env from .env.deploy"
+            fi
 
             fingerprint="$(sha256sum package.json | awk '{print $1}')"
             installed_fingerprint=""
@@ -266,6 +321,29 @@ jobs:
             mkdir -p node_modules/@sync-erp
             rm -rf node_modules/@sync-erp/database
             tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target" node_modules/@sync-erp/database || true
+
+            # CRITICAL: Override .prisma/client with pre-compiled engine binary from GHA
+            # npm install --omit=dev with --ignore-scripts may not generate these correctly
+            if tar -tzf "$HOME/${REMOTE_API_ARCHIVE}" 2>/dev/null | grep -q 'node_modules/\.prisma/client/'; then
+              echo "Injecting pre-compiled Prisma query engine binary..."
+              mkdir -p node_modules/.prisma
+              rm -rf node_modules/.prisma/client
+              tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target" node_modules/.prisma/client 2>/dev/null || true
+              echo "✓ Prisma client binary injected successfully."
+            else
+              echo "⚠ .prisma/client/ not found in archive. Query engine may fall back to platform default."
+            fi
+
+            # Override @prisma JS wrapper packages
+            for prisma_pkg in client adapter-pg; do
+              if tar -tzf "$HOME/${REMOTE_API_ARCHIVE}" 2>/dev/null | grep -q "node_modules/@prisma/${prisma_pkg}/"; then
+                mkdir -p "node_modules/@prisma"
+                rm -rf "node_modules/@prisma/${prisma_pkg}"
+                tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target" "node_modules/@prisma/${prisma_pkg}" 2>/dev/null || true
+                echo "Overrode @prisma/${prisma_pkg} from built artifact"
+              fi
+            done
+
             rm -f "$HOME/${REMOTE_API_ARCHIVE}"
             mkdir -p tmp
           EOF
@@ -273,27 +351,63 @@ jobs:
           rm -f "$API_ARCHIVE"
 
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
-                      "set -x && export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH && echo '--- RESTARTING ---' && ~/node-pm2/node_modules/.bin/pm2 restart sync-erp-api-staging --update-env 2>&1 || true"
+                      "set -x && export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH && echo '--- RESTARTING ---' && ~/node-pm2/node_modules/.bin/pm2 restart '${PM2_NAME}' --update-env 2>&1 || true"
 
       - name: Verify API health
         env:
           HEALTH_HOST: ${{ steps.target.outputs.health_host }}
         run: |
-          for path in /health /mcp/health; do
-            for i in 1 2 3 4 5 6; do
-              code=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_HOST}${path}" || true)
-              if [[ "$code" == "200" ]]; then
-                echo "Healthy: ${HEALTH_HOST}${path}"
-                break
-              fi
-              if [[ "$i" == "6" ]]; then
-                echo "Health check failed for ${HEALTH_HOST}${path} with HTTP ${code}"
-                exit 1
-              fi
-              sleep 10
-            done
-          done
+          MAX_RETRIES=8
+          RETRY_DELAYS=(5 10 15 20 30 30 30 30)
 
+          echo "Verifying API health at ${HEALTH_HOST}..."
+          sleep 30
+
+          check_endpoint() {
+            local path="$1"
+            local full_url="${HEALTH_HOST}${path}"
+
+            echo "Checking ${full_url} ..."
+
+            for i in $(seq 1 $MAX_RETRIES); do
+              idx=$((i - 1))
+              local delay="${RETRY_DELAYS[$idx]:-30}"
+              local http_code
+              local curl_exit_code=0
+
+              http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 15 "${full_url}" 2>&1) || curl_exit_code=$?
+
+              if [[ "$http_code" == "200" ]]; then
+                echo "✓ Healthy: ${full_url} (attempt ${i}/${MAX_RETRIES})"
+                return 0
+              fi
+
+              if [[ "$curl_exit_code" -ne 0 ]]; then
+                echo "⚠ Connection error on ${full_url}: curl exit code ${curl_exit_code} (attempt ${i}/${MAX_RETRIES})"
+              else
+                echo "⚠ HTTP ${http_code} on ${full_url} (attempt ${i}/${MAX_RETRIES})"
+              fi
+
+              if [[ "$i" -lt "$MAX_RETRIES" ]]; then
+                echo "  Retrying in ${delay}s..."
+                sleep "$delay"
+              fi
+            done
+
+            echo "✗ Health check failed for ${full_url} after ${MAX_RETRIES} attempts"
+            return 1
+          }
+
+          FAILED=0
+          check_endpoint "/health" || FAILED=1
+          check_endpoint "/mcp/health" || FAILED=1
+
+          if [[ "$FAILED" -ne 0 ]]; then
+            echo "One or more health checks failed."
+            exit 1
+          fi
+
+          echo "All endpoints healthy."
   deploy_web:
     name: Deploy Web to Vercel
     needs: [changes, ci-web]
