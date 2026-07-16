@@ -177,6 +177,7 @@ jobs:
           
           # Force create alias for PM2
           mkdir -p node_modules/@sync-erp
+          rm -rf node_modules/@sync-erp/database
           cp -r deploy/api-mcp/node_modules/@sync-erp/database node_modules/@sync-erp/
 
       - name: Resolve deployment target
