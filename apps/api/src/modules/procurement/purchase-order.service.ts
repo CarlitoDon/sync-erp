@@ -121,10 +121,7 @@ export class PurchaseOrderService {
       totalAmount,
       taxRate: taxRate,
       paymentTerms: paymentTerms, // Strictly typed from Zod
-<<<<<<< HEAD
       notes: data.notes ?? null,
-=======
->>>>>>> origin/dev
       // If UPFRONT, set initial paymentStatus to PENDING
       paymentStatus:
         paymentTerms === PaymentTerms.UPFRONT
@@ -255,11 +252,7 @@ export class PurchaseOrderService {
 
     PurchaseOrderPolicy.validateUpdate(
       order.status,
-<<<<<<< HEAD
       data as { orderNumber?: string } & Record<string, unknown>,
-=======
-      { orderNumber: data.orderNumber as string | undefined },
->>>>>>> origin/dev
       order.orderNumber || ''
     );
 

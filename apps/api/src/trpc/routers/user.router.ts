@@ -26,26 +26,8 @@ export const userRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input }) => {
-<<<<<<< HEAD
       const user = await userService.getById(input.id);
       return user ? toPublicUser(user) : null;
-=======
-      return userService.getById(input.id);
-    }),
-
-  /**
-   * Create user
-   */
-  create: protectedProcedure
-    .input(CreateUserSchema)
-    .mutation(async ({ ctx, input }) => {
-      await assertBillingLimitAvailable({
-        metric: 'users',
-        companyId: ctx.companyId,
-      });
-
-      return userService.create(input, ctx.companyId);
->>>>>>> origin/dev
     }),
 });
 

@@ -55,21 +55,9 @@ export function InviteUserModal({
       document.body.removeChild(textarea);
     }
 
-<<<<<<< HEAD
     setCopied(target);
     toast.success('Invite copied');
     window.setTimeout(() => setCopied(null), 1600);
-=======
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentCompany || !validate()) return;
-
-    createMutation.mutate({
-      email,
-      name,
-      passwordHash: 'changeme',
-    });
->>>>>>> origin/dev
   };
 
   return (

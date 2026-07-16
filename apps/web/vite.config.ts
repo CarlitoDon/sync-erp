@@ -32,7 +32,6 @@ export default defineConfig(({ mode }) => {
   console.log('[Vite Config] Resolved envMode:', envMode);
 
   const env = loadEnv(envMode, process.cwd(), '');
-<<<<<<< HEAD
   const adsenseClientId =
     env.VITE_GOOGLE_ADSENSE_CLIENT_ID?.trim();
   const shouldInjectAdSense =
@@ -62,11 +61,6 @@ export default defineConfig(({ mode }) => {
           ];
         },
       },
-=======
-
-  return {
-    plugins: [
->>>>>>> origin/dev
       react({
         jsxRuntime: 'automatic',
       }),

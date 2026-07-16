@@ -1,10 +1,6 @@
 import { router, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import { integrationService } from '../../services/integration.service';
-<<<<<<< HEAD
-=======
-import { integrationRegistry } from '../../integrations/registry';
->>>>>>> origin/dev
 import { apiKeyService } from '../../services/api-key.service';
 import { DEFAULT_RATE_LIMIT } from '@sync-erp/shared';
 
@@ -33,21 +29,11 @@ export const integrationRouter = router({
       // For now, let's just create a new one specific to this app
 
       const keyName = `${integration.name} Key`;
-<<<<<<< HEAD
-=======
-      const plugin = integrationRegistry.get(integration.appId);
-      const capabilities = plugin?.manifest?.capabilities ?? ['rental:read', 'rental:write'];
-
->>>>>>> origin/dev
       const keyResult = await apiKeyService.createKey(
         ctx.companyId,
         keyName,
         {
-<<<<<<< HEAD
           permissions: ['rental:read', 'rental:write'], // Default perms
-=======
-          permissions: capabilities,
->>>>>>> origin/dev
           rateLimit: DEFAULT_RATE_LIMIT,
         }
       );
@@ -85,21 +71,11 @@ export const integrationRouter = router({
 
       // Auto-generate a key for custom integrations immediately
       const keyName = `${integration.name} Key`;
-<<<<<<< HEAD
-=======
-      const plugin = integrationRegistry.get(integration.appId);
-      const capabilities = plugin?.manifest?.capabilities ?? ['rental:read', 'rental:write'];
-
->>>>>>> origin/dev
       const keyResult = await apiKeyService.createKey(
         ctx.companyId,
         keyName,
         {
-<<<<<<< HEAD
           permissions: ['rental:read', 'rental:write'],
-=======
-          permissions: capabilities,
->>>>>>> origin/dev
           rateLimit: DEFAULT_RATE_LIMIT,
         }
       );
@@ -161,21 +137,11 @@ export const integrationRouter = router({
       );
 
       const keyName = `${integration.name} Key - ${new Date().toLocaleDateString()}`;
-<<<<<<< HEAD
-=======
-      const plugin = integrationRegistry.get(integration.appId);
-      const capabilities = plugin?.manifest?.capabilities ?? ['rental:read', 'rental:write'];
-
->>>>>>> origin/dev
       const keyResult = await apiKeyService.createKey(
         ctx.companyId,
         keyName,
         {
-<<<<<<< HEAD
           permissions: ['rental:read', 'rental:write'],
-=======
-          permissions: capabilities,
->>>>>>> origin/dev
         }
       );
 

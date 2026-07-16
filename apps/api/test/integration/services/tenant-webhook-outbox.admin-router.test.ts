@@ -52,10 +52,6 @@ const buildCaller = () =>
     businessShape: undefined,
     userRole: undefined,
     userPermissions: [],
-<<<<<<< HEAD
-=======
-    integrationId: undefined,
->>>>>>> origin/dev
   });
 
 describe('Admin Router - Tenant Webhook Outbox', () => {
@@ -212,53 +208,27 @@ describe('Admin Router - Tenant Webhook Outbox', () => {
   it('replays tenant DEAD_LETTER and FAILED entries through admin API', async () => {
     const caller = buildCaller();
 
-<<<<<<< HEAD
     const deadLetter = await prisma.tenantWebhookOutbox.findFirstOrThrow({
       where: {
         companyId: COMPANY_ID,
         status: TenantWebhookOutboxStatus.DEAD_LETTER,
       },
     });
-=======
-    const deadLetter =
-      await prisma.tenantWebhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: COMPANY_ID,
-          status: TenantWebhookOutboxStatus.DEAD_LETTER,
-        },
-      });
->>>>>>> origin/dev
 
     const firstReplay = await caller.admin.replayTenantWebhookOutbox({
       id: deadLetter.id,
     });
-<<<<<<< HEAD
     const secondReplay = await caller.admin.replayTenantWebhookOutbox({
       id: deadLetter.id,
     });
-=======
-    const secondReplay = await caller.admin.replayTenantWebhookOutbox(
-      {
-        id: deadLetter.id,
-      }
-    );
->>>>>>> origin/dev
 
     expect(firstReplay.success).toBe(true);
     expect(secondReplay.success).toBe(false);
 
-<<<<<<< HEAD
     const bulkReplay = await caller.admin.replayTenantWebhookOutboxBulk({
       statuses: [TenantWebhookOutboxStatus.FAILED],
       limit: 100,
     });
-=======
-    const bulkReplay =
-      await caller.admin.replayTenantWebhookOutboxBulk({
-        statuses: [TenantWebhookOutboxStatus.FAILED],
-        limit: 100,
-      });
->>>>>>> origin/dev
 
     expect(bulkReplay.success).toBe(true);
     expect(bulkReplay.requeuedCount).toBe(1);
@@ -275,7 +245,6 @@ describe('Admin Router - Tenant Webhook Outbox', () => {
 
     await tenantWebhookOutboxService.processDueEntries();
 
-<<<<<<< HEAD
     const deliveredDeadLetter = await prisma.tenantWebhookOutbox.findFirstOrThrow({
       where: {
         companyId: COMPANY_ID,
@@ -300,35 +269,6 @@ describe('Admin Router - Tenant Webhook Outbox', () => {
         event: 'payment.received',
       },
     });
-=======
-    const deliveredDeadLetter =
-      await prisma.tenantWebhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: COMPANY_ID,
-          event: 'payment.received',
-          payload: {
-            path: ['orderId'],
-            equals: 'tenant-admin-order-dead-001',
-          },
-        },
-      });
-
-    const deliveredFailed =
-      await prisma.tenantWebhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: COMPANY_ID,
-          event: 'order.created',
-        },
-      });
-
-    const foreignEntry =
-      await prisma.tenantWebhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: OTHER_COMPANY_ID,
-          event: 'payment.received',
-        },
-      });
->>>>>>> origin/dev
 
     expect(deliveredDeadLetter.status).toBe(
       TenantWebhookOutboxStatus.DELIVERED
@@ -336,12 +276,6 @@ describe('Admin Router - Tenant Webhook Outbox', () => {
     expect(deliveredFailed.status).toBe(
       TenantWebhookOutboxStatus.DELIVERED
     );
-<<<<<<< HEAD
     expect(foreignEntry.status).toBe(TenantWebhookOutboxStatus.FAILED);
-=======
-    expect(foreignEntry.status).toBe(
-      TenantWebhookOutboxStatus.FAILED
-    );
->>>>>>> origin/dev
   });
 });

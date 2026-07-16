@@ -185,15 +185,12 @@ export class RentalRepository {
         },
         partner: true,
         deposit: true,
-<<<<<<< HEAD
         extensions: {
           orderBy: { extensionNumber: 'asc' },
           include: {
             items: true,
           },
         },
-=======
->>>>>>> origin/dev
         unitAssignments: {
           include: {
             rentalItemUnit: {
@@ -336,15 +333,12 @@ export class RentalRepository {
         },
         partner: true,
         deposit: true,
-<<<<<<< HEAD
         extensions: {
           orderBy: { extensionNumber: 'asc' },
           include: {
             items: true,
           },
         },
-=======
->>>>>>> origin/dev
         unitAssignments: {
           include: {
             rentalItemUnit: {

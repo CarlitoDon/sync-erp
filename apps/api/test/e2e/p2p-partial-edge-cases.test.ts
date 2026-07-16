@@ -22,27 +22,15 @@ const COMPANY_ID = 'test-partial-edge-cases-001';
 const USER_ID = 'test-user-001';
 
 const caller = appRouter.createCaller({
-<<<<<<< HEAD
   req: undefined as unknown as import("express").Request,
   res: undefined as unknown as import("express").Response,
-=======
-  req: undefined as unknown as import('express').Request,
-  res: undefined as unknown as import('express').Response,
->>>>>>> origin/dev
   userId: USER_ID,
   companyId: COMPANY_ID,
   businessShape: BusinessShape.RETAIL,
   correlationId: 'test-correlation',
-<<<<<<< HEAD
   userRole: "ADMIN" as string,
   userPermissions: ['*:*'],
   idempotencyKey: undefined,
-=======
-  userRole: 'ADMIN' as string,
-  userPermissions: ['*:*'],
-  idempotencyKey: undefined,
-  integrationId: undefined,
->>>>>>> origin/dev
 });
 
 describe('P2P Partial Actions Edge Cases (tRPC)', () => {

@@ -1,6 +1,5 @@
 #!/bin/bash
 # Sync ERP MCP Runner
-<<<<<<< HEAD
 # Starts the local API on demand, then runs the MCP stdio server.
 
 set -euo pipefail
@@ -14,16 +13,6 @@ export PATH="$LAUNCHD_PATH:$PATH"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$PROJECT_ROOT"
-=======
-# Sets up path and environment for the MCP stdio server.
-
-# Add fnm node to path if needed
-export PATH="/Users/wecik/.local/share/fnm/node-versions/v22.21.1/installation/bin:$PATH"
-
-# Determine project root
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-cd "$SCRIPT_DIR/../.."
->>>>>>> origin/dev
 
 # Load credentials from .env if it exists (for local runs)
 if [ -f "$SCRIPT_DIR/.env" ]; then
@@ -33,7 +22,6 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
 fi
 
 # Default API URL if not set
-<<<<<<< HEAD
 export SYNC_ERP_API_URL="${SYNC_ERP_API_URL:-http://127.0.0.1:3001/api/trpc}"
 export SYNC_ERP_STORAGE_DIR="${SYNC_ERP_STORAGE_DIR:-$PROJECT_ROOT/storage}"
 
@@ -224,9 +212,6 @@ fi
 if [ "${SYNC_ERP_MCP_BOOTSTRAP_ONLY:-}" = "1" ]; then
   exit 0
 fi
-=======
-export SYNC_ERP_API_URL="${SYNC_ERP_API_URL:-http://localhost:3001/api/trpc}"
->>>>>>> origin/dev
 
 # Run the MCP server
 node node_modules/.bin/tsx apps/mcp/src/stdio.ts

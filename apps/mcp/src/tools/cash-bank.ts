@@ -58,11 +58,7 @@ export function getCashBankTools(): ToolSpec[] {
         apiQuery('cashBank.listTransactions', buildInput([
           ['bankAccountId', getOptionalString(args, 'bankAccountId')],
           ['status', getOptionalString(args, 'status')],
-<<<<<<< HEAD
         ]), getString(args, 'companyId'), true),
-=======
-        ]), getString(args, 'companyId')),
->>>>>>> origin/dev
     },
     {
       name: 'cash_bank_transaction_get',

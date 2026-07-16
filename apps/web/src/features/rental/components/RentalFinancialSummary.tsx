@@ -46,11 +46,7 @@ export function RentalFinancialSummary({
         {/* Delivery Fee (if any) */}
         {calculations.hasDeliveryFee && (
           <div className="flex justify-between">
-<<<<<<< HEAD
             <span className="text-gray-500">Delivery fee</span>
-=======
-            <span className="text-gray-500">Ongkir</span>
->>>>>>> origin/dev
             <span className="font-medium">
               {formatCurrency(calculations.deliveryFee)}
             </span>

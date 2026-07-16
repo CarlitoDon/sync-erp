@@ -4,13 +4,10 @@ import {
   BusinessShape,
   BillingProvider,
   BillingSubscriptionStatus,
-<<<<<<< HEAD
   PermissionAction,
   PermissionModule,
   PermissionScope,
   Prisma,
-=======
->>>>>>> origin/dev
 } from '@sync-erp/database';
 import { prisma } from '@sync-erp/database';
 import {
@@ -23,7 +20,6 @@ function addDays(date: Date, days: number): Date {
   next.setDate(next.getDate() + days);
   return next;
 }
-<<<<<<< HEAD
 
 const DEFAULT_ADMIN_PERMISSIONS: {
   module: PermissionModule;
@@ -230,8 +226,6 @@ async function ensureDefaultPermissions(
     select: { id: true },
   });
 }
-=======
->>>>>>> origin/dev
 
 export class CompanyRepository {
   async create(data: {
@@ -239,7 +233,6 @@ export class CompanyRepository {
     userId?: string;
   }): Promise<Company> {
     const now = new Date();
-<<<<<<< HEAD
     const trialEndsAt = addDays(now, BILLING_TRIAL_DAYS);
     const isDefaultFreePlan = DEFAULT_BILLING_PLAN_KEY === 'free';
 
@@ -248,25 +241,6 @@ export class CompanyRepository {
         data: {
           name: data.name,
           subscription: {
-=======
-
-    return prisma.company.create({
-      data: {
-        name: data.name,
-        subscription: {
-          create: {
-            planKey: DEFAULT_BILLING_PLAN_KEY,
-            status: BillingSubscriptionStatus.TRIALING,
-            provider: BillingProvider.MANUAL,
-            trialStartsAt: now,
-            trialEndsAt: addDays(now, BILLING_TRIAL_DAYS),
-            currentPeriodStartsAt: now,
-            currentPeriodEndsAt: addDays(now, BILLING_TRIAL_DAYS),
-          },
-        },
-        ...(data.userId && {
-          members: {
->>>>>>> origin/dev
             create: {
               planKey: DEFAULT_BILLING_PLAN_KEY,
               status: isDefaultFreePlan

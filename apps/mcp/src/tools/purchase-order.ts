@@ -58,13 +58,10 @@ export function getPurchaseOrderTools(): ToolSpec[] {
             description: 'JSON array of items: [{productId, quantity, unitPrice}]',
           },
           reference: { type: 'string' },
-<<<<<<< HEAD
           date: {
             type: 'string',
             description: 'Purchase order date as ISO date or datetime',
           },
-=======
->>>>>>> origin/dev
           notes: { type: 'string' },
         },
         required: ['companyId', 'partnerId', 'items'],
@@ -80,7 +77,6 @@ export function getPurchaseOrderTools(): ToolSpec[] {
           ...item,
           price: item.price ?? item.unitPrice,
         }));
-<<<<<<< HEAD
         const reference = getOptionalString(args, 'reference');
         const notes = [
           reference ? `Reference: ${reference}` : undefined,
@@ -89,21 +85,14 @@ export function getPurchaseOrderTools(): ToolSpec[] {
           .filter((line): line is string => Boolean(line))
           .join('\n');
 
-=======
->>>>>>> origin/dev
         return apiMutation(
           'purchaseOrder.create',
           buildInput([
             ['type', 'PURCHASE'],
             ['partnerId', partnerId],
             ['items', items],
-<<<<<<< HEAD
             ['date', getOptionalString(args, 'date')],
             ['notes', notes || undefined],
-=======
-            ['reference', getOptionalString(args, 'reference')],
-            ['notes', getOptionalString(args, 'notes')],
->>>>>>> origin/dev
           ]),
           companyId
         );
@@ -125,7 +114,6 @@ export function getPurchaseOrderTools(): ToolSpec[] {
         ),
     },
     {
-<<<<<<< HEAD
       name: 'purchase_order_update',
       description:
         'Update a purchase order. Pass data as JSON object string with API Order update fields.',
@@ -157,8 +145,6 @@ export function getPurchaseOrderTools(): ToolSpec[] {
       },
     },
     {
-=======
->>>>>>> origin/dev
       name: 'purchase_order_cancel',
       description: 'Cancel a purchase order',
       inputSchema: {

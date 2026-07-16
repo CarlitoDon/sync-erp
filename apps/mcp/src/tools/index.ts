@@ -22,10 +22,7 @@ import { getRentalTools } from './rental.js';
 import { getRentalBundleTools } from './rental-bundle.js';
 import { getCashBankTools } from './cash-bank.js';
 import { getPaymentMethodTools } from './payment-method.js';
-<<<<<<< HEAD
 import { getAttachmentTools } from './attachment.js';
-=======
->>>>>>> origin/dev
 
 /**
  * Returns all registered MCP tools.
@@ -52,9 +49,6 @@ export function getAllTools(): ToolSpec[] {
     ...getRentalBundleTools(),
     ...getCashBankTools(),
     ...getPaymentMethodTools(),
-<<<<<<< HEAD
     ...getAttachmentTools(),
-=======
->>>>>>> origin/dev
   ];
 }

@@ -7,10 +7,7 @@ import {
   getString,
   getOptionalString,
   getOptionalNumber,
-<<<<<<< HEAD
   getOptionalBoolean,
-=======
->>>>>>> origin/dev
   companyIdProp,
   idProp,
   statusFilterProp,
@@ -50,7 +47,6 @@ export function getBillTools(): ToolSpec[] {
         ),
     },
     {
-<<<<<<< HEAD
       name: 'bill_installment_list',
       description: 'List installment schedule lines for a bill',
       inputSchema: {
@@ -175,8 +171,6 @@ export function getBillTools(): ToolSpec[] {
         ),
     },
     {
-=======
->>>>>>> origin/dev
       name: 'bill_create_from_po',
       description: 'Create a bill from a purchase order',
       inputSchema: {
@@ -184,7 +178,6 @@ export function getBillTools(): ToolSpec[] {
         properties: {
           companyId: companyIdProp,
           orderId: { type: 'string', description: 'Purchase order UUID' },
-<<<<<<< HEAD
           reference: {
             type: 'string',
             description:
@@ -206,9 +199,6 @@ export function getBillTools(): ToolSpec[] {
             type: 'string',
             description: 'Optional GRN/receipt UUID to bill',
           },
-=======
-          reference: { type: 'string', description: 'Vendor bill reference' },
->>>>>>> origin/dev
         },
         required: ['companyId', 'orderId'],
       },
@@ -217,7 +207,6 @@ export function getBillTools(): ToolSpec[] {
           'bill.createFromPO',
           buildInput([
             ['orderId', getString(args, 'orderId')],
-<<<<<<< HEAD
             [
               'supplierInvoiceNumber',
               getOptionalString(args, 'supplierInvoiceNumber') ??
@@ -226,9 +215,6 @@ export function getBillTools(): ToolSpec[] {
             ['dueDate', getOptionalString(args, 'dueDate')],
             ['businessDate', getOptionalString(args, 'businessDate')],
             ['fulfillmentId', getOptionalString(args, 'fulfillmentId')],
-=======
-            ['reference', getOptionalString(args, 'reference')],
->>>>>>> origin/dev
           ]),
           getString(args, 'companyId')
         ),
@@ -260,7 +246,6 @@ export function getBillTools(): ToolSpec[] {
       description: 'Post a bill to the ledger',
       inputSchema: {
         type: 'object',
-<<<<<<< HEAD
         properties: {
           companyId: companyIdProp,
           id: idProp,
@@ -269,22 +254,15 @@ export function getBillTools(): ToolSpec[] {
             description: 'Posting date as ISO date or datetime',
           },
         },
-=======
-        properties: { companyId: companyIdProp, id: idProp },
->>>>>>> origin/dev
         required: ['companyId', 'id'],
       },
       handler: async (args) =>
         apiMutation(
           'bill.post',
-<<<<<<< HEAD
           buildInput([
             ['id', getString(args, 'id')],
             ['businessDate', getOptionalString(args, 'businessDate')],
           ]),
-=======
-          { id: getString(args, 'id') },
->>>>>>> origin/dev
           getString(args, 'companyId')
         ),
     },

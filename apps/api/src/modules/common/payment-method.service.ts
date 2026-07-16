@@ -3,11 +3,7 @@
  *
  * Business logic for payment method configuration
  */
-<<<<<<< HEAD
 import { Account, PaymentMethodType } from '@sync-erp/database';
-=======
-import { PaymentMethodType } from '@sync-erp/database';
->>>>>>> origin/dev
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import * as paymentMethodRepo from './payment-method.repository';
 
@@ -78,15 +74,12 @@ export async function create(input: CreateInput) {
     );
   }
 
-<<<<<<< HEAD
   await validateSettlementAccount(
     input.companyId,
     input.type,
     input.accountId
   );
 
-=======
->>>>>>> origin/dev
   // If this is set as default, unset other defaults of same type
   if (input.isDefault) {
     await paymentMethodRepo.unsetDefaultsByType(
@@ -151,7 +144,6 @@ export async function update(input: UpdateInput) {
     }
   }
 
-<<<<<<< HEAD
   await validateSettlementAccount(
     input.companyId,
     input.data.type ?? method.type,
@@ -160,8 +152,6 @@ export async function update(input: UpdateInput) {
       : input.data.accountId
   );
 
-=======
->>>>>>> origin/dev
   // If setting as default, unset other defaults of same type
   if (input.data.isDefault === true) {
     const type = input.data.type ?? method.type;
@@ -216,7 +206,6 @@ export async function seedDefaults(input: SeedDefaultsInput) {
     );
   }
 
-<<<<<<< HEAD
   const [cashAccount, bankAccount, ownerContributionAccount] =
     await Promise.all([
       findPreferredSettlementAccount(input.companyId, PaymentMethodType.CASH, [
@@ -239,15 +228,6 @@ export async function seedDefaults(input: SeedDefaultsInput) {
     isDefault: boolean;
     sortOrder: number;
   }[] = [
-=======
-  // Get cash account (1100) and bank account (1200) if they exist
-  const [cashAccount, bankAccount] = await Promise.all([
-    paymentMethodRepo.findAccountByCode('1100', input.companyId),
-    paymentMethodRepo.findAccountByCode('1200', input.companyId),
-  ]);
-
-  const defaults = [
->>>>>>> origin/dev
     {
       companyId: input.companyId,
       code: PaymentMethodType.CASH,
@@ -277,7 +257,6 @@ export async function seedDefaults(input: SeedDefaultsInput) {
     },
   ];
 
-<<<<<<< HEAD
   if (ownerContributionAccount) {
     defaults.push({
       companyId: input.companyId,
@@ -290,13 +269,10 @@ export async function seedDefaults(input: SeedDefaultsInput) {
     });
   }
 
-=======
->>>>>>> origin/dev
   const result = await paymentMethodRepo.createMany(defaults);
 
   return { count: result.count };
 }
-<<<<<<< HEAD
 
 async function validateSettlementAccount(
   companyId: string,
@@ -354,5 +330,3 @@ function isUnsafeSettlementAccount(
     accountName.includes('receivable')
   );
 }
-=======
->>>>>>> origin/dev

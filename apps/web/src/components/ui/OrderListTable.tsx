@@ -59,19 +59,11 @@ const OrderRow = memo(function OrderRow({
   renderActions?: (order: OrderData) => React.ReactNode;
 }) {
   return (
-<<<<<<< HEAD
     <tr className="hover:bg-slate-50/80">
       <td className="px-6 py-4 font-mono text-sm">
         <Link
           to={`/${orderRoute}/${order.id}`}
           className="text-cyan-700 hover:text-cyan-900 hover:underline"
-=======
-    <tr className="hover:bg-gray-50">
-      <td className="px-6 py-4 font-mono text-sm">
-        <Link
-          to={`/${orderRoute}/${order.id}`}
-          className="text-blue-600 hover:underline"
->>>>>>> origin/dev
         >
           {order.orderNumber || '-'}
         </Link>
@@ -79,11 +71,7 @@ const OrderRow = memo(function OrderRow({
       <td className="px-6 py-4">
         <Link
           to={`/${partnerRoute}/${order.partnerId}`}
-<<<<<<< HEAD
           className="text-cyan-700 hover:text-cyan-900 hover:underline"
-=======
-          className="text-blue-600 hover:underline"
->>>>>>> origin/dev
         >
           {order.partnerName || '-'}
         </Link>
@@ -143,7 +131,6 @@ export function OrderListTable<T extends OrderData>({
   }
 
   return (
-<<<<<<< HEAD
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200/60">
       <table className="min-w-full divide-y divide-slate-200">
         <thead className="bg-slate-50">
@@ -158,32 +145,12 @@ export function OrderListTable<T extends OrderData>({
               Total
             </th>
             <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500">
-=======
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              {orderLabel} Number
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              {partnerLabel}
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-              Total
-            </th>
-            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
->>>>>>> origin/dev
               Status
             </th>
             {extraColumns.map((col, idx) => (
               <th
                 key={idx}
-<<<<<<< HEAD
                 className={`px-6 py-3 text-xs font-medium uppercase tracking-wide text-slate-500 ${
-=======
-                className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase ${
->>>>>>> origin/dev
                   col.align === 'right'
                     ? 'text-right'
                     : col.align === 'center'
@@ -195,32 +162,20 @@ export function OrderListTable<T extends OrderData>({
               </th>
             ))}
             {renderActions && (
-<<<<<<< HEAD
               <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
-=======
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
->>>>>>> origin/dev
                 Actions
               </th>
             )}
           </tr>
         </thead>
-<<<<<<< HEAD
         <tbody className="divide-y divide-slate-200">
-=======
-        <tbody className="divide-y divide-gray-200">
->>>>>>> origin/dev
           {orders.length === 0 ? (
             <tr>
               <td
                 colSpan={
                   4 + extraColumns.length + (renderActions ? 1 : 0)
                 }
-<<<<<<< HEAD
                 className="px-6 py-12 text-center text-slate-500"
-=======
-                className="px-6 py-12 text-center text-gray-500"
->>>>>>> origin/dev
               >
                 {emptyMessage}
               </td>

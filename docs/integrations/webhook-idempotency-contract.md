@@ -23,11 +23,7 @@ Receivers should treat `X-Webhook-Delivery-Id` (or `Idempotency-Key`) as a dedup
 
 - Rental webhook outbox sender: includes both headers.
 - Tenant webhook outbox sender: includes both headers.
-<<<<<<< HEAD
 - External storefront receiver: in-memory TTL dedupe middleware for order admin and payment notification endpoints.
-=======
-- Santi Living proxy receiver: in-memory TTL dedupe middleware for `/api/orders/:token/notify-admin` and `/api/orders/:token/notify-payment`.
->>>>>>> origin/dev
 
 ## Notes
 

@@ -10,27 +10,18 @@ describe('Cash Upfront Payment Components', () => {
       render(<PaymentTermsBadge terms="UPFRONT" />);
       const badge = screen.getByText('Cash Upfront');
       expect(badge).toBeInTheDocument();
-<<<<<<< HEAD
       expect(badge).toHaveClass('bg-red-50');
       expect(badge).toHaveClass('text-red-700');
       expect(badge).toHaveClass('border-red-200');
-=======
-      expect(badge).toHaveClass('bg-red-500');
-      expect(badge).toHaveClass('text-white');
->>>>>>> origin/dev
     });
 
     it('renders standard terms (NET_30) correctly', () => {
       render(<PaymentTermsBadge terms="NET_30" />);
       const badge = screen.getByText('Net 30');
       expect(badge).toBeInTheDocument();
-<<<<<<< HEAD
       expect(badge).toHaveClass('bg-slate-100');
       expect(badge).toHaveClass('text-slate-800');
       expect(badge).toHaveClass('border-slate-200');
-=======
-      expect(badge).toHaveClass('bg-gray-100');
->>>>>>> origin/dev
     });
   });
 

@@ -42,11 +42,7 @@ const ItemRow = memo(function ItemRow({
         {item.product ? (
           <Link
             to={`${productLinkPrefix}/${item.productId}`}
-<<<<<<< HEAD
             className="text-cyan-700 hover:text-cyan-900 hover:underline"
-=======
-            className="text-blue-600 hover:text-blue-800 hover:underline"
->>>>>>> origin/dev
           >
             {item.product.name}
           </Link>
@@ -84,7 +80,6 @@ export function OrderItemsTable({
 }: OrderItemsTableProps) {
   return (
     <div className="overflow-x-auto">
-<<<<<<< HEAD
       <table className="min-w-full divide-y divide-slate-200">
         <thead className="bg-slate-50">
           <tr>
@@ -103,35 +98,11 @@ export function OrderItemsTable({
               Unit Price
             </th>
             <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
-=======
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Product
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-              Ordered
-            </th>
-            {showFulfilled && (
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                {fulfillmentLabel}
-              </th>
-            )}
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-              Unit Price
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
->>>>>>> origin/dev
               Total
             </th>
           </tr>
         </thead>
-<<<<<<< HEAD
         <tbody className="divide-y divide-slate-200">
-=======
-        <tbody className="divide-y divide-gray-200">
->>>>>>> origin/dev
           {items.map((item) => (
             <ItemRow
               key={item.id}

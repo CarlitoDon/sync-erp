@@ -1,10 +1,7 @@
 export const BILLING_TRIAL_DAYS = 14;
 
 export type BillingPlanKey =
-<<<<<<< HEAD
   | 'free'
-=======
->>>>>>> origin/dev
   | 'starter'
   | 'growth'
   | 'scale'
@@ -28,7 +25,6 @@ export interface BillingPlanLimits {
   rental: boolean;
   whatsapp: boolean;
   apiAccess: boolean;
-<<<<<<< HEAD
   mediaAccess: boolean;
   adsEnabled: boolean;
   prioritySupport: boolean;
@@ -40,11 +36,6 @@ export type BillingFeatureKey = {
     : never;
 }[keyof BillingPlanLimits];
 
-=======
-  prioritySupport: boolean;
-}
-
->>>>>>> origin/dev
 export interface BillingPlan {
   key: BillingPlanKey;
   name: string;
@@ -88,7 +79,6 @@ export const BILLING_USAGE_METRICS: Record<
 
 export const BILLING_PLANS: readonly BillingPlan[] = [
   {
-<<<<<<< HEAD
     key: 'free',
     name: 'Free',
     tagline: 'ERP gratis untuk mulai merapikan operasi satu company.',
@@ -130,11 +120,6 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
     key: 'starter',
     name: 'Starter',
     tagline: 'Untuk bisnis kecil yang ingin ERP tanpa iklan dan media aktif.',
-=======
-    key: 'starter',
-    name: 'Starter',
-    tagline: 'Untuk bisnis kecil yang mulai menata operasi.',
->>>>>>> origin/dev
     monthlyPriceIdr: 499_000,
     annualPriceIdr: 4_990_000,
     recommended: false,
@@ -150,7 +135,6 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
       rental: false,
       whatsapp: false,
       apiAccess: false,
-<<<<<<< HEAD
       mediaAccess: true,
       adsEnabled: false,
       prioritySupport: false,
@@ -158,11 +142,6 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
     features: [
       'Semua fitur Free tanpa iklan',
       'Media upload dan media preview',
-=======
-      prioritySupport: false,
-    },
-    features: [
->>>>>>> origin/dev
       'Sales order, purchase order, invoice, bill, dan payment',
       'Inventory product, stock movement, receipt, dan shipment',
       'Cash & bank, expense, journal, dan ledger dasar',
@@ -193,11 +172,8 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
       rental: true,
       whatsapp: true,
       apiAccess: true,
-<<<<<<< HEAD
       mediaAccess: true,
       adsEnabled: false,
-=======
->>>>>>> origin/dev
       prioritySupport: false,
     },
     features: [
@@ -228,11 +204,8 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
       rental: true,
       whatsapp: true,
       apiAccess: true,
-<<<<<<< HEAD
       mediaAccess: true,
       adsEnabled: false,
-=======
->>>>>>> origin/dev
       prioritySupport: true,
     },
     features: [
@@ -263,11 +236,8 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
       rental: true,
       whatsapp: true,
       apiAccess: true,
-<<<<<<< HEAD
       mediaAccess: true,
       adsEnabled: false,
-=======
->>>>>>> origin/dev
       prioritySupport: true,
     },
     features: [
@@ -281,11 +251,7 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
   },
 ] as const;
 
-<<<<<<< HEAD
 export const DEFAULT_BILLING_PLAN_KEY: BillingPlanKey = 'free';
-=======
-export const DEFAULT_BILLING_PLAN_KEY: BillingPlanKey = 'starter';
->>>>>>> origin/dev
 
 export function getBillingPlan(
   key: BillingPlanKey = DEFAULT_BILLING_PLAN_KEY
@@ -311,13 +277,10 @@ export function formatBillingLimit(value: BillingLimitValue): string {
 }
 
 export function formatPlanPrice(plan: BillingPlan): string {
-<<<<<<< HEAD
   if (plan.monthlyPriceIdr === 0) {
     return 'Gratis';
   }
 
-=======
->>>>>>> origin/dev
   if (plan.monthlyPriceIdr === null) {
     return 'Custom';
   }
@@ -326,13 +289,10 @@ export function formatPlanPrice(plan: BillingPlan): string {
 }
 
 export function formatAnnualPlanPrice(plan: BillingPlan): string {
-<<<<<<< HEAD
   if (plan.annualPriceIdr === 0) {
     return 'Gratis';
   }
 
-=======
->>>>>>> origin/dev
   if (plan.annualPriceIdr === null) {
     return 'Custom contract';
   }

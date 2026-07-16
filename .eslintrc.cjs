@@ -25,11 +25,7 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/no-unused-vars': [
       'warn',
-<<<<<<< HEAD
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
-=======
-      { argsIgnorePattern: '^_' },
->>>>>>> origin/dev
     ],
     '@typescript-eslint/no-explicit-any': 'error',
     'no-console': ['warn', { allow: ['warn', 'error'] }],
@@ -45,18 +41,13 @@ module.exports = {
     },
     {
       // Seed data and scripts - legitimate hardcoded enum usage
-<<<<<<< HEAD
       files: ['**/seed*.ts', '**/scripts/**/*.ts', 'scripts/**/*.ts', '**/prisma/**/*.ts'],
-=======
-      files: ['**/seed*.ts', '**/scripts/**/*.ts', '**/prisma/**/*.ts'],
->>>>>>> origin/dev
       rules: {
         '@sync-erp/no-hardcoded-enum': 'off',
         'no-console': 'off',
       },
     },
     {
-<<<<<<< HEAD
       // MCP tool schemas and smoke/e2e harnesses intentionally expose enum values
       // as JSON-schema literals for external clients.
       files: ['apps/mcp/src/tools/**/*.ts', 'apps/mcp/src/e2e.ts', 'apps/mcp/src/smoke.ts'],
@@ -89,8 +80,6 @@ module.exports = {
       },
     },
     {
-=======
->>>>>>> origin/dev
       // Bot service - needs console logging for service operations
       files: ['apps/bot/**/*.ts'],
       rules: {

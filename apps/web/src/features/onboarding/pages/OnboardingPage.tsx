@@ -1,15 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-<<<<<<< HEAD
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button, CurrencyInput, Input, Label } from '@/components/ui';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
-=======
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button, CurrencyInput, Input } from '@/components/ui';
->>>>>>> origin/dev
 import { useCompany } from '@/contexts/CompanyContext';
 import { trpc } from '@/lib/trpc';
 import {
@@ -18,13 +12,10 @@ import {
   CompanyOnboardingStep,
 } from '@sync-erp/shared';
 import type { RouterOutputs } from '@/types/api';
-<<<<<<< HEAD
 import {
   getBillingPlanIntent,
   getPostCompanyRedirect,
 } from '@/features/billing/planIntent';
-=======
->>>>>>> origin/dev
 
 type Step = CompanyOnboardingStep;
 type OnboardingCompanyUpdate = RouterOutputs['onboarding']['start'];
@@ -40,10 +31,7 @@ function normalizeStep(raw: unknown): Step {
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
-<<<<<<< HEAD
   const [searchParams] = useSearchParams();
-=======
->>>>>>> origin/dev
   const { currentCompany, setCurrentCompany } = useCompany();
 
   const onboardingState = trpc.onboarding.getState.useQuery(undefined, {
@@ -163,7 +151,6 @@ export default function OnboardingPage() {
     });
   };
 
-<<<<<<< HEAD
   const getPostOnboardingPath = () => {
     if (
       searchParams.get('next') === 'billing' ||
@@ -175,8 +162,6 @@ export default function OnboardingPage() {
     return '/dashboard';
   };
 
-=======
->>>>>>> origin/dev
   const shell = (content: React.ReactNode) => (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6">
       <div className="w-full max-w-lg space-y-4">
@@ -316,7 +301,6 @@ export default function OnboardingPage() {
             onChange={(e) => setSupplierName(e.target.value)}
             placeholder="Contoh: Supplier A"
           />
-<<<<<<< HEAD
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1">
               <Label>Nama produk</Label>
@@ -330,14 +314,6 @@ export default function OnboardingPage() {
               placeholder="Contoh: Produk 1"
             />
           </div>
-=======
-          <Input
-            label="Nama produk"
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            placeholder="Contoh: Produk 1"
-          />
->>>>>>> origin/dev
           <Input
             label="Quantity"
             type="number"
@@ -411,11 +387,7 @@ export default function OnboardingPage() {
               complete.mutate(undefined, {
                 onSuccess: (data: OnboardingCompanyUpdate) => {
                   setCompanyFromMutation(data);
-<<<<<<< HEAD
                   navigate(getPostOnboardingPath(), { replace: true });
-=======
-                  navigate('/dashboard', { replace: true });
->>>>>>> origin/dev
                 },
               })
             }
@@ -439,11 +411,7 @@ export default function OnboardingPage() {
   }
 
   if (step === 'DONE') {
-<<<<<<< HEAD
     navigate(getPostOnboardingPath(), { replace: true });
-=======
-    navigate('/dashboard', { replace: true });
->>>>>>> origin/dev
     return null;
   }
 

@@ -43,7 +43,6 @@ export default function CreateOrderModal({
     handleQuickCreateSuccess,
   } = useCreateOrder({ isOpen, onSuccess, onClose });
 
-<<<<<<< HEAD
   const deliveryFee = Number(orderForm.deliveryFee || 0);
   const discountAmount = Number(orderForm.discountAmount || 0);
   const totalAmount = Math.max(
@@ -51,8 +50,6 @@ export default function CreateOrderModal({
     subtotal - discountAmount + deliveryFee
   );
 
-=======
->>>>>>> origin/dev
   return (
     <>
       <QuickCreateCustomerModal
@@ -276,7 +273,6 @@ export default function CreateOrderModal({
                                 /hari
                               </p>
                             )}
-<<<<<<< HEAD
 
                             <div className="mt-2">
                               <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -299,8 +295,6 @@ export default function CreateOrderModal({
                                 placeholder="Kosongkan pakai master"
                               />
                             </div>
-=======
->>>>>>> origin/dev
                           </div>
                           <div className="w-24">
                             <input
@@ -336,7 +330,6 @@ export default function CreateOrderModal({
               {/* Summary */}
               {orderForm.items.length > 0 && rentalDays > 0 && (
                 <div className="border-t pt-4 space-y-2">
-<<<<<<< HEAD
                   <div className="grid grid-cols-2 gap-3">
                     <Input
                       label="Invoice delivery fee"
@@ -373,8 +366,6 @@ export default function CreateOrderModal({
                     }
                     placeholder="Use the invoice address"
                   />
-=======
->>>>>>> origin/dev
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-medium">
@@ -382,7 +373,6 @@ export default function CreateOrderModal({
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-<<<<<<< HEAD
                     <span className="text-gray-600">Delivery fee</span>
                     <span className="font-medium">
                       {formatCurrency(deliveryFee)}
@@ -403,8 +393,6 @@ export default function CreateOrderModal({
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-=======
->>>>>>> origin/dev
                     <span className="text-gray-600">
                       Deposit yang diperlukan
                     </span>

@@ -211,12 +211,8 @@ export class JournalService {
       companyId,
       reference,
       amount,
-<<<<<<< HEAD
       tx,
       businessDate
-=======
-      tx
->>>>>>> origin/dev
     );
   }
 
@@ -349,12 +345,8 @@ export class JournalService {
     amount: number,
     method: string,
     contraAccountCode?: string,
-<<<<<<< HEAD
     tx?: Prisma.TransactionClient,
     businessDate?: Date
-=======
-    tx?: Prisma.TransactionClient
->>>>>>> origin/dev
   ) {
     return this.procurement.postPaymentMade(
       companyId,
@@ -363,12 +355,8 @@ export class JournalService {
       amount,
       method,
       contraAccountCode,
-<<<<<<< HEAD
       tx,
       businessDate
-=======
-      tx
->>>>>>> origin/dev
     );
   }
 
@@ -439,131 +427,6 @@ export class JournalService {
       companyId,
       reference,
       amount,
-<<<<<<< HEAD
-=======
-      tx
-    );
-  }
-
-  // ==========================================
-  // UPDATED: Prepaid / Deposit methods
-  // ==========================================
-
-  async postUpfrontPayment(
-    companyId: string,
-    paymentId: string,
-    orderNumber: string,
-    amount: number,
-    method: string,
-    tx?: Prisma.TransactionClient,
-    businessDate?: Date
-  ) {
-    return this.procurement.postUpfrontPayment(
-      companyId,
-      paymentId,
-      orderNumber,
-      amount,
-      method,
-      tx,
-      businessDate
-    );
-  }
-
-  async postSettlePrepaid(
-    companyId: string,
-    paymentId: string,
-    billNumber: string,
-    amount: number,
-    tx?: Prisma.TransactionClient
-  ) {
-    return this.procurement.postSettlePrepaid(
-      companyId,
-      paymentId,
-      billNumber,
-      amount,
-      tx
-    );
-  }
-
-  async postCustomerDeposit(
-    companyId: string,
-    paymentId: string,
-    orderNumber: string,
-    amount: number,
-    method: string,
-    tx?: Prisma.TransactionClient,
-    businessDate?: Date
-  ) {
-    return this.sales.postCustomerDeposit(
-      companyId,
-      paymentId,
-      orderNumber,
-      amount,
-      method,
-      tx,
-      businessDate
-    );
-  }
-
-  async postSettleCustomerDeposit(
-    companyId: string,
-    paymentId: string,
-    invoiceNumber: string,
-    amount: number,
-    tx?: Prisma.TransactionClient
-  ) {
-    return this.sales.postSettleCustomerDeposit(
-      companyId,
-      paymentId,
-      invoiceNumber,
-      amount,
-      tx
-    );
-  }
-
-  // ==========================================
-  // RENTAL JOURNALS (Delegated)
-  // ==========================================
-
-  async postRentalDeposit(
-    companyId: string,
-    depositId: string,
-    orderNumber: string,
-    amount: number,
-    paymentMethod: string,
-    tx?: Prisma.TransactionClient,
-    businessDate?: Date
-  ) {
-    return this.rental.postRentalDeposit(
-      companyId,
-      depositId,
-      orderNumber,
-      amount,
-      paymentMethod,
-      tx,
-      businessDate
-    );
-  }
-
-  async postRentalReturn(
-    companyId: string,
-    returnId: string,
-    orderNumber: string,
-    depositAmount: number,
-    rentalRevenue: number,
-    depositRefund: number,
-    paymentMethod: string,
-    tx?: Prisma.TransactionClient
-  ) {
-    return this.rental.postRentalReturn(
-      companyId,
-      returnId,
-      orderNumber,
-      depositAmount,
-      rentalRevenue,
-      depositRefund,
-      paymentMethod,
->>>>>>> origin/dev
       tx
     );
   }

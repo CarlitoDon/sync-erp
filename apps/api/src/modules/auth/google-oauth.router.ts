@@ -15,11 +15,6 @@ const googleOAuthService = container.resolve<GoogleOAuthService>(
   ServiceKeys.GOOGLE_OAUTH_SERVICE
 );
 
-<<<<<<< HEAD
-=======
-const GOOGLE_STATE_COOKIE = 'googleOAuthState';
-
->>>>>>> origin/dev
 function getSessionCookieOptions(): CookieOptions {
   const isSecureEnv =
     process.env.SECURE_COOKIES === 'true' ||
@@ -30,31 +25,11 @@ function getSessionCookieOptions(): CookieOptions {
     httpOnly: true,
     secure: isSecureEnv,
     sameSite: isSecureEnv ? 'none' : 'lax',
-<<<<<<< HEAD
     path: '/',
-=======
->>>>>>> origin/dev
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 }
 
-<<<<<<< HEAD
-=======
-function getStateCookieOptions(): CookieOptions {
-  const isSecureEnv =
-    process.env.SECURE_COOKIES === 'true' ||
-    process.env.NODE_ENV === 'production' ||
-    process.env.NODE_ENV === 'staging';
-
-  return {
-    httpOnly: true,
-    secure: isSecureEnv,
-    sameSite: 'lax',
-    maxAge: 10 * 60 * 1000,
-  };
-}
-
->>>>>>> origin/dev
 function getAuthAuditContext(req: Request) {
   const forwardedFor = req.headers['x-forwarded-for'];
   const forwardedValue = Array.isArray(forwardedFor)
@@ -90,7 +65,6 @@ function redirectWithError(
   );
 }
 
-<<<<<<< HEAD
 function redirectWithConfigurationError(
   res: Response,
   intent: GoogleOAuthIntent
@@ -103,13 +77,10 @@ function redirectWithConfigurationError(
   redirectWithError(res, intent, 'google_oauth_not_configured');
 }
 
-=======
->>>>>>> origin/dev
 router.get('/start', (req, res) => {
   const intent = getIntentFromQuery(req.query.intent);
 
   if (!googleOAuthService.isConfigured()) {
-<<<<<<< HEAD
     redirectWithConfigurationError(res, intent);
     return;
   }
@@ -127,29 +98,11 @@ router.get('/start', (req, res) => {
 // always fail. HMAC signing already provides equivalent CSRF
 // protection: only this server can produce a valid signature, and
 // the state includes a nonce + TTL to prevent replay attacks.
-=======
-    redirectWithError(res, intent, 'google_oauth_not_configured');
-    return;
-  }
-
-  const { authorizationUrl, state } =
-    googleOAuthService.createAuthorizationUrl(intent);
-
-  res.cookie(
-    GOOGLE_STATE_COOKIE,
-    state,
-    getStateCookieOptions()
-  );
-  res.redirect(302, authorizationUrl);
-});
-
->>>>>>> origin/dev
 router.get('/callback', async (req, res) => {
   let intent: GoogleOAuthIntent = 'login';
 
   try {
     if (!googleOAuthService.isConfigured()) {
-<<<<<<< HEAD
       redirectWithConfigurationError(res, intent);
       return;
     }
@@ -166,19 +119,6 @@ router.get('/callback', async (req, res) => {
       } catch {
         // Signature invalid or state expired — fall through
       }
-=======
-      redirectWithError(res, intent, 'google_oauth_not_configured');
-      return;
-    }
-
-    const state = req.query.state?.toString();
-    const storedState = req.cookies[GOOGLE_STATE_COOKIE];
-    const providerError = req.query.error?.toString();
-
-    if (state && storedState && state === storedState) {
-      const statePayload = googleOAuthService.validateState(state);
-      intent = statePayload.intent;
->>>>>>> origin/dev
     }
 
     if (providerError) {
@@ -186,21 +126,14 @@ router.get('/callback', async (req, res) => {
       return;
     }
 
-<<<<<<< HEAD
     if (!state) {
-=======
-    if (!state || !storedState || state !== storedState) {
->>>>>>> origin/dev
       redirectWithError(res, intent, 'google_oauth_failed');
       return;
     }
 
-<<<<<<< HEAD
     // Re-validate for the main path (throws if invalid).
     googleOAuthService.validateState(state);
 
-=======
->>>>>>> origin/dev
     const code = req.query.code?.toString();
     if (!code) {
       redirectWithError(res, intent, 'google_oauth_failed');
@@ -231,24 +164,11 @@ router.get('/callback', async (req, res) => {
       getSessionCookieOptions()
     );
     res.redirect(302, googleOAuthService.getSuccessRedirectUrl());
-<<<<<<< HEAD
   } catch (err) {
     console.error(`[OAuth] callback error:`, err);
     redirectWithError(res, intent, 'google_oauth_failed');
-=======
-  } catch {
-    redirectWithError(res, intent, 'google_oauth_failed');
-  } finally {
-    res.clearCookie(
-      GOOGLE_STATE_COOKIE,
-      getStateCookieOptions()
-    );
->>>>>>> origin/dev
   }
 });
 
 export const googleOAuthRouter = router;
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/dev

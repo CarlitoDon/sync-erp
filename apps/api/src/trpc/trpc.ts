@@ -9,15 +9,9 @@ import {
 } from '@sync-erp/database';
 import { IdempotencyService } from '../modules/common/services/idempotency.service';
 import {
-<<<<<<< HEAD
   adaptiveRateLimitService,
   type PublicRateLimitConfig,
 } from '../modules/common/services/adaptive-rate-limit.service';
-=======
-  publicRateLimitService,
-  type PublicRateLimitConfig,
-} from '../modules/common/services/public-rate-limit.service';
->>>>>>> origin/dev
 
 export interface Meta {
   idempotencyScope?: IdempotencyScope;
@@ -114,11 +108,7 @@ export const publicProcedure = t.procedure;
 export const publicRateLimit = (config: PublicRateLimitConfig) =>
   t.middleware(async ({ ctx, next }) => {
     const identifier = getPublicClientIdentifier(ctx.req);
-<<<<<<< HEAD
     const result = await adaptiveRateLimitService.consume(
-=======
-    const result = publicRateLimitService.consume(
->>>>>>> origin/dev
       identifier,
       config
     );
@@ -205,52 +195,10 @@ export const shapedProcedure = protectedProcedure.use(
  * API Key procedure - for external integrations (multi-tenant)
  * Validates Bearer token from Authorization header
  * Injects companyId and permissions from validated API key
-<<<<<<< HEAD
  * Enforces rate limiting (Redis-backed, persists across restarts)
  */
 
 import { redisRateLimitService } from '../modules/common/services/redis-rate-limit.service';
-=======
- * Enforces rate limiting
- */
-
-// In-memory rate limit store (use Redis in production for distributed systems)
-const rateLimitStore = new Map<
-  string,
-  { count: number; expiresAt: number }
->();
-
-function checkRateLimit(keyId: string, limit: number): boolean {
-  const now = Date.now();
-  const hourKey = `${keyId}:${Math.floor(now / 3600000)}`;
-
-  const entry = rateLimitStore.get(hourKey);
-  if (!entry || entry.expiresAt < now) {
-    rateLimitStore.set(hourKey, {
-      count: 1,
-      expiresAt: now + 3600000,
-    });
-    return true;
-  }
-
-  if (entry.count >= limit) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
-}
-
-// Clean up old rate limit entries every hour
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (entry.expiresAt < now) {
-      rateLimitStore.delete(key);
-    }
-  }
-}, 3600000);
->>>>>>> origin/dev
 
 export const apiKeyProcedure = t.procedure
   .use(async ({ ctx, next }) => {
@@ -279,7 +227,6 @@ export const apiKeyProcedure = t.procedure
       });
     }
 
-<<<<<<< HEAD
     // Enforce rate limiting (Redis-backed)
     const rlResult = await redisRateLimitService.consume(
       `apikey:${result.keyId}`,
@@ -290,10 +237,6 @@ export const apiKeyProcedure = t.procedure
       }
     );
     if (!rlResult.allowed) {
-=======
-    // Enforce rate limiting
-    if (!checkRateLimit(result.keyId, result.rateLimit || 1000)) {
->>>>>>> origin/dev
       throw new TRPCError({
         code: 'TOO_MANY_REQUESTS',
         message: 'Rate limit exceeded. Please try again later.',
@@ -306,10 +249,6 @@ export const apiKeyProcedure = t.procedure
         companyId: result.companyId,
         permissions: result.permissions,
         apiKeyId: result.keyId,
-<<<<<<< HEAD
-=======
-        integrationId: result.integrationId ?? undefined,
->>>>>>> origin/dev
         isApiKeyAuth: true,
       },
     });

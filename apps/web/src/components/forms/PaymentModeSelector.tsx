@@ -191,32 +191,19 @@ export default function PaymentModeSelector({
               id="withDP"
               checked={value.withDP}
               onChange={(e) => handleDPToggle(e.target.checked)}
-<<<<<<< HEAD
               className="h-4 w-4 rounded text-cyan-700 focus:ring-cyan-500"
             />
             <label htmlFor="withDP" className="text-sm text-slate-700">
-=======
-              className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-            />
-            <label htmlFor="withDP" className="text-sm text-gray-700">
->>>>>>> origin/dev
               Dengan Uang Muka (DP)
             </label>
           </div>
 
           {/* DP Inputs - only show if withDP */}
           {value.withDP && (
-<<<<<<< HEAD
             <div className="space-y-3 rounded-lg border border-cyan-200 bg-cyan-50 p-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-=======
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
->>>>>>> origin/dev
                     DP Persen (%)
                   </label>
                   <QuantityInput
@@ -227,11 +214,7 @@ export default function PaymentModeSelector({
                   />
                 </div>
                 <div>
-<<<<<<< HEAD
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-=======
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
->>>>>>> origin/dev
                     DP Nominal
                   </label>
                   <CurrencyInput
@@ -242,11 +225,7 @@ export default function PaymentModeSelector({
                   />
                 </div>
               </div>
-<<<<<<< HEAD
               <div className="text-sm text-cyan-900">
-=======
-              <div className="text-sm text-blue-800">
->>>>>>> origin/dev
                 <div className="flex justify-between">
                   <span>DP dibayar di muka:</span>
                   <span className="font-medium">

@@ -1,10 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { InvoiceService } from '../../src/modules/accounting/services/invoice.service';
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/dev
 
 const invoiceService = new InvoiceService();
 
@@ -41,11 +38,7 @@ describe('US1: Flexible Tax Selection (Sales)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-<<<<<<< HEAD
           type: acc.type as import("@sync-erp/database").AccountType,
-=======
-          type: acc.type as import('@sync-erp/database').AccountType,
->>>>>>> origin/dev
           isActive: true,
         },
       });

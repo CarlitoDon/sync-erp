@@ -43,11 +43,7 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-<<<<<<< HEAD
           type: acc.type as import("@sync-erp/database").AccountType,
-=======
-          type: acc.type as import('@sync-erp/database').AccountType,
->>>>>>> origin/dev
           isActive: true, // Ensure active
         },
       });
@@ -187,12 +183,7 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     // 6. Verify Bill Journal (search by sourceType and sourceId)
     const allJournals = await journalService.list(COMPANY_ID);
     const billJournal = allJournals.find(
-<<<<<<< HEAD
       (j: JournalEntry) => j.sourceType === 'BILL' && j.sourceId === bill.id
-=======
-      (j: JournalEntry) =>
-        j.sourceType === 'BILL' && j.sourceId === bill.id
->>>>>>> origin/dev
     );
 
     expect(billJournal).toBeDefined();
