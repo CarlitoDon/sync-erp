@@ -2,7 +2,6 @@ generator client {
   provider   = "prisma-client"
   output     = "../src/generated/client"
   engineType = "binary"
-  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl", "linux-musl-openssl-3.0.x", "rhel-openssl-1.1.x", "rhel-openssl-3.0.x"]
   esm        = true
 }
 
@@ -19,53 +18,56 @@ datasource db {
 }
 
 model Company {
-  id                    String                 @id @default(uuid())
-  name                  String
-  businessShape         BusinessShape          @default(PENDING)
-  onboardingStatus      CompanyOnboardingStatus @default(NOT_INITIALIZED)
-  onboardingStep        CompanyOnboardingStep   @default(WELCOME)
-  onboardingCompletedAt DateTime?
-  onboardingMeta        Json?
-  inviteCode            String?                @unique @default(cuid())
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  accounts              Account[]
-  apiKeys               ApiKey[]
-  auditLogs             AuditLog[]
-  bankAccounts          BankAccount[]
-  cashTransactions      CashTransaction[]
-  members               CompanyMember[]
-  customerRentalRisks   CustomerRentalRisk[]
-  documentSequences     DocumentSequence[]
-  fulfillments          Fulfillment[]
-  idempotencyKeys       IdempotencyKey[]
-  movements             InventoryMovement[]
-  invoices              Invoice[]
-  journals              JournalEntry[]
-  orders                Order[]
-  partners              Partner[]
-  payments              Payment[]
-  products              Product[]
-  categories            ProductCategory[]
-  rentalDamagePolicies  RentalDamagePolicy[]
-  rentalDeposits        RentalDeposit[]
-  rentalItems           RentalItem[]
-  rentalItemUnits       RentalItemUnit[]
-  rentalOrders          RentalOrder[]
-  rentalOrderExtensions RentalOrderExtension[]
-  rentalPolicies        RentalPolicy[]
-  rentalReturns         RentalReturn[]
-  roles                 Role[]
-  sagaLogs              SagaLog[]
-  configs               SystemConfig[]
-  warehouses            Warehouse[]
-  rentalBundles         RentalBundle[]
-  integrations          Integration[]
-  webhookOutbox         WebhookOutbox[]
-  tenantWebhookOutbox   TenantWebhookOutbox[]
-  subscription          CompanySubscription?
+  id                      String                    @id @default(uuid())
+  name                    String
+  businessShape           BusinessShape             @default(PENDING)
+  onboardingStatus        CompanyOnboardingStatus   @default(NOT_INITIALIZED)
+  onboardingStep          CompanyOnboardingStep     @default(WELCOME)
+  onboardingCompletedAt   DateTime?
+  onboardingMeta          Json?
+  inviteCode              String?                   @unique @default(cuid())
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  accounts                Account[]
+  apiKeys                 ApiKey[]
+  auditLogs               AuditLog[]
+  attachments             Attachment[]
+  bankAccounts            BankAccount[]
+  cashTransactions        CashTransaction[]
+  members                 CompanyMember[]
+  customerRentalRisks     CustomerRentalRisk[]
+  documentSequences       DocumentSequence[]
+  billInstallments        BillInstallmentSchedule[]
+  fulfillments            Fulfillment[]
+  idempotencyKeys         IdempotencyKey[]
+  movements               InventoryMovement[]
+  invoices                Invoice[]
+  journals                JournalEntry[]
+  orders                  Order[]
+  partners                Partner[]
+  payments                Payment[]
+  products                Product[]
+  categories              ProductCategory[]
+  rentalDamagePolicies    RentalDamagePolicy[]
+  rentalDeposits          RentalDeposit[]
+  rentalItems             RentalItem[]
+  rentalItemUnits         RentalItemUnit[]
+  rentalOrders            RentalOrder[]
+  rentalOrderExtensions   RentalOrderExtension[]
+  rentalOrderExtensionItems RentalOrderExtensionItem[]
+  rentalPolicies          RentalPolicy[]
+  rentalReturns           RentalReturn[]
+  roles                   Role[]
+  sagaLogs                SagaLog[]
+  configs                 SystemConfig[]
+  warehouses              Warehouse[]
+  rentalBundles           RentalBundle[]
+  integrations            Integration[]
+  rentalWebhookOutbox     RentalWebhookOutbox[]
+  tenantWebhookOutbox     TenantWebhookOutbox[]
+  subscription            CompanySubscription?
   billingCheckoutSessions BillingCheckoutSession[]
-  billingWebhookEvents  BillingWebhookEvent[]
+  billingWebhookEvents    BillingWebhookEvent[]
 
   paymentMethods CompanyPaymentMethod[]
 }
@@ -125,7 +127,7 @@ model CompanySubscription {
   id                     String                    @id @default(cuid())
   companyId              String                    @unique
   company                Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  planKey                String                    @default("starter")
+  planKey                String                    @default("free")
   status                 BillingSubscriptionStatus @default(TRIALING)
   provider               BillingProvider?
   providerCustomerId     String?
@@ -150,14 +152,14 @@ model BillingCheckoutSession {
   id                  String                       @id @default(cuid())
   companyId           String
   company             Company                      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  provider            BillingProvider             @default(MANUAL)
+  provider            BillingProvider              @default(MANUAL)
   planKey             String
-  billingCycle        BillingCycle                @default(MONTHLY)
+  billingCycle        BillingCycle                 @default(MONTHLY)
   status              BillingCheckoutSessionStatus @default(OPEN)
-  providerSessionId   String?                     @unique
+  providerSessionId   String?                      @unique
   providerCheckoutUrl String?
   amountIdr           Int?
-  currency            String                      @default("IDR")
+  currency            String                       @default("IDR")
   successUrl          String?
   cancelUrl           String?
   expiresAt           DateTime
@@ -165,28 +167,28 @@ model BillingCheckoutSession {
   canceledAt          DateTime?
   failedAt            DateTime?
   metadata            Json?
-  createdAt           DateTime                    @default(now())
-  updatedAt           DateTime                    @updatedAt
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
 
   @@index([companyId, status, createdAt])
   @@index([provider, status, createdAt])
 }
 
 model BillingWebhookEvent {
-  id                     String                   @id @default(cuid())
+  id                     String                    @id @default(cuid())
   provider               BillingProvider
   eventId                String
   eventType              String
   status                 BillingWebhookEventStatus @default(RECEIVED)
   companyId              String?
-  company                Company?                @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  company                Company?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
   providerCustomerId     String?
   providerSubscriptionId String?
   payload                Json
   processedAt            DateTime?
   errorMessage           String?
-  createdAt              DateTime                 @default(now())
-  updatedAt              DateTime                 @updatedAt
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
 
   @@unique([provider, eventId])
   @@index([provider, status, createdAt])
@@ -200,8 +202,8 @@ model Integration {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // App Identifiers
-  appId       String // e.g., "santi-living", "rockhouse", "pos-lite"
-  name        String // Display Name "Santi Living"
+  appId       String // e.g., "custom-storefront", "rockhouse", "pos-lite"
+  name        String // Display name for the external integration
   description String?
   icon        String? // icon name or url
 
@@ -211,9 +213,6 @@ model Integration {
 
   // Relations
   apiKeys ApiKey[] // Keys associated with this integration
-  rentalOrders RentalOrder[]
-  rentalBundles RentalBundle[]
-  webhookOutbox WebhookOutbox[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -227,7 +226,7 @@ model ApiKey {
   id        String @id @default(cuid())
   keyHash   String @unique // bcrypt hash of the actual key
   keyPrefix String // First 8 chars for display (e.g., "sk_live_")
-  name      String // "Santi Living Production"
+  name      String // "Storefront Production"
 
   companyId     String
   company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -253,11 +252,10 @@ model ApiKey {
   @@index([isActive])
 }
 
-model WebhookOutbox {
+model RentalWebhookOutbox {
   id               String                    @id @default(cuid())
   companyId        String
-  integrationId    String?
-  event            String
+  deliveryType     RentalWebhookDeliveryType
   orderPublicToken String
   orderNumber      String?
   payload          Json
@@ -272,34 +270,33 @@ model WebhookOutbox {
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   company          Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  integration      Integration?              @relation(fields: [integrationId], references: [id])
 
   @@index([companyId, createdAt])
   @@index([status, nextAttemptAt])
-  @@index([event, status, nextAttemptAt])
+  @@index([deliveryType, status, nextAttemptAt])
   @@index([orderPublicToken])
 }
 
 model TenantWebhookOutbox {
-  id             String                   @id @default(cuid())
+  id             String                    @id @default(cuid())
   companyId      String
   apiKeyId       String?
   event          String
   payload        Json
   webhookUrl     String
   webhookSecret  String?
-  eventTimestamp DateTime                 @default(now())
+  eventTimestamp DateTime                  @default(now())
   status         TenantWebhookOutboxStatus @default(PENDING)
-  attempts       Int                      @default(0)
-  nextAttemptAt  DateTime                 @default(now())
+  attempts       Int                       @default(0)
+  nextAttemptAt  DateTime                  @default(now())
   lastAttemptAt  DateTime?
   deliveredAt    DateTime?
-  lastError      String?                  @db.Text
+  lastError      String?                   @db.Text
   lastStatusCode Int?
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  company        Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  apiKey         ApiKey?                  @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  company        Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  apiKey         ApiKey?                   @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
 
   @@index([companyId, createdAt])
   @@index([status, nextAttemptAt])
@@ -320,6 +317,7 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   authAuditLogs           AuthAuditLog[]
   oauthAccounts           OAuthAccount[]
+  uploadedAttachments     Attachment[]
 }
 
 model Session {
@@ -492,6 +490,7 @@ model Order {
   partner            Partner             @relation(fields: [partnerId], references: [id])
   items              OrderItem[]
   upfrontPayments    Payment[]           @relation("OrderUpfrontPayments")
+  sourceRentalUnits  RentalItemUnit[]    @relation("RentalUnitSourceOrder")
 
   @@index([companyId])
   @@index([companyId, type])
@@ -499,15 +498,16 @@ model Order {
 }
 
 model OrderItem {
-  id               String            @id @default(uuid())
-  orderId          String
-  productId        String
-  quantity         Int
-  price            Decimal           @db.Decimal(15, 2)
-  cost             Decimal?          @db.Decimal(15, 2)
-  fulfillmentItems FulfillmentItem[]
-  order            Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product          Product           @relation(fields: [productId], references: [id])
+  id                String            @id @default(uuid())
+  orderId           String
+  productId         String
+  quantity          Int
+  price             Decimal           @db.Decimal(15, 2)
+  cost              Decimal?          @db.Decimal(15, 2)
+  fulfillmentItems  FulfillmentItem[]
+  order             Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product           Product           @relation(fields: [productId], references: [id])
+  sourceRentalUnits RentalItemUnit[]  @relation("RentalUnitSourceOrderItem")
 
   @@index([orderId])
 }
@@ -539,39 +539,42 @@ model InventoryMovement {
 }
 
 model Invoice {
-  id                    String        @id @default(uuid())
+  id                    String                    @id @default(uuid())
   companyId             String
   orderId               String?
   partnerId             String
   type                  InvoiceType
-  status                InvoiceStatus @default(DRAFT)
+  status                InvoiceStatus             @default(DRAFT)
   invoiceNumber         String?
+  date                  DateTime                  @default(now())
   dueDate               DateTime
-  amount                Decimal       @db.Decimal(15, 2)
-  subtotal              Decimal       @default(0) @db.Decimal(15, 2)
-  taxAmount             Decimal       @default(0) @db.Decimal(15, 2)
-  taxRate               Decimal       @default(0) @db.Decimal(5, 2)
-  balance               Decimal       @db.Decimal(15, 2)
+  amount                Decimal                   @db.Decimal(15, 2)
+  subtotal              Decimal                   @default(0) @db.Decimal(15, 2)
+  taxAmount             Decimal                   @default(0) @db.Decimal(15, 2)
+  taxRate               Decimal                   @default(0) @db.Decimal(5, 2)
+  balance               Decimal                   @db.Decimal(15, 2)
   supplierInvoiceNumber String?
   paymentTermsString    String?
   notes                 String?
-  version               Int           @default(1)
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  version               Int                       @default(1)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
   relatedInvoiceId      String?
-  isDownPayment         Boolean       @default(false)
+  isDownPayment         Boolean                   @default(false)
   dpBillId              String?
   fulfillmentId         String?
-  company               Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  dpBill                Invoice?      @relation("DpBills", fields: [dpBillId], references: [id])
-  finalBills            Invoice[]     @relation("DpBills")
-  fulfillment           Fulfillment?  @relation("FulfillmentInvoices", fields: [fulfillmentId], references: [id])
-  order                 Order?        @relation(fields: [orderId], references: [id])
-  partner               Partner       @relation(fields: [partnerId], references: [id])
-  relatedInvoice        Invoice?      @relation("CreditNotes", fields: [relatedInvoiceId], references: [id])
-  creditNotes           Invoice[]     @relation("CreditNotes")
+  company               Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dpBill                Invoice?                  @relation("DpBills", fields: [dpBillId], references: [id])
+  finalBills            Invoice[]                 @relation("DpBills")
+  fulfillment           Fulfillment?              @relation("FulfillmentInvoices", fields: [fulfillmentId], references: [id])
+  order                 Order?                    @relation(fields: [orderId], references: [id])
+  partner               Partner                   @relation(fields: [partnerId], references: [id])
+  relatedInvoice        Invoice?                  @relation("CreditNotes", fields: [relatedInvoiceId], references: [id])
+  creditNotes           Invoice[]                 @relation("CreditNotes")
   items                 InvoiceItem[]
   payments              Payment[]
+  billInstallments      BillInstallmentSchedule[] @relation("BillInstallments")
+  sourceRentalUnits     RentalItemUnit[]          @relation("RentalUnitSourceBill")
 
   @@index([companyId])
   @@index([companyId, type])
@@ -593,29 +596,98 @@ model InvoiceItem {
   @@index([productId])
 }
 
+enum AttachmentEntityType {
+  BILL
+  INVOICE
+  PURCHASE_ORDER
+  SALES_ORDER
+  GOODS_RECEIPT
+  SHIPMENT
+  PAYMENT
+  EXPENSE
+  RENTAL_ORDER
+  RENTAL_ITEM
+  PRODUCT
+  PARTNER
+}
+
+model Attachment {
+  id               String               @id @default(uuid())
+  companyId        String
+  entityType       AttachmentEntityType
+  entityId         String
+  originalFileName String
+  mimeType         String
+  sizeBytes        Int
+  checksumSha256   String
+  storageProvider  String               @default("local")
+  storageKey       String               @unique
+  uploadedByUserId String?
+  notes            String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  company          Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  uploadedBy       User?                @relation(fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, entityType, entityId])
+  @@index([companyId, createdAt])
+  @@index([uploadedByUserId])
+}
+
 model Payment {
-  id               String            @id @default(uuid())
+  id               String                    @id @default(uuid())
   companyId        String
   invoiceId        String?
   orderId          String?
-  paymentType      String            @default("INVOICE")
+  paymentType      String                    @default("INVOICE")
   settledAt        DateTime?
   settlementBillId String?
-  amount           Decimal           @db.Decimal(15, 2)
-  date             DateTime          @default(now())
+  amount           Decimal                   @db.Decimal(15, 2)
+  date             DateTime                  @default(now())
   method           PaymentMethodType
   reference        String?
   accountId        String?
-  version          Int               @default(1)
-  createdAt        DateTime          @default(now())
-  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  invoice          Invoice?          @relation(fields: [invoiceId], references: [id])
-  order            Order?            @relation("OrderUpfrontPayments", fields: [orderId], references: [id])
+  version          Int                       @default(1)
+  createdAt        DateTime                  @default(now())
+  company          Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice          Invoice?                  @relation(fields: [invoiceId], references: [id])
+  order            Order?                    @relation("OrderUpfrontPayments", fields: [orderId], references: [id])
+  billInstallments BillInstallmentSchedule[] @relation("BillInstallmentPayment")
 
   @@index([companyId])
   @@index([invoiceId])
   @@index([orderId])
   @@index([paymentType])
+}
+
+enum BillInstallmentStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model BillInstallmentSchedule {
+  id        String                @id @default(uuid())
+  companyId String
+  billId    String
+  sequence  Int
+  dueDate   DateTime
+  amount    Decimal               @db.Decimal(15, 2)
+  status    BillInstallmentStatus @default(PENDING)
+  paidAt    DateTime?
+  paymentId String?
+  notes     String?
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  company   Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bill      Invoice               @relation("BillInstallments", fields: [billId], references: [id], onDelete: Cascade)
+  payment   Payment?              @relation("BillInstallmentPayment", fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@unique([billId, sequence])
+  @@index([companyId, billId])
+  @@index([companyId, status])
+  @@index([dueDate])
+  @@index([paymentId])
 }
 
 model Account {
@@ -871,6 +943,7 @@ model Fulfillment {
   items              FulfillmentItem[]
   inventoryMovements InventoryMovement[]
   invoices           Invoice[]           @relation("FulfillmentInvoices")
+  sourceRentalUnits  RentalItemUnit[]    @relation("RentalUnitSourceFulfillment")
 
   @@index([companyId])
   @@index([orderId])
@@ -965,6 +1038,7 @@ model RentalItem {
   product              Product                 @relation(fields: [productId], references: [id])
   units                RentalItemUnit[]
   orderItems           RentalOrderItem[]
+  orderExtensionItems  RentalOrderExtensionItem[]
   bundleComponents     RentalBundleComponent[]
 
   @@index([companyId])
@@ -977,8 +1051,7 @@ model RentalItem {
 model RentalBundle {
   id          String   @id @default(uuid())
   companyId   String
-  integrationId String?
-  externalId  String? // santi-living package ID (e.g., "package-single-standard")
+  externalId  String? // External package/item ID (e.g., "package-single-standard")
   name        String // "Single Standard (Paket)"
   shortName   String? // "Single Standard (Pkt)"
   description String? // "Kasur + Sprei + Bantal + Selimut"
@@ -993,10 +1066,10 @@ model RentalBundle {
   updatedAt   DateTime @updatedAt
 
   company    Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  integration Integration?           @relation(fields: [integrationId], references: [id])
   // Components are REQUIRED - bundles must have at least one component (enforced in application)
   components RentalBundleComponent[]
   orderItems RentalOrderItem[]
+  orderExtensionItems RentalOrderExtensionItem[]
 
   @@unique([companyId, externalId])
   @@index([companyId])
@@ -1024,6 +1097,16 @@ model RentalItemUnit {
   rentalItemId         String
   companyId            String
   unitCode             String
+  acquiredAt           DateTime?
+  acquisitionCost      Decimal?                    @db.Decimal(15, 2)
+  sourceOrderId        String?
+  sourceOrderItemId    String?
+  sourceFulfillmentId  String?
+  sourceBillId         String?
+  sourceBatchCode      String?
+  sizeLabel            String?
+  color                String?
+  sourceNotes          String?                     @db.Text
   condition            UnitCondition
   status               UnitStatus                  @default(AVAILABLE)
   totalRentalDays      Int                         @default(0)
@@ -1039,18 +1122,26 @@ model RentalItemUnit {
   depositAllocations   RentalDepositAllocation[]
   company              Company                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   rentalItem           RentalItem                  @relation(fields: [rentalItemId], references: [id], onDelete: Cascade)
+  sourceOrder          Order?                      @relation("RentalUnitSourceOrder", fields: [sourceOrderId], references: [id], onDelete: SetNull)
+  sourceOrderItem      OrderItem?                  @relation("RentalUnitSourceOrderItem", fields: [sourceOrderItemId], references: [id], onDelete: SetNull)
+  sourceFulfillment    Fulfillment?                @relation("RentalUnitSourceFulfillment", fields: [sourceFulfillmentId], references: [id], onDelete: SetNull)
+  sourceBill           Invoice?                    @relation("RentalUnitSourceBill", fields: [sourceBillId], references: [id], onDelete: SetNull)
   assignments          RentalOrderUnitAssignment[]
 
   @@unique([companyId, unitCode])
   @@index([companyId])
   @@index([rentalItemId, status])
   @@index([companyId, status])
+  @@index([sourceOrderId])
+  @@index([sourceOrderItemId])
+  @@index([sourceFulfillmentId])
+  @@index([sourceBillId])
+  @@index([companyId, sourceBatchCode])
 }
 
 model RentalOrder {
   id              String            @id @default(uuid())
   companyId       String
-  integrationId   String?
   partnerId       String
   orderNumber     String
   rentalStartDate DateTime
@@ -1073,7 +1164,7 @@ model RentalOrder {
   // Public access token for customer tracking
   publicToken String? @unique @default(uuid())
 
-  // Santi Living Integration Fields
+  // External storefront integration fields
   deliveryFee     Decimal?    @db.Decimal(15, 2)
   deliveryAddress String?     @db.Text // Full combined address for display
   street          String? // Jalan/nama jalan
@@ -1102,7 +1193,6 @@ model RentalOrder {
   conditionLogs   ItemConditionLog[]
   deposit         RentalDeposit?
   company         Company                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  integration     Integration?                @relation(fields: [integrationId], references: [id])
   partner         Partner                     @relation(fields: [partnerId], references: [id])
   extensions      RentalOrderExtension[]
   items           RentalOrderItem[]
@@ -1127,6 +1217,8 @@ model RentalOrderExtension {
   newEndDate        DateTime
   additionalDays    Int
   additionalAmount  Decimal     @db.Decimal(15, 2)
+  deliveryFee       Decimal     @default(0) @db.Decimal(15, 2)
+  deliveryFeeLabel  String?
   additionalDeposit Decimal     @default(0) @db.Decimal(15, 2)
   reason            String?
   isPaid            Boolean     @default(false)
@@ -1135,10 +1227,39 @@ model RentalOrderExtension {
   createdAt         DateTime    @default(now())
   createdBy         String
   company           Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  items             RentalOrderExtensionItem[]
   rentalOrder       RentalOrder @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
 
   @@index([rentalOrderId])
   @@index([companyId])
+}
+
+model RentalOrderExtensionItem {
+  id                     String               @id @default(uuid())
+  rentalOrderExtensionId String
+  companyId              String
+  rentalOrderItemId      String?
+  rentalItemId           String?
+  rentalBundleId         String?
+  quantity               Int
+  previousEndDate        DateTime
+  newEndDate             DateTime
+  additionalDays         Int
+  unitPrice              Decimal              @db.Decimal(15, 2)
+  additionalAmount       Decimal              @db.Decimal(15, 2)
+  notes                  String?
+  createdAt              DateTime             @default(now())
+  company                Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  extension              RentalOrderExtension @relation(fields: [rentalOrderExtensionId], references: [id], onDelete: Cascade)
+  rentalOrderItem        RentalOrderItem?     @relation(fields: [rentalOrderItemId], references: [id], onDelete: SetNull)
+  rentalItem             RentalItem?          @relation(fields: [rentalItemId], references: [id], onDelete: SetNull)
+  rentalBundle           RentalBundle?        @relation(fields: [rentalBundleId], references: [id], onDelete: SetNull)
+
+  @@index([rentalOrderExtensionId])
+  @@index([companyId])
+  @@index([rentalOrderItemId])
+  @@index([rentalItemId])
+  @@index([rentalBundleId])
 }
 
 model RentalOrderItem {
@@ -1153,6 +1274,7 @@ model RentalOrderItem {
   rentalItem     RentalItem?   @relation(fields: [rentalItemId], references: [id])
   rentalBundle   RentalBundle? @relation(fields: [rentalBundleId], references: [id])
   rentalOrder    RentalOrder   @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
+  extensions     RentalOrderExtensionItem[]
 
   @@index([rentalOrderId])
   @@index([rentalItemId])
