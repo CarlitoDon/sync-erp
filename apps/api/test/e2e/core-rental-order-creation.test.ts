@@ -28,11 +28,12 @@ const buildCaller = (authorization?: string) =>
     businessShape: undefined,
     userRole: undefined,
     userPermissions: [],
+    integrationId: undefined,
   });
 
 const cleanupCompanyOrders = async () => {
   await prisma.$transaction([
-    prisma.rentalWebhookOutbox.deleteMany({
+    prisma.webhookOutbox.deleteMany({
       where: { companyId: COMPANY_ID },
     }),
     prisma.rentalBundleComponent.deleteMany({
@@ -143,7 +144,6 @@ describe('Sync-ERP Core Order Creation E2E', () => {
                 name: 'Single Standard (Paket)',
                 category: 'package',
                 pricePerDay: 35000,
-                lineTotal: 35000,
             },
         ],
         deliveryAddress: 'Jl. Malioboro No. 1, Yogyakarta',

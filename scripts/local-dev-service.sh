@@ -1,74 +1,47 @@
 #!/usr/bin/env bash
-# Local Sync ERP service runner for launchd.
-
+# local-dev-service.sh
+# Entry point for LaunchAgent-managed Sync ERP services.
+# Expected to be called with: run-api-stable
 set -euo pipefail
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RUN_DIR="${SYNC_ERP_RUN_DIR:-$HOME/.hermes/run/sync-erp}"
-NODE_BIN_DIR="/Users/wecik/.local/share/fnm/node-versions/v22.21.1/installation/bin"
-export PATH="$NODE_BIN_DIR:/opt/homebrew/bin:/usr/local/bin:/Users/wecik/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+cd "$(dirname "$0")/.."
 
-mkdir -p "$RUN_DIR"
-cd "$PROJECT_ROOT"
+SCRIPT_NAME="$(basename "$0")"
+SERVICE="${1:-help}"
 
-api_health() {
-  curl -fsS --max-time 2 http://127.0.0.1:3001/health >/dev/null 2>&1
-}
+export NODE_ENV="${NODE_ENV:-production}"
+export PORT="${PORT:-3001}"
+export SYNC_ERP_STORAGE_DIR="${SYNC_ERP_STORAGE_DIR:-./storage}"
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${HOME}/.local/bin:${HOME}/.local/share/fnm/node-versions/v22.21.1/installation/bin"
 
-web_health() {
-  curl -fsS --max-time 2 http://127.0.0.1:5173/ >/dev/null 2>&1
-}
-
-run_api() {
-  export PORT="${PORT:-3001}"
-  export SYNC_ERP_STORAGE_DIR="${SYNC_ERP_STORAGE_DIR:-$PROJECT_ROOT/storage}"
-  export SYNC_ERP_DISABLE_BILLING_LIMITS="${SYNC_ERP_DISABLE_BILLING_LIMITS:-true}"
-  exec npm run dev --workspace=@sync-erp/api
-}
+log() { echo "[${SERVICE} $(TZ=Asia/Jakarta date +'%H:%M:%S')] $*"; }
 
 run_api_stable() {
-  export PORT="${PORT:-3001}"
-  export SYNC_ERP_STORAGE_DIR="${SYNC_ERP_STORAGE_DIR:-$PROJECT_ROOT/storage}"
-  export SYNC_ERP_DISABLE_BILLING_LIMITS="${SYNC_ERP_DISABLE_BILLING_LIMITS:-true}"
-  cd "$PROJECT_ROOT/apps/api"
-  exec "$PROJECT_ROOT/node_modules/.bin/tsx" src/index.ts
+  log "Starting API on port ${PORT}..."
+  exec npx tsx apps/api/src/index.ts
 }
 
-run_web() {
-  export VITE_API_URL="${VITE_API_URL:-http://127.0.0.1:3001/api/trpc}"
-  export VITE_SYNC_ERP_API_URL="${VITE_SYNC_ERP_API_URL:-$VITE_API_URL}"
-  exec npm run dev --workspace=@sync-erp/web -- --host 127.0.0.1
+run_api_dist() {
+  log "Starting API (dist) on port ${PORT}..."
+  exec node apps/api/dist/index.js
 }
 
-status() {
-  if api_health; then
-    echo "api: healthy http://127.0.0.1:3001"
-  else
-    echo "api: down http://127.0.0.1:3001"
-  fi
-
-  if web_health; then
-    echo "web: healthy http://127.0.0.1:5173"
-  else
-    echo "web: down http://127.0.0.1:5173"
-  fi
-}
-
-case "${1:-status}" in
-  run-api)
-    run_api
-    ;;
+case "${SERVICE}" in
   run-api-stable)
     run_api_stable
     ;;
-  run-web)
-    run_web
+  run-api-dist)
+    run_api_dist
     ;;
-  status)
-    status
+  help)
+    echo "Usage: ${SCRIPT_NAME} <service>"
+    echo "Services:"
+    echo "  run-api-stable     Start the Sync ERP API via tsx (watch mode)"
+    echo "  run-api-dist       Start the Sync ERP API from dist/"
     ;;
   *)
-    echo "Usage: $0 {run-api|run-web|status}" >&2
-    exit 2
+    log "ERROR: Unknown service '${SERVICE}'"
+    echo "Usage: ${SCRIPT_NAME} <service>"
+    exit 1
     ;;
 esac

@@ -13,7 +13,6 @@ const ConfigSchema = z.object({
 
 export type Config = z.infer<typeof ConfigSchema>;
 
-<<<<<<< HEAD
 const HttpRuntimeConfigSchema = z.object({
   bearerTokens: z.array(z.string().min(16)),
   maxSessions: z.number().int().positive().default(50),
@@ -24,9 +23,6 @@ export type HttpRuntimeConfig = z.infer<typeof HttpRuntimeConfigSchema>;
 
 let cachedConfig: Config | null = null;
 let cachedHttpRuntimeConfig: HttpRuntimeConfig | null = null;
-=======
-let cachedConfig: Config | null = null;
->>>>>>> origin/dev
 
 function loadConfig(): Config {
   const raw: unknown = {
@@ -67,7 +63,6 @@ export function getConfig(): Config {
 
   return cachedConfig;
 }
-<<<<<<< HEAD
 
 export function getHttpRuntimeConfig(): HttpRuntimeConfig {
   if (cachedHttpRuntimeConfig) {
@@ -107,5 +102,3 @@ export function getHttpRuntimeConfig(): HttpRuntimeConfig {
 export function isHttpMcpEnabled(): boolean {
   return getHttpRuntimeConfig().bearerTokens.length > 0;
 }
-=======
->>>>>>> origin/dev

@@ -7,17 +7,6 @@ import {
   it,
   vi,
 } from 'vitest';
-<<<<<<< HEAD
-import {
-  prisma,
-  DepositPolicyType,
-  PartnerType,
-} from '@sync-erp/database';
-import { appRouter } from '@src/trpc/router';
-import type { Context } from '@src/trpc/context';
-import { apiKeyService } from '@src/services/api-key.service';
-import { webhookService } from '@src/services/webhook.service';
-=======
 import { prisma, PartnerType } from '@sync-erp/database';
 import { appRouter } from '@src/trpc/router';
 import type { Context } from '@src/trpc/context';
@@ -28,15 +17,12 @@ import {
   ServiceKeys,
 } from '@modules/common/di';
 import type { RentalWebhookService } from '@modules/rental/rental-webhook.service';
->>>>>>> origin/dev
 
 const COMPANY_ID = 'test-public-rental-router-int-001';
 const COMPANY_B_ID = 'test-public-rental-router-int-002';
 const API_KEY = 'sk_test_public_rental_key';
 const API_KEY_B = 'sk_test_public_rental_key_b';
 
-<<<<<<< HEAD
-=======
 const mockWebhookService = {
   notifyPaymentStatus: vi.fn(),
   notifyNewOrder: vi.fn(),
@@ -47,7 +33,6 @@ const mockWebhookService = {
   notifyPaymentStatus: ReturnType<typeof vi.fn>;
 };
 
->>>>>>> origin/dev
 const buildCaller = (authorization?: string) =>
   appRouter.createCaller({
     req: {
@@ -61,13 +46,6 @@ const buildCaller = (authorization?: string) =>
     businessShape: undefined,
     userRole: undefined,
     userPermissions: [],
-<<<<<<< HEAD
-  });
-
-const cleanupCompanyData = async (companyIds: string[] = [COMPANY_ID, COMPANY_B_ID]) => {
-  await prisma.$transaction([
-    prisma.rentalWebhookOutbox.deleteMany({
-=======
     integrationId: undefined,
   });
 
@@ -76,7 +54,6 @@ const cleanupCompanyData = async (
 ) => {
   await prisma.$transaction([
     prisma.webhookOutbox.deleteMany({
->>>>>>> origin/dev
       where: { companyId: { in: companyIds } },
     }),
     prisma.rentalBundleComponent.deleteMany({
@@ -110,13 +87,6 @@ describe('Public Rental Router Integration', () => {
   let partnerId: string;
   let partnerIdB: string;
   let validateKeySpy: ReturnType<typeof vi.spyOn>;
-<<<<<<< HEAD
-  let notifyTenantSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeAll(async () => {
-    validateKeySpy = vi.spyOn(apiKeyService, 'validateKey');
-    notifyTenantSpy = vi.spyOn(webhookService, 'notifyTenant');
-=======
 
   beforeAll(async () => {
     container.register(
@@ -126,7 +96,6 @@ describe('Public Rental Router Integration', () => {
     container.reset();
 
     validateKeySpy = vi.spyOn(apiKeyService, 'validateKey');
->>>>>>> origin/dev
 
     await cleanupCompanyData();
     await prisma.company.upsert({
@@ -153,12 +122,6 @@ describe('Public Rental Router Integration', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-<<<<<<< HEAD
-    notifyTenantSpy.mockResolvedValue({
-      success: true,
-    });
-=======
->>>>>>> origin/dev
 
     validateKeySpy.mockImplementation(async (rawKey: string) => {
       if (rawKey === API_KEY_B) {
@@ -178,14 +141,11 @@ describe('Public Rental Router Integration', () => {
       };
     });
 
-<<<<<<< HEAD
-=======
     mockWebhookService.notifyNewOrder.mockResolvedValue(undefined);
     mockWebhookService.notifyPaymentStatus.mockResolvedValue(
       undefined
     );
 
->>>>>>> origin/dev
     await cleanupCompanyData();
 
     const partner = await prisma.partner.create({
@@ -213,19 +173,12 @@ describe('Public Rental Router Integration', () => {
 
   afterAll(async () => {
     validateKeySpy.mockRestore();
-<<<<<<< HEAD
-    notifyTenantSpy.mockRestore();
-=======
->>>>>>> origin/dev
     await cleanupCompanyData();
     await prisma.company.deleteMany({
       where: { id: { in: [COMPANY_ID, COMPANY_B_ID] } },
     });
-<<<<<<< HEAD
-=======
     container.clear();
     registerServices();
->>>>>>> origin/dev
   });
 
   it('creates external orders, auto-creates catalog records, and exposes numeric DTO fields', async () => {
@@ -275,18 +228,6 @@ describe('Public Rental Router Integration', () => {
     expect(created.publicToken).toBeDefined();
     expect(created.orderNumber).toMatch(/^RNT-\d{6}-\d{5}$/);
     expect(created.status).toBe('DRAFT');
-<<<<<<< HEAD
-    expect(notifyTenantSpy).toHaveBeenCalledWith(
-      COMPANY_ID,
-      'rental.order.created',
-      expect.objectContaining({
-        order: expect.objectContaining({
-          companyId: COMPANY_ID,
-          publicToken: created.publicToken,
-          orderNumber: created.orderNumber,
-        }),
-      })
-=======
     expect(mockWebhookService.notifyNewOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         companyId: COMPANY_ID,
@@ -295,7 +236,6 @@ describe('Public Rental Router Integration', () => {
         totalAmount: 165000,
       }),
       { throwOnFailure: true }
->>>>>>> origin/dev
     );
 
     const publicCaller = buildCaller();
@@ -320,11 +260,7 @@ describe('Public Rental Router Integration', () => {
       where: {
         companyId: COMPANY_ID,
         product: {
-<<<<<<< HEAD
-          sku: 'EXT-kasur-busa-120x200',
-=======
-          sku: 'SL-kasur-busa-120x200',
->>>>>>> origin/dev
+          sku: 'kasur-busa-120x200',
         },
       },
     });
@@ -333,123 +269,6 @@ describe('Public Rental Router Integration', () => {
     expect(autoCreatedItem).toBeTruthy();
   });
 
-<<<<<<< HEAD
-  it('uses source invoice price without mutating existing master rate', async () => {
-    const caller = buildCaller(`Bearer ${API_KEY}`);
-    const product = await prisma.product.create({
-      data: {
-        companyId: COMPANY_ID,
-        sku: 'RGE-160-BIRU',
-        name: 'RGE 160 Biru',
-        price: 0,
-      },
-    });
-    const rentalItem = await prisma.rentalItem.create({
-      data: {
-        companyId: COMPANY_ID,
-        productId: product.id,
-        dailyRate: 50000,
-        weeklyRate: 300000,
-        monthlyRate: 1100000,
-        depositPolicyType: DepositPolicyType.PERCENTAGE,
-        depositPercentage: 50,
-      },
-    });
-
-    const created = await caller.publicRental.createOrder({
-      companyId: COMPANY_ID,
-      partnerId,
-      rentalStartDate: new Date('2026-05-26T00:00:00.000Z'),
-      rentalEndDate: new Date('2026-06-01T00:00:00.000Z'),
-      deliveryFee: 25000,
-      items: [
-        {
-          rentalItemId: rentalItem.id,
-          quantity: 1,
-          name: 'Paket Queen 160',
-          pricePerDay: 55000,
-          category: 'package',
-        },
-      ],
-    });
-
-    const publicCaller = buildCaller();
-    const order = await publicCaller.publicRental.getByToken({
-      token: created.publicToken,
-    });
-
-    expect(order.subtotal).toBe(330000);
-    expect(order.totalAmount).toBe(355000);
-    expect(order.items[0]?.unitPrice).toBe(55000);
-
-    const persistedLine = await prisma.rentalOrderItem.findFirstOrThrow({
-      where: { rentalOrderId: created.id },
-    });
-    expect(persistedLine.pricingTier).toBe('CUSTOM');
-
-    const unchangedItem = await prisma.rentalItem.findUniqueOrThrow({
-      where: { id: rentalItem.id },
-    });
-    expect(Number(unchangedItem.dailyRate)).toBe(50000);
-  });
-
-  it('keeps exact source invoice line totals when daily rates divide unevenly', async () => {
-    const caller = buildCaller(`Bearer ${API_KEY}`);
-    const product = await prisma.product.create({
-      data: {
-        companyId: COMPANY_ID,
-        sku: 'RGE-100-EXACT',
-        name: 'RGE 100 Exact',
-        price: 0,
-      },
-    });
-    const rentalItem = await prisma.rentalItem.create({
-      data: {
-        companyId: COMPANY_ID,
-        productId: product.id,
-        dailyRate: 40000,
-        weeklyRate: 240000,
-        monthlyRate: 1000000,
-        depositPolicyType: DepositPolicyType.PERCENTAGE,
-        depositPercentage: 50,
-      },
-    });
-
-    const created = await caller.publicRental.createOrder({
-      companyId: COMPANY_ID,
-      partnerId,
-      rentalStartDate: new Date('2026-05-26T00:00:00.000Z'),
-      rentalEndDate: new Date('2026-06-01T00:00:00.000Z'),
-      deliveryFee: 43000,
-      items: [
-        {
-          rentalItemId: rentalItem.id,
-          quantity: 2,
-          name: 'Exact invoice line',
-          lineTotal: 647122,
-          category: 'mattress',
-        },
-      ],
-    });
-
-    const publicCaller = buildCaller();
-    const order = await publicCaller.publicRental.getByToken({
-      token: created.publicToken,
-    });
-
-    expect(order.subtotal).toBe(647122);
-    expect(order.totalAmount).toBe(690122);
-    expect(order.items[0]?.unitPrice).toBe(53926.83);
-
-    const persistedLine = await prisma.rentalOrderItem.findFirstOrThrow({
-      where: { rentalOrderId: created.id },
-    });
-    expect(Number(persistedLine.subtotal)).toBe(647122);
-    expect(persistedLine.pricingTier).toBe('CUSTOM');
-  });
-
-=======
->>>>>>> origin/dev
   it('updates external orders using the same resolver path without dropping requested items', async () => {
     const caller = buildCaller(`Bearer ${API_KEY}`);
     const created = await caller.publicRental.createOrder({
@@ -527,15 +346,9 @@ describe('Public Rental Router Integration', () => {
     expect(dbItems).toHaveLength(2);
   });
 
-<<<<<<< HEAD
-  it('keeps external orders when generic webhook notification fails', async () => {
-    const caller = buildCaller(`Bearer ${API_KEY}`);
-    notifyTenantSpy.mockRejectedValueOnce(
-=======
   it('rolls back external order creation when webhook notification fails', async () => {
     const caller = buildCaller(`Bearer ${API_KEY}`);
     mockWebhookService.notifyNewOrder.mockRejectedValueOnce(
->>>>>>> origin/dev
       new Error('Invalid WhatsApp Number')
     );
 
@@ -556,35 +369,18 @@ describe('Public Rental Router Integration', () => {
           },
         ],
       })
-<<<<<<< HEAD
-    ).resolves.toEqual(
-      expect.objectContaining({
-        orderNumber: expect.stringMatching(/^RNT-\d{6}-\d{5}$/),
-        status: 'DRAFT',
-      })
-    );
-=======
     ).rejects.toThrow('Invalid WhatsApp Number');
->>>>>>> origin/dev
 
     expect(
       await prisma.rentalOrder.count({
         where: { companyId: COMPANY_ID },
       })
-<<<<<<< HEAD
-    ).toBe(1);
-=======
     ).toBe(0);
->>>>>>> origin/dev
     expect(
       await prisma.rentalOrderItem.count({
         where: { rentalOrder: { companyId: COMPANY_ID } },
       })
-<<<<<<< HEAD
-    ).toBe(1);
-=======
     ).toBe(0);
->>>>>>> origin/dev
   });
 
   it('requires api key authentication for deleteOrder', async () => {
@@ -681,15 +477,6 @@ describe('Public Rental Router Integration', () => {
     expect(order?.status).toBe('CONFIRMED');
     expect(order?.paymentConfirmedAt).toBeTruthy();
     expect(order?.paymentReference).toBe('midtrans-int-001');
-<<<<<<< HEAD
-    expect(notifyTenantSpy).toHaveBeenCalledWith(
-      COMPANY_ID,
-      'rental.payment.confirmed',
-      expect.objectContaining({
-        id: created.id,
-        orderNumber: created.orderNumber,
-        rentalPaymentStatus: 'CONFIRMED',
-=======
     expect(
       mockWebhookService.notifyPaymentStatus
     ).toHaveBeenCalledWith(
@@ -697,7 +484,6 @@ describe('Public Rental Router Integration', () => {
         companyId: COMPANY_ID,
         token: created.publicToken,
         action: 'confirmed',
->>>>>>> origin/dev
         paymentMethod: 'qris',
         paymentReference: 'midtrans-int-001',
       })
@@ -753,16 +539,6 @@ describe('Public Rental Router Integration', () => {
     expect(order?.rentalPaymentStatus).toBe('FAILED');
     expect(order?.status).toBe('DRAFT');
     expect(order?.paymentFailedAt).toBeTruthy();
-<<<<<<< HEAD
-    expect(order?.paymentFailReason).toBe('Midtrans transaction expire');
-    expect(notifyTenantSpy).toHaveBeenCalledWith(
-      COMPANY_ID,
-      'rental.payment.rejected',
-      expect.objectContaining({
-        id: created.id,
-        orderNumber: created.orderNumber,
-        rentalPaymentStatus: 'FAILED',
-=======
     expect(order?.paymentFailReason).toBe(
       'Midtrans transaction expire'
     );
@@ -773,7 +549,6 @@ describe('Public Rental Router Integration', () => {
         companyId: COMPANY_ID,
         token: created.publicToken,
         action: 'rejected',
->>>>>>> origin/dev
         paymentMethod: 'qris',
         failReason: 'Midtrans transaction expire',
       })

@@ -11,16 +11,27 @@ export const Dialog = ({
   onOpenChange,
   children,
 }: DialogProps) => {
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-[var(--duration-normal)] ease-[var(--ease-out)] ${
+        open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+      }`}
+      data-state={open ? 'open' : 'closed'}
+    >
       <div
-        className="fixed inset-0 bg-slate-950/50 transition-opacity"
+        className={`fixed inset-0 bg-black/50 transition-opacity duration-[var(--duration-normal)] ease-[var(--ease-out)] ${
+          open ? 'opacity-100' : 'opacity-0'
+        }`}
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-50 w-full max-w-lg transform rounded-lg border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-950/20 transition-all">
-        {children}
+      <div
+        className={`relative z-50 w-full max-w-lg transform rounded-xl bg-white p-6 shadow-2xl transition-opacity transition-transform duration-[var(--duration-normal)] ease-[var(--ease-out)] ${
+          open
+            ? 'opacity-100 scale-100 translate-y-0'
+            : 'opacity-0 scale-95 translate-y-2'
+        }`}
+      >
+        {open ? children : null}
       </div>
     </div>
   );
@@ -50,7 +61,7 @@ export const DialogTitle = ({
   className?: string;
 }) => (
   <h2
-    className={`text-lg font-semibold leading-none tracking-tight text-slate-950 ${className}`}
+    className={`text-lg font-semibold leading-none tracking-tight ${className}`}
   >
     {children}
   </h2>

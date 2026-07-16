@@ -19,11 +19,6 @@
     "typecheck": "tsc -b",
     "typecheck:watch": "tsc -b --watch",
     "lint": "turbo run lint",
-<<<<<<< HEAD
-    "lint:adsense": "node scripts/adsense-readiness.mjs",
-    "lint:productization": "node scripts/productization-guard.mjs",
-=======
->>>>>>> origin/dev
     "lint:watch": "esw . --watch --ext .ts,.tsx --color",
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",

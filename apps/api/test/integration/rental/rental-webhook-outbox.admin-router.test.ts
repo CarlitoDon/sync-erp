@@ -63,7 +63,7 @@ const seedIntegration = async (companyId: string) => {
         capabilities: [],
         defaultConfig: {},
       },
-      getWebhookPath: (event, token, config) => {
+      getWebhookPath: (event, token, _config) => {
         return event === 'order.created' ? `/api/orders/${token}/notify-admin` : `/api/orders/${token}/notify-payment`;
       }
     });

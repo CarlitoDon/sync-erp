@@ -70,18 +70,12 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
     partnerId = partner.id;
 
     // 4. Setup Product
-    try {
-      await prisma.product.delete({
-        where: {
-          companyId_sku: {
-            companyId: COMPANY_ID,
-            sku: 'UPFRONT-SKU-TEST',
-          },
-        },
-      });
-    } catch {
-      // ignore
-    }
+    await prisma.product.deleteMany({
+      where: {
+        companyId: COMPANY_ID,
+        sku: 'UPFRONT-SKU-TEST',
+      },
+    });
 
     const product = await prisma.product.create({
       data: {
@@ -653,18 +647,12 @@ describe('Feature 036: Cash Upfront Payment (Procurement)', () => {
       partnerIdE2E = partner.id;
 
       // 4. Setup Product
-      try {
-        await prisma.product.delete({
-          where: {
-            companyId_sku: {
-              companyId: COMPANY_ID_E2E,
-              sku: 'E2E-PROD',
-            },
-          },
-        });
-      } catch {
-        // ignore
-      }
+      await prisma.product.deleteMany({
+        where: {
+          companyId: COMPANY_ID_E2E,
+          sku: 'E2E-PROD',
+        },
+      });
 
       const product = await prisma.product.create({
         data: {

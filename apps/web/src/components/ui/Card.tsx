@@ -11,11 +11,7 @@ export function Card({
 }: CardProps) {
   return (
     <div
-<<<<<<< HEAD
-      className={`rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200/60 ${className}`}
-=======
-      className={`bg-white rounded-xl shadow-sm border border-gray-200 ${className}`}
->>>>>>> origin/dev
+      className={`transition-transform transition-shadow duration-[var(--duration-normal)] ease-[var(--ease-out)] hover:shadow-md hover:-translate-y-0.5 bg-white rounded-xl shadow-sm border border-gray-200 ${className}`}
       {...props}
     >
       {children}
@@ -42,11 +38,7 @@ export function CardTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-<<<<<<< HEAD
-      className={`text-lg font-semibold text-slate-950 ${className}`}
-=======
       className={`text-lg font-semibold text-gray-900 ${className}`}
->>>>>>> origin/dev
       {...props}
     >
       {children}
@@ -61,11 +53,7 @@ export function CardDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-<<<<<<< HEAD
-      className={`mt-1 text-sm text-slate-500 ${className}`}
-=======
       className={`text-sm text-gray-500 mt-1 ${className}`}
->>>>>>> origin/dev
       {...props}
     >
       {children}

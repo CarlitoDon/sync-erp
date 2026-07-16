@@ -30,7 +30,7 @@ const envFile = getEnvFile();
 const pkgEnvPath = resolve(appDir, envFile);
 
 // eslint-disable-next-line no-console
-console.log(`[Database] Loading ${envFile} from ${pkgEnvPath}`);
+if (!process.env.VITEST) console.log(`[Database] Loading ${envFile} from ${pkgEnvPath}`);
 
 let result = dotenv.config({ path: pkgEnvPath });
 
@@ -38,9 +38,9 @@ if (result.error) {
   // Fallback to generic .env if specific file not found
   const fallbackPath = resolve(appDir, '.env');
   // eslint-disable-next-line no-console
-  console.log(`[Database] Fallback to ${fallbackPath}`);
+  if (!process.env.VITEST) console.log(`[Database] Fallback to ${fallbackPath}`);
   result = dotenv.config({ path: fallbackPath });
-  if (result.error) {
+  if (result.error && !process.env.VITEST) {
     console.error(`Failed to load environment from ${pkgEnvPath}`);
   }
 }

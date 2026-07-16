@@ -1,15 +1,3 @@
-<<<<<<< HEAD
-import './instrument';
-import { SHUTDOWN_TIMEOUT_MS } from '@sync-erp/shared';
-import { createApp } from './app';
-import { startTenantWebhookOutboxWorker } from './services/tenant-webhook-outbox.service';
-
-const PORT = Number(process.env.PORT || 3001);
-const app = createApp();
-const stopTenantWebhookOutboxWorker =
-  startTenantWebhookOutboxWorker();
-
-=======
 import { SHUTDOWN_TIMEOUT_MS } from '@sync-erp/shared';
 import { createApp } from './app';
 import { startWebhookOutboxWorker } from './modules/rental/webhook-outbox.service';
@@ -25,18 +13,14 @@ const stopRentalWebhookOutboxWorker =
 const stopTenantWebhookOutboxWorker =
   startTenantWebhookOutboxWorker();
 
->>>>>>> origin/dev
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
-  console.warn(`🚀 Sync ERP API running on port ${PORT}`);
+  console.warn(`🚀 Sync ERP API running on 0.0.0.0:${PORT}`);
 });
 
 const gracefulShutdown = (signal: string) => {
   console.warn(`\n[${signal}] Shutting down gracefully...`);
-<<<<<<< HEAD
-=======
   stopRentalWebhookOutboxWorker();
->>>>>>> origin/dev
   stopTenantWebhookOutboxWorker();
   server.close(() => {
     console.warn('[API] Server closed successfully.');

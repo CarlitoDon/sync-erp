@@ -40,9 +40,22 @@ export function getMcpRuntimeConfig(): McpRuntimeConfig {
   }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   const rawConfig = {
     bearerTokens: getBearerTokensFromEnv(),
 =======
+=======
+  if (!isMcpEnabled()) {
+    // Return safe defaults when MCP is not configured — avoids crashes
+    // from session cleanup timers firing on unconfigured instances.
+    return {
+      bearerTokens: ['__not_configured__'],
+      maxSessions: 0,
+      sessionTtlMs: 1000,
+    } as McpRuntimeConfig;
+  }
+
+>>>>>>> dev
   const bearerTokenList =
     process.env.SYNC_ERP_MCP_BEARER_TOKENS ||
     process.env.SYNC_ERP_MCP_BEARER_TOKEN ||
