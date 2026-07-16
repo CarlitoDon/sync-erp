@@ -33,7 +33,7 @@ const buildCaller = (authorization?: string) =>
 
 const cleanupCompanyOrders = async () => {
   await prisma.$transaction([
-    prisma.webhookOutbox.deleteMany({
+    prisma.rentalWebhookOutbox.deleteMany({
       where: { companyId: COMPANY_ID },
     }),
     prisma.rentalBundleComponent.deleteMany({

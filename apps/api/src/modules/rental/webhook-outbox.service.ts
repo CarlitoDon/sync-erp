@@ -107,7 +107,7 @@ export class WebhookOutboxService {
       };
     }
 
-    const delivery = await prisma.webhookOutbox.create({
+    const delivery = await prisma.rentalWebhookOutbox.create({
       data: {
         companyId: input.companyId,
         integrationId: activeIntegration.id,
@@ -131,7 +131,7 @@ export class WebhookOutboxService {
   }
 
   async processDueEntries(limit = 20): Promise<ProcessSummary> {
-    const dueEntries = await prisma.webhookOutbox.findMany({
+    const dueEntries = await prisma.rentalWebhookOutbox.findMany({
       where: {
         status: {
           in: [
@@ -206,25 +206,25 @@ export class WebhookOutboxService {
 
     const [pending, processing, failed, deadLetter] =
       await Promise.all([
-        prisma.webhookOutbox.count({
+        prisma.rentalWebhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.PENDING,
           },
         }),
-        prisma.webhookOutbox.count({
+        prisma.rentalWebhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.PROCESSING,
           },
         }),
-        prisma.webhookOutbox.count({
+        prisma.rentalWebhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.FAILED,
           },
         }),
-        prisma.webhookOutbox.count({
+        prisma.rentalWebhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.DEAD_LETTER,
@@ -265,7 +265,7 @@ export class WebhookOutboxService {
     const limit = Math.min(Math.max(input.limit ?? 20, 1), 200);
     const offset = Math.max(input.offset ?? 0, 0);
 
-    const where: Prisma.WebhookOutboxWhereInput = {
+    const where: Prisma.RentalWebhookOutboxWhereInput = {
       companyId: input.companyId,
       ...(input.statuses?.length
         ? { status: { in: input.statuses } }
@@ -274,20 +274,20 @@ export class WebhookOutboxService {
     };
 
     const [data, total] = await Promise.all([
-      prisma.webhookOutbox.findMany({
+      prisma.rentalWebhookOutbox.findMany({
         where,
         orderBy: [{ updatedAt: 'desc' }],
         skip: offset,
         take: limit,
       }),
-      prisma.webhookOutbox.count({ where }),
+      prisma.rentalWebhookOutbox.count({ where }),
     ]);
 
     return { data, pagination: { total, limit, offset } };
   }
 
   async getDeliveryDetail(input: { companyId: string; id: string }) {
-    return prisma.webhookOutbox.findFirst({
+    return prisma.rentalWebhookOutbox.findFirst({
       where: { id: input.id, companyId: input.companyId },
     });
   }
@@ -296,12 +296,12 @@ export class WebhookOutboxService {
     id: string,
     options?: { companyId?: string }
   ): Promise<boolean> {
-    const where: Prisma.WebhookOutboxWhereInput = {
+    const where: Prisma.RentalWebhookOutboxWhereInput = {
       id,
       ...(options?.companyId ? { companyId: options.companyId } : {}),
     };
 
-    const entry = await prisma.webhookOutbox.findFirst({ where });
+    const entry = await prisma.rentalWebhookOutbox.findFirst({ where });
     if (!entry) return false;
 
     if (
@@ -311,7 +311,7 @@ export class WebhookOutboxService {
       return false;
     }
 
-    await prisma.webhookOutbox.update({
+    await prisma.rentalWebhookOutbox.update({
       where: { id: entry.id },
       data: {
         status: RentalWebhookOutboxStatus.PENDING,
@@ -339,7 +339,7 @@ export class WebhookOutboxService {
           RentalWebhookOutboxStatus.DEAD_LETTER,
         ];
 
-    const candidates = await prisma.webhookOutbox.findMany({
+    const candidates = await prisma.rentalWebhookOutbox.findMany({
       where: {
         companyId: input.companyId,
         status: { in: filterStatuses },
@@ -352,7 +352,7 @@ export class WebhookOutboxService {
 
     if (candidates.length === 0) return 0;
 
-    const result = await prisma.webhookOutbox.updateMany({
+    const result = await prisma.rentalWebhookOutbox.updateMany({
       where: { id: { in: candidates.map((item) => item.id) } },
       data: {
         status: RentalWebhookOutboxStatus.PENDING,
@@ -375,7 +375,7 @@ export class WebhookOutboxService {
     const fetchResult = await this.performFetch(claimedEntry);
 
     if (fetchResult.success) {
-      await prisma.webhookOutbox.update({
+      await prisma.rentalWebhookOutbox.update({
         where: { id: claimedEntry.id },
         data: {
           status: RentalWebhookOutboxStatus.DELIVERED,
@@ -401,7 +401,7 @@ export class WebhookOutboxService {
       failureResult.permanent
     );
 
-    await prisma.webhookOutbox.update({
+    await prisma.rentalWebhookOutbox.update({
       where: { id: claimedEntry.id },
       data: {
         status: nextStatus,
@@ -428,7 +428,7 @@ export class WebhookOutboxService {
   }
 
   private async claimDelivery(id: string) {
-    const candidate = await prisma.webhookOutbox.findFirst({
+    const candidate = await prisma.rentalWebhookOutbox.findFirst({
       where: {
         id,
         status: {
@@ -442,7 +442,7 @@ export class WebhookOutboxService {
 
     if (!candidate) return null;
 
-    const claimed = await prisma.webhookOutbox.updateMany({
+    const claimed = await prisma.rentalWebhookOutbox.updateMany({
       where: { id: candidate.id, status: candidate.status },
       data: {
         status: RentalWebhookOutboxStatus.PROCESSING,
@@ -453,7 +453,7 @@ export class WebhookOutboxService {
 
     if (claimed.count === 0) return null;
 
-    return prisma.webhookOutbox.findUniqueOrThrow({
+    return prisma.rentalWebhookOutbox.findUniqueOrThrow({
       where: { id: candidate.id },
     });
   }
