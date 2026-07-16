@@ -273,7 +273,7 @@ jobs:
           rm -f "$API_ARCHIVE"
 
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
-                      "set -x && export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH && echo '--- DEBUG START ---' && ls -la ~/public_html/${DEPLOY_DIR} && echo '--- PM2 STATUS ---' && ~/node-pm2/node_modules/.bin/pm2 list && ~/node-pm2/node_modules/.bin/pm2 desc sync-erp-api-staging && echo '--- RESTARTING ---' && if [[ '${DEPLOY_DIR}' == 'apps/api' ]]; then cd ~/public_html/${DEPLOY_DIR} && mkdir -p tmp && touch tmp/restart.txt; else ~/node-pm2/node_modules/.bin/pm2 restart sync-erp-api-staging --update-env 2>&1 || true; fi && echo '--- DEBUG END ---'"
+                      "set -x && export PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH && echo '--- RESTARTING ---' && ~/node-pm2/node_modules/.bin/pm2 restart sync-erp-api-staging --update-env 2>&1 || true"
 
       - name: Verify API health
         env:
