@@ -11,11 +11,8 @@ import {
   RentalOrderStatus,
   UnitStatus,
   JournalSourceType,
-<<<<<<< HEAD
   BillingProvider,
   BillingSubscriptionStatus,
-=======
->>>>>>> origin/dev
 } from '@sync-erp/database';
 import { RentalOrderFulfillmentService } from '@modules/rental/rental-order-fulfillment.service';
 import { RentalRepository } from '@modules/rental/rental.repository';
@@ -91,7 +88,6 @@ describe('RentalOrderFulfillmentService Integration', () => {
         name: 'Test Rental Fulfillment Company',
       },
     });
-<<<<<<< HEAD
     await prisma.companySubscription.create({
       data: {
         companyId: COMPANY_ID,
@@ -100,8 +96,6 @@ describe('RentalOrderFulfillmentService Integration', () => {
         provider: BillingProvider.MANUAL,
       },
     });
-=======
->>>>>>> origin/dev
 
     // Setup Accounts
     const accounts = [
@@ -116,11 +110,7 @@ describe('RentalOrderFulfillmentService Integration', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-<<<<<<< HEAD
           type: acc.type as import("@sync-erp/database").AccountType,
-=======
-          type: acc.type as import('@sync-erp/database').AccountType,
->>>>>>> origin/dev
           isActive: true,
         },
       });
@@ -307,11 +297,7 @@ describe('RentalOrderFulfillmentService Integration', () => {
       {
         orderId: order.id,
         depositAmount: 50000,
-<<<<<<< HEAD
         paymentMethod: "CASH" as string,
-=======
-        paymentMethod: 'CASH' as string,
->>>>>>> origin/dev
         unitAssignments: [{ unitId: unit1Id }],
       },
       ACTOR_ID

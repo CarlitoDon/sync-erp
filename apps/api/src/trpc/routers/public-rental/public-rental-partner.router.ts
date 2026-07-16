@@ -13,11 +13,7 @@ import { TRPCError } from '@trpc/server';
 export const publicRentalPartnerRouter = router({
   /**
    * Find or create partner by phone
-<<<<<<< HEAD
    * Used when creating orders from external integrations.
-=======
-   * Used when creating orders from santi-living
->>>>>>> origin/dev
    */
   findOrCreatePartner: apiKeyProcedure
     .input(

@@ -36,11 +36,7 @@ export function getPaymentTools(): ToolSpec[] {
     {
       name: 'payment_create',
       description:
-<<<<<<< HEAD
         'Create a payment. Pass input as JSON string with fields: invoiceId/billId, amount, method, accountId/bankAccountId, paymentMethodId/paymentMethodCode, reference, businessDate',
-=======
-        'Create a payment. Pass input as JSON string with fields: invoiceId/billId, amount, method, accountId, reference, businessDate',
->>>>>>> origin/dev
       inputSchema: {
         type: 'object',
         properties: {
@@ -48,18 +44,13 @@ export function getPaymentTools(): ToolSpec[] {
           input: {
             type: 'string',
             description:
-<<<<<<< HEAD
               'JSON object: {invoiceId?, billId?, amount, method, accountId?, bankAccountId?, paymentMethodId?, paymentMethodCode?, reference?, businessDate?}',
-=======
-              'JSON object: {invoiceId?, billId?, amount, method, accountId, reference?, businessDate?}',
->>>>>>> origin/dev
           },
         },
         required: ['companyId', 'input'],
       },
       handler: async (args) => {
         const input: unknown = JSON.parse(getString(args, 'input'));
-<<<<<<< HEAD
         if (!input || typeof input !== 'object' || Array.isArray(input)) {
           throw new Error('payment_create input must be a JSON object');
         }
@@ -77,11 +68,6 @@ export function getPaymentTools(): ToolSpec[] {
         return apiMutation(
           'payment.create',
           normalized,
-=======
-        return apiMutation(
-          'payment.create',
-          input as Record<string, unknown>,
->>>>>>> origin/dev
           getString(args, 'companyId')
         );
       },

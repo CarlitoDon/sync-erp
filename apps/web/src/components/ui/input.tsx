@@ -51,11 +51,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={`w-full ${containerClassName}`}>
         {label && (
-<<<<<<< HEAD
           <label className="mb-1 block text-sm font-medium text-slate-700">
-=======
-          <label className="block text-sm font-medium text-gray-700 mb-1">
->>>>>>> origin/dev
             {label}
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -63,13 +59,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           type={type}
           className={`flex h-10 w-full rounded-md border ${
-<<<<<<< HEAD
             error ? 'border-red-500' : 'border-slate-300'
           } bg-white px-3 py-2 text-sm text-slate-950 placeholder:text-slate-400 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-50 ${className}`}
-=======
-            error ? 'border-red-500' : 'border-gray-300'
-          } bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-100 ${className}`}
->>>>>>> origin/dev
           ref={ref}
           onFocus={handleFocus}
           disabled={disabled}
@@ -80,11 +71,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <p className="mt-1 text-sm text-red-600">{error}</p>
         )}
         {!error && helperText && (
-<<<<<<< HEAD
           <p className="mt-1 text-sm text-slate-500">{helperText}</p>
-=======
-          <p className="mt-1 text-sm text-gray-500">{helperText}</p>
->>>>>>> origin/dev
         )}
       </div>
     );

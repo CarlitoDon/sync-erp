@@ -2,13 +2,9 @@ import {
   JournalSourceType,
   PaymentMethodType,
   Prisma,
-<<<<<<< HEAD
   prisma,
 } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
-=======
-} from '@sync-erp/database';
->>>>>>> origin/dev
 import { JournalCoreService } from './journal-core.service';
 
 export class JournalRentalService {
@@ -23,24 +19,18 @@ export class JournalRentalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
-<<<<<<< HEAD
     const contraAccountCode =
       await this.resolvePaymentContraAccountCode(
         companyId,
         paymentMethod,
         tx
       );
-=======
->>>>>>> origin/dev
     const data = this.prepareRentalDepositJournal(
       depositId,
       orderNumber,
       amount,
       paymentMethod,
-<<<<<<< HEAD
       contraAccountCode,
-=======
->>>>>>> origin/dev
       businessDate
     );
     return this.core.resolveAndCreate(companyId, data, tx);
@@ -54,7 +44,6 @@ export class JournalRentalService {
     rentalRevenue: number,
     depositRefund: number,
     paymentMethod: string,
-<<<<<<< HEAD
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
@@ -64,23 +53,15 @@ export class JournalRentalService {
         paymentMethod,
         tx
       );
-=======
-    tx?: Prisma.TransactionClient
-  ) {
->>>>>>> origin/dev
     const data = this.prepareRentalReturnJournal(
       returnId,
       orderNumber,
       depositAmount,
       rentalRevenue,
       depositRefund,
-<<<<<<< HEAD
       paymentMethod,
       contraAccountCode,
       businessDate
-=======
-      paymentMethod
->>>>>>> origin/dev
     );
     return this.core.resolveAndCreate(companyId, data, tx);
   }
@@ -92,28 +73,16 @@ export class JournalRentalService {
     orderNumber: string,
     amount: number,
     paymentMethod: string,
-<<<<<<< HEAD
     contraAccountCode: string,
     businessDate?: Date
   ) {
-=======
-    businessDate?: Date
-  ) {
-    const cashAccount =
-      paymentMethod === PaymentMethodType.BANK ? '1200' : '1100';
-
->>>>>>> origin/dev
     return {
       reference: `Rental Deposit: ${orderNumber}`,
       memo: `Rental deposit collected via ${paymentMethod}`,
       sourceType: JournalSourceType.RENTAL_DEPOSIT,
       sourceId: depositId,
       lines: [
-<<<<<<< HEAD
         { accountCode: contraAccountCode, debit: amount }, // Cash/Bank (Asset)
-=======
-        { accountCode: cashAccount, debit: amount }, // Cash/Bank (Asset)
->>>>>>> origin/dev
         { accountCode: '2400', credit: amount }, // Customer Deposits (Liability)
       ],
       date: businessDate,
@@ -126,33 +95,20 @@ export class JournalRentalService {
     depositAmount: number,
     rentalRevenue: number,
     depositRefund: number,
-<<<<<<< HEAD
     paymentMethod: string,
     contraAccountCode: string,
     businessDate?: Date
   ) {
-=======
-    paymentMethod: string
-  ) {
-    const cashAccount =
-      paymentMethod === PaymentMethodType.BANK ? '1200' : '1100';
-
->>>>>>> origin/dev
     const lines: {
       accountCode: string;
       debit?: number;
       credit?: number;
     }[] = [];
 
-<<<<<<< HEAD
     // Debit deposit liability only when a real deposit exists.
     if (depositAmount > 0) {
       lines.push({ accountCode: '2400', debit: depositAmount });
     }
-=======
-    // Always debit the full deposit liability (clearing it)
-    lines.push({ accountCode: '2400', debit: depositAmount });
->>>>>>> origin/dev
 
     // Credit rental revenue
     if (rentalRevenue > 0) {
@@ -161,11 +117,7 @@ export class JournalRentalService {
 
     // If refund, credit cash (money going out)
     if (depositRefund > 0) {
-<<<<<<< HEAD
       lines.push({ accountCode: contraAccountCode, credit: depositRefund });
-=======
-      lines.push({ accountCode: cashAccount, credit: depositRefund });
->>>>>>> origin/dev
     }
 
     // If damage charges exceed deposit (additional collection needed)
@@ -174,18 +126,13 @@ export class JournalRentalService {
     if (additionalCharge > 0) {
       // This means customer pays extra
       lines.push({
-<<<<<<< HEAD
         accountCode: contraAccountCode,
-=======
-        accountCode: cashAccount,
->>>>>>> origin/dev
         debit: additionalCharge,
       });
     }
 
     return {
       reference: `Rental Return: ${orderNumber}`,
-<<<<<<< HEAD
       memo: `Rental return settlement via ${paymentMethod} - Revenue: ${rentalRevenue}, Refund: ${depositRefund}`,
       sourceType: JournalSourceType.RENTAL_RETURN,
       sourceId: returnId,
@@ -246,12 +193,4 @@ function isValidPaymentContraAccount(method: string, accountName: string) {
   }
 
   return normalized.includes('cash');
-=======
-      memo: `Rental return settlement - Revenue: ${rentalRevenue}, Refund: ${depositRefund}`,
-      sourceType: JournalSourceType.RENTAL_RETURN,
-      sourceId: returnId,
-      lines,
-    };
-  }
->>>>>>> origin/dev
 }

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Local/runtime data
 storage/
 .env
@@ -28,19 +27,3 @@ supabase/.temp/
 cookies.txt
 *.session
 *.log
-=======
-apps/api
-apps/bot
-apps/mcp
-**/node_modules
-**/dist
-**/.turbo
-**/*.log
-**/*.db
-**/*.sqlite
-storage/
-supabase/
-specs/
-docs/
-deploy/
->>>>>>> dev

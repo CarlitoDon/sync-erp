@@ -13,11 +13,7 @@ for (const sourceFile of sourceFiles) {
   // Add the import
   const imports = sourceFile.getImportDeclarations();
   const sharedImport = imports.find(i => i.getModuleSpecifierValue() === '@sync-erp/shared');
-<<<<<<< HEAD
   const hasAsMock = sharedImport?.getNamedImports().some(n => n.getName() === 'asMock') ?? false;
-=======
-  let hasAsMock = sharedImport?.getNamedImports().some(n => n.getName() === 'asMock') ?? false;
->>>>>>> origin/dev
 
   const ensureSharedImport = (name: string) => {
     const si = sourceFile.getImportDeclarations().find(i => i.getModuleSpecifierValue() === '@sync-erp/shared');
@@ -58,11 +54,7 @@ for (const sourceFile of sourceFiles) {
   
   // Custom manual generic replacements to wrap the rest in exact test types
   let text = sourceFile.getFullText();
-<<<<<<< HEAD
   const preTextLength = text.length;
-=======
-  let preTextLength = text.length;
->>>>>>> origin/dev
   
   text = text.replace(/catch \(e: any\)/g, 'catch (e: unknown)');
   text = text.replace(/\(globalThis as any\)/g, '(getTestGlobal("globalThis") as unknown as Record<string, unknown>)');

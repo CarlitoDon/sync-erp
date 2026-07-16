@@ -2,10 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import FormModal from '@/components/ui/FormModal';
 import { apiAction } from '@/hooks/useApiAction';
-<<<<<<< HEAD
 import { useBillingFeatures } from '@/hooks/useBillingFeatures';
-=======
->>>>>>> origin/dev
 import type { RentalOrderWithRelations } from '@sync-erp/shared';
 import { PhotoUploader } from '../components';
 import { CONDITION_OPTIONS } from '../constants';
@@ -40,10 +37,7 @@ export default function UnitAssignmentModal({
   onSuccess,
 }: Props) {
   const utils = trpc.useUtils();
-<<<<<<< HEAD
   const { mediaAccess } = useBillingFeatures();
-=======
->>>>>>> origin/dev
 
   const releaseMutation = trpc.rental.orders.release.useMutation({
     onSuccess: () => {
@@ -123,13 +117,9 @@ export default function UnitAssignmentModal({
       unitAssignments: assignments.map((a) => ({
         unitId: a.unitId,
         beforePhotos:
-<<<<<<< HEAD
           mediaAccess && a.beforePhotos.length === 0
             ? ['placeholder-photo']
             : a.beforePhotos,
-=======
-          a.beforePhotos.length > 0 ? a.beforePhotos : ['placeholder-photo'],
->>>>>>> origin/dev
         condition: a.condition as 'NEW' | 'GOOD' | 'FAIR' | 'NEEDS_REPAIR',
         notes: a.notes || undefined,
       })),
@@ -194,12 +184,8 @@ export default function UnitAssignmentModal({
         {/* Reserved Units - Ready for Release */}
         <div className="border-t pt-4">
           <h4 className="text-sm font-medium text-gray-700 mb-3">
-<<<<<<< HEAD
             Unit Ter-reserve ({reservedUnits.length})
             {mediaAccess ? ' - Tambah Foto Kondisi' : ''}
-=======
-            Unit Ter-reserve ({reservedUnits.length}) - Tambah Foto Kondisi
->>>>>>> origin/dev
           </h4>
           <div className="space-y-3">
             {assignments.map((assignment) => {

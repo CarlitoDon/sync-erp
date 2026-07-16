@@ -4,11 +4,7 @@ import {
   CardTitle,
   CardContent,
 } from '@/components/ui';
-<<<<<<< HEAD
 import { formatCurrency, formatDateTime } from '@/utils/format';
-=======
-import { formatCurrency } from '@/utils/format';
->>>>>>> origin/dev
 import { RentalOrderCalculations } from '../hooks/useRentalOrderCalculations';
 
 interface RentalOrderItem {
@@ -16,11 +12,8 @@ interface RentalOrderItem {
   quantity: number;
   unitPrice: number | string;
   subtotal: number | string;
-<<<<<<< HEAD
   baseEndDate?: Date | string;
   effectiveEndDate?: Date | string;
-=======
->>>>>>> origin/dev
   rentalBundleId?: string | null;
   rentalBundle?: {
     name: string;
@@ -67,12 +60,9 @@ export function RentalItemsTable({
                 <th className="px-4 py-3 text-center font-medium text-gray-500">
                   Day(s)
                 </th>
-<<<<<<< HEAD
                 <th className="px-4 py-3 text-center font-medium text-gray-500">
                   Effective End
                 </th>
-=======
->>>>>>> origin/dev
                 <th className="px-4 py-3 text-right font-medium text-gray-500">
                   Price
                 </th>
@@ -107,7 +97,6 @@ export function RentalItemsTable({
                   <td className="px-4 py-3 text-center">
                     {calculations.durationDays}
                   </td>
-<<<<<<< HEAD
                   <td className="px-4 py-3 text-center">
                     {item.effectiveEndDate ? (
                       <div>
@@ -126,8 +115,6 @@ export function RentalItemsTable({
                       <span className="text-gray-400">-</span>
                     )}
                   </td>
-=======
->>>>>>> origin/dev
                   <td className="px-4 py-3 text-right">
                     {formatCurrency(Number(item.unitPrice))}
                   </td>
@@ -139,11 +126,7 @@ export function RentalItemsTable({
             </tbody>
             <tfoot className="bg-gray-50 font-medium">
               <tr>
-<<<<<<< HEAD
                 <td className="px-4 py-3" colSpan={5}>
-=======
-                <td className="px-4 py-3" colSpan={4}>
->>>>>>> origin/dev
                   Subtotal
                 </td>
                 <td className="px-4 py-3 text-right">

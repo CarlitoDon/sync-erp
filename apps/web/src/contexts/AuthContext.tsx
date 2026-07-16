@@ -65,11 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [error]);
 
-<<<<<<< HEAD
   const effectiveUser = user ?? sessionUser ?? null;
 
-=======
->>>>>>> origin/dev
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       setUser(data.user);
@@ -86,10 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
       setUser(null);
-<<<<<<< HEAD
       utils.auth.me.setData(undefined, null);
-=======
->>>>>>> origin/dev
       utils.auth.me.invalidate();
       localStorage.removeItem('currentCompanyId');
     },
@@ -126,15 +120,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-<<<<<<< HEAD
         user: effectiveUser,
         isAuthenticated: !!effectiveUser,
         isLoading: isSessionLoading && !effectiveUser,
-=======
-        user,
-        isAuthenticated: !!user,
-        isLoading: isSessionLoading && !user,
->>>>>>> origin/dev
         login,
         register,
         resendVerification,
@@ -159,7 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 function getApiBaseUrl() {
   const configuredUrl =
     import.meta.env.VITE_SYNC_ERP_API_URL ||
-<<<<<<< HEAD
     'http://localhost:3001/api/trpc';
 
   const normalizedUrl = configuredUrl
@@ -171,11 +158,6 @@ function getApiBaseUrl() {
   return normalizedUrl.endsWith('/api')
     ? normalizedUrl
     : `${normalizedUrl}/api`;
-=======
-    'http://localhost:3000/api/trpc';
-
-  return configuredUrl.replace(/\/trpc\/?$/, '');
->>>>>>> origin/dev
 }
 
 export function useAuth() {

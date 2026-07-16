@@ -30,22 +30,13 @@ export default function SidebarGroup({
         onClick={() => setIsOpen(!isOpen)}
         className="
           w-full flex items-center gap-2 px-3 py-1.5
-<<<<<<< HEAD
           text-[11px] font-semibold text-slate-500 uppercase tracking-wider
           hover:text-slate-300 transition-colors
-=======
-          text-[11px] font-semibold text-gray-400 uppercase tracking-wider
-          hover:text-gray-600 transition-colors
->>>>>>> origin/dev
           group
         "
       >
         <ChevronRightIcon
-<<<<<<< HEAD
           className={`w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition-transform duration-200 ${
-=======
-          className={`w-3.5 h-3.5 text-gray-400 group-hover:text-gray-500 transition-transform duration-200 ${
->>>>>>> origin/dev
             isOpen ? 'rotate-90' : 'rotate-0'
           }`}
         />

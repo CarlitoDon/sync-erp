@@ -191,10 +191,7 @@ export class InventoryGRNService {
             quantity: qty,
             reference: `GRN:${fulfillment.number} PO:${fulfillment.order.orderNumber || fulfillment.orderId}`,
             unitCost,
-<<<<<<< HEAD
             date: fulfillment.date,
-=======
->>>>>>> origin/dev
           },
           t
         );
@@ -215,12 +212,8 @@ export class InventoryGRNService {
           companyId,
           `GRN:${fulfillment.number}`,
           totalValue,
-<<<<<<< HEAD
           t,
           fulfillment.date
-=======
-          t
->>>>>>> origin/dev
         );
       }
 
@@ -232,11 +225,7 @@ export class InventoryGRNService {
           action: AuditLogAction.GRN_POSTED,
           entityType: EntityType.GOODS_RECEIPT,
           entityId: grnId,
-<<<<<<< HEAD
           businessDate: fulfillment.date,
-=======
-          businessDate: new Date(),
->>>>>>> origin/dev
           payloadSnapshot: { number: fulfillment.number, totalValue },
         });
       }

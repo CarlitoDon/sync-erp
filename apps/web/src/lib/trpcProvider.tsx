@@ -2,17 +2,10 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query';
-<<<<<<< HEAD
 import { httpBatchLink, TRPCLink, type Operation } from '@trpc/client';
 import { trpc } from './trpc';
 import hash from 'object-hash';
 import type { AppRouter } from '../../../api/src/trpc/router';
-=======
-import { httpBatchLink, TRPCLink } from '@trpc/client';
-import { trpc } from './trpc';
-import hash from 'object-hash';
-import { AppRouter } from '../../../api/src/trpc/router';
->>>>>>> origin/dev
 import { ReactNode } from 'react';
 import superjson from 'superjson';
 import {
@@ -43,11 +36,7 @@ const idempotencyLink: TRPCLink<AppRouter> = () => {
       // Ignores order of keys in object
       const inputHash = hash(op.input || {}, { algorithm: 'md5' });
       op.context.headers = {
-<<<<<<< HEAD
         ...mergeContextHeaders({}, op.context.headers),
-=======
-        ...(op.context.headers as Record<string, unknown>),
->>>>>>> origin/dev
         'idempotency-key': inputHash,
       };
     }
@@ -55,7 +44,6 @@ const idempotencyLink: TRPCLink<AppRouter> = () => {
   };
 };
 
-<<<<<<< HEAD
 const trpcUrl = `${import.meta.env.VITE_SYNC_ERP_API_URL || 'http://localhost:3001/api/trpc'}`;
 
 type BuildTrpcHeadersOptions = {
@@ -129,17 +117,11 @@ export async function buildTrpcHeaders({
   return headers;
 }
 
-=======
->>>>>>> origin/dev
 const trpcClient = trpc.createClient({
   links: [
     idempotencyLink,
     httpBatchLink({
-<<<<<<< HEAD
       url: trpcUrl,
-=======
-      url: `${import.meta.env.VITE_SYNC_ERP_API_URL || 'http://localhost:3001/api/trpc'}`,
->>>>>>> origin/dev
       // Include credentials for cookie auth
       fetch(url, options) {
         return fetch(url, {

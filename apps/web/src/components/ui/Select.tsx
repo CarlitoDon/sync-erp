@@ -190,17 +190,10 @@ export default function Select({
   const renderOption = (option: SelectOption) => (
     <div
       key={option.value}
-<<<<<<< HEAD
       className={`relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-cyan-50 ${
         value === option.value
           ? 'bg-cyan-50 font-medium text-cyan-900'
           : 'text-slate-900'
-=======
-      className={`cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-primary-50 ${
-        value === option.value
-          ? 'text-primary-900 bg-primary-50 font-medium'
-          : 'text-gray-900'
->>>>>>> origin/dev
       }`}
       onClick={() => {
         onChange(String(option.value));
@@ -209,11 +202,7 @@ export default function Select({
     >
       <span className="block truncate">{option.label}</span>
       {value === option.value && (
-<<<<<<< HEAD
         <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-cyan-700">
-=======
-        <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-primary-600">
->>>>>>> origin/dev
           <svg
             className="h-5 w-5"
             xmlns="http://www.w3.org/2000/svg"
@@ -236,32 +225,19 @@ export default function Select({
     <div
       ref={dropdownRef}
       style={dropdownStyle}
-<<<<<<< HEAD
       className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-200/60 focus:outline-none"
     >
       {searchable && (
         <div className="border-b border-slate-100 p-2">
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-=======
-      className="bg-white shadow-lg rounded-lg border border-gray-200 focus:outline-none overflow-hidden"
-    >
-      {searchable && (
-        <div className="p-2 border-b border-gray-100">
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
->>>>>>> origin/dev
             <input
               ref={searchInputRef}
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari..."
-<<<<<<< HEAD
               className="w-full rounded-md border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-950 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
-=======
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
->>>>>>> origin/dev
               onClick={(e) => e.stopPropagation()}
             />
           </div>
@@ -270,26 +246,16 @@ export default function Select({
 
       <div className="py-1 text-base sm:text-sm max-h-60 overflow-y-auto">
         {!hasResults && !allowCreate ? (
-<<<<<<< HEAD
           <div className="relative cursor-default select-none px-4 py-2 text-slate-500">
-=======
-          <div className="cursor-default select-none relative py-2 px-4 text-gray-500">
->>>>>>> origin/dev
             {searchTerm ? 'Tidak ditemukan' : 'No options available'}
           </div>
         ) : filteredGroups ? (
           filteredGroups.map((group, groupIndex) => (
             <div key={group.label}>
               {groupIndex > 0 && (
-<<<<<<< HEAD
                 <div className="my-1 border-t border-slate-200" />
               )}
               <div className="bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-=======
-                <div className="border-t border-gray-200 my-1" />
-              )}
-              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
->>>>>>> origin/dev
                 {group.label}
               </div>
               {group.options.map(renderOption)}
@@ -302,17 +268,10 @@ export default function Select({
         {allowCreate && (
           <>
             {hasResults && (
-<<<<<<< HEAD
               <div className="my-1 border-t border-slate-200" />
             )}
             <div
               className="relative flex cursor-pointer select-none items-center gap-2 py-2 pl-3 pr-9 text-emerald-700 hover:bg-emerald-50"
-=======
-              <div className="border-t border-gray-200 my-1" />
-            )}
-            <div
-              className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-green-50 text-green-700 flex items-center gap-2"
->>>>>>> origin/dev
               onClick={handleCreate}
             >
               <PlusIcon className="h-4 w-4" />
@@ -341,7 +300,6 @@ export default function Select({
         data-testid="select-trigger"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-<<<<<<< HEAD
         className={`flex w-full cursor-default items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-left shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 sm:text-sm ${
           disabled
             ? 'cursor-not-allowed bg-slate-100'
@@ -350,16 +308,6 @@ export default function Select({
       >
         <span
           className={`block flex-1 truncate ${!selectedOption ? 'text-slate-400' : 'text-slate-900'}`}
-=======
-        className={`w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-left cursor-default focus:outline-none focus:border-primary-500 sm:text-sm flex items-center justify-between ${
-          disabled
-            ? 'bg-gray-100 cursor-not-allowed'
-            : 'hover:border-gray-400'
-        } ${isOpen ? 'border-primary-500' : ''}`}
-      >
-        <span
-          className={`block truncate flex-1 ${!selectedOption ? 'text-gray-400' : 'text-gray-900'}`}
->>>>>>> origin/dev
         >
           {selectedOption ? selectedOption.label : placeholder}
         </span>

@@ -26,10 +26,6 @@ import {
   BILLING_TRIAL_DAYS,
   type BillingPlan,
   formatBillingLimit,
-<<<<<<< HEAD
-=======
-  formatPlanPrice,
->>>>>>> origin/dev
 } from '@sync-erp/shared';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
@@ -49,10 +45,7 @@ interface WorkflowItem {
 
 const navigation = [
   { label: 'Platform', href: '#platform' },
-<<<<<<< HEAD
   { label: 'AI ERP', href: '#ai-erp' },
-=======
->>>>>>> origin/dev
   { label: 'Modul', href: '#modules' },
   { label: 'Harga', href: '#pricing' },
   { label: 'Alur kerja', href: '#workflows' },
@@ -60,17 +53,10 @@ const navigation = [
 ];
 
 const proofPoints = [
-<<<<<<< HEAD
   'Free untuk 1 company',
   'AI-ready command center',
   'Multi-company',
   'Sales sampai finance',
-=======
-  'Multi-company',
-  'Sales sampai finance',
-  'Inventory real-time',
-  'API dan WhatsApp-ready',
->>>>>>> origin/dev
 ];
 
 const heroStats = [
@@ -181,11 +167,7 @@ const pipeline = [
   { label: 'Cash flow', value: '82%' },
 ];
 
-<<<<<<< HEAD
 const APP_ORIGIN = 'https://sync-erp.vercel.app';
-=======
-const APP_ORIGIN = 'https://sync-erp-app.vercel.app';
->>>>>>> origin/dev
 
 function getAppHref(path: string) {
   if (typeof window === 'undefined') {
@@ -198,7 +180,6 @@ function getAppHref(path: string) {
   return isLocalhost ? path : `${APP_ORIGIN}${path}`;
 }
 
-<<<<<<< HEAD
 function formatMarketingPrice(plan: BillingPlan): {
   price: string;
   suffix: string;
@@ -228,8 +209,6 @@ function formatMarketingPrice(plan: BillingPlan): {
   return { price: `Rp ${formatted}rb`, suffix: '/ bulan' };
 }
 
-=======
->>>>>>> origin/dev
 function BrandMark() {
   return (
     <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-sm font-semibold text-white shadow-sm">
@@ -387,7 +366,6 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
     plan.key === 'enterprise'
       ? 'mailto:sales@sync-erp.com?subject=Sync%20ERP%20Enterprise'
       : getAppHref(`/register?plan=${plan.key}`);
-<<<<<<< HEAD
   const pricing = formatMarketingPrice(plan);
   const highlightedFeatures = plan.features.slice(0, 3);
 
@@ -405,38 +383,16 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
             {plan.name}
           </h3>
           <p className="mt-2 min-h-[3.5rem] text-sm leading-6 text-slate-600">
-=======
-
-  return (
-    <article
-      className={`rounded-lg border bg-white p-6 shadow-sm ${
-        plan.recommended
-          ? 'border-cyan-300 ring-2 ring-cyan-100'
-          : 'border-slate-200'
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-xl font-semibold text-slate-950">
-            {plan.name}
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
->>>>>>> origin/dev
             {plan.tagline}
           </p>
         </div>
         {plan.recommended && (
-<<<<<<< HEAD
           <span className="shrink-0 rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 ring-1 ring-cyan-100">
-=======
-          <span className="rounded-md bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
->>>>>>> origin/dev
             Paling pas
           </span>
         )}
       </div>
 
-<<<<<<< HEAD
       <div className="mt-6 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
         <div className="flex items-end gap-2">
           <p className="text-3xl font-semibold tracking-tight text-slate-950">
@@ -447,18 +403,10 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
           </p>
         </div>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-=======
-      <div className="mt-6">
-        <p className="text-3xl font-semibold text-slate-950">
-          {formatPlanPrice(plan)}
-        </p>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
->>>>>>> origin/dev
           {plan.description}
         </p>
       </div>
 
-<<<<<<< HEAD
       <div className="mt-5 grid grid-cols-2 gap-2 text-sm">
         <div className="rounded-2xl border border-slate-100 bg-white p-3">
           <p className="text-xs text-slate-500">Users</p>
@@ -481,36 +429,11 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
         <div className="rounded-2xl border border-slate-100 bg-white p-3">
           <p className="text-xs text-slate-500">API keys</p>
           <p className="mt-1 font-semibold text-slate-950">
-=======
-      <div className="mt-6 grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-md bg-slate-50 p-3">
-          <p className="text-slate-500">Users</p>
-          <p className="font-semibold text-slate-900">
-            {formatBillingLimit(plan.limits.users)}
-          </p>
-        </div>
-        <div className="rounded-md bg-slate-50 p-3">
-          <p className="text-slate-500">Docs / bulan</p>
-          <p className="font-semibold text-slate-900">
-            {formatBillingLimit(plan.limits.monthlyDocuments)}
-          </p>
-        </div>
-        <div className="rounded-md bg-slate-50 p-3">
-          <p className="text-slate-500">Companies</p>
-          <p className="font-semibold text-slate-900">
-            {formatBillingLimit(plan.limits.companies)}
-          </p>
-        </div>
-        <div className="rounded-md bg-slate-50 p-3">
-          <p className="text-slate-500">API keys</p>
-          <p className="font-semibold text-slate-900">
->>>>>>> origin/dev
             {formatBillingLimit(plan.limits.apiKeys)}
           </p>
         </div>
       </div>
 
-<<<<<<< HEAD
       <ul className="mt-6 flex-1 space-y-3 text-sm leading-6 text-slate-600">
         <li className="flex gap-2">
           <CheckCircleIcon className="mt-1 h-4 w-4 flex-none text-emerald-600" />
@@ -527,12 +450,6 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
         {highlightedFeatures.map((feature) => (
           <li key={feature} className="flex gap-2">
             <CheckCircleIcon className="mt-1 h-4 w-4 flex-none text-emerald-600" />
-=======
-      <ul className="mt-6 space-y-3 text-sm text-slate-600">
-        {plan.features.slice(0, 5).map((feature) => (
-          <li key={feature} className="flex gap-2">
-            <CheckCircleIcon className="mt-0.5 h-4 w-4 flex-none text-emerald-600" />
->>>>>>> origin/dev
             <span>{feature}</span>
           </li>
         ))}
@@ -540,15 +457,9 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
 
       <a
         href={ctaHref}
-<<<<<<< HEAD
         className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
           plan.recommended
             ? 'bg-slate-950 text-white shadow-lg shadow-slate-950/15 hover:bg-slate-800'
-=======
-        className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold transition ${
-          plan.recommended
-            ? 'bg-slate-950 text-white hover:bg-slate-800'
->>>>>>> origin/dev
             : 'border border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50'
         }`}
       >
@@ -633,13 +544,8 @@ export default function MarketingHomePage() {
       <main>
         <section className="relative isolate overflow-hidden border-b border-slate-200">
           <HeroBackdrop />
-<<<<<<< HEAD
           <div className="relative mx-auto grid min-h-[86svh] max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(28rem,1.1fr)] lg:gap-14 lg:px-8">
             <div className="min-w-0">
-=======
-          <div className="relative mx-auto flex min-h-[86svh] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-            <div className="max-w-3xl lg:max-w-2xl">
->>>>>>> origin/dev
               <div className="mb-6 inline-flex items-center gap-2 rounded-md border border-cyan-200 bg-white/80 px-3 py-2 text-sm font-medium text-cyan-800 shadow-sm">
                 <SparklesIcon className="h-4 w-4" />
                 ERP publik untuk tim operasional yang sedang tumbuh
@@ -679,7 +585,6 @@ export default function MarketingHomePage() {
                   </div>
                 ))}
               </div>
-<<<<<<< HEAD
 
               <div className="mt-12 grid gap-3 sm:grid-cols-3">
                 {heroStats.map((item) => (
@@ -702,32 +607,6 @@ export default function MarketingHomePage() {
               <DashboardPreview className="mx-auto w-full max-w-5xl lg:rotate-1" />
             </div>
           </div>
-=======
-            </div>
-
-            <DashboardPreview className="mt-12 lg:hidden" />
-
-            <div className="mt-12 grid gap-3 sm:grid-cols-3 lg:max-w-2xl">
-              {heroStats.map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-lg border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur"
-                >
-                  <p className="text-3xl font-semibold text-slate-950">
-                    {item.value}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    {item.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pointer-events-none absolute right-[-7rem] top-28 hidden w-[58rem] rotate-1 lg:block xl:right-[-3rem]">
-            <DashboardPreview />
-          </div>
->>>>>>> origin/dev
         </section>
 
         <section className="border-b border-slate-200 bg-white py-6">
@@ -803,7 +682,6 @@ export default function MarketingHomePage() {
           </div>
         </section>
 
-<<<<<<< HEAD
         <section id="ai-erp" className="bg-slate-950 py-20 text-white sm:py-24">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-8">
             <div>
@@ -881,8 +759,6 @@ export default function MarketingHomePage() {
           </div>
         </section>
 
-=======
->>>>>>> origin/dev
         <section id="modules" className="bg-slate-50 py-20 sm:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
@@ -931,7 +807,6 @@ export default function MarketingHomePage() {
                   Harga dan limit
                 </SectionEyebrow>
                 <h2 className="text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
-<<<<<<< HEAD
                   Mulai gratis, upgrade saat bisnis butuh kapasitas lebih.
                 </h2>
                 <p className="mt-5 text-base leading-8 text-slate-600">
@@ -949,24 +824,6 @@ export default function MarketingHomePage() {
             </div>
 
             <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-=======
-                  Tidak free. Mulai dengan trial, lanjut paket berbayar.
-                </h2>
-                <p className="mt-5 text-base leading-8 text-slate-600">
-                  Sync ERP memakai paket komersial yang jelas: limit
-                  user, company, dokumen bulanan, SKU, API key, dan
-                  akses integrasi sudah ditentukan dari awal.
-                </p>
-              </div>
-              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-cyan-900">
-                Trial {BILLING_TRIAL_DAYS} hari tersedia untuk setup
-                awal. Setelah trial, workspace perlu berada di Starter,
-                Growth, Scale, atau Enterprise.
-              </div>
-            </div>
-
-            <div className="mt-10 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
->>>>>>> origin/dev
               {BILLING_PLANS.map((plan) => (
                 <PricingCard key={plan.key} plan={plan} />
               ))}
@@ -1124,7 +981,6 @@ export default function MarketingHomePage() {
             <BrandMark />
             <span className="font-medium text-slate-700">Sync ERP</span>
           </div>
-<<<<<<< HEAD
           <div className="flex flex-wrap items-center gap-4">
             <a href="/privacy" className="hover:text-slate-800">
               Privacy
@@ -1148,9 +1004,6 @@ export default function MarketingHomePage() {
             </button>
             <p>&copy; 2026 Sync ERP. Public marketing website.</p>
           </div>
-=======
-          <p>&copy; 2026 Sync ERP. Public marketing website.</p>
->>>>>>> origin/dev
         </div>
       </footer>
     </div>

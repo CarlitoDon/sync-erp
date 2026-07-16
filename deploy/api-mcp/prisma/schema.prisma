@@ -52,10 +52,7 @@ model Company {
   rentalItemUnits       RentalItemUnit[]
   rentalOrders          RentalOrder[]
   rentalOrderExtensions RentalOrderExtension[]
-<<<<<<< HEAD
   rentalOrderExtensionItems RentalOrderExtensionItem[]
-=======
->>>>>>> origin/dev
   rentalPolicies        RentalPolicy[]
   rentalReturns         RentalReturn[]
   roles                 Role[]
@@ -203,13 +200,8 @@ model Integration {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // App Identifiers
-<<<<<<< HEAD
   appId       String // e.g., "custom-storefront", "rental-storefront", "pos-lite"
   name        String // Display name for the external integration
-=======
-  appId       String // e.g., "santi-living", "rockhouse", "pos-lite"
-  name        String // Display Name "Santi Living"
->>>>>>> origin/dev
   description String?
   icon        String? // icon name or url
 
@@ -232,11 +224,7 @@ model ApiKey {
   id        String @id @default(cuid())
   keyHash   String @unique // bcrypt hash of the actual key
   keyPrefix String // First 8 chars for display (e.g., "sk_live_")
-<<<<<<< HEAD
   name      String // e.g., "Rental Storefront Production"
-=======
-  name      String // "Santi Living Production"
->>>>>>> origin/dev
 
   companyId     String
   company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -972,10 +960,7 @@ model RentalItem {
   product              Product                 @relation(fields: [productId], references: [id])
   units                RentalItemUnit[]
   orderItems           RentalOrderItem[]
-<<<<<<< HEAD
   orderExtensionItems  RentalOrderExtensionItem[]
-=======
->>>>>>> origin/dev
   bundleComponents     RentalBundleComponent[]
 
   @@index([companyId])
@@ -988,11 +973,7 @@ model RentalItem {
 model RentalBundle {
   id          String   @id @default(uuid())
   companyId   String
-<<<<<<< HEAD
   externalId  String? // External package/item ID (e.g., "package-single-standard")
-=======
-  externalId  String? // santi-living package ID (e.g., "package-single-standard")
->>>>>>> origin/dev
   name        String // "Single Standard (Paket)"
   shortName   String? // "Single Standard (Pkt)"
   description String? // "Kasur + Sprei + Bantal + Selimut"
@@ -1010,10 +991,7 @@ model RentalBundle {
   // Components are REQUIRED - bundles must have at least one component (enforced in application)
   components RentalBundleComponent[]
   orderItems RentalOrderItem[]
-<<<<<<< HEAD
   orderExtensionItems RentalOrderExtensionItem[]
-=======
->>>>>>> origin/dev
 
   @@unique([companyId, externalId])
   @@index([companyId])
@@ -1089,11 +1067,7 @@ model RentalOrder {
   // Public access token for customer tracking
   publicToken String? @unique @default(uuid())
 
-<<<<<<< HEAD
   // External rental storefront integration fields
-=======
-  // Santi Living Integration Fields
->>>>>>> origin/dev
   deliveryFee     Decimal?    @db.Decimal(15, 2)
   deliveryAddress String?     @db.Text // Full combined address for display
   street          String? // Jalan/nama jalan
@@ -1146,11 +1120,8 @@ model RentalOrderExtension {
   newEndDate        DateTime
   additionalDays    Int
   additionalAmount  Decimal     @db.Decimal(15, 2)
-<<<<<<< HEAD
   deliveryFee       Decimal     @default(0) @db.Decimal(15, 2)
   deliveryFeeLabel  String?
-=======
->>>>>>> origin/dev
   additionalDeposit Decimal     @default(0) @db.Decimal(15, 2)
   reason            String?
   isPaid            Boolean     @default(false)
@@ -1159,17 +1130,13 @@ model RentalOrderExtension {
   createdAt         DateTime    @default(now())
   createdBy         String
   company           Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-<<<<<<< HEAD
   items             RentalOrderExtensionItem[]
-=======
->>>>>>> origin/dev
   rentalOrder       RentalOrder @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
 
   @@index([rentalOrderId])
   @@index([companyId])
 }
 
-<<<<<<< HEAD
 model RentalOrderExtensionItem {
   id                     String               @id @default(uuid())
   rentalOrderExtensionId String
@@ -1198,8 +1165,6 @@ model RentalOrderExtensionItem {
   @@index([rentalBundleId])
 }
 
-=======
->>>>>>> origin/dev
 model RentalOrderItem {
   id             String        @id @default(uuid())
   rentalOrderId  String
@@ -1212,10 +1177,7 @@ model RentalOrderItem {
   rentalItem     RentalItem?   @relation(fields: [rentalItemId], references: [id])
   rentalBundle   RentalBundle? @relation(fields: [rentalBundleId], references: [id])
   rentalOrder    RentalOrder   @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
-<<<<<<< HEAD
   extensions     RentalOrderExtensionItem[]
-=======
->>>>>>> origin/dev
 
   @@index([rentalOrderId])
   @@index([rentalItemId])

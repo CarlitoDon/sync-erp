@@ -1,10 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { CameraIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import PhotoLightbox from './PhotoLightbox';
-<<<<<<< HEAD
 import { useBillingFeatures } from '@/hooks/useBillingFeatures';
-=======
->>>>>>> origin/dev
 
 interface PhotoUploaderProps {
   /** Array of base64-encoded photo strings */
@@ -35,21 +32,15 @@ export default function PhotoUploader({
   label = 'Tambah foto',
   size = 'md',
 }: PhotoUploaderProps) {
-<<<<<<< HEAD
   const { mediaAccess } = useBillingFeatures();
-=======
->>>>>>> origin/dev
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-<<<<<<< HEAD
   if (!mediaAccess) {
     return null;
   }
 
-=======
->>>>>>> origin/dev
   const handleClick = () => {
     fileInputRef.current?.click();
   };

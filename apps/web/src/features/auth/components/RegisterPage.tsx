@@ -47,7 +47,6 @@ export const RegisterPage: React.FC = () => {
     email: string;
     verificationUrl?: string;
   } | null>(null);
-<<<<<<< HEAD
   const selectedPlan = useMemo(() => {
     const rawPlan = searchParams.get('plan');
     const planKey = isBillingPlanKey(rawPlan)
@@ -56,8 +55,6 @@ export const RegisterPage: React.FC = () => {
 
     return getBillingPlan(planKey);
   }, [searchParams]);
-=======
->>>>>>> origin/dev
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -115,10 +112,7 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
 
     try {
-<<<<<<< HEAD
       setBillingPlanIntent(selectedPlan.key);
-=======
->>>>>>> origin/dev
       const result = await register({
         email: normalizedEmail,
         name: normalizedName,
@@ -141,14 +135,11 @@ export const RegisterPage: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-<<<<<<< HEAD
   const handleGoogleRegister = () => {
     setBillingPlanIntent(selectedPlan.key);
     registerWithGoogle();
   };
 
-=======
->>>>>>> origin/dev
   const handleResendVerification = async () => {
     if (!successState) return;
 
@@ -185,7 +176,6 @@ export const RegisterPage: React.FC = () => {
 
   if (successState) {
     return (
-<<<<<<< HEAD
       <div className="auth-grid-background flex min-h-screen items-center justify-center px-4 py-10">
         <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 shadow-xl shadow-slate-300/40">
           <div className="mb-6 flex items-center gap-3">
@@ -202,38 +192,20 @@ export const RegisterPage: React.FC = () => {
           <p className="mb-4 text-sm leading-6 text-slate-600">
             We created your account for{' '}
             <span className="font-medium text-slate-950">
-=======
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-          <h2 className="mb-3 text-2xl font-bold text-gray-900">
-            Verify Your Email
-          </h2>
-          <p className="mb-4 text-sm text-gray-600">
-            We created your account for{' '}
-            <span className="font-medium text-gray-900">
->>>>>>> origin/dev
               {successState.email}
             </span>
             . Please verify your email before signing in.
           </p>
 
           {notice && (
-<<<<<<< HEAD
             <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-=======
-            <div className="mb-4 rounded bg-green-50 p-3 text-sm text-green-700">
->>>>>>> origin/dev
               {notice}
             </div>
           )}
 
           {error && (
             <div
-<<<<<<< HEAD
               className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-=======
-              className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600"
->>>>>>> origin/dev
               role="alert"
             >
               {error}
@@ -241,7 +213,6 @@ export const RegisterPage: React.FC = () => {
           )}
 
           <div className="space-y-3">
-<<<<<<< HEAD
             <Button
               type="button"
               onClick={handleResendVerification}
@@ -251,46 +222,22 @@ export const RegisterPage: React.FC = () => {
             >
               Resend verification email
             </Button>
-=======
-            <button
-              type="button"
-              onClick={handleResendVerification}
-              disabled={isResending}
-              className="w-full rounded bg-blue-600 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isResending
-                ? 'Sending verification link...'
-                : 'Resend verification email'}
-            </button>
->>>>>>> origin/dev
 
             {successState.verificationUrl && (
               <a
                 href={successState.verificationUrl}
-<<<<<<< HEAD
                 className="block w-full rounded-md border border-slate-300 bg-white py-2 text-center text-sm font-medium text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50"
-=======
-                className="block w-full rounded border border-gray-300 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
->>>>>>> origin/dev
               >
                 Open verification link
               </a>
             )}
           </div>
 
-<<<<<<< HEAD
           <p className="mt-4 text-center text-sm text-slate-600">
             Already verified?{' '}
             <Link
               to="/login"
               className="font-medium text-cyan-700 hover:text-cyan-900"
-=======
-          <p className="mt-4 text-center text-sm text-gray-600">
-            Already verified?{' '}
-            <Link
-              to="/login"
-              className="text-blue-600 hover:text-blue-500"
->>>>>>> origin/dev
             >
               Sign in
             </Link>
@@ -328,11 +275,7 @@ export const RegisterPage: React.FC = () => {
 
         {error && (
           <div
-<<<<<<< HEAD
             className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-=======
-            className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600"
->>>>>>> origin/dev
             role="alert"
           >
             {error}
@@ -340,7 +283,6 @@ export const RegisterPage: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-<<<<<<< HEAD
           <Input
             label="Name"
             type="text"
@@ -419,126 +361,11 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <Button
-=======
-          <div>
-            <label
-              htmlFor="register-name"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Name
-            </label>
-            <input
-              type="text"
-              id="register-name"
-              name="name"
-              required
-              value={formData.name}
-              onChange={handleChange}
-              autoComplete="name"
-              className="w-full rounded border p-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="register-email"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              id="register-email"
-              name="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              autoComplete="email"
-              className="w-full rounded border p-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="register-password"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Password
-            </label>
-            <input
-              type="password"
-              id="register-password"
-              name="password"
-              required
-              minLength={8}
-              value={formData.password}
-              onChange={handleChange}
-              autoComplete="new-password"
-              className="w-full rounded border p-2 focus:border-blue-500 focus:outline-none"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Use at least 8 characters with letters and numbers.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="register-confirm-password"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              id="register-confirm-password"
-              name="confirmPassword"
-              required
-              minLength={8}
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              autoComplete="new-password"
-              className="w-full rounded border p-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
-            <p
-              className={
-                passwordChecks.minLength
-                  ? 'text-green-600'
-                  : 'text-gray-600'
-              }
-            >
-              At least 8 characters
-            </p>
-            <p
-              className={
-                passwordChecks.hasLetter
-                  ? 'text-green-600'
-                  : 'text-gray-600'
-              }
-            >
-              Contains letters
-            </p>
-            <p
-              className={
-                passwordChecks.hasNumber
-                  ? 'text-green-600'
-                  : 'text-gray-600'
-              }
-            >
-              Contains numbers
-            </p>
-          </div>
-
-          <button
->>>>>>> origin/dev
             type="submit"
             className="w-full"
             isLoading={loading}
             loadingText="Creating account..."
           >
-<<<<<<< HEAD
             Sign Up
           </Button>
 
@@ -551,19 +378,6 @@ export const RegisterPage: React.FC = () => {
           >
             Continue with Google
           </Button>
-=======
-            {loading ? 'Creating account...' : 'Sign Up'}
-          </button>
-
-          <button
-            type="button"
-            onClick={registerWithGoogle}
-            disabled={loading}
-            className="w-full rounded border border-gray-300 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            Continue with Google
-          </button>
->>>>>>> origin/dev
         </form>
 
         <p className="mt-4 text-center text-sm text-slate-600">

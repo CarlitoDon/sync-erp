@@ -3,7 +3,6 @@
  */
 import type { ToolSpec } from '../types.js';
 import { apiMutation, apiQuery } from '../client.js';
-<<<<<<< HEAD
 import { getOptionalString, getString } from './_helpers.js';
 
 const BUSINESS_SHAPES = [
@@ -65,9 +64,6 @@ function parseCreatedCompanyId(payload: string): string {
 
   throw new Error('Company created but response did not include an id');
 }
-=======
-import { getString } from './_helpers.js';
->>>>>>> origin/dev
 
 export function getCompanyTools(): ToolSpec[] {
   return [
@@ -92,17 +88,12 @@ export function getCompanyTools(): ToolSpec[] {
     },
     {
       name: 'company_create',
-<<<<<<< HEAD
       description:
         'Create a new company for the authenticated user. Optionally select a business shape in the same call.',
-=======
-      description: 'Create a new company for the authenticated user',
->>>>>>> origin/dev
       inputSchema: {
         type: 'object',
         properties: {
           name: { type: 'string', description: 'Company name' },
-<<<<<<< HEAD
           shape: {
             type: 'string',
             enum: BUSINESS_SHAPES,
@@ -134,13 +125,6 @@ export function getCompanyTools(): ToolSpec[] {
           shape,
         });
       },
-=======
-        },
-        required: ['name'],
-      },
-      handler: async (args) =>
-        apiMutation('company.create', { name: getString(args, 'name') }),
->>>>>>> origin/dev
     },
     {
       name: 'company_select_shape',
@@ -152,11 +136,7 @@ export function getCompanyTools(): ToolSpec[] {
           companyId: { type: 'string', description: 'Company UUID' },
           shape: {
             type: 'string',
-<<<<<<< HEAD
             enum: BUSINESS_SHAPES,
-=======
-            enum: ['RETAIL', 'MANUFACTURING', 'SERVICE'],
->>>>>>> origin/dev
             description: 'Business shape to activate',
           },
         },
@@ -165,11 +145,7 @@ export function getCompanyTools(): ToolSpec[] {
       handler: async (args) =>
         apiMutation('company.selectShape', {
           companyId: getString(args, 'companyId'),
-<<<<<<< HEAD
           shape: getShape(args, 'shape'),
-=======
-          shape: getString(args, 'shape'),
->>>>>>> origin/dev
         }),
     },
   ];

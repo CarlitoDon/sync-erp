@@ -35,21 +35,15 @@ export type {
   CompanySubscription,
   BillingCheckoutSession,
   BillingWebhookEvent,
-<<<<<<< HEAD
   Attachment,
   BillInstallmentSchedule,
-=======
->>>>>>> origin/dev
   // Feature 043: Rental Business
   RentalItem,
   RentalItemUnit,
   RentalOrder,
   RentalOrderItem,
-<<<<<<< HEAD
   RentalOrderExtension,
   RentalOrderExtensionItem,
-=======
->>>>>>> origin/dev
   RentalOrderUnitAssignment,
   RentalDeposit,
   RentalDepositAllocation,
@@ -58,11 +52,7 @@ export type {
   CleaningLog,
   CustomerRentalRisk,
   RentalPolicy,
-<<<<<<< HEAD
   RentalWebhookOutbox,
-=======
-  WebhookOutbox,
->>>>>>> origin/dev
   TenantWebhookOutbox,
 } from './generated/client/client.js';
 
@@ -85,11 +75,8 @@ export {
   BillingCycle,
   BillingCheckoutSessionStatus,
   BillingWebhookEventStatus,
-<<<<<<< HEAD
   AttachmentEntityType,
   BillInstallmentStatus,
-=======
->>>>>>> origin/dev
   IdempotencyScope,
   IdempotencyStatus,
   SagaType,

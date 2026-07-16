@@ -4,7 +4,6 @@
  * Handles authentication and provides typed query/mutation methods.
  * All responses are returned as `unknown` — callers must validate if needed.
  */
-<<<<<<< HEAD
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,12 +16,6 @@ let apiStartPromise: Promise<void> | null = null;
 
 const CSRF_COOKIE = 'csrf-token';
 const CSRF_HEADER = 'X-CSRF-Token';
-=======
-import { getConfig } from './config.js';
-
-let sessionId: string | null = null;
-let loginPromise: Promise<void> | null = null;
->>>>>>> origin/dev
 
 /**
  * Extract nested result from tRPC response structure.
@@ -51,19 +44,12 @@ function extractResult(data: unknown): unknown {
  * Authenticate with the API and store session ID.
  */
 async function login(): Promise<void> {
-<<<<<<< HEAD
   await ensureLocalApiAvailable();
   const config = getConfig();
   const csrfHeaders = await getCsrfHeaders(config.apiUrl);
   const response = await fetch(`${config.apiUrl}/auth.login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-=======
-  const config = getConfig();
-  const response = await fetch(`${config.apiUrl}/auth.login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
->>>>>>> origin/dev
     body: JSON.stringify({
       json: { email: config.email, password: config.password },
     }),
@@ -81,10 +67,7 @@ async function login(): Promise<void> {
     const session = record.session as Record<string, unknown> | undefined;
     if (session?.id && typeof session.id === 'string') {
       sessionId = session.id;
-<<<<<<< HEAD
       csrfToken = csrfHeaders[CSRF_HEADER] || null;
-=======
->>>>>>> origin/dev
       return;
     }
   }
@@ -92,7 +75,6 @@ async function login(): Promise<void> {
   throw new Error('Login failed: no session ID in response');
 }
 
-<<<<<<< HEAD
 function extractCookieValue(
   setCookieHeader: string | null,
   cookieName: string
@@ -128,8 +110,6 @@ async function getCsrfHeaders(
   };
 }
 
-=======
->>>>>>> origin/dev
 /**
  * Ensure we have a valid session.
  */
@@ -153,23 +133,15 @@ async function ensureAuth(): Promise<string> {
  */
 function buildHeaders(
   sid: string,
-<<<<<<< HEAD
   companyId?: string,
   csrf?: string | null
 ): Record<string, string> {
   const cookies = [`sessionId=${sid}`];
   const headers: Record<string, string> = {
-=======
-  companyId?: string
-): Record<string, string> {
-  const headers: Record<string, string> = {
-    Cookie: `sessionId=${sid}`,
->>>>>>> origin/dev
     Accept: 'application/json',
     'Content-Type': 'application/json',
   };
 
-<<<<<<< HEAD
   if (csrf) {
     cookies.push(`${CSRF_COOKIE}=${csrf}`);
     headers[CSRF_HEADER] = csrf;
@@ -177,8 +149,6 @@ function buildHeaders(
 
   headers['Cookie'] = cookies.join('; ');
 
-=======
->>>>>>> origin/dev
   if (companyId) {
     headers['X-Company-Id'] = companyId;
   }
@@ -186,7 +156,6 @@ function buildHeaders(
   return headers;
 }
 
-<<<<<<< HEAD
 function isLocalApiUrl(apiUrl: string): boolean {
   return (
     apiUrl.startsWith('http://localhost:3001/') ||
@@ -270,15 +239,12 @@ async function startLocalApi(): Promise<void> {
   });
 }
 
-=======
->>>>>>> origin/dev
 /**
  * Execute a tRPC query (HTTP GET).
  */
 export async function apiQuery(
   path: string,
   input?: Record<string, unknown>,
-<<<<<<< HEAD
   companyId?: string,
   includeEmptyInput = false
 ): Promise<string> {
@@ -289,15 +255,6 @@ export async function apiQuery(
 
     const hasInput =
       input !== undefined && (includeEmptyInput || Object.keys(input).length > 0);
-=======
-  companyId?: string
-): Promise<string> {
-  return withRetryOnUnauthorized(async () => {
-    const sid = await ensureAuth();
-    const config = getConfig();
-
-    const hasInput = input && Object.keys(input).length > 0;
->>>>>>> origin/dev
     const queryPart = hasInput
       ? `?input=${encodeURIComponent(JSON.stringify({ json: input }))}`
       : '';
@@ -305,11 +262,7 @@ export async function apiQuery(
     const url = `${config.apiUrl}/${path}${queryPart}`;
     const response = await fetch(url, {
       method: 'GET',
-<<<<<<< HEAD
       headers: buildHeaders(sid, companyId, csrfToken),
-=======
-      headers: buildHeaders(sid, companyId),
->>>>>>> origin/dev
     });
 
     return handleApiResponse(response);
@@ -325,21 +278,14 @@ export async function apiMutation(
   companyId?: string
 ): Promise<string> {
   return withRetryOnUnauthorized(async () => {
-<<<<<<< HEAD
     await ensureLocalApiAvailable();
-=======
->>>>>>> origin/dev
     const sid = await ensureAuth();
     const config = getConfig();
 
     const url = `${config.apiUrl}/${path}`;
     const response = await fetch(url, {
       method: 'POST',
-<<<<<<< HEAD
       headers: buildHeaders(sid, companyId, csrfToken),
-=======
-      headers: buildHeaders(sid, companyId),
->>>>>>> origin/dev
       body: JSON.stringify({ json: input ?? {} }),
     });
 
@@ -358,10 +304,7 @@ async function withRetryOnUnauthorized(
       error.message.includes('API unauthorized')
     ) {
       sessionId = null;
-<<<<<<< HEAD
       csrfToken = null;
-=======
->>>>>>> origin/dev
       return fn();
     }
     throw error;

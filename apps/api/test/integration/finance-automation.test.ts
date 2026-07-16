@@ -2,10 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@sync-erp/database';
 import { InventoryService } from '@modules/inventory/inventory.service';
 import { SalesOrderService } from '@modules/sales/sales-order.service';
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/dev
 
 const inventoryService = new InventoryService();
 const salesOrderService = new SalesOrderService();
@@ -41,11 +38,7 @@ describe('Finance Automation Integration', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-<<<<<<< HEAD
           type: acc.type as import("@sync-erp/database").AccountType,
-=======
-          type: acc.type as import('@sync-erp/database').AccountType,
->>>>>>> origin/dev
           isActive: true,
         },
       });
@@ -146,7 +139,6 @@ describe('Finance Automation Integration', () => {
 
       // 3. Verify Journal - look for shipment journal by sourceType
       const journals = await prisma.journalEntry.findMany({
-<<<<<<< HEAD
       where: { companyId: COMPANY_ID },
       include: { lines: { include: { account: true } } },
       orderBy: { date: 'desc' },
@@ -154,14 +146,6 @@ describe('Finance Automation Integration', () => {
       const shipmentJournal = journals.find(
         (j) =>
           j.reference?.includes('SHP:')
-=======
-        where: { companyId: COMPANY_ID },
-        include: { lines: { include: { account: true } } },
-        orderBy: { date: 'desc' },
-      });
-      const shipmentJournal = journals.find((j) =>
-        j.reference?.includes('SHP:')
->>>>>>> origin/dev
       );
 
       expect(shipmentJournal).toBeDefined();
@@ -191,17 +175,10 @@ describe('Finance Automation Integration', () => {
       });
 
       const journals = await prisma.journalEntry.findMany({
-<<<<<<< HEAD
       where: { companyId: COMPANY_ID },
       include: { lines: { include: { account: true } } },
       orderBy: { date: 'desc' },
     });
-=======
-        where: { companyId: COMPANY_ID },
-        include: { lines: { include: { account: true } } },
-        orderBy: { date: 'desc' },
-      });
->>>>>>> origin/dev
       // Fix: Look for the specific reference we passed
       const adjJournal = journals.find(
         (j) => j.reference === 'Loss Check'
@@ -232,17 +209,10 @@ describe('Finance Automation Integration', () => {
       });
 
       const journals = await prisma.journalEntry.findMany({
-<<<<<<< HEAD
       where: { companyId: COMPANY_ID },
       include: { lines: { include: { account: true } } },
       orderBy: { date: 'desc' },
     });
-=======
-        where: { companyId: COMPANY_ID },
-        include: { lines: { include: { account: true } } },
-        orderBy: { date: 'desc' },
-      });
->>>>>>> origin/dev
       // Fix: Look for the specific reference we passed
       const adjJournal = journals.find(
         (j) => j.reference === 'Gain Check'
@@ -278,17 +248,10 @@ describe('Finance Automation Integration', () => {
   describe('US3: Accounting Equation', () => {
     it('should maintain balanced debits and credits', async () => {
       const journals = await prisma.journalEntry.findMany({
-<<<<<<< HEAD
       where: { companyId: COMPANY_ID },
       include: { lines: { include: { account: true } } },
       orderBy: { date: 'desc' },
     });
-=======
-        where: { companyId: COMPANY_ID },
-        include: { lines: { include: { account: true } } },
-        orderBy: { date: 'desc' },
-      });
->>>>>>> origin/dev
       for (const journal of journals) {
         const j = journal!;
         const totalDebit = j.lines.reduce(

@@ -1,11 +1,3 @@
-<<<<<<< HEAD
-=======
-import {
-  DomainError,
-  DomainErrorCodes,
-} from '../errors/domain-error.js';
-
->>>>>>> origin/dev
 export class BusinessDate {
   private readonly _date: Date;
   // Standard timezone? For now assuming UTC or Server Local as per legacy.
