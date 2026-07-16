@@ -361,6 +361,7 @@ jobs:
           RETRY_DELAYS=(5 10 15 20 30 30 30 30)
 
           echo "Verifying API health at ${HEALTH_HOST}..."
+          sleep 30
 
           check_endpoint() {
             local path="$1"
