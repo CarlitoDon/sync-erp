@@ -12,9 +12,6 @@ import { Button, Input } from '@/components/ui';
 const EMAIL_NOT_VERIFIED_MESSAGE =
   'Please verify your email before signing in.';
 
-const EMAIL_NOT_VERIFIED_MESSAGE =
-  'Please verify your email before signing in.';
-
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

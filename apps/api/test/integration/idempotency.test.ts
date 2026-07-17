@@ -128,6 +128,10 @@ describe('Backend Idempotency Integration', () => {
       userRole: "ADMIN" as string,
       idempotencyKey,
       correlationId: undefined,
+      integrationId: undefined,
+      isApiKeyAuth: undefined,
+      permissions: undefined,
+      apiKeyId: undefined,
     };
     const caller = appRouter.createCaller(ctx);
 
@@ -186,6 +190,10 @@ describe('Backend Idempotency Integration', () => {
       userRole: "ADMIN" as string,
       idempotencyKey,
       correlationId: undefined,
+      integrationId: undefined,
+      isApiKeyAuth: undefined,
+      permissions: undefined,
+      apiKeyId: undefined,
     };
     const caller = appRouter.createCaller(ctx);
 

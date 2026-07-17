@@ -31,6 +31,10 @@ const caller = appRouter.createCaller({
   userRole: "ADMIN" as string,
   userPermissions: ['*:*'],
   idempotencyKey: undefined,
+  integrationId: undefined,
+  isApiKeyAuth: undefined,
+  permissions: undefined,
+  apiKeyId: undefined,
 });
 
 describe('P2P Partial Actions Edge Cases (tRPC)', () => {

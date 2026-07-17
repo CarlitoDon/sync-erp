@@ -4,8 +4,6 @@ import {
   UserService,
 } from '../../modules/user/user.service';
 import { z } from 'zod';
-import { assertBillingLimitAvailable } from '../../modules/billing/billing-limits.service';
-
 import { container, ServiceKeys } from '../../modules/common/di';
 
 const userService = container.resolve<UserService>(
