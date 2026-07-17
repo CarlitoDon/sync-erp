@@ -47,6 +47,9 @@ const buildCaller = (authorization?: string) =>
     userRole: undefined,
     userPermissions: [],
     integrationId: undefined,
+    isApiKeyAuth: undefined,
+    permissions: undefined,
+    apiKeyId: undefined,
   });
 
 const cleanupCompanyData = async (

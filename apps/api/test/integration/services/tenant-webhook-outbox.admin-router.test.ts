@@ -52,6 +52,10 @@ const buildCaller = () =>
     businessShape: undefined,
     userRole: undefined,
     userPermissions: [],
+    integrationId: undefined,
+    isApiKeyAuth: undefined,
+    permissions: undefined,
+    apiKeyId: undefined,
   });
 
 describe('Admin Router - Tenant Webhook Outbox', () => {

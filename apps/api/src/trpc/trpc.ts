@@ -250,6 +250,7 @@ export const apiKeyProcedure = t.procedure
         permissions: result.permissions,
         apiKeyId: result.keyId,
         isApiKeyAuth: true,
+        integrationId: result.integrationId,
       },
     });
   })

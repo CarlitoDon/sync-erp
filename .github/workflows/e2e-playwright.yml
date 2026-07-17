@@ -50,6 +50,8 @@ jobs:
         run: npm ci
 
       - name: Setup test database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sync_erp_test?schema=public
         run: npm run db:push --workspace=@sync-erp/database
 
       - name: Install Playwright browsers

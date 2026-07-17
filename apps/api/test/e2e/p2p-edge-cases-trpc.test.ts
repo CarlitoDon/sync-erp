@@ -28,6 +28,10 @@ const caller = appRouter.createCaller({
   userRole: "ADMIN" as string,
   userPermissions: ['*:*'], // full permissions for test purposes
   idempotencyKey: undefined,
+  integrationId: undefined,
+  isApiKeyAuth: undefined,
+  permissions: undefined,
+  apiKeyId: undefined,
 });
 
 describe('P2P Edge Cases (tRPC): Comprehensive Error Handling', () => {

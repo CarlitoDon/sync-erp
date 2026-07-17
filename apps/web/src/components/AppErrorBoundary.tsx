@@ -30,10 +30,17 @@ function ErrorFallback({ resetError }: { resetError: () => void }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SentryErrorBoundary = Sentry.ErrorBoundary as any;
+
 export function AppErrorBoundary({ children }: AppErrorBoundaryProps) {
   return (
-    <Sentry.ErrorBoundary fallback={({ resetError }) => <ErrorFallback resetError={resetError} />}>
+    <SentryErrorBoundary
+      fallback={({ resetError }: { resetError: () => void }) => (
+        <ErrorFallback resetError={resetError} />
+      )}
+    >
       {children}
-    </Sentry.ErrorBoundary>
+    </SentryErrorBoundary>
   );
 }
