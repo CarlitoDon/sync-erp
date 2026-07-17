@@ -64,7 +64,7 @@ jobs:
           cp -R apps/mcp/dist deploy/api-mcp/dist
           cp apps/mcp/package.json deploy/api-mcp/package.json
           cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
-          cp -R packages/database/dist/generated/client deploy/api-mcp/node_modules/@sync-erp/database/dist/generated/client
+          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/dist
           cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/package.json
 
       - name: Resolve deployment target
