@@ -10,6 +10,7 @@ import {
 } from 'vitest';
 import {
   prisma,
+  RentalWebhookDeliveryType,
   RentalWebhookOutboxStatus,
 } from '@sync-erp/database';
 import { RentalWebhookService } from '@modules/rental/rental-webhook.service';
@@ -129,7 +130,7 @@ describe('WebhookOutboxService', () => {
     await cleanupIntegrationData();
 
     const result = await webhookOutboxService.enqueue(
-      'payment.status.changed',
+      RentalWebhookDeliveryType.PAYMENT_STATUS,
       {
         companyId: COMPANY_ID,
         orderPublicToken: 'skip-token-001',
@@ -164,7 +165,7 @@ describe('WebhookOutboxService', () => {
     } as Response);
 
     const queued = await webhookOutboxService.enqueue(
-      'payment.status.changed',
+      RentalWebhookDeliveryType.PAYMENT_STATUS,
       {
         companyId: COMPANY_ID,
         orderPublicToken: 'payment-token-001',
@@ -344,7 +345,7 @@ describe('WebhookOutboxService', () => {
       json: async () => ({ message: 'Proxy unavailable' }),
     } as Response);
 
-    await webhookOutboxService.enqueue('payment.status.changed', {
+    await webhookOutboxService.enqueue(RentalWebhookDeliveryType.PAYMENT_STATUS, {
       companyId: COMPANY_ID,
       orderPublicToken: 'payment-token-requeue-idempotent-001',
       orderNumber: 'RNT-202603-00004',
@@ -436,7 +437,7 @@ describe('WebhookOutboxService', () => {
     } as Response);
 
     const firstAttempt = await webhookOutboxService.enqueue(
-      'payment.status.changed',
+      RentalWebhookDeliveryType.PAYMENT_STATUS,
       {
         companyId: COMPANY_ID,
         orderPublicToken: 'payment-token-retryable-429-001',
