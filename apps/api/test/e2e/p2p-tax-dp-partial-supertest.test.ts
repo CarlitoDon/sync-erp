@@ -36,7 +36,7 @@ const caller = appRouter.createCaller({
   correlationId: 'test-correlation',
   userRole: "ADMIN" as string,
   userPermissions: [],
-  idempotencyKey: undefined,
+  idempotencyKey: undefined, integrationId: undefined, isApiKeyAuth: false, integrationId: undefined, isApiKeyAuth: false, integrationId: undefined, isApiKeyAuth: false,
 });
 
 describe('P2P E2E (tRPC Caller): Tax + DP + Partial GRN + Per-GRN Billing', () => {

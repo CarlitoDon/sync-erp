@@ -48,7 +48,7 @@ const buildCaller = () =>
     userId: 'admin-user-tenant-webhook-001',
     companyId: COMPANY_ID,
     correlationId: 'test-tenant-webhook-outbox-admin-router',
-    idempotencyKey: undefined,
+    idempotencyKey: undefined, integrationId: undefined, isApiKeyAuth: false, integrationId: undefined, isApiKeyAuth: false, integrationId: undefined, isApiKeyAuth: false,
     businessShape: undefined,
     userRole: undefined,
     userPermissions: [],

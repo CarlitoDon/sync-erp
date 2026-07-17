@@ -69,9 +69,9 @@ export const createContext = async ({
     userId,
     companyId,
     correlationId,
-    idempotencyKey: req.headers['idempotency-key'] as
-      | string
-      | undefined, // Extract key
+    idempotencyKey: req.headers['idempotency-key'] as string | undefined,
+    integrationId: req.headers['x-integration-id'] as string | undefined,
+    isApiKeyAuth: Boolean(req.headers['x-api-key']),
     businessShape,
     userRole,
     userPermissions, // Granular RBAC: ['bill:void', 'payment:void', ...]

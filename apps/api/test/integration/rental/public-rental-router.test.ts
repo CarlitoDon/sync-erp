@@ -42,7 +42,7 @@ const buildCaller = (authorization?: string) =>
     userId: undefined,
     companyId: undefined,
     correlationId: 'test-public-rental-correlation',
-    idempotencyKey: undefined,
+    idempotencyKey: undefined, integrationId: undefined, isApiKeyAuth: false, integrationId: undefined, isApiKeyAuth: false, integrationId: undefined, isApiKeyAuth: false,
     businessShape: undefined,
     userRole: undefined,
     userPermissions: [],

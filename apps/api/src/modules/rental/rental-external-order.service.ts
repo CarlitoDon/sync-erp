@@ -30,7 +30,7 @@ export interface CreatePublicOrderInput {
     pricePerDay?: number;
     lineTotal?: number;
     category?: 'package' | 'mattress' | 'accessory';
-    components?: string[];
+    components?: { quantity: number; label: string; }[] | string[];
   }[];
   notes?: string;
   deliveryFee?: number;
@@ -50,6 +50,8 @@ export interface CreatePublicOrderInput {
   externalSource?: string;
   metadata?: Record<string, unknown>;
   createdByApiKeyId?: string;
+  createdBy?: string;
+  skuPrefix?: string;
 }
 
 export interface UpdatePublicOrderInput {
@@ -80,7 +82,7 @@ export interface UpdatePublicOrderInput {
     pricePerDay?: number;
     lineTotal?: number;
     category?: 'package' | 'mattress' | 'accessory';
-    components?: string[];
+    components?: { quantity: number; label: string; }[] | string[];
   }[];
 }
 
