@@ -116,10 +116,11 @@ export class DocumentNumberService {
    */
   async generate(
     companyId: string,
-    docType: DocumentType
+    docType: DocumentType,
+    businessDate: Date = new Date()
   ): Promise<string> {
     const config = DEFAULT_CONFIGS[docType];
-    const now = new Date();
+    const now = businessDate;
     const year = now.getFullYear();
     const month = now.getMonth() + 1; // 1-12
 

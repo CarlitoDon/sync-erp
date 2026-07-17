@@ -22,6 +22,10 @@ import {
 } from '@sync-erp/shared';
 import { JournalService } from './journal.service';
 import { normalizeTaxRate } from '../../common/utils/finance.utils';
+import {
+  BillInstallmentService,
+  EMPTY_BILL_INSTALLMENT_SUMMARY,
+} from './bill-installment.service';
 
 export interface CreateBillInput {
   orderId: string;
@@ -50,7 +54,8 @@ export class BillService {
     private readonly inventoryRepository: InventoryRepository = new InventoryRepository(),
     private readonly purchaseOrderRepository: PurchaseOrderRepository = new PurchaseOrderRepository(),
     private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
-    private readonly journalService: JournalService = new JournalService()
+    private readonly journalService: JournalService = new JournalService(),
+    private readonly billInstallmentService: BillInstallmentService = new BillInstallmentService()
   ) {}
 
   async createFromPurchaseOrder(
@@ -152,10 +157,13 @@ export class BillService {
       }
     }
 
+    const documentDate = data.businessDate || new Date();
+
     // Always auto-generate internal Bill number
     const invoiceNumber = await this.documentNumberService.generate(
       companyId,
-      'BILL'
+      'BILL',
+      documentDate
     );
 
     // Calculate subtotal from items (Net)
@@ -247,7 +255,6 @@ export class BillService {
         }
       }
     }
-
     // Create lines from order items
     const createData: Prisma.InvoiceUncheckedCreateInput = {
       companyId,
@@ -257,6 +264,7 @@ export class BillService {
       type: InvoiceType.BILL,
       status: InvoiceStatus.DRAFT,
       invoiceNumber,
+      date: documentDate,
       dpBillId, // Feature: Link to DP Bill
       supplierInvoiceNumber: data.supplierInvoiceNumber,
       notes:
@@ -271,7 +279,7 @@ export class BillService {
       dueDate:
         data.dueDate ||
         calculateDueDate(
-          new Date(),
+          documentDate,
           order.paymentTerms || PaymentTerms.NET30
         ),
       paymentTermsString:
@@ -425,7 +433,22 @@ export class BillService {
   }
 
   async getById(id: string, companyId: string) {
-    return this.repository.findById(id, companyId, InvoiceType.BILL);
+    const bill = await this.repository.findById(
+      id,
+      companyId,
+      InvoiceType.BILL
+    );
+    if (!bill) return null;
+
+    const summaries =
+      await this.billInstallmentService.getSummaryForBills(companyId, [
+        bill.id,
+      ]);
+    return {
+      ...bill,
+      installmentSummary:
+        summaries.get(bill.id) ?? EMPTY_BILL_INSTALLMENT_SUMMARY,
+    };
   }
 
   async list(companyId: string, status?: string) {
@@ -441,11 +464,22 @@ export class BillService {
         ? (status as InvoiceStatus)
         : undefined;
 
-    return this.repository.findAll(
+    const bills = await this.repository.findAll(
       companyId,
       InvoiceType.BILL,
       validatedStatus
     );
+    const summaries =
+      await this.billInstallmentService.getSummaryForBills(
+        companyId,
+        bills.map((bill) => bill.id)
+      );
+
+    return bills.map((bill) => ({
+      ...bill,
+      installmentSummary:
+        summaries.get(bill.id) ?? EMPTY_BILL_INSTALLMENT_SUMMARY,
+    }));
   }
 
   /**
@@ -534,7 +568,6 @@ export class BillService {
   ): Promise<Invoice> {
     if (businessDate) {
       BusinessDate.from(businessDate).ensureValid();
-      BusinessDate.from(businessDate).ensureNotBackdated();
     }
 
     // FR-010.1: Record Audit Log BEFORE transaction
@@ -633,7 +666,7 @@ export class BillService {
           Number(updatedBill.subtotal),
           Number(updatedBill.taxAmount),
           tx,
-          businessDate
+          businessDate || updatedBill.date
         );
 
         // 5. Feature 036: Auto-settle prepaid for upfront POs

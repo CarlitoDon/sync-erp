@@ -10,6 +10,7 @@ import {
 } from 'vitest';
 import {
   prisma,
+  RentalWebhookDeliveryType,
   RentalWebhookOutboxStatus,
 } from '@sync-erp/database';
 import { appRouter } from '@src/trpc/router';
@@ -19,7 +20,7 @@ const COMPANY_ID = 'test-rental-webhook-outbox-admin-001';
 const OTHER_COMPANY_ID = 'test-rental-webhook-outbox-admin-002';
 
 const cleanupOutboxData = async () => {
-  await prisma.webhookOutbox.deleteMany({
+  await prisma.rentalWebhookOutbox.deleteMany({
     where: {
       companyId: {
         in: [COMPANY_ID, OTHER_COMPANY_ID],
@@ -37,27 +38,9 @@ const cleanupIntegrationData = async () => {
   });
 };
 
-import { integrationRegistry } from '@src/integrations/registry';
-
 const seedIntegration = async (companyId: string) => {
-  if (!integrationRegistry.get('test-plugin')) {
-    integrationRegistry.register({
-      manifest: {
-        appId: 'test-plugin',
-        name: 'Test Plugin',
-        description: 'Test Plugin',
-        icon: 'Test',
-        capabilities: [],
-        defaultConfig: {},
-      },
-      getWebhookPath: (event, token, _config) => {
-        return event === 'order.created' ? `/api/orders/${token}/notify-admin` : `/api/orders/${token}/notify-payment`;
-      }
-    });
-  }
-
   const existing = await prisma.integration.findFirst({
-    where: { companyId, appId: 'test-plugin' },
+    where: { companyId, appId: 'custom-storefront' },
   });
 
   if (existing) {
@@ -70,11 +53,15 @@ const seedIntegration = async (companyId: string) => {
   const integration = await prisma.integration.create({
     data: {
       companyId,
-      appId: 'test-plugin',
-      name: 'Test Plugin',
+      appId: 'custom-storefront',
+      name: 'Custom Storefront',
       isActive: true,
       config: {
-        webhookUrl: 'http://proxy.test',
+        webhookUrl: 'http://storefront.test',
+        paths: {
+          newOrder: '/webhooks/rental/orders/{token}/created',
+          paymentStatus: '/webhooks/rental/orders/{token}/payment-status',
+        },
       },
     },
   });
@@ -86,8 +73,8 @@ const seedIntegration = async (companyId: string) => {
       keyHash: `hash-${companyId}`,
       keyPrefix: 'sk_test',
       name: 'Test Key',
-      webhookUrl: 'http://proxy.test',
-      webhookSecret: 'Bearer proxy-test-secret',
+      webhookUrl: 'http://storefront.test',
+      webhookSecret: 'Bearer storefront-test-secret',
       isActive: true,
     },
   });
@@ -109,6 +96,9 @@ const buildCaller = () =>
     userRole: undefined,
     userPermissions: [],
     integrationId: undefined,
+    isApiKeyAuth: undefined,
+    permissions: undefined,
+    apiKeyId: undefined,
   });
 
 describe('Admin Router - Rental Webhook Outbox', () => {
@@ -156,11 +146,11 @@ describe('Admin Router - Rental Webhook Outbox', () => {
     await seedIntegration(COMPANY_ID);
     await seedIntegration(OTHER_COMPANY_ID);
 
-    await prisma.webhookOutbox.createMany({
+    await prisma.rentalWebhookOutbox.createMany({
       data: [
         {
           companyId: COMPANY_ID,
-          event: 'order.created',
+          deliveryType: RentalWebhookDeliveryType.NEW_ORDER,
           orderPublicToken: 'admin-outbox-token-dead-001',
           orderNumber: 'RNT-ADMIN-0001',
           payload: {
@@ -177,7 +167,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
         },
         {
           companyId: COMPANY_ID,
-          event: 'payment.status.changed',
+          deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
           orderPublicToken: 'admin-outbox-token-failed-001',
           orderNumber: 'RNT-ADMIN-0002',
           payload: {
@@ -194,7 +184,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
         },
         {
           companyId: OTHER_COMPANY_ID,
-          event: 'payment.status.changed',
+          deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
           orderPublicToken: 'admin-outbox-token-foreign-001',
           orderNumber: 'RNT-ADMIN-OTHER-0001',
           payload: {
@@ -241,12 +231,13 @@ describe('Admin Router - Rental Webhook Outbox', () => {
   it('replays DEAD_LETTER and FAILED entries via admin API and delivers after worker cycle', async () => {
     const caller = buildCaller();
 
-    const deadLetter = await prisma.webhookOutbox.findFirstOrThrow({
-      where: {
-        companyId: COMPANY_ID,
-        status: RentalWebhookOutboxStatus.DEAD_LETTER,
-      },
-    });
+    const deadLetter =
+      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+        where: {
+          companyId: COMPANY_ID,
+          status: RentalWebhookOutboxStatus.DEAD_LETTER,
+        },
+      });
 
     const firstReplay = await caller.admin.replayRentalWebhookOutbox({
       id: deadLetter.id,
@@ -260,9 +251,10 @@ describe('Admin Router - Rental Webhook Outbox', () => {
     expect(firstReplay.success).toBe(true);
     expect(secondReplay.success).toBe(false);
 
-    const replayed = await prisma.webhookOutbox.findUniqueOrThrow({
-      where: { id: deadLetter.id },
-    });
+    const replayed =
+      await prisma.rentalWebhookOutbox.findUniqueOrThrow({
+        where: { id: deadLetter.id },
+      });
     expect(replayed.status).toBe(RentalWebhookOutboxStatus.PENDING);
 
     const bulkReplay =
@@ -274,23 +266,25 @@ describe('Admin Router - Rental Webhook Outbox', () => {
     expect(bulkReplay.success).toBe(true);
     expect(bulkReplay.requeuedCount).toBe(1);
 
-    const failedEntry = await prisma.webhookOutbox.findFirstOrThrow({
-      where: {
-        companyId: COMPANY_ID,
-        orderPublicToken: 'admin-outbox-token-failed-001',
-      },
-    });
+    const failedEntry =
+      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+        where: {
+          companyId: COMPANY_ID,
+          orderPublicToken: 'admin-outbox-token-failed-001',
+        },
+      });
 
     expect(failedEntry.status).toBe(
       RentalWebhookOutboxStatus.PENDING
     );
 
-    const foreignEntry = await prisma.webhookOutbox.findFirstOrThrow({
-      where: {
-        companyId: OTHER_COMPANY_ID,
-        orderPublicToken: 'admin-outbox-token-foreign-001',
-      },
-    });
+    const foreignEntry =
+      await prisma.rentalWebhookOutbox.findFirstOrThrow({
+        where: {
+          companyId: OTHER_COMPANY_ID,
+          orderPublicToken: 'admin-outbox-token-foreign-001',
+        },
+      });
 
     expect(foreignEntry.status).toBe(
       RentalWebhookOutboxStatus.FAILED
@@ -308,13 +302,13 @@ describe('Admin Router - Rental Webhook Outbox', () => {
         json: async () => ({ success: true }),
       } as Response);
 
-    const { webhookOutboxService } =
-      await import('@modules/rental/webhook-outbox.service');
+    const { rentalWebhookOutboxService } =
+      await import('@modules/rental/rental-webhook-outbox.service');
 
-    await webhookOutboxService.processDueEntries();
+    await rentalWebhookOutboxService.processDueEntries();
 
     const deliveredDeadLetter =
-      await prisma.webhookOutbox.findFirstOrThrow({
+      await prisma.rentalWebhookOutbox.findFirstOrThrow({
         where: {
           companyId: COMPANY_ID,
           orderPublicToken: 'admin-outbox-token-dead-001',
@@ -322,7 +316,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
       });
 
     const deliveredFailed =
-      await prisma.webhookOutbox.findFirstOrThrow({
+      await prisma.rentalWebhookOutbox.findFirstOrThrow({
         where: {
           companyId: COMPANY_ID,
           orderPublicToken: 'admin-outbox-token-failed-001',

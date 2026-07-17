@@ -56,7 +56,6 @@ export class PaymentService {
 
     if (data.businessDate) {
       BusinessDate.from(data.businessDate).ensureValid();
-      BusinessDate.from(data.businessDate).ensureNotBackdated();
     }
 
     try {
@@ -80,8 +79,36 @@ export class PaymentService {
           // After validation, invoice is guaranteed non-null
           const invoice = invoiceOrNull!;
 
-          // Feature: Resolve Bank/Cash Account
+          // Feature: Resolve configured payment method and Bank/Cash Account
           let contraAccountCode: string | undefined;
+          if (data.paymentMethodId || data.paymentMethodCode) {
+            const paymentMethod =
+              await tx.companyPaymentMethod.findFirst({
+                where: {
+                  companyId,
+                  ...(data.paymentMethodId
+                    ? { id: data.paymentMethodId }
+                    : { code: data.paymentMethodCode }),
+                  isActive: true,
+                },
+                include: { account: true },
+              });
+            if (!paymentMethod) {
+              throw new DomainError(
+                'Payment method not found',
+                400,
+                DomainErrorCodes.INVALID_INPUT
+              );
+            }
+            if (paymentMethod.type !== data.method) {
+              throw new DomainError(
+                `Payment method ${paymentMethod.code} is ${paymentMethod.type}, not ${data.method}`,
+                400,
+                DomainErrorCodes.INVALID_INPUT
+              );
+            }
+            contraAccountCode = paymentMethod.account?.code;
+          }
           if (data.bankAccountId) {
             const bankAccount =
               await this.cashBankRepository.getAccountById(
@@ -106,8 +133,10 @@ export class PaymentService {
               companyId,
               invoiceId: data.invoiceId,
               amount: data.amount,
+              date: data.businessDate ?? new Date(),
               method: data.method,
               accountId: data.bankAccountId,
+              reference: data.reference,
             },
             tx
           );
@@ -143,7 +172,8 @@ export class PaymentService {
               data.amount,
               data.method,
               contraAccountCode,
-              tx
+              tx,
+              data.businessDate
             );
           } else {
             await this.journalService.postPaymentReceived(

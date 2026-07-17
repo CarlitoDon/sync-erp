@@ -10,6 +10,18 @@ export type McpRuntimeConfig = z.infer<typeof McpRuntimeConfigSchema>;
 
 let cachedConfig: McpRuntimeConfig | null = null;
 
+function getBearerTokensFromEnv(): string[] {
+  const bearerTokenList =
+    process.env.SYNC_ERP_MCP_BEARER_TOKENS ||
+    process.env.SYNC_ERP_MCP_BEARER_TOKEN ||
+    '';
+
+  return bearerTokenList
+    .split(',')
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
 export function isMcpEnabled(): boolean {
   return Boolean(
     process.env.SYNC_ERP_MCP_BEARER_TOKEN ||
@@ -32,16 +44,8 @@ export function getMcpRuntimeConfig(): McpRuntimeConfig {
     } as McpRuntimeConfig;
   }
 
-  const bearerTokenList =
-    process.env.SYNC_ERP_MCP_BEARER_TOKENS ||
-    process.env.SYNC_ERP_MCP_BEARER_TOKEN ||
-    '';
-
   const rawConfig = {
-    bearerTokens: bearerTokenList
-      .split(',')
-      .map((token) => token.trim())
-      .filter(Boolean),
+    bearerTokens: getBearerTokensFromEnv(),
     maxSessions: Number(process.env.SYNC_ERP_MCP_MAX_SESSIONS || 50),
     sessionTtlMs: Number(
       process.env.SYNC_ERP_MCP_SESSION_TTL_MS || 15 * 60 * 1000

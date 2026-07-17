@@ -13,7 +13,6 @@ import {
   resendVerificationSchema,
   verifyEmailSchema,
 } from '@sync-erp/shared';
-import { z } from 'zod';
 import { AuthService } from '../../modules/auth/auth.service';
 import type { Context } from '../context';
 
@@ -31,6 +30,7 @@ function getCookieOptions(): CookieOptions {
     httpOnly: true,
     secure: isSecureEnv,
     sameSite: isSecureEnv ? 'none' : 'lax',
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 }
@@ -135,7 +135,7 @@ export const authRouter = router({
     .use(
       publicRateLimit({
         namespace: 'auth.resendVerification',
-        maxAttempts: 5,
+        maxAttempts: 3,
         windowMs: 15 * 60 * 1000,
       })
     )
@@ -206,15 +206,6 @@ export const authRouter = router({
     ctx.res.clearCookie('sessionId');
     return { success: true };
   }),
-
-  /**
-   * Get session
-   */
-  getSession: publicProcedure
-    .input(z.object({ sessionId: z.string() }))
-    .query(async ({ input }) => {
-      return authService.getSession(input.sessionId);
-    }),
 
   /**
    * Get current user (me)

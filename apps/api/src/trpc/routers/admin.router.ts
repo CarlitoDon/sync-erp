@@ -2,11 +2,12 @@ import { router, protectedProcedure } from '../trpc';
 import { container, ServiceKeys } from '../../modules/common/di';
 import { z } from 'zod';
 import {
+  RentalWebhookDeliveryType,
   RentalWebhookOutboxStatus,
   TenantWebhookOutboxStatus,
 } from '@sync-erp/database';
 import { AdminService } from '../../modules/admin/service';
-import { webhookOutboxService } from '../../modules/rental/webhook-outbox.service';
+import { rentalWebhookOutboxService } from '../../modules/rental/rental-webhook-outbox.service';
 import { tenantWebhookOutboxService } from '../../services/tenant-webhook-outbox.service';
 
 const adminService = container.resolve<AdminService>(
@@ -58,10 +59,10 @@ export const adminRouter = router({
   getRentalWebhookOutboxStats: protectedProcedure
     .query(async ({ ctx }) => {
       const [counts, health] = await Promise.all([
-        webhookOutboxService.getQueueCounts(
+        rentalWebhookOutboxService.getQueueCounts(
           ctx.companyId!
         ),
-        webhookOutboxService.getHealthSignal(
+        rentalWebhookOutboxService.getHealthSignal(
           ctx.companyId!
         ),
       ]);
@@ -81,13 +82,15 @@ export const adminRouter = router({
         statuses: z
           .array(z.nativeEnum(RentalWebhookOutboxStatus))
           .optional(),
-        event: z.string().optional(),
+        deliveryType: z
+          .nativeEnum(RentalWebhookDeliveryType)
+          .optional(),
         limit: z.number().int().min(1).max(200).default(20),
         offset: z.number().int().min(0).default(0),
       })
     )
     .query(async ({ ctx, input }) => {
-      return webhookOutboxService.listDeliveries({
+      return rentalWebhookOutboxService.listDeliveries({
         companyId: ctx.companyId!,
         statuses:
           input.statuses && input.statuses.length > 0
@@ -96,7 +99,7 @@ export const adminRouter = router({
                 RentalWebhookOutboxStatus.FAILED,
                 RentalWebhookOutboxStatus.DEAD_LETTER,
               ],
-        event: input.event,
+        deliveryType: input.deliveryType,
         limit: input.limit,
         offset: input.offset,
       });
@@ -108,7 +111,7 @@ export const adminRouter = router({
   getRentalWebhookOutboxDetail: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      return webhookOutboxService.getDeliveryDetail({
+      return rentalWebhookOutboxService.getDeliveryDetail({
         companyId: ctx.companyId!,
         id: input.id,
       });
@@ -121,7 +124,7 @@ export const adminRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const requeued =
-        await webhookOutboxService.requeueDelivery(input.id, {
+        await rentalWebhookOutboxService.requeueDelivery(input.id, {
           companyId: ctx.companyId!,
         });
 
@@ -143,7 +146,7 @@ export const adminRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const requeuedCount =
-        await webhookOutboxService.requeueDeliveries({
+        await rentalWebhookOutboxService.requeueDeliveries({
           companyId: ctx.companyId!,
           ids: input.ids,
           statuses: input.statuses,

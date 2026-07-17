@@ -26,10 +26,7 @@ export const formatDateTime = (date: string | Date) => {
   return sharedFormatDateTime(date);
 };
 
-/**
- * Get external asset URL for integrations (images, etc)
- */
-export const getExternalAssetUrl = (integrationConfig: Record<string, unknown> | null, path: string): string => {
+export const getExternalAssetUrl = (path: string): string => {
   if (!path) return '';
 
   // If already a full URL, return as-is
@@ -37,7 +34,8 @@ export const getExternalAssetUrl = (integrationConfig: Record<string, unknown> |
     return path;
   }
 
-  const baseUrl = (integrationConfig?.assetBaseUrl as string) || '';
+  const baseUrl =
+    import.meta.env.VITE_EXTERNAL_ASSET_BASE_URL || 'http://localhost:4321';
 
   // Ensure path starts with /
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;

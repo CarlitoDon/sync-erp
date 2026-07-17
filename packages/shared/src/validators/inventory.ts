@@ -11,7 +11,12 @@ const GoodsReceiptInputItemSchema = z.object({
 
 export const CreateGoodsReceiptSchema = z.object({
   purchaseOrderId: z.string().uuid(),
-  date: z.string().datetime().optional(), // ISO string
+  date: z
+    .string()
+    .refine((value) => !Number.isNaN(new Date(value).getTime()), {
+      message: 'Invalid date',
+    })
+    .optional(),
   notes: z.string().optional(),
   items: z.array(GoodsReceiptInputItemSchema).min(1),
 });
@@ -31,7 +36,12 @@ const ShipmentInputItemSchema = z.object({
 
 export const CreateShipmentSchema = z.object({
   salesOrderId: z.string().uuid(),
-  date: z.string().datetime().optional(),
+  date: z
+    .string()
+    .refine((value) => !Number.isNaN(new Date(value).getTime()), {
+      message: 'Invalid date',
+    })
+    .optional(),
   notes: z.string().optional(),
   items: z.array(ShipmentInputItemSchema).min(1),
 });

@@ -48,18 +48,21 @@ export async function ensureCompanySubscription(
 ): Promise<CompanySubscription> {
   const trialStartsAt = company.createdAt;
   const trialEndsAt = addDays(company.createdAt, BILLING_TRIAL_DAYS);
+  const isDefaultFreePlan = DEFAULT_BILLING_PLAN_KEY === 'free';
 
   return prisma.companySubscription.upsert({
     where: { companyId: company.id },
     create: {
       companyId: company.id,
       planKey: DEFAULT_BILLING_PLAN_KEY,
-      status: BillingSubscriptionStatus.TRIALING,
+      status: isDefaultFreePlan
+        ? BillingSubscriptionStatus.ACTIVE
+        : BillingSubscriptionStatus.TRIALING,
       provider: BillingProvider.MANUAL,
-      trialStartsAt,
-      trialEndsAt,
+      trialStartsAt: isDefaultFreePlan ? null : trialStartsAt,
+      trialEndsAt: isDefaultFreePlan ? null : trialEndsAt,
       currentPeriodStartsAt: trialStartsAt,
-      currentPeriodEndsAt: trialEndsAt,
+      currentPeriodEndsAt: isDefaultFreePlan ? null : trialEndsAt,
     },
     update: {},
   });
@@ -69,7 +72,7 @@ export function isBillingProviderConfigured(): boolean {
   const provider = getBillingProvider();
 
   if (provider === BillingProvider.MIDTRANS) {
-    return Boolean(getMidtransServerKey());
+    return getMidtransConfigurationErrors().length === 0;
   }
 
   return true;
@@ -102,11 +105,77 @@ function getMidtransServerKey(): string | null {
   return getBillingEnvValue('MIDTRANS_SERVER_KEY') ?? null;
 }
 
-function isMidtransProduction(): boolean {
+function getMidtransClientKey(): string | null {
+  return getBillingEnvValue('MIDTRANS_CLIENT_KEY') ?? null;
+}
+
+export function isMidtransProduction(): boolean {
   return (
     getBillingEnvValue('MIDTRANS_IS_PRODUCTION') ===
     'true'
   );
+}
+
+function looksLikeMidtransSandboxKey(key: string): boolean {
+  return /^SB-Mid-/i.test(key);
+}
+
+function looksLikeMidtransProductionKey(
+  key: string,
+  kind: 'server' | 'client'
+): boolean {
+  return new RegExp(`^Mid-${kind}-`, 'i').test(key);
+}
+
+function getMidtransKeyModeMismatch(
+  keyName: 'MIDTRANS_SERVER_KEY' | 'MIDTRANS_CLIENT_KEY',
+  key: string | null,
+  kind: 'server' | 'client'
+): string | null {
+  if (!key) {
+    return `${keyName} is missing.`;
+  }
+
+  if (
+    !isMidtransProduction() &&
+    looksLikeMidtransProductionKey(key, kind)
+  ) {
+    return `${keyName} appears to be a production key while MIDTRANS_IS_PRODUCTION=false.`;
+  }
+
+  if (
+    isMidtransProduction() &&
+    looksLikeMidtransSandboxKey(key)
+  ) {
+    return `${keyName} appears to be a sandbox key while MIDTRANS_IS_PRODUCTION=true.`;
+  }
+
+  return null;
+}
+
+export function getMidtransConfigurationErrors(): string[] {
+  return [
+    getMidtransKeyModeMismatch(
+      'MIDTRANS_SERVER_KEY',
+      getMidtransServerKey(),
+      'server'
+    ),
+    getMidtransKeyModeMismatch(
+      'MIDTRANS_CLIENT_KEY',
+      getMidtransClientKey(),
+      'client'
+    ),
+  ].filter((error): error is string => Boolean(error));
+}
+
+function assertMidtransConfiguration(): void {
+  const errors = getMidtransConfigurationErrors();
+
+  if (errors.length > 0) {
+    throw new Error(
+      `Midtrans configuration is not safe for checkout: ${errors.join(' ')}`
+    );
+  }
 }
 
 function getMidtransAppBaseUrl(): string {
@@ -116,6 +185,8 @@ function getMidtransAppBaseUrl(): string {
 }
 
 function getMidtransAuthHeader(): string {
+  assertMidtransConfiguration();
+
   const serverKey = getMidtransServerKey();
 
   if (!serverKey) {
@@ -163,12 +234,30 @@ export function getApiBaseUrl(): string {
   );
 }
 
-export function getBillingWebhookSecret(): string {
+function isProdLikeBillingEnv(): boolean {
   return (
-    process.env.BILLING_WEBHOOK_SECRET ||
-    process.env.SYNC_ERP_BOT_SECRET ||
-    'dev-billing-webhook-secret'
+    process.env.NODE_ENV === 'production' ||
+    process.env.NODE_ENV === 'staging' ||
+    process.env.SECURE_COOKIES === 'true'
   );
+}
+
+export function getBillingWebhookSecret(): string {
+  const secret =
+    process.env.BILLING_WEBHOOK_SECRET ||
+    (!isProdLikeBillingEnv() ? process.env.SYNC_ERP_BOT_SECRET : undefined);
+
+  if (secret) {
+    return secret;
+  }
+
+  if (isProdLikeBillingEnv()) {
+    throw new Error(
+      'BILLING_WEBHOOK_SECRET must be configured in production or staging.'
+    );
+  }
+
+  return 'dev-billing-webhook-secret';
 }
 
 export function signBillingWebhookPayload(payload: string): string {
@@ -214,6 +303,10 @@ export async function createBillingCheckoutSession(input: {
     );
   }
 
+  if (provider === BillingProvider.MIDTRANS) {
+    assertMidtransConfiguration();
+  }
+
   const session = await prisma.billingCheckoutSession.create({
     data: {
       companyId: input.companyId,
@@ -221,12 +314,8 @@ export async function createBillingCheckoutSession(input: {
       planKey: input.planKey,
       billingCycle: input.billingCycle,
       providerSessionId: `bcs_${crypto.randomUUID()}`,
-      successUrl:
-        input.successUrl ??
-        `${webAppUrl}/settings/billing?checkout=success`,
-      cancelUrl:
-        input.cancelUrl ??
-        `${webAppUrl}/settings/billing?checkout=cancelled`,
+      successUrl: input.successUrl,
+      cancelUrl: input.cancelUrl,
       expiresAt,
       amountIdr,
       metadata: {
@@ -234,12 +323,20 @@ export async function createBillingCheckoutSession(input: {
       },
     },
   });
+  const successUrl =
+    input.successUrl ??
+    `${webAppUrl}/settings/billing?checkout=success&checkoutSessionId=${session.id}`;
+  const cancelUrl =
+    input.cancelUrl ??
+    `${webAppUrl}/settings/billing?checkout=cancelled&checkoutSessionId=${session.id}`;
 
   if (provider !== BillingProvider.MIDTRANS) {
     return prisma.billingCheckoutSession.update({
       where: { id: session.id },
       data: {
         providerCheckoutUrl: `${apiBaseUrl}/api/billing/checkout/${session.id}`,
+        successUrl,
+        cancelUrl,
       },
     });
   }
@@ -288,14 +385,13 @@ export async function createBillingCheckoutSession(input: {
           start_time: buildMidtransExpiryStartTime(new Date()),
         },
         callbacks: {
-          finish:
-            input.successUrl ??
-            `${webAppUrl}/settings/billing?checkout=success`,
-          error:
-            input.cancelUrl ??
-            `${webAppUrl}/settings/billing?checkout=failed`,
+          finish: successUrl,
+          error: cancelUrl.replace(
+            'checkout=cancelled',
+            'checkout=failed'
+          ),
           pending:
-            `${webAppUrl}/settings/billing?checkout=pending`,
+            `${webAppUrl}/settings/billing?checkout=pending&checkoutSessionId=${session.id}`,
         },
         metadata: {
           checkoutSessionId: session.id,
@@ -337,6 +433,8 @@ export async function createBillingCheckoutSession(input: {
     data: {
       providerSessionId: orderId,
       providerCheckoutUrl: data.redirect_url,
+      successUrl,
+      cancelUrl,
       metadata: {
         source: 'app',
         midtransSnapToken: data.token ?? null,

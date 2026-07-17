@@ -79,10 +79,18 @@ export class PurchaseOrderPolicy {
    */
   static validateUpdate(
     existingStatus: string,
-    data: { orderNumber?: string },
+    data: { orderNumber?: string } & Record<string, unknown>,
     existingOrderNumber: string | null
   ): void {
-    if (existingStatus !== OrderStatus.DRAFT) {
+    const changedKeys = Object.keys(data);
+    const isMetadataOnlyUpdate =
+      changedKeys.length > 0 &&
+      changedKeys.every((key) => key === 'notes');
+
+    if (
+      existingStatus !== OrderStatus.DRAFT &&
+      !isMetadataOnlyUpdate
+    ) {
       throw new DomainError(
         'Order is not in the correct state for this action',
         422,

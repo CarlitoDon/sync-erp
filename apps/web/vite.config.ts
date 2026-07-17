@@ -32,9 +32,35 @@ export default defineConfig(({ mode }) => {
   console.log('[Vite Config] Resolved envMode:', envMode);
 
   const env = loadEnv(envMode, process.cwd(), '');
+  const adsenseClientId =
+    env.VITE_GOOGLE_ADSENSE_CLIENT_ID?.trim();
+  const shouldInjectAdSense =
+    env.VITE_GOOGLE_ADSENSE_ENABLED?.trim() === 'true' &&
+    Boolean(adsenseClientId?.match(/^ca-pub-\d+$/));
 
   return {
     plugins: [
+      {
+        name: 'sync-erp-adsense-html',
+        transformIndexHtml() {
+          if (!shouldInjectAdSense || !adsenseClientId) {
+            return [];
+          }
+
+          return [
+            {
+              tag: 'script',
+              attrs: {
+                async: true,
+                crossorigin: 'anonymous',
+                'data-sync-erp-adsense': 'true',
+                src: `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`,
+              },
+              injectTo: 'head',
+            },
+          ];
+        },
+      },
       react({
         jsxRuntime: 'automatic',
       }),

@@ -17,6 +17,16 @@ vi.mock('@/components/layout/MobileMenuButton', () => ({
   ),
 }));
 
+vi.mock('@/hooks/useBillingFeatures', () => ({
+  useBillingFeatures: () => ({
+    adsEnabled: false,
+    currentPlan: null,
+    currentPlanKey: null,
+    isLoading: false,
+    mediaAccess: true,
+  }),
+}));
+
 // Mock the contexts
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: vi.fn(),
@@ -150,7 +160,10 @@ describe('Layout', () => {
     it('renders copyright text', () => {
       renderWithProviders();
 
-      expect(screen.getByText(/© 2024 Sync ERP/)).toBeInTheDocument();
+      const currentYear = new Date().getFullYear();
+      expect(
+        screen.getByText(new RegExp(`© ${currentYear} Sync ERP`))
+      ).toBeInTheDocument();
     });
 
     it('renders ERP description', () => {

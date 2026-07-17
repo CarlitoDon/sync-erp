@@ -2,7 +2,7 @@
  * MCP Server Factory
  *
  * Creates and configures the MCP server with all tools.
- * Shared between SSE and stdio transports.
+ * Shared between HTTP and stdio transports.
  */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {

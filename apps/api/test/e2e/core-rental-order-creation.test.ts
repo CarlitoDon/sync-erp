@@ -29,11 +29,14 @@ const buildCaller = (authorization?: string) =>
     userRole: undefined,
     userPermissions: [],
     integrationId: undefined,
+    isApiKeyAuth: undefined,
+    permissions: undefined,
+    apiKeyId: undefined,
   });
 
 const cleanupCompanyOrders = async () => {
   await prisma.$transaction([
-    prisma.webhookOutbox.deleteMany({
+    prisma.rentalWebhookOutbox.deleteMany({
       where: { companyId: COMPANY_ID },
     }),
     prisma.rentalBundleComponent.deleteMany({

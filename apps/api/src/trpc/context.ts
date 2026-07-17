@@ -75,7 +75,13 @@ export const createContext = async ({
     businessShape,
     userRole,
     userPermissions, // Granular RBAC: ['bill:void', 'payment:void', ...]
+    // These are injected by apiKeyProcedure middleware — declared here
+    // as optional so the base context type is compatible with both
+    // authenticated and api-key-procedure paths.
     integrationId: undefined as string | undefined,
+    isApiKeyAuth: undefined as boolean | undefined,
+    permissions: undefined as string[] | undefined,
+    apiKeyId: undefined as string | undefined,
   };
 };
 

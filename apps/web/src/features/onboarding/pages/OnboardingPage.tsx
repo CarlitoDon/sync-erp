@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button, CurrencyInput, Input } from '@/components/ui';
+import { Button, CurrencyInput, Input, Label } from '@/components/ui';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useCompany } from '@/contexts/CompanyContext';
 import { trpc } from '@/lib/trpc';
 import {
@@ -10,6 +12,10 @@ import {
   CompanyOnboardingStep,
 } from '@sync-erp/shared';
 import type { RouterOutputs } from '@/types/api';
+import {
+  getBillingPlanIntent,
+  getPostCompanyRedirect,
+} from '@/features/billing/planIntent';
 
 type Step = CompanyOnboardingStep;
 type OnboardingCompanyUpdate = RouterOutputs['onboarding']['start'];
@@ -25,6 +31,7 @@ function normalizeStep(raw: unknown): Step {
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentCompany, setCurrentCompany } = useCompany();
 
   const onboardingState = trpc.onboarding.getState.useQuery(undefined, {
@@ -142,6 +149,17 @@ export default function OnboardingPage() {
       onboardingStatus: data.onboardingStatus,
       onboardingStep: data.onboardingStep,
     });
+  };
+
+  const getPostOnboardingPath = () => {
+    if (
+      searchParams.get('next') === 'billing' ||
+      getBillingPlanIntent()
+    ) {
+      return getPostCompanyRedirect();
+    }
+
+    return '/dashboard';
   };
 
   const shell = (content: React.ReactNode) => (
@@ -283,12 +301,19 @@ export default function OnboardingPage() {
             onChange={(e) => setSupplierName(e.target.value)}
             placeholder="Contoh: Supplier A"
           />
-          <Input
-            label="Nama produk"
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            placeholder="Contoh: Produk 1"
-          />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-1">
+              <Label>Nama produk</Label>
+              <Tooltip content="Ini adalah nama produk yang akan muncul di invoice dan laporan stok.">
+                <InformationCircleIcon className="h-4 w-4 text-slate-400" />
+              </Tooltip>
+            </div>
+            <Input
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              placeholder="Contoh: Produk 1"
+            />
+          </div>
           <Input
             label="Quantity"
             type="number"
@@ -362,7 +387,7 @@ export default function OnboardingPage() {
               complete.mutate(undefined, {
                 onSuccess: (data: OnboardingCompanyUpdate) => {
                   setCompanyFromMutation(data);
-                  navigate('/dashboard', { replace: true });
+                  navigate(getPostOnboardingPath(), { replace: true });
                 },
               })
             }
@@ -386,7 +411,7 @@ export default function OnboardingPage() {
   }
 
   if (step === 'DONE') {
-    navigate('/dashboard', { replace: true });
+    navigate(getPostOnboardingPath(), { replace: true });
     return null;
   }
 

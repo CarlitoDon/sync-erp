@@ -1,34 +1,47 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileMenuButton from '@/components/layout/MobileMenuButton';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { AdSenseScript } from '@/components/ads/AdSenseScript';
+import { AdSenseSlot } from '@/components/ads/AdSenseSlot';
+import { getFooterAdSenseSlot } from '@/components/ads/adsense';
+import { useBillingFeatures } from '@/hooks/useBillingFeatures';
+import { BrandMark } from '@/components/brand/BrandMark';
 
 export default function Layout() {
   const { isCollapsed } = useSidebar();
+  const location = useLocation();
+  const { adsEnabled } = useBillingFeatures();
+  const suppressAds =
+    location.search.includes('checkout=') ||
+    location.pathname.includes('/print') ||
+    location.pathname.includes('/export');
+  const showAds = adsEnabled && !suppressAds;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex">
+    <div className="app-grid-background flex min-h-screen">
+      <AdSenseScript enabled={showAds} />
+
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main Content Area */}
       <div
         className={`
-        flex-1 flex flex-col min-h-screen transition-all duration-300
+        flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-300
         ${isCollapsed ? 'md:ml-16' : 'md:ml-64'}
       `}
       >
         {/* Simplified Header (Mobile only shows hamburger) */}
-        <header className="md:hidden glass sticky top-0 z-30 shadow-sm">
-          <div className="flex items-center justify-between h-14 px-4">
+        <header className="glass sticky top-0 z-30 shadow-sm md:hidden">
+          <div className="relative flex h-14 items-center justify-between px-4">
             <MobileMenuButton />
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xs">
-                  S
-                </span>
-              </div>
-              <span className="text-lg font-semibold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+            <Link
+              to="/dashboard"
+              className="absolute left-1/2 flex max-w-[calc(100vw-7rem)] -translate-x-1/2 items-center gap-2"
+            >
+              <BrandMark size="sm" />
+              <span className="truncate text-lg font-semibold text-slate-950">
                 Sync ERP
               </span>
             </Link>
@@ -38,15 +51,24 @@ export default function Layout() {
 
         {/* Main Content */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
+          <AdSenseSlot
+            enabled={showAds}
+            className="mb-6 min-h-[90px]"
+          />
           <Outlet />
+          <AdSenseSlot
+            enabled={showAds}
+            slot={getFooterAdSenseSlot()}
+            className="mt-6 min-h-[90px]"
+          />
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-gray-200 mt-auto">
+        <footer className="mt-auto border-t border-slate-200/70 bg-white/55 backdrop-blur-sm">
           <div className="px-4 sm:px-6 lg:px-8 py-4">
-            <p className="text-center text-sm text-gray-500">
-              © 2024 Sync ERP. Multi-Company Enterprise Resource
-              Planning.
+            <p className="text-center text-sm text-slate-500">
+              © {new Date().getFullYear()} Sync ERP. Multi-Company
+              Enterprise Resource Planning.
             </p>
           </div>
         </footer>

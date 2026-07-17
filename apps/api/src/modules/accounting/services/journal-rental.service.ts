@@ -2,7 +2,9 @@ import {
   JournalSourceType,
   PaymentMethodType,
   Prisma,
+  prisma,
 } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { JournalCoreService } from './journal-core.service';
 
 export class JournalRentalService {
@@ -17,11 +19,18 @@ export class JournalRentalService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
+    const contraAccountCode =
+      await this.resolvePaymentContraAccountCode(
+        companyId,
+        paymentMethod,
+        tx
+      );
     const data = this.prepareRentalDepositJournal(
       depositId,
       orderNumber,
       amount,
       paymentMethod,
+      contraAccountCode,
       businessDate
     );
     return this.core.resolveAndCreate(companyId, data, tx);
@@ -35,15 +44,24 @@ export class JournalRentalService {
     rentalRevenue: number,
     depositRefund: number,
     paymentMethod: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
+    const contraAccountCode =
+      await this.resolvePaymentContraAccountCode(
+        companyId,
+        paymentMethod,
+        tx
+      );
     const data = this.prepareRentalReturnJournal(
       returnId,
       orderNumber,
       depositAmount,
       rentalRevenue,
       depositRefund,
-      paymentMethod
+      paymentMethod,
+      contraAccountCode,
+      businessDate
     );
     return this.core.resolveAndCreate(companyId, data, tx);
   }
@@ -55,18 +73,16 @@ export class JournalRentalService {
     orderNumber: string,
     amount: number,
     paymentMethod: string,
+    contraAccountCode: string,
     businessDate?: Date
   ) {
-    const cashAccount =
-      paymentMethod === PaymentMethodType.BANK ? '1200' : '1100';
-
     return {
       reference: `Rental Deposit: ${orderNumber}`,
       memo: `Rental deposit collected via ${paymentMethod}`,
       sourceType: JournalSourceType.RENTAL_DEPOSIT,
       sourceId: depositId,
       lines: [
-        { accountCode: cashAccount, debit: amount }, // Cash/Bank (Asset)
+        { accountCode: contraAccountCode, debit: amount }, // Cash/Bank (Asset)
         { accountCode: '2400', credit: amount }, // Customer Deposits (Liability)
       ],
       date: businessDate,
@@ -79,19 +95,20 @@ export class JournalRentalService {
     depositAmount: number,
     rentalRevenue: number,
     depositRefund: number,
-    paymentMethod: string
+    paymentMethod: string,
+    contraAccountCode: string,
+    businessDate?: Date
   ) {
-    const cashAccount =
-      paymentMethod === PaymentMethodType.BANK ? '1200' : '1100';
-
     const lines: {
       accountCode: string;
       debit?: number;
       credit?: number;
     }[] = [];
 
-    // Always debit the full deposit liability (clearing it)
-    lines.push({ accountCode: '2400', debit: depositAmount });
+    // Debit deposit liability only when a real deposit exists.
+    if (depositAmount > 0) {
+      lines.push({ accountCode: '2400', debit: depositAmount });
+    }
 
     // Credit rental revenue
     if (rentalRevenue > 0) {
@@ -100,7 +117,7 @@ export class JournalRentalService {
 
     // If refund, credit cash (money going out)
     if (depositRefund > 0) {
-      lines.push({ accountCode: cashAccount, credit: depositRefund });
+      lines.push({ accountCode: contraAccountCode, credit: depositRefund });
     }
 
     // If damage charges exceed deposit (additional collection needed)
@@ -109,17 +126,71 @@ export class JournalRentalService {
     if (additionalCharge > 0) {
       // This means customer pays extra
       lines.push({
-        accountCode: cashAccount,
+        accountCode: contraAccountCode,
         debit: additionalCharge,
       });
     }
 
     return {
       reference: `Rental Return: ${orderNumber}`,
-      memo: `Rental return settlement - Revenue: ${rentalRevenue}, Refund: ${depositRefund}`,
+      memo: `Rental return settlement via ${paymentMethod} - Revenue: ${rentalRevenue}, Refund: ${depositRefund}`,
       sourceType: JournalSourceType.RENTAL_RETURN,
       sourceId: returnId,
+      date: businessDate,
       lines,
     };
   }
+
+  private async resolvePaymentContraAccountCode(
+    companyId: string,
+    method: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<string> {
+    const candidateCodes =
+      method === PaymentMethodType.BANK ||
+      method === PaymentMethodType.QRIS ||
+      method === PaymentMethodType.EWALLET
+        ? ['1211', '1200']
+        : ['1000', '1100'];
+
+    for (const code of candidateCodes) {
+      const account = tx
+        ? await tx.account.findUnique({
+            where: { companyId_code: { companyId, code } },
+          })
+        : await prisma.account.findUnique({
+            where: { companyId_code: { companyId, code } },
+          });
+
+      if (account && isValidPaymentContraAccount(method, account.name)) {
+        return account.code;
+      }
+    }
+
+    throw new DomainError(
+      `No valid settlement account found for ${method} payment`,
+      400,
+      DomainErrorCodes.INVALID_INPUT
+    );
+  }
+}
+
+function isValidPaymentContraAccount(method: string, accountName: string) {
+  const normalized = accountName.toLowerCase();
+  if (
+    normalized.includes('inventory') ||
+    normalized.includes('receivable')
+  ) {
+    return false;
+  }
+
+  if (
+    method === PaymentMethodType.BANK ||
+    method === PaymentMethodType.QRIS ||
+    method === PaymentMethodType.EWALLET
+  ) {
+    return normalized.includes('bank');
+  }
+
+  return normalized.includes('cash');
 }

@@ -34,12 +34,15 @@ export function CompanyProvider({
 
   // Use tRPC to fetch companies
   const {
-    data: companies = [],
+    data: companyData,
     isLoading: queryLoading,
+    isFetching: queryFetching,
+    isError: queryError,
     refetch,
   } = trpc.company.list.useQuery(undefined, {
     enabled: !!isAuthenticated,
   });
+  const companies = companyData ?? [];
 
   const [currentCompany, _setCurrentCompanyState] =
     useState<Company | null>(null);
@@ -51,6 +54,7 @@ export function CompanyProvider({
   const setCurrentCompany = useCallback(
     (company: Company | null) => {
       _setCurrentCompanyState(company);
+      setIsInitialized(true);
       if (company) {
         localStorage.setItem('currentCompanyId', company.id);
       } else {
@@ -62,10 +66,23 @@ export function CompanyProvider({
     [utils]
   );
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      _setCurrentCompanyState(null);
+      setIsInitialized(false);
+    }
+  }, [isAuthenticated]);
+
   // Effect to restore selection from localStorage when companies load
   useEffect(() => {
-    // Skip if not authenticated or query still loading
-    if (!isAuthenticated || queryLoading) return;
+    // Skip if not authenticated or the first company query has not settled.
+    if (
+      !isAuthenticated ||
+      queryLoading ||
+      queryFetching ||
+      (companyData === undefined && !queryError)
+    )
+      return;
 
     // If no companies fetched yet, wait
     if (companies.length === 0) {
@@ -94,11 +111,21 @@ export function CompanyProvider({
 
     // Mark as initialized regardless of whether we found a saved company
     setIsInitialized(true);
-  }, [companies, isAuthenticated, queryLoading, currentCompany]);
+  }, [
+    companyData,
+    companies,
+    isAuthenticated,
+    queryError,
+    queryFetching,
+    queryLoading,
+    currentCompany,
+  ]);
 
   // Combined loading state: query loading OR not yet initialized
   const isLoading =
-    queryLoading || (!isInitialized && isAuthenticated);
+    queryLoading ||
+    (isAuthenticated &&
+      (!isInitialized || (companyData === undefined && !queryError)));
 
   return (
     <CompanyContext.Provider

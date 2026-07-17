@@ -10,6 +10,7 @@ interface OrderItem {
   rentalItemId?: string;
   rentalBundleId?: string;
   quantity: number;
+  pricePerDay?: number;
 }
 
 export type { OrderItem };
@@ -52,6 +53,10 @@ export function useCreateOrder({
     rentalEndDate: '',
     dueDateTime: '',
     notes: '',
+    deliveryFee: '',
+    discountAmount: '',
+    deliveryAddress: '',
+    paymentMethod: '',
     items: [] as OrderItem[],
   });
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
@@ -91,6 +96,10 @@ export function useCreateOrder({
       rentalEndDate: '',
       dueDateTime: '',
       notes: '',
+      deliveryFee: '',
+      discountAmount: '',
+      deliveryAddress: '',
+      paymentMethod: '',
       items: [],
     });
   }, []);
@@ -114,7 +123,7 @@ export function useCreateOrder({
     (
       idx: number,
       field: keyof OrderItem,
-      value: string | number | 'item' | 'bundle'
+      value: string | number | undefined | 'item' | 'bundle'
     ) => {
       setOrderForm((prev) => {
         const newItems = [...prev.items];
@@ -187,6 +196,14 @@ export function useCreateOrder({
             ).toISOString(),
             dueDateTime: dueDateTime.toISOString(),
             notes: orderForm.notes || undefined,
+            deliveryFee: orderForm.deliveryFee
+              ? Number(orderForm.deliveryFee)
+              : undefined,
+            discountAmount: orderForm.discountAmount
+              ? Number(orderForm.discountAmount)
+              : undefined,
+            deliveryAddress: orderForm.deliveryAddress || undefined,
+            paymentMethod: orderForm.paymentMethod || undefined,
             items: orderForm.items
               .filter(
                 (i) =>
@@ -199,6 +216,7 @@ export function useCreateOrder({
                 rentalBundleId:
                   i.type === 'bundle' ? i.rentalBundleId : undefined,
                 quantity: i.quantity,
+                pricePerDay: i.pricePerDay || undefined,
               })),
           }),
         'Order berhasil dibuat'

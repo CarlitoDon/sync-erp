@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { TextContent } from './types.js';
 
 function getEnv(name: string, fallback?: string): string {
@@ -116,14 +116,12 @@ function pickNumber(
 async function main() {
   const serverUrl = getEnv(
     'SYNC_ERP_MCP_URL',
-    'http://localhost:3001/mcp/sse'
+    'http://localhost:3005/mcp'
   );
   const authHeaders = getAuthHeaders();
-  const transport = new SSEClientTransport(new URL(serverUrl), {
+  const transport = new StreamableHTTPClientTransport(new URL(serverUrl), {
     requestInit: { headers: authHeaders },
-    eventSourceInit: {
-      fetch: createAuthFetch(),
-    },
+    fetch: createAuthFetch(),
   });
   const client = new Client({
     name: 'sync-erp-mcp-e2e',

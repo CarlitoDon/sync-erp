@@ -36,7 +36,7 @@ export function getPaymentTools(): ToolSpec[] {
     {
       name: 'payment_create',
       description:
-        'Create a payment. Pass input as JSON string with fields: invoiceId/billId, amount, method, accountId, reference, businessDate',
+        'Create a payment. Pass input as JSON string with fields: invoiceId/billId, amount, method, accountId/bankAccountId, paymentMethodId/paymentMethodCode, reference, businessDate',
       inputSchema: {
         type: 'object',
         properties: {
@@ -44,16 +44,30 @@ export function getPaymentTools(): ToolSpec[] {
           input: {
             type: 'string',
             description:
-              'JSON object: {invoiceId?, billId?, amount, method, accountId, reference?, businessDate?}',
+              'JSON object: {invoiceId?, billId?, amount, method, accountId?, bankAccountId?, paymentMethodId?, paymentMethodCode?, reference?, businessDate?}',
           },
         },
         required: ['companyId', 'input'],
       },
       handler: async (args) => {
         const input: unknown = JSON.parse(getString(args, 'input'));
+        if (!input || typeof input !== 'object' || Array.isArray(input)) {
+          throw new Error('payment_create input must be a JSON object');
+        }
+        const normalized: Record<string, unknown> = {
+          ...(input as Record<string, unknown>),
+        };
+        if (!normalized.invoiceId && normalized.billId) {
+          normalized.invoiceId = normalized.billId;
+        }
+        if (!normalized.bankAccountId && normalized.accountId) {
+          normalized.bankAccountId = normalized.accountId;
+        }
+        delete normalized.billId;
+        delete normalized.accountId;
         return apiMutation(
           'payment.create',
-          input as Record<string, unknown>,
+          normalized,
           getString(args, 'companyId')
         );
       },

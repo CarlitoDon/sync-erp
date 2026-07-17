@@ -4,6 +4,7 @@ import { BillService } from '@modules/accounting/services/bill.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
+
 const billService = new BillService();
 const purchaseOrderService = new PurchaseOrderService();
 const inventoryService = new InventoryService();
@@ -44,7 +45,7 @@ describe('US2: Purchase Tax Selection (Input VAT)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as import('@sync-erp/database').AccountType,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });

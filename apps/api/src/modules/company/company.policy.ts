@@ -43,7 +43,8 @@ export class CompanyPolicy {
     return (
       shape === BusinessShape.RETAIL ||
       shape === BusinessShape.MANUFACTURING ||
-      shape === BusinessShape.SERVICE
+      shape === BusinessShape.SERVICE ||
+      shape === BusinessShape.RENTAL
     );
   }
 
@@ -53,7 +54,7 @@ export class CompanyPolicy {
   static ensureValidTargetShape(shape: BusinessShape): void {
     if (!this.isValidTargetShape(shape)) {
       throw new DomainError(
-        'Invalid target shape. Must be one of: RETAIL, MANUFACTURING, SERVICE',
+        'Invalid target shape. Must be one of: RETAIL, MANUFACTURING, SERVICE, RENTAL',
         400,
         DomainErrorCodes.OPERATION_NOT_ALLOWED
       );

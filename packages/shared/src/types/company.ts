@@ -8,12 +8,14 @@
  * RETAIL: Trading business, stock tracking enabled, AVG costing.
  * MANUFACTURING: Full inventory with WIP, FIFO costing.
  * SERVICE: No physical stock, service-only operations.
+ * RENTAL: Rental operations with rentable items and returns.
  */
 export enum BusinessShape {
   PENDING = 'PENDING',
   RETAIL = 'RETAIL',
   MANUFACTURING = 'MANUFACTURING',
   SERVICE = 'SERVICE',
+  RENTAL = 'RENTAL',
 }
 
 export enum CompanyOnboardingStatus {
@@ -62,5 +64,6 @@ export interface SelectShapeDto {
   shape:
     | BusinessShape.RETAIL
     | BusinessShape.MANUFACTURING
-    | BusinessShape.SERVICE;
+    | BusinessShape.SERVICE
+    | BusinessShape.RENTAL;
 }

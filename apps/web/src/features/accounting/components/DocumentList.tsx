@@ -18,6 +18,7 @@ import {
   PaymentMethodType,
   DocumentType,
   InvoiceStatusFilter,
+  invoiceStatusOptions,
 } from '@/features/accounting/utils/financeEnums';
 import {
   PAYMENT_METHOD_OPTIONS,
@@ -25,6 +26,10 @@ import {
 } from '@sync-erp/shared';
 import { InvoiceStatusSchema as StatusSchema } from '@/types/api';
 import { CurrencyInput } from '@/components/ui/CurrencyInput';
+
+const invoiceStatusTabLabels = new Map<string, string>(
+  invoiceStatusOptions.map((option) => [option.value, option.label])
+);
 
 export interface DocumentListProps {
   type: DocumentType;
@@ -89,9 +94,9 @@ export function DocumentList({
       >
         {selectedDoc && (
           <div className="space-y-4">
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-slate-500">
                   {entityLabel} Number
                 </span>
                 <span className="font-mono font-medium">
@@ -99,7 +104,7 @@ export function DocumentList({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-slate-500">
                   {partnerLabel}
                 </span>
                 <span className="font-medium">
@@ -107,7 +112,7 @@ export function DocumentList({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-slate-500">
                   Total Amount
                 </span>
                 <span className="font-medium">
@@ -115,7 +120,7 @@ export function DocumentList({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-slate-500">
                   Outstanding Balance
                 </span>
                 <span className="font-bold text-red-600">
@@ -123,7 +128,7 @@ export function DocumentList({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-slate-500">
                   Due Date
                 </span>
                 <span
@@ -139,7 +144,7 @@ export function DocumentList({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-slate-700">
                 Payment Amount *
               </label>
               <CurrencyInput
@@ -148,13 +153,13 @@ export function DocumentList({
                 value={paymentAmount}
                 onChange={(val) => setPaymentAmount(val)}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="mt-1 text-xs text-slate-500">
                 Max: {formatCurrency(Number(selectedDoc.balance))}
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-slate-700">
                 Payment Method
               </label>
               <Select
@@ -174,12 +179,12 @@ export function DocumentList({
               />
             )}
 
-            <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+            <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
               <button
                 type="button"
                 onClick={closePaymentModal}
                 disabled={paymentMutation.isPending}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="rounded-md bg-slate-100 px-4 py-2 text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -191,7 +196,7 @@ export function DocumentList({
                   paymentAmount <= 0 ||
                   paymentAmount > Number(selectedDoc.balance)
                 }
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-emerald-600 hover:bg-emerald-700"
               >
                 Confirm Payment
               </Button>
@@ -231,7 +236,7 @@ export function DocumentList({
       />
 
       {/* Status Filter Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="overflow-x-auto border-b border-slate-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <nav className="-mb-px flex space-x-8">
           {INVOICE_STATUS_OPTIONS
             // eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'VOID' is a UI filter comparison
@@ -244,54 +249,54 @@ export function DocumentList({
                 }
                 className={`${
                   filterStatus === opt.value
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                    ? 'border-cyan-600 text-cyan-700'
+                    : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                } whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
               >
                 {/* eslint-disable-next-line @sync-erp/no-hardcoded-enum -- 'ALL' is a UI filter display label */}
                 {opt.value === 'ALL'
                   ? `All ${entityLabel}s`
-                  : opt.label}
+                  : (invoiceStatusTabLabels.get(opt.value) ?? opt.label)}
               </button>
             ))}
         </nav>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200/60">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
                   {entityLabel} #
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
                   {partnerLabel}
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                   Amount
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                   Balance
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500">
                   Due Date
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wide text-slate-500">
                   Status
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-slate-200">
               {filteredDocs.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
-                    className="px-6 py-12 text-center text-gray-500"
+                    className="px-6 py-12 text-center text-slate-500"
                   >
                     No {entityLabel.toLowerCase()}s found.
                   </td>
@@ -299,18 +304,18 @@ export function DocumentList({
               ) : (
                 filteredDocs.map((doc) => (
                   <Fragment key={doc.id}>
-                    <tr className="hover:bg-gray-50">
+                    <tr className="hover:bg-slate-50/80">
                       <td className="px-6 py-4 font-mono text-sm">
                         <Link
                           to={`/${detailRoute}/${doc.id}`}
-                          className="text-blue-600 hover:underline"
+                          className="text-cyan-700 hover:text-cyan-900 hover:underline"
                         >
                           {doc.invoiceNumber}
                         </Link>
                         {/* Feature: DP Badge */}
                         {'isDownPayment' in doc &&
                           doc.isDownPayment && (
-                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                            <span className="ml-2 inline-flex items-center rounded border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-xs font-medium text-cyan-800">
                               DP
                             </span>
                           )}
@@ -318,7 +323,7 @@ export function DocumentList({
                       <td className="px-6 py-4">
                         <Link
                           to={`/${partnerRoute}/${doc.partnerId}`}
-                          className="text-blue-600 hover:underline"
+                          className="text-cyan-700 hover:text-cyan-900 hover:underline"
                         >
                           {doc.partner?.name || '-'}
                         </Link>
@@ -396,7 +401,7 @@ export function DocumentList({
                       </td>
                     </tr>
                     {showHistory === doc.id && (
-                      <tr className="bg-gray-50">
+                      <tr className="bg-slate-50">
                         <td colSpan={7} className="px-6 py-4">
                           <PaymentHistoryList
                             invoiceId={doc.id}

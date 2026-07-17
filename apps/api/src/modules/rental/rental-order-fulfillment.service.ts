@@ -27,6 +27,7 @@ import {
   type ReleaseRentalOrderInput,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
+import { isBillingFeatureEnabled } from '../billing/billing-limits.service';
 
 export class RentalOrderFulfillmentService {
   constructor(
@@ -530,13 +531,25 @@ export class RentalOrderFulfillmentService {
 
       Policy.ensureCanRelease(order);
 
-      // Validate all units have photos
+      const hasMediaAccess = await isBillingFeatureEnabled({
+        companyId,
+        feature: 'mediaAccess',
+      });
+
+      // Paid plans keep photo evidence requirements; free plans use no-media logs.
       const unitIds = input.unitAssignments.map((a) => a.unitId);
       for (const assignment of input.unitAssignments) {
-        if (
-          !assignment.beforePhotos ||
-          assignment.beforePhotos.length === 0
-        ) {
+        const beforePhotos = assignment.beforePhotos ?? [];
+
+        if (!hasMediaAccess && beforePhotos.length > 0) {
+          throw new DomainError(
+            'Media access is not available on your current plan',
+            403,
+            DomainErrorCodes.OPERATION_NOT_ALLOWED
+          );
+        }
+
+        if (hasMediaAccess && beforePhotos.length === 0) {
           throw new DomainError(
             'All units must have before photos',
             400,
@@ -553,10 +566,12 @@ export class RentalOrderFulfillmentService {
               rentalItemUnit: { connect: { id: assignment.unitId } },
               rentalOrder: { connect: { id: order.id } },
               conditionType: 'RELEASE',
-              beforePhotos: assignment.beforePhotos,
+              beforePhotos: assignment.beforePhotos ?? [],
               afterPhotos: [],
               condition: assignment.condition,
-              notes: assignment.notes,
+              notes:
+                assignment.notes ??
+                (hasMediaAccess ? undefined : 'No media access on current plan'),
               recordedAt: new Date(),
               assessedBy: userId,
             },

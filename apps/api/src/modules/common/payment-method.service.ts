@@ -3,7 +3,7 @@
  *
  * Business logic for payment method configuration
  */
-import { PaymentMethodType } from '@sync-erp/database';
+import { Account, PaymentMethodType } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import * as paymentMethodRepo from './payment-method.repository';
 
@@ -74,6 +74,12 @@ export async function create(input: CreateInput) {
     );
   }
 
+  await validateSettlementAccount(
+    input.companyId,
+    input.type,
+    input.accountId
+  );
+
   // If this is set as default, unset other defaults of same type
   if (input.isDefault) {
     await paymentMethodRepo.unsetDefaultsByType(
@@ -138,6 +144,14 @@ export async function update(input: UpdateInput) {
     }
   }
 
+  await validateSettlementAccount(
+    input.companyId,
+    input.data.type ?? method.type,
+    input.data.accountId === undefined
+      ? method.accountId
+      : input.data.accountId
+  );
+
   // If setting as default, unset other defaults of same type
   if (input.data.isDefault === true) {
     const type = input.data.type ?? method.type;
@@ -192,13 +206,28 @@ export async function seedDefaults(input: SeedDefaultsInput) {
     );
   }
 
-  // Get cash account (1100) and bank account (1200) if they exist
-  const [cashAccount, bankAccount] = await Promise.all([
-    paymentMethodRepo.findAccountByCode('1100', input.companyId),
-    paymentMethodRepo.findAccountByCode('1200', input.companyId),
-  ]);
+  const [cashAccount, bankAccount, ownerContributionAccount] =
+    await Promise.all([
+      findPreferredSettlementAccount(input.companyId, PaymentMethodType.CASH, [
+        '1000',
+        '1100',
+      ]),
+      findPreferredSettlementAccount(input.companyId, PaymentMethodType.BANK, [
+        '1211',
+        '1200',
+      ]),
+      paymentMethodRepo.findAccountByCode('3210', input.companyId),
+    ]);
 
-  const defaults = [
+  const defaults: {
+    companyId: string;
+    code: string;
+    name: string;
+    type: PaymentMethodType;
+    accountId?: string;
+    isDefault: boolean;
+    sortOrder: number;
+  }[] = [
     {
       companyId: input.companyId,
       code: PaymentMethodType.CASH,
@@ -228,7 +257,76 @@ export async function seedDefaults(input: SeedDefaultsInput) {
     },
   ];
 
+  if (ownerContributionAccount) {
+    defaults.push({
+      companyId: input.companyId,
+      code: 'OWNER_CONTRIBUTION',
+      name: 'Setoran Modal Pemilik',
+      type: PaymentMethodType.OTHER,
+      accountId: ownerContributionAccount.id,
+      isDefault: false,
+      sortOrder: 4,
+    });
+  }
+
   const result = await paymentMethodRepo.createMany(defaults);
 
   return { count: result.count };
+}
+
+async function validateSettlementAccount(
+  companyId: string,
+  methodType: PaymentMethodType,
+  accountId?: string | null
+) {
+  if (!accountId) return;
+
+  const account = await paymentMethodRepo.findAccountById(
+    accountId,
+    companyId
+  );
+  if (!account) return;
+
+  if (isUnsafeSettlementAccount(methodType, account)) {
+    throw new DomainError(
+      `${methodType} payment method cannot use account ${account.code} ${account.name}`,
+      400,
+      DomainErrorCodes.INVALID_INPUT
+    );
+  }
+}
+
+async function findPreferredSettlementAccount(
+  companyId: string,
+  methodType: PaymentMethodType,
+  accountCodes: string[]
+) {
+  for (const accountCode of accountCodes) {
+    const account = await paymentMethodRepo.findAccountByCode(
+      accountCode,
+      companyId
+    );
+    if (account && !isUnsafeSettlementAccount(methodType, account)) {
+      return account;
+    }
+  }
+}
+
+function isUnsafeSettlementAccount(
+  methodType: PaymentMethodType,
+  account: Pick<Account, 'name'>
+) {
+  if (
+    methodType !== PaymentMethodType.BANK &&
+    methodType !== PaymentMethodType.QRIS &&
+    methodType !== PaymentMethodType.CASH
+  ) {
+    return false;
+  }
+
+  const accountName = account.name.toLowerCase();
+  return (
+    accountName.includes('inventory') ||
+    accountName.includes('receivable')
+  );
 }

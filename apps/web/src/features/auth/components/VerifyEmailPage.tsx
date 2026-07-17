@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
+import { BrandMark } from '@/components/brand/BrandMark';
 
 export const VerifyEmailPage: React.FC = () => {
   const navigate = useNavigate();
@@ -43,18 +44,26 @@ export const VerifyEmailPage: React.FC = () => {
   }, [navigate, token, verifyEmailMutation]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-        <h2 className="mb-3 text-2xl font-bold text-gray-900">
-          Email Verification
-        </h2>
+    <div className="auth-grid-background flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 shadow-xl shadow-slate-300/40">
+        <div className="mb-6 flex items-center gap-3">
+          <BrandMark />
+          <div>
+            <p className="text-sm font-medium text-slate-500">
+              Sync ERP
+            </p>
+            <h2 className="text-2xl font-bold text-slate-950">
+              Email Verification
+            </h2>
+          </div>
+        </div>
         <div
           className={
             status === 'success'
-              ? 'rounded bg-green-50 p-4 text-sm text-green-700'
+              ? 'rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700'
               : status === 'error'
-                ? 'rounded bg-red-50 p-4 text-sm text-red-600'
-                : 'rounded bg-blue-50 p-4 text-sm text-blue-700'
+                ? 'rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700'
+                : 'rounded-md border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-800'
           }
         >
           {message}
@@ -64,7 +73,7 @@ export const VerifyEmailPage: React.FC = () => {
           {status === 'error' && (
             <Link
               to="/register"
-              className="block w-full rounded bg-blue-600 py-2 text-center text-white hover:bg-blue-700"
+              className="block w-full rounded-md bg-slate-950 py-2 text-center text-white shadow-sm hover:bg-slate-800"
             >
               Back to registration
             </Link>
@@ -73,7 +82,7 @@ export const VerifyEmailPage: React.FC = () => {
           {status !== 'verifying' && (
             <Link
               to="/login"
-              className="block w-full rounded border border-gray-300 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="block w-full rounded-md border border-slate-300 bg-white py-2 text-center text-sm font-medium text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50"
             >
               Go to sign in
             </Link>

@@ -1,7 +1,6 @@
 import { prisma } from '@sync-erp/database';
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { Prisma } from '@sync-erp/database';
-import { integrationRegistry } from '../integrations/registry';
 
 type IntegrationWithApiKeys = {
   id: string;
@@ -17,6 +16,42 @@ type IntegrationWithApiKeys = {
     lastUsedAt: Date | null;
   }>;
 };
+
+export interface IntegrationApp {
+  appId: string;
+  name: string;
+  description: string;
+  icon: string;
+  defaultConfig?: Record<string, unknown>;
+}
+
+export const AVAILABLE_INTEGRATIONS: IntegrationApp[] = [
+  {
+    appId: 'custom-storefront',
+    name: 'Custom Storefront',
+    description:
+      'Connect an external storefront, website, or marketplace through Sync ERP API v1.',
+    icon: 'CubeIcon',
+    defaultConfig: {
+      webhookUrl: '',
+      syncEnabled: true,
+      apiBasePath: '/api/v1',
+      trpcBasePath: '/api/trpc/integration/v1',
+    },
+  },
+  {
+    appId: 'rockhouse',
+    name: 'Rockhouse',
+    description: 'Event equipment rental management system.',
+    icon: 'SpeakerWaveIcon',
+  },
+  {
+    appId: 'pos-lite',
+    name: 'POS Lite',
+    description: 'Simple Point of Sale for retail transactions.',
+    icon: 'ComputerDesktopIcon',
+  },
+];
 
 export class IntegrationService {
   private static instance: IntegrationService;
@@ -42,8 +77,6 @@ export class IntegrationService {
         },
       },
     })) as IntegrationWithApiKeys[];
-
-    const AVAILABLE_INTEGRATIONS = integrationRegistry.list().map(p => p.manifest);
 
     return AVAILABLE_INTEGRATIONS.map((app) => {
       const existing = installed.find(
@@ -85,15 +118,16 @@ export class IntegrationService {
    * Install an integration (Create record + Initial API Key)
    */
   async install(companyId: string, appId: string) {
-    const plugin = integrationRegistry.get(appId);
-    if (!plugin) {
+    const appDef = AVAILABLE_INTEGRATIONS.find(
+      (a) => a.appId === appId
+    );
+    if (!appDef) {
       throw new DomainError(
         `App ${appId} not found in marketplace`,
         404,
         DomainErrorCodes.NOT_FOUND
       );
     }
-    const appDef = plugin.manifest;
 
     // Check if already installed
     const existing = await prisma.integration.findUnique({

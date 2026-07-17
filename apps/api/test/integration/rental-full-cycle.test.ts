@@ -9,6 +9,8 @@ import {
   UnitCondition,
   UnitStatus,
   RentalOrderStatus,
+  BillingProvider,
+  BillingSubscriptionStatus,
 } from '@sync-erp/database';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { PaymentService } from '@modules/accounting/services/payment.service';
@@ -96,6 +98,14 @@ describe('US3: Full Rental Asset Lifecycle', () => {
     await prisma.company.create({
       data: { id: COMPANY_ID, name: 'Test Rental Company' },
     });
+    await prisma.companySubscription.create({
+      data: {
+        companyId: COMPANY_ID,
+        planKey: 'growth',
+        status: BillingSubscriptionStatus.ACTIVE,
+        provider: BillingProvider.MANUAL,
+      },
+    });
 
     // 2. Setup Required Accounts
     const accounts = [
@@ -126,7 +136,7 @@ describe('US3: Full Rental Asset Lifecycle', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as import('@sync-erp/database').AccountType,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });

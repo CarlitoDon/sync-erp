@@ -122,6 +122,8 @@ export * from '../generated/zod/index.js';
 import { PaymentTermsSchema } from '../generated/zod/index.js';
 export const CreatePurchaseOrderSchema = CreateOrderSchema.extend({
   type: z.literal('PURCHASE'),
+  date: z.coerce.date().optional(),
+  notes: z.string().optional(),
   paymentTerms: PaymentTermsSchema.optional().default('NET30'),
   // Down Payment (optional)
   dpPercent: z.number().min(0).max(100).optional(), // 0-100%
@@ -219,6 +221,39 @@ export const CreateBillFromPOSchema = z.object({
   paymentTermsString: z.string().optional(),
 });
 
+export const BillInstallmentStatusSchema = z.enum([
+  'PENDING',
+  'PAID',
+  'CANCELLED',
+]);
+
+export const BillInstallmentLineSchema = z.object({
+  dueDate: z.coerce.date(),
+  amount: z.number().positive('Installment amount must be positive'),
+  notes: z.string().trim().min(1).max(500).optional(),
+});
+
+export const CreateBillInstallmentScheduleSchema = z.object({
+  billId: z.string().uuid(),
+  installments: z.array(BillInstallmentLineSchema).min(1),
+  replaceExisting: z.boolean().default(false),
+});
+
+export const ListBillInstallmentsSchema = z.object({
+  billId: z.string().uuid(),
+});
+
+export const MarkBillInstallmentPaidSchema = z.object({
+  installmentId: z.string().uuid(),
+  paymentId: z.string().uuid(),
+  paidAt: z.coerce.date().optional(),
+});
+
+export const CancelBillInstallmentSchema = z.object({
+  installmentId: z.string().uuid(),
+  notes: z.string().trim().min(1).max(500).optional(),
+});
+
 // Invoice Creation from Sales Order (only requires orderId)
 export const CreateInvoiceFromSOSchema = z.object({
   orderId: z.string().uuid('Invalid order ID'),
@@ -240,6 +275,8 @@ export const CreatePaymentSchema = z.object({
   method: PaymentMethodTypeSchema,
   reference: z.string().optional(),
   bankAccountId: z.string().uuid().optional(), // Link to BankAccount (Cash/Bank)
+  paymentMethodId: z.string().uuid().optional(), // Link to configured CompanyPaymentMethod
+  paymentMethodCode: z.string().trim().min(1).optional(),
   businessDate: z.coerce.date().optional(), // G5: Explicit business date
   correlationId: z.string().uuid().optional(), // FR-010.1: Request tracing
 });
@@ -317,6 +354,18 @@ export type CreateManualBillInput = z.infer<
 >;
 export type CreateBillFromPOInput = z.infer<
   typeof CreateBillFromPOSchema
+>;
+export type CreateBillInstallmentScheduleInput = z.infer<
+  typeof CreateBillInstallmentScheduleSchema
+>;
+export type ListBillInstallmentsInput = z.infer<
+  typeof ListBillInstallmentsSchema
+>;
+export type MarkBillInstallmentPaidInput = z.infer<
+  typeof MarkBillInstallmentPaidSchema
+>;
+export type CancelBillInstallmentInput = z.infer<
+  typeof CancelBillInstallmentSchema
 >;
 export type InvoicePostInput = z.infer<typeof InvoicePostSchema>;
 export type BillPostInput = z.infer<typeof BillPostSchema>;

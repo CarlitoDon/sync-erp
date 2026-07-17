@@ -9,9 +9,9 @@ import {
 } from '@sync-erp/database';
 import { IdempotencyService } from '../modules/common/services/idempotency.service';
 import {
-  publicRateLimitService,
+  adaptiveRateLimitService,
   type PublicRateLimitConfig,
-} from '../modules/common/services/public-rate-limit.service';
+} from '../modules/common/services/adaptive-rate-limit.service';
 
 export interface Meta {
   idempotencyScope?: IdempotencyScope;
@@ -108,7 +108,7 @@ export const publicProcedure = t.procedure;
 export const publicRateLimit = (config: PublicRateLimitConfig) =>
   t.middleware(async ({ ctx, next }) => {
     const identifier = getPublicClientIdentifier(ctx.req);
-    const result = publicRateLimitService.consume(
+    const result = await adaptiveRateLimitService.consume(
       identifier,
       config
     );
@@ -195,45 +195,10 @@ export const shapedProcedure = protectedProcedure.use(
  * API Key procedure - for external integrations (multi-tenant)
  * Validates Bearer token from Authorization header
  * Injects companyId and permissions from validated API key
- * Enforces rate limiting
+ * Enforces rate limiting (Redis-backed, persists across restarts)
  */
 
-// In-memory rate limit store (use Redis in production for distributed systems)
-const rateLimitStore = new Map<
-  string,
-  { count: number; expiresAt: number }
->();
-
-function checkRateLimit(keyId: string, limit: number): boolean {
-  const now = Date.now();
-  const hourKey = `${keyId}:${Math.floor(now / 3600000)}`;
-
-  const entry = rateLimitStore.get(hourKey);
-  if (!entry || entry.expiresAt < now) {
-    rateLimitStore.set(hourKey, {
-      count: 1,
-      expiresAt: now + 3600000,
-    });
-    return true;
-  }
-
-  if (entry.count >= limit) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
-}
-
-// Clean up old rate limit entries every hour
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (entry.expiresAt < now) {
-      rateLimitStore.delete(key);
-    }
-  }
-}, 3600000);
+import { redisRateLimitService } from '../modules/common/services/redis-rate-limit.service';
 
 export const apiKeyProcedure = t.procedure
   .use(async ({ ctx, next }) => {
@@ -262,8 +227,16 @@ export const apiKeyProcedure = t.procedure
       });
     }
 
-    // Enforce rate limiting
-    if (!checkRateLimit(result.keyId, result.rateLimit || 1000)) {
+    // Enforce rate limiting (Redis-backed)
+    const rlResult = await redisRateLimitService.consume(
+      `apikey:${result.keyId}`,
+      {
+        namespace: 'api-key',
+        maxAttempts: result.rateLimit || 1000,
+        windowMs: 3600_000, // 1 hour window
+      }
+    );
+    if (!rlResult.allowed) {
       throw new TRPCError({
         code: 'TOO_MANY_REQUESTS',
         message: 'Rate limit exceeded. Please try again later.',
@@ -276,8 +249,8 @@ export const apiKeyProcedure = t.procedure
         companyId: result.companyId,
         permissions: result.permissions,
         apiKeyId: result.keyId,
-        integrationId: result.integrationId ?? undefined,
         isApiKeyAuth: true,
+        integrationId: result.integrationId,
       },
     });
   })

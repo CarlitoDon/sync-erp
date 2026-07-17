@@ -8,10 +8,7 @@ import {
   it,
   vi,
 } from 'vitest';
-import {
-  prisma,
-  TenantWebhookOutboxStatus,
-} from '@sync-erp/database';
+import { prisma, TenantWebhookOutboxStatus } from '@sync-erp/database';
 import { webhookService } from '@src/services/webhook.service';
 import { tenantWebhookOutboxService } from '@src/services/tenant-webhook-outbox.service';
 
@@ -21,9 +18,7 @@ const cleanup = async () => {
   await prisma.tenantWebhookOutbox.deleteMany({
     where: { companyId: COMPANY_ID },
   });
-  await prisma.apiKey.deleteMany({
-    where: { companyId: COMPANY_ID },
-  });
+  await prisma.apiKey.deleteMany({ where: { companyId: COMPANY_ID } });
 };
 
 describe('WebhookService', () => {
@@ -78,10 +73,11 @@ describe('WebhookService', () => {
   });
 
   it('persists transient HTTP failures for worker retry and later delivery', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 503,
-    } as Response);
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+      } as Response);
 
     const result = await webhookService.notifyPaymentEvent(
       COMPANY_ID,
@@ -101,13 +97,12 @@ describe('WebhookService', () => {
     expect(result.attempts).toBe(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    const failedEntry =
-      await prisma.tenantWebhookOutbox.findFirstOrThrow({
-        where: {
-          companyId: COMPANY_ID,
-          event: 'payment.received',
-        },
-      });
+    const failedEntry = await prisma.tenantWebhookOutbox.findFirstOrThrow({
+      where: {
+        companyId: COMPANY_ID,
+        event: 'payment.received',
+      },
+    });
 
     const firstFetchCall = fetchMock.mock.calls[0];
     const firstFetchOptions = firstFetchCall?.[1] as
@@ -117,9 +112,7 @@ describe('WebhookService', () => {
       string,
       string
     >;
-    expect(firstHeaders['X-Webhook-Delivery-Id']).toBe(
-      failedEntry.id
-    );
+    expect(firstHeaders['X-Webhook-Delivery-Id']).toBe(failedEntry.id);
     expect(firstHeaders['Idempotency-Key']).toBe(failedEntry.id);
 
     expect(failedEntry.status).toBe(TenantWebhookOutboxStatus.FAILED);
@@ -136,18 +129,14 @@ describe('WebhookService', () => {
       status: 200,
     } as Response);
 
-    const summary =
-      await tenantWebhookOutboxService.processDueEntries();
+    const summary = await tenantWebhookOutboxService.processDueEntries();
     expect(summary.delivered).toBeGreaterThanOrEqual(1);
 
-    const deliveredEntry =
-      await prisma.tenantWebhookOutbox.findUniqueOrThrow({
-        where: { id: failedEntry.id },
-      });
+    const deliveredEntry = await prisma.tenantWebhookOutbox.findUniqueOrThrow({
+      where: { id: failedEntry.id },
+    });
 
-    expect(deliveredEntry.status).toBe(
-      TenantWebhookOutboxStatus.DELIVERED
-    );
+    expect(deliveredEntry.status).toBe(TenantWebhookOutboxStatus.DELIVERED);
   });
 
   it('does not retry permanent HTTP failures', async () => {
@@ -211,9 +200,7 @@ describe('WebhookService', () => {
     );
 
     expect(firstAttempt.success).toBe(false);
-    expect(firstAttempt.status).toBe(
-      TenantWebhookOutboxStatus.FAILED
-    );
+    expect(firstAttempt.status).toBe(TenantWebhookOutboxStatus.FAILED);
     expect(firstAttempt.statusCode).toBe(429);
 
     const queued = await prisma.tenantWebhookOutbox.findFirstOrThrow({
@@ -239,8 +226,7 @@ describe('WebhookService', () => {
       status: 429,
     } as Response);
 
-    const summary =
-      await tenantWebhookOutboxService.processDueEntries();
+    const summary = await tenantWebhookOutboxService.processDueEntries();
     expect(summary).toMatchObject({
       processed: 1,
       delivered: 0,
@@ -248,14 +234,11 @@ describe('WebhookService', () => {
       deadLettered: 1,
     });
 
-    const exhausted =
-      await prisma.tenantWebhookOutbox.findUniqueOrThrow({
-        where: { id: queued.id },
-      });
+    const exhausted = await prisma.tenantWebhookOutbox.findUniqueOrThrow({
+      where: { id: queued.id },
+    });
 
-    expect(exhausted.status).toBe(
-      TenantWebhookOutboxStatus.DEAD_LETTER
-    );
+    expect(exhausted.status).toBe(TenantWebhookOutboxStatus.DEAD_LETTER);
     expect(exhausted.attempts).toBe(2);
     expect(exhausted.lastStatusCode).toBe(429);
   });
@@ -263,9 +246,7 @@ describe('WebhookService', () => {
   it('treats timeout errors as retryable and dead-letters after max attempts', async () => {
     process.env.TENANT_WEBHOOK_MAX_ATTEMPTS = '2';
 
-    fetchMock.mockRejectedValueOnce(
-      new Error('The operation was aborted due to timeout')
-    );
+    fetchMock.mockRejectedValueOnce(new Error('The operation was aborted due to timeout'));
 
     const firstAttempt = await webhookService.notifyOrderEvent(
       COMPANY_ID,
@@ -279,9 +260,7 @@ describe('WebhookService', () => {
     );
 
     expect(firstAttempt.success).toBe(false);
-    expect(firstAttempt.status).toBe(
-      TenantWebhookOutboxStatus.FAILED
-    );
+    expect(firstAttempt.status).toBe(TenantWebhookOutboxStatus.FAILED);
     expect(firstAttempt.error).toContain('timeout');
 
     const queued = await prisma.tenantWebhookOutbox.findFirstOrThrow({
@@ -302,12 +281,9 @@ describe('WebhookService', () => {
       },
     });
 
-    fetchMock.mockRejectedValueOnce(
-      new Error('The operation was aborted due to timeout')
-    );
+    fetchMock.mockRejectedValueOnce(new Error('The operation was aborted due to timeout'));
 
-    const summary =
-      await tenantWebhookOutboxService.processDueEntries();
+    const summary = await tenantWebhookOutboxService.processDueEntries();
     expect(summary).toMatchObject({
       processed: 1,
       delivered: 0,
@@ -315,14 +291,11 @@ describe('WebhookService', () => {
       deadLettered: 1,
     });
 
-    const exhausted =
-      await prisma.tenantWebhookOutbox.findUniqueOrThrow({
-        where: { id: queued.id },
-      });
+    const exhausted = await prisma.tenantWebhookOutbox.findUniqueOrThrow({
+      where: { id: queued.id },
+    });
 
-    expect(exhausted.status).toBe(
-      TenantWebhookOutboxStatus.DEAD_LETTER
-    );
+    expect(exhausted.status).toBe(TenantWebhookOutboxStatus.DEAD_LETTER);
     expect(exhausted.attempts).toBe(2);
     expect(exhausted.lastStatusCode).toBeNull();
     expect(exhausted.lastError).toContain('timeout');

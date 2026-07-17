@@ -110,7 +110,6 @@ describe('Sidebar', () => {
         emailVerifiedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
-        passwordHash: 'hashed',
       },
       login: vi.fn(),
       register: vi.fn(),

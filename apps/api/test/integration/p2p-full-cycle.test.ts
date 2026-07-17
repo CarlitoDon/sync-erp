@@ -11,6 +11,7 @@ import { JournalService } from '@modules/accounting/services/journal.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
+
 const billService = new BillService();
 const paymentService = new PaymentService();
 const journalService = new JournalService();
@@ -58,7 +59,7 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as import('@sync-erp/database').AccountType,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true,
         },
       });
@@ -197,10 +198,10 @@ describe('Standard P2P Flow (Procure-to-Pay)', () => {
 
       // Step 5: Verify Journal entries (FR-011)
       const journals = await prisma.journalEntry.findMany({
-        where: { companyId: COMPANY_ID },
-        include: { lines: { include: { account: true } } },
-        orderBy: { date: 'desc' },
-      });
+      where: { companyId: COMPANY_ID },
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: 'desc' },
+    });
       const billJournal = journals.find(
         (j) =>
           j.sourceType === JournalSourceType.BILL &&

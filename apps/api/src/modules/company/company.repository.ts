@@ -4,6 +4,10 @@ import {
   BusinessShape,
   BillingProvider,
   BillingSubscriptionStatus,
+  PermissionAction,
+  PermissionModule,
+  PermissionScope,
+  Prisma,
 } from '@sync-erp/database';
 import { prisma } from '@sync-erp/database';
 import {
@@ -17,38 +21,273 @@ function addDays(date: Date, days: number): Date {
   return next;
 }
 
+const DEFAULT_ADMIN_PERMISSIONS: {
+  module: PermissionModule;
+  action: PermissionAction;
+  scope: PermissionScope;
+}[] = [
+  {
+    module: PermissionModule.COMPANY,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.COMPANY,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.COMPANY,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.COMPANY,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.SALES,
+    action: PermissionAction.APPROVE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.PURCHASING,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.PURCHASING,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.PURCHASING,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.PURCHASING,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.PURCHASING,
+    action: PermissionAction.APPROVE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.INVENTORY,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.INVENTORY,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.INVENTORY,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.INVENTORY,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.INVENTORY,
+    action: PermissionAction.VOID,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.APPROVE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.FINANCE,
+    action: PermissionAction.VOID,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.USERS,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.USERS,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.USERS,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.USERS,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.RENTAL,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.RENTAL,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.RENTAL,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.RENTAL,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.ALL,
+  },
+  {
+    module: PermissionModule.RENTAL,
+    action: PermissionAction.APPROVE,
+    scope: PermissionScope.ALL,
+  },
+];
+
+async function ensureDefaultPermissions(
+  tx: Prisma.TransactionClient
+) {
+  for (const permission of DEFAULT_ADMIN_PERMISSIONS) {
+    await tx.permission.upsert({
+      where: {
+        module_action_scope: {
+          module: permission.module,
+          action: permission.action,
+          scope: permission.scope,
+        },
+      },
+      update: {},
+      create: permission,
+    });
+  }
+
+  return tx.permission.findMany({
+    where: {
+      OR: DEFAULT_ADMIN_PERMISSIONS.map((permission) => ({
+        module: permission.module,
+        action: permission.action,
+        scope: permission.scope,
+      })),
+    },
+    select: { id: true },
+  });
+}
+
 export class CompanyRepository {
   async create(data: {
     name: string;
     userId?: string;
   }): Promise<Company> {
     const now = new Date();
+    const trialEndsAt = addDays(now, BILLING_TRIAL_DAYS);
+    const isDefaultFreePlan = DEFAULT_BILLING_PLAN_KEY === 'free';
 
-    return prisma.company.create({
-      data: {
-        name: data.name,
-        subscription: {
-          create: {
-            planKey: DEFAULT_BILLING_PLAN_KEY,
-            status: BillingSubscriptionStatus.TRIALING,
-            provider: BillingProvider.MANUAL,
-            trialStartsAt: now,
-            trialEndsAt: addDays(now, BILLING_TRIAL_DAYS),
-            currentPeriodStartsAt: now,
-            currentPeriodEndsAt: addDays(now, BILLING_TRIAL_DAYS),
-          },
-        },
-        ...(data.userId && {
-          members: {
+    return prisma.$transaction(async (tx) => {
+      const company = await tx.company.create({
+        data: {
+          name: data.name,
+          subscription: {
             create: {
-              userId: data.userId,
+              planKey: DEFAULT_BILLING_PLAN_KEY,
+              status: isDefaultFreePlan
+                ? BillingSubscriptionStatus.ACTIVE
+                : BillingSubscriptionStatus.TRIALING,
+              provider: BillingProvider.MANUAL,
+              trialStartsAt: isDefaultFreePlan ? null : now,
+              trialEndsAt: isDefaultFreePlan ? null : trialEndsAt,
+              currentPeriodStartsAt: now,
+              currentPeriodEndsAt: isDefaultFreePlan
+                ? null
+                : trialEndsAt,
             },
           },
-        }),
-      },
-      include: {
-        members: !!data.userId,
-      },
+        },
+      });
+
+      if (!data.userId) {
+        return company;
+      }
+
+      const permissions = await ensureDefaultPermissions(tx);
+      const adminRole = await tx.role.create({
+        data: {
+          companyId: company.id,
+          name: 'Administrator',
+        },
+      });
+
+      for (const permission of permissions) {
+        await tx.rolePermission.create({
+          data: {
+            roleId: adminRole.id,
+            permissionId: permission.id,
+          },
+        });
+      }
+
+      await tx.companyMember.create({
+        data: {
+          userId: data.userId,
+          companyId: company.id,
+          roleId: adminRole.id,
+        },
+      });
+
+      return company;
     });
   }
 

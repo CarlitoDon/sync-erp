@@ -2,6 +2,14 @@ import { Prisma } from '@sync-erp/database';
 import { type User } from '@sync-erp/database';
 import { UserRepository } from './user.repository';
 
+export type PublicUser = Omit<User, 'passwordHash'>;
+
+export function toPublicUser(user: User): PublicUser {
+  const publicUser: Partial<User> = { ...user };
+  delete publicUser.passwordHash;
+  return publicUser as PublicUser;
+}
+
 export interface CreateUserInput {
   email: string;
   name: string;
@@ -56,7 +64,7 @@ export class UserService {
     const members =
       await this.repository.findMembersByCompany(companyId);
     return members.map((m) => ({
-      ...m.user,
+      ...toPublicUser(m.user),
       role: m.role,
     }));
   }

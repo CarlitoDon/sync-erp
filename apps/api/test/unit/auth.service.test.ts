@@ -14,9 +14,11 @@ describe('AuthService Unit', () => {
     findOAuthAccountByUser: vi.fn(),
     createOAuthAccount: vi.fn(),
     createSession: vi.fn(),
+    getSession: vi.fn(),
   };
 
   const userService = {
+    getById: vi.fn(),
     getByEmail: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
@@ -77,9 +79,9 @@ describe('AuthService Unit', () => {
           'We could not send the verification email. Please try again.',
       },
     });
-    expect(
-      repository.deleteEmailVerificationToken
-    ).toHaveBeenCalledWith('token-1');
+    expect(repository.deleteEmailVerificationToken).toHaveBeenCalledWith(
+      'token-1'
+    );
     expect(userService.delete).toHaveBeenCalledWith('user-1');
     expect(authAuditService.record).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -120,6 +122,66 @@ describe('AuthService Unit', () => {
         email: 'user@example.com',
       })
     );
+  });
+
+  it('does not expose password hashes on successful login', async () => {
+    const passwordHash = await hashPassword('password123');
+
+    userService.getByEmail.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@example.com',
+      name: 'User Test',
+      passwordHash,
+      emailVerifiedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    repository.createSession.mockResolvedValue({
+      id: 'session-1',
+      userId: 'user-1',
+      expiresAt: new Date(),
+      createdAt: new Date(),
+    });
+
+    const result = await service.login({
+      email: 'user@example.com',
+      password: 'password123',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.user).toEqual(
+      expect.objectContaining({
+        id: 'user-1',
+        email: 'user@example.com',
+      })
+    );
+    expect(result.user).not.toHaveProperty('passwordHash');
+  });
+
+  it('does not expose password hashes in profile and session lookups', async () => {
+    const user = {
+      id: 'user-1',
+      email: 'user@example.com',
+      name: 'User Test',
+      passwordHash: 'hashed-password',
+      emailVerifiedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    userService.getById.mockResolvedValue(user);
+    repository.getSession.mockResolvedValue({
+      id: 'session-1',
+      userId: 'user-1',
+      expiresAt: new Date(),
+      createdAt: new Date(),
+      user,
+    });
+
+    const profile = await service.getProfile('user-1');
+    const session = await service.getSession('session-1');
+
+    expect(profile).not.toHaveProperty('passwordHash');
+    expect(session?.user).not.toHaveProperty('passwordHash');
   });
 
   it('creates a verified user and session from Google OAuth', async () => {

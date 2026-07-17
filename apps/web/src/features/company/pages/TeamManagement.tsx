@@ -9,14 +9,6 @@ export default function TeamManagement() {
   const { currentCompany } = useCompany();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
-  // Define a reload key or mechanism? UserList handles data fetching.
-  // Passing a key to UserList to force reload when invite succeeds?
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const handleInviteSuccess = () => {
-    setRefreshKey((prev) => prev + 1);
-  };
-
   if (!currentCompany) {
     return <NoCompanySelected message="Please select a company to manage team." />;
   }
@@ -41,12 +33,11 @@ export default function TeamManagement() {
         </button>
       </div>
 
-      <UserList key={refreshKey} />
+      <UserList />
 
       <InviteUserModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
-        onSuccess={handleInviteSuccess}
       />
     </div>
   );

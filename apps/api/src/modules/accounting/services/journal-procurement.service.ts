@@ -2,7 +2,9 @@ import {
   JournalSourceType,
   PaymentMethodType,
   Prisma,
+  prisma,
 } from '@sync-erp/database';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 import { JournalCoreService } from './journal-core.service';
 
 export class JournalProcurementService {
@@ -73,9 +75,14 @@ export class JournalProcurementService {
     companyId: string,
     reference: string,
     amount: number,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
-    const data = this.prepareGoodsReceiptJournal(reference, amount);
+    const data = this.prepareGoodsReceiptJournal(
+      reference,
+      amount,
+      businessDate
+    );
     return this.core.resolveAndCreate(companyId, data, tx);
   }
 
@@ -109,14 +116,23 @@ export class JournalProcurementService {
     amount: number,
     method: string,
     contraAccountCode?: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    businessDate?: Date
   ) {
+    const resolvedContraAccountCode =
+      contraAccountCode ??
+      (await this.resolvePaymentContraAccountCode(
+        companyId,
+        method,
+        tx
+      ));
     const data = this.preparePaymentMadeJournal(
       paymentId,
       billNumber,
       amount,
       method,
-      contraAccountCode
+      resolvedContraAccountCode,
+      businessDate
     );
     return this.core.resolveAndCreate(companyId, data, tx);
   }
@@ -130,12 +146,18 @@ export class JournalProcurementService {
     contraAccountCode?: string,
     tx?: Prisma.TransactionClient
   ) {
+    const resolvedContraAccountCode =
+      contraAccountCode ??
+      (await this.resolvePaymentContraAccountCode(
+        companyId,
+        method,
+        tx
+      ));
     const data = this.preparePaymentMadeReversalJournal(
       paymentId,
       billNumber,
       amount,
-      method,
-      contraAccountCode
+      resolvedContraAccountCode
     );
     return this.core.resolveAndCreate(companyId, data, tx);
   }
@@ -149,11 +171,18 @@ export class JournalProcurementService {
     tx?: Prisma.TransactionClient,
     businessDate?: Date
   ) {
+    const contraAccountCode =
+      await this.resolvePaymentContraAccountCode(
+        companyId,
+        method,
+        tx
+      );
     const data = this.prepareUpfrontPaymentJournal(
       paymentId,
       orderNumber,
       amount,
       method,
+      contraAccountCode,
       businessDate
     );
     return this.core.resolveAndCreate(companyId, data, tx);
@@ -291,7 +320,8 @@ export class JournalProcurementService {
 
   private prepareGoodsReceiptJournal(
     reference: string,
-    amount: number
+    amount: number,
+    businessDate?: Date
   ) {
     return {
       reference,
@@ -300,6 +330,7 @@ export class JournalProcurementService {
         { accountCode: '1400', debit: amount }, // Asset
         { accountCode: '2105', credit: amount }, // Liability Suspense
       ],
+      date: businessDate,
     };
   }
 
@@ -336,11 +367,9 @@ export class JournalProcurementService {
     billNumber: string,
     amount: number,
     method: string,
-    contraAccountCode?: string
+    contraAccountCode: string,
+    businessDate?: Date
   ) {
-    const cashAccount =
-      contraAccountCode ||
-      (method === PaymentMethodType.BANK ? '1200' : '1100');
     return {
       reference: `Payment made: ${billNumber}`,
       memo: `Payment via ${method}`,
@@ -348,8 +377,9 @@ export class JournalProcurementService {
       sourceId: paymentId,
       lines: [
         { accountCode: '2100', debit: amount },
-        { accountCode: cashAccount, credit: amount },
+        { accountCode: contraAccountCode, credit: amount },
       ],
+      date: businessDate,
     };
   }
 
@@ -357,19 +387,15 @@ export class JournalProcurementService {
     paymentId: string,
     billNumber: string,
     amount: number,
-    method: string,
-    contraAccountCode?: string
+    contraAccountCode: string
   ) {
-    const cashAccount =
-      contraAccountCode ||
-      (method === PaymentMethodType.BANK ? '1200' : '1100');
     return {
       reference: `Bill Payment Reversal: ${billNumber}`,
       memo: `Reversal of voided payment`,
       sourceType: JournalSourceType.PAYMENT,
       sourceId: `${paymentId}:reversal`, // Unique ID for reversal
       lines: [
-        { accountCode: cashAccount, debit: amount }, // Restore Cash
+        { accountCode: contraAccountCode, debit: amount }, // Restore Cash
         { accountCode: '2100', credit: amount }, // Restore AP
       ],
     };
@@ -380,10 +406,9 @@ export class JournalProcurementService {
     orderNumber: string,
     amount: number,
     method: string,
+    contraAccountCode: string,
     businessDate?: Date
   ) {
-    const cashAccount =
-      method === PaymentMethodType.BANK ? '1200' : '1100';
     return {
       reference: `Upfront Payment: PO ${orderNumber}`,
       memo: `Advance payment to supplier via ${method}`,
@@ -391,7 +416,7 @@ export class JournalProcurementService {
       sourceId: paymentId,
       lines: [
         { accountCode: '1600', debit: amount }, // Advances to Supplier (Asset)
-        { accountCode: cashAccount, credit: amount }, // Cash/Bank (Asset)
+        { accountCode: contraAccountCode, credit: amount }, // Cash/Bank (Asset)
       ],
       date: businessDate,
     };
@@ -413,4 +438,57 @@ export class JournalProcurementService {
       ],
     };
   }
+
+  private async resolvePaymentContraAccountCode(
+    companyId: string,
+    method: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<string> {
+    const candidateCodes =
+      method === PaymentMethodType.BANK ||
+      method === PaymentMethodType.QRIS ||
+      method === PaymentMethodType.EWALLET
+        ? ['1211', '1200']
+        : ['1000', '1100'];
+
+    for (const code of candidateCodes) {
+      const account = tx
+        ? await tx.account.findUnique({
+            where: { companyId_code: { companyId, code } },
+          })
+        : await prisma.account.findUnique({
+            where: { companyId_code: { companyId, code } },
+          });
+
+      if (account && isValidPaymentContraAccount(method, account.name)) {
+        return account.code;
+      }
+    }
+
+    throw new DomainError(
+      `No valid settlement account found for ${method} payment`,
+      400,
+      DomainErrorCodes.INVALID_INPUT
+    );
+  }
+}
+
+function isValidPaymentContraAccount(method: string, accountName: string) {
+  const normalized = accountName.toLowerCase();
+  if (
+    normalized.includes('inventory') ||
+    normalized.includes('receivable')
+  ) {
+    return false;
+  }
+
+  if (
+    method === PaymentMethodType.BANK ||
+    method === PaymentMethodType.QRIS ||
+    method === PaymentMethodType.EWALLET
+  ) {
+    return normalized.includes('bank');
+  }
+
+  return normalized.includes('cash');
 }

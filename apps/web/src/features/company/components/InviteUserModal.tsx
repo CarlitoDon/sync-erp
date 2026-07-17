@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import {
   Dialog,
@@ -12,118 +11,131 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'react-hot-toast';
+import {
+  CheckIcon,
+  ClipboardDocumentIcon,
+} from '@heroicons/react/24/outline';
 
 interface InviteUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
 }
 
 export function InviteUserModal({
   isOpen,
   onClose,
-  onSuccess,
 }: InviteUserModalProps) {
   const { currentCompany } = useCompany();
-  const utils = trpc.useUtils();
+  const [copied, setCopied] = useState<'code' | 'link' | null>(
+    null
+  );
 
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [errors, setErrors] = useState<{
-    email?: string;
-    name?: string;
-  }>({});
+  const inviteCode = currentCompany?.inviteCode ?? '';
+  const inviteLink = inviteCode
+    ? `${window.location.origin}/select-company?inviteCode=${encodeURIComponent(inviteCode)}`
+    : '';
 
-  const createMutation = trpc.user.create.useMutation({
-    onSuccess: () => {
-      utils.user.listByCompany.invalidate();
-      toast.success('User added successfully!');
-      onSuccess?.();
-      onClose();
-      setEmail('');
-      setName('');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to add user');
-    },
-  });
+  const copyToClipboard = async (
+    value: string,
+    target: 'code' | 'link'
+  ) => {
+    if (!value) return;
 
-  const validate = () => {
-    const newErrors: { email?: string; name?: string } = {};
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Valid email is required';
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = value;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
     }
-    if (!name || name.length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentCompany || !validate()) return;
-
-    createMutation.mutate({
-      email,
-      name,
-      passwordHash: 'changeme',
-    });
+    setCopied(target);
+    toast.success('Invite copied');
+    window.setTimeout(() => setCopied(null), 1600);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Team Member</DialogTitle>
+          <DialogTitle>Invite Team Member</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <div className="col-span-3">
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.email}
-                  </p>
-                )}
+
+        <div className="space-y-5 py-4">
+          <p className="text-sm text-gray-600">
+            Share this code or link. The person should create or sign in
+            to their own account, then join this company.
+          </p>
+
+          {inviteCode ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="invite-code">Invite Code</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="invite-code"
+                    value={inviteCode}
+                    readOnly
+                    className="font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    aria-label="Copy invite code"
+                    onClick={() =>
+                      copyToClipboard(inviteCode, 'code')
+                    }
+                    className="shrink-0"
+                  >
+                    {copied === 'code' ? (
+                      <CheckIcon className="h-4 w-4" />
+                    ) : (
+                      <ClipboardDocumentIcon className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <div className="col-span-3">
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.name}
-                  </p>
-                )}
+
+              <div className="space-y-2">
+                <Label htmlFor="invite-link">Invite Link</Label>
+                <div className="flex gap-2">
+                  <Input id="invite-link" value={inviteLink} readOnly />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    aria-label="Copy invite link"
+                    onClick={() =>
+                      copyToClipboard(inviteLink, 'link')
+                    }
+                    className="shrink-0"
+                  >
+                    {copied === 'link' ? (
+                      <CheckIcon className="h-4 w-4" />
+                    ) : (
+                      <ClipboardDocumentIcon className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
+            </>
+          ) : (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              This company does not have an invite code yet.
             </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Adding...' : 'Add User'}
-            </Button>
-          </DialogFooter>
-        </form>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

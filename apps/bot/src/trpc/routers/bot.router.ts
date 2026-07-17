@@ -10,6 +10,66 @@ import {
 import { TRPCError } from '@trpc/server';
 
 export const botRouter = router({
+  verifyPhone: protectedProcedure
+    .input(
+      z.object({
+        phone: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      if (!isValidIndonesianNumber(input.phone)) {
+        return {
+          valid: false,
+          exists: false,
+          reason:
+            'Nomor WhatsApp tidak valid (Gunakan format 08... atau 62...)',
+        };
+      }
+
+      let retries = 15;
+      while (getStatus() === 'INITIALIZING' && retries > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        retries--;
+      }
+
+      if (getStatus() !== 'READY') {
+        throw new TRPCError({
+          code: 'SERVICE_UNAVAILABLE',
+          message:
+            getStatus() === 'QR_PENDING'
+              ? 'Bot memerlukan scan QR. Silakan login ke Dashboard Admin.'
+              : 'Bot WhatsApp belum siap. Hubungi admin.',
+        });
+      }
+
+      const sock = getSocket();
+      if (!sock) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Internal Error: Socket instance missing',
+        });
+      }
+
+      const targetNumber = formatPhoneNumber(input.phone).replace(
+        '@c.us',
+        '@s.whatsapp.net'
+      );
+      const onWa = await sock.onWhatsApp(targetNumber);
+      const exists = Boolean(onWa?.[0]?.exists);
+
+      return {
+        valid: exists,
+        exists,
+        normalizedPhone: targetNumber.replace('@s.whatsapp.net', ''),
+        ...(exists
+          ? {}
+          : {
+              reason:
+                'Nomor WhatsApp tidak terdaftar atau tidak aktif',
+            }),
+      };
+    }),
+
   /**
    * Send Order Confirmation (Full Details)
    */

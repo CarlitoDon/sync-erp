@@ -1,9 +1,9 @@
 import { router, protectedProcedure } from '../trpc';
-import { UserService } from '../../modules/user/user.service';
-import { CreateUserSchema } from '@sync-erp/shared';
+import {
+  toPublicUser,
+  UserService,
+} from '../../modules/user/user.service';
 import { z } from 'zod';
-import { assertBillingLimitAvailable } from '../../modules/billing/billing-limits.service';
-
 import { container, ServiceKeys } from '../../modules/common/di';
 
 const userService = container.resolve<UserService>(
@@ -24,21 +24,8 @@ export const userRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input }) => {
-      return userService.getById(input.id);
-    }),
-
-  /**
-   * Create user
-   */
-  create: protectedProcedure
-    .input(CreateUserSchema)
-    .mutation(async ({ ctx, input }) => {
-      await assertBillingLimitAvailable({
-        metric: 'users',
-        companyId: ctx.companyId,
-      });
-
-      return userService.create(input, ctx.companyId);
+      const user = await userService.getById(input.id);
+      return user ? toPublicUser(user) : null;
     }),
 });
 

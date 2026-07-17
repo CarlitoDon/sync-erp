@@ -1,0 +1,175 @@
+name: Deploy MCP to Hostinger
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - '.github/workflows/deploy-mcp-hostinger.yml'
+      - 'apps/mcp/**'
+      - 'packages/database/**'
+      - 'packages/shared/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-mcp-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate --workspace=@sync-erp/database
+
+      - name: Build MCP
+        run: npm run build --workspace=@sync-erp/mcp
+
+      - name: Prepare deployment package
+        run: |
+          rm -rf deploy/api-mcp
+          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database deploy/api-mcp/prisma
+          cp -R apps/mcp/dist deploy/api-mcp/
+          cp apps/mcp/package.pro.json deploy/api-mcp/package.json
+          cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
+          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
+          cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
+
+      - name: Resolve deployment target
+        id: target
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            echo "deploy_dir=apps/mcp" >> "$GITHUB_OUTPUT"
+            echo "health_host=https://mcp.sync-erp.com" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_dir=apps/mcp-staging" >> "$GITHUB_OUTPUT"
+            echo "health_host=https://mcp-staging.sync-erp.com" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p 65002 "${{ secrets.HOSTINGER_HOST }}" > ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy package to Hostinger
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          SSH_PASSPHRASE: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
+          DEPLOY_DIR: ${{ steps.target.outputs.deploy_dir }}
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
+        run: |
+          eval $(ssh-agent -a $SSH_AUTH_SOCK)
+          echo 'echo "$SSH_PASSPHRASE"' > ~/.ssh/askpass
+          chmod +x ~/.ssh/askpass
+          export SSH_ASKPASS=~/.ssh/askpass
+          export DISPLAY=:0
+          ssh-add ~/.ssh/id_ed25519
+
+          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30"
+          SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
+          MCP_ARCHIVE="$(mktemp)"
+          REMOTE_MCP_ARCHIVE="sync-erp-mcp-${GITHUB_SHA}.tar.gz"
+
+          tar -C deploy/api-mcp \
+            --exclude='./.htaccess' \
+            --exclude='./.env' \
+            --exclude='./tmp' \
+            --exclude='./stderr.log' \
+            -czf "$MCP_ARCHIVE" .
+
+          timeout 600 scp -C -P 65002 ${SSH_COMMON_OPTS} \
+            "$MCP_ARCHIVE" \
+            "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_MCP_ARCHIVE}"
+
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_MCP_ARCHIVE='${REMOTE_MCP_ARCHIVE}' bash -s" <<'EOF'
+            set -euo pipefail
+            export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
+            target="$HOME/public_html/${DEPLOY_DIR}"
+
+            mkdir -p "$target"
+            find "$target" -mindepth 1 -maxdepth 1 \
+              ! -name '.env' \
+              ! -name '.htaccess' \
+              ! -name 'node_modules' \
+              ! -name 'tmp' \
+              ! -name 'stderr.log' \
+              -exec rm -rf {} +
+            tar -xzf "$HOME/${REMOTE_MCP_ARCHIVE}" -C "$target"
+            cd "$target"
+
+            fingerprint="$(sha256sum package.json | awk '{print $1}')"
+            installed_fingerprint=""
+            if [ -f .package-deps.sha256 ]; then
+              installed_fingerprint="$(cat .package-deps.sha256)"
+            fi
+
+            if [ -d node_modules ] && [ -d node_modules/@prisma/client ] && [ -f node_modules/express/package.json ] && { [ -z "$installed_fingerprint" ] || [ "$installed_fingerprint" = "$fingerprint" ]; }; then
+              echo "Reusing existing production node_modules."
+              echo "$fingerprint" > .package-deps.sha256
+            else
+              echo "Installing production dependencies."
+              timeout 600 npm install --omit=dev --ignore-scripts --no-audit --no-fund --loglevel=warn
+              echo "$fingerprint" > .package-deps.sha256
+            fi
+
+            rm -rf node_modules/@sync-erp/database
+            tar -xzf "$HOME/${REMOTE_MCP_ARCHIVE}" -C "$target" ./node_modules/@sync-erp/database
+            rm -f "$HOME/${REMOTE_MCP_ARCHIVE}"
+            mkdir -p tmp
+          EOF
+
+          rm -f "$MCP_ARCHIVE"
+
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+            "cd ~/public_html/${DEPLOY_DIR} && mkdir -p tmp && touch tmp/restart.txt"
+
+      - name: Verify MCP health
+        env:
+          HEALTH_HOST: ${{ steps.target.outputs.health_host }}
+        run: |
+          for path in /health /mcp/health; do
+            for i in 1 2 3 4 5 6; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_HOST}${path}" || true)
+              if [[ "$code" == "200" ]]; then
+                echo "Healthy: ${HEALTH_HOST}${path}"
+                break
+              fi
+              if [[ "$i" == "6" ]]; then
+                echo "Health check failed for ${HEALTH_HOST}${path} with HTTP ${code}"
+                exit 1
+              fi
+              sleep 10
+            done
+          done

@@ -117,18 +117,21 @@ describe('Backend Idempotency Integration', () => {
 
     const idempotencyKey = `key-seq-${Date.now()}`;
 
-    // Call 1
+    // Create Caller with idempotency key
     const ctx = {
-      req: {} as unknown as import('express').Request,
-      res: {} as unknown as import('express').Response,
+      req: {} as unknown as import("express").Request,
+      res: {} as unknown as import("express").Response,
       userId: ACTOR_ID,
       companyId: COMPANY_ID,
       businessShape: BusinessShape.RETAIL,
       userPermissions: ['*:*'],
-      userRole: 'ADMIN' as string,
+      userRole: "ADMIN" as string,
       idempotencyKey,
       correlationId: undefined,
       integrationId: undefined,
+      isApiKeyAuth: undefined,
+      permissions: undefined,
+      apiKeyId: undefined,
     };
     const caller = appRouter.createCaller(ctx);
 
@@ -178,16 +181,19 @@ describe('Backend Idempotency Integration', () => {
 
     const idempotencyKey = `key-conc-${Date.now()}`;
     const ctx = {
-      req: {} as unknown as import('express').Request,
-      res: {} as unknown as import('express').Response,
+      req: {} as unknown as import("express").Request,
+      res: {} as unknown as import("express").Response,
       userId: ACTOR_ID,
       companyId: COMPANY_ID,
       businessShape: BusinessShape.RETAIL,
       userPermissions: ['*:*'],
-      userRole: 'ADMIN' as string,
+      userRole: "ADMIN" as string,
       idempotencyKey,
       correlationId: undefined,
       integrationId: undefined,
+      isApiKeyAuth: undefined,
+      permissions: undefined,
+      apiKeyId: undefined,
     };
     const caller = appRouter.createCaller(ctx);
 

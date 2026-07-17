@@ -17,7 +17,7 @@ import CancelOrderModal from '../modals/CancelOrderModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
 import ReturnModal from '../modals/ReturnModal';
 import VerifyPaymentModal from '../modals/VerifyPaymentModal';
-import { OrderSource } from '@sync-erp/shared';
+import { OrderSource, type PortableRentalOrder } from '@sync-erp/shared';
 import {
   UserIcon,
   GlobeAltIcon,
@@ -32,6 +32,27 @@ import { UnitAssignmentsCard } from '../components/UnitAssignmentsCard';
 import { RentalActionsCard } from '../components/RentalActionsCard';
 import { RentalFinancialSummary } from '../components/RentalFinancialSummary';
 import { RentalPaymentStatusCard } from '../components/RentalPaymentStatusCard';
+import { RentalExtensionsCard } from '../components/RentalExtensionsCard';
+
+function buildEffectiveEndDateByOrderItem(order: PortableRentalOrder) {
+  const effectiveEndByItemId = new Map<string, Date | string>();
+  for (const extension of order.extensions ?? []) {
+    for (const item of extension.items ?? []) {
+      if (!item.rentalOrderItemId) continue;
+      const current = effectiveEndByItemId.get(item.rentalOrderItemId);
+      if (
+        !current ||
+        new Date(item.newEndDate) > new Date(current)
+      ) {
+        effectiveEndByItemId.set(
+          item.rentalOrderItemId,
+          item.newEndDate
+        );
+      }
+    }
+  }
+  return effectiveEndByItemId;
+}
 
 export default function RentalOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +75,7 @@ export default function RentalOrderDetail() {
   const handleCancelOrder = () => modals.cancel.open();
   const handleRelease = () => modals.release.open();
   const handleReturn = () => modals.return.open();
+  const effectiveEndByItemId = buildEffectiveEndDateByOrderItem(order);
 
   return (
     <>
@@ -114,7 +136,7 @@ export default function RentalOrderDetail() {
             {order.orderSource === OrderSource.WEBSITE ? (
               <span
                 className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700"
-                title="Order dari Santi Living"
+                title="Order dari website eksternal"
               >
                 <GlobeAltIcon className="w-3.5 h-3.5" />
                 Website
@@ -146,6 +168,10 @@ export default function RentalOrderDetail() {
                 ...item,
                 unitPrice: Number(item.unitPrice),
                 subtotal: Number(item.subtotal),
+                baseEndDate: order.rentalEndDate,
+                effectiveEndDate:
+                  effectiveEndByItemId.get(item.id) ??
+                  order.rentalEndDate,
                 rentalBundle: item.rentalBundle
                   ? {
                       name: item.rentalBundle.name,
@@ -165,6 +191,11 @@ export default function RentalOrderDetail() {
                   : null,
               }))}
               calculations={calculations}
+            />
+
+            <RentalExtensionsCard
+              extensions={order.extensions}
+              orderItems={order.items}
             />
 
             <UnitAssignmentsCard

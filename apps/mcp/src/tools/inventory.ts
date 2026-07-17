@@ -73,12 +73,12 @@ export function getInventoryTools(): ToolSpec[] {
     {
       name: 'inventory_grn_create',
       description:
-        'Create a GRN. Pass input as JSON: {orderId, items: [{productId, quantity}]}',
+        'Create a GRN. Pass input as JSON: {orderId, date?, notes?, items: [{productId, quantity}]}',
       inputSchema: {
         type: 'object',
         properties: {
           companyId: companyIdProp,
-          input: { type: 'string', description: 'JSON: {orderId, items: [{productId, quantity}]}' },
+          input: { type: 'string', description: 'JSON: {orderId, date?, notes?, items: [{productId, quantity}]}' },
         },
         required: ['companyId', 'input'],
       },

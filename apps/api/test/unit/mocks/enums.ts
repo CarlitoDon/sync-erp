@@ -42,6 +42,59 @@ export enum BusinessShape {
   RETAIL = 'RETAIL',
   MANUFACTURING = 'MANUFACTURING',
   SERVICE = 'SERVICE',
+  RENTAL = 'RENTAL',
+}
+
+export enum PermissionModule {
+  COMPANY = 'COMPANY',
+  SALES = 'SALES',
+  PURCHASING = 'PURCHASING',
+  INVENTORY = 'INVENTORY',
+  FINANCE = 'FINANCE',
+  USERS = 'USERS',
+  RENTAL = 'RENTAL',
+}
+
+export enum PermissionAction {
+  CREATE = 'CREATE',
+  READ = 'READ',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE',
+  APPROVE = 'APPROVE',
+  VOID = 'VOID',
+}
+
+export enum PermissionScope {
+  ALL = 'ALL',
+  OWN = 'OWN',
+}
+
+export enum BillingSubscriptionStatus {
+  TRIALING = 'TRIALING',
+  ACTIVE = 'ACTIVE',
+  PAST_DUE = 'PAST_DUE',
+  CANCELED = 'CANCELED',
+  EXPIRED = 'EXPIRED',
+}
+
+export enum BillingProvider {
+  MANUAL = 'MANUAL',
+  STRIPE = 'STRIPE',
+  XENDIT = 'XENDIT',
+  MIDTRANS = 'MIDTRANS',
+}
+
+export enum BillingCycle {
+  MONTHLY = 'MONTHLY',
+  ANNUAL = 'ANNUAL',
+}
+
+export enum BillingCheckoutSessionStatus {
+  OPEN = 'OPEN',
+  COMPLETED = 'COMPLETED',
+  CANCELED = 'CANCELED',
+  FAILED = 'FAILED',
+  EXPIRED = 'EXPIRED',
 }
 export enum CostingMethod {
   AVG = 'AVG',
@@ -215,6 +268,12 @@ export enum PaymentStatus {
   PARTIALLY_PAID = 'PARTIALLY_PAID',
   PAID = 'PAID',
   REFUNDED = 'REFUNDED',
+}
+
+export enum BillInstallmentStatus {
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum RentalPaymentStatus {

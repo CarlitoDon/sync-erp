@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure, publicProcedure } from '../trpc';
 import * as bundleService from '../../modules/rental/rental-bundle.service';
+import { assertBillingFeatureAvailable } from '../../modules/billing/billing-limits.service';
 
 export const rentalBundleRouter = router({
   // List bundles for company
@@ -80,11 +81,18 @@ export const rentalBundleRouter = router({
         isActive: z.boolean().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      if (input.imagePath) {
+        await assertBillingFeatureAvailable({
+          companyId: ctx.companyId,
+          feature: 'mediaAccess',
+        });
+      }
+
       return bundleService.update(input);
     }),
 
-  // Find by external ID (for santi-living integration)
+  // Find by external catalog ID.
   findByExternalId: publicProcedure
     .input(
       z.object({
@@ -96,8 +104,8 @@ export const rentalBundleRouter = router({
       return bundleService.findByExternalId(input);
     }),
 
-  // Sync external bundles
-  syncExternalBundles: publicProcedure
+  // Sync bundles from an external catalog payload.
+  syncFromExternalCatalog: publicProcedure
     .input(
       z.object({
         companyId: z.string(),
@@ -117,6 +125,6 @@ export const rentalBundleRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      return bundleService.syncExternalBundles(input);
+      return bundleService.syncFromExternalCatalog(input);
     }),
 });

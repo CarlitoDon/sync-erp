@@ -9,8 +9,11 @@ import { Prisma, prisma } from '@sync-erp/database';
 import {
   RentalItem,
   RentalItemUnit,
+  InvoiceType,
+  OrderType,
   UnitStatus,
   UnitCondition,
+  RentalOrderStatus,
   DepositPolicyType,
   EntityType,
   AuditLogAction,
@@ -22,6 +25,7 @@ import {
   DomainError,
   DomainErrorCodes,
   type CreateRentalItemInput,
+  type ConvertStockToUnitInput,
   type RentalItemWithRelations,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
@@ -42,6 +46,34 @@ function generateUniqueUnitCode(productSku: string): string {
     random += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return `${prefix}-${random}`;
+}
+
+function inferSizeLabel(value: string): string | undefined {
+  const compact = value.replace(/\s+/g, ' ');
+  const cmMatch = compact.match(/\b(\d{2,3})\s*cm\b/i);
+  if (cmMatch) return `${cmMatch[1]}cm`;
+
+  const sizeMatch = compact.match(/\b(\d{2,3})\s*[xX]\s*(\d{3})\b/);
+  if (sizeMatch) return `${sizeMatch[1]}x${sizeMatch[2]}`;
+
+  return undefined;
+}
+
+function inferColor(value: string): string | undefined {
+  const normalized = value.toLowerCase();
+  const colors = [
+    'biru',
+    'merah',
+    'putih',
+    'hitam',
+    'abu',
+    'coklat',
+    'hijau',
+    'kuning',
+    'pink',
+    'ungu',
+  ];
+  return colors.find((color) => normalized.includes(color));
 }
 
 export class RentalItemService {
@@ -165,7 +197,8 @@ export class RentalItemService {
     companyId: string,
     itemId: string,
     quantity: number,
-    userId: string
+    userId: string,
+    options?: Omit<ConvertStockToUnitInput, 'rentalItemId' | 'quantity'>
   ): Promise<number> {
     const item = await this.repository.findRentalItemById(itemId);
     if (!item || item.companyId !== companyId) {
@@ -194,22 +227,126 @@ export class RentalItemService {
     // 2. Execute Transaction: Move Stock OUT + Create Units with auto-generated codes
     const createdCodes: string[] = [];
     const count = await prisma.$transaction(async (tx) => {
+      const sourceOrder = options?.sourceOrderId
+        ? await tx.order.findFirst({
+            where: {
+              id: options.sourceOrderId,
+              companyId,
+              type: OrderType.PURCHASE,
+            },
+            include: { items: true },
+          })
+        : null;
+      if (options?.sourceOrderId && !sourceOrder) {
+        throw new DomainError(
+          'Source purchase order not found',
+          404,
+          DomainErrorCodes.ORDER_NOT_FOUND
+        );
+      }
+
+      let sourceOrderItemId = options?.sourceOrderItemId;
+      if (sourceOrderItemId) {
+        const sourceOrderItem = await tx.orderItem.findFirst({
+          where: {
+            id: sourceOrderItemId,
+            productId: product.id,
+            ...(options?.sourceOrderId && { orderId: options.sourceOrderId }),
+            order: { companyId },
+          },
+          select: { id: true },
+        });
+        if (!sourceOrderItem) {
+          throw new DomainError(
+            'Source order item not found for this product',
+            404,
+            DomainErrorCodes.ORDER_NOT_FOUND
+          );
+        }
+      } else if (sourceOrder) {
+        sourceOrderItemId =
+          sourceOrder.items.find((orderItem) => orderItem.productId === product.id)
+            ?.id ?? undefined;
+      }
+
+      if (options?.sourceFulfillmentId) {
+        const sourceFulfillment = await tx.fulfillment.findFirst({
+          where: { id: options.sourceFulfillmentId, companyId },
+          select: { id: true, orderId: true },
+        });
+        if (!sourceFulfillment) {
+          throw new DomainError(
+            'Source goods receipt not found',
+            404,
+            DomainErrorCodes.FULFILLMENT_NOT_FOUND
+          );
+        }
+        if (
+          options.sourceOrderId &&
+          sourceFulfillment.orderId !== options.sourceOrderId
+        ) {
+          throw new DomainError(
+            'Source goods receipt does not belong to source order',
+            400,
+            DomainErrorCodes.FULFILLMENT_NOT_FOR_ORDER
+          );
+        }
+      }
+
+      if (options?.sourceBillId) {
+        const sourceBill = await tx.invoice.findFirst({
+          where: { id: options.sourceBillId, companyId, type: InvoiceType.BILL },
+          select: { id: true, orderId: true },
+        });
+        if (!sourceBill) {
+          throw new DomainError(
+            'Source bill not found',
+            404,
+            DomainErrorCodes.BILL_NOT_FOUND
+          );
+        }
+        if (
+          options.sourceOrderId &&
+          sourceBill.orderId !== options.sourceOrderId
+        ) {
+          throw new DomainError(
+            'Source bill does not belong to source order',
+            400,
+            DomainErrorCodes.BILL_INVALID_STATE
+          );
+        }
+      }
+
+      const inferredSizeLabel = inferSizeLabel(
+        `${product.name} ${product.sku}`
+      );
+      const inferredColor = inferColor(`${product.name} ${product.sku}`);
+
       // Generate unique unit codes with retry
       const unitsToCreate: Prisma.RentalItemUnitCreateManyInput[] =
         [];
 
       for (let i = 0; i < quantity; i++) {
-        let unitCode: string;
+        const metadata = options?.unitMetadata?.[i];
+        let unitCode = options?.unitCodes?.[i] ?? metadata?.unitCode ?? '';
         let attempts = 0;
         const maxAttempts = 10;
 
         // Retry loop to ensure uniqueness
         do {
-          unitCode = generateUniqueUnitCode(product.sku);
+          unitCode = unitCode || generateUniqueUnitCode(product.sku);
           const exists = await tx.rentalItemUnit.findUnique({
             where: { companyId_unitCode: { companyId, unitCode } },
           });
           if (!exists) break;
+          if (options?.unitCodes?.[i] || metadata?.unitCode) {
+            throw new DomainError(
+              `Rental unit code already exists: ${unitCode}`,
+              409,
+              DomainErrorCodes.ALREADY_EXISTS
+            );
+          }
+          unitCode = '';
           attempts++;
         } while (attempts < maxAttempts);
 
@@ -226,6 +363,18 @@ export class RentalItemService {
           rentalItemId: itemId,
           companyId,
           unitCode,
+          acquiredAt:
+            metadata?.acquiredAt ?? sourceOrder?.date ?? new Date(),
+          acquisitionCost:
+            metadata?.acquisitionCost ?? Number(product.averageCost),
+          sourceOrderId: options?.sourceOrderId,
+          sourceOrderItemId,
+          sourceFulfillmentId: options?.sourceFulfillmentId,
+          sourceBillId: options?.sourceBillId,
+          sourceBatchCode: options?.sourceBatchCode,
+          sizeLabel: metadata?.sizeLabel ?? inferredSizeLabel,
+          color: metadata?.color ?? inferredColor,
+          sourceNotes: metadata?.sourceNotes,
           condition: UnitCondition.NEW,
           status: UnitStatus.AVAILABLE,
         });
@@ -267,6 +416,11 @@ export class RentalItemService {
         source: 'INVENTORY_STOCK',
         quantity,
         unitCodes: createdCodes,
+        sourceOrderId: options?.sourceOrderId,
+        sourceOrderItemId: options?.sourceOrderItemId,
+        sourceFulfillmentId: options?.sourceFulfillmentId,
+        sourceBillId: options?.sourceBillId,
+        sourceBatchCode: options?.sourceBatchCode,
       },
     });
 
@@ -319,13 +473,13 @@ export class RentalItemService {
 
   async checkAvailability(
     companyId: string,
-    _startDate: Date,
-    _endDate: Date,
+    startDate: Date,
+    endDate: Date,
     itemId?: string
   ): Promise<Record<string, number>> {
     const whereClause: Prisma.RentalItemUnitWhereInput = {
       companyId,
-      status: UnitStatus.AVAILABLE,
+      status: { notIn: [UnitStatus.MAINTENANCE, UnitStatus.RETIRED] },
       ...(itemId && { rentalItemId: itemId }),
     };
 
@@ -341,6 +495,40 @@ export class RentalItemService {
 
     for (const group of counts) {
       availability[group.rentalItemId] = group._count.rentalItemId;
+    }
+
+    const overlappingAssignments =
+      await prisma.rentalOrderUnitAssignment.findMany({
+        where: {
+          rentalOrder: {
+            companyId,
+            status: {
+              in: [
+                RentalOrderStatus.CONFIRMED,
+                RentalOrderStatus.ACTIVE,
+              ],
+            },
+            rentalStartDate: { lt: endDate },
+            rentalEndDate: { gt: startDate },
+          },
+          rentalItemUnit: {
+            companyId,
+            ...(itemId && { rentalItemId: itemId }),
+          },
+        },
+        include: {
+          rentalItemUnit: {
+            select: { rentalItemId: true },
+          },
+        },
+      });
+
+    for (const assignment of overlappingAssignments) {
+      const rentalItemId = assignment.rentalItemUnit.rentalItemId;
+      availability[rentalItemId] = Math.max(
+        0,
+        (availability[rentalItemId] ?? 0) - 1
+      );
     }
 
     return availability;

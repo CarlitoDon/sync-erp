@@ -5,6 +5,7 @@ import { JournalService } from '@modules/accounting/services/journal.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 
+
 const billService = new BillService();
 const journalService = new JournalService();
 const procurementService = new PurchaseOrderService();
@@ -42,7 +43,7 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
           companyId: COMPANY_ID,
           code: acc.code,
           name: acc.name,
-          type: acc.type as import('@sync-erp/database').AccountType,
+          type: acc.type as import("@sync-erp/database").AccountType,
           isActive: true, // Ensure active
         },
       });
@@ -182,8 +183,7 @@ describe('US4: Goods Receipt Accrual (GRNI)', () => {
     // 6. Verify Bill Journal (search by sourceType and sourceId)
     const allJournals = await journalService.list(COMPANY_ID);
     const billJournal = allJournals.find(
-      (j: JournalEntry) =>
-        j.sourceType === 'BILL' && j.sourceId === bill.id
+      (j: JournalEntry) => j.sourceType === 'BILL' && j.sourceId === bill.id
     );
 
     expect(billJournal).toBeDefined();

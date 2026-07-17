@@ -160,7 +160,7 @@ export class CompanyService {
    * This is a ONE-TIME operation - shape becomes immutable after selection.
    *
    * @param companyId - Company ID
-   * @param newShape - Target business shape (RETAIL, MANUFACTURING, SERVICE)
+   * @param newShape - Target business shape (RETAIL, MANUFACTURING, SERVICE, RENTAL)
    * @param currentShape - Current shape for Policy check
    */
   async selectShape(

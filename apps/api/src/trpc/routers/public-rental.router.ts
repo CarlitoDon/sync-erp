@@ -2,7 +2,7 @@
  * Public Rental Router (Facade)
  *
  * Composes sub-routers for partner, order, and payment management.
- * This router is used by external clients (santi-living erp-sync-service).
+ * Deprecated compatibility router for older external clients.
  *
  * Sub-routers:
  * - Partner: findOrCreatePartner

@@ -46,10 +46,9 @@ describe('Finance Invariants', () => {
 
     const brokenMath = invoices.filter((inv) => {
       // Standard formula: amount = subtotal + taxAmount
-      const standardCalc =
-        Number(inv.subtotal) + Number(inv.taxAmount);
+      const standardCalc = Number(inv.subtotal) + Number(inv.taxAmount);
       const actual = Number(inv.amount);
-
+      
       // If invoice has dpBillId, the DP may have been deducted from the total
       // The formula becomes: amount = subtotal + taxAmount - dpDeducted
       // where dpDeducted is <= the linked DP bill amount
@@ -59,7 +58,7 @@ describe('Finance Invariants', () => {
         // (it should be less due to DP deduction)
         return actual > standardCalc + 0.01;
       }
-
+      
       // Standard case (no DP): amount = subtotal + taxAmount
       // extensive floating point check? Decimal.js is used in app but Prisma returns Decimal/string/number depending on config.
       // Prisma default for Decimal is usually a Decimal object or string.
@@ -71,7 +70,7 @@ describe('Finance Invariants', () => {
     if (brokenMath.length > 0) {
       console.error(
         'Found invoices with math mismatch:',
-        brokenMath.slice(0, 5).map((inv) => ({
+        brokenMath.slice(0, 5).map(inv => ({
           id: inv.id,
           amount: Number(inv.amount),
           subtotal: Number(inv.subtotal),

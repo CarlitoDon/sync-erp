@@ -24,8 +24,7 @@ vi.mock('@sync-erp/database', async (importOriginal) => {
   // Check current test file path
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const state = (globalThis as Record<string, unknown>)
-    .__vitest_worker__ as Record<string, unknown> | undefined;
+  const state = (globalThis as Record<string, unknown>).__vitest_worker__ as Record<string, unknown> | undefined;
   const filepath = (state?.filepath as string) || '';
 
   // Unit tests get mocked prisma

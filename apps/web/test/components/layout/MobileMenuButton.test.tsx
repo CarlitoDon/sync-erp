@@ -55,6 +55,6 @@ describe('MobileMenuButton', () => {
     const button = screen.getByRole('button');
     expect(button).toHaveClass('md:hidden');
     expect(button).toHaveClass('p-2');
-    expect(button).toHaveClass('rounded-lg');
+    expect(button).toHaveClass('rounded-md');
   });
 });

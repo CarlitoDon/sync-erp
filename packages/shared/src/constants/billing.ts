@@ -1,6 +1,7 @@
 export const BILLING_TRIAL_DAYS = 14;
 
 export type BillingPlanKey =
+  | 'free'
   | 'starter'
   | 'growth'
   | 'scale'
@@ -24,8 +25,16 @@ export interface BillingPlanLimits {
   rental: boolean;
   whatsapp: boolean;
   apiAccess: boolean;
+  mediaAccess: boolean;
+  adsEnabled: boolean;
   prioritySupport: boolean;
 }
+
+export type BillingFeatureKey = {
+  [Key in keyof BillingPlanLimits]: BillingPlanLimits[Key] extends boolean
+    ? Key
+    : never;
+}[keyof BillingPlanLimits];
 
 export interface BillingPlan {
   key: BillingPlanKey;
@@ -70,9 +79,47 @@ export const BILLING_USAGE_METRICS: Record<
 
 export const BILLING_PLANS: readonly BillingPlan[] = [
   {
+    key: 'free',
+    name: 'Free',
+    tagline: 'ERP gratis untuk mulai merapikan operasi satu company.',
+    monthlyPriceIdr: 0,
+    annualPriceIdr: 0,
+    recommended: false,
+    cta: 'Mulai Gratis',
+    description:
+      'Core ERP gratis dengan limit satu company, tanpa media, dan didukung iklan.',
+    limits: {
+      companies: 1,
+      users: 3,
+      products: 500,
+      monthlyDocuments: 750,
+      apiKeys: 0,
+      rental: false,
+      whatsapp: false,
+      apiAccess: false,
+      mediaAccess: false,
+      adsEnabled: true,
+      prioritySupport: false,
+    },
+    features: [
+      'Gratis untuk satu company workspace',
+      'Sales order, purchase order, invoice, bill, dan payment',
+      'Inventory product, stock movement, receipt, dan shipment',
+      'Cash & bank, expense, journal, dan ledger dasar',
+      'Didukung Google AdSense di halaman aplikasi',
+    ],
+    exclusions: [
+      'Media upload dan media preview',
+      'Multi-company',
+      'Rental operations',
+      'WhatsApp integration',
+      'API key dan webhook',
+    ],
+  },
+  {
     key: 'starter',
     name: 'Starter',
-    tagline: 'Untuk bisnis kecil yang mulai menata operasi.',
+    tagline: 'Untuk bisnis kecil yang ingin ERP tanpa iklan dan media aktif.',
     monthlyPriceIdr: 499_000,
     annualPriceIdr: 4_990_000,
     recommended: false,
@@ -88,9 +135,13 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
       rental: false,
       whatsapp: false,
       apiAccess: false,
+      mediaAccess: true,
+      adsEnabled: false,
       prioritySupport: false,
     },
     features: [
+      'Semua fitur Free tanpa iklan',
+      'Media upload dan media preview',
       'Sales order, purchase order, invoice, bill, dan payment',
       'Inventory product, stock movement, receipt, dan shipment',
       'Cash & bank, expense, journal, dan ledger dasar',
@@ -121,6 +172,8 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
       rental: true,
       whatsapp: true,
       apiAccess: true,
+      mediaAccess: true,
+      adsEnabled: false,
       prioritySupport: false,
     },
     features: [
@@ -151,6 +204,8 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
       rental: true,
       whatsapp: true,
       apiAccess: true,
+      mediaAccess: true,
+      adsEnabled: false,
       prioritySupport: true,
     },
     features: [
@@ -181,6 +236,8 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
       rental: true,
       whatsapp: true,
       apiAccess: true,
+      mediaAccess: true,
+      adsEnabled: false,
       prioritySupport: true,
     },
     features: [
@@ -194,7 +251,7 @@ export const BILLING_PLANS: readonly BillingPlan[] = [
   },
 ] as const;
 
-export const DEFAULT_BILLING_PLAN_KEY: BillingPlanKey = 'starter';
+export const DEFAULT_BILLING_PLAN_KEY: BillingPlanKey = 'free';
 
 export function getBillingPlan(
   key: BillingPlanKey = DEFAULT_BILLING_PLAN_KEY
@@ -220,6 +277,10 @@ export function formatBillingLimit(value: BillingLimitValue): string {
 }
 
 export function formatPlanPrice(plan: BillingPlan): string {
+  if (plan.monthlyPriceIdr === 0) {
+    return 'Gratis';
+  }
+
   if (plan.monthlyPriceIdr === null) {
     return 'Custom';
   }
@@ -228,6 +289,10 @@ export function formatPlanPrice(plan: BillingPlan): string {
 }
 
 export function formatAnnualPlanPrice(plan: BillingPlan): string {
+  if (plan.annualPriceIdr === 0) {
+    return 'Gratis';
+  }
+
   if (plan.annualPriceIdr === null) {
     return 'Custom contract';
   }
