@@ -51,6 +51,9 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate --workspace=@sync-erp/database
 
+      - name: Build database package
+        run: npm run build --workspace=@sync-erp/database
+
       - name: Build MCP
         run: npm run build --workspace=@sync-erp/mcp
 
