@@ -116,7 +116,8 @@ export class WebhookOutboxService {
         orderNumber: input.orderNumber,
         autoRetry: input.autoRetry ?? true,
         payload: input.payload as Prisma.InputJsonValue,
-      } as any,
+       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
     });
 
     return (
@@ -372,7 +373,8 @@ export class WebhookOutboxService {
     const claimedEntry = await this.claimDelivery(id);
     if (!claimedEntry) return null;
 
-    const fetchResult = await this.performFetch(claimedEntry as any);
+    const fetchResult = await this.performFetch( // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        claimedEntry as any);
 
     if (fetchResult.success) {
       await prisma.rentalWebhookOutbox.update({
