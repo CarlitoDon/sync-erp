@@ -111,6 +111,16 @@ describe('Public Rental Router Integration', () => {
         name: 'Public Rental Integration Test Company',
       },
     });
+
+    await prisma.integration.create({
+      data: {
+        companyId: COMPANY_ID,
+        appId: 'test-app',
+        name: 'Test Integration',
+        isActive: true,
+      },
+    });
+
     await prisma.company.upsert({
       where: { id: COMPANY_B_ID },
       create: {
@@ -119,6 +129,15 @@ describe('Public Rental Router Integration', () => {
       },
       update: {
         name: 'Public Rental Integration Test Company B',
+      },
+    });
+
+    await prisma.integration.create({
+      data: {
+        companyId: COMPANY_B_ID,
+        appId: 'test-app-b',
+        name: 'Test Integration B',
+        isActive: true,
       },
     });
   });
