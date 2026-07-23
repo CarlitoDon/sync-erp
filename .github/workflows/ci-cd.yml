@@ -187,7 +187,7 @@ jobs:
         run: npm run typecheck
 
       - name: Build Web
-        run: npm run build:web
+        run: NODE_ENV=production npm run build:web
 
       - name: Upload Web build artifact
         uses: actions/upload-artifact@v4
@@ -298,6 +298,47 @@ jobs:
             # Always override database package from GHA artifact (contains pre-compiled Prisma engine)
             test -f node_modules/@sync-erp/database/package.json
             test -f node_modules/@sync-erp/database/dist/index.js
+
+            # Keep public runtime URLs aligned with the temporary domains while
+            # preserving every secret already stored in Hostinger's .env file.
+            test -f "$target/.env"
+            upsert_env() {
+              local key="$1"
+              local value="$2"
+              local env_tmp
+              env_tmp="$(mktemp "${target}/.env.XXXXXX")"
+              awk -v key="$key" -v value="$value" '
+                BEGIN { found = 0 }
+                index($0, key "=") == 1 {
+                  if (!found) {
+                    print key "=" value
+                    found = 1
+                  }
+                  next
+                }
+                { print }
+                END {
+                  if (!found) {
+                    print key "=" value
+                  }
+                }
+              ' "$target/.env" > "$env_tmp"
+              mv "$env_tmp" "$target/.env"
+            }
+
+            if [ "$APP_PORT" = "3002" ]; then
+              upsert_env "SYNC_ERP_API_URL" "https://api.santiliving.com/api/trpc"
+              upsert_env "SYNC_ERP_API_BASE_URL" "https://api.santiliving.com"
+              upsert_env "SYNC_ERP_WEB_URL" "https://sync-erp.khusnudhoni.online"
+              upsert_env "GOOGLE_OAUTH_REDIRECT_URI" "https://api.santiliving.com/api/auth/google/callback"
+              upsert_env "CORS_ALLOWED_ORIGINS" "http://localhost:5173,https://santiliving.com,https://santi-living.vercel.app,https://sync-erp.vercel.app,https://sync-erp.khusnudhoni.online,https://bot.santiliving.com"
+            else
+              upsert_env "SYNC_ERP_API_URL" "https://api-staging.santiliving.com/api/trpc"
+              upsert_env "SYNC_ERP_API_BASE_URL" "https://api-staging.santiliving.com"
+              upsert_env "SYNC_ERP_WEB_URL" "https://sync-erp-staging.santiliving.com"
+              upsert_env "GOOGLE_OAUTH_REDIRECT_URI" "https://api-staging.santiliving.com/api/auth/google/callback"
+              upsert_env "CORS_ALLOWED_ORIGINS" "http://localhost:5173,https://sync-erp-staging.santiliving.com,https://sync-erp-git-dev-doncarlo31s-projects.vercel.app"
+            fi
 
             # CRITICAL: Override .prisma/client with pre-compiled engine binary from GHA
             if tar -tzf "$HOME/${REMOTE_API_ARCHIVE}" 2>/dev/null | grep -q 'node_modules/\.prisma/client/'; then
@@ -431,6 +472,13 @@ jobs:
             exit 1
           fi
 
+          # The workflow-level NODE_ENV=test is correct for quality gates, but
+          # it must not leak into Vercel's production-mode Vite build. Leaving
+          # it unset also keeps Vercel's internal install from pruning build
+          # dependencies. Mixing test/dev JSX with React's production runtime
+          # causes a blank page (`jsxDEV is not a function`).
+          unset NODE_ENV
+
           run_with_retry() {
             local description="$1"
             shift
@@ -465,15 +513,23 @@ jobs:
           }
 
           if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            export VITE_SYNC_ERP_API_URL="https://api.santiliving.com/api/trpc"
             run_with_retry "vercel pull production" vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
             run_with_retry "vercel build production" vercel build --prod --token="${VERCEL_TOKEN}"
             deploy_with_retry "vercel deploy production" vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}"
             CUSTOM_DOMAIN="sync-erp.khusnudhoni.online"
           else
+            export VITE_SYNC_ERP_API_URL="https://api-staging.santiliving.com/api/trpc"
             run_with_retry "vercel pull preview" vercel pull --yes --environment=preview --token="${VERCEL_TOKEN}"
             run_with_retry "vercel build preview" vercel build --token="${VERCEL_TOKEN}"
             deploy_with_retry "vercel deploy preview" vercel deploy --prebuilt --token="${VERCEL_TOKEN}"
             CUSTOM_DOMAIN="sync-erp-staging.santiliving.com"
+          fi
+
+          if find .vercel/output/static/assets -name 'index-*.js' \
+            -exec grep -q '\.jsxDEV' {} +; then
+            echo "Deployed web bundle contains the development JSX runtime."
+            exit 1
           fi
 
           run_with_retry "vercel alias" \
