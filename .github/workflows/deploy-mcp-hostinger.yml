@@ -6,7 +6,6 @@ on:
     paths:
       - '.github/workflows/deploy-mcp-hostinger.yml'
       - 'apps/mcp/**'
-      - 'packages/database/**'
       - 'packages/shared/**'
   workflow_dispatch:
     inputs:
@@ -33,6 +32,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    concurrency:
+      group: hostinger-${{ github.ref_name }}
+      cancel-in-progress: false
     environment:
       name: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment) || (github.ref_name == 'main' && 'production') || 'staging' }}
 
@@ -48,24 +50,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate Prisma client
-        run: npm run db:generate --workspace=@sync-erp/database
-
-      - name: Build database package
-        run: npm run build --workspace=@sync-erp/database
-
       - name: Build MCP
         run: npm run build --workspace=@sync-erp/mcp
 
       - name: Prepare deployment package
         run: |
-          rm -rf deploy/api-mcp
-          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database deploy/api-mcp/prisma
-          cp -R apps/mcp/dist deploy/api-mcp/dist
-          cp apps/mcp/package.json deploy/api-mcp/package.json
-          cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
-          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/dist
-          cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/package.json
+          rm -rf deploy/mcp
+          mkdir -p deploy/mcp
+          cp -R apps/mcp/dist deploy/mcp/dist
+          cp apps/mcp/package.json deploy/mcp/package.json
+
+          npm install \
+            --prefix deploy/mcp \
+            --omit=dev \
+            --no-audit \
+            --no-fund \
+            --legacy-peer-deps
+
+          test -f deploy/mcp/node_modules/express/package.json
+          test -f deploy/mcp/node_modules/@modelcontextprotocol/sdk/package.json
 
       - name: Resolve deployment target
         id: target
@@ -107,19 +110,19 @@ jobs:
           export DISPLAY=:0
           ssh-add ~/.ssh/id_ed25519
 
-          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30"
+          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o ConnectionAttempts=5 -o BatchMode=yes"
           SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
           MCP_ARCHIVE="$(mktemp)"
           REMOTE_MCP_ARCHIVE="sync-erp-mcp-${GITHUB_SHA}.tar.gz"
 
-          tar -C deploy/api-mcp \
+          tar -C deploy/mcp \
             --exclude='./.htaccess' \
             --exclude='./.env' \
             --exclude='./tmp' \
             --exclude='./stderr.log' \
             -czf "$MCP_ARCHIVE" .
 
-          timeout 600 scp -C -P 65002 ${SSH_COMMON_OPTS} \
+          timeout 900 scp -P 65002 ${SSH_COMMON_OPTS} \
             "$MCP_ARCHIVE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_MCP_ARCHIVE}"
 
@@ -134,32 +137,14 @@ jobs:
             find "$target" -mindepth 1 -maxdepth 1 \
               ! -name '.env' \
               ! -name '.htaccess' \
-              ! -name 'node_modules' \
               ! -name 'tmp' \
               ! -name 'stderr.log' \
               -exec rm -rf {} +
             tar -xzf "$HOME/${REMOTE_MCP_ARCHIVE}" -C "$target"
             cd "$target"
 
-            fingerprint="$(sha256sum package.json | awk '{print $1}')"
-            installed_fingerprint=""
-            if [ -f .package-deps.sha256 ]; then
-              installed_fingerprint="$(cat .package-deps.sha256)"
-            fi
-
-            if [ -d node_modules ] && [ -d node_modules/@prisma/client ] && [ -f node_modules/express/package.json ] && { [ -z "$installed_fingerprint" ] || [ "$installed_fingerprint" = "$fingerprint" ]; }; then
-              echo "Reusing existing production node_modules."
-              echo "$fingerprint" > .package-deps.sha256
-            else
-              echo "Installing production dependencies."
-              timeout 600 npm install --omit=dev --ignore-scripts --no-audit --no-fund --loglevel=warn
-              echo "$fingerprint" > .package-deps.sha256
-            fi
-
-            rm -rf node_modules/@sync-erp/database
-            tar -xzf "$HOME/${REMOTE_MCP_ARCHIVE}" -C "$target" ./node_modules/@sync-erp/database
-            test -f node_modules/@sync-erp/database/package.json
-            test -f node_modules/@sync-erp/database/dist/index.js
+            test -f node_modules/express/package.json
+            test -f node_modules/@modelcontextprotocol/sdk/package.json
             rm -f "$HOME/${REMOTE_MCP_ARCHIVE}"
             mkdir -p tmp
 
@@ -186,10 +171,10 @@ jobs:
 
             pm2="$HOME/node-pm2/node_modules/.bin/pm2"
             if "$pm2" describe "$PM2_NAME" >/dev/null 2>&1; then
-              MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
+              UV_THREADPOOL_SIZE=1 MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
                 "$pm2" restart "$PM2_NAME" --update-env
             else
-              MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
+              UV_THREADPOOL_SIZE=1 MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
                 "$pm2" start dist/index.js --name "$PM2_NAME" --time
             fi
 
