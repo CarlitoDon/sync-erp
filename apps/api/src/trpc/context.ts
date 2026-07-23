@@ -69,17 +69,12 @@ export const createContext = async ({
     userId,
     companyId,
     correlationId,
-    idempotencyKey: req.headers['idempotency-key'] as
-      | string
-      | undefined, // Extract key
+    idempotencyKey: req.headers['idempotency-key'] as string | undefined,
+    integrationId: req.headers['x-integration-id'] as string | undefined,
+    isApiKeyAuth: Boolean(req.headers['x-api-key']),
     businessShape,
     userRole,
     userPermissions, // Granular RBAC: ['bill:void', 'payment:void', ...]
-    // These are injected by apiKeyProcedure middleware — declared here
-    // as optional so the base context type is compatible with both
-    // authenticated and api-key-procedure paths.
-    integrationId: undefined as string | undefined,
-    isApiKeyAuth: undefined as boolean | undefined,
     permissions: undefined as string[] | undefined,
     apiKeyId: undefined as string | undefined,
   };

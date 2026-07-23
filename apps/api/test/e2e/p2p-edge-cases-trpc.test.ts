@@ -29,7 +29,7 @@ const caller = appRouter.createCaller({
   userPermissions: ['*:*'], // full permissions for test purposes
   idempotencyKey: undefined,
   integrationId: undefined,
-  isApiKeyAuth: undefined,
+  isApiKeyAuth: false,
   permissions: undefined,
   apiKeyId: undefined,
 });

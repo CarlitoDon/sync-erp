@@ -1,7 +1,7 @@
 # 0001. Generic Multi-Tenant Pivot & Override Merge
 
-**Date:** 2026-07-17  
-**Status:** Accepted  
+**Date:** 2026-07-17
+**Status:** Accepted
 
 ## Context
 

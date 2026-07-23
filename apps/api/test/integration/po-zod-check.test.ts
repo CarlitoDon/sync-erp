@@ -22,6 +22,8 @@ const createCaller = async (userId: string, companyId: string) => {
     ...ctx,
     userPermissions: ['*:*'],
     idempotencyKey: undefined,
+    integrationId: undefined,
+    isApiKeyAuth: false,
   });
 };
 
