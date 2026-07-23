@@ -473,10 +473,11 @@ jobs:
           fi
 
           # The workflow-level NODE_ENV=test is correct for quality gates, but
-          # Vite must compile deployed React bundles with the production JSX
-          # runtime. Mixing test/dev JSX with React's production runtime causes
-          # a blank page (`jsxDEV is not a function`).
-          export NODE_ENV=production
+          # it must not leak into Vercel's production-mode Vite build. Leaving
+          # it unset also keeps Vercel's internal install from pruning build
+          # dependencies. Mixing test/dev JSX with React's production runtime
+          # causes a blank page (`jsxDEV is not a function`).
+          unset NODE_ENV
 
           run_with_retry() {
             local description="$1"
