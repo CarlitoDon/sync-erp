@@ -277,6 +277,11 @@ jobs:
             target="$HOME/public_html/${DEPLOY_DIR}"
 
             mkdir -p "$target"
+            printf '%s\n' \
+              "# PM2 proxy - API running on localhost:${APP_PORT} via PM2" \
+              'RewriteEngine On' \
+              "RewriteRule ^(.*)\$ http://localhost:${APP_PORT}/\$1 [P,L]" \
+              > "$target/.htaccess"
             find "$target" -mindepth 1 -maxdepth 1 \
               ! -name '.env' \
               ! -name '.htaccess' \
