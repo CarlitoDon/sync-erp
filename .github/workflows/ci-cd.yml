@@ -199,7 +199,7 @@ jobs:
   deploy_api:
     name: Deploy API to Hostinger
     needs: [changes, ci-api]
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment:
