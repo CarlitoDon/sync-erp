@@ -120,25 +120,26 @@ jobs:
           # controlled restart below, using shell builtins first so recovery
           # does not need another process slot.
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
-            "DEPLOY_DIR='${DEPLOY_DIR}' PM2_NAME='${PM2_NAME}' bash -s" <<'EOF'
-              for pid_file in "$HOME/.pm2/pids/${PM2_NAME}-"*.pid; do
-                [ -r "$pid_file" ] || continue
-                old_pid=""
-                IFS= read -r old_pid < "$pid_file" || true
-                case "$old_pid" in
-                  ''|*[!0-9]*) continue ;;
-                esac
-                kill "$old_pid" 2>/dev/null || true
-              done
-
+            "PM2_NAME='${PM2_NAME}' bash -s" <<'EOF'
               # PM2 auto-restarts an externally killed app. Repeatedly stop
-              # only this exact command until PM2 marks the old instance
-              # errored, freeing room for the controlled restart.
-              target_script="$HOME/public_html/${DEPLOY_DIR}/dist/index.js"
-              target_pattern="${target_script/mcp/m[c]p}"
+              # only this exact PID-file target until PM2 marks the old
+              # instance errored. Use only Bash builtins so recovery still
+              # works when CloudLinux cannot fork even one extra process.
               for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-                pkill -f "$target_pattern" 2>/dev/null || true
-                sleep 1
+                for pid_file in "$HOME/.pm2/pids/${PM2_NAME}-"*.pid; do
+                  [ -r "$pid_file" ] || continue
+                  old_pid=""
+                  IFS= read -r old_pid < "$pid_file" || true
+                  case "$old_pid" in
+                    ''|*[!0-9]*) continue ;;
+                  esac
+                  kill "$old_pid" 2>/dev/null || true
+                done
+
+                deadline=$((SECONDS + 1))
+                while [ "$SECONDS" -lt "$deadline" ]; do
+                  :
+                done
               done
           EOF
 
