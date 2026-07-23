@@ -115,6 +115,17 @@ jobs:
           cp -R apps/api/dist deploy/api-mcp/
           cp apps/api/package.pro.json deploy/api-mcp/package.json
           cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
+
+          # Build a complete Linux/Node 20 production dependency tree on the runner.
+          # Hostinger should only unpack and restart the ready-to-run release.
+          npm install \
+            --prefix deploy/api-mcp \
+            --omit=dev \
+            --no-audit \
+            --no-fund \
+            --legacy-peer-deps
+
+          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database
           cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
           cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
           if [ -d packages/database/src/generated ]; then
@@ -243,7 +254,7 @@ jobs:
           export DISPLAY=:0
 
           ssh-add ~/.ssh/id_ed25519
-          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o BatchMode=yes"
+          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o ConnectionAttempts=5 -o BatchMode=yes"
           SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
           SCP_OPTS="-P 65002 ${SSH_COMMON_OPTS}"
           API_ARCHIVE="$(mktemp)"
@@ -256,7 +267,7 @@ jobs:
             --exclude='./stderr.log' \
             -czf "$API_ARCHIVE" .
 
-          timeout 600 scp -C ${SCP_OPTS} \
+          timeout 900 scp ${SCP_OPTS} \
             "$API_ARCHIVE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_API_ARCHIVE}"
 
@@ -269,56 +280,33 @@ jobs:
             find "$target" -mindepth 1 -maxdepth 1 \
               ! -name '.env' \
               ! -name '.htaccess' \
-              ! -name 'node_modules' \
               ! -name 'tmp' \
               ! -name 'stderr.log' \
               -exec rm -rf {} +
             tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target"
             cd "$target"
 
-            fingerprint="$(sha256sum package.json | awk '{print $1}')"
-            installed_fingerprint=""
-            if [ -f .package-deps.sha256 ]; then
-              installed_fingerprint="$(cat .package-deps.sha256)"
-            fi
-
-            if [ -d node_modules ] && [ -d node_modules/express ] && { [ -z "$installed_fingerprint" ] || [ "$installed_fingerprint" = "$fingerprint" ]; }; then
-              echo "Reusing existing production node_modules."
-              echo "$fingerprint" > .package-deps.sha256
-            else
-              echo "Installing production dependencies."
-              timeout 600 npm install --omit=dev --ignore-scripts --no-audit --no-fund --loglevel=warn
-              echo "$fingerprint" > .package-deps.sha256
-            fi
+            test -f node_modules/express/package.json
+            test -f node_modules/@sentry/node/package.json
+            test -f node_modules/ioredis/package.json
 
             # Always override database package from GHA artifact (contains pre-compiled Prisma engine)
-            mkdir -p node_modules/@sync-erp
-            rm -rf node_modules/@sync-erp/database
-            tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target" ./node_modules/@sync-erp/database
             test -f node_modules/@sync-erp/database/package.json
             test -f node_modules/@sync-erp/database/dist/index.js
 
             # CRITICAL: Override .prisma/client with pre-compiled engine binary from GHA
-            # npm install --omit=dev with --ignore-scripts may not generate these correctly
             if tar -tzf "$HOME/${REMOTE_API_ARCHIVE}" 2>/dev/null | grep -q 'node_modules/\.prisma/client/'; then
-              echo "Injecting pre-compiled Prisma query engine binary..."
-              mkdir -p node_modules/.prisma
-              rm -rf node_modules/.prisma/client
-              tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target" ./node_modules/.prisma/client
               test -f node_modules/.prisma/client/package.json
-              echo "✓ Prisma client binary injected successfully."
+              echo "✓ Pre-compiled Prisma client is present."
             else
               echo "⚠ .prisma/client/ not found in archive. Query engine may fall back to platform default."
             fi
 
-            # Override @prisma JS wrapper packages
+            # Assert Prisma JS wrapper packages are present in the release.
             for prisma_pkg in client adapter-pg; do
               if tar -tzf "$HOME/${REMOTE_API_ARCHIVE}" 2>/dev/null | grep -q "node_modules/@prisma/${prisma_pkg}/"; then
-                mkdir -p "node_modules/@prisma"
-                rm -rf "node_modules/@prisma/${prisma_pkg}"
-                tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target" "./node_modules/@prisma/${prisma_pkg}"
                 test -f "node_modules/@prisma/${prisma_pkg}/package.json"
-                echo "Overrode @prisma/${prisma_pkg} from built artifact"
+                echo "Found @prisma/${prisma_pkg} in built artifact"
               fi
             done
 
