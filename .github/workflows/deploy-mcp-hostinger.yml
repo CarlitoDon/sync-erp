@@ -117,51 +117,31 @@ jobs:
           REMOTE_MCP_ARCHIVE="sync-erp-mcp-${GITHUB_SHA}.tar.gz"
 
           # A saturated CloudLinux NPROC quota can prevent even scp from
-          # forking. Stop only the exact PM2 target being deployed before the
-          # controlled restart below, using shell builtins first so recovery
-          # does not need another process slot.
+          # forking. Kill only the exact target using shell builtins, then
+          # replace this recovery shell with `pm2 stop` so PM2 cannot restart
+          # the target while the package is transferred and extracted.
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
-            "PM2_NAME='${PM2_NAME}' bash -s" <<'EOF' &
-              hold_marker="$HOME/.sync-erp-${PM2_NAME}.deploy-hold"
-              : > "$hold_marker"
-
-              stop_target() {
-                for pid_file in "$HOME/.pm2/pids/${PM2_NAME}-"*.pid; do
-                  [ -r "$pid_file" ] || continue
-                  old_pid=""
-                  IFS= read -r old_pid < "$pid_file" || true
-                  case "$old_pid" in
-                    ''|*[!0-9]*) continue ;;
-                  esac
-                  kill "$old_pid" 2>/dev/null || true
-                done
-              }
-
-              stop_target
-
-              # Keep this SSH session open and only the target MCP process
-              # down while the package is transferred and extracted. The
-              # helper self-expires after five minutes if a later deployment
-              # step never removes the marker.
-              started_at=$SECONDS
-              while [ -e "$hold_marker" ] && [ $((SECONDS - started_at)) -lt 300 ]; do
-                stop_target
-                for _spin in {1..100000}; do
-                  :
-                done
+            "PM2_NAME='${PM2_NAME}' bash -s" <<'EOF'
+              for pid_file in "$HOME/.pm2/pids/${PM2_NAME}-"*.pid; do
+                [ -r "$pid_file" ] || continue
+                old_pid=""
+                IFS= read -r old_pid < "$pid_file" || true
+                case "$old_pid" in
+                  ''|*[!0-9]*) continue ;;
+                esac
+                kill "$old_pid" 2>/dev/null || true
               done
-          EOF
-          HOLD_SSH_PID=$!
 
-          cleanup_hold() {
-            if [ -n "${HOLD_SSH_PID:-}" ]; then
-              kill "$HOLD_SSH_PID" 2>/dev/null || true
-              wait "$HOLD_SSH_PID" 2>/dev/null || true
-            fi
+              export NODE_OPTIONS="--v8-pool-size=1"
+              export UV_THREADPOOL_SIZE=1
+              exec "$HOME/node-pm2/node_modules/.bin/pm2" stop "$PM2_NAME"
+          EOF
+
+          cleanup_control() {
             ssh -p 65002 -S "$CONTROL_PATH" -O exit \
               "${HOSTINGER_USER}@${HOSTINGER_HOST}" >/dev/null 2>&1 || true
           }
-          trap cleanup_hold EXIT
+          trap cleanup_control EXIT
           for _ in 1 2 3 4 5 6 7 8 9 10; do
             [ -S "$CONTROL_PATH" ] && break
             sleep 1
@@ -185,8 +165,6 @@ jobs:
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
             api_env="$HOME/public_html/${API_ENV_DIR}/.env"
-            hold_marker="$HOME/.sync-erp-${PM2_NAME}.deploy-hold"
-            trap 'rm -f "$hold_marker"' EXIT
 
             mkdir -p "$target"
             find "$target" -mindepth 1 -maxdepth 1 \
@@ -227,7 +205,6 @@ jobs:
             pm2="$HOME/node-pm2/node_modules/.bin/pm2"
             NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
               "$pm2" stop "$PM2_NAME" >/dev/null 2>&1 || true
-            rm -f "$hold_marker"
             sleep 1
 
             if "$pm2" describe "$PM2_NAME" >/dev/null 2>&1; then
@@ -257,6 +234,4 @@ jobs:
             done
           EOF
 
-          wait "$HOLD_SSH_PID"
-          HOLD_SSH_PID=""
           rm -f "$MCP_ARCHIVE"
