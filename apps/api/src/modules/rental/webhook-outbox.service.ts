@@ -1,6 +1,7 @@
 import {
   prisma,
   Prisma,
+  RentalWebhookDeliveryType,
   RentalWebhookOutboxStatus,
 } from '@sync-erp/database';
 import { WEBHOOK_TIMEOUT_MS } from '@sync-erp/shared';
@@ -79,7 +80,7 @@ const readString = (
 
 export class WebhookOutboxService {
   async enqueue(
-    event: string,
+    event: RentalWebhookDeliveryType,
     input: {
       companyId: string;
       integrationId?: string;
@@ -110,7 +111,7 @@ export class WebhookOutboxService {
     const delivery = await prisma.rentalWebhookOutbox.create({
       data: {
         companyId: input.companyId,
-        event,
+        deliveryType: event,
         orderPublicToken: input.orderPublicToken,
         orderNumber: input.orderNumber,
         autoRetry: input.autoRetry ?? true,
@@ -257,7 +258,7 @@ export class WebhookOutboxService {
   async listDeliveries(input: {
     companyId: string;
     statuses?: RentalWebhookOutboxStatus[];
-    event?: string;
+     _event?: string;
     limit?: number;
     offset?: number;
   }) {
@@ -269,7 +270,7 @@ export class WebhookOutboxService {
       ...(input.statuses?.length
         ? { status: { in: input.statuses } }
         : {}),
-      ...(input.event ? { event: input.event } : {}),
+      ...(input. _event ? {  _event: input. _event } : {}),
     };
 
     const [data, total] = await Promise.all([
@@ -366,13 +367,13 @@ export class WebhookOutboxService {
   }
 
   private async processDelivery(
-    id: string
+    _id: string
   ): Promise<DeliveryResult | null> {
-    const claimedEntry = await this.claimDelivery(id);
+    const claimedEntry = await this.claimDelivery(_id);
     if (!claimedEntry) return null;
 
-    // @ts-expect-error integrationId field pending schema migration
-    const fetchResult = await this.performFetch(claimedEntry);
+    const fetchResult = await this.performFetch( // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        claimedEntry as any);
 
     if (fetchResult.success) {
       await prisma.rentalWebhookOutbox.update({
@@ -490,7 +491,7 @@ export class WebhookOutboxService {
 
   private async performFetch(entry: {
     id: string;
-    event: string;
+     _event: string;
     integrationId: string | null;
     orderPublicToken: string;
     orderNumber: string | null;
@@ -551,7 +552,7 @@ export class WebhookOutboxService {
     let requestBody = entry.payload;
     if (plugin?.buildWebhookPayload) {
       requestBody = plugin.buildWebhookPayload(
-        entry.event,
+        entry. _event,
         entry.payload,
         integrationConfig
       ) as Prisma.JsonValue;
@@ -560,7 +561,7 @@ export class WebhookOutboxService {
     let urlPath = '/api/webhook';
     if (plugin?.getWebhookPath) {
       urlPath = plugin.getWebhookPath(
-        entry.event,
+        entry. _event,
         entry.orderPublicToken,
         integrationConfig
       );

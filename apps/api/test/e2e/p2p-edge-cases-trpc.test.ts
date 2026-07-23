@@ -27,7 +27,11 @@ const caller = appRouter.createCaller({
   correlationId: 'test-correlation',
   userRole: "ADMIN" as string,
   userPermissions: ['*:*'], // full permissions for test purposes
-  idempotencyKey: undefined, integrationId: undefined, isApiKeyAuth: false, integrationId: undefined, isApiKeyAuth: false,
+  idempotencyKey: undefined,
+  integrationId: undefined,
+  isApiKeyAuth: undefined,
+  permissions: undefined,
+  apiKeyId: undefined,
 });
 
 describe('P2P Edge Cases (tRPC): Comprehensive Error Handling', () => {

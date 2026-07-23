@@ -51,6 +51,9 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate --workspace=@sync-erp/database
 
+      - name: Build database package
+        run: npm run build --workspace=@sync-erp/database
+
       - name: Build MCP
         run: npm run build --workspace=@sync-erp/mcp
 
@@ -58,11 +61,11 @@ jobs:
         run: |
           rm -rf deploy/api-mcp
           mkdir -p deploy/api-mcp/node_modules/@sync-erp/database deploy/api-mcp/prisma
-          cp -R apps/mcp/dist deploy/api-mcp/
-          cp apps/mcp/package.pro.json deploy/api-mcp/package.json
+          cp -R apps/mcp/dist deploy/api-mcp/dist
+          cp apps/mcp/package.json deploy/api-mcp/package.json
           cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
-          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
-          cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
+          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/dist
+          cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/package.json
 
       - name: Resolve deployment target
         id: target

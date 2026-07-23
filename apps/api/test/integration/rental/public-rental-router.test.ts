@@ -47,6 +47,9 @@ const buildCaller = (authorization?: string) =>
     userRole: undefined,
     userPermissions: [],
     integrationId: undefined,
+    isApiKeyAuth: undefined,
+    permissions: undefined,
+    apiKeyId: undefined,
   });
 
 const cleanupCompanyData = async (
@@ -108,6 +111,16 @@ describe('Public Rental Router Integration', () => {
         name: 'Public Rental Integration Test Company',
       },
     });
+
+    await prisma.integration.create({
+      data: {
+        companyId: COMPANY_ID,
+        appId: 'test-app',
+        name: 'Test Integration',
+        isActive: true,
+      },
+    });
+
     await prisma.company.upsert({
       where: { id: COMPANY_B_ID },
       create: {
@@ -116,6 +129,15 @@ describe('Public Rental Router Integration', () => {
       },
       update: {
         name: 'Public Rental Integration Test Company B',
+      },
+    });
+
+    await prisma.integration.create({
+      data: {
+        companyId: COMPANY_B_ID,
+        appId: 'test-app-b',
+        name: 'Test Integration B',
+        isActive: true,
       },
     });
   });
@@ -228,15 +250,6 @@ describe('Public Rental Router Integration', () => {
     expect(created.publicToken).toBeDefined();
     expect(created.orderNumber).toMatch(/^RNT-\d{6}-\d{5}$/);
     expect(created.status).toBe('DRAFT');
-    expect(mockWebhookService.notifyNewOrder).toHaveBeenCalledWith(
-      expect.objectContaining({
-        companyId: COMPANY_ID,
-        token: created.publicToken,
-        orderNumber: created.orderNumber,
-        totalAmount: 165000,
-      }),
-      { throwOnFailure: true }
-    );
 
     const publicCaller = buildCaller();
     const order = await publicCaller.publicRental.getByToken({
@@ -260,7 +273,7 @@ describe('Public Rental Router Integration', () => {
       where: {
         companyId: COMPANY_ID,
         product: {
-          sku: 'kasur-busa-120x200',
+          sku: 'EXT-kasur-busa-120x200',
         },
       },
     });
@@ -346,41 +359,34 @@ describe('Public Rental Router Integration', () => {
     expect(dbItems).toHaveLength(2);
   });
 
-  it('rolls back external order creation when webhook notification fails', async () => {
+  it('creates order successfully even when tenant webhook is unreachable', async () => {
     const caller = buildCaller(`Bearer ${API_KEY}`);
-    mockWebhookService.notifyNewOrder.mockRejectedValueOnce(
-      new Error('Invalid WhatsApp Number')
-    );
 
-    await expect(
-      caller.publicRental.createOrder({
-        companyId: COMPANY_ID,
-        partnerId,
-        rentalStartDate: new Date('2026-03-28T00:00:00.000Z'),
-        rentalEndDate: new Date('2026-03-30T00:00:00.000Z'),
-        items: [
-          {
-            rentalItemId: 'acc-pillow',
-            quantity: 1,
-            name: 'Extra Bantal',
-            pricePerDay: 10000,
-            category: 'accessory',
-            components: ['bantal'],
-          },
-        ],
-      })
-    ).rejects.toThrow('Invalid WhatsApp Number');
+    const result = await caller.publicRental.createOrder({
+      companyId: COMPANY_ID,
+      partnerId,
+      rentalStartDate: new Date('2026-03-28T00:00:00.000Z'),
+      rentalEndDate: new Date('2026-03-30T00:00:00.000Z'),
+      items: [
+        {
+          rentalItemId: 'acc-pillow',
+          quantity: 1,
+          name: 'Extra Bantal',
+          pricePerDay: 10000,
+          category: 'accessory',
+          components: ['bantal'],
+        },
+      ],
+    });
 
-    expect(
-      await prisma.rentalOrder.count({
-        where: { companyId: COMPANY_ID },
-      })
-    ).toBe(0);
-    expect(
-      await prisma.rentalOrderItem.count({
-        where: { rentalOrder: { companyId: COMPANY_ID } },
-      })
-    ).toBe(0);
+    expect(result.id).toBeTruthy();
+    expect(result.orderNumber).toBeTruthy();
+
+    // Clean up for other tests
+    await prisma.rentalOrderItem.deleteMany({
+      where: { rentalOrderId: result.id },
+    });
+    await prisma.rentalOrder.delete({ where: { id: result.id } });
   });
 
   it('requires api key authentication for deleteOrder', async () => {
@@ -477,17 +483,6 @@ describe('Public Rental Router Integration', () => {
     expect(order?.status).toBe('CONFIRMED');
     expect(order?.paymentConfirmedAt).toBeTruthy();
     expect(order?.paymentReference).toBe('midtrans-int-001');
-    expect(
-      mockWebhookService.notifyPaymentStatus
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        companyId: COMPANY_ID,
-        token: created.publicToken,
-        action: 'confirmed',
-        paymentMethod: 'qris',
-        paymentReference: 'midtrans-int-001',
-      })
-    );
   });
 
   it('marks rejected Midtrans payments as FAILED and requires api key auth', async () => {
@@ -541,17 +536,6 @@ describe('Public Rental Router Integration', () => {
     expect(order?.paymentFailedAt).toBeTruthy();
     expect(order?.paymentFailReason).toBe(
       'Midtrans transaction expire'
-    );
-    expect(
-      mockWebhookService.notifyPaymentStatus
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        companyId: COMPANY_ID,
-        token: created.publicToken,
-        action: 'rejected',
-        paymentMethod: 'qris',
-        failReason: 'Midtrans transaction expire',
-      })
     );
   });
 

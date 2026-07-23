@@ -17,6 +17,11 @@ import type {
   RentalIntegrationRejectPaymentInput,
 } from './rental-integration.schemas';
 
+export interface OrderItemComponent {
+  quantity: number;
+  label: string;
+}
+
 export interface CreatePublicOrderInput {
   companyId: string;
   partnerId: string;
@@ -30,7 +35,7 @@ export interface CreatePublicOrderInput {
     pricePerDay?: number;
     lineTotal?: number;
     category?: 'package' | 'mattress' | 'accessory';
-    components?: { quantity: number; label: string; }[] | string[];
+    components?: string[] | OrderItemComponent[];
   }[];
   notes?: string;
   deliveryFee?: number;
@@ -50,6 +55,7 @@ export interface CreatePublicOrderInput {
   externalSource?: string;
   metadata?: Record<string, unknown>;
   createdByApiKeyId?: string;
+    integrationId?: string;
   createdBy?: string;
   skuPrefix?: string;
 }
@@ -82,7 +88,7 @@ export interface UpdatePublicOrderInput {
     pricePerDay?: number;
     lineTotal?: number;
     category?: 'package' | 'mattress' | 'accessory';
-    components?: { quantity: number; label: string; }[] | string[];
+    components?: string[] | OrderItemComponent[];
   }[];
 }
 
@@ -1354,7 +1360,8 @@ export class RentalExternalOrderService {
       });
 
       for (const component of item.components || []) {
-        const { quantity, label } = this.parseComponentLabel(component);
+        const normalized = this.normalizeComponentItem(component);
+        const { quantity, label } = normalized;
         const rentalItem = await this.findOrCreateComponentRentalItem(
           tx,
           companyId,
@@ -1410,7 +1417,8 @@ export class RentalExternalOrderService {
     }
 
     if (!rentalItem && item.components?.[0]) {
-      const componentSku = this.toExternalSku(item.components[0]);
+      const firstComponent = this.getComponentLabel(item.components[0]);
+      const componentSku = this.toExternalSku(firstComponent);
       const freshLookup = await prisma.rentalItem.findFirst({
         where: {
           companyId,
@@ -1419,7 +1427,7 @@ export class RentalExternalOrderService {
             {
               product: {
                 name: {
-                  contains: item.components[0],
+                  contains: firstComponent,
                   mode: 'insensitive',
                 },
               },
@@ -1470,11 +1478,12 @@ export class RentalExternalOrderService {
     }
 
     const componentName = item.components?.[0];
-    const productName = componentName
-      ? this.capitalizeLabel(componentName)
+    const label = componentName ? this.getComponentLabel(componentName) : null;
+    const productName = label
+      ? this.capitalizeLabel(label)
       : item.name;
-    const productSku = componentName
-      ? this.toExternalSku(componentName)
+    const productSku = label
+      ? this.toExternalSku(label)
       : this.toExternalSku(item.rentalItemId);
 
     let product = await prisma.product.findFirst({
@@ -1596,6 +1605,17 @@ export class RentalExternalOrderService {
         : 1,
       label: quantityMatch ? quantityMatch[2] : componentLabel,
     };
+  }
+
+  private getComponentLabel(component: string | OrderItemComponent): string {
+    return typeof component === 'string' ? component : component.label;
+  }
+
+  private normalizeComponentItem(component: string | OrderItemComponent): { quantity: number; label: string } {
+    if (typeof component === 'string') {
+      return this.parseComponentLabel(component);
+    }
+    return component;
   }
 
   private toExternalSku(value: string) {
