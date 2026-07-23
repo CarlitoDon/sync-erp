@@ -132,6 +132,7 @@ jobs:
                 kill "$old_pid" 2>/dev/null || true
               done
 
+              export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
               export NODE_OPTIONS="--v8-pool-size=1"
               export UV_THREADPOOL_SIZE=1
               exec "$HOME/node-pm2/node_modules/.bin/pm2" stop "$PM2_NAME"
