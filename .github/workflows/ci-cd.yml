@@ -366,6 +366,9 @@ jobs:
             rm -f "$HOME/${REMOTE_API_ARCHIVE}"
             mkdir -p tmp
 
+            pm2="$HOME/node-pm2/node_modules/.bin/pm2"
+            "$pm2" delete "$PM2_NAME" >/dev/null 2>&1 || true
+
             NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
               SYNC_ERP_API_URL="$api_url" \
               SYNC_ERP_API_BASE_URL="$api_base_url" \
@@ -374,7 +377,11 @@ jobs:
               CORS_ORIGIN="$cors_origins" \
               CORS_ALLOWED_ORIGINS="$cors_origins" \
               PORT="$APP_PORT" NODE_ENV=production \
-              "$HOME/node-pm2/node_modules/.bin/pm2" restart "$PM2_NAME" --update-env
+              "$pm2" start dist/index.js \
+                --name "$PM2_NAME" \
+                --cwd "$target" \
+                --time
+            "$pm2" save
 
             for attempt in 1 2 3 4 5 6; do
               if curl -fsS --connect-timeout 5 --max-time 10 \
@@ -383,11 +390,30 @@ jobs:
                 break
               fi
               if [ "$attempt" -eq 6 ]; then
-                "$HOME/node-pm2/node_modules/.bin/pm2" logs "$PM2_NAME" --lines 80 --nostream
+                "$pm2" logs "$PM2_NAME" --lines 80 --nostream
                 exit 1
               fi
               sleep 5
             done
+
+            cors_headers="$(mktemp)"
+            if ! curl -fsS --connect-timeout 5 --max-time 10 \
+              -o /dev/null \
+              -D "$cors_headers" \
+              -X OPTIONS \
+              "http://127.0.0.1:${APP_PORT}/api/trpc/auth.me" \
+              -H "Origin: ${web_url}" \
+              -H 'Access-Control-Request-Method: GET'; then
+              echo "Local API CORS preflight failed for ${web_url}."
+              "$pm2" logs "$PM2_NAME" --lines 80 --nostream
+              exit 1
+            fi
+            if ! grep -Fqi "access-control-allow-origin: ${web_url}" "$cors_headers"; then
+              echo "Local API did not allow the configured web origin ${web_url}."
+              exit 1
+            fi
+            rm -f "$cors_headers"
+            echo "Local API CORS preflight allows ${web_url}."
           EOF
 
           rm -f "$API_ARCHIVE"
