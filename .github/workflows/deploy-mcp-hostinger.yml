@@ -116,10 +116,11 @@ jobs:
           REMOTE_MCP_ARCHIVE="sync-erp-mcp-${GITHUB_SHA}.tar.gz"
 
           # A saturated CloudLinux NPROC quota can prevent even scp from
-          # forking. Recover only production MCP when the account is already
-          # near the limit; the following restart uses smaller Node pools.
-          if [ "$PM2_NAME" = "sync-erp-mcp" ]; then
-            ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "bash -s" <<'EOF'
+          # forking. Recover only the exact MCP target being deployed when the
+          # account is already near the limit; the following restart uses
+          # smaller Node pools.
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+            "DEPLOY_DIR='${DEPLOY_DIR}' bash -s" <<'EOF'
               current_tasks=0
               for proc_dir in /proc/[0-9]*; do
                 [ -r "$proc_dir/status" ] || continue
@@ -138,29 +139,28 @@ jobs:
 
               echo "Current account task count: ${current_tasks}"
               if [ "$current_tasks" -ge 90 ]; then
-                for proc_dir in /proc/[0-9]*; do
-                  [ -r "$proc_dir/cmdline" ] || continue
-                  cmdline=""
-                  while IFS= read -r -d '' arg; do
-                    cmdline="${cmdline} ${arg}"
-                  done < "$proc_dir/cmdline" || true
-                  case "$cmdline" in
-                    *"/public_html/apps/mcp/dist/index.js"*)
-                      kill "${proc_dir##*/}" 2>/dev/null || true
-                      ;;
-                  esac
-                done
+                target_script="$HOME/public_html/${DEPLOY_DIR}/dist/index.js"
 
                 # PM2 auto-restarts an externally killed app. Repeatedly stop
-                # only this exact production command until PM2 marks the old
-                # instance errored, freeing room for the controlled restart.
+                # only this exact command until PM2 marks the old instance
+                # errored, freeing room for the controlled restart.
                 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-                  pkill -f '/public_html/apps/m[c]p/dist/index.js' 2>/dev/null || true
+                  for proc_dir in /proc/[0-9]*; do
+                    [ -r "$proc_dir/cmdline" ] || continue
+                    cmdline=""
+                    while IFS= read -r -d '' arg; do
+                      cmdline="${cmdline} ${arg}"
+                    done < "$proc_dir/cmdline" || true
+                    case "$cmdline" in
+                      *"$target_script"*)
+                        kill "${proc_dir##*/}" 2>/dev/null || true
+                        ;;
+                    esac
+                  done
                   sleep 1
                 done
               fi
           EOF
-          fi
 
           tar -C deploy/mcp \
             --exclude='./.htaccess' \
