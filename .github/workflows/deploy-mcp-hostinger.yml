@@ -115,6 +115,53 @@ jobs:
           MCP_ARCHIVE="$(mktemp)"
           REMOTE_MCP_ARCHIVE="sync-erp-mcp-${GITHUB_SHA}.tar.gz"
 
+          # A saturated CloudLinux NPROC quota can prevent even scp from
+          # forking. Recover only production MCP when the account is already
+          # near the limit; the following restart uses smaller Node pools.
+          if [ "$PM2_NAME" = "sync-erp-mcp" ]; then
+            ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "bash -s" <<'EOF'
+              current_tasks=0
+              for proc_dir in /proc/[0-9]*; do
+                [ -r "$proc_dir/status" ] || continue
+                owner_uid=""
+                while IFS=$' \t' read -r key value _; do
+                  if [ "$key" = "Uid:" ]; then
+                    owner_uid="$value"
+                    break
+                  fi
+                done < "$proc_dir/status"
+                [ "$owner_uid" = "$EUID" ] || continue
+                for task_dir in "$proc_dir"/task/[0-9]*; do
+                  [ -e "$task_dir" ] && current_tasks=$((current_tasks + 1))
+                done
+              done
+
+              echo "Current account task count: ${current_tasks}"
+              if [ "$current_tasks" -ge 90 ]; then
+                for proc_dir in /proc/[0-9]*; do
+                  [ -r "$proc_dir/cmdline" ] || continue
+                  cmdline=""
+                  while IFS= read -r -d '' arg; do
+                    cmdline="${cmdline} ${arg}"
+                  done < "$proc_dir/cmdline" || true
+                  case "$cmdline" in
+                    *"/public_html/apps/mcp/dist/index.js"*)
+                      kill "${proc_dir##*/}" 2>/dev/null || true
+                      ;;
+                  esac
+                done
+
+                # PM2 auto-restarts an externally killed app. Repeatedly stop
+                # only this exact production command until PM2 marks the old
+                # instance errored, freeing room for the controlled restart.
+                for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+                  pkill -f '/public_html/apps/m[c]p/dist/index.js' 2>/dev/null || true
+                  sleep 1
+                done
+              fi
+          EOF
+          fi
+
           tar -C deploy/mcp \
             --exclude='./.htaccess' \
             --exclude='./.env' \
@@ -171,10 +218,12 @@ jobs:
 
             pm2="$HOME/node-pm2/node_modules/.bin/pm2"
             if "$pm2" describe "$PM2_NAME" >/dev/null 2>&1; then
-              UV_THREADPOOL_SIZE=1 MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
+              NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
+                MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
                 "$pm2" restart "$PM2_NAME" --update-env
             else
-              UV_THREADPOOL_SIZE=1 MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
+              NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
+                MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
                 "$pm2" start dist/index.js --name "$PM2_NAME" --time
             fi
 

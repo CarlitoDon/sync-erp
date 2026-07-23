@@ -313,7 +313,8 @@ jobs:
             rm -f "$HOME/${REMOTE_API_ARCHIVE}"
             mkdir -p tmp
 
-            UV_THREADPOOL_SIZE=1 PORT="$APP_PORT" NODE_ENV=production \
+            NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
+              PORT="$APP_PORT" NODE_ENV=production \
               "$HOME/node-pm2/node_modules/.bin/pm2" restart "$PM2_NAME" --update-env
 
             for attempt in 1 2 3 4 5 6; do
