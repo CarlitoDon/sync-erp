@@ -1,11 +1,18 @@
+/* eslint-disable */
+// @ts-nocheck
+
 import { z } from 'zod';
-import type { Prisma } from '@sync-erp/database/client';
 import Decimal from 'decimal.js';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 type InputJsonValue = string | number | boolean | null | InputJsonValue[] | { [key: string]: InputJsonValue };
 const objectEnumValues = { instances: { DbNull: Symbol('DbNull'), JsonNull: Symbol('JsonNull') } };
 const PrismaDecimal = Decimal;
+const Prisma = {
+  DbNull: objectEnumValues.instances.DbNull,
+  JsonNull: objectEnumValues.instances.JsonNull,
+  AnyNull: Symbol('AnyNull'),
+};
 
 /////////////////////////////////////////
 // HELPER FUNCTIONS

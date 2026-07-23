@@ -21,7 +21,9 @@ const createCaller = async (userId: string, companyId: string) => {
   return appRouter.createCaller({
     ...ctx,
     userPermissions: ['*:*'],
-    idempotencyKey: undefined, integrationId: undefined, isApiKeyAuth: false, integrationId: undefined, isApiKeyAuth: false,
+    idempotencyKey: undefined,
+    integrationId: undefined,
+    isApiKeyAuth: false,
   });
 };
 
