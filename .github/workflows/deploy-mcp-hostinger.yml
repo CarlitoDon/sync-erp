@@ -121,11 +121,10 @@ jobs:
           # does not need another process slot.
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
             "PM2_NAME='${PM2_NAME}' bash -s" <<'EOF'
-              # PM2 auto-restarts an externally killed app. Repeatedly stop
-              # only this exact PID-file target until PM2 marks the old
-              # instance errored. Use only Bash builtins so recovery still
-              # works when CloudLinux cannot fork even one extra process.
-              for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+              hold_marker="$HOME/.sync-erp-${PM2_NAME}.deploy-hold"
+              : > "$hold_marker"
+
+              stop_target() {
                 for pid_file in "$HOME/.pm2/pids/${PM2_NAME}-"*.pid; do
                   [ -r "$pid_file" ] || continue
                   old_pid=""
@@ -135,11 +134,26 @@ jobs:
                   esac
                   kill "$old_pid" 2>/dev/null || true
                 done
+              }
 
-                deadline=$((SECONDS + 1))
-                while [ "$SECONDS" -lt "$deadline" ]; do
-                  :
+              stop_target
+
+              # Keep only the target MCP process down while the package is
+              # transferred and extracted. The helper self-expires after five
+              # minutes if a later deployment step never removes the marker.
+              (
+                trap '' HUP
+                started_at=$SECONDS
+                while [ -e "$hold_marker" ] && [ $((SECONDS - started_at)) -lt 300 ]; do
+                  stop_target
+                  sleep 0.2
                 done
+              ) </dev/null >/dev/null 2>&1 &
+
+              # Give the helper time to catch PM2's first automatic restart.
+              deadline=$((SECONDS + 1))
+              while [ "$SECONDS" -lt "$deadline" ]; do
+                :
               done
           EOF
 
@@ -160,6 +174,8 @@ jobs:
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
             api_env="$HOME/public_html/${API_ENV_DIR}/.env"
+            hold_marker="$HOME/.sync-erp-${PM2_NAME}.deploy-hold"
+            trap 'rm -f "$hold_marker"' EXIT
 
             mkdir -p "$target"
             find "$target" -mindepth 1 -maxdepth 1 \
@@ -198,6 +214,11 @@ jobs:
             chmod 600 .env
 
             pm2="$HOME/node-pm2/node_modules/.bin/pm2"
+            NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
+              "$pm2" stop "$PM2_NAME" >/dev/null 2>&1 || true
+            rm -f "$hold_marker"
+            sleep 1
+
             if "$pm2" describe "$PM2_NAME" >/dev/null 2>&1; then
               NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
                 MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
