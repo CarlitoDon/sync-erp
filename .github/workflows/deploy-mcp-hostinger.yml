@@ -120,7 +120,7 @@ jobs:
           # controlled restart below, using shell builtins first so recovery
           # does not need another process slot.
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
-            "PM2_NAME='${PM2_NAME}' bash -s" <<'EOF'
+            "PM2_NAME='${PM2_NAME}' bash -s" <<'EOF' &
               hold_marker="$HOME/.sync-erp-${PM2_NAME}.deploy-hold"
               : > "$hold_marker"
 
@@ -138,24 +138,26 @@ jobs:
 
               stop_target
 
-              # Keep only the target MCP process down while the package is
-              # transferred and extracted. The helper self-expires after five
-              # minutes if a later deployment step never removes the marker.
-              (
-                trap '' HUP
-                started_at=$SECONDS
-                while [ -e "$hold_marker" ] && [ $((SECONDS - started_at)) -lt 300 ]; do
-                  stop_target
-                  sleep 0.2
-                done
-              ) </dev/null >/dev/null 2>&1 &
-
-              # Give the helper time to catch PM2's first automatic restart.
-              deadline=$((SECONDS + 1))
-              while [ "$SECONDS" -lt "$deadline" ]; do
-                :
+              # Keep this SSH session open and only the target MCP process
+              # down while the package is transferred and extracted. The
+              # helper self-expires after five minutes if a later deployment
+              # step never removes the marker.
+              started_at=$SECONDS
+              while [ -e "$hold_marker" ] && [ $((SECONDS - started_at)) -lt 300 ]; do
+                stop_target
+                sleep 0.2
               done
           EOF
+          HOLD_SSH_PID=$!
+
+          cleanup_hold() {
+            if [ -n "${HOLD_SSH_PID:-}" ]; then
+              kill "$HOLD_SSH_PID" 2>/dev/null || true
+              wait "$HOLD_SSH_PID" 2>/dev/null || true
+            fi
+          }
+          trap cleanup_hold EXIT
+          sleep 2
 
           tar -C deploy/mcp \
             --exclude='./.htaccess' \
@@ -246,4 +248,6 @@ jobs:
             done
           EOF
 
+          wait "$HOLD_SSH_PID"
+          HOLD_SSH_PID=""
           rm -f "$MCP_ARCHIVE"
