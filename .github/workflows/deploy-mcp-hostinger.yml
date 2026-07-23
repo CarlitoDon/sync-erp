@@ -144,19 +144,22 @@ jobs:
                 # PM2 auto-restarts an externally killed app. Repeatedly stop
                 # only this exact command until PM2 marks the old instance
                 # errored, freeing room for the controlled restart.
+                for proc_dir in /proc/[0-9]*; do
+                  [ -r "$proc_dir/cmdline" ] || continue
+                  cmdline=""
+                  while IFS= read -r -d '' arg; do
+                    cmdline="${cmdline} ${arg}"
+                  done < "$proc_dir/cmdline" || true
+                  case "$cmdline" in
+                    *"$target_script"*)
+                      kill "${proc_dir##*/}" 2>/dev/null || true
+                      ;;
+                  esac
+                done
+
+                target_pattern="${target_script/mcp/m[c]p}"
                 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-                  for proc_dir in /proc/[0-9]*; do
-                    [ -r "$proc_dir/cmdline" ] || continue
-                    cmdline=""
-                    while IFS= read -r -d '' arg; do
-                      cmdline="${cmdline} ${arg}"
-                    done < "$proc_dir/cmdline" || true
-                    case "$cmdline" in
-                      *"$target_script"*)
-                        kill "${proc_dir##*/}" 2>/dev/null || true
-                        ;;
-                    esac
-                  done
+                  pkill -f "$target_pattern" 2>/dev/null || true
                   sleep 1
                 done
               fi
