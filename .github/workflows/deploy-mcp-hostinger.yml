@@ -110,10 +110,44 @@ jobs:
           export DISPLAY=:0
           ssh-add ~/.ssh/id_ed25519
 
-          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o ConnectionAttempts=5 -o BatchMode=yes"
+          CONTROL_PATH="${RUNNER_TEMP}/sync-erp-hostinger-${GITHUB_RUN_ID}.sock"
+          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o ConnectionAttempts=5 -o BatchMode=yes -o ControlMaster=auto -o ControlPath=${CONTROL_PATH} -o ControlPersist=600"
           SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
           MCP_ARCHIVE="$(mktemp)"
           REMOTE_MCP_ARCHIVE="sync-erp-mcp-${GITHUB_SHA}.tar.gz"
+
+          # A saturated CloudLinux NPROC quota can prevent even scp from
+          # forking. Kill only the exact target using shell builtins, then
+          # replace this recovery shell with `pm2 stop` so PM2 cannot restart
+          # the target while the package is transferred and extracted.
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+            "PM2_NAME='${PM2_NAME}' bash -s" <<'EOF'
+              for pid_file in "$HOME/.pm2/pids/${PM2_NAME}-"*.pid; do
+                [ -r "$pid_file" ] || continue
+                old_pid=""
+                IFS= read -r old_pid < "$pid_file" || true
+                case "$old_pid" in
+                  ''|*[!0-9]*) continue ;;
+                esac
+                kill "$old_pid" 2>/dev/null || true
+              done
+
+              export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
+              export NODE_OPTIONS="--v8-pool-size=1"
+              export UV_THREADPOOL_SIZE=1
+              exec "$HOME/node-pm2/node_modules/.bin/pm2" stop "$PM2_NAME"
+          EOF
+
+          cleanup_control() {
+            ssh -p 65002 -S "$CONTROL_PATH" -O exit \
+              "${HOSTINGER_USER}@${HOSTINGER_HOST}" >/dev/null 2>&1 || true
+          }
+          trap cleanup_control EXIT
+          for _ in 1 2 3 4 5 6 7 8 9 10; do
+            [ -S "$CONTROL_PATH" ] && break
+            sleep 1
+          done
+          test -S "$CONTROL_PATH"
 
           tar -C deploy/mcp \
             --exclude='./.htaccess' \
@@ -170,11 +204,17 @@ jobs:
             chmod 600 .env
 
             pm2="$HOME/node-pm2/node_modules/.bin/pm2"
+            NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
+              "$pm2" stop "$PM2_NAME" >/dev/null 2>&1 || true
+            sleep 1
+
             if "$pm2" describe "$PM2_NAME" >/dev/null 2>&1; then
-              UV_THREADPOOL_SIZE=1 MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
+              NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
+                MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
                 "$pm2" restart "$PM2_NAME" --update-env
             else
-              UV_THREADPOOL_SIZE=1 MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
+              NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
+                MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
                 "$pm2" start dist/index.js --name "$PM2_NAME" --time
             fi
 
