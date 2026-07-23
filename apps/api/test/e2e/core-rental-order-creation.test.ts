@@ -29,7 +29,7 @@ const buildCaller = (authorization?: string) =>
     userRole: undefined,
     userPermissions: [],
     integrationId: undefined,
-    isApiKeyAuth: undefined,
+    isApiKeyAuth: false,
     permissions: undefined,
     apiKeyId: undefined,
   });

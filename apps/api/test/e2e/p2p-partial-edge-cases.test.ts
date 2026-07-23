@@ -32,7 +32,7 @@ const caller = appRouter.createCaller({
   userPermissions: ['*:*'],
   idempotencyKey: undefined,
   integrationId: undefined,
-  isApiKeyAuth: undefined,
+  isApiKeyAuth: false,
   permissions: undefined,
   apiKeyId: undefined,
 });

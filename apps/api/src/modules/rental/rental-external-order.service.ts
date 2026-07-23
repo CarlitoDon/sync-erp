@@ -55,7 +55,7 @@ export interface CreatePublicOrderInput {
   externalSource?: string;
   metadata?: Record<string, unknown>;
   createdByApiKeyId?: string;
-  integrationId?: string;
+    integrationId?: string;
   createdBy?: string;
   skuPrefix?: string;
 }

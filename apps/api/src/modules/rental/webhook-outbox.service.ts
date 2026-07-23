@@ -1,6 +1,7 @@
 import {
   prisma,
   Prisma,
+  RentalWebhookDeliveryType,
   RentalWebhookOutboxStatus,
 } from '@sync-erp/database';
 import { WEBHOOK_TIMEOUT_MS } from '@sync-erp/shared';
@@ -79,7 +80,7 @@ const readString = (
 
 export class WebhookOutboxService {
   async enqueue(
-     _event: string,
+    event: RentalWebhookDeliveryType,
     input: {
       companyId: string;
       integrationId?: string;
@@ -110,8 +111,7 @@ export class WebhookOutboxService {
     const delivery = await prisma.rentalWebhookOutbox.create({
       data: {
         companyId: input.companyId,
-        // @ts-ignore: Mapping complex relationship via deliveryType
-        deliveryType: 'P2P_ORDER',
+        deliveryType: event,
         orderPublicToken: input.orderPublicToken,
         orderNumber: input.orderNumber,
         autoRetry: input.autoRetry ?? true,

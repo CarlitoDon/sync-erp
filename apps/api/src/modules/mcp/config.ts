@@ -23,10 +23,13 @@ function getBearerTokensFromEnv(): string[] {
 }
 
 export function isMcpEnabled(): boolean {
-  return Boolean(
+  const raw =
     process.env.SYNC_ERP_MCP_BEARER_TOKEN ||
-      process.env.SYNC_ERP_MCP_BEARER_TOKENS
-  );
+    process.env.SYNC_ERP_MCP_BEARER_TOKENS ||
+    '';
+  return raw
+    .split(',')
+    .some((token) => token.trim().length >= 16);
 }
 
 export function getMcpRuntimeConfig(): McpRuntimeConfig {

@@ -293,7 +293,7 @@ export const CreateAuditLogSchema = z.object({
   entityType: EntityTypeSchema,
   entityId: z.string().uuid(),
   businessDate: z.coerce.date(),
-  payloadSnapshot: z.record(z.unknown()).optional(),
+  payloadSnapshot: z.record(z.string(), z.unknown()).optional(),
   correlationId: z.string().uuid().optional(),
 });
 
@@ -310,7 +310,7 @@ export const SagaLogInputSchema = z.object({
   sagaType: z.string(),
   entityId: z.string().uuid(),
   step: z.string(),
-  stepData: z.record(z.unknown()).optional(),
+  stepData: z.record(z.string(), z.unknown()).optional(),
   error: z.string().optional(),
   correlationId: z.string().uuid().optional(),
 });

@@ -17,10 +17,7 @@ export type CostingMethodInput = z.infer<typeof CostingMethodSchema>;
  */
 export const SelectShapeSchema = z.object({
   shape: z.enum(['RETAIL', 'MANUFACTURING', 'SERVICE', 'RENTAL'], {
-    errorMap: () => ({
-      message:
-        'Shape must be one of: RETAIL, MANUFACTURING, SERVICE, RENTAL',
-    }),
+    message: 'Shape must be one of: RETAIL, MANUFACTURING, SERVICE, RENTAL',
   }),
 });
 

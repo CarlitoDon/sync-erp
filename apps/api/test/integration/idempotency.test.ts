@@ -129,7 +129,7 @@ describe('Backend Idempotency Integration', () => {
       idempotencyKey,
       correlationId: undefined,
       integrationId: undefined,
-      isApiKeyAuth: undefined,
+      isApiKeyAuth: false,
       permissions: undefined,
       apiKeyId: undefined,
     };
@@ -191,7 +191,7 @@ describe('Backend Idempotency Integration', () => {
       idempotencyKey,
       correlationId: undefined,
       integrationId: undefined,
-      isApiKeyAuth: undefined,
+      isApiKeyAuth: false,
       permissions: undefined,
       apiKeyId: undefined,
     };

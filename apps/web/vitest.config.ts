@@ -27,6 +27,7 @@ export default defineConfig({
       exclude: [
         '**/node_modules/**',
         '**/dist/**',
+        '**/test/playwright/**',
         '**/.turbo/**',
         '**/test/**',
         '**/*.config.ts',

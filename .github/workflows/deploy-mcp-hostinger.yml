@@ -6,7 +6,6 @@ on:
     paths:
       - '.github/workflows/deploy-mcp-hostinger.yml'
       - 'apps/mcp/**'
-      - 'packages/database/**'
       - 'packages/shared/**'
   workflow_dispatch:
     inputs:
@@ -33,8 +32,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    concurrency:
+      group: hostinger-${{ github.ref_name }}
+      cancel-in-progress: false
     environment:
-      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      name: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment) || (github.ref_name == 'main' && 'production') || 'staging' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -48,31 +50,39 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate Prisma client
-        run: npm run db:generate --workspace=@sync-erp/database
-
       - name: Build MCP
         run: npm run build --workspace=@sync-erp/mcp
 
       - name: Prepare deployment package
         run: |
-          rm -rf deploy/api-mcp
-          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database deploy/api-mcp/prisma
-          cp -R apps/mcp/dist deploy/api-mcp/
-          cp apps/mcp/package.pro.json deploy/api-mcp/package.json
-          cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
-          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
-          cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
+          rm -rf deploy/mcp
+          mkdir -p deploy/mcp
+          cp -R apps/mcp/dist deploy/mcp/dist
+          cp apps/mcp/package.json deploy/mcp/package.json
+
+          npm install \
+            --prefix deploy/mcp \
+            --omit=dev \
+            --no-audit \
+            --no-fund \
+            --legacy-peer-deps
+
+          test -f deploy/mcp/node_modules/express/package.json
+          test -f deploy/mcp/node_modules/@modelcontextprotocol/sdk/package.json
 
       - name: Resolve deployment target
         id: target
         run: |
-          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "main" || "${{ inputs.environment }}" == "production" ]]; then
             echo "deploy_dir=apps/mcp" >> "$GITHUB_OUTPUT"
-            echo "health_host=https://mcp.sync-erp.com" >> "$GITHUB_OUTPUT"
+            echo "api_env_dir=apps/api" >> "$GITHUB_OUTPUT"
+            echo "pm2_name=sync-erp-mcp" >> "$GITHUB_OUTPUT"
+            echo "port=3006" >> "$GITHUB_OUTPUT"
           else
             echo "deploy_dir=apps/mcp-staging" >> "$GITHUB_OUTPUT"
-            echo "health_host=https://mcp-staging.sync-erp.com" >> "$GITHUB_OUTPUT"
+            echo "api_env_dir=apps/api-staging" >> "$GITHUB_OUTPUT"
+            echo "pm2_name=sync-erp-mcp-staging" >> "$GITHUB_OUTPUT"
+            echo "port=3007" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Setup SSH
@@ -87,6 +97,9 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
           SSH_PASSPHRASE: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
           DEPLOY_DIR: ${{ steps.target.outputs.deploy_dir }}
+          API_ENV_DIR: ${{ steps.target.outputs.api_env_dir }}
+          PM2_NAME: ${{ steps.target.outputs.pm2_name }}
+          MCP_PORT: ${{ steps.target.outputs.port }}
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
         run: |
@@ -97,79 +110,89 @@ jobs:
           export DISPLAY=:0
           ssh-add ~/.ssh/id_ed25519
 
-          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30"
+          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o ConnectionAttempts=5 -o BatchMode=yes"
           SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
           MCP_ARCHIVE="$(mktemp)"
           REMOTE_MCP_ARCHIVE="sync-erp-mcp-${GITHUB_SHA}.tar.gz"
 
-          tar -C deploy/api-mcp \
+          tar -C deploy/mcp \
             --exclude='./.htaccess' \
             --exclude='./.env' \
             --exclude='./tmp' \
             --exclude='./stderr.log' \
             -czf "$MCP_ARCHIVE" .
 
-          timeout 600 scp -C -P 65002 ${SSH_COMMON_OPTS} \
+          timeout 900 scp -P 65002 ${SSH_COMMON_OPTS} \
             "$MCP_ARCHIVE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_MCP_ARCHIVE}"
 
-          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_MCP_ARCHIVE='${REMOTE_MCP_ARCHIVE}' bash -s" <<'EOF'
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+            "DEPLOY_DIR='${DEPLOY_DIR}' API_ENV_DIR='${API_ENV_DIR}' REMOTE_MCP_ARCHIVE='${REMOTE_MCP_ARCHIVE}' PM2_NAME='${PM2_NAME}' MCP_PORT='${MCP_PORT}' bash -s" <<'EOF'
             set -euo pipefail
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
+            api_env="$HOME/public_html/${API_ENV_DIR}/.env"
 
             mkdir -p "$target"
             find "$target" -mindepth 1 -maxdepth 1 \
               ! -name '.env' \
               ! -name '.htaccess' \
-              ! -name 'node_modules' \
               ! -name 'tmp' \
               ! -name 'stderr.log' \
               -exec rm -rf {} +
             tar -xzf "$HOME/${REMOTE_MCP_ARCHIVE}" -C "$target"
             cd "$target"
 
-            fingerprint="$(sha256sum package.json | awk '{print $1}')"
-            installed_fingerprint=""
-            if [ -f .package-deps.sha256 ]; then
-              installed_fingerprint="$(cat .package-deps.sha256)"
-            fi
-
-            if [ -d node_modules ] && [ -d node_modules/@prisma/client ] && [ -f node_modules/express/package.json ] && { [ -z "$installed_fingerprint" ] || [ "$installed_fingerprint" = "$fingerprint" ]; }; then
-              echo "Reusing existing production node_modules."
-              echo "$fingerprint" > .package-deps.sha256
-            else
-              echo "Installing production dependencies."
-              timeout 600 npm install --omit=dev --ignore-scripts --no-audit --no-fund --loglevel=warn
-              echo "$fingerprint" > .package-deps.sha256
-            fi
-
-            rm -rf node_modules/@sync-erp/database
-            tar -xzf "$HOME/${REMOTE_MCP_ARCHIVE}" -C "$target" ./node_modules/@sync-erp/database
+            test -f node_modules/express/package.json
+            test -f node_modules/@modelcontextprotocol/sdk/package.json
             rm -f "$HOME/${REMOTE_MCP_ARCHIVE}"
             mkdir -p tmp
+
+            bearer_token=""
+            if [ -f .env ]; then
+              bearer_token="$(sed -n 's/^SYNC_ERP_MCP_BEARER_TOKEN=//p' .env | tail -n 1 | sed 's/^"//;s/"$//')"
+            fi
+            if [ -z "$bearer_token" ] && [ -f "$api_env" ]; then
+              bearer_token="$(sed -n 's/^SYNC_ERP_MCP_BEARER_TOKEN=//p' "$api_env" | tail -n 1 | sed 's/^"//;s/"$//')"
+            fi
+            if [ -z "$bearer_token" ]; then
+              bearer_token="$(openssl rand -hex 32)"
+            fi
+
+            {
+              if [ -f .env ]; then
+                grep -v -E '^(MCP_PORT|SYNC_ERP_MCP_BEARER_TOKEN)=' .env || true
+              fi
+              printf 'MCP_PORT=%s\n' "$MCP_PORT"
+              printf 'SYNC_ERP_MCP_BEARER_TOKEN=%s\n' "$bearer_token"
+            } > .env.next
+            mv .env.next .env
+            chmod 600 .env
+
+            pm2="$HOME/node-pm2/node_modules/.bin/pm2"
+            if "$pm2" describe "$PM2_NAME" >/dev/null 2>&1; then
+              UV_THREADPOOL_SIZE=1 MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
+                "$pm2" restart "$PM2_NAME" --update-env
+            else
+              UV_THREADPOOL_SIZE=1 MCP_PORT="$MCP_PORT" SYNC_ERP_MCP_BEARER_TOKEN="$bearer_token" \
+                "$pm2" start dist/index.js --name "$PM2_NAME" --time
+            fi
+
+            for i in 1 2 3 4 5 6; do
+              code="$(curl -sS -o /dev/null -w "%{http_code}" \
+                --connect-timeout 5 --max-time 10 \
+                "http://127.0.0.1:${MCP_PORT}/health" || true)"
+              if [ "$code" = "200" ]; then
+                echo "MCP deployment is healthy on local port ${MCP_PORT}."
+                break
+              fi
+              if [ "$i" = "6" ]; then
+                "$pm2" logs "$PM2_NAME" --lines 80 --nostream
+                echo "MCP health check failed with HTTP ${code}."
+                exit 1
+              fi
+              sleep 5
+            done
           EOF
 
           rm -f "$MCP_ARCHIVE"
-
-          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
-            "cd ~/public_html/${DEPLOY_DIR} && mkdir -p tmp && touch tmp/restart.txt"
-
-      - name: Verify MCP health
-        env:
-          HEALTH_HOST: ${{ steps.target.outputs.health_host }}
-        run: |
-          for path in /health /mcp/health; do
-            for i in 1 2 3 4 5 6; do
-              code=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_HOST}${path}" || true)
-              if [[ "$code" == "200" ]]; then
-                echo "Healthy: ${HEALTH_HOST}${path}"
-                break
-              fi
-              if [[ "$i" == "6" ]]; then
-                echo "Health check failed for ${HEALTH_HOST}${path} with HTTP ${code}"
-                exit 1
-              fi
-              sleep 10
-            done
-          done

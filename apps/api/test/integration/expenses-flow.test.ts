@@ -71,6 +71,8 @@ describe('Expenses Flow', () => {
         context: {
           userId: 'test-user-id',
           idempotencyKey: undefined,
+          integrationId: undefined,
+          isApiKeyAuth: false,
           companyId,
         },
       } as never,
