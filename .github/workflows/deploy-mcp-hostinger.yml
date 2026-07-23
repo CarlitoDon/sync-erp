@@ -116,53 +116,30 @@ jobs:
           REMOTE_MCP_ARCHIVE="sync-erp-mcp-${GITHUB_SHA}.tar.gz"
 
           # A saturated CloudLinux NPROC quota can prevent even scp from
-          # forking. Recover only the exact MCP target being deployed when the
-          # account is already near the limit; the following restart uses
-          # smaller Node pools.
+          # forking. Stop only the exact PM2 target being deployed before the
+          # controlled restart below, using shell builtins first so recovery
+          # does not need another process slot.
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
-            "DEPLOY_DIR='${DEPLOY_DIR}' bash -s" <<'EOF'
-              current_tasks=0
-              for proc_dir in /proc/[0-9]*; do
-                [ -r "$proc_dir/status" ] || continue
-                owner_uid=""
-                while IFS=$' \t' read -r key value _; do
-                  if [ "$key" = "Uid:" ]; then
-                    owner_uid="$value"
-                    break
-                  fi
-                done < "$proc_dir/status"
-                [ "$owner_uid" = "$EUID" ] || continue
-                for task_dir in "$proc_dir"/task/[0-9]*; do
-                  [ -e "$task_dir" ] && current_tasks=$((current_tasks + 1))
-                done
+            "DEPLOY_DIR='${DEPLOY_DIR}' PM2_NAME='${PM2_NAME}' bash -s" <<'EOF'
+              for pid_file in "$HOME/.pm2/pids/${PM2_NAME}-"*.pid; do
+                [ -r "$pid_file" ] || continue
+                old_pid=""
+                IFS= read -r old_pid < "$pid_file" || true
+                case "$old_pid" in
+                  ''|*[!0-9]*) continue ;;
+                esac
+                kill "$old_pid" 2>/dev/null || true
               done
 
-              echo "Current account task count: ${current_tasks}"
-              if [ "$current_tasks" -ge 90 ]; then
-                target_script="$HOME/public_html/${DEPLOY_DIR}/dist/index.js"
-
-                # PM2 auto-restarts an externally killed app. Repeatedly stop
-                # only this exact command until PM2 marks the old instance
-                # errored, freeing room for the controlled restart.
-                for proc_dir in /proc/[0-9]*; do
-                  [ -r "$proc_dir/cmdline" ] || continue
-                  cmdline=""
-                  while IFS= read -r -d '' arg; do
-                    cmdline="${cmdline} ${arg}"
-                  done < "$proc_dir/cmdline" || true
-                  case "$cmdline" in
-                    *"$target_script"*)
-                      kill "${proc_dir##*/}" 2>/dev/null || true
-                      ;;
-                  esac
-                done
-
-                target_pattern="${target_script/mcp/m[c]p}"
-                for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-                  pkill -f "$target_pattern" 2>/dev/null || true
-                  sleep 1
-                done
-              fi
+              # PM2 auto-restarts an externally killed app. Repeatedly stop
+              # only this exact command until PM2 marks the old instance
+              # errored, freeing room for the controlled restart.
+              target_script="$HOME/public_html/${DEPLOY_DIR}/dist/index.js"
+              target_pattern="${target_script/mcp/m[c]p}"
+              for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+                pkill -f "$target_pattern" 2>/dev/null || true
+                sleep 1
+              done
           EOF
 
           tar -C deploy/mcp \
