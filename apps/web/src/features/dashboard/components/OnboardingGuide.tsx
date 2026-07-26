@@ -36,8 +36,9 @@ export default function OnboardingGuide({
       <Card>
         <CardContent className="p-4">
           <button
+            type="button"
             onClick={handleRestore}
-            className="text-sm font-medium text-cyan-700 hover:text-cyan-900"
+            className="rounded-lg text-sm font-semibold text-primary-700 transition-colors hover:text-primary-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
             Show Getting Started Guide
           </button>
@@ -65,13 +66,13 @@ export default function OnboardingGuide({
 
   return (
     <Card
-      className={`${
+      className={`overflow-hidden ${
         progress.isAllComplete
           ? 'border-emerald-200 bg-emerald-50'
           : 'border-slate-200'
       }`}
     >
-      <CardContent className="p-6">
+      <CardContent className="p-5 sm:p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-800">
@@ -91,7 +92,7 @@ export default function OnboardingGuide({
             className={`h-full rounded-full transition-all duration-500 ${
               progress.isAllComplete
                 ? 'bg-emerald-500'
-                : 'bg-cyan-500'
+                : 'bg-primary-500'
             }`}
             style={{ width: `${progress.percentComplete}%` }}
           />
@@ -118,8 +119,9 @@ export default function OnboardingGuide({
         {progress.isAllComplete && (
           <div className="mt-4 border-t border-slate-200 pt-4">
             <button
+              type="button"
               onClick={handleDismiss}
-              className="text-sm text-slate-500 hover:text-slate-700"
+              className="rounded-lg text-sm text-slate-500 transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             >
               Dismiss this guide
             </button>

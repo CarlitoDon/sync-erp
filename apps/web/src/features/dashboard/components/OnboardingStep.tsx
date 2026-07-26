@@ -24,13 +24,13 @@ export default function OnboardingStep({
   };
 
   return (
-    <div className="overflow-hidden rounded-lg">
+    <div className="overflow-hidden rounded-xl">
       <Link
         to={step.targetPath}
         className={`group flex items-center gap-3 p-3 transition-all duration-200 ${
           step.isCompleted
             ? 'bg-emerald-50 hover:bg-emerald-100'
-            : 'bg-slate-50 hover:bg-cyan-50'
+            : 'bg-slate-50 hover:bg-primary-50'
         }`}
       >
         {/* Status Icon */}
@@ -58,8 +58,9 @@ export default function OnboardingStep({
         {/* Expand Button */}
         {step.description && (
           <button
+            type="button"
             onClick={handleToggle}
-            className="rounded-full p-1 transition-colors hover:bg-slate-200"
+            className="rounded-full p-1 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             aria-label={
               isExpanded ? 'Collapse details' : 'Expand details'
             }
@@ -77,7 +78,7 @@ export default function OnboardingStep({
           className={`h-5 w-5 flex-shrink-0 transition-transform duration-200 ${
             step.isCompleted
               ? 'text-emerald-400'
-              : 'text-slate-400 group-hover:translate-x-1 group-hover:text-cyan-600'
+              : 'text-slate-400 group-hover:translate-x-1 group-hover:text-primary-600'
           }`}
         />
       </Link>
