@@ -1,5 +1,12 @@
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdSenseScript } from '../src/components/ads/AdSenseScript';
 import { AdSenseSlot } from '../src/components/ads/AdSenseSlot';
 import { getFooterAdSenseSlot } from '../src/components/ads/adsense';
@@ -20,14 +27,12 @@ describe('AdSenseSlot', () => {
 
   it('renders an ad slot when free-plan ads and env are enabled', () => {
     const { container } = render(
-      <AdSenseSlot
-        clientId="ca-pub-test"
-        enabled
-        slot="slot-1"
-      />
+      <AdSenseSlot clientId="ca-pub-test" enabled slot="slot-1" />
     );
 
-    expect(screen.getByLabelText('Advertisement')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Advertisement')
+    ).toBeInTheDocument();
     expect(container.querySelector('.adsbygoogle')).toHaveAttribute(
       'data-ad-client',
       'ca-pub-test'
@@ -50,6 +55,17 @@ describe('AdSenseSlot', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('does not reserve an empty manual slot when Auto Ads controls placement', () => {
+    vi.stubEnv('VITE_GOOGLE_ADSENSE_AUTO_ADS_ENABLED', 'true');
+    vi.stubEnv('VITE_GOOGLE_ADSENSE_DEFAULT_SLOT', '');
+
+    const { container } = render(
+      <AdSenseSlot clientId="ca-pub-test" enabled />
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('renders a safe mock placeholder when env values are blank', () => {
     vi.stubEnv('VITE_GOOGLE_ADSENSE_CLIENT_ID', '   ');
     vi.stubEnv('VITE_GOOGLE_ADSENSE_DEFAULT_SLOT', 'slot-1');
@@ -60,8 +76,12 @@ describe('AdSenseSlot', () => {
       'data-sync-erp-ad-placeholder',
       'true'
     );
-    expect(screen.getByText('Ad-supported Free plan')).toBeInTheDocument();
-    expect(container.querySelector('.adsbygoogle')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Ad-supported Free plan')
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('.adsbygoogle')
+    ).not.toBeInTheDocument();
     expect(window.adsbygoogle).toHaveLength(0);
   });
 
@@ -69,30 +89,23 @@ describe('AdSenseSlot', () => {
     vi.stubEnv('VITE_GOOGLE_ADSENSE_ENABLED', 'false');
 
     const { container } = render(
-      <AdSenseSlot
-        clientId="ca-pub-test"
-        enabled
-        slot="slot-1"
-      />
+      <AdSenseSlot clientId="ca-pub-test" enabled slot="slot-1" />
     );
 
     expect(screen.getByLabelText('Advertisement')).toHaveAttribute(
       'data-sync-erp-ad-placeholder',
       'true'
     );
-    expect(container.querySelector('.adsbygoogle')).not.toBeInTheDocument();
+    expect(
+      container.querySelector('.adsbygoogle')
+    ).not.toBeInTheDocument();
     expect(window.adsbygoogle).toHaveLength(0);
   });
 
   it('does not load the privacy-invasive AdSense script unless env is enabled', () => {
     vi.stubEnv('VITE_GOOGLE_ADSENSE_ENABLED', 'false');
 
-    render(
-      <AdSenseScript
-        clientId="ca-pub-test"
-        enabled
-      />
-    );
+    render(<AdSenseScript clientId="ca-pub-test" enabled />);
 
     expect(
       document.querySelector('script[data-sync-erp-adsense="true"]')

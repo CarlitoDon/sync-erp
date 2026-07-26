@@ -49,12 +49,13 @@ describe('MobileMenuButton', () => {
     expect(mockToggleMobileOpen).toHaveBeenCalledTimes(1);
   });
 
-  it('applies correct styling classes', () => {
+  it('applies responsive interaction styling', () => {
     render(<MobileMenuButton />);
 
     const button = screen.getByRole('button');
     expect(button).toHaveClass('md:hidden');
     expect(button).toHaveClass('p-2');
-    expect(button).toHaveClass('rounded-md');
+    expect(button).toHaveClass('rounded-xl');
+    expect(button).toHaveClass('focus-visible:ring-2');
   });
 });

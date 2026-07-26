@@ -61,6 +61,7 @@ export default function Sidebar() {
         <button
           type="button"
           aria-label="Close navigation"
+          data-testid="mobile-navigation-overlay"
           className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-[2px] transition-opacity duration-[var(--duration-normal)] ease-[var(--ease-out)] md:hidden"
           onClick={closeMobile}
         />
