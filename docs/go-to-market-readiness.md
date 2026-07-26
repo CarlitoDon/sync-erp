@@ -23,7 +23,7 @@ Sync ERP is ready for controlled pilot selling, not yet for unmonitored public s
 ## Production Deploy Checklist
 
 - [ ] Deploy API with `SYNC_ERP_WEB_URL`, `SYNC_ERP_API_BASE_URL`, `CORS_ALLOWED_ORIGINS`, database URL, auth/session secrets, and billing webhook secret.
-- [ ] Configure Google OAuth with `SYNC_ERP_AUTH_STATE_SECRET`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI=https://api.sync-erp.com/api/auth/google/callback`.
+- [ ] Configure Google OAuth with environment secrets `SYNC_ERP_AUTH_STATE_SECRET`, `GOOGLE_OAUTH_CLIENT_ID`, and `GOOGLE_OAUTH_CLIENT_SECRET`; authorize both temporary callback URIs exactly: `https://api.santiliving.com/api/auth/google/callback` and `https://api-staging.santiliving.com/api/auth/google/callback`.
 - [x] Configure Vercel web env `VITE_SYNC_ERP_API_URL` for production and preview API domains.
 - [x] Deploy Web with `VITE_SYNC_ERP_API_URL`, `VITE_GOOGLE_ADSENSE_ENABLED`, `VITE_GOOGLE_ADSENSE_CLIENT_ID`, and either Auto Ads enabled or production AdSense slot IDs.
 - [ ] Configure billing provider with a mode/key pair that matches the target environment: `BILLING_PROVIDER=MIDTRANS`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_IS_PRODUCTION=true` for live production keys or `MIDTRANS_IS_PRODUCTION=false` for `SB-Mid-*` sandbox keys.

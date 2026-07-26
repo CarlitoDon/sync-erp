@@ -68,7 +68,8 @@ describe('GoogleOAuthService', () => {
     ]);
 
     process.env.GOOGLE_OAUTH_CLIENT_ID = 'change_me_client_id';
-    process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'change_me_client_secret';
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET =
+      'change_me_client_secret';
 
     expect(service.isConfigured()).toBe(true);
   });
@@ -107,9 +108,31 @@ describe('GoogleOAuthService', () => {
     expect(url.searchParams.get('redirect_uri')).toBe(
       'http://localhost:3001/api/auth/google/callback'
     );
-    expect(url.searchParams.get('scope')).toBe('openid email profile');
+    expect(url.searchParams.get('scope')).toBe(
+      'openid email profile'
+    );
     expect(service.validateState(state)).toMatchObject({
       intent: 'register',
     });
+  });
+
+  it('prefers an explicit environment-specific callback URL', () => {
+    process.env.GOOGLE_OAUTH_CLIENT_ID = 'client-id';
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'client-secret';
+    process.env.SYNC_ERP_AUTH_STATE_SECRET = 'state-secret';
+    process.env.SYNC_ERP_API_BASE_URL =
+      'https://wrong-api.example.com';
+    process.env.GOOGLE_OAUTH_REDIRECT_URI =
+      'https://api-staging.santiliving.com/api/auth/google/callback';
+
+    const service = new GoogleOAuthService();
+    const { authorizationUrl } =
+      service.createAuthorizationUrl('login');
+
+    expect(
+      new URL(authorizationUrl).searchParams.get('redirect_uri')
+    ).toBe(
+      'https://api-staging.santiliving.com/api/auth/google/callback'
+    );
   });
 });

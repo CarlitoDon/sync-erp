@@ -208,6 +208,8 @@ jobs:
       group: hostinger-${{ github.ref_name }}
       cancel-in-progress: false
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download API build artifact
         uses: actions/download-artifact@v4
         with:
@@ -245,6 +247,9 @@ jobs:
           APP_PORT: ${{ steps.target.outputs.port }}
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          SYNC_ERP_AUTH_STATE_SECRET: ${{ secrets.SYNC_ERP_AUTH_STATE_SECRET }}
         run: |
           eval $(ssh-agent -a $SSH_AUTH_SOCK)
 
@@ -258,7 +263,34 @@ jobs:
           SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
           SCP_OPTS="-P 65002 ${SSH_COMMON_OPTS}"
           API_ARCHIVE="$(mktemp)"
+          OAUTH_ENV_FILE="$(mktemp)"
           REMOTE_API_ARCHIVE="sync-erp-api-${GITHUB_SHA}.tar.gz"
+          REMOTE_OAUTH_ENV="sync-erp-oauth-${GITHUB_SHA}.env"
+
+          cleanup_local() {
+            rm -f "$API_ARCHIVE" "$OAUTH_ENV_FILE"
+          }
+          trap cleanup_local EXIT
+
+          for secret_name in \
+            GOOGLE_OAUTH_CLIENT_ID \
+            GOOGLE_OAUTH_CLIENT_SECRET \
+            SYNC_ERP_AUTH_STATE_SECRET; do
+            if [[ -z "${!secret_name:-}" ]]; then
+              echo "Missing required ${secret_name} environment secret."
+              exit 1
+            fi
+          done
+
+          chmod 600 "$OAUTH_ENV_FILE"
+          {
+            printf 'GOOGLE_OAUTH_CLIENT_ID=%s\n' \
+              "$(printf '%s' "$GOOGLE_OAUTH_CLIENT_ID" | base64 | tr -d '\n')"
+            printf 'GOOGLE_OAUTH_CLIENT_SECRET=%s\n' \
+              "$(printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | base64 | tr -d '\n')"
+            printf 'SYNC_ERP_AUTH_STATE_SECRET=%s\n' \
+              "$(printf '%s' "$SYNC_ERP_AUTH_STATE_SECRET" | base64 | tr -d '\n')"
+          } > "$OAUTH_ENV_FILE"
 
           tar -C deploy/api-mcp \
             --exclude='./.htaccess' \
@@ -271,10 +303,34 @@ jobs:
             "$API_ARCHIVE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_API_ARCHIVE}"
 
-          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' bash -s" <<'EOF'
+          timeout 900 scp ${SCP_OPTS} \
+            "$OAUTH_ENV_FILE" \
+            "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_OAUTH_ENV}"
+
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_OAUTH_ENV='${REMOTE_OAUTH_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' bash -s" <<'EOF'
             set -euo pipefail
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
+            oauth_env_path="$HOME/${REMOTE_OAUTH_ENV}"
+
+            cleanup_remote() {
+              rm -f "$HOME/${REMOTE_API_ARCHIVE}" "$oauth_env_path"
+            }
+            trap cleanup_remote EXIT
+
+            decode_secret() {
+              local key="$1"
+              local encoded
+              encoded="$(sed -n "s/^${key}=//p" "$oauth_env_path" | tail -n 1)"
+              test -n "$encoded"
+              printf '%s' "$encoded" | base64 --decode
+            }
+
+            test -f "$oauth_env_path"
+            google_oauth_client_id="$(decode_secret GOOGLE_OAUTH_CLIENT_ID)"
+            google_oauth_client_secret="$(decode_secret GOOGLE_OAUTH_CLIENT_SECRET)"
+            sync_erp_auth_state_secret="$(decode_secret SYNC_ERP_AUTH_STATE_SECRET)"
+            rm -f "$oauth_env_path"
 
             mkdir -p "$target"
             printf '%s\n' \
@@ -344,8 +400,14 @@ jobs:
             upsert_env "SYNC_ERP_API_BASE_URL" "$api_base_url"
             upsert_env "SYNC_ERP_WEB_URL" "$web_url"
             upsert_env "GOOGLE_OAUTH_REDIRECT_URI" "$oauth_redirect_url"
+            upsert_env "GOOGLE_OAUTH_CLIENT_ID" "$google_oauth_client_id"
+            upsert_env "GOOGLE_OAUTH_CLIENT_SECRET" "$google_oauth_client_secret"
+            upsert_env "SYNC_ERP_AUTH_STATE_SECRET" "$sync_erp_auth_state_secret"
             upsert_env "CORS_ORIGIN" "$cors_origins"
             upsert_env "CORS_ALLOWED_ORIGINS" "$cors_origins"
+            test -n "$(sed -n 's/^GOOGLE_OAUTH_CLIENT_ID=//p' "$target/.env" | tail -n 1)"
+            test -n "$(sed -n 's/^GOOGLE_OAUTH_CLIENT_SECRET=//p' "$target/.env" | tail -n 1)"
+            test -n "$(sed -n 's/^SYNC_ERP_AUTH_STATE_SECRET=//p' "$target/.env" | tail -n 1)"
             test "$(sed -n 's/^CORS_ORIGIN=//p' "$target/.env" | tail -n 1)" = "$cors_origins"
             test "$(sed -n 's/^CORS_ALLOWED_ORIGINS=//p' "$target/.env" | tail -n 1)" = "$cors_origins"
 
@@ -456,8 +518,6 @@ jobs:
             echo "Local API CORS preflight allows ${web_url}."
           EOF
 
-          rm -f "$API_ARCHIVE"
-
       - name: Verify API health
         env:
           HEALTH_HOST: ${{ steps.target.outputs.health_host }}
@@ -506,6 +566,8 @@ jobs:
           FAILED=0
           check_endpoint "/health" || FAILED=1
           check_endpoint "/mcp/health" || FAILED=1
+
+          node scripts/verify-google-oauth-config.mjs "${HEALTH_HOST}" || FAILED=1
 
           if [[ "$FAILED" -ne 0 ]]; then
             echo "One or more health checks failed."
