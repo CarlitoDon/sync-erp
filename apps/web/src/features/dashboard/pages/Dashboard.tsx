@@ -35,6 +35,12 @@ type RecentTransaction =
   DashboardMetrics['recentTransactions'][number];
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
+const dashboardDateFormatter = new Intl.DateTimeFormat(undefined, {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'long',
+});
+
 export default function Dashboard() {
   const { currentCompany } = useCompany();
 
@@ -210,11 +216,7 @@ export default function Dashboard() {
                   Today
                 </p>
                 <p className="mt-0.5 text-sm font-semibold text-white">
-                  {new Intl.DateTimeFormat('en-US', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'long',
-                  }).format(new Date())}
+                  {dashboardDateFormatter.format(new Date())}
                 </p>
               </div>
             </div>

@@ -149,6 +149,11 @@ describe('CompanySwitcher', () => {
       // Click the button
       fireEvent.click(screen.getByRole('button'));
 
+      expect(
+        screen.getByRole('group', { name: 'Companies' })
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
       // All companies should now be visible (Acme appears twice: button + dropdown)
       expect(
         screen.getAllByText('Acme Corp').length

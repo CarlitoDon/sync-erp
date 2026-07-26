@@ -15,55 +15,66 @@ export default function OnboardingStep({
   step,
 }: OnboardingStepProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  const handleToggle = (e: React.MouseEvent) => {
-    // Prevent navigation when clicking the expand button
-    e.preventDefault();
-    e.stopPropagation();
-    setIsExpanded(!isExpanded);
-  };
+  const detailsId = `onboarding-step-${step.id}-details`;
 
   return (
     <div className="overflow-hidden rounded-xl">
-      <Link
-        to={step.targetPath}
+      <div
         className={`group flex items-center gap-3 p-3 transition-all duration-200 ${
           step.isCompleted
             ? 'bg-emerald-50 hover:bg-emerald-100'
             : 'bg-slate-50 hover:bg-primary-50'
         }`}
       >
-        {/* Status Icon */}
-        <div className="flex-shrink-0">
-          {step.isCompleted ? (
-            <CheckCircleSolidIcon className="h-6 w-6 text-emerald-500" />
-          ) : (
-            <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-slate-300">
-              <span className="text-sm">{step.icon}</span>
-            </div>
-          )}
-        </div>
+        <Link
+          to={step.targetPath}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+        >
+          {/* Status Icon */}
+          <div className="flex-shrink-0">
+            {step.isCompleted ? (
+              <CheckCircleSolidIcon className="h-6 w-6 text-emerald-500" />
+            ) : (
+              <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-slate-300">
+                <span className="text-sm">{step.icon}</span>
+              </div>
+            )}
+          </div>
 
-        {/* Title */}
-        <div className="min-w-0 flex-1">
-          <p
-            className={`text-sm font-medium ${
-              step.isCompleted ? 'text-emerald-700' : 'text-slate-950'
+          {/* Title */}
+          <div className="min-w-0 flex-1">
+            <p
+              className={`text-sm font-medium ${
+                step.isCompleted
+                  ? 'text-emerald-700'
+                  : 'text-slate-950'
+              }`}
+            >
+              {step.title}
+            </p>
+          </div>
+
+          {/* Navigation Arrow */}
+          <ChevronRightIcon
+            className={`h-5 w-5 flex-shrink-0 transition-transform duration-200 ${
+              step.isCompleted
+                ? 'text-emerald-400'
+                : 'text-slate-400 group-hover:translate-x-1 group-hover:text-primary-600'
             }`}
-          >
-            {step.title}
-          </p>
-        </div>
+          />
+        </Link>
 
         {/* Expand Button */}
         {step.description && (
           <button
             type="button"
-            onClick={handleToggle}
+            onClick={() => setIsExpanded((expanded) => !expanded)}
             className="rounded-full p-1 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             aria-label={
               isExpanded ? 'Collapse details' : 'Expand details'
             }
+            aria-expanded={isExpanded}
+            aria-controls={detailsId}
           >
             <ChevronDownIcon
               className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${
@@ -72,20 +83,14 @@ export default function OnboardingStep({
             />
           </button>
         )}
-
-        {/* Arrow */}
-        <ChevronRightIcon
-          className={`h-5 w-5 flex-shrink-0 transition-transform duration-200 ${
-            step.isCompleted
-              ? 'text-emerald-400'
-              : 'text-slate-400 group-hover:translate-x-1 group-hover:text-primary-600'
-          }`}
-        />
-      </Link>
+      </div>
 
       {/* Expandable Description */}
       {isExpanded && step.description && (
-        <div className="border-t border-slate-200 bg-slate-100 px-3 py-2">
+        <div
+          id={detailsId}
+          className="border-t border-slate-200 bg-slate-100 px-3 py-2"
+        >
           <p className="pl-9 text-xs text-slate-600">
             {step.description}
           </p>

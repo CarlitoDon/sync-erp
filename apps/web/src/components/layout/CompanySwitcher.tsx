@@ -71,8 +71,8 @@ export default function CompanySwitcher() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-controls="company-switcher-options"
         className="flex w-full items-center gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3 py-2.5 text-left transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-primary-300/40 hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:scale-[0.99]"
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-950 shadow-sm">
@@ -93,8 +93,9 @@ export default function CompanySwitcher() {
 
       {isOpen && (
         <div
-          role="listbox"
-          aria-label="Select company"
+          id="company-switcher-options"
+          role="group"
+          aria-label="Companies"
           className="absolute bottom-full left-0 z-50 mb-2 w-full min-w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-950/20"
         >
           {companies.map((company) => (
@@ -102,8 +103,6 @@ export default function CompanySwitcher() {
               type="button"
               key={company.id}
               onClick={() => handleSelect(company)}
-              role="option"
-              aria-selected={currentCompany?.id === company.id}
               className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
                 currentCompany?.id === company.id
                   ? 'bg-primary-50 font-medium text-primary-900'
@@ -119,7 +118,13 @@ export default function CompanySwitcher() {
                 {company.name}
               </span>
               {currentCompany?.id === company.id && (
-                <CheckIcon className="ml-auto h-4 w-4 shrink-0 text-primary-700" />
+                <>
+                  <span className="sr-only">Current company</span>
+                  <CheckIcon
+                    aria-hidden="true"
+                    className="ml-auto h-4 w-4 shrink-0 text-primary-700"
+                  />
+                </>
               )}
             </button>
           ))}
