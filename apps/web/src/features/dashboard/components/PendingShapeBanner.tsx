@@ -17,7 +17,7 @@ export default function PendingShapeBanner({
   }
 
   return (
-    <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm">
+    <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-5 text-amber-950 shadow-sm sm:p-6">
       <div className="flex items-start gap-4">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-200 bg-white text-lg font-semibold text-amber-700">
           !
@@ -34,7 +34,7 @@ export default function PendingShapeBanner({
           </p>
           <Link
             to="/settings/company"
-            className="inline-flex items-center rounded-md bg-slate-950 px-4 py-2 font-semibold text-white transition-colors hover:bg-slate-800"
+            className="inline-flex items-center rounded-xl bg-slate-950 px-4 py-2.5 font-semibold text-white transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:scale-[0.98]"
           >
             Complete Setup →
           </Link>

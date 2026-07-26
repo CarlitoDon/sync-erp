@@ -9,15 +9,16 @@ export function BrandMark({
   tone = 'dark',
   className = '',
 }: BrandMarkProps) {
-  const sizeClass = size === 'sm' ? 'h-7 w-7 text-xs' : 'h-9 w-9 text-sm';
+  const sizeClass =
+    size === 'sm' ? 'h-7 w-7 text-xs' : 'h-9 w-9 text-sm';
   const toneClass =
     tone === 'light'
-      ? 'border border-white/10 bg-white text-slate-950'
-      : 'bg-slate-950 text-white';
+      ? 'border border-white/25 bg-white text-slate-950 shadow-black/20'
+      : 'bg-slate-950 text-white shadow-slate-950/20';
 
   return (
     <span
-      className={`flex shrink-0 items-center justify-center rounded-lg font-semibold shadow-sm ${toneClass} ${sizeClass} ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-xl font-bold tracking-tight shadow-lg ring-1 ring-black/5 ${toneClass} ${sizeClass} ${className}`}
     >
       S
     </span>

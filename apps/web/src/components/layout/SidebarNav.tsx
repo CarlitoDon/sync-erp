@@ -25,7 +25,10 @@ import {
 
 export default function SidebarNav() {
   return (
-    <nav className="flex-1 px-3 py-4 overflow-y-auto">
+    <nav
+      className="sidebar-scrollbar flex-1 overflow-y-auto px-3 py-4"
+      aria-label="Primary navigation"
+    >
       {/* Dashboard */}
       <SidebarItem
         path="/dashboard"
