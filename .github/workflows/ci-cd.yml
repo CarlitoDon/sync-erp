@@ -115,6 +115,8 @@ jobs:
           cp -R apps/api/dist deploy/api-mcp/
           cp apps/api/package.pro.json deploy/api-mcp/package.json
           cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
+          cp packages/database/prisma.config.ts deploy/api-mcp/prisma.config.ts
+          cp -R packages/database/prisma/migrations deploy/api-mcp/prisma/
 
           # Build a complete Linux/Node 20 production dependency tree on the runner.
           # Hostinger should only unpack and restart the ready-to-run release.
@@ -459,6 +461,16 @@ jobs:
                 echo "Found @prisma/${prisma_pkg} in built artifact"
               fi
             done
+
+            # Apply pending schema changes before stopping the currently running API.
+            # A migration failure leaves the old process serving traffic.
+            test -x node_modules/.bin/prisma
+            test -f prisma.config.ts
+            test -d prisma/migrations
+            DATABASE_URL="$database_url" \
+              HOSTINGER_ENV="$RUNTIME_ENV" \
+              NODE_ENV="$RUNTIME_ENV" \
+              node_modules/.bin/prisma migrate deploy --config prisma.config.ts
 
             rm -f "$HOME/${REMOTE_API_ARCHIVE}"
             mkdir -p tmp
