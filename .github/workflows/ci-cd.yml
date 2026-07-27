@@ -130,36 +130,28 @@ jobs:
           mkdir -p deploy/api-mcp/node_modules/@sync-erp/database
           cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
           cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
+          
           if [ -d packages/database/src/generated ]; then
             cp -R packages/database/src/generated deploy/api-mcp/node_modules/@sync-erp/database/
           fi
 
-          # CRITICAL: Include the generated Prisma client with query engine binary
-          # node_modules/.prisma/client/ contains the *.engine.node binary files
-          # that must match the target OS (Linux x64 debian-openssl-*)
-          if [ -d node_modules/.prisma/client ]; then
-            mkdir -p deploy/api-mcp/node_modules/.prisma
-            cp -R node_modules/.prisma/client deploy/api-mcp/node_modules/.prisma/
-            echo "Included .prisma/client with query engine binary"
-          else
-            echo "WARNING: .prisma/client/ not found in root node_modules. Checking workspace..."
-            if [ -d packages/database/node_modules/.prisma/client ]; then
-              mkdir -p deploy/api-mcp/node_modules/.prisma
-              cp -R packages/database/node_modules/.prisma/client deploy/api-mcp/node_modules/.prisma/
-              echo "Included .prisma/client from workspace node_modules"
-            fi
-          fi
-
-          # Include @prisma/client and @prisma/adapter-pg JS wrappers
-          for pkg in client adapter-pg; do
-            if [ -d "node_modules/@prisma/$pkg" ]; then
+          # Include @prisma/client, @prisma/adapter-pg, and prisma CLI
+          for pkg in client adapter-pg prisma; do
+            if [ -d "node_modules/$pkg" ]; then
+              mkdir -p "deploy/api-mcp/node_modules/$pkg"
+              cp -R "node_modules/$pkg" "deploy/api-mcp/node_modules/"
+              echo "Included $pkg"
+            elif [ -d "node_modules/@prisma/$pkg" ]; then
               mkdir -p "deploy/api-mcp/node_modules/@prisma"
               cp -R "node_modules/@prisma/$pkg" "deploy/api-mcp/node_modules/@prisma/"
               echo "Included @prisma/$pkg"
             fi
           done
-
-      - name: Upload API build artifact
+          
+          # Also ensure .bin/prisma is copied
+          mkdir -p deploy/api-mcp/node_modules/.bin
+          cp node_modules/.bin/prisma deploy/api-mcp/node_modules/.bin/
+- name: Upload API build artifact
         uses: actions/upload-artifact@v4
         with:
           name: api-mcp-build
@@ -446,13 +438,7 @@ jobs:
             test "$(sed -n 's/^CORS_ORIGIN=//p' "$target/.env" | tail -n 1)" = "$cors_origins"
             test "$(sed -n 's/^CORS_ALLOWED_ORIGINS=//p' "$target/.env" | tail -n 1)" = "$cors_origins"
 
-            # CRITICAL: Override .prisma/client with pre-compiled engine binary from GHA
-            if tar -tzf "$HOME/${REMOTE_API_ARCHIVE}" 2>/dev/null | grep -q 'node_modules/\.prisma/client/'; then
-              test -f node_modules/.prisma/client/package.json
-              echo "✓ Pre-compiled Prisma client is present."
-            else
-              echo "⚠ .prisma/client/ not found in archive. Query engine may fall back to platform default."
-            fi
+            
 
             # Assert Prisma JS wrapper packages are present in the release.
             for prisma_pkg in client adapter-pg; do
