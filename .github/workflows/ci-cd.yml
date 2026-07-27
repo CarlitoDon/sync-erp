@@ -304,7 +304,7 @@ jobs:
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_RUNTIME_ENV}"
 
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_RUNTIME_ENV='${REMOTE_RUNTIME_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' DATABASE_PROJECT_REF='${DATABASE_PROJECT_REF}' bash -s" <<'EOF'
-            set -euo pipefail
+            set -exuo pipefail
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
             runtime_env_path="$HOME/${REMOTE_RUNTIME_ENV}"
