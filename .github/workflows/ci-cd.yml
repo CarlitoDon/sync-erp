@@ -224,11 +224,15 @@ jobs:
             echo "health_host=https://api.santiliving.com" >> "$GITHUB_OUTPUT"
             echo "pm2_name=sync-erp-api" >> "$GITHUB_OUTPUT"
             echo "port=3002" >> "$GITHUB_OUTPUT"
+            echo "runtime_env=production" >> "$GITHUB_OUTPUT"
+            echo "database_project_ref=vktglrwmbrhtddpmekda" >> "$GITHUB_OUTPUT"
           else
             echo "deploy_dir=apps/api-staging" >> "$GITHUB_OUTPUT"
             echo "health_host=https://api-staging.santiliving.com" >> "$GITHUB_OUTPUT"
             echo "pm2_name=sync-erp-api-staging" >> "$GITHUB_OUTPUT"
             echo "port=3001" >> "$GITHUB_OUTPUT"
+            echo "runtime_env=staging" >> "$GITHUB_OUTPUT"
+            echo "database_project_ref=ctesbnhcqubamrtcxxqi" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Setup SSH
@@ -245,6 +249,9 @@ jobs:
           DEPLOY_DIR: ${{ steps.target.outputs.deploy_dir }}
           PM2_NAME: ${{ steps.target.outputs.pm2_name }}
           APP_PORT: ${{ steps.target.outputs.port }}
+          RUNTIME_ENV: ${{ steps.target.outputs.runtime_env }}
+          DATABASE_PROJECT_REF: ${{ steps.target.outputs.database_project_ref }}
+          DATABASE_URL: ${{ github.ref_name == 'main' && secrets.DATABASE_URL || secrets.DATABASE_URL_STAGING }}
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
@@ -263,26 +270,35 @@ jobs:
           SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
           SCP_OPTS="-P 65002 ${SSH_COMMON_OPTS}"
           API_ARCHIVE="$(mktemp)"
-          OAUTH_ENV_FILE="$(mktemp)"
+          RUNTIME_ENV_FILE="$(mktemp)"
           REMOTE_API_ARCHIVE="sync-erp-api-${GITHUB_SHA}.tar.gz"
-          REMOTE_OAUTH_ENV="sync-erp-oauth-${GITHUB_SHA}.env"
+          REMOTE_RUNTIME_ENV="sync-erp-runtime-${GITHUB_SHA}.env"
 
           cleanup_local() {
-            rm -f "$API_ARCHIVE" "$OAUTH_ENV_FILE"
+            rm -f "$API_ARCHIVE" "$RUNTIME_ENV_FILE"
           }
           trap cleanup_local EXIT
 
           for secret_name in \
             GOOGLE_OAUTH_CLIENT_ID \
             GOOGLE_OAUTH_CLIENT_SECRET \
-            SYNC_ERP_AUTH_STATE_SECRET; do
+            SYNC_ERP_AUTH_STATE_SECRET \
+            DATABASE_URL; do
             if [[ -z "${!secret_name:-}" ]]; then
               echo "Missing required ${secret_name} environment secret."
               exit 1
             fi
           done
 
-          chmod 600 "$OAUTH_ENV_FILE"
+          case "$DATABASE_URL" in
+            *"postgres.${DATABASE_PROJECT_REF}:"*|*"@db.${DATABASE_PROJECT_REF}.supabase.co"*) ;;
+            *)
+              echo "DATABASE_URL does not match the expected ${RUNTIME_ENV} Supabase project."
+              exit 1
+              ;;
+          esac
+
+          chmod 600 "$RUNTIME_ENV_FILE"
           {
             printf 'GOOGLE_OAUTH_CLIENT_ID=%s\n' \
               "$(printf '%s' "$GOOGLE_OAUTH_CLIENT_ID" | base64 | tr -d '\n')"
@@ -290,7 +306,9 @@ jobs:
               "$(printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | base64 | tr -d '\n')"
             printf 'SYNC_ERP_AUTH_STATE_SECRET=%s\n' \
               "$(printf '%s' "$SYNC_ERP_AUTH_STATE_SECRET" | base64 | tr -d '\n')"
-          } > "$OAUTH_ENV_FILE"
+            printf 'DATABASE_URL=%s\n' \
+              "$(printf '%s' "$DATABASE_URL" | base64 | tr -d '\n')"
+          } > "$RUNTIME_ENV_FILE"
 
           tar -C deploy/api-mcp \
             --exclude='./.htaccess' \
@@ -304,33 +322,42 @@ jobs:
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_API_ARCHIVE}"
 
           timeout 900 scp ${SCP_OPTS} \
-            "$OAUTH_ENV_FILE" \
-            "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_OAUTH_ENV}"
+            "$RUNTIME_ENV_FILE" \
+            "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_RUNTIME_ENV}"
 
-          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_OAUTH_ENV='${REMOTE_OAUTH_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' bash -s" <<'EOF'
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_RUNTIME_ENV='${REMOTE_RUNTIME_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' DATABASE_PROJECT_REF='${DATABASE_PROJECT_REF}' bash -s" <<'EOF'
             set -euo pipefail
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
-            oauth_env_path="$HOME/${REMOTE_OAUTH_ENV}"
+            runtime_env_path="$HOME/${REMOTE_RUNTIME_ENV}"
 
             cleanup_remote() {
-              rm -f "$HOME/${REMOTE_API_ARCHIVE}" "$oauth_env_path"
+              rm -f "$HOME/${REMOTE_API_ARCHIVE}" "$runtime_env_path"
             }
             trap cleanup_remote EXIT
 
             decode_secret() {
               local key="$1"
               local encoded
-              encoded="$(sed -n "s/^${key}=//p" "$oauth_env_path" | tail -n 1)"
+              encoded="$(sed -n "s/^${key}=//p" "$runtime_env_path" | tail -n 1)"
               test -n "$encoded"
               printf '%s' "$encoded" | base64 --decode
             }
 
-            test -f "$oauth_env_path"
+            test -f "$runtime_env_path"
             google_oauth_client_id="$(decode_secret GOOGLE_OAUTH_CLIENT_ID)"
             google_oauth_client_secret="$(decode_secret GOOGLE_OAUTH_CLIENT_SECRET)"
             sync_erp_auth_state_secret="$(decode_secret SYNC_ERP_AUTH_STATE_SECRET)"
-            rm -f "$oauth_env_path"
+            database_url="$(decode_secret DATABASE_URL)"
+            rm -f "$runtime_env_path"
+
+            case "$database_url" in
+              *"postgres.${DATABASE_PROJECT_REF}:"*|*"@db.${DATABASE_PROJECT_REF}.supabase.co"*) ;;
+              *)
+                echo "Decoded DATABASE_URL does not match the expected ${RUNTIME_ENV} Supabase project."
+                exit 1
+                ;;
+            esac
 
             mkdir -p "$target"
             printf '%s\n' \
@@ -403,11 +430,17 @@ jobs:
             upsert_env "GOOGLE_OAUTH_CLIENT_ID" "$google_oauth_client_id"
             upsert_env "GOOGLE_OAUTH_CLIENT_SECRET" "$google_oauth_client_secret"
             upsert_env "SYNC_ERP_AUTH_STATE_SECRET" "$sync_erp_auth_state_secret"
+            upsert_env "DATABASE_URL" "$database_url"
+            upsert_env "HOSTINGER_ENV" "$RUNTIME_ENV"
+            upsert_env "NODE_ENV" "$RUNTIME_ENV"
             upsert_env "CORS_ORIGIN" "$cors_origins"
             upsert_env "CORS_ALLOWED_ORIGINS" "$cors_origins"
             test -n "$(sed -n 's/^GOOGLE_OAUTH_CLIENT_ID=//p' "$target/.env" | tail -n 1)"
             test -n "$(sed -n 's/^GOOGLE_OAUTH_CLIENT_SECRET=//p' "$target/.env" | tail -n 1)"
             test -n "$(sed -n 's/^SYNC_ERP_AUTH_STATE_SECRET=//p' "$target/.env" | tail -n 1)"
+            test "$(sed -n 's/^DATABASE_URL=//p' "$target/.env" | tail -n 1)" = "$database_url"
+            test "$(sed -n 's/^HOSTINGER_ENV=//p' "$target/.env" | tail -n 1)" = "$RUNTIME_ENV"
+            test "$(sed -n 's/^NODE_ENV=//p' "$target/.env" | tail -n 1)" = "$RUNTIME_ENV"
             test "$(sed -n 's/^CORS_ORIGIN=//p' "$target/.env" | tail -n 1)" = "$cors_origins"
             test "$(sed -n 's/^CORS_ALLOWED_ORIGINS=//p' "$target/.env" | tail -n 1)" = "$cors_origins"
 
@@ -478,7 +511,8 @@ jobs:
               GOOGLE_OAUTH_REDIRECT_URI="$oauth_redirect_url" \
               CORS_ORIGIN="$cors_origins" \
               CORS_ALLOWED_ORIGINS="$cors_origins" \
-              PORT="$APP_PORT" NODE_ENV=production \
+              HOSTINGER_ENV="$RUNTIME_ENV" \
+              PORT="$APP_PORT" NODE_ENV="$RUNTIME_ENV" \
               "$pm2" start dist/index.js \
                 --name "$PM2_NAME" \
                 --cwd "$target" \
