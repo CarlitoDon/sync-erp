@@ -144,7 +144,7 @@ describe('SidebarNav', () => {
       const dashboardLink = screen.getByRole('link', {
         name: /dashboard/i,
       });
-      expect(dashboardLink).toHaveClass('bg-white/[0.08]');
+      expect(dashboardLink).toHaveAttribute('aria-current', 'page');
     });
 
     it('highlights Products when on products path', () => {
@@ -153,7 +153,7 @@ describe('SidebarNav', () => {
       const productsLink = screen.getByRole('link', {
         name: /products/i,
       });
-      expect(productsLink).toHaveClass('bg-white/[0.08]');
+      expect(productsLink).toHaveAttribute('aria-current', 'page');
     });
 
     it('highlights Journal & Ledger when on finance subpath', () => {
@@ -162,7 +162,7 @@ describe('SidebarNav', () => {
       const financeLink = screen.getByRole('link', {
         name: /journal & ledger/i,
       });
-      expect(financeLink).toHaveClass('bg-white/[0.08]');
+      expect(financeLink).toHaveAttribute('aria-current', 'page');
     });
   });
 });

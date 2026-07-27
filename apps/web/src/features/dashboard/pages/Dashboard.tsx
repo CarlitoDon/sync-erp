@@ -9,6 +9,7 @@ import { DashboardKPIs } from '@/features/dashboard/components/DashboardKPIs';
 import { PageContainer } from '@/components/layout/PageLayout';
 import {
   Card,
+  CardDescription,
   CardHeader,
   CardTitle,
   CardContent,
@@ -20,9 +21,12 @@ import {
 import {
   ArchiveBoxIcon,
   BanknotesIcon,
+  BuildingOffice2Icon,
+  CalendarDaysIcon,
   CreditCardIcon,
   CubeIcon,
   DocumentTextIcon,
+  SignalIcon,
   TagIcon,
 } from '@heroicons/react/24/outline';
 
@@ -30,6 +34,12 @@ type DashboardMetrics = RouterOutputs['dashboard']['getMetrics'];
 type RecentTransaction =
   DashboardMetrics['recentTransactions'][number];
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
+
+const dashboardDateFormatter = new Intl.DateTimeFormat(undefined, {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'long',
+});
 
 export default function Dashboard() {
   const { currentCompany } = useCompany();
@@ -47,12 +57,13 @@ export default function Dashboard() {
     return (
       <PageContainer>
         <div className="space-y-8">
-          <div className="animate-pulse rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
-            <div className="mb-2 h-8 w-64 rounded bg-slate-200" />
-            <div className="h-5 w-48 rounded bg-slate-100" />
+          <div className="min-h-48 animate-pulse rounded-[1.75rem] bg-slate-900 p-8">
+            <div className="mb-4 h-3 w-32 rounded bg-white/10" />
+            <div className="h-9 w-64 rounded bg-white/15" />
+            <div className="mt-4 h-4 w-80 max-w-full rounded bg-white/10" />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4, 5].map((i) => (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
               <Card key={i} className="animate-pulse">
                 <CardContent>
                   <div className="mb-2 h-4 w-20 rounded bg-slate-200" />
@@ -91,57 +102,66 @@ export default function Dashboard() {
       default:
         // Default (Retail/Manufacturing/Service/Pending)
         return (
-          <>
+          <div className="space-y-8">
             <DashboardKPIs />
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <StatCard
-                title="Accounts Receivable"
-                value={formatCurrency(
-                  Number(metrics?.totalReceivables || 0)
-                )}
-                icon={BanknotesIcon}
-                tone="border-cyan-100 bg-cyan-50 text-cyan-700"
-              />
-              <StatCard
-                title="Accounts Payable"
-                value={formatCurrency(Number(metrics?.totalPayables || 0))}
-                icon={CreditCardIcon}
-                tone="border-rose-100 bg-rose-50 text-rose-700"
-              />
-              <StatCard
-                title="Unpaid Invoices"
-                value={String(metrics?.unpaidInvoices || 0)}
-                icon={DocumentTextIcon}
-                tone="border-amber-100 bg-amber-50 text-amber-700"
-              />
-              <StatCard
-                title="Unpaid Bills"
-                value={String(metrics?.unpaidBills || 0)}
-                icon={ArchiveBoxIcon}
-                tone="border-emerald-100 bg-emerald-50 text-emerald-700"
-              />
-              <StatCard
-                title="Pending Orders"
-                value={String(metrics?.pendingOrders || 0)}
-                icon={CubeIcon}
-                tone="border-sky-100 bg-sky-50 text-sky-700"
-              />
-              <StatCard
-                title="Products"
-                value={String(metrics?.productsCount || 0)}
-                icon={TagIcon}
-                tone="border-teal-100 bg-teal-50 text-teal-700"
-              />
-            </div>
+
+            <section aria-labelledby="operational-pulse-heading">
+              <div className="mb-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-700">
+                  Work queue
+                </p>
+                <h2
+                  id="operational-pulse-heading"
+                  className="mt-1 text-xl font-semibold tracking-tight text-slate-950"
+                >
+                  Operational pulse
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Open documents and master data at a glance.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <QuickStatCard
+                  title="Unpaid Invoices"
+                  value={String(metrics?.unpaidInvoices || 0)}
+                  description="Customer invoices still open"
+                  icon={DocumentTextIcon}
+                  tone="border-amber-100 bg-amber-50 text-amber-700"
+                />
+                <QuickStatCard
+                  title="Unpaid Bills"
+                  value={String(metrics?.unpaidBills || 0)}
+                  description="Vendor bills still open"
+                  icon={ArchiveBoxIcon}
+                  tone="border-rose-100 bg-rose-50 text-rose-700"
+                />
+                <QuickStatCard
+                  title="Pending Orders"
+                  value={String(metrics?.pendingOrders || 0)}
+                  description="Orders waiting for progress"
+                  icon={CubeIcon}
+                  tone="border-sky-100 bg-sky-50 text-sky-700"
+                />
+                <QuickStatCard
+                  title="Products"
+                  value={String(metrics?.productsCount || 0)}
+                  description="Products in your catalog"
+                  icon={TagIcon}
+                  tone="border-emerald-100 bg-emerald-50 text-emerald-700"
+                />
+              </div>
+            </section>
 
             {/* Info Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               <OnboardingGuide metrics={metrics ?? null} />
 
-              <Card className="card-hover">
+              <Card>
                 <CardHeader>
                   <CardTitle>Recent Activity</CardTitle>
+                  <CardDescription>
+                    Latest financial activity across this company.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <RecentActivityList
@@ -150,69 +170,110 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
-          </>
+          </div>
         );
     }
   };
 
   return (
-    <PageContainer>
+    <PageContainer className="mx-auto w-full max-w-[1480px]">
       <PendingShapeBanner
         businessShape={currentCompany?.businessShape}
       />
 
-      {/* Hero Welcome Section */}
-      <div className="mb-8 rounded-lg border border-slate-200 bg-white p-8 shadow-sm shadow-slate-200/60">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500">
-              Operations cockpit
-            </p>
-            <h1 className="mt-2 text-3xl font-bold text-slate-950">
-              Welcome to Sync ERP
-            </h1>
-            <p className="mt-2 text-lg text-slate-600">
-              {currentCompany
-                ? `Managing ${currentCompany.name}`
-                : 'Select a company to get started'}
-            </p>
+      {/* Workspace identity and status */}
+      <section className="relative mb-8 overflow-hidden rounded-[1.75rem] border border-slate-800 bg-slate-950 px-5 py-6 text-white shadow-[0_20px_55px_rgba(15,23,42,0.18)] sm:px-8 sm:py-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(99,102,241,0.32),transparent_24rem),radial-gradient(circle_at_90%_20%,rgba(56,189,248,0.13),transparent_20rem)]" />
+        <div className="absolute -bottom-32 left-1/3 h-64 w-64 rounded-full border border-white/[0.04]" />
+        <div className="relative flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-start gap-4 sm:items-center sm:gap-5">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.1] text-lg font-semibold text-white shadow-inner sm:h-14 sm:w-14">
+              {currentCompany?.name?.charAt(0).toUpperCase() || (
+                <BuildingOffice2Icon className="h-6 w-6" />
+              )}
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-200">
+                Operations workspace
+              </p>
+              <h1 className="mt-2 truncate text-3xl font-semibold tracking-[-0.035em] text-white sm:text-4xl">
+                {currentCompany?.name || 'Welcome to Sync ERP'}
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+                Your live overview of finance, inventory, and daily
+                operations.
+              </p>
+            </div>
           </div>
-          <div className="inline-flex w-fit items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Live company workspace
+
+          <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+            <div className="flex min-w-52 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3.5 backdrop-blur-sm">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.08] text-primary-200">
+                <CalendarDaysIcon className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">
+                  Today
+                </p>
+                <p className="mt-0.5 text-sm font-semibold text-white">
+                  {dashboardDateFormatter.format(new Date())}
+                </p>
+              </div>
+            </div>
+            <div className="inline-flex items-center gap-2.5 rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.08] px-4 py-3.5 text-sm font-medium text-emerald-100">
+              <SignalIcon className="h-5 w-5 text-emerald-300" />
+              <span>
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-300/70">
+                  Status
+                </span>
+                <span className="mt-0.5 block font-semibold">
+                  Workspace live
+                </span>
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {renderDashboard()}
     </PageContainer>
   );
 }
 
-interface StatCardProps {
+interface QuickStatCardProps {
   title: string;
   value: string;
+  description: string;
   icon: IconType;
   tone: string;
 }
 
-function StatCard({ title, value, icon: Icon, tone }: StatCardProps) {
+function QuickStatCard({
+  title,
+  value,
+  description,
+  icon: Icon,
+  tone,
+}: QuickStatCardProps) {
   return (
-    <Card className="card-hover">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500">
+    <Card>
+      <CardContent className="p-5 sm:p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               {title}
             </p>
-            <p className="mt-1 text-2xl font-bold text-slate-950">
+            <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
               {value}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              {description}
             </p>
           </div>
           <span
-            className={`flex h-12 w-12 items-center justify-center rounded-lg border ${tone}`}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${tone}`}
           >
-            <Icon className="h-6 w-6" />
+            <Icon className="h-5 w-5" />
           </span>
         </div>
       </CardContent>
@@ -229,9 +290,17 @@ function RecentActivityList({
 }: RecentActivityListProps) {
   if (transactions.length === 0) {
     return (
-      <p className="py-8 text-center text-slate-500">
-        No recent activity
-      </p>
+      <div className="flex min-h-44 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-6 text-center">
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm ring-1 ring-slate-200/70">
+          <DocumentTextIcon className="h-5 w-5" />
+        </span>
+        <p className="mt-3 text-sm font-semibold text-slate-800">
+          No recent activity
+        </p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          New transactions will appear here as they are recorded.
+        </p>
+      </div>
     );
   }
 
@@ -274,7 +343,7 @@ function RecentActivityList({
           >
             <div className="flex items-center space-x-3">
               <span
-                className={`flex h-8 w-10 items-center justify-center rounded-md border ${typeMeta.className}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-xl border ${typeMeta.className}`}
               >
                 <TypeIcon className="h-4 w-4" />
               </span>

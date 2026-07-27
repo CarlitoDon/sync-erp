@@ -16,10 +16,11 @@ export default function SidebarGroup({
   defaultOpen = true,
 }: SidebarGroupProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isMobileOpen } = useSidebar();
+  const isCompact = isCollapsed && !isMobileOpen;
 
   // When sidebar is collapsed, show icon only
-  if (isCollapsed) {
+  if (isCompact) {
     return <div className="space-y-1">{children}</div>;
   }
 
@@ -27,16 +28,18 @@ export default function SidebarGroup({
     <div className="mt-4 first:mt-0">
       {/* Group Header */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
         className="
-          w-full flex items-center gap-2 px-3 py-1.5
-          text-[11px] font-semibold text-slate-500 uppercase tracking-wider
-          hover:text-slate-300 transition-colors
-          group
+          group flex w-full items-center gap-2 rounded-lg px-3 py-1.5
+          text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400
+          transition-colors duration-[var(--duration-fast)] hover:text-slate-200
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300
         "
       >
         <ChevronRightIcon
-          className={`w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition-transform duration-200 ${
+          className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-[var(--duration-normal)] ease-[var(--ease-out)] group-hover:text-slate-300 ${
             isOpen ? 'rotate-90' : 'rotate-0'
           }`}
         />
@@ -47,7 +50,7 @@ export default function SidebarGroup({
       {/* Group Items */}
       <div
         className={`
-          mt-1 space-y-0.5 overflow-hidden transition-all duration-200 ease-in-out
+          mt-1 space-y-1 overflow-hidden pl-1 transition-all duration-[var(--duration-normal)] ease-[var(--ease-out)]
           ${isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}
         `}
       >

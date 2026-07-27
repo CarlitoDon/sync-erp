@@ -98,11 +98,13 @@ describe('CompanySwitcher', () => {
   };
 
   describe('Loading State', () => {
-    it('shows loading text when isLoading is true', () => {
+    it('announces loading when isLoading is true', () => {
       setupMock({ isLoading: true });
       renderComponent();
 
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(
+        screen.getByRole('status', { name: 'Loading companies' })
+      ).toBeInTheDocument();
     });
   });
 
@@ -146,6 +148,11 @@ describe('CompanySwitcher', () => {
 
       // Click the button
       fireEvent.click(screen.getByRole('button'));
+
+      expect(
+        screen.getByRole('group', { name: 'Companies' })
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 
       // All companies should now be visible (Acme appears twice: button + dropdown)
       expect(
@@ -210,7 +217,7 @@ describe('CompanySwitcher', () => {
   });
 
   describe('Manage Companies Navigation', () => {
-    it('navigates to /select-company when "Manage Companies..." is clicked', async () => {
+    it('navigates to /select-company when "Manage Companies" is clicked', async () => {
       setupMock();
       renderComponent();
 
@@ -218,7 +225,9 @@ describe('CompanySwitcher', () => {
       fireEvent.click(screen.getByRole('button'));
 
       // Click Manage Companies
-      fireEvent.click(screen.getByText('Manage Companies...'));
+      fireEvent.click(
+        screen.getByRole('button', { name: /Manage Companies/i })
+      );
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/select-company');
@@ -233,7 +242,9 @@ describe('CompanySwitcher', () => {
       fireEvent.click(screen.getByRole('button'));
 
       // Click Manage Companies
-      fireEvent.click(screen.getByText('Manage Companies...'));
+      fireEvent.click(
+        screen.getByRole('button', { name: /Manage Companies/i })
+      );
 
       // Dropdown should close
       expect(screen.queryByText('Beta Inc')).not.toBeInTheDocument();

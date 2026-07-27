@@ -61,21 +61,17 @@ export function AdSenseSlot({
           Ad-supported Free plan
         </p>
         <p className="mt-1 text-sm text-slate-600">
-          Mock ad slot. Live ads stay disabled until Google AdSense env values are configured.
+          Mock ad slot. Live ads stay disabled until Google AdSense
+          env values are configured.
         </p>
       </div>
     );
   }
 
-  // When Auto Ads is enabled but no specific slot is provided,
-  // render a placeholder container that Google Auto Ads can fill.
+  // Auto Ads only needs the site-wide script. Google chooses and injects
+  // placements itself, so reserving an empty manual slot creates dead space.
   if (autoAds && !hasSlot) {
-    return (
-      <div
-        aria-label="Advertisement"
-        className={`min-h-[90px] ${className}`}
-      />
-    );
+    return null;
   }
 
   if (!resolvedSlot) {

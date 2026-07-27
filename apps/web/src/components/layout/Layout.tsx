@@ -28,13 +28,13 @@ export default function Layout() {
       {/* Main Content Area */}
       <div
         className={`
-        flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-300
-        ${isCollapsed ? 'md:ml-16' : 'md:ml-64'}
+        flex min-h-screen min-w-0 flex-1 flex-col transition-[margin] duration-[var(--duration-slow)] ease-[var(--ease-drawer)]
+        ${isCollapsed ? 'md:ml-[4.5rem]' : 'md:ml-[17rem]'}
       `}
       >
         {/* Simplified Header (Mobile only shows hamburger) */}
-        <header className="glass sticky top-0 z-30 shadow-sm md:hidden">
-          <div className="relative flex h-14 items-center justify-between px-4">
+        <header className="glass sticky top-0 z-30 border-b border-slate-200/70 md:hidden">
+          <div className="relative flex h-16 items-center justify-between px-4">
             <MobileMenuButton />
             <Link
               to="/dashboard"
@@ -50,21 +50,23 @@ export default function Layout() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
-          <AdSenseSlot
-            enabled={showAds}
-            className="mb-6 min-h-[90px]"
-          />
-          <Outlet />
-          <AdSenseSlot
-            enabled={showAds}
-            slot={getFooterAdSenseSlot()}
-            className="mt-6 min-h-[90px]"
-          />
+        <main className="flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
+          <div className="mx-auto w-full max-w-[1680px]">
+            <AdSenseSlot
+              enabled={showAds}
+              className="mb-6 min-h-[90px]"
+            />
+            <Outlet />
+            <AdSenseSlot
+              enabled={showAds}
+              slot={getFooterAdSenseSlot()}
+              className="mt-6 min-h-[90px]"
+            />
+          </div>
         </main>
 
         {/* Footer */}
-        <footer className="mt-auto border-t border-slate-200/70 bg-white/55 backdrop-blur-sm">
+        <footer className="mt-auto border-t border-slate-200/70 bg-white/45 backdrop-blur-sm">
           <div className="px-4 sm:px-6 lg:px-8 py-4">
             <p className="text-center text-sm text-slate-500">
               © {new Date().getFullYear()} Sync ERP. Multi-Company

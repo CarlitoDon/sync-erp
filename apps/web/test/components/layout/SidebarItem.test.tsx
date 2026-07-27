@@ -129,8 +129,7 @@ describe('SidebarItem', () => {
       );
 
       const link = screen.getByRole('link');
-      expect(link).toHaveClass('bg-white/[0.08]');
-      expect(link).toHaveClass('text-white');
+      expect(link).toHaveAttribute('aria-current', 'page');
     });
 
     it('applies active styles when path starts with item path', () => {
@@ -145,8 +144,7 @@ describe('SidebarItem', () => {
       );
 
       const link = screen.getByRole('link');
-      expect(link).toHaveClass('bg-white/[0.08]');
-      expect(link).toHaveClass('text-white');
+      expect(link).toHaveAttribute('aria-current', 'page');
     });
 
     it('applies inactive styles when path does not match', () => {
@@ -162,7 +160,7 @@ describe('SidebarItem', () => {
 
       const link = screen.getByRole('link');
       expect(link).toHaveClass('text-slate-300');
-      expect(link).not.toHaveClass('bg-white/[0.08]');
+      expect(link).not.toHaveAttribute('aria-current');
     });
 
     it('root is not active when on another path', () => {
@@ -173,7 +171,7 @@ describe('SidebarItem', () => {
       );
 
       const link = screen.getByRole('link');
-      expect(link).not.toHaveClass('bg-white/[0.08]');
+      expect(link).not.toHaveAttribute('aria-current');
     });
   });
 

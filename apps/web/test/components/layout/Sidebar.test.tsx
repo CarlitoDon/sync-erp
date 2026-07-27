@@ -234,24 +234,27 @@ describe('Sidebar', () => {
       setupMocks({ sidebar: { isMobileOpen: true } });
       renderComponent();
 
-      const overlay = document.querySelector('.bg-black\\/50');
-      expect(overlay).toBeInTheDocument();
+      expect(
+        screen.getByTestId('mobile-navigation-overlay')
+      ).toBeInTheDocument();
     });
 
     it('hides overlay when mobile menu is closed', () => {
       setupMocks({ sidebar: { isMobileOpen: false } });
       renderComponent();
 
-      const overlay = document.querySelector('.bg-black\\/50');
-      expect(overlay).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('mobile-navigation-overlay')
+      ).not.toBeInTheDocument();
     });
 
     it('calls closeMobile when overlay is clicked', () => {
       setupMocks({ sidebar: { isMobileOpen: true } });
       renderComponent();
 
-      const overlay = document.querySelector('.bg-black\\/50');
-      fireEvent.click(overlay!);
+      fireEvent.click(
+        screen.getByTestId('mobile-navigation-overlay')
+      );
 
       expect(mockCloseMobile).toHaveBeenCalled();
     });
