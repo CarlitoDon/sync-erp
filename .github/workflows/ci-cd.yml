@@ -135,23 +135,7 @@ jobs:
             cp -R packages/database/src/generated deploy/api-mcp/node_modules/@sync-erp/database/
           fi
 
-          # Include @prisma/client, @prisma/adapter-pg, and prisma CLI
-          for pkg in client adapter-pg prisma; do
-            if [ -d "node_modules/$pkg" ]; then
-              mkdir -p "deploy/api-mcp/node_modules/$pkg"
-              cp -R "node_modules/$pkg" "deploy/api-mcp/node_modules/"
-              echo "Included $pkg"
-            elif [ -d "node_modules/@prisma/$pkg" ]; then
-              mkdir -p "deploy/api-mcp/node_modules/@prisma"
-              cp -R "node_modules/@prisma/$pkg" "deploy/api-mcp/node_modules/@prisma/"
-              echo "Included @prisma/$pkg"
-            fi
-          done
-          
-          # Also ensure .bin/prisma is copied
-          mkdir -p deploy/api-mcp/node_modules/.bin
-          cp node_modules/.bin/prisma deploy/api-mcp/node_modules/.bin/
-        - name: Upload API build artifact
+      - name: Upload API build artifact
         uses: actions/upload-artifact@v4
         with:
           name: api-mcp-build
@@ -320,7 +304,7 @@ jobs:
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_RUNTIME_ENV}"
 
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_RUNTIME_ENV='${REMOTE_RUNTIME_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' DATABASE_PROJECT_REF='${DATABASE_PROJECT_REF}' bash -s" <<'EOF'
-            set -euo pipefail
+            set -exuo pipefail
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
             runtime_env_path="$HOME/${REMOTE_RUNTIME_ENV}"
@@ -450,13 +434,7 @@ jobs:
 
             # Apply pending schema changes before stopping the currently running API.
             # A migration failure leaves the old process serving traffic.
-            test -x node_modules/.bin/prisma
-            test -f prisma.config.ts
-            test -d prisma/migrations
-            DATABASE_URL="$database_url" \
-              HOSTINGER_ENV="$RUNTIME_ENV" \
-              NODE_ENV="$RUNTIME_ENV" \
-              node_modules/.bin/prisma migrate deploy --config prisma.config.ts
+            echo "DEBUG: PATH=$PATH"; echo "DEBUG: $(which npm)"; echo "DEBUG: $(node -v)"; DATABASE_URL="$database_url" HOSTINGER_ENV="$RUNTIME_ENV" NODE_ENV="$RUNTIME_ENV" npm run db:deploy --workspace=@sync-erp/database
 
             rm -f "$HOME/${REMOTE_API_ARCHIVE}"
             mkdir -p tmp
