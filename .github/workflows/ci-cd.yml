@@ -135,22 +135,6 @@ jobs:
             cp -R packages/database/src/generated deploy/api-mcp/node_modules/@sync-erp/database/
           fi
 
-          # Include @prisma/client, @prisma/adapter-pg, and prisma CLI
-          for pkg in client adapter-pg prisma; do
-            if [ -d "node_modules/$pkg" ]; then
-              mkdir -p "deploy/api-mcp/node_modules/$pkg"
-              cp -R "node_modules/$pkg" "deploy/api-mcp/node_modules/"
-              echo "Included $pkg"
-            elif [ -d "node_modules/@prisma/$pkg" ]; then
-              mkdir -p "deploy/api-mcp/node_modules/@prisma"
-              cp -R "node_modules/@prisma/$pkg" "deploy/api-mcp/node_modules/@prisma/"
-              echo "Included @prisma/$pkg"
-            fi
-          done
-          
-          # Also ensure .bin/prisma is copied
-          mkdir -p deploy/api-mcp/node_modules/.bin
-          cp node_modules/.bin/prisma deploy/api-mcp/node_modules/.bin/
       - name: Upload API build artifact
         uses: actions/upload-artifact@v4
         with:
