@@ -1,0 +1,689 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sync_erp_test?schema=public
+  NODE_ENV: test
+  TURBO_CACHE: remote:rw
+  TURBO_REMOTE_ONLY: 'true'
+  TURBO_DOWNLOAD_LOCAL_ENABLED: 'true'
+
+jobs:
+  changes:
+    name: Detect Changed Areas
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - '.github/workflows/ci-cd.yml'
+              - 'apps/api/**'
+              - 'apps/mcp/**'
+              - 'packages/database/**'
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+            web:
+              - '.github/workflows/ci-cd.yml'
+              - 'apps/web/**'
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+              - 'vercel.json'
+              - 'apps/web/vercel.json'
+
+  ci-api:
+    name: Quality Gates (API)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sync_erp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Setup test database
+        run: npm run db:push --workspace=@sync-erp/database
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      - name: Test (integration)
+        run: npm run test:integration --workspace=@sync-erp/api
+        continue-on-error: false
+
+      - name: Build API
+        run: npm run build:api
+
+      - name: Prepare deployment package
+        run: |
+          rm -rf deploy/api-mcp
+          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database deploy/api-mcp/prisma
+          cp -R apps/api/dist deploy/api-mcp/
+          cp apps/api/package.pro.json deploy/api-mcp/package.json
+          cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
+
+          # Build a complete Linux/Node 20 production dependency tree on the runner.
+          # Hostinger should only unpack and restart the ready-to-run release.
+          npm install \
+            --prefix deploy/api-mcp \
+            --omit=dev \
+            --no-audit \
+            --no-fund \
+            --legacy-peer-deps
+
+          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database
+          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
+          cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
+          if [ -d packages/database/src/generated ]; then
+            cp -R packages/database/src/generated deploy/api-mcp/node_modules/@sync-erp/database/
+          fi
+
+          # CRITICAL: Include the generated Prisma client with query engine binary
+          # node_modules/.prisma/client/ contains the *.engine.node binary files
+          # that must match the target OS (Linux x64 debian-openssl-*)
+          if [ -d node_modules/.prisma/client ]; then
+            mkdir -p deploy/api-mcp/node_modules/.prisma
+            cp -R node_modules/.prisma/client deploy/api-mcp/node_modules/.prisma/
+            echo "Included .prisma/client with query engine binary"
+          else
+            echo "WARNING: .prisma/client/ not found in root node_modules. Checking workspace..."
+            if [ -d packages/database/node_modules/.prisma/client ]; then
+              mkdir -p deploy/api-mcp/node_modules/.prisma
+              cp -R packages/database/node_modules/.prisma/client deploy/api-mcp/node_modules/.prisma/
+              echo "Included .prisma/client from workspace node_modules"
+            fi
+          fi
+
+          # Include @prisma/client and @prisma/adapter-pg JS wrappers
+          for pkg in client adapter-pg; do
+            if [ -d "node_modules/@prisma/$pkg" ]; then
+              mkdir -p "deploy/api-mcp/node_modules/@prisma"
+              cp -R "node_modules/@prisma/$pkg" "deploy/api-mcp/node_modules/@prisma/"
+              echo "Included @prisma/$pkg"
+            fi
+          done
+
+      - name: Upload API build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-mcp-build
+          path: deploy/api-mcp/
+          retention-days: 7
+
+  ci-web:
+    name: Quality Gates (Web)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build Web
+        run: NODE_ENV=production npm run build:web
+
+      - name: Upload Web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/dist/
+          retention-days: 7
+
+  deploy_api:
+    name: Deploy API to Hostinger
+    needs: [changes, ci-api]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    concurrency:
+      group: hostinger-${{ github.ref_name }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download API build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-mcp-build
+          path: deploy/api-mcp/
+
+      - name: Resolve deployment target
+        id: target
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            echo "deploy_dir=apps/api" >> "$GITHUB_OUTPUT"
+            echo "health_host=https://api.santiliving.com" >> "$GITHUB_OUTPUT"
+            echo "pm2_name=sync-erp-api" >> "$GITHUB_OUTPUT"
+            echo "port=3002" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_dir=apps/api-staging" >> "$GITHUB_OUTPUT"
+            echo "health_host=https://api-staging.santiliving.com" >> "$GITHUB_OUTPUT"
+            echo "pm2_name=sync-erp-api-staging" >> "$GITHUB_OUTPUT"
+            echo "port=3001" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p 65002 "${{ secrets.HOSTINGER_HOST }}" > ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy package to Hostinger
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          SSH_PASSPHRASE: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
+          DEPLOY_DIR: ${{ steps.target.outputs.deploy_dir }}
+          PM2_NAME: ${{ steps.target.outputs.pm2_name }}
+          APP_PORT: ${{ steps.target.outputs.port }}
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          SYNC_ERP_AUTH_STATE_SECRET: ${{ secrets.SYNC_ERP_AUTH_STATE_SECRET }}
+        run: |
+          eval $(ssh-agent -a $SSH_AUTH_SOCK)
+
+          echo 'echo "$SSH_PASSPHRASE"' > ~/.ssh/askpass
+          chmod +x ~/.ssh/askpass
+          export SSH_ASKPASS=~/.ssh/askpass
+          export DISPLAY=:0
+
+          ssh-add ~/.ssh/id_ed25519
+          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o ConnectionAttempts=5 -o BatchMode=yes"
+          SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
+          SCP_OPTS="-P 65002 ${SSH_COMMON_OPTS}"
+          API_ARCHIVE="$(mktemp)"
+          OAUTH_ENV_FILE="$(mktemp)"
+          REMOTE_API_ARCHIVE="sync-erp-api-${GITHUB_SHA}.tar.gz"
+          REMOTE_OAUTH_ENV="sync-erp-oauth-${GITHUB_SHA}.env"
+
+          cleanup_local() {
+            rm -f "$API_ARCHIVE" "$OAUTH_ENV_FILE"
+          }
+          trap cleanup_local EXIT
+
+          for secret_name in \
+            GOOGLE_OAUTH_CLIENT_ID \
+            GOOGLE_OAUTH_CLIENT_SECRET \
+            SYNC_ERP_AUTH_STATE_SECRET; do
+            if [[ -z "${!secret_name:-}" ]]; then
+              echo "Missing required ${secret_name} environment secret."
+              exit 1
+            fi
+          done
+
+          chmod 600 "$OAUTH_ENV_FILE"
+          {
+            printf 'GOOGLE_OAUTH_CLIENT_ID=%s\n' \
+              "$(printf '%s' "$GOOGLE_OAUTH_CLIENT_ID" | base64 | tr -d '\n')"
+            printf 'GOOGLE_OAUTH_CLIENT_SECRET=%s\n' \
+              "$(printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | base64 | tr -d '\n')"
+            printf 'SYNC_ERP_AUTH_STATE_SECRET=%s\n' \
+              "$(printf '%s' "$SYNC_ERP_AUTH_STATE_SECRET" | base64 | tr -d '\n')"
+          } > "$OAUTH_ENV_FILE"
+
+          tar -C deploy/api-mcp \
+            --exclude='./.htaccess' \
+            --exclude='./.env' \
+            --exclude='./tmp' \
+            --exclude='./stderr.log' \
+            -czf "$API_ARCHIVE" .
+
+          timeout 900 scp ${SCP_OPTS} \
+            "$API_ARCHIVE" \
+            "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_API_ARCHIVE}"
+
+          timeout 900 scp ${SCP_OPTS} \
+            "$OAUTH_ENV_FILE" \
+            "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_OAUTH_ENV}"
+
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_OAUTH_ENV='${REMOTE_OAUTH_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' bash -s" <<'EOF'
+            set -euo pipefail
+            export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
+            target="$HOME/public_html/${DEPLOY_DIR}"
+            oauth_env_path="$HOME/${REMOTE_OAUTH_ENV}"
+
+            cleanup_remote() {
+              rm -f "$HOME/${REMOTE_API_ARCHIVE}" "$oauth_env_path"
+            }
+            trap cleanup_remote EXIT
+
+            decode_secret() {
+              local key="$1"
+              local encoded
+              encoded="$(sed -n "s/^${key}=//p" "$oauth_env_path" | tail -n 1)"
+              test -n "$encoded"
+              printf '%s' "$encoded" | base64 --decode
+            }
+
+            test -f "$oauth_env_path"
+            google_oauth_client_id="$(decode_secret GOOGLE_OAUTH_CLIENT_ID)"
+            google_oauth_client_secret="$(decode_secret GOOGLE_OAUTH_CLIENT_SECRET)"
+            sync_erp_auth_state_secret="$(decode_secret SYNC_ERP_AUTH_STATE_SECRET)"
+            rm -f "$oauth_env_path"
+
+            mkdir -p "$target"
+            printf '%s\n' \
+              "# PM2 proxy - API running on localhost:${APP_PORT} via PM2" \
+              'RewriteEngine On' \
+              "RewriteRule ^(.*)\$ http://localhost:${APP_PORT}/\$1 [P,L]" \
+              > "$target/.htaccess"
+            find "$target" -mindepth 1 -maxdepth 1 \
+              ! -name '.env' \
+              ! -name '.htaccess' \
+              ! -name 'tmp' \
+              ! -name 'stderr.log' \
+              -exec rm -rf {} +
+            tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target"
+            cd "$target"
+
+            test -f node_modules/express/package.json
+            test -f node_modules/@sentry/node/package.json
+            test -f node_modules/ioredis/package.json
+
+            # Always override database package from GHA artifact (contains pre-compiled Prisma engine)
+            test -f node_modules/@sync-erp/database/package.json
+            test -f node_modules/@sync-erp/database/dist/index.js
+
+            # Keep public runtime URLs aligned with the temporary domains while
+            # preserving every secret already stored in Hostinger's .env file.
+            test -f "$target/.env"
+            upsert_env() {
+              local key="$1"
+              local value="$2"
+              local env_tmp
+              env_tmp="$(mktemp "${target}/.env.XXXXXX")"
+              awk -v key="$key" -v value="$value" '
+                BEGIN { found = 0 }
+                index($0, key "=") == 1 {
+                  if (!found) {
+                    print key "=" value
+                    found = 1
+                  }
+                  next
+                }
+                { print }
+                END {
+                  if (!found) {
+                    print key "=" value
+                  }
+                }
+              ' "$target/.env" > "$env_tmp"
+              mv "$env_tmp" "$target/.env"
+            }
+
+            if [ "$APP_PORT" = "3002" ]; then
+              api_url="https://api.santiliving.com/api/trpc"
+              api_base_url="https://api.santiliving.com"
+              web_url="https://sync-erp.khusnudhoni.online"
+              oauth_redirect_url="https://api.santiliving.com/api/auth/google/callback"
+              cors_origins="http://localhost:5173,https://santiliving.com,https://santi-living.vercel.app,https://sync-erp.vercel.app,https://sync-erp.khusnudhoni.online,https://bot.santiliving.com"
+            else
+              api_url="https://api-staging.santiliving.com/api/trpc"
+              api_base_url="https://api-staging.santiliving.com"
+              web_url="https://sync-erp-staging.santiliving.com"
+              oauth_redirect_url="https://api-staging.santiliving.com/api/auth/google/callback"
+              cors_origins="http://localhost:5173,https://sync-erp-staging.santiliving.com,https://sync-erp-git-dev-doncarlo31s-projects.vercel.app"
+            fi
+
+            upsert_env "SYNC_ERP_API_URL" "$api_url"
+            upsert_env "SYNC_ERP_API_BASE_URL" "$api_base_url"
+            upsert_env "SYNC_ERP_WEB_URL" "$web_url"
+            upsert_env "GOOGLE_OAUTH_REDIRECT_URI" "$oauth_redirect_url"
+            upsert_env "GOOGLE_OAUTH_CLIENT_ID" "$google_oauth_client_id"
+            upsert_env "GOOGLE_OAUTH_CLIENT_SECRET" "$google_oauth_client_secret"
+            upsert_env "SYNC_ERP_AUTH_STATE_SECRET" "$sync_erp_auth_state_secret"
+            upsert_env "CORS_ORIGIN" "$cors_origins"
+            upsert_env "CORS_ALLOWED_ORIGINS" "$cors_origins"
+            test -n "$(sed -n 's/^GOOGLE_OAUTH_CLIENT_ID=//p' "$target/.env" | tail -n 1)"
+            test -n "$(sed -n 's/^GOOGLE_OAUTH_CLIENT_SECRET=//p' "$target/.env" | tail -n 1)"
+            test -n "$(sed -n 's/^SYNC_ERP_AUTH_STATE_SECRET=//p' "$target/.env" | tail -n 1)"
+            test "$(sed -n 's/^CORS_ORIGIN=//p' "$target/.env" | tail -n 1)" = "$cors_origins"
+            test "$(sed -n 's/^CORS_ALLOWED_ORIGINS=//p' "$target/.env" | tail -n 1)" = "$cors_origins"
+
+            # CRITICAL: Override .prisma/client with pre-compiled engine binary from GHA
+            if tar -tzf "$HOME/${REMOTE_API_ARCHIVE}" 2>/dev/null | grep -q 'node_modules/\.prisma/client/'; then
+              test -f node_modules/.prisma/client/package.json
+              echo "✓ Pre-compiled Prisma client is present."
+            else
+              echo "⚠ .prisma/client/ not found in archive. Query engine may fall back to platform default."
+            fi
+
+            # Assert Prisma JS wrapper packages are present in the release.
+            for prisma_pkg in client adapter-pg; do
+              if tar -tzf "$HOME/${REMOTE_API_ARCHIVE}" 2>/dev/null | grep -q "node_modules/@prisma/${prisma_pkg}/"; then
+                test -f "node_modules/@prisma/${prisma_pkg}/package.json"
+                echo "Found @prisma/${prisma_pkg} in built artifact"
+              fi
+            done
+
+            rm -f "$HOME/${REMOTE_API_ARCHIVE}"
+            mkdir -p tmp
+
+            pm2="$HOME/node-pm2/node_modules/.bin/pm2"
+            old_pids=""
+            for pid_file in "$HOME/.pm2/pids/${PM2_NAME}-"*.pid; do
+              [ -r "$pid_file" ] || continue
+              old_pid=""
+              IFS= read -r old_pid < "$pid_file" || true
+              case "$old_pid" in
+                ''|*[!0-9]*) continue ;;
+              esac
+              old_pids="${old_pids} ${old_pid}"
+            done
+            "$pm2" delete "$PM2_NAME" >/dev/null 2>&1 || true
+            for old_pid in $old_pids; do
+              kill "$old_pid" 2>/dev/null || true
+            done
+            sleep 2
+
+            # PM2 can occasionally leave a child process behind on constrained
+            # shared hosting. Stop only listeners whose cwd is this deployment.
+            if command -v fuser >/dev/null 2>&1; then
+              listener_pids="$(fuser -n tcp "$APP_PORT" 2>/dev/null || true)"
+              for listener_pid in $listener_pids; do
+                case "$listener_pid" in
+                  ''|*[!0-9]*) continue ;;
+                esac
+                listener_cwd="$(readlink "/proc/${listener_pid}/cwd" 2>/dev/null || true)"
+                if [ "$listener_cwd" != "$target" ]; then
+                  echo "Refusing to stop PID ${listener_pid}: cwd ${listener_cwd:-unknown} is not ${target}."
+                  exit 1
+                fi
+                kill "$listener_pid"
+              done
+              sleep 2
+            fi
+
+            if curl -fsS --connect-timeout 2 --max-time 3 \
+              "http://127.0.0.1:${APP_PORT}/health" >/dev/null 2>&1; then
+              echo "Port ${APP_PORT} is still occupied after stopping ${PM2_NAME}."
+              exit 1
+            fi
+
+            NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
+              SYNC_ERP_API_URL="$api_url" \
+              SYNC_ERP_API_BASE_URL="$api_base_url" \
+              SYNC_ERP_WEB_URL="$web_url" \
+              GOOGLE_OAUTH_REDIRECT_URI="$oauth_redirect_url" \
+              CORS_ORIGIN="$cors_origins" \
+              CORS_ALLOWED_ORIGINS="$cors_origins" \
+              PORT="$APP_PORT" NODE_ENV=production \
+              "$pm2" start dist/index.js \
+                --name "$PM2_NAME" \
+                --cwd "$target" \
+                --time
+            "$pm2" save
+
+            for attempt in 1 2 3 4 5 6; do
+              if curl -fsS --connect-timeout 5 --max-time 10 \
+                "http://127.0.0.1:${APP_PORT}/health" >/dev/null; then
+                echo "Local API process is healthy on port ${APP_PORT}."
+                break
+              fi
+              if [ "$attempt" -eq 6 ]; then
+                "$pm2" logs "$PM2_NAME" --lines 80 --nostream
+                exit 1
+              fi
+              sleep 5
+            done
+
+            cors_headers="$(mktemp)"
+            if ! curl -fsS --connect-timeout 5 --max-time 10 \
+              -o /dev/null \
+              -D "$cors_headers" \
+              -X OPTIONS \
+              "http://127.0.0.1:${APP_PORT}/api/trpc/auth.me" \
+              -H "Origin: ${web_url}" \
+              -H 'Access-Control-Request-Method: GET'; then
+              echo "Local API CORS preflight failed for ${web_url}."
+              "$pm2" logs "$PM2_NAME" --lines 80 --nostream
+              exit 1
+            fi
+            if ! grep -Fqi "access-control-allow-origin: ${web_url}" "$cors_headers"; then
+              echo "Local API did not allow the configured web origin ${web_url}."
+              exit 1
+            fi
+            rm -f "$cors_headers"
+            echo "Local API CORS preflight allows ${web_url}."
+          EOF
+
+      - name: Verify API health
+        env:
+          HEALTH_HOST: ${{ steps.target.outputs.health_host }}
+        run: |
+          MAX_RETRIES=8
+          RETRY_DELAYS=(5 10 15 20 30 30 30 30)
+
+          echo "Verifying API health at ${HEALTH_HOST}..."
+          sleep 30
+
+          check_endpoint() {
+            local path="$1"
+            local full_url="${HEALTH_HOST}${path}"
+
+            echo "Checking ${full_url} ..."
+
+            for i in $(seq 1 $MAX_RETRIES); do
+              idx=$((i - 1))
+              local delay="${RETRY_DELAYS[$idx]:-30}"
+              local http_code
+              local curl_exit_code=0
+
+              http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 15 "${full_url}" 2>&1) || curl_exit_code=$?
+
+              if [[ "$http_code" == "200" ]]; then
+                echo "✓ Healthy: ${full_url} (attempt ${i}/${MAX_RETRIES})"
+                return 0
+              fi
+
+              if [[ "$curl_exit_code" -ne 0 ]]; then
+                echo "⚠ Connection error on ${full_url}: curl exit code ${curl_exit_code} (attempt ${i}/${MAX_RETRIES})"
+              else
+                echo "⚠ HTTP ${http_code} on ${full_url} (attempt ${i}/${MAX_RETRIES})"
+              fi
+
+              if [[ "$i" -lt "$MAX_RETRIES" ]]; then
+                echo "  Retrying in ${delay}s..."
+                sleep "$delay"
+              fi
+            done
+
+            echo "✗ Health check failed for ${full_url} after ${MAX_RETRIES} attempts"
+            return 1
+          }
+
+          FAILED=0
+          check_endpoint "/health" || FAILED=1
+          check_endpoint "/mcp/health" || FAILED=1
+
+          node scripts/verify-google-oauth-config.mjs "${HEALTH_HOST}" || FAILED=1
+
+          if [[ "$FAILED" -ne 0 ]]; then
+            echo "One or more health checks failed."
+            exit 1
+          fi
+
+          echo "All endpoints healthy."
+  deploy_web:
+    name: Deploy Web to Vercel
+    needs: [changes, ci-web]
+    if: github.event_name == 'push' && needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    concurrency:
+      group: deploy-web-${{ github.ref_name }}
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and deploy web with Vercel CLI
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [[ -z "${VERCEL_TOKEN}" ]]; then
+            echo "Missing VERCEL_TOKEN secret."
+            exit 1
+          fi
+
+          # The workflow-level NODE_ENV=test is correct for quality gates, but
+          # it must not leak into Vercel's production-mode Vite build. Leaving
+          # it unset also keeps Vercel's internal install from pruning build
+          # dependencies. Mixing test/dev JSX with React's production runtime
+          # causes a blank page (`jsxDEV is not a function`).
+          unset NODE_ENV
+
+          run_with_retry() {
+            local description="$1"
+            shift
+            for i in 1 2 3 4 5; do
+              if "$@"; then
+                return 0
+              fi
+              sleep_time=$(( i * 20 ))
+              echo "${description} failed. Retry ${i}/5 in ${sleep_time}s..."
+              sleep "${sleep_time}"
+            done
+            return 1
+          }
+
+          deploy_with_retry() {
+            local description="$1"
+            shift
+            local output
+            for i in 1 2 3 4 5; do
+              if output=$("$@" 2>&1); then
+                printf '%s\n' "$output"
+                DEPLOYMENT_URL=$(printf '%s\n' "$output" | grep -Eo 'https://[^[:space:]]+\.vercel\.app' | tail -n 1)
+                if [[ -n "$DEPLOYMENT_URL" ]]; then
+                  return 0
+                fi
+              fi
+              sleep_time=$(( i * 20 ))
+              echo "${description} failed. Retry ${i}/5 in ${sleep_time}s..."
+              sleep "${sleep_time}"
+            done
+            return 1
+          }
+
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            export VITE_SYNC_ERP_API_URL="https://api.santiliving.com/api/trpc"
+            run_with_retry "vercel pull production" vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
+            run_with_retry "vercel build production" vercel build --prod --token="${VERCEL_TOKEN}"
+            deploy_with_retry "vercel deploy production" vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}"
+            CUSTOM_DOMAIN="sync-erp.khusnudhoni.online"
+          else
+            export VITE_SYNC_ERP_API_URL="https://api-staging.santiliving.com/api/trpc"
+            run_with_retry "vercel pull preview" vercel pull --yes --environment=preview --token="${VERCEL_TOKEN}"
+            run_with_retry "vercel build preview" vercel build --token="${VERCEL_TOKEN}"
+            deploy_with_retry "vercel deploy preview" vercel deploy --prebuilt --token="${VERCEL_TOKEN}"
+            CUSTOM_DOMAIN="sync-erp-staging.santiliving.com"
+          fi
+
+          if find .vercel/output/static/assets -name 'index-*.js' \
+            -exec grep -q '\.jsxDEV' {} +; then
+            echo "Deployed web bundle contains the development JSX runtime."
+            exit 1
+          fi
+
+          run_with_retry "vercel alias" \
+            vercel alias set "$DEPLOYMENT_URL" "$CUSTOM_DOMAIN" --token="${VERCEL_TOKEN}"
+
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS --connect-timeout 10 --max-time 20 "https://${CUSTOM_DOMAIN}/" >/dev/null; then
+              echo "Web deployment is healthy at https://${CUSTOM_DOMAIN}/"
+              exit 0
+            fi
+            if [[ "$i" == "10" ]]; then
+              echo "Web health check failed at https://${CUSTOM_DOMAIN}/"
+              exit 1
+            fi
+            sleep 15
+          done
