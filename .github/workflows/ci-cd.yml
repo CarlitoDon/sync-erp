@@ -434,7 +434,7 @@ jobs:
 
             # Apply pending schema changes before stopping the currently running API.
             # A migration failure leaves the old process serving traffic.
-            test -x node_modules/.bin/prisma
+            if ! [ -x node_modules/.bin/prisma ]; then npm install prisma; fi
             test -f prisma.config.ts
             test -d prisma/migrations
             DATABASE_URL="$database_url" \
