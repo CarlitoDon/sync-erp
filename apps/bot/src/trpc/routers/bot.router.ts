@@ -134,6 +134,7 @@ export const botRouter = router({
         // 4. Send Message
         const response = await sock.sendMessage(targetNumber, {
           text: message,
+          linkPreview: null,
         });
 
         // eslint-disable-next-line no-console
