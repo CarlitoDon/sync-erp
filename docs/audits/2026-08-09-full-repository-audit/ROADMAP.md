@@ -8,9 +8,15 @@ Status date: 2026-08-10. This roadmap is dependency-ordered. Time ranges are pla
 - `[ ]` — still open. The subsection identifies whether it is partially evidenced, awaiting external authority, or not started.
 - “Local code gate complete” does not mean “production incident closed.” Production closure still requires credential rotation/revocation, old-credential denial, access-log review, staging/production smoke, cleanup, and approved history remediation.
 
-The current published branch is `codex/phase0-security-containment`, with `HEAD` and its upstream aligned at `ba153c1`. The worktree still contains the untracked audit package, including this roadmap; no audit document is included in the published security commits. No credential values, environment contents, cookie contents, or archive payloads are recorded here.
+The consolidation branch is `chore/unfinished-scope-consolidation`, based exactly on `origin/dev` at `c8a10022222705100d0c129255eb50827ffba91d`. It carries the five effective commits sourced from `origin/codex/phase0-security-containment`, whose source head is `fede05b5aa9b96c0e79a9f63fc58926a371dc735`; the exact source and consolidated commit IDs plus the still-open landing disposition are recorded below. Remaining audit-package files stay untracked and are intentionally outside this change. No credential values, environment contents, cookie contents, or archive payloads are recorded here.
 
-Checklist snapshot: 20 checked, 73 open, and 93 actual checklist items (legend examples excluded).
+Checklist snapshot before the consolidation-scope additions: 20 checked, 73 open, and 93 actual checklist items (legend examples excluded). The three items below are intentionally excluded from that verified snapshot and remain unchecked until their required PR/disposition evidence is complete.
+
+## Unfinished effective scopes retained for the next PR
+
+- [ ] **Phase 0 security/roadmap landing:** Land the consolidated security and roadmap changes in the next PR targeting `dev`; this item remains open until that PR is merged and the remote `dev` merge is verified. Source branch: `origin/codex/phase0-security-containment` at `fede05b5aa9b96c0e79a9f63fc58926a371dc735`. Source commits, in chronological order, and their consolidated commit IDs are `70b7a218e71ce14e9730f8a69d27090bffd45015` → `4493a16`, `222f79fbecf7b32ef6c50965fb30d94195beeea5` → `114e19a`, `88f250c6bd86662a0e20496d680c0189806058bb` → `3250291`, `ba153c1af5b1c18461bf7d4cbf78d2cda693e128` → `59a9544`, and `fede05b5aa9b96c0e79a9f63fc58926a371dc735` → `3106910`.
+- [ ] **Canonical Prisma CI fix:** Retain only the canonical patch from local `fix/ci-use-npx` at `70b7a218e71ce14e9730f8a69d27090bffd45015`, already covered by the Phase 0 source branch and consolidated above. Local-only `codex/ci-prisma-artifact-20260809` contains duplicate alternatives `f0f89f63edf8e3248c78d98e6d2cc56afaa2879a` → `66e9dfedbd241b351c026c0a7140d3ee40829ba0`; they are tree-equivalent to the canonical patch and must not be cherry-picked. Rule: only the canonical patch is retained.
+- [ ] **`fix/ci-cd-indentation-v3` disposition:** The branch at `8c434b6214c6f87daad27b66ed5bae9736f1ae6b` was PR #39, closed-unmerged; its effective patch is already present in the current `origin/dev` baseline `c8a10022222705100d0c129255eb50827ffba91d`. Record that patch-equivalence disposition in the next PR scope and do not duplicate or cherry-pick the patch.
 
 ### Completed
 
