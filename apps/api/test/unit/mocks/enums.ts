@@ -96,10 +96,12 @@ export enum BillingCheckoutSessionStatus {
   FAILED = 'FAILED',
   EXPIRED = 'EXPIRED',
 }
+
 export enum CostingMethod {
   AVG = 'AVG',
   FIFO = 'FIFO',
 }
+
 export enum SagaType {
   INVOICE_POST = 'INVOICE_POST',
   SHIPMENT = 'SHIPMENT',
@@ -281,4 +283,25 @@ export enum RentalPaymentStatus {
   CONFIRMED = 'CONFIRMED',
   FAILED = 'FAILED',
   REFUNDED = 'REFUNDED',
+}
+
+export enum RentalWebhookDeliveryType {
+  NEW_ORDER = 'NEW_ORDER',
+  PAYMENT_STATUS = 'PAYMENT_STATUS',
+}
+
+export enum RentalWebhookOutboxStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  DELIVERED = 'DELIVERED',
+  FAILED = 'FAILED',
+  DEAD_LETTER = 'DEAD_LETTER',
+}
+
+export enum TenantWebhookOutboxStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  DELIVERED = 'DELIVERED',
+  FAILED = 'FAILED',
+  DEAD_LETTER = 'DEAD_LETTER',
 }

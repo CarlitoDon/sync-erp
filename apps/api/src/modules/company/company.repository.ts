@@ -228,6 +228,25 @@ async function ensureDefaultPermissions(
 }
 
 export class CompanyRepository {
+  /**
+   * Serialize role mutations for one company.
+   *
+   * PostgreSQL's serializable isolation detects many write races, but the
+   * company-row lock makes the owner invariant explicit and also protects
+   * callers that only read the current owner set before updating a member.
+   */
+  async lockForMembershipMutation(
+    tx: Prisma.TransactionClient,
+    companyId: string
+  ): Promise<void> {
+    await tx.$executeRaw`
+      SELECT id
+      FROM "Company"
+      WHERE id = ${companyId}
+      FOR UPDATE
+    `;
+  }
+
   async create(data: {
     name: string;
     userId?: string;
@@ -355,19 +374,4 @@ export class CompanyRepository {
     });
   }
 
-  async updateMemberRole(
-    companyId: string,
-    userId: string,
-    roleId: string
-  ): Promise<CompanyMember> {
-    return prisma.companyMember.update({
-      where: {
-        userId_companyId: {
-          userId,
-          companyId,
-        },
-      },
-      data: { roleId },
-    });
-  }
 }

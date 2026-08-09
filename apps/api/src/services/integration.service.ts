@@ -6,7 +6,7 @@ type IntegrationWithApiKeys = {
   id: string;
   companyId: string;
   appId: string;
-  config: Record<string, unknown>;
+  config: Prisma.JsonValue | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -16,6 +16,29 @@ type IntegrationWithApiKeys = {
     lastUsedAt: Date | null;
   }>;
 };
+
+const SENSITIVE_CONFIG_KEY = /(secret|token|password|private.?key|api.?key)/i;
+
+function redactIntegrationConfig(
+  value: Prisma.JsonValue | null | undefined
+): Prisma.JsonValue | null | undefined {
+  if (Array.isArray(value)) {
+    return value.map((entry) => redactIntegrationConfig(entry) ?? null);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => !SENSITIVE_CONFIG_KEY.test(key))
+        .map(([key, entry]) => [
+          key,
+          redactIntegrationConfig(entry as Prisma.JsonValue) ?? null,
+        ])
+    ) as Prisma.JsonObject;
+  }
+
+  return value;
+}
 
 export interface IntegrationApp {
   appId: string;
@@ -89,7 +112,7 @@ export class IntegrationService {
           ? {
               id: existing.id,
               isActive: existing.isActive,
-              config: existing.config,
+              config: redactIntegrationConfig(existing.config),
               apiKey: existing.apiKeys[0] || null,
               updatedAt: existing.updatedAt,
             }
@@ -136,13 +159,17 @@ export class IntegrationService {
 
     if (existing) {
       // Re-activate if was inactive
-      return prisma.integration.update({
+      await prisma.integration.update({
         where: { id: existing.id },
         data: { isActive: true },
       });
+
+      // Return the same secret-safe shape as the detail endpoint. Existing
+      // records may contain legacy sensitive config values.
+      return this.getIntegration(companyId, existing.id);
     }
 
-    return prisma.$transaction(async (tx) => {
+    const integration = await prisma.$transaction(async (tx) => {
       // 1. Create Integration Record
       const integration = await tx.integration.create({
         data: {
@@ -169,6 +196,8 @@ export class IntegrationService {
 
       return integration;
     });
+
+    return this.getIntegration(companyId, integration.id);
   }
 
   /**
@@ -199,9 +228,32 @@ export class IntegrationService {
   async getIntegration(companyId: string, integrationId: string) {
     const integration = await prisma.integration.findUnique({
       where: { id: integrationId },
-      include: {
+      select: {
+        id: true,
+        companyId: true,
+        appId: true,
+        name: true,
+        description: true,
+        icon: true,
+        config: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
         apiKeys: {
           orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            keyPrefix: true,
+            permissions: true,
+            webhookUrl: true,
+            rateLimit: true,
+            isActive: true,
+            expiresAt: true,
+            lastUsedAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         },
       },
     });
@@ -214,7 +266,37 @@ export class IntegrationService {
       );
     }
 
-    return integration;
+    return {
+      ...integration,
+      config: redactIntegrationConfig(integration.config),
+      apiKeys: integration.apiKeys.map(
+        ({
+          id,
+          name,
+          keyPrefix,
+          permissions,
+          webhookUrl,
+          rateLimit,
+          isActive,
+          expiresAt,
+          lastUsedAt,
+          createdAt,
+          updatedAt,
+        }) => ({
+          id,
+          name,
+          keyPrefix,
+          permissions,
+          webhookUrl,
+          rateLimit,
+          isActive,
+          expiresAt,
+          lastUsedAt,
+          createdAt,
+          updatedAt,
+        })
+      ),
+    };
   }
 
   /**

@@ -172,7 +172,7 @@ export class PurchaseOrderService {
 
     // Get received quantities from POSTED GRNs
     const receivedQtyMap =
-      await this.repository.getReceivedQuantities(id, tx);
+      await this.repository.getReceivedQuantities(id, companyId, tx);
 
     // Map received quantities to items
     const itemsWithReceived = order.items.map((item) => ({
@@ -535,6 +535,7 @@ export class PurchaseOrderService {
     // Get received quantities from POSTED GRNs
     const receivedQty = await this.repository.getReceivedQuantities(
       orderId,
+      companyId,
       tx
     );
 
@@ -577,9 +578,10 @@ export class PurchaseOrderService {
    */
   async getReceivedQuantities(
     orderId: string,
+    companyId: string,
     tx?: Prisma.TransactionClient
   ): Promise<Map<string, number>> {
-    return this.repository.getReceivedQuantities(orderId, tx);
+    return this.repository.getReceivedQuantities(orderId, companyId, tx);
   }
 
   /**

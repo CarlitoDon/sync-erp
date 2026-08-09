@@ -5,7 +5,7 @@
  * Extracted from public-rental.router.ts for maintainability.
  */
 
-import { apiKeyProcedure, router } from '../../trpc';
+import { apiKeyProcedure, requirePermission, router } from '../../trpc';
 import { z } from 'zod';
 import {
   prisma,
@@ -32,6 +32,7 @@ export const publicRentalPaymentRouter = router({
    * Called when customer selects payment method at checkout
    */
   updatePaymentMethod: apiKeyProcedure
+    .use(requirePermission('rental:write'))
     .input(
       z.object({
         token: z.string().uuid(),
@@ -119,6 +120,7 @@ export const publicRentalPaymentRouter = router({
    * Updates order payment status to AWAITING_CONFIRM
    */
   confirmPayment: apiKeyProcedure
+    .use(requirePermission('rental:write'))
     .input(
       z.object({
         token: z.string().uuid(),
@@ -206,6 +208,7 @@ export const publicRentalPaymentRouter = router({
    * Used by Midtrans webhook to confirm payment via Order Number
    */
   confirmPaymentByOrderNumber: apiKeyProcedure
+    .use(requirePermission('rental:write'))
     .input(
       z.object({
         orderNumber: z.string(),
@@ -233,6 +236,7 @@ export const publicRentalPaymentRouter = router({
    * Used by Midtrans webhook to mark expired/denied/cancelled payments as failed.
    */
   rejectPaymentByOrderNumber: apiKeyProcedure
+    .use(requirePermission('rental:write'))
     .input(
       z.object({
         orderNumber: z.string(),

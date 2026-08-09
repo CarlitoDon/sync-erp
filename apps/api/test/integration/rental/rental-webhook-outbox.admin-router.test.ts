@@ -15,6 +15,7 @@ import {
 } from '@sync-erp/database';
 import { appRouter } from '@src/trpc/router';
 import type { Context } from '@src/trpc/context';
+import { defaultWebhookTransport } from '@src/services/webhook-ssrf-transport';
 
 const COMPANY_ID = 'test-rental-webhook-outbox-admin-001';
 const OTHER_COMPANY_ID = 'test-rental-webhook-outbox-admin-002';
@@ -93,7 +94,7 @@ const buildCaller = () =>
     correlationId: 'test-rental-webhook-outbox-admin-router',
     idempotencyKey: undefined,
     businessShape: undefined,
-    userRole: undefined,
+    userRole: 'ADMIN',
     userPermissions: [],
     integrationId: undefined,
     isApiKeyAuth: false,
@@ -102,7 +103,7 @@ const buildCaller = () =>
   });
 
 describe('Admin Router - Rental Webhook Outbox', () => {
-  const fetchMock = vi.fn<typeof fetch>();
+  let transportMock: ReturnType<typeof vi.spyOn>;
 
   beforeAll(async () => {
     await prisma.company.upsert({
@@ -137,8 +138,8 @@ describe('Admin Router - Rental Webhook Outbox', () => {
   });
 
   beforeEach(async () => {
-    vi.stubGlobal('fetch', fetchMock);
-    fetchMock.mockReset();
+    transportMock = vi.spyOn(defaultWebhookTransport, 'send');
+    transportMock.mockReset();
 
     await cleanupOutboxData();
     await cleanupIntegrationData();
@@ -202,7 +203,7 @@ describe('Admin Router - Rental Webhook Outbox', () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    transportMock.mockRestore();
   });
 
   it('lists outbox entries and exposes detail scoped by company', async () => {
@@ -290,17 +291,9 @@ describe('Admin Router - Rental Webhook Outbox', () => {
       RentalWebhookOutboxStatus.FAILED
     );
 
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true }),
-      } as Response);
+    transportMock
+      .mockResolvedValueOnce({ statusCode: 200 })
+      .mockResolvedValueOnce({ statusCode: 200 });
 
     const { rentalWebhookOutboxService } =
       await import('@modules/rental/rental-webhook-outbox.service');

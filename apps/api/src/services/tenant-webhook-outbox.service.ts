@@ -9,6 +9,12 @@ import {
   isRetryableStatusCode,
   readPositiveInt,
 } from './webhook-outbox-config';
+import {
+  defaultWebhookTransport,
+  describeWebhookError,
+  WebhookSecurityError,
+  type WebhookTransport,
+} from './webhook-ssrf-transport';
 
 export type TenantWebhookDeliveryResult = {
   success: boolean;
@@ -64,6 +70,10 @@ const DEFAULT_POLL_INTERVAL_MS = 30_000;
 const DEFAULT_DEAD_LETTER_WARN_THRESHOLD = 20;
 
 export class TenantWebhookOutboxService {
+  constructor(
+    private readonly transport: WebhookTransport = defaultWebhookTransport
+  ) {}
+
   async enqueueDelivery(input: {
     companyId: string;
     event: string;
@@ -538,7 +548,8 @@ export class TenantWebhookOutboxService {
     const startTime = Date.now();
 
     try {
-      const response = await fetch(entry.webhookUrl, {
+      const response = await this.transport.send({
+        url: entry.webhookUrl,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -549,20 +560,20 @@ export class TenantWebhookOutboxService {
           'Idempotency-Key': entry.id,
         },
         body,
-        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
+        timeoutMs: WEBHOOK_TIMEOUT_MS,
       });
 
       const duration = Date.now() - startTime;
 
-      if (response.ok) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         return {
           success: true,
-          statusCode: response.status,
+          statusCode: response.statusCode,
           duration,
         };
       }
 
-      const statusCode = response.status;
+      const statusCode = response.statusCode;
 
       return {
         success: false,
@@ -574,8 +585,8 @@ export class TenantWebhookOutboxService {
     } catch (error) {
       return {
         success: false,
-        permanent: false,
-        error: error instanceof Error ? error.message : 'Unknown webhook error',
+        permanent: error instanceof WebhookSecurityError,
+        error: describeWebhookError(error),
         duration: Date.now() - startTime,
       };
     }

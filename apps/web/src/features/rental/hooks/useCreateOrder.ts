@@ -40,7 +40,7 @@ export function useCreateOrder({
     });
   const { data: rentalBundles = [] } =
     trpc.rentalBundle.list.useQuery(
-      { companyId: currentCompany?.id || '' },
+      {},
       { enabled: isOpen && !!currentCompany?.id }
     );
 

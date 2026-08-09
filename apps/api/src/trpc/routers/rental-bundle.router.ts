@@ -1,14 +1,53 @@
 import { z } from 'zod';
-import { router, protectedProcedure, publicProcedure } from '../trpc';
+import {
+  apiKeyProcedure,
+  protectedProcedure,
+  requirePermission,
+  router,
+} from '../trpc';
 import * as bundleService from '../../modules/rental/rental-bundle.service';
 import { assertBillingFeatureAvailable } from '../../modules/billing/billing-limits.service';
+
+const emptyInput = z.object({});
+
+const rentalCatalogReadProcedure = apiKeyProcedure.use(
+  requirePermission('rental:read')
+);
+const rentalCatalogWriteProcedure = apiKeyProcedure.use(
+  requirePermission('rental:write')
+);
+
+const bundleComponentInput = z.object({
+  rentalItemId: z.string().min(1).max(100),
+  quantity: z
+    .number()
+    .int()
+    .positive()
+    .max(bundleService.MAX_CATALOG_COMPONENT_QUANTITY)
+    .default(1),
+  componentLabel: z.string().min(1).max(200),
+});
+
+const externalCatalogBundleInput = z.object({
+  externalId: z.string().min(1).max(200),
+  name: z.string().min(2).max(200),
+  shortName: z.string().max(200).optional(),
+  description: z.string().max(5000).optional(),
+  dailyRate: z.number().finite().nonnegative(),
+  dimensions: z.string().max(200).optional(),
+  capacity: z.string().max(200).optional(),
+  imagePath: z.string().max(2048).optional(),
+  includes: z
+    .array(z.string().min(1).max(200))
+    .max(bundleService.MAX_CATALOG_COMPONENTS_PER_BUNDLE),
+});
 
 export const rentalBundleRouter = router({
   // List bundles for company
   list: protectedProcedure
-    .input(z.object({ companyId: z.string() }))
-    .query(async ({ input }) => {
-      return bundleService.list({ companyId: input.companyId });
+    .input(emptyInput)
+    .query(async ({ ctx }) => {
+      return bundleService.list({ companyId: ctx.companyId });
     }),
 
   // Get component availability for a bundle
@@ -38,30 +77,27 @@ export const rentalBundleRouter = router({
   create: protectedProcedure
     .input(
       z.object({
-        companyId: z.string(),
-        externalId: z.string().optional(),
-        name: z.string().min(2),
-        shortName: z.string().optional(),
-        description: z.string().optional(),
-        dailyRate: z.number().positive(),
-        weeklyRate: z.number().optional(),
-        monthlyRate: z.number().optional(),
-        dimensions: z.string().optional(),
-        capacity: z.string().optional(),
-        imagePath: z.string().optional(),
+        externalId: z.string().min(1).max(200).optional(),
+        name: z.string().min(2).max(200),
+        shortName: z.string().max(200).optional(),
+        description: z.string().max(5000).optional(),
+        dailyRate: z.number().positive().finite(),
+        weeklyRate: z.number().finite().nonnegative().optional(),
+        monthlyRate: z.number().finite().nonnegative().optional(),
+        dimensions: z.string().max(200).optional(),
+        capacity: z.string().max(200).optional(),
+        imagePath: z.string().max(2048).optional(),
         components: z
-          .array(
-            z.object({
-              rentalItemId: z.string(),
-              quantity: z.number().int().positive().default(1),
-              componentLabel: z.string(),
-            })
-          )
+          .array(bundleComponentInput)
+          .max(bundleService.MAX_CATALOG_COMPONENTS_PER_BUNDLE)
           .optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return bundleService.create(input);
+    .mutation(async ({ input, ctx }) => {
+      return bundleService.create({
+        ...input,
+        companyId: ctx.companyId,
+      });
     }),
 
   // Update bundle
@@ -69,15 +105,15 @@ export const rentalBundleRouter = router({
     .input(
       z.object({
         id: z.string(),
-        name: z.string().min(2).optional(),
-        shortName: z.string().optional(),
-        description: z.string().optional(),
-        dailyRate: z.number().positive().optional(),
-        weeklyRate: z.number().optional(),
-        monthlyRate: z.number().optional(),
-        dimensions: z.string().optional(),
-        capacity: z.string().optional(),
-        imagePath: z.string().optional(),
+        name: z.string().min(2).max(200).optional(),
+        shortName: z.string().max(200).optional(),
+        description: z.string().max(5000).optional(),
+        dailyRate: z.number().positive().finite().optional(),
+        weeklyRate: z.number().finite().nonnegative().optional(),
+        monthlyRate: z.number().finite().nonnegative().optional(),
+        dimensions: z.string().max(200).optional(),
+        capacity: z.string().max(200).optional(),
+        imagePath: z.string().max(2048).optional(),
         isActive: z.boolean().optional(),
       })
     )
@@ -89,42 +125,35 @@ export const rentalBundleRouter = router({
         });
       }
 
-      return bundleService.update(input);
+      return bundleService.update({
+        ...input,
+        companyId: ctx.companyId,
+      });
     }),
 
   // Find by external catalog ID.
-  findByExternalId: publicProcedure
-    .input(
-      z.object({
-        companyId: z.string(),
-        externalId: z.string(),
-      })
-    )
-    .query(async ({ input }) => {
-      return bundleService.findByExternalId(input);
+  findByExternalId: rentalCatalogReadProcedure
+    .input(z.object({ externalId: z.string().min(1).max(200) }))
+    .query(async ({ input, ctx }) => {
+      return bundleService.findByExternalId({
+        companyId: ctx.companyId,
+        externalId: input.externalId,
+      });
     }),
 
   // Sync bundles from an external catalog payload.
-  syncFromExternalCatalog: publicProcedure
+  syncFromExternalCatalog: rentalCatalogWriteProcedure
     .input(
       z.object({
-        companyId: z.string(),
-        bundles: z.array(
-          z.object({
-            externalId: z.string(),
-            name: z.string(),
-            shortName: z.string().optional(),
-            description: z.string().optional(),
-            dailyRate: z.number(),
-            dimensions: z.string().optional(),
-            capacity: z.string().optional(),
-            imagePath: z.string().optional(),
-            includes: z.array(z.string()),
-          })
-        ),
+        bundles: z
+          .array(externalCatalogBundleInput)
+          .max(bundleService.MAX_CATALOG_BUNDLES),
       })
     )
-    .mutation(async ({ input }) => {
-      return bundleService.syncFromExternalCatalog(input);
+    .mutation(async ({ input, ctx }) => {
+      return bundleService.syncFromExternalCatalog({
+        companyId: ctx.companyId,
+        bundles: input.bundles,
+      });
     }),
 });

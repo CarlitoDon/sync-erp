@@ -5,7 +5,7 @@
  * Extracted from public-rental.router.ts for maintainability.
  */
 
-import { apiKeyProcedure, router } from '../../trpc';
+import { apiKeyProcedure, requirePermission, router } from '../../trpc';
 import { z } from 'zod';
 import { prisma, PartnerType } from '@sync-erp/database';
 import { TRPCError } from '@trpc/server';
@@ -16,6 +16,7 @@ export const publicRentalPartnerRouter = router({
    * Used when creating orders from external integrations.
    */
   findOrCreatePartner: apiKeyProcedure
+    .use(requirePermission('rental:write'))
     .input(
       z.object({
         companyId: z.string().min(1),

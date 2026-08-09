@@ -6,7 +6,12 @@
  * NOW DELEGATES TO RentalExternalOrderService.
  */
 
-import { publicProcedure, apiKeyProcedure, router } from '../../trpc';
+import {
+  apiKeyProcedure,
+  publicProcedure,
+  requirePermission,
+  router,
+} from '../../trpc';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { RentalExternalOrderService } from '../../../modules/rental/rental-external-order.service';
@@ -128,6 +133,7 @@ export const publicRentalOrderRouter = router({
    * Auto-creates bundles/items if not found (for santi-living integration)
    */
   createOrder: apiKeyProcedure
+    .use(requirePermission('rental:write'))
     .input(
       z.object({
         companyId: z.string().min(1),
@@ -242,6 +248,7 @@ export const publicRentalOrderRouter = router({
    * Only DRAFT orders with PENDING payment can be updated.
    */
   updateOrder: apiKeyProcedure
+    .use(requirePermission('rental:write'))
     .input(
       z.object({
         token: z.string().uuid(),
@@ -343,6 +350,7 @@ export const publicRentalOrderRouter = router({
    * Used by santi-living to rollback invalid orders
    */
   deleteOrder: apiKeyProcedure
+    .use(requirePermission('rental:write'))
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       try {

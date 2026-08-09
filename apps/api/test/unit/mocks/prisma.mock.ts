@@ -19,6 +19,7 @@ export const mockPrisma = {
   companyMember: {
     create: vi.fn(),
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     count: vi.fn(),
     update: vi.fn(),
@@ -131,6 +132,19 @@ export const mockPrisma = {
   },
   apiKey: {
     count: vi.fn(),
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  integration: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
   },
   salesOrder: {
     create: vi.fn(),
@@ -149,6 +163,7 @@ export const mockPrisma = {
   role: {
     create: vi.fn(),
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
   },
   orderItem: {
@@ -225,11 +240,30 @@ export const mockPrisma = {
     }
     return Promise.resolve([]);
   }),
+  $executeRaw: vi.fn(),
 };
 
 // Reset all mocks between tests
 export const resetMocks = () => {
   Object.values(mockPrisma).forEach((model) => {
+    if (typeof model === 'function' && 'mockReset' in model) {
+      (model as ReturnType<typeof vi.fn>).mockReset();
+
+      if (model === mockPrisma.$transaction) {
+        (model as ReturnType<typeof vi.fn>).mockImplementation((arg) => {
+          if (Array.isArray(arg)) {
+            return Promise.resolve(arg);
+          }
+          if (typeof arg === 'function') {
+            return arg(mockPrisma);
+          }
+          return Promise.resolve([]);
+        });
+      }
+
+      return;
+    }
+
     if (typeof model === 'object' && model !== null) {
       Object.values(model).forEach((fn) => {
         if (typeof fn === 'function' && 'mockReset' in fn) {

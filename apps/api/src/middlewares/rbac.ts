@@ -6,6 +6,8 @@ import {
   PermissionScope,
 } from '@sync-erp/database';
 import { ForbiddenError } from './errorHandler';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import { CompanyService } from '../modules/company/company.service';
 
 /**
  * Permission structure: module:action
@@ -82,11 +84,10 @@ export function requirePermission(config: RBACConfig | Permission) {
         throw ForbiddenError('Not a member of this company');
       }
 
-      // If no role assigned, check for default permissions (MVP: allow all)
+      // Missing role is an explicit deny. A company membership alone is not
+      // an authorization grant.
       if (!membership.role) {
-        // MVP: Allow users without roles to access everything
-        // Production: Implement default restricted permissions
-        return next();
+        throw ForbiddenError('No role assigned in this company');
       }
 
       // Check if role has required permission
@@ -149,9 +150,10 @@ export function requireAnyPermission(...permissions: Permission[]) {
         throw ForbiddenError('Not a member of this company');
       }
 
-      // MVP: Allow all if no role
+      // Missing role is an explicit deny. A company membership alone is not
+      // an authorization grant.
       if (!membership.role) {
-        return next();
+        throw ForbiddenError('No role assigned in this company');
       }
 
       const hasAnyPermission = permissions.some((perm) => {
@@ -183,6 +185,10 @@ export function requireAnyPermission(...permissions: Permission[]) {
  * RBAC Service for managing roles and permissions
  */
 export class RBACService {
+  constructor(
+    private readonly companyService: CompanyService = new CompanyService()
+  ) {}
+
   /**
    * Create a new role
    */
@@ -217,14 +223,23 @@ export class RBACService {
   async assignRoleToUser(
     userId: string,
     companyId: string,
-    roleId: string
+    roleId: string,
+    actorId?: string
   ) {
-    return prisma.companyMember.update({
-      where: {
-        userId_companyId: { userId, companyId },
-      },
-      data: { roleId },
-    });
+    if (!actorId) {
+      throw new DomainError(
+        'Actor identity is required for role assignment',
+        403,
+        DomainErrorCodes.FORBIDDEN
+      );
+    }
+
+    return this.companyService.updateMemberRole(
+      companyId,
+      userId,
+      roleId,
+      actorId
+    );
   }
 
   /**

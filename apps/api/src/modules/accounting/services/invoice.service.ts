@@ -569,6 +569,7 @@ export class InvoiceService {
                 const shippedQtyMap =
                   await this.salesOrderRepository.getShippedQuantities(
                     invoice.orderId,
+                    companyId,
                     tx
                   );
                 InvoicePolicy.validate3WayMatching(

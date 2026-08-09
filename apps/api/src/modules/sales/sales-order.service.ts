@@ -135,7 +135,7 @@ export class SalesOrderService {
 
     // Get shipped quantities from POSTED shipments
     const shippedQtyMap =
-      await this.repository.getShippedQuantities(id);
+      await this.repository.getShippedQuantities(id, companyId);
 
     // Map shipped quantities to items
     const itemsWithShipped = order.items.map((item) => ({
@@ -504,6 +504,7 @@ export class SalesOrderService {
     // Get shipped quantities from POSTED Shipments
     const shippedQty = await this.repository.getShippedQuantities(
       orderId,
+      companyId,
       tx
     );
 
@@ -545,9 +546,10 @@ export class SalesOrderService {
    */
   async getShippedQuantities(
     orderId: string,
+    companyId: string,
     tx?: Prisma.TransactionClient
   ): Promise<Map<string, number>> {
-    return this.repository.getShippedQuantities(orderId, tx);
+    return this.repository.getShippedQuantities(orderId, companyId, tx);
   }
 
   /**

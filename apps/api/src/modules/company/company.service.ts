@@ -4,6 +4,7 @@ import {
   BusinessShape,
   CompanyOnboardingStatus,
   CompanyOnboardingStep,
+  Prisma,
   prisma,
 } from '@sync-erp/database';
 import { CompanyRepository } from './company.repository';
@@ -17,6 +18,22 @@ import {
   DomainError,
   DomainErrorCodes,
 } from '@sync-erp/shared';
+import {
+  canAssignRole,
+  isPrivilegedRole,
+  normalizeRole,
+} from '../auth/rbac.policy';
+
+const MEMBERSHIP_MUTATION_MAX_ATTEMPTS = 3;
+
+function isRetryableMembershipMutationConflict(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const code = (error as { code?: unknown }).code;
+  return code === 'P2034' || code === '40001' || code === '40P01';
+}
 
 export class CompanyService {
   constructor(
@@ -131,15 +148,189 @@ export class CompanyService {
     companyId: string,
     targetUserId: string,
     roleId: string,
-    _actorId: string // The user performing the action
+    actorId: string
   ): Promise<CompanyMember> {
-    // 1. Verify actor has permission (skipped for MVP, assume middleware checks OWNER/ADMIN role)
-    // 2. Verify target is a member
-    const membership = await this.repository.findMembership(
-      targetUserId,
-      companyId
-    );
-    if (!membership) {
+    return this.runMembershipMutation(companyId, async (tx) => {
+      const { actorRole, targetRole: currentRole } =
+        await this.loadMembershipMutationContext(
+          tx,
+          companyId,
+          targetUserId,
+          actorId
+        );
+
+      const targetRole = await tx.role.findFirst({
+        where: { id: roleId, companyId },
+        select: { id: true, name: true },
+      });
+
+      if (!targetRole) {
+        throw new DomainError(
+          'Role does not belong to this company',
+          403,
+          DomainErrorCodes.FORBIDDEN
+        );
+      }
+
+      const nextRole = normalizeRole(targetRole.name);
+      if (!canAssignRole(actorRole, nextRole)) {
+        throw new DomainError(
+          'Only a privileged role may assign an administrative role',
+          403,
+          DomainErrorCodes.FORBIDDEN
+        );
+      }
+
+      if (
+        targetUserId === actorId &&
+        isPrivilegedRole(currentRole) &&
+        !isPrivilegedRole(nextRole)
+      ) {
+        throw new DomainError(
+          'Self-demotion would remove the actor\'s administrative access',
+          403,
+          DomainErrorCodes.FORBIDDEN
+        );
+      }
+
+      await this.assertOwnerRetained(
+        tx,
+        companyId,
+        targetUserId,
+        currentRole,
+        nextRole
+      );
+
+      return tx.companyMember.update({
+        where: {
+          userId_companyId: {
+            userId: targetUserId,
+            companyId,
+          },
+        },
+        data: { roleId: targetRole.id },
+      });
+    });
+  }
+
+  async removeMember(
+    companyId: string,
+    targetUserId: string,
+    actorId: string
+  ): Promise<CompanyMember> {
+    return this.runMembershipMutation(companyId, async (tx) => {
+      const { targetRole: currentRole } =
+        await this.loadMembershipMutationContext(
+          tx,
+          companyId,
+          targetUserId,
+          actorId
+        );
+
+      if (targetUserId === actorId) {
+        throw new DomainError(
+          'Self-removal would remove the actor\'s administrative access',
+          403,
+          DomainErrorCodes.FORBIDDEN
+        );
+      }
+
+      await this.assertOwnerRetained(
+        tx,
+        companyId,
+        targetUserId,
+        currentRole
+      );
+
+      return tx.companyMember.delete({
+        where: {
+          userId_companyId: {
+            userId: targetUserId,
+            companyId,
+          },
+        },
+      });
+    });
+  }
+
+  private async runMembershipMutation<T>(
+    companyId: string,
+    operation: (tx: Prisma.TransactionClient) => Promise<T>
+  ): Promise<T> {
+    for (
+      let attempt = 1;
+      attempt <= MEMBERSHIP_MUTATION_MAX_ATTEMPTS;
+      attempt += 1
+    ) {
+      try {
+        return await prisma.$transaction(
+          async (tx) => {
+            // Update and removal paths take the same per-company row lock
+            // before reading role/owner state.
+            await this.repository.lockForMembershipMutation(tx, companyId);
+            return operation(tx);
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+        );
+      } catch (error) {
+        if (
+          !isRetryableMembershipMutationConflict(error) ||
+          attempt === MEMBERSHIP_MUTATION_MAX_ATTEMPTS
+        ) {
+          throw error;
+        }
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, attempt * 10)
+        );
+      }
+    }
+
+    throw new Error('Membership mutation retry budget exhausted');
+  }
+
+  private async loadMembershipMutationContext(
+    tx: Prisma.TransactionClient,
+    companyId: string,
+    targetUserId: string,
+    actorId: string
+  ): Promise<{ actorRole: string; targetRole: string | undefined }> {
+    const actorMembership = await tx.companyMember.findUnique({
+      where: {
+        userId_companyId: {
+          userId: actorId,
+          companyId,
+        },
+      },
+      select: {
+        role: { select: { name: true } },
+      },
+    });
+
+    if (
+      !actorMembership?.role ||
+      !isPrivilegedRole(actorMembership.role.name)
+    ) {
+      throw new DomainError(
+        'Privileged role required for membership management',
+        403,
+        DomainErrorCodes.FORBIDDEN
+      );
+    }
+
+    const targetMembership = await tx.companyMember.findUnique({
+      where: {
+        userId_companyId: {
+          userId: targetUserId,
+          companyId,
+        },
+      },
+      select: {
+        role: { select: { name: true } },
+      },
+    });
+
+    if (!targetMembership) {
       throw new DomainError(
         'User is not a member of this company',
         404,
@@ -147,12 +338,44 @@ export class CompanyService {
       );
     }
 
-    // 3. Update role
-    return this.repository.updateMemberRole(
-      companyId,
-      targetUserId,
-      roleId
-    );
+    return {
+      actorRole: actorMembership.role.name,
+      targetRole: normalizeRole(targetMembership.role?.name),
+    };
+  }
+
+  private async assertOwnerRetained(
+    tx: Prisma.TransactionClient,
+    companyId: string,
+    targetUserId: string,
+    currentRole: string | undefined,
+    nextRole?: string
+  ): Promise<void> {
+    if (currentRole !== 'OWNER' || nextRole === 'OWNER') {
+      return;
+    }
+
+    const remainingOwner = await tx.companyMember.findFirst({
+      where: {
+        companyId,
+        userId: { not: targetUserId },
+        role: {
+          name: {
+            equals: 'OWNER',
+            mode: 'insensitive',
+          },
+        },
+      },
+      select: { userId: true },
+    });
+
+    if (!remainingOwner) {
+      throw new DomainError(
+        'The company must retain at least one owner',
+        403,
+        DomainErrorCodes.FORBIDDEN
+      );
+    }
   }
 
   /**

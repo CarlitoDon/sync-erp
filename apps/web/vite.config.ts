@@ -1,14 +1,15 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vitest/config';
-import { loadEnv } from 'vite';
+import { loadEnv, type ConfigEnv, type UserConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+export const VITE_ENV_PREFIX = 'VITE_';
 
-export default defineConfig(({ mode }) => {
+export function createWebViteConfig({ mode }: ConfigEnv): UserConfig {
   // Load env file based on mode
   // Use VERCEL_ENV (auto-set by Vercel: production/preview/development) for Vercel deployments
   // Fall back to Vite mode for local development
@@ -31,9 +32,9 @@ export default defineConfig(({ mode }) => {
   );
   console.log('[Vite Config] Resolved envMode:', envMode);
 
-  const env = loadEnv(envMode, process.cwd(), '');
-  const adsenseClientId =
-    env.VITE_GOOGLE_ADSENSE_CLIENT_ID?.trim();
+  // Only public VITE_* values may cross the web build boundary.
+  const env = loadEnv(envMode, process.cwd(), VITE_ENV_PREFIX);
+  const adsenseClientId = env.VITE_GOOGLE_ADSENSE_CLIENT_ID?.trim();
   const shouldInjectAdSense =
     env.VITE_GOOGLE_ADSENSE_ENABLED?.trim() === 'true' &&
     Boolean(adsenseClientId?.match(/^ca-pub-\d+$/));
@@ -66,14 +67,9 @@ export default defineConfig(({ mode }) => {
       }),
       tailwindcss(),
     ],
+    envPrefix: VITE_ENV_PREFIX,
     define: {
-      // Polyfill process.env for shared code compatibility
-      'process.env.SYNC_ERP_API_URL': JSON.stringify(
-        env.SYNC_ERP_API_URL
-      ),
-      'process.env.SYNC_ERP_API_SECRET': JSON.stringify(
-        env.SYNC_ERP_API_SECRET
-      ),
+      // Keep the existing non-secret compatibility constant for dependencies.
       'process.env.NODE_ENV': JSON.stringify(mode),
     },
     resolve: {
@@ -81,7 +77,7 @@ export default defineConfig(({ mode }) => {
         '@': resolve(__dirname, './src'),
         '@sync-erp/shared': resolve(
           __dirname,
-          '../../packages/shared/src/index.ts'
+          './src/shared-browser.ts'
         ),
       },
     },
@@ -124,4 +120,6 @@ export default defineConfig(({ mode }) => {
       },
     },
   };
-});
+}
+
+export default defineConfig(createWebViteConfig);

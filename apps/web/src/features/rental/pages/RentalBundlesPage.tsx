@@ -32,7 +32,7 @@ export default function RentalBundlesPage() {
     isLoading,
     refetch,
   } = trpc.rentalBundle.list.useQuery(
-    { companyId: currentCompany?.id || '' },
+    {},
     {
       enabled: !!currentCompany?.id,
     }
@@ -133,7 +133,6 @@ export default function RentalBundlesPage() {
     ];
 
     syncMutation.mutate({
-      companyId: currentCompany.id,
       bundles: bundlesToSync.map(({ imagePath, ...bundle }) =>
         mediaAccess ? { ...bundle, imagePath } : bundle
       ),
