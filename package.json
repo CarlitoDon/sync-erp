@@ -33,6 +33,8 @@
     "db:studio": "npm run db:studio --workspace=@sync-erp/database",
     "db:test": "npm run db:test --workspace=@sync-erp/database",
     "db:reseed:full": "npm run db:reset && npm run db:seed && ./scripts/seed-via-api.sh",
+    "security:artifact-preflight": "node scripts/artifact-remediation-preflight.mjs",
+    "test:security:artifact-preflight": "node --test scripts/artifact-remediation-preflight.test.mjs",
     "knip": "export $(cat packages/database/.env | xargs) && knip",
     "clean": "turbo run clean && rm -rf node_modules"
   },
