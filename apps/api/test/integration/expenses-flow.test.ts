@@ -8,6 +8,7 @@ import {
 } from '@sync-erp/database';
 
 const TEST_COMPANY_ID = 'test-expenses-flow-001';
+const TEST_USER_ID = 'test-expenses-flow-user-001';
 
 describe('Expenses Flow', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,6 +26,37 @@ describe('Expenses Flow', () => {
       where: { id: companyId },
       create: { id: companyId, name: 'Test Expenses Company' },
       update: {},
+    });
+
+    await prisma.user.upsert({
+      where: { id: TEST_USER_ID },
+      create: {
+        id: TEST_USER_ID,
+        email: 'test-expenses-flow-user@test.invalid',
+        name: 'Expenses Flow User',
+        passwordHash: 'test-hash',
+      },
+      update: {},
+    });
+
+    const role = await prisma.role.upsert({
+      where: {
+        companyId_name: { companyId, name: 'Member' },
+      },
+      create: { companyId, name: 'Member' },
+      update: {},
+    });
+
+    await prisma.companyMember.upsert({
+      where: {
+        userId_companyId: { userId: TEST_USER_ID, companyId },
+      },
+      create: {
+        userId: TEST_USER_ID,
+        companyId,
+        roleId: role.id,
+      },
+      update: { roleId: role.id },
     });
 
     // Create required accounts
@@ -69,21 +101,13 @@ describe('Expenses Flow', () => {
           'x-company-id': companyId,
         },
         context: {
-          userId: 'test-user-id',
-          idempotencyKey: undefined,
-          integrationId: undefined,
-          isApiKeyAuth: false,
+          userId: TEST_USER_ID,
           companyId,
+          isSessionAuth: true,
         },
       } as never,
       res: {} as unknown as import("express").Response,
     });
-    ctx.session = {
-      companyId,
-      userId: 'test-user',
-      businessShape: { type: 'goods' },
-    };
-    ctx.companyId = companyId;
 
     caller = appRouter.createCaller(ctx as Parameters<typeof appRouter.createCaller>[0]);
   });
@@ -108,7 +132,14 @@ describe('Expenses Flow', () => {
         prisma.partner.deleteMany({
           where: { companyId: TEST_COMPANY_ID },
         }),
+        prisma.companyMember.deleteMany({
+          where: { companyId: TEST_COMPANY_ID },
+        }),
+        prisma.role.deleteMany({
+          where: { companyId: TEST_COMPANY_ID },
+        }),
         prisma.company.delete({ where: { id: TEST_COMPANY_ID } }),
+        prisma.user.delete({ where: { id: TEST_USER_ID } }),
       ])
       .catch(() => {}); // Ignore cleanup errors
   });
