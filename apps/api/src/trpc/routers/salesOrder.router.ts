@@ -107,9 +107,10 @@ export const salesOrderRouter = router({
    */
   getShippedQuantities: protectedProcedure
     .input(z.object({ orderId: z.string().uuid() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       const shippedMap = await salesOrderService.getShippedQuantities(
-        input.orderId
+        input.orderId,
+        ctx.companyId
       );
       // Convert Map to array of [productId, quantity] for JSON serialization
       return Array.from(shippedMap.entries());

@@ -13,6 +13,7 @@ declare module 'express-serve-static-core' {
     context: {
       userId?: string;
       companyId?: string;
+      isSessionAuth?: boolean;
     };
     user?: User;
     session?: Session;
@@ -125,6 +126,7 @@ export async function authMiddleware(
     req.context = {
       userId,
       companyId,
+      isSessionAuth: true,
     };
     req.user = session.user;
     req.session = session;
@@ -157,6 +159,7 @@ export async function optionalAuthMiddleware(
 
   req.context = {
     companyId,
+    isSessionAuth: false,
   };
 
   if (!sessionId) {
@@ -168,6 +171,7 @@ export async function optionalAuthMiddleware(
 
     if (session && session.expiresAt > new Date()) {
       req.context.userId = session.userId;
+      req.context.isSessionAuth = true;
       req.user = session.user;
       req.session = session;
     }

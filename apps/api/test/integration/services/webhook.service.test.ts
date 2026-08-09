@@ -11,6 +11,10 @@ import {
 import { prisma, TenantWebhookOutboxStatus } from '@sync-erp/database';
 import { webhookService } from '@src/services/webhook.service';
 import { tenantWebhookOutboxService } from '@src/services/tenant-webhook-outbox.service';
+import {
+  defaultWebhookTransport,
+  WebhookTransportError,
+} from '@src/services/webhook-ssrf-transport';
 
 const COMPANY_ID = 'test-tenant-webhook-service-001';
 
@@ -22,7 +26,7 @@ const cleanup = async () => {
 };
 
 describe('WebhookService', () => {
-  const fetchMock = vi.fn<typeof fetch>();
+  let transportMock: ReturnType<typeof vi.spyOn>;
 
   beforeAll(async () => {
     await prisma.company.upsert({
@@ -47,8 +51,8 @@ describe('WebhookService', () => {
     process.env.TENANT_WEBHOOK_RETRY_BASE_MS = '1';
     process.env.TENANT_WEBHOOK_RETRY_MAX_MS = '2';
 
-    vi.stubGlobal('fetch', fetchMock);
-    fetchMock.mockReset();
+    transportMock = vi.spyOn(defaultWebhookTransport, 'send');
+    transportMock.mockReset();
 
     await cleanup();
     await prisma.apiKey.create({
@@ -66,18 +70,14 @@ describe('WebhookService', () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    transportMock.mockRestore();
     delete process.env.TENANT_WEBHOOK_MAX_ATTEMPTS;
     delete process.env.TENANT_WEBHOOK_RETRY_BASE_MS;
     delete process.env.TENANT_WEBHOOK_RETRY_MAX_MS;
   });
 
   it('persists transient HTTP failures for worker retry and later delivery', async () => {
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 503,
-      } as Response);
+    transportMock.mockResolvedValueOnce({ statusCode: 503 });
 
     const result = await webhookService.notifyPaymentEvent(
       COMPANY_ID,
@@ -95,7 +95,7 @@ describe('WebhookService', () => {
     expect(result.success).toBe(false);
     expect(result.status).toBe(TenantWebhookOutboxStatus.FAILED);
     expect(result.attempts).toBe(1);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(transportMock).toHaveBeenCalledTimes(1);
 
     const failedEntry = await prisma.tenantWebhookOutbox.findFirstOrThrow({
       where: {
@@ -104,14 +104,8 @@ describe('WebhookService', () => {
       },
     });
 
-    const firstFetchCall = fetchMock.mock.calls[0];
-    const firstFetchOptions = firstFetchCall?.[1] as
-      | RequestInit
-      | undefined;
-    const firstHeaders = (firstFetchOptions?.headers || {}) as Record<
-      string,
-      string
-    >;
+    const firstFetchCall = transportMock.mock.calls[0];
+    const firstHeaders = firstFetchCall?.[0]?.headers || {};
     expect(firstHeaders['X-Webhook-Delivery-Id']).toBe(failedEntry.id);
     expect(firstHeaders['Idempotency-Key']).toBe(failedEntry.id);
 
@@ -124,10 +118,7 @@ describe('WebhookService', () => {
       },
     });
 
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-    } as Response);
+    transportMock.mockResolvedValueOnce({ statusCode: 200 });
 
     const summary = await tenantWebhookOutboxService.processDueEntries();
     expect(summary.delivered).toBeGreaterThanOrEqual(1);
@@ -140,10 +131,7 @@ describe('WebhookService', () => {
   });
 
   it('does not retry permanent HTTP failures', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-    } as Response);
+    transportMock.mockResolvedValueOnce({ statusCode: 400 });
 
     const result = await webhookService.notifyOrderEvent(
       COMPANY_ID,
@@ -160,11 +148,11 @@ describe('WebhookService', () => {
     expect(result.status).toBe(TenantWebhookOutboxStatus.DEAD_LETTER);
     expect(result.statusCode).toBe(400);
     expect(result.attempts).toBe(1);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(transportMock).toHaveBeenCalledTimes(1);
   });
 
   it('persists network errors as FAILED for asynchronous retry', async () => {
-    fetchMock.mockRejectedValue(new Error('Network down'));
+    transportMock.mockRejectedValue(new WebhookTransportError('Network down'));
 
     const result = await webhookService.notifyTenant(
       COMPANY_ID,
@@ -179,16 +167,13 @@ describe('WebhookService', () => {
     expect(result.error).toBe('Network down');
     expect(result.status).toBe(TenantWebhookOutboxStatus.FAILED);
     expect(result.attempts).toBe(1);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(transportMock).toHaveBeenCalledTimes(1);
   });
 
   it('treats HTTP 429 as retryable and dead-letters after max attempts', async () => {
     process.env.TENANT_WEBHOOK_MAX_ATTEMPTS = '2';
 
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 429,
-    } as Response);
+    transportMock.mockResolvedValueOnce({ statusCode: 429 });
 
     const firstAttempt = await webhookService.notifyTenant(
       COMPANY_ID,
@@ -221,10 +206,7 @@ describe('WebhookService', () => {
       },
     });
 
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 429,
-    } as Response);
+    transportMock.mockResolvedValueOnce({ statusCode: 429 });
 
     const summary = await tenantWebhookOutboxService.processDueEntries();
     expect(summary).toMatchObject({
@@ -246,7 +228,9 @@ describe('WebhookService', () => {
   it('treats timeout errors as retryable and dead-letters after max attempts', async () => {
     process.env.TENANT_WEBHOOK_MAX_ATTEMPTS = '2';
 
-    fetchMock.mockRejectedValueOnce(new Error('The operation was aborted due to timeout'));
+    transportMock.mockRejectedValueOnce(
+      new WebhookTransportError('Webhook request timed out')
+    );
 
     const firstAttempt = await webhookService.notifyOrderEvent(
       COMPANY_ID,
@@ -261,7 +245,7 @@ describe('WebhookService', () => {
 
     expect(firstAttempt.success).toBe(false);
     expect(firstAttempt.status).toBe(TenantWebhookOutboxStatus.FAILED);
-    expect(firstAttempt.error).toContain('timeout');
+    expect(firstAttempt.error).toBe('Webhook request timed out');
 
     const queued = await prisma.tenantWebhookOutbox.findFirstOrThrow({
       where: {
@@ -281,7 +265,9 @@ describe('WebhookService', () => {
       },
     });
 
-    fetchMock.mockRejectedValueOnce(new Error('The operation was aborted due to timeout'));
+    transportMock.mockRejectedValueOnce(
+      new WebhookTransportError('Webhook request timed out')
+    );
 
     const summary = await tenantWebhookOutboxService.processDueEntries();
     expect(summary).toMatchObject({
@@ -298,6 +284,6 @@ describe('WebhookService', () => {
     expect(exhausted.status).toBe(TenantWebhookOutboxStatus.DEAD_LETTER);
     expect(exhausted.attempts).toBe(2);
     expect(exhausted.lastStatusCode).toBeNull();
-    expect(exhausted.lastError).toContain('timeout');
+    expect(exhausted.lastError).toBe('Webhook request timed out');
   });
 });

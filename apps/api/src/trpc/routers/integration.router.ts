@@ -1,21 +1,26 @@
-import { router, protectedProcedure } from '../trpc';
+import {
+  getSafeApiKeyPermissions,
+  integrationManagementProcedure,
+  router,
+} from '../trpc';
 import { z } from 'zod';
 import { integrationService } from '../../services/integration.service';
 import { apiKeyService } from '../../services/api-key.service';
 import { DEFAULT_RATE_LIMIT } from '@sync-erp/shared';
+import { prisma } from '@sync-erp/database';
 
 export const integrationRouter = router({
   /**
    * List available and installed integrations
    */
-  list: protectedProcedure.query(async ({ ctx }) => {
+  list: integrationManagementProcedure.query(async ({ ctx }) => {
     return integrationService.listIntegrations(ctx.companyId);
   }),
 
   /**
    * Install an integration
    */
-  install: protectedProcedure
+  install: integrationManagementProcedure
     .input(z.object({ appId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const integration = await integrationService.install(
@@ -29,23 +34,30 @@ export const integrationRouter = router({
       // For now, let's just create a new one specific to this app
 
       const keyName = `${integration.name} Key`;
-      const keyResult = await apiKeyService.createKey(
-        ctx.companyId,
-        keyName,
-        {
-          permissions: ['rental:read', 'rental:write'], // Default perms
-          rateLimit: DEFAULT_RATE_LIMIT,
-        }
-      );
-
-      // Link key to integration
-      // Note: We need to update apiKeyService to support integrationId or do it manually here
-      // Since we just added the column, let's update it manually
-      const { prisma } = await import('@sync-erp/database');
-      await prisma.apiKey.update({
-        where: { id: keyResult.id },
-        data: { integrationId: integration.id },
+      const previousKey = await prisma.apiKey.findFirst({
+        where: {
+          companyId: ctx.companyId,
+          integrationId: integration.id,
+          isActive: true,
+        },
+        select: { permissions: true },
       });
+      const permissions = getSafeApiKeyPermissions(
+        ctx,
+        previousKey?.permissions
+      );
+      const keyResult = previousKey
+        ? await apiKeyService.rotateKey(
+            ctx.companyId,
+            integration.id,
+            keyName,
+            { permissions }
+          )
+        : await apiKeyService.createKey(ctx.companyId, keyName, {
+            permissions,
+            rateLimit: DEFAULT_RATE_LIMIT,
+            integrationId: integration.id,
+          });
 
       return {
         integration,
@@ -56,7 +68,7 @@ export const integrationRouter = router({
   /**
    * Create a custom integration
    */
-  createCustom: protectedProcedure
+  createCustom: integrationManagementProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -75,16 +87,11 @@ export const integrationRouter = router({
         ctx.companyId,
         keyName,
         {
-          permissions: ['rental:read', 'rental:write'],
+          permissions: getSafeApiKeyPermissions(ctx),
           rateLimit: DEFAULT_RATE_LIMIT,
+          integrationId: integration.id,
         }
       );
-
-      const { prisma } = await import('@sync-erp/database');
-      await prisma.apiKey.update({
-        where: { id: keyResult.id },
-        data: { integrationId: integration.id },
-      });
 
       return {
         integration,
@@ -95,7 +102,7 @@ export const integrationRouter = router({
   /**
    * Get single integration details
    */
-  get: protectedProcedure
+  get: integrationManagementProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       return integrationService.getIntegration(
@@ -107,7 +114,7 @@ export const integrationRouter = router({
   /**
    * Update integration config/status
    */
-  update: protectedProcedure
+  update: integrationManagementProcedure
     .input(
       z.object({
         id: z.string(),
@@ -127,7 +134,7 @@ export const integrationRouter = router({
   /**
    * Generate a new key for an integration
    */
-  rotateKey: protectedProcedure
+  rotateKey: integrationManagementProcedure
     .input(z.object({ integrationId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Verify ownership
@@ -137,19 +144,18 @@ export const integrationRouter = router({
       );
 
       const keyName = `${integration.name} Key - ${new Date().toLocaleDateString()}`;
-      const keyResult = await apiKeyService.createKey(
+      const permissions = getSafeApiKeyPermissions(
+        ctx,
+        integration.apiKeys.find((key) => key.isActive)?.permissions
+      );
+      const keyResult = await apiKeyService.rotateKey(
         ctx.companyId,
+        integration.id,
         keyName,
         {
-          permissions: ['rental:read', 'rental:write'],
+          permissions,
         }
       );
-
-      const { prisma } = await import('@sync-erp/database');
-      await prisma.apiKey.update({
-        where: { id: keyResult.id },
-        data: { integrationId: integration.id },
-      });
 
       return keyResult;
     }),

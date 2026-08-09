@@ -1,4 +1,8 @@
-import { router, authenticatedProcedure } from '../trpc';
+import {
+  authenticatedProcedure,
+  roleManagementProcedure,
+  router,
+} from '../trpc';
 import { container, ServiceKeys } from '../../modules/common/di';
 import {
   CreateCompanySchema,
@@ -27,7 +31,17 @@ export const companyRouter = router({
    */
   getById: authenticatedProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      // Company IDs are caller-controlled lookup keys; never return a company
+      // that is not in the current user's membership set.
+      const isMember = await companyService.isMember(
+        ctx.userId!,
+        input.id
+      );
+      if (!isMember) {
+        return null;
+      }
+
       return companyService.getById(input.id);
     }),
 
@@ -81,7 +95,7 @@ export const companyRouter = router({
   /**
    * Update member role
    */
-  updateMemberRole: authenticatedProcedure
+  updateMemberRole: roleManagementProcedure
     .input(
       z.object({
         companyId: z.string().uuid(),
@@ -90,16 +104,10 @@ export const companyRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Basic check: Ensure user is member of company they are editing
-      // Real check should be: ctx.userPermissions.includes('company:write')
-      const isMember = await companyService.isMember(
-        ctx.userId!,
-        input.companyId
-      );
-      if (!isMember) {
+      if (input.companyId !== ctx.companyId) {
         throw new TRPCError({
           code: 'FORBIDDEN',
-          message: 'Not authorized to update member roles',
+          message: 'Company context mismatch',
         });
       }
 

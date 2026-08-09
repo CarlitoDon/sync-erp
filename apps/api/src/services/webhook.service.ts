@@ -2,6 +2,11 @@ import crypto from 'crypto';
 import { TenantWebhookOutboxStatus } from '@sync-erp/database';
 import { tenantWebhookOutboxService } from './tenant-webhook-outbox.service';
 import { WEBHOOK_TEST_TIMEOUT_MS } from '@sync-erp/shared';
+import {
+  defaultWebhookTransport,
+  describeWebhookError,
+  type WebhookTransport,
+} from './webhook-ssrf-transport';
 
 export interface WebhookEvent {
   event: string;
@@ -23,6 +28,10 @@ export interface WebhookDeliveryResult {
  */
 export class WebhookService {
   private static instance: WebhookService;
+
+  constructor(
+    private readonly transport: WebhookTransport = defaultWebhookTransport
+  ) {}
 
   static getInstance(): WebhookService {
     if (!WebhookService.instance) {
@@ -145,7 +154,8 @@ export class WebhookService {
     const startTime = Date.now();
 
     try {
-      const response = await fetch(webhookUrl, {
+      const response = await this.transport.send({
+        url: webhookUrl,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -154,23 +164,23 @@ export class WebhookService {
           'X-Webhook-Timestamp': testEvent.timestamp.toString(),
         },
         body,
-        signal: AbortSignal.timeout(WEBHOOK_TEST_TIMEOUT_MS),
+        timeoutMs: WEBHOOK_TEST_TIMEOUT_MS,
       });
 
       const duration = Date.now() - startTime;
       return {
-        success: response.ok,
-        statusCode: response.status,
+        success: response.statusCode >= 200 && response.statusCode < 300,
+        statusCode: response.statusCode,
         duration,
-        error: response.ok ? undefined : `HTTP ${response.status}`,
+        error:
+          response.statusCode >= 200 && response.statusCode < 300
+            ? undefined
+            : `HTTP ${response.statusCode}`,
       };
     } catch (error) {
       return {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Connection failed',
+        error: describeWebhookError(error),
         duration: Date.now() - startTime,
       };
     }

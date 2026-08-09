@@ -434,7 +434,7 @@ jobs:
 
             # Apply pending schema changes before stopping the currently running API.
             # A migration failure leaves the old process serving traffic.
-            echo "DEBUG: PATH=$PATH"; echo "DEBUG: $(which npm)"; echo "DEBUG: $(node -v)"; DATABASE_URL="$database_url" HOSTINGER_ENV="$RUNTIME_ENV" NODE_ENV="$RUNTIME_ENV" npm run db:deploy --workspace=@sync-erp/database
+            DATABASE_URL="$database_url" HOSTINGER_ENV="$RUNTIME_ENV" NODE_ENV="$RUNTIME_ENV" node node_modules/prisma/build/index.js migrate deploy --config prisma.config.ts
 
             rm -f "$HOME/${REMOTE_API_ARCHIVE}"
             mkdir -p tmp

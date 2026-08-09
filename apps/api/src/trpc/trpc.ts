@@ -12,6 +12,15 @@ import {
   adaptiveRateLimitService,
   type PublicRateLimitConfig,
 } from '../modules/common/services/adaptive-rate-limit.service';
+import {
+  canIssueApiKeyPermission,
+  canSessionPerformCapability,
+  getActorApiKeyPermissions,
+  getInvalidApiKeyPermissions,
+  normalizeApiKeyPermissions,
+  type ApiKeyPermission,
+  type SessionCapability,
+} from '../modules/auth/rbac.policy';
 
 export interface Meta {
   idempotencyScope?: IdempotencyScope;
@@ -22,6 +31,34 @@ const t = initTRPC.context<Context>().meta<Meta>().create({
 });
 
 const idempotencyService = new IdempotencyService();
+
+function assertSessionTenantAdmission(ctx: Context): void {
+  // Preserve the explicit denial produced by createContext even when a
+  // trusted in-process caller does not carry the middleware provenance flag.
+  if (ctx.companyId && ctx.sessionTenantAdmission === 'denied') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'User does not belong to this company',
+    });
+  }
+
+  // Direct createCaller users are trusted in-process callers and do not carry
+  // the HTTP session provenance that this check protects. Real session
+  // requests are marked by optionalAuthMiddleware, including malformed or
+  // missing membership states, so an incomplete session context fails closed.
+  if (!ctx.isSessionAuth || !ctx.companyId) {
+    return;
+  }
+
+  if (ctx.sessionTenantAdmission === 'admitted') {
+    return;
+  }
+
+  throw new TRPCError({
+    code: 'FORBIDDEN',
+    message: 'User does not belong to this company',
+  });
+}
 
 function getPublicClientIdentifier(req: Context['req']): string {
   const forwardedFor = req.headers['x-forwarded-for'];
@@ -158,6 +195,8 @@ export const protectedProcedure = t.procedure
       });
     }
 
+    assertSessionTenantAdmission(ctx);
+
     return next({
       ctx: {
         ...ctx,
@@ -190,6 +229,100 @@ export const shapedProcedure = protectedProcedure.use(
     });
   }
 );
+
+function assertSessionCapability(
+  ctx: Context,
+  capability: SessionCapability
+): void {
+  if (ctx.isApiKeyAuth || !ctx.userId || !ctx.companyId) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Session company authorization required',
+    });
+  }
+
+  if (
+    !canSessionPerformCapability(
+      ctx.userRole,
+      ctx.userPermissions,
+      capability
+    )
+  ) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Insufficient company permission',
+    });
+  }
+}
+
+export const requireSessionCapability = (
+  capability: SessionCapability
+) =>
+  t.middleware(async ({ ctx, next }) => {
+    assertSessionCapability(ctx, capability);
+    return next();
+  });
+
+export const adminProcedure = protectedProcedure.use(
+  requireSessionCapability('admin')
+);
+
+export const apiKeyManagementProcedure = protectedProcedure.use(
+  requireSessionCapability('apiKeyManagement')
+);
+
+export const integrationManagementProcedure = protectedProcedure.use(
+  requireSessionCapability('integrationManagement')
+);
+
+export const roleManagementProcedure = protectedProcedure.use(
+  requireSessionCapability('roleManagement')
+);
+
+/**
+ * Validate the permission set requested for a newly created or updated key
+ * against the actor's effective, membership-derived authority.
+ */
+export function getSafeApiKeyPermissions(
+  ctx: Context,
+  requested?: readonly string[]
+): string[] {
+  assertSessionCapability(ctx, 'apiKeyManagement');
+
+  const actorPermissions = getActorApiKeyPermissions(
+    ctx.userRole,
+    ctx.userPermissions
+  );
+  const defaultPermissions = actorPermissions;
+  const normalized = normalizeApiKeyPermissions(
+    requested ?? defaultPermissions
+  );
+  const invalid = getInvalidApiKeyPermissions(normalized);
+
+  if (invalid.length > 0) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Requested API key permission is not supported',
+    });
+  }
+
+  for (const permission of normalized as ApiKeyPermission[]) {
+    if (
+      !canIssueApiKeyPermission(
+        ctx.userRole,
+        ctx.userPermissions,
+        permission
+      )
+    ) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Requested API key permission exceeds actor authority',
+      });
+    }
+  }
+
+  return normalized;
+}
 
 /**
  * API Key procedure - for external integrations (multi-tenant)
@@ -246,8 +379,18 @@ export const apiKeyProcedure = t.procedure
     return next({
       ctx: {
         ...ctx,
+        // Do not let a valid API key inherit session identity, role, or
+        // membership-derived permissions from a concurrent browser cookie.
+        userId: undefined,
+        userRole: undefined,
+        userPermissions: [],
+        isSessionAuth: false,
+        sessionTenantAdmission: undefined,
+        businessShape: undefined,
         companyId: result.companyId,
-        permissions: result.permissions,
+        // Only normalized permissions returned by the validated key record
+        // enter the API-key principal context.
+        permissions: normalizeApiKeyPermissions(result.permissions),
         apiKeyId: result.keyId,
         isApiKeyAuth: true,
         integrationId: result.integrationId,
@@ -300,10 +443,18 @@ export const botProcedure = t.procedure.use(async ({ ctx, next }) => {
  */
 export const requirePermission = (permission: string) =>
   t.middleware(async ({ ctx, next }) => {
-    const permissions = (ctx as { permissions?: string[] })
-      .permissions;
+    // This middleware is intentionally API-key-only. Session principals use
+    // membership-derived catalog permissions through requireSessionCapability.
+    if (!ctx.isApiKeyAuth) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'API key authorization required',
+      });
+    }
 
-    if (!permissions?.includes(permission)) {
+    const permissions = ctx.permissions;
+
+    if (!permissions?.includes(permission.trim().toLowerCase())) {
       throw new TRPCError({
         code: 'FORBIDDEN',
         message: `Missing required permission: ${permission}`,

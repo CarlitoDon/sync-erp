@@ -15,6 +15,7 @@ import {
 import { appRouter } from '@src/trpc/router';
 import type { Context } from '@src/trpc/context';
 import { tenantWebhookOutboxService } from '@src/services/tenant-webhook-outbox.service';
+import { defaultWebhookTransport } from '@src/services/webhook-ssrf-transport';
 
 const COMPANY_ID = 'test-tenant-webhook-outbox-admin-001';
 const OTHER_COMPANY_ID = 'test-tenant-webhook-outbox-admin-002';
@@ -50,7 +51,7 @@ const buildCaller = () =>
     correlationId: 'test-tenant-webhook-outbox-admin-router',
     idempotencyKey: undefined,
     businessShape: undefined,
-    userRole: undefined,
+    userRole: 'ADMIN',
     userPermissions: [],
     integrationId: undefined,
     isApiKeyAuth: false,
@@ -59,7 +60,7 @@ const buildCaller = () =>
   });
 
 describe('Admin Router - Tenant Webhook Outbox', () => {
-  const fetchMock = vi.fn<typeof fetch>();
+  let transportMock: ReturnType<typeof vi.spyOn>;
 
   beforeAll(async () => {
     await prisma.company.upsert({
@@ -94,8 +95,8 @@ describe('Admin Router - Tenant Webhook Outbox', () => {
   });
 
   beforeEach(async () => {
-    vi.stubGlobal('fetch', fetchMock);
-    fetchMock.mockReset();
+    transportMock = vi.spyOn(defaultWebhookTransport, 'send');
+    transportMock.mockReset();
 
     await cleanupOutboxData();
     await cleanupApiKeys();
@@ -180,7 +181,7 @@ describe('Admin Router - Tenant Webhook Outbox', () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    transportMock.mockRestore();
   });
 
   it('lists tenant outbox entries and stats scoped by company', async () => {
@@ -237,15 +238,9 @@ describe('Admin Router - Tenant Webhook Outbox', () => {
     expect(bulkReplay.success).toBe(true);
     expect(bulkReplay.requeuedCount).toBe(1);
 
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-      } as Response);
+    transportMock
+      .mockResolvedValueOnce({ statusCode: 200 })
+      .mockResolvedValueOnce({ statusCode: 200 });
 
     await tenantWebhookOutboxService.processDueEntries();
 

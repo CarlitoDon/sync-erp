@@ -35,7 +35,9 @@ vi.mock('@sync-erp/database', async (importOriginal) => {
     return {
       prisma: mp,
       ...Enums,
-      Prisma: {},
+      Prisma: {
+        TransactionIsolationLevel: { Serializable: 'Serializable' },
+      },
     };
   }
 

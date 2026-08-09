@@ -1,4 +1,4 @@
-import { router, protectedProcedure } from '../trpc';
+import { adminProcedure, router } from '../trpc';
 import { container, ServiceKeys } from '../../modules/common/di';
 import { z } from 'zod';
 import {
@@ -18,7 +18,7 @@ export const adminRouter = router({
   /**
    * Get saga logs (failed, compensated, compensation failed)
    */
-  getSagaLogs: protectedProcedure
+  getSagaLogs: adminProcedure
     .input(
       z.object({
         step: z.string().optional(),
@@ -38,7 +38,7 @@ export const adminRouter = router({
   /**
    * Get orphan journal entries
    */
-  getOrphanJournals: protectedProcedure
+  getOrphanJournals: adminProcedure
     .input(
       z.object({
         limit: z.number().default(20),
@@ -56,7 +56,7 @@ export const adminRouter = router({
   /**
    * Get rental webhook outbox counts for operator dashboard
    */
-  getRentalWebhookOutboxStats: protectedProcedure
+  getRentalWebhookOutboxStats: adminProcedure
     .query(async ({ ctx }) => {
       const [counts, health] = await Promise.all([
         rentalWebhookOutboxService.getQueueCounts(
@@ -76,7 +76,7 @@ export const adminRouter = router({
   /**
    * List replay candidates and outbox history
    */
-  listRentalWebhookOutbox: protectedProcedure
+  listRentalWebhookOutbox: adminProcedure
     .input(
       z.object({
         statuses: z
@@ -108,7 +108,7 @@ export const adminRouter = router({
   /**
    * Get full payload/error details for one outbox delivery
    */
-  getRentalWebhookOutboxDetail: protectedProcedure
+  getRentalWebhookOutboxDetail: adminProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       return rentalWebhookOutboxService.getDeliveryDetail({
@@ -120,7 +120,7 @@ export const adminRouter = router({
   /**
    * Replay one failed/dead-letter outbox item manually
    */
-  replayRentalWebhookOutbox: protectedProcedure
+  replayRentalWebhookOutbox: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const requeued =
@@ -134,7 +134,7 @@ export const adminRouter = router({
   /**
    * Bulk replay failed/dead-letter items
    */
-  replayRentalWebhookOutboxBulk: protectedProcedure
+  replayRentalWebhookOutboxBulk: adminProcedure
     .input(
       z.object({
         ids: z.array(z.string()).optional(),
@@ -162,7 +162,7 @@ export const adminRouter = router({
   /**
    * Get tenant webhook outbox counts for operator dashboard
    */
-  getTenantWebhookOutboxStats: protectedProcedure
+  getTenantWebhookOutboxStats: adminProcedure
     .query(async ({ ctx }) => {
       const [counts, health] = await Promise.all([
         tenantWebhookOutboxService.getQueueCounts(
@@ -182,7 +182,7 @@ export const adminRouter = router({
   /**
    * List tenant webhook outbox history
    */
-  listTenantWebhookOutbox: protectedProcedure
+  listTenantWebhookOutbox: adminProcedure
     .input(
       z.object({
         statuses: z
@@ -212,7 +212,7 @@ export const adminRouter = router({
   /**
    * Get one tenant webhook outbox record detail
    */
-  getTenantWebhookOutboxDetail: protectedProcedure
+  getTenantWebhookOutboxDetail: adminProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       return tenantWebhookOutboxService.getDeliveryDetail({
@@ -224,7 +224,7 @@ export const adminRouter = router({
   /**
    * Replay one tenant webhook outbox item manually
    */
-  replayTenantWebhookOutbox: protectedProcedure
+  replayTenantWebhookOutbox: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const requeued =
@@ -238,7 +238,7 @@ export const adminRouter = router({
   /**
    * Bulk replay tenant webhook outbox items
    */
-  replayTenantWebhookOutboxBulk: protectedProcedure
+  replayTenantWebhookOutboxBulk: adminProcedure
     .input(
       z.object({
         ids: z.array(z.string()).optional(),

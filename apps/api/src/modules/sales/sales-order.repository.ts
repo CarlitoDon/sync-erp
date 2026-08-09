@@ -90,13 +90,28 @@ export class SalesOrderRepository {
 
   async getShippedQuantities(
     orderId: string,
+    companyId: string,
     tx?: Prisma.TransactionClient
   ): Promise<Map<string, number>> {
     const db = tx || prisma;
+    const order = await db.order.findFirst({
+      where: {
+        id: orderId,
+        type: OrderType.SALES,
+        companyId,
+      },
+      select: { companyId: true },
+    });
+
+    if (!order) {
+      return new Map<string, number>();
+    }
+
     const items = await db.fulfillmentItem.findMany({
       where: {
         fulfillment: {
           orderId,
+          companyId: order.companyId,
           type: FulfillmentType.SHIPMENT,
           status: DocumentStatus.POSTED,
         },

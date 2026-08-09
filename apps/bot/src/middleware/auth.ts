@@ -1,7 +1,23 @@
 import type { Request, Response, NextFunction } from 'express';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { parseBearerToken } from '../utils/auth';
 
-const BOT_SECRET = process.env.SYNC_ERP_BOT_SECRET;
+function matchesBotSecret(token: string | null): boolean {
+  const expectedSecret = process.env.SYNC_ERP_BOT_SECRET;
+
+  if (!token || !expectedSecret) {
+    return false;
+  }
+
+  const tokenDigest = createHash('sha256')
+    .update(token, 'utf8')
+    .digest();
+  const expectedDigest = createHash('sha256')
+    .update(expectedSecret, 'utf8')
+    .digest();
+
+  return timingSafeEqual(tokenDigest, expectedDigest);
+}
 
 export const authenticateApiKey = (
   req: Request,
@@ -18,7 +34,7 @@ export const authenticateApiKey = (
 
   const token = parseBearerToken(authHeader);
 
-  if (!token || token !== BOT_SECRET) {
+  if (!matchesBotSecret(token)) {
     return res.status(403).json({ error: 'Invalid API Key' });
   }
 

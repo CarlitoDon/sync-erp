@@ -109,7 +109,7 @@ export const formatOrderMessage = (data: OrderPayload): string => {
   message += `*TOTAL BAYAR: ${formatCurrency(data.totalPrice)}*\n`;
   message += `━━━━━━━━━━━━━\n\n`;
 
-  // Add order tracking link FIRST (for WhatsApp link preview)
+  // Add order tracking link as literal message text.
   if (data.orderUrl) {
     message += `*Link Status Pesanan:*\n`;
     message += `${data.orderUrl}\n`;

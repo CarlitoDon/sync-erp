@@ -89,10 +89,11 @@ export const purchaseOrderRouter = router({
    */
   getReceivedQuantities: protectedProcedure
     .input(z.object({ orderId: z.string().uuid() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       const receivedMap =
         await purchaseOrderService.getReceivedQuantities(
-          input.orderId
+          input.orderId,
+          ctx.companyId
         );
       // Convert Map to array of [productId, quantity] for JSON serialization
       return Array.from(receivedMap.entries());

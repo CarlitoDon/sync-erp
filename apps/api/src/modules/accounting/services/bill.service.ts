@@ -617,6 +617,7 @@ export class BillService {
             const receivedQtyMap =
               await this.purchaseOrderRepository.getReceivedQuantities(
                 bill.orderId,
+                companyId,
                 tx
               );
             BillPolicy.validate3WayMatching(

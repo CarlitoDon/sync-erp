@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
+import { authenticateApiKey } from './middleware/auth';
 
 dotenv.config();
 
@@ -43,12 +44,12 @@ app.use(
   })
 );
 
-app.get('/status', getStatus);
+// Status contains the pairing QR and is only for the API service.
+app.get('/status', authenticateApiKey, getStatus);
 
 import { sendOrder } from './api/send-order';
 import { sendMessage } from './api/send-message';
 import { ping } from './api/ping';
-import { authenticateApiKey } from './middleware/auth';
 
 app.post('/send-order', authenticateApiKey, sendOrder);
 app.post('/send-message', authenticateApiKey, sendMessage);

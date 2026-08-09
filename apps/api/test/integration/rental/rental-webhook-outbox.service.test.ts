@@ -14,6 +14,7 @@ import {
 } from '@sync-erp/database';
 import { RentalWebhookService } from '@modules/rental/rental-webhook.service';
 import { rentalWebhookOutboxService } from '@modules/rental/rental-webhook-outbox.service';
+import { defaultWebhookTransport } from '@src/services/webhook-ssrf-transport';
 
 const COMPANY_ID = 'test-rental-webhook-outbox-001';
 
@@ -74,7 +75,7 @@ const seedIntegration = async (overrides?: {
 };
 
 describe('RentalWebhookOutboxService', () => {
-  const fetchMock = vi.fn<typeof fetch>();
+  const transportSendMock = vi.spyOn(defaultWebhookTransport, 'send');
 
   beforeAll(async () => {
     await prisma.company.upsert({
@@ -90,6 +91,7 @@ describe('RentalWebhookOutboxService', () => {
   });
 
   afterAll(async () => {
+    transportSendMock.mockRestore();
     await cleanupOutboxData();
     await cleanupIntegrationData();
     await prisma.company.deleteMany({
@@ -98,14 +100,12 @@ describe('RentalWebhookOutboxService', () => {
   });
 
   beforeEach(async () => {
-    vi.stubGlobal('fetch', fetchMock);
-    fetchMock.mockReset();
+    transportSendMock.mockReset();
     await cleanupOutboxData();
     await seedIntegration();
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
     delete process.env.RENTAL_WEBHOOK_OUTBOX_MAX_ATTEMPTS;
     delete process.env.RENTAL_WEBHOOK_OUTBOX_RETRY_BASE_MS;
     delete process.env.RENTAL_WEBHOOK_OUTBOX_RETRY_MAX_MS;
@@ -138,11 +138,7 @@ describe('RentalWebhookOutboxService', () => {
   });
 
   it('persists failed payment notifications and delivers them on retry', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 503,
-      json: async () => ({ message: 'Proxy unavailable' }),
-    } as Response);
+    transportSendMock.mockResolvedValueOnce({ statusCode: 503 });
 
     const queued =
       await rentalWebhookOutboxService.enqueuePaymentStatus({
@@ -166,28 +162,18 @@ describe('RentalWebhookOutboxService', () => {
         },
       });
 
-    const firstFetchCall = fetchMock.mock.calls[0];
-    const firstFetchOptions = firstFetchCall?.[1] as
-      | RequestInit
-      | undefined;
-    const firstHeaders = (firstFetchOptions?.headers || {}) as Record<
-      string,
-      string
-    >;
+    const firstRequest = transportSendMock.mock.calls[0]?.[0];
+    const firstHeaders = firstRequest?.headers ?? {};
     expect(firstHeaders['X-Webhook-Delivery-Id']).toBe(
       failedEntry.id
     );
     expect(firstHeaders['Idempotency-Key']).toBe(failedEntry.id);
 
     expect(failedEntry.status).toBe(RentalWebhookOutboxStatus.FAILED);
-    expect(failedEntry.lastError).toBe('Proxy unavailable');
+    expect(failedEntry.lastError).toBe('Webhook failed: 503');
     expect(failedEntry.lastStatusCode).toBe(503);
 
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({ success: true }),
-    } as Response);
+    transportSendMock.mockResolvedValueOnce({ statusCode: 200 });
 
     await prisma.rentalWebhookOutbox.update({
       where: { id: failedEntry.id },
@@ -221,11 +207,7 @@ describe('RentalWebhookOutboxService', () => {
   it('dead-letters critical new-order failures so rollback paths do not auto-replay stale notifications', async () => {
     const webhookService = new RentalWebhookService();
 
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      json: async () => ({ message: 'Invalid WhatsApp Number' }),
-    } as Response);
+    transportSendMock.mockResolvedValueOnce({ statusCode: 400 });
 
     await expect(
       webhookService.notifyNewOrder(
@@ -239,7 +221,7 @@ describe('RentalWebhookOutboxService', () => {
         },
         { throwOnFailure: true }
       )
-    ).rejects.toThrow('Invalid WhatsApp Number');
+    ).rejects.toThrow('Webhook failed: 400');
 
     const entry = await prisma.rentalWebhookOutbox.findFirstOrThrow({
       where: {
@@ -251,17 +233,13 @@ describe('RentalWebhookOutboxService', () => {
     expect(entry.status).toBe(RentalWebhookOutboxStatus.DEAD_LETTER);
     expect(entry.autoRetry).toBe(false);
     expect(entry.attempts).toBe(1);
-    expect(entry.lastError).toBe('Invalid WhatsApp Number');
+    expect(entry.lastError).toBe('Webhook failed: 400');
   });
 
   it('allows manual replay from DEAD_LETTER and delivers after requeue', async () => {
     const webhookService = new RentalWebhookService();
 
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      json: async () => ({ message: 'Invalid WhatsApp Number' }),
-    } as Response);
+    transportSendMock.mockResolvedValueOnce({ statusCode: 400 });
 
     await expect(
       webhookService.notifyNewOrder(
@@ -275,7 +253,7 @@ describe('RentalWebhookOutboxService', () => {
         },
         { throwOnFailure: true }
       )
-    ).rejects.toThrow('Invalid WhatsApp Number');
+    ).rejects.toThrow('Webhook failed: 400');
 
     const deadLetter =
       await prisma.rentalWebhookOutbox.findFirstOrThrow({
@@ -295,11 +273,7 @@ describe('RentalWebhookOutboxService', () => {
     );
     expect(requeued).toBe(true);
 
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({ success: true }),
-    } as Response);
+    transportSendMock.mockResolvedValueOnce({ statusCode: 200 });
 
     const summary =
       await rentalWebhookOutboxService.processDueEntries();
@@ -319,11 +293,7 @@ describe('RentalWebhookOutboxService', () => {
   });
 
   it('keeps replay idempotent by ignoring non-failed states on repeated requeue', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 503,
-      json: async () => ({ message: 'Proxy unavailable' }),
-    } as Response);
+    transportSendMock.mockResolvedValueOnce({ statusCode: 503 });
 
     await rentalWebhookOutboxService.enqueuePaymentStatus({
       companyId: COMPANY_ID,
@@ -359,11 +329,7 @@ describe('RentalWebhookOutboxService', () => {
   it('does not auto-retry DEAD_LETTER entries without manual requeue', async () => {
     const webhookService = new RentalWebhookService();
 
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      json: async () => ({ message: 'Invalid WhatsApp Number' }),
-    } as Response);
+    transportSendMock.mockResolvedValueOnce({ statusCode: 400 });
 
     await expect(
       webhookService.notifyNewOrder(
@@ -377,7 +343,7 @@ describe('RentalWebhookOutboxService', () => {
         },
         { throwOnFailure: true }
       )
-    ).rejects.toThrow('Invalid WhatsApp Number');
+    ).rejects.toThrow('Webhook failed: 400');
 
     const deadLetter =
       await prisma.rentalWebhookOutbox.findFirstOrThrow({
@@ -405,11 +371,7 @@ describe('RentalWebhookOutboxService', () => {
     process.env.RENTAL_WEBHOOK_OUTBOX_RETRY_BASE_MS = '1';
     process.env.RENTAL_WEBHOOK_OUTBOX_RETRY_MAX_MS = '2';
 
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 429,
-      json: async () => ({ message: 'Too many requests' }),
-    } as Response);
+    transportSendMock.mockResolvedValueOnce({ statusCode: 429 });
 
     const firstAttempt =
       await rentalWebhookOutboxService.enqueuePaymentStatus({
@@ -442,11 +404,7 @@ describe('RentalWebhookOutboxService', () => {
       },
     });
 
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 429,
-      json: async () => ({ message: 'Too many requests again' }),
-    } as Response);
+    transportSendMock.mockResolvedValueOnce({ statusCode: 429 });
 
     const summary =
       await rentalWebhookOutboxService.processDueEntries();
