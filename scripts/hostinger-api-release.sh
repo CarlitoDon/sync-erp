@@ -385,8 +385,20 @@ load_previous_release() {
     current_path="$(resolve_link "$target/current")"
     current_physical="$(cd "$current_path" 2>/dev/null && pwd -P || echo "$current_path")"
     previous_physical="$(cd "$PREVIOUS_RELEASE" 2>/dev/null && pwd -P || echo "$PREVIOUS_RELEASE")"
-    [[ "$current_physical" == "$previous_physical" ]] ||
-      fail "Active release state and current symlink disagree; refusing deployment."
+    if [[ "$current_physical" != "$previous_physical" ]]; then
+      if [[ -d "$current_physical" && -f "$current_physical/release.json" ]]; then
+        echo "WARNING: Active release state (${previous_physical}) disagrees with current symlink (${current_physical}). Aligning state to current symlink." >&2
+        PREVIOUS_RELEASE="$current_physical"
+        if manifest_values="$(read_manifest "$PREVIOUS_RELEASE" 1 2>/dev/null)"; then
+          IFS=$'\t' read -r PREVIOUS_SHA PREVIOUS_VERSION <<< "$manifest_values"
+        fi
+      elif [[ -d "$previous_physical" && -f "$previous_physical/release.json" ]]; then
+        echo "WARNING: Active release state (${previous_physical}) disagrees with current symlink (${current_physical}). Re-aligning symlink to active state." >&2
+        atomic_symlink "$previous_physical" "$target/current"
+      else
+        fail "Active release state (${previous_physical}) and current symlink (${current_physical}) disagree; refusing deployment."
+      fi
+    fi
   elif [[ -f "$target/release.json" ]]; then
     PREVIOUS_SHA_AND_VERSION="$(read_manifest "$target" 1)" ||
       fail "Legacy active release manifest is unreadable; refusing deployment."
