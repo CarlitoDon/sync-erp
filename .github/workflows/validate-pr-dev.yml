@@ -17,8 +17,9 @@ jobs:
           !startsWith(github.head_ref, 'chore/') && 
           !startsWith(github.head_ref, 'refactor/') && 
           !startsWith(github.head_ref, 'perf/') && 
-          !startsWith(github.head_ref, 'style/')
+          !startsWith(github.head_ref, 'style/') &&
+          !startsWith(github.head_ref, 'codex/')
         run: |
-          echo "Error: Pull requests to 'dev' must come from 'feat/*', 'fix/*', 'chore/*', 'refactor/*', 'perf/*', or 'style/*' branches."
+          echo "Error: Pull requests to 'dev' must come from 'feat/*', 'fix/*', 'chore/*', 'refactor/*', 'perf/*', 'style/*', or 'codex/*' branches."
           echo "Current source branch: ${{ github.head_ref }}"
           exit 1

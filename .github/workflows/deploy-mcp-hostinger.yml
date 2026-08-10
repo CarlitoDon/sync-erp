@@ -118,8 +118,9 @@ jobs:
 
           # A saturated CloudLinux NPROC quota can prevent even scp from
           # forking. Kill only the exact target using shell builtins, then
-          # replace this recovery shell with `pm2 stop` so PM2 cannot restart
-          # the target while the package is transferred and extracted.
+          # stop the registered PM2 process so it cannot restart while the
+          # package is transferred and extracted. First deployment is allowed
+          # to continue when the PM2 namespace does not exist yet.
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
             "PM2_NAME='${PM2_NAME}' bash -s" <<'EOF'
               for pid_file in "$HOME/.pm2/pids/${PM2_NAME}-"*.pid; do
@@ -135,7 +136,11 @@ jobs:
               export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
               export NODE_OPTIONS="--v8-pool-size=1"
               export UV_THREADPOOL_SIZE=1
-              exec "$HOME/node-pm2/node_modules/.bin/pm2" stop "$PM2_NAME"
+              pm2="$HOME/node-pm2/node_modules/.bin/pm2"
+              if "$pm2" describe "$PM2_NAME" >/dev/null 2>&1; then
+                exec "$pm2" stop "$PM2_NAME"
+              fi
+              echo "PM2 process $PM2_NAME is not registered; continuing with first deployment."
           EOF
 
           cleanup_control() {
