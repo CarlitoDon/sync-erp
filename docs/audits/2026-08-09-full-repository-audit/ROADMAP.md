@@ -95,13 +95,13 @@ The application should be releasable through a truthful, recoverable pipeline; e
 
 ### In progress / partially evidenced
 
-- [ ] Validate local commit `70b7a21` through a disposable artifact test and staging canary; the artifact-local Prisma CLI fix exists, but canary, deployment, version, health, and rollback evidence is missing.
+- [ ] Validate local commit `70b7a21` through a disposable artifact test and staging canary; artifact, deployment, version, and health evidence now exists, but live rollback and fresh disposable migration reconciliation remain open. Evidence: [PR #53](https://github.com/CarlitoDon/sync-erp/pull/53) merged as `27f8fb85d66be21928310f2d9b85d3c233697524`; [CI/CD run #31359645256](https://github.com/CarlitoDon/sync-erp/actions/runs/31359645256), [Deploy API job #93367320281](https://github.com/CarlitoDon/sync-erp/actions/runs/31359645256/job/93367320281), artifact SHA-256 `49b21c717334b45636cbb8ae9cbc3aa2d4a153e376b85e27013179a29879539f`, 16 migrations with no pending migrations, PM2 `sync-erp-api-staging` online on port `3001`, and local/external release identity `27f8fb85d66be21928310f2d9b85d3c233697524` / `0.0.1`.
 - [ ] Require API/web lint, typecheck, tests, builds, truthful E2E, and security gates on `dev`/`main`; local gates exist, but required-check and review enforcement is not configured.
-- [ ] Reconcile Prisma migration authority and reproduce `migrate deploy` against a fresh empty database and a production-like snapshot; local schema validation exists, but applied ledgers and forward-only approval are unknown.
+- [ ] Reconcile Prisma migration authority and reproduce `migrate deploy` against a fresh empty database and a production-like snapshot; the staging upgrade path reported 16 migrations and no pending migrations in run `31359645256`, but the disposable fresh path still fails on the stale `20250505160000_generalize_webhook_outbox` dependency order, and applied-ledger/forward-only approval evidence remains incomplete.
 
 ### Blocked pending external authority
 
-- [ ] Replace in-place Hostinger deployment with immutable SHA releases, checksum validation, isolated-port readiness, atomic switch, retained previous release, and explicit PM2 rollback.
+- [ ] Replace in-place Hostinger deployment with immutable SHA releases, checksum validation, isolated-port readiness, atomic switch, retained previous release, and explicit PM2 rollback; the staging canary exercised the SHA release/retention path and kept previous release `31e9cc5163281608861a6314fe8d8fab105167b4`, but a live rollback drill is still open because no safe failure-injection or rollback-only workflow path exists.
 - [ ] Establish liveness versus readiness and prove database/migration compatibility, required dependencies, and the non-mutating MCP `initialize`/tool-list handshake in staging and production.
 - [ ] Protect the canonical production environment with reviewers and branch/ref policy; make the required checks fail on deliberately broken changes.
 
