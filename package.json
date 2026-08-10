@@ -36,6 +36,7 @@
     "security:artifact-preflight": "node scripts/artifact-remediation-preflight.mjs",
     "test:security:artifact-preflight": "node --test scripts/artifact-remediation-preflight.test.mjs",
     "test:release-artifact": "node --test scripts/validate-api-artifact.test.mjs",
+    "test:release-health": "node --test scripts/verify-release-health.test.mjs",
     "knip": "export $(cat packages/database/.env | xargs) && knip",
     "clean": "turbo run clean && rm -rf node_modules"
   },

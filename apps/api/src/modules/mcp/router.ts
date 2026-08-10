@@ -3,6 +3,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { createServer as createMcpServer } from '../../../../mcp/src/server.js';
 import { getMcpRuntimeConfig, isMcpEnabled } from './config';
 import { requireMcpAuth } from './auth';
+import { getReleaseIdentity } from '../../release-identity';
 
 interface ActiveMcpSession {
   transport: SSEServerTransport;
@@ -24,6 +25,7 @@ router.get('/health', (_req, res) => {
     status: isMcpEnabled() ? 'ok' : 'disabled',
     transport: 'sse',
     activeSessions: sessions.size,
+    release: getReleaseIdentity(),
     timestamp: new Date().toISOString(),
   });
 });

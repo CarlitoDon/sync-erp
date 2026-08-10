@@ -49,6 +49,8 @@ jobs:
               - 'package-lock.json'
               - 'scripts/validate-api-artifact.mjs'
               - 'scripts/validate-api-artifact.test.mjs'
+              - 'scripts/verify-release-health.mjs'
+              - 'scripts/verify-release-health.test.mjs'
               - 'scripts/write-release-manifest.mjs'
               - 'turbo.json'
             web:
@@ -107,6 +109,9 @@ jobs:
       - name: Test release artifact validator
         run: npm run test:release-artifact
 
+      - name: Test release health verifier
+        run: npm run test:release-health
+
       - name: Test (integration)
         run: npm run test:integration --workspace=@sync-erp/api
         continue-on-error: false
@@ -148,16 +153,21 @@ jobs:
           RELEASE_REF: ${{ github.ref }}
           RELEASE_RUN_ID: ${{ github.run_id }}
         run: |
+          RELEASE_VERSION="$(node -e 'console.log(JSON.parse(require("node:fs").readFileSync("apps/api/package.json", "utf8")).version)')"
           node scripts/write-release-manifest.mjs \
             --output deploy/api-mcp/release.json \
             --service sync-erp-api \
             --commit "$RELEASE_SHA" \
+            --version "$RELEASE_VERSION" \
             --repository "$RELEASE_REPOSITORY" \
             --ref "$RELEASE_REF" \
             --run-id "$RELEASE_RUN_ID"
 
       - name: Validate API release artifact
         run: node scripts/validate-api-artifact.mjs --artifact-dir deploy/api-mcp --expected-sha "$GITHUB_SHA"
+
+      - name: Include release health verifier
+        run: cp scripts/verify-release-health.mjs deploy/api-mcp/verify-release-health.mjs
 
       - name: Upload API build artifact
         uses: actions/upload-artifact@v4
@@ -330,7 +340,7 @@ jobs:
             "$RUNTIME_ENV_FILE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_RUNTIME_ENV}"
 
-          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_RUNTIME_ENV='${REMOTE_RUNTIME_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' DATABASE_PROJECT_REF='${DATABASE_PROJECT_REF}' bash -s" <<'EOF'
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_RUNTIME_ENV='${REMOTE_RUNTIME_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' DATABASE_PROJECT_REF='${DATABASE_PROJECT_REF}' EXPECTED_SHA='${GITHUB_SHA}' bash -s" <<'EOF'
             set -exuo pipefail
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
@@ -535,6 +545,14 @@ jobs:
               sleep 5
             done
 
+            node verify-release-health.mjs \
+              --url "http://127.0.0.1:${APP_PORT}/health" \
+              --expected-sha "$EXPECTED_SHA"
+            node verify-release-health.mjs \
+              --url "http://127.0.0.1:${APP_PORT}/mcp/health" \
+              --expected-sha "$EXPECTED_SHA"
+            rm -f verify-release-health.mjs
+
             cors_headers="$(mktemp)"
             if ! curl -fsS --connect-timeout 5 --max-time 10 \
               -o /dev/null \
@@ -577,17 +595,27 @@ jobs:
               local http_code
               local curl_exit_code=0
 
-              http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 15 "${full_url}" 2>&1) || curl_exit_code=$?
-
-              if [[ "$http_code" == "200" ]]; then
-                echo "✓ Healthy: ${full_url} (attempt ${i}/${MAX_RETRIES})"
-                return 0
-              fi
-
-              if [[ "$curl_exit_code" -ne 0 ]]; then
-                echo "⚠ Connection error on ${full_url}: curl exit code ${curl_exit_code} (attempt ${i}/${MAX_RETRIES})"
+              if [[ "$path" == "/health" || "$path" == "/mcp/health" ]]; then
+                if node scripts/verify-release-health.mjs \
+                  --url "$full_url" \
+                  --expected-sha "$GITHUB_SHA"; then
+                  echo "✓ Healthy release: ${full_url} (attempt ${i}/${MAX_RETRIES})"
+                  return 0
+                fi
+                echo "⚠ Release identity check failed for ${full_url} (attempt ${i}/${MAX_RETRIES})"
               else
-                echo "⚠ HTTP ${http_code} on ${full_url} (attempt ${i}/${MAX_RETRIES})"
+                http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 15 "${full_url}" 2>&1) || curl_exit_code=$?
+
+                if [[ "$http_code" == "200" ]]; then
+                  echo "✓ Healthy: ${full_url} (attempt ${i}/${MAX_RETRIES})"
+                  return 0
+                fi
+
+                if [[ "$curl_exit_code" -ne 0 ]]; then
+                  echo "⚠ Connection error on ${full_url}: curl exit code ${curl_exit_code} (attempt ${i}/${MAX_RETRIES})"
+                else
+                  echo "⚠ HTTP ${http_code} on ${full_url} (attempt ${i}/${MAX_RETRIES})"
+                fi
               fi
 
               if [[ "$i" -lt "$MAX_RETRIES" ]]; then

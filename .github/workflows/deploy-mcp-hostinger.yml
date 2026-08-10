@@ -7,6 +7,8 @@ on:
       - '.github/workflows/deploy-mcp-hostinger.yml'
       - 'apps/mcp/**'
       - 'packages/shared/**'
+      - 'scripts/verify-release-health.mjs'
+      - 'scripts/write-release-manifest.mjs'
   workflow_dispatch:
     inputs:
       environment:
@@ -59,6 +61,16 @@ jobs:
           mkdir -p deploy/mcp
           cp -R apps/mcp/dist deploy/mcp/dist
           cp apps/mcp/package.json deploy/mcp/package.json
+          RELEASE_VERSION="$(node -e 'console.log(JSON.parse(require("node:fs").readFileSync("apps/mcp/package.json", "utf8")).version)')"
+          node scripts/write-release-manifest.mjs \
+            --output deploy/mcp/release.json \
+            --service sync-erp-mcp \
+            --commit "$GITHUB_SHA" \
+            --version "$RELEASE_VERSION" \
+            --repository "$GITHUB_REPOSITORY" \
+            --ref "$GITHUB_REF" \
+            --run-id "$GITHUB_RUN_ID"
+          cp scripts/verify-release-health.mjs deploy/mcp/verify-release-health.mjs
 
           npm install \
             --prefix deploy/mcp \
@@ -166,7 +178,7 @@ jobs:
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_MCP_ARCHIVE}"
 
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
-            "DEPLOY_DIR='${DEPLOY_DIR}' API_ENV_DIR='${API_ENV_DIR}' REMOTE_MCP_ARCHIVE='${REMOTE_MCP_ARCHIVE}' PM2_NAME='${PM2_NAME}' MCP_PORT='${MCP_PORT}' bash -s" <<'EOF'
+            "DEPLOY_DIR='${DEPLOY_DIR}' API_ENV_DIR='${API_ENV_DIR}' REMOTE_MCP_ARCHIVE='${REMOTE_MCP_ARCHIVE}' PM2_NAME='${PM2_NAME}' MCP_PORT='${MCP_PORT}' EXPECTED_SHA='${GITHUB_SHA}' bash -s" <<'EOF'
             set -euo pipefail
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
@@ -238,6 +250,11 @@ jobs:
               fi
               sleep 5
             done
+
+            node verify-release-health.mjs \
+              --url "http://127.0.0.1:${MCP_PORT}/health" \
+              --expected-sha "$EXPECTED_SHA"
+            rm -f verify-release-health.mjs
           EOF
 
           rm -f "$MCP_ARCHIVE"

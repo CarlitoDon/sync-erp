@@ -23,6 +23,7 @@ import { mcpRouter } from './modules/mcp/router';
 import { billingHttpRouter } from './modules/billing/billing-http.router';
 import { attachmentHttpRouter } from './modules/attachment/attachment-http.router';
 import { getCorsOrigin } from './cors';
+import { getReleaseIdentity } from './release-identity';
 
 export function createApp() {
   const app = express();
@@ -51,7 +52,11 @@ export function createApp() {
   });
 
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({
+      status: 'ok',
+      release: getReleaseIdentity(),
+      timestamp: new Date().toISOString(),
+    });
   });
 
   if (isSentryTestRouteEnabled()) {

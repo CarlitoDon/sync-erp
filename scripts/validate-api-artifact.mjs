@@ -148,6 +148,12 @@ export async function validateApiArtifact({
         'release.json commit does not match the workflow SHA.'
       );
     }
+    if (
+      typeof releaseManifest.version !== 'string' ||
+      releaseManifest.version.trim().length === 0
+    ) {
+      errors.push('release.json must include a non-empty version.');
+    }
   }
 
   const migrationsPath = path.join(root, 'prisma', 'migrations');
@@ -191,6 +197,7 @@ export async function validateApiArtifact({
     commit: releaseManifest.commit,
     migrationCount: migrationDirectories.length,
     service: releaseManifest.service,
+    version: releaseManifest.version,
   };
 }
 
