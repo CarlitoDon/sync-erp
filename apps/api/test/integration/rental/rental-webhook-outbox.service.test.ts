@@ -18,6 +18,17 @@ import { defaultWebhookTransport } from '@src/services/webhook-ssrf-transport';
 
 const COMPANY_ID = 'test-rental-webhook-outbox-001';
 
+const ensureTestCompany = async () => {
+  await prisma.company.upsert({
+    where: { id: COMPANY_ID },
+    create: {
+      id: COMPANY_ID,
+      name: 'Test Rental Webhook Company',
+    },
+    update: {},
+  });
+};
+
 const cleanupOutboxData = async () => {
   await prisma.rentalWebhookOutbox.deleteMany({
     where: { companyId: COMPANY_ID },
@@ -39,6 +50,7 @@ const seedIntegration = async (overrides?: {
   paths?: Record<string, string>;
   isActive?: boolean;
 }) => {
+  await ensureTestCompany();
   await cleanupIntegrationData();
 
   const integration = await prisma.integration.create({
