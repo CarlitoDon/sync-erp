@@ -101,7 +101,7 @@ The application should be releasable through a truthful, recoverable pipeline; e
 
 ### Blocked pending external authority
 
-- [ ] Replace in-place Hostinger deployment with immutable SHA releases, checksum validation, isolated-port readiness, atomic switch, retained previous release, and explicit PM2 rollback; the staging canary exercised the SHA release/retention path and kept previous release `31e9cc5163281608861a6314fe8d8fab105167b4`, but a live rollback drill is still open because no safe failure-injection or rollback-only workflow path exists.
+- [ ] Replace in-place Hostinger deployment with immutable SHA releases, checksum validation, isolated-port readiness, atomic switch, retained previous release, and explicit PM2 rollback; the staging canary exercised the SHA release/retention path and kept previous release `31e9cc5163281608861a6314fe8d8fab105167b4`. A staging-only failure-injection/rollback workflow and deterministic contract tests are now implemented in `.github/workflows/staging-api-rollback-drill.yml` and `scripts/hostinger-api-release.test.sh`; live rollback evidence remains open until that manual workflow succeeds.
 - [ ] Establish liveness versus readiness and prove database/migration compatibility, required dependencies, and the non-mutating MCP `initialize`/tool-list handshake in staging and production.
 - [ ] Protect the canonical production environment with reviewers and branch/ref policy; make the required checks fail on deliberately broken changes.
 
