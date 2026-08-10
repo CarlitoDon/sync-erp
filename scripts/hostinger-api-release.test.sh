@@ -179,7 +179,10 @@ setup_case() {
 
   write_file "$target/dist/index.js" 'old release'
   write_file "$target/.env" 'EXISTING_CONFIG=true'
-  write_file "$target/release.json" "{\"schemaVersion\":1,\"service\":\"sync-erp-api\",\"commit\":\"${old_sha}\",\"version\":\"old\"}"
+  # The first staging release predates release-version metadata. The helper
+  # must preserve it as a known-good legacy release while using an explicit
+  # unknown version in rollback metadata.
+  write_file "$target/release.json" "{\"schemaVersion\":1,\"service\":\"sync-erp-api\",\"commit\":\"${old_sha}\"}"
 
   write_file "$artifact/dist/index.js" 'new release'
   write_file "$artifact/package.json" '{"name":"@sync-erp/api"}'
@@ -248,6 +251,7 @@ run_release() {
 success_root="$(setup_case success)"
 success_output="$(run_release "$success_root")"
 assert_contains "Activated API release ${new_sha}" "$success_output"
+assert_contains 'using unknown' "$success_output"
 [[ -f "$success_root/public_html/apps/api-staging/releases/${new_sha}/release.json" ]]
 [[ "$(readlink "$success_root/public_html/apps/api-staging/current")" == "$success_root/public_html/apps/api-staging/releases/${new_sha}" ]]
 [[ "$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('$success_root/public_html/apps/api-staging/.release-state.json')).commit)")" == "$new_sha" ]]

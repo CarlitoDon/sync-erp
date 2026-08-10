@@ -73,15 +73,23 @@ resolve_link() {
 
 read_manifest() {
   local release_path="$1"
-  node --input-type=module - "$release_path/release.json" <<'NODE'
+  local allow_unknown_version="${2:-0}"
+  node --input-type=module - "$release_path/release.json" "$allow_unknown_version" <<'NODE'
 import { readFileSync } from 'node:fs';
 
-const [manifestPath] = process.argv.slice(2);
+const [manifestPath, allowUnknownVersion] = process.argv.slice(2);
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 if (!/^[0-9a-f]{40}$/i.test(manifest.commit)) {
   throw new Error(`Invalid release commit in ${manifestPath}.`);
 }
 if (typeof manifest.version !== 'string' || !manifest.version.trim()) {
+  if (allowUnknownVersion === '1') {
+    process.stderr.write(
+      `Legacy release manifest ${manifestPath} has no valid version; using unknown.\n`
+    );
+    process.stdout.write(`${manifest.commit}\tunknown\n`);
+    process.exit(0);
+  }
   throw new Error(`Invalid release version in ${manifestPath}.`);
 }
 process.stdout.write(`${manifest.commit}\t${manifest.version}\n`);
@@ -163,6 +171,7 @@ atomic_symlink() {
 validate_release() {
   local release_path="$1"
   local expected_commit="$2"
+  local allow_unknown_version="${3:-0}"
   local manifest_values
   local manifest_commit
 
@@ -175,7 +184,7 @@ validate_release() {
     fi
   done
 
-  manifest_values="$(read_manifest "$release_path")" ||
+  manifest_values="$(read_manifest "$release_path" "$allow_unknown_version")" ||
     fail "Previous release manifest is unreadable: ${release_path}/release.json."
   IFS=$'\t' read -r manifest_commit _ <<< "$manifest_values"
   if [[ "$manifest_commit" != "$expected_commit" ]]; then
@@ -354,7 +363,7 @@ load_previous_release() {
     [[ "$current_path" == "$PREVIOUS_RELEASE" ]] ||
       fail "Active release state and current symlink disagree; refusing deployment."
   elif [[ -f "$target/release.json" ]]; then
-    PREVIOUS_SHA_AND_VERSION="$(read_manifest "$target")" ||
+    PREVIOUS_SHA_AND_VERSION="$(read_manifest "$target" 1)" ||
       fail "Legacy active release manifest is unreadable; refusing deployment."
     IFS=$'\t' read -r PREVIOUS_SHA PREVIOUS_VERSION <<< "$PREVIOUS_SHA_AND_VERSION"
     PREVIOUS_RELEASE="$target"
@@ -367,7 +376,7 @@ load_previous_release() {
 
   [[ "$PREVIOUS_PORT" =~ ^[0-9]+$ ]] ||
     fail "Previous release metadata has an invalid port; refusing deployment."
-  validate_release "$PREVIOUS_RELEASE" "$PREVIOUS_SHA"
+  validate_release "$PREVIOUS_RELEASE" "$PREVIOUS_SHA" "$PREVIOUS_IS_LEGACY"
   require_online_pm2 "$PREVIOUS_PM2"
   if ! curl -fsS --connect-timeout 5 --max-time 10 \
     "http://127.0.0.1:${PREVIOUS_PORT}/health" >/dev/null; then
@@ -385,7 +394,7 @@ write_rollback_metadata() {
 restore_previous() {
   local reason="$1"
   echo "Restoring previous release ${PREVIOUS_SHA} after ${reason}."
-  validate_release "$PREVIOUS_RELEASE" "$PREVIOUS_SHA"
+  validate_release "$PREVIOUS_RELEASE" "$PREVIOUS_SHA" "$PREVIOUS_IS_LEGACY"
 
   stop_release "$PM2_NAME"
   if [[ "$PREVIOUS_PM2" != "$PM2_NAME" ]]; then
