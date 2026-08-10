@@ -479,4 +479,61 @@ describe('WebhookOutboxService', () => {
     expect(deadLetter.attempts).toBe(2);
     expect(deadLetter.lastStatusCode).toBe(429);
   });
+
+  it('recovers stale PROCESSING claims back to PENDING and delivers them on the next cycle', async () => {
+    const created = await prisma.webhookOutbox.create({
+      data: {
+        companyId: COMPANY_ID,
+        event: RentalWebhookDeliveryType.PAYMENT_STATUS,
+        orderPublicToken: 'stale-processing-token-001',
+        orderNumber: 'RNT-202603-00007',
+        autoRetry: true,
+        status: RentalWebhookOutboxStatus.PROCESSING,
+        lastAttemptAt: new Date(Date.now() - 10 * 60_000),
+        payload: {
+          action: 'confirmed',
+          token: 'stale-processing-token-001',
+        },
+      },
+    });
+
+    // A stale lease is one whose updatedAt is older than the recovery window.
+    await prisma.webhookOutbox.update({
+      where: { id: created.id },
+      data: { updatedAt: new Date(Date.now() - 10 * 60_000) },
+    });
+
+    const recovered =
+      await webhookOutboxService.recoverStaleProcessingClaims();
+
+    expect(recovered).toBe(1);
+
+    const pendingEntry = await prisma.webhookOutbox.findUniqueOrThrow({
+      where: { id: created.id },
+    });
+    expect(pendingEntry.status).toBe(RentalWebhookOutboxStatus.PENDING);
+    expect(pendingEntry.attempts).toBe(0);
+    expect(pendingEntry.nextAttemptAt.getTime()).toBeLessThanOrEqual(
+      Date.now() + 1_000
+    );
+
+    transportSendMock.mockResolvedValueOnce({ statusCode: 200 });
+
+    const summary = await webhookOutboxService.processDueEntries();
+
+    expect(summary).toMatchObject({
+      processed: 1,
+      delivered: 1,
+      failed: 0,
+      deadLettered: 0,
+    });
+
+    const delivered = await prisma.webhookOutbox.findUniqueOrThrow({
+      where: { id: created.id },
+    });
+    expect(delivered.status).toBe(
+      RentalWebhookOutboxStatus.DELIVERED
+    );
+    expect(delivered.attempts).toBe(1);
+  });
 });
