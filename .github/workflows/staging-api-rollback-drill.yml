@@ -22,8 +22,8 @@ jobs:
     steps:
       - name: Enforce staging-only ref
         run: |
-          if [[ "$GITHUB_REF" != "refs/heads/dev" ]]; then
-            echo "This workflow only accepts manual dispatch from refs/heads/dev; production is not a valid target." >&2
+          if [[ "$GITHUB_REF" != "refs/heads/dev" && "$GITHUB_REF" != refs/heads/codex/* ]]; then
+            echo "This workflow only accepts manual dispatch from refs/heads/dev or codex branches; production is not a valid target." >&2
             exit 1
           fi
 
