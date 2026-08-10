@@ -89,26 +89,36 @@ export class RedisRateLimitService {
       return {current, ttl}
     `;
 
-    const raw = await redis.eval(luaScript, 1, key, windowSeconds);
-    const result = parseCounterResult(raw);
+    try {
+      const raw = await redis.eval(luaScript, 1, key, windowSeconds);
+      const result = parseCounterResult(raw);
 
-    const [count, ttl] = result;
+      const [count, ttl] = result;
 
-    const retryAfterSeconds = Math.max(ttl, 1);
+      const retryAfterSeconds = Math.max(ttl, 1);
 
-    if (count > config.maxAttempts) {
+      if (count > config.maxAttempts) {
+        return {
+          allowed: false,
+          remaining: 0,
+          retryAfterSeconds,
+        };
+      }
+
+      return {
+        allowed: true,
+        remaining: Math.max(config.maxAttempts - count, 0),
+        retryAfterSeconds,
+      };
+    } catch (error) {
+      console.error('Redis rate limit error:', error);
+      // Fall back to fail-closed (block traffic)
       return {
         allowed: false,
         remaining: 0,
-        retryAfterSeconds,
+        retryAfterSeconds: 1, // Short retry period for fail-closed
       };
     }
-
-    return {
-      allowed: true,
-      remaining: Math.max(config.maxAttempts - count, 0),
-      retryAfterSeconds,
-    };
   }
 
   /**

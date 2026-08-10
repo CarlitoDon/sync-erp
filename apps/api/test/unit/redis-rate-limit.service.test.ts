@@ -119,4 +119,31 @@ describe('RedisRateLimitService', () => {
       );
     });
   });
+
+  describe('fail-closed behavior when Redis is unavailable', () => {
+    it('returns fail-closed (not allowed) when the Redis connection fails', async () => {
+      mockEval.mockRejectedValueOnce(
+        new Error('ECONNREFUSED 127.0.0.1:6379')
+      );
+
+      const result = await service.consume('127.0.0.1:test', config);
+      expect(result.allowed).toBe(false);
+    });
+
+    it('returns fail-closed (not allowed) on Redis timeouts', async () => {
+      mockEval.mockRejectedValueOnce(
+        new Error('Redis timeout after 5000ms')
+      );
+
+      const result = await service.consume('127.0.0.1:test', config);
+      expect(result.allowed).toBe(false);
+    });
+
+    it('returns fail-closed (not allowed) on malformed Lua responses', async () => {
+      mockEval.mockResolvedValueOnce('not-an-array');
+
+      const result = await service.consume('127.0.0.1:test', config);
+      expect(result.allowed).toBe(false);
+    });
+  });
 });
