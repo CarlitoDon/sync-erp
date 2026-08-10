@@ -1,6 +1,6 @@
 import { PrismaClient } from './generated/client/client.js';
 
-export function assertDisposableDatabase(prisma: PrismaClient) {
+export function assertDisposableDatabase(_prisma: PrismaClient) {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error('DATABASE_URL is not defined.');
