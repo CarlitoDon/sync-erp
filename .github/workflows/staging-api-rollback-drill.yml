@@ -161,13 +161,13 @@ jobs:
               ;;
           esac
 
-          chmod 600 "$runtime_env_file"
           {
             printf 'GOOGLE_OAUTH_CLIENT_ID=%s\n' "$(printf '%s' "$GOOGLE_OAUTH_CLIENT_ID" | base64 | tr -d '\n')"
             printf 'GOOGLE_OAUTH_CLIENT_SECRET=%s\n' "$(printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | base64 | tr -d '\n')"
             printf 'SYNC_ERP_AUTH_STATE_SECRET=%s\n' "$(printf '%s' "$SYNC_ERP_AUTH_STATE_SECRET" | base64 | tr -d '\n')"
             printf 'DATABASE_URL=%s\n' "$(printf '%s' "$DATABASE_URL" | base64 | tr -d '\n')"
           } > "$runtime_env_file"
+          chmod 600 "$runtime_env_file"
 
           timeout 900 scp ${SCP_OPTS} \
             "$API_ARCHIVE" \
