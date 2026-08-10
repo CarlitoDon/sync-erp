@@ -228,8 +228,12 @@ export const botRouter = router({
       );
 
       try {
+        // Egress hardening: linkPreview must be explicitly null so a message
+        // containing URLs cannot trigger Baileys to fetch a remote preview
+        // (SSRF/egress containment — same guarantee as the send-order path).
         const response = await sock.sendMessage(targetNumber, {
           text: input.message,
+          linkPreview: null,
         });
         // eslint-disable-next-line no-console
         console.log(`Message sent to ${targetNumber}`);

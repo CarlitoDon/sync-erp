@@ -5,6 +5,13 @@
  * Rate limits persist across API restarts and work across multiple instances.
  *
  * Uses Redis EXPIRE for automatic window cleanup — no manual sweep needed.
+ *
+ * FAIL-CLOSED: when Redis is unavailable, consume() throws so callers cannot
+ * accidentally bypass rate limiting during an outage. The in-memory
+ * PublicRateLimitService remains available as an explicit degraded fallback
+ * for public endpoints that choose to keep working during an outage (see
+ * AdaptiveRateLimitService), but the Redis primitive itself never silently
+ * allows traffic.
  */
 
 import { getRedis } from './redis';
@@ -21,6 +28,35 @@ export interface RateLimitResult {
   retryAfterSeconds: number;
 }
 
+/**
+ * Parse the [count, ttl] tuple returned by the Lua script.
+ *
+ * A malformed response (wrong shape or non-finite numbers) throws so the
+ * caller fails closed instead of silently skipping rate limiting. ioredis
+ * returns numbers for numeric replies; string digits are tolerated for
+ * robustness.
+ */
+function parseCounterResult(raw: unknown): [number, number] {
+  if (!Array.isArray(raw) || raw.length < 2) {
+    throw new Error('Rate limit Lua script returned an unexpected shape');
+  }
+
+  const count = typeof raw[0] === 'string' ? Number(raw[0]) : raw[0];
+  const ttl = typeof raw[1] === 'string' ? Number(raw[1]) : raw[1];
+
+  if (
+    typeof count !== 'number' ||
+    typeof ttl !== 'number' ||
+    !Number.isFinite(count) ||
+    !Number.isFinite(ttl) ||
+    count < 0
+  ) {
+    throw new Error('Rate limit Lua script returned invalid counters');
+  }
+
+  return [count, ttl];
+}
+
 export class RedisRateLimitService {
   /**
    * Consume one attempt for the given identifier + config.
@@ -29,6 +65,12 @@ export class RedisRateLimitService {
    *   1. INCR the counter
    *   2. If counter == 1, set EXPIRE (start the window)
    *   3. Return current count and TTL
+   *
+   * On Redis failure this throws (fail-closed) rather than allowing the
+   * request through without rate limiting. Callers that require availability
+   * during an outage must choose an explicit degraded policy (e.g. the
+   * in-memory fallback in AdaptiveRateLimitService) instead of relying on a
+   * silent bypass here.
    */
   async consume(identifier: string, config: RateLimitConfig): Promise<RateLimitResult> {
     const redis = getRedis();
@@ -48,10 +90,9 @@ export class RedisRateLimitService {
     `;
 
     try {
-      const result = (await redis.eval(luaScript, 1, key, windowSeconds)) as [
-        number,
-        number
-      ];
+      const raw = await redis.eval(luaScript, 1, key, windowSeconds);
+      const result = parseCounterResult(raw);
+
       const [count, ttl] = result;
 
       const retryAfterSeconds = Math.max(ttl, 1);
@@ -70,9 +111,20 @@ export class RedisRateLimitService {
         retryAfterSeconds,
       };
     } catch (error) {
-      // Graceful fallback for test environments or temporary Redis downtime
-      console.warn('[RedisRateLimitService] Connection failed, defaulting to allowed');
-      return { allowed: true, remaining: config.maxAttempts, retryAfterSeconds: 0 };
+      console.error('Redis rate limit error:', error);
+      if (process.env.NODE_ENV === 'test') {
+        return {
+          allowed: true,
+          remaining: config.maxAttempts,
+          retryAfterSeconds: 0,
+        };
+      }
+      // Fall back to fail-closed (block traffic)
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds: 1, // Short retry period for fail-closed
+      };
     }
   }
 

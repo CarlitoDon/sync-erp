@@ -129,7 +129,11 @@ The application should be releasable through a truthful, recoverable pipeline; e
 ### In progress / partially evidenced
 
 - [x] Unify rental outbox ownership so enqueue, processor, retries, replay, signatures, and startup use one implementation. Evidence: PR #61 merged; canonical service `apps/api/src/modules/rental/webhook-outbox.service.ts`; new `recoverStaleProcessingClaims()` + `generateSignature()` (HMAC-SHA256 `X-Webhook-Signature` + `X-Webhook-Timestamp`); startup recovery pass before first poll; 607 tests passed (6 new unit + 1 new integration), lint 0 errors, typecheck clean.
-- [ ] Harden SSRF/egress, Redis rate-limit failure behavior, idempotency fencing/scope, public order-token minimization/expiry, checkout escaping/capabilities, and raw HTTP error classification. Webhook and order-preview SSRF controls are complete; the generic bot send-message preview path, rate-limit fail-open, and public order-token exposure remain unchecked.
+- [x] Harden SSRF/egress, Redis rate-limit failure behavior, idempotency fencing/scope, public order-token minimization/expiry, checkout escaping/capabilities, and raw HTTP error classification.
+  - Evidence:
+    - Redis fail-closed and error classification: consolidated in `apps/api/src/middlewares/errorHandler.ts` and `apps/api/src/modules/common/services/redis-rate-limit.service.ts`.
+    - Order tokens + Idempotency: token expiry/minimized DTO in `apps/api/src/modules/rental/rental-external-order.service.ts` and `apps/api/src/modules/rental/rental-integration.dto.ts`; idempotency race fencing in `apps/api/src/modules/common/services/idempotency.service.ts`.
+    - SSRF/Bot/Checkout: Bot linkPreview nulling in `apps/bot/src/api/send-message.ts` and `apps/bot/src/trpc/routers/bot.router.ts`; Billing HTML escaping and checkout state-machine hardening in `apps/api/src/modules/billing/billing-http.router.ts`.
 
 ### Blocked pending external authority
 

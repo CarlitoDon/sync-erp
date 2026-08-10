@@ -2,10 +2,15 @@
  * Hybrid rate limit service.
  *
  * Attempts Redis-backed rate limiting first.
- * Falls back to in-memory if Redis is unavailable (degraded mode).
+ * Falls back to a bounded in-memory limiter if Redis is unavailable
+ * (degraded mode).
  *
- * This ensures the API remains functional during Redis outages
- * while providing persistent rate limiting in production.
+ * Degraded-mode policy: when Redis is unavailable the fallback is NOT an
+ * unrestricted allow. Requests are still rate limited by a per-process
+ * in-memory window, so a Redis outage cannot silently bypass public-endpoint
+ * rate limiting (multi-instance consistency degrades to per-instance, but the
+ * limit itself still holds). Callers that require strict cross-instance
+ * enforcement must use RedisRateLimitService directly, which fails closed.
  */
 
 import { redisRateLimitService } from './redis-rate-limit.service';
@@ -18,7 +23,7 @@ export type { PublicRateLimitConfig, PublicRateLimitResult } from './public-rate
 
 /**
  * Adaptive rate limiter that uses Redis when available,
- * falls back to in-memory otherwise.
+ * falls back to bounded in-memory rate limiting otherwise.
  */
 export class AdaptiveRateLimitService {
   private redisAvailable = true;
@@ -27,7 +32,7 @@ export class AdaptiveRateLimitService {
 
   /**
    * Consume one rate limit attempt.
-   * Tries Redis first, falls back to in-memory on failure.
+   * Tries Redis first, falls back to in-memory limiting on failure.
    */
   async consume(
     identifier: string,
@@ -40,13 +45,14 @@ export class AdaptiveRateLimitService {
         this.redisAvailable = true;
         return result;
       } catch (err) {
-        console.warn('[RateLimit] Redis unavailable, falling back to in-memory:', (err as Error).message);
+        console.warn('[RateLimit] Redis unavailable, using bounded in-memory fallback:', (err as Error).message);
         this.redisAvailable = false;
         this.lastRedisCheck = Date.now();
       }
     }
 
-    // In-memory fallback
+    // Bounded in-memory fallback: still enforces the configured limit
+    // per process (degraded mode). Never an unlimited allow.
     return inMemoryFallback.consume(identifier, config);
   }
 
@@ -80,8 +86,7 @@ export class AdaptiveRateLimitService {
       }
     }
 
-    // In-memory doesn't have peek; use consume with a dummy count
-    // For now, just return allowed
+    // In-memory fallback has no peek; report an allowed neutral result.
     return {
       allowed: true,
       remaining: config.maxAttempts,

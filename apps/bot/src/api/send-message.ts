@@ -11,6 +11,17 @@ const SendMessageSchema = z.object({
   message: z.string(),
 });
 
+/**
+ * Send options for a plain WhatsApp text message.
+ *
+ * Egress hardening: linkPreview is pinned to null on the generic send-message
+ * path so an operator-supplied message containing URLs never triggers Baileys
+ * to fetch a remote preview (the same guarantee send-order already provides).
+ * Baileys only fetches a preview when the option is present, so omitting it
+ * is not sufficient — it must be explicitly disabled.
+ */
+const PLAIN_TEXT_OPTIONS = { linkPreview: null } as const;
+
 export const sendMessage = async (req: Request, res: Response) => {
   // 1. Validate Payload
   const result = SendMessageSchema.safeParse(req.body);
@@ -58,6 +69,7 @@ export const sendMessage = async (req: Request, res: Response) => {
   try {
     const response = await sock.sendMessage(targetNumber, {
       text: message,
+      ...PLAIN_TEXT_OPTIONS,
     });
 
     // eslint-disable-next-line no-console
