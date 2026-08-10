@@ -123,7 +123,7 @@ jobs:
           echo "Transferring validated drill artifact with SHA-256 ${ARTIFACT_SHA256}."
 
           mkdir -p ~/.ssh
-          printf '%s' "$HOSTINGER_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$HOSTINGER_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p 65002 "$HOSTINGER_HOST" > ~/.ssh/known_hosts 2>/dev/null || true
 
