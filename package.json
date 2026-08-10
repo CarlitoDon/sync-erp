@@ -35,6 +35,7 @@
     "db:reseed:full": "npm run db:reset && npm run db:seed && ./scripts/seed-via-api.sh",
     "security:artifact-preflight": "node scripts/artifact-remediation-preflight.mjs",
     "test:security:artifact-preflight": "node --test scripts/artifact-remediation-preflight.test.mjs",
+    "test:release-artifact": "node --test scripts/validate-api-artifact.test.mjs",
     "knip": "export $(cat packages/database/.env | xargs) && knip",
     "clean": "turbo run clean && rm -rf node_modules"
   },

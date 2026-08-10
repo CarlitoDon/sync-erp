@@ -89,6 +89,7 @@ The application should be releasable through a truthful, recoverable pipeline; e
 ### Completed
 
 - [x] Repair Playwright discovery, add a real script and controlled preview server, fail on zero tests/failure, retain traces, and remove generated report/result files from the tracked path. Evidence: published in `222f79f`.
+- [x] Add a deterministic API release-artifact contract: CI writes an exact-SHA `release.json`, validates the real packaged artifact before upload and after download, and tests the validator with a disposable fixture. This proves artifact shape and commit metadata only; staging canary, database migration, health/readiness, and rollback evidence remain open.
 
 ### In progress / partially evidenced
 

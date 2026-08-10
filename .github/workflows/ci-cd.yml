@@ -47,6 +47,9 @@ jobs:
               - 'packages/shared/**'
               - 'package.json'
               - 'package-lock.json'
+              - 'scripts/validate-api-artifact.mjs'
+              - 'scripts/validate-api-artifact.test.mjs'
+              - 'scripts/write-release-manifest.mjs'
               - 'turbo.json'
             web:
               - '.github/workflows/ci-cd.yml'
@@ -101,6 +104,9 @@ jobs:
       - name: Test
         run: npm run test
 
+      - name: Test release artifact validator
+        run: npm run test:release-artifact
+
       - name: Test (integration)
         run: npm run test:integration --workspace=@sync-erp/api
         continue-on-error: false
@@ -130,10 +136,28 @@ jobs:
           mkdir -p deploy/api-mcp/node_modules/@sync-erp/database
           cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
           cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
-          
+
           if [ -d packages/database/src/generated ]; then
             cp -R packages/database/src/generated deploy/api-mcp/node_modules/@sync-erp/database/
           fi
+
+      - name: Write API release manifest
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_REF: ${{ github.ref }}
+          RELEASE_RUN_ID: ${{ github.run_id }}
+        run: |
+          node scripts/write-release-manifest.mjs \
+            --output deploy/api-mcp/release.json \
+            --service sync-erp-api \
+            --commit "$RELEASE_SHA" \
+            --repository "$RELEASE_REPOSITORY" \
+            --ref "$RELEASE_REF" \
+            --run-id "$RELEASE_RUN_ID"
+
+      - name: Validate API release artifact
+        run: node scripts/validate-api-artifact.mjs --artifact-dir deploy/api-mcp --expected-sha "$GITHUB_SHA"
 
       - name: Upload API build artifact
         uses: actions/upload-artifact@v4
@@ -193,6 +217,9 @@ jobs:
         with:
           name: api-mcp-build
           path: deploy/api-mcp/
+
+      - name: Validate downloaded API release artifact
+        run: node scripts/validate-api-artifact.mjs --artifact-dir deploy/api-mcp --expected-sha "$GITHUB_SHA"
 
       - name: Resolve deployment target
         id: target
