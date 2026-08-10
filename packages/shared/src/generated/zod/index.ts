@@ -189,7 +189,7 @@ export const RentalBundleComponentScalarFieldEnumSchema = z.enum(['id','bundleId
 
 export const RentalItemUnitScalarFieldEnumSchema = z.enum(['id','rentalItemId','companyId','unitCode','acquiredAt','acquisitionCost','sourceOrderId','sourceOrderItemId','sourceFulfillmentId','sourceBillId','sourceBatchCode','sizeLabel','color','sourceNotes','condition','status','totalRentalDays','totalRentalCount','lastDeepCleaningAt','retiredAt','retirementReason','flaggedForRetirement','createdAt','updatedAt']);
 
-export const RentalOrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','integrationId','orderNumber','rentalStartDate','rentalEndDate','dueDateTime','status','subtotal','depositAmount','totalAmount','policySnapshot','notes','confirmedAt','activatedAt','completedAt','cancelledAt','createdAt','updatedAt','createdBy','publicToken','deliveryFee','deliveryAddress','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','paymentMethod','discountAmount','discountLabel','orderSource','rentalPaymentStatus','paymentClaimedAt','paymentConfirmedAt','paymentConfirmedBy','paymentReference','paymentFailedAt','paymentFailReason']);
+export const RentalOrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','integrationId','orderNumber','rentalStartDate','rentalEndDate','dueDateTime','status','subtotal','depositAmount','totalAmount','policySnapshot','notes','confirmedAt','activatedAt','completedAt','cancelledAt','createdAt','updatedAt','createdBy','publicToken','publicTokenExpiresAt','deliveryFee','deliveryAddress','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','paymentMethod','discountAmount','discountLabel','orderSource','rentalPaymentStatus','paymentClaimedAt','paymentConfirmedAt','paymentConfirmedBy','paymentReference','paymentFailedAt','paymentFailReason']);
 
 export const RentalOrderExtensionScalarFieldEnumSchema = z.enum(['id','rentalOrderId','companyId','extensionNumber','previousEndDate','newEndDate','additionalDays','additionalAmount','deliveryFee','deliveryFeeLabel','additionalDeposit','reason','isPaid','paidAt','paymentId','createdAt','createdBy']);
 
@@ -1418,6 +1418,7 @@ export const RentalOrderSchema = z.object({
   updatedAt: z.coerce.date(),
   createdBy: z.string(),
   publicToken: z.string().nullable(),
+  publicTokenExpiresAt: z.coerce.date().nullable(),
   deliveryFee: z.instanceof(PrismaDecimal, { message: "Field 'deliveryFee' must be a Decimal. Location: ['Models', 'RentalOrder']"}).nullable(),
   deliveryAddress: z.string().nullable(),
   street: z.string().nullable(),
