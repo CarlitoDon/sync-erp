@@ -16,8 +16,8 @@ import {
 import { WebhookService } from '@src/services/webhook.service';
 import { TenantWebhookOutboxService } from '@src/services/tenant-webhook-outbox.service';
 import { WebhookOutboxService } from '@modules/rental/webhook-outbox.service';
-import { RentalWebhookOutboxService } from '@modules/rental/rental-webhook-outbox.service';
 import { integrationService } from '@src/services/integration.service';
+import { integrationRegistry } from '@src/integrations/registry';
 
 const requestInput = {
   method: 'POST' as const,
@@ -60,6 +60,26 @@ const activeWebhookIntegration = {
     },
   ],
 };
+
+if (!integrationRegistry.get('ssrf-transport-test')) {
+  integrationRegistry.register({
+    manifest: {
+      appId: 'ssrf-transport-test',
+      name: 'SSRF transport test',
+      description: 'SSRF transport test',
+      icon: 'Test',
+      capabilities: [],
+      defaultConfig: {},
+    },
+    getWebhookPath: (event, token, config) => {
+      const paths = (config as { paths?: Record<string, string> })?.paths;
+      if (event === 'payment.status.changed' && paths?.paymentStatus && token) {
+        return paths.paymentStatus.replace('{token}', token);
+      }
+      return '/api/webhook';
+    },
+  });
+}
 
 describe('SafeWebhookTransport', () => {
   it.each([
@@ -434,34 +454,34 @@ describe('shared webhook transport integration', () => {
       .mockResolvedValue(activeWebhookIntegration as never);
 
     try {
-      const genericOutbox = new WebhookOutboxService({ send });
-      const rentalOutbox = new RentalWebhookOutboxService({ send });
+      const genericOutbox = new TenantWebhookOutboxService({ send });
+      const rentalOutbox = new WebhookOutboxService({ send });
 
       const genericResult = await (
         genericOutbox as unknown as {
           performFetch: (entry: {
             id: string;
-            deliveryType: RentalWebhookDeliveryType;
-            orderPublicToken: string;
-            orderNumber: string | null;
+            event: string;
+            webhookUrl: string;
+            webhookSecret: string;
             payload: Record<string, unknown>;
-            companyId: string;
+            eventTimestamp: Date;
           }) => Promise<unknown>;
         }
       ).performFetch({
-        id: 'rental-delivery-1',
-        deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
-        orderPublicToken: 'token-1',
-        orderNumber: 'RNT-1',
+        id: 'tenant-delivery-1',
+        event: 'order.created',
         payload: { action: 'confirmed' },
-        companyId: 'company-1',
+        webhookUrl: 'https://partner.example/api/webhook',
+        webhookSecret: 'test-webhook-secret',
+        eventTimestamp: new Date(),
       });
       const rentalResult = await (
         rentalOutbox as unknown as {
           performFetch: (entry: {
             id: string;
             companyId: string;
-            deliveryType: RentalWebhookDeliveryType;
+            event: RentalWebhookDeliveryType;
             orderPublicToken: string;
             orderNumber: string | null;
             payload: Record<string, unknown>;
@@ -470,7 +490,7 @@ describe('shared webhook transport integration', () => {
       ).performFetch({
         id: 'rental-delivery-2',
         companyId: 'company-1',
-        deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
+        event: RentalWebhookDeliveryType.PAYMENT_STATUS,
         orderPublicToken: 'token-2',
         orderNumber: 'RNT-2',
         payload: {
@@ -493,9 +513,8 @@ describe('shared webhook transport integration', () => {
         url: 'https://partner.example/api/webhook',
         method: 'POST',
         headers: {
-          Authorization: 'test-webhook-secret',
-          'X-Webhook-Delivery-Id': 'rental-delivery-1',
-          'Idempotency-Key': 'rental-delivery-1',
+          'X-Webhook-Delivery-Id': 'tenant-delivery-1',
+          'Idempotency-Key': 'tenant-delivery-1',
         },
       });
       expect(send.mock.calls[1]?.[0]).toMatchObject({
@@ -507,7 +526,9 @@ describe('shared webhook transport integration', () => {
           'Idempotency-Key': 'rental-delivery-2',
         },
       });
-      expect(JSON.parse(send.mock.calls[0]?.[0].body ?? '{}')).toEqual({
+      const sentBody = JSON.parse(send.mock.calls[0]?.[0].body ?? '{}');
+      expect(sentBody.event).toEqual('order.created');
+      expect(sentBody.payload).toEqual({
         action: 'confirmed',
       });
       expect(JSON.parse(send.mock.calls[1]?.[0].body ?? '{}')).toEqual({
@@ -532,19 +553,19 @@ describe('shared webhook transport integration', () => {
       .mockResolvedValue(activeWebhookIntegration as never);
 
     try {
-      const genericOutbox = new WebhookOutboxService({ send });
-      const rentalOutbox = new RentalWebhookOutboxService({ send });
+      const genericOutbox = new TenantWebhookOutboxService({ send });
+      const rentalOutbox = new WebhookOutboxService({ send });
       const genericResult = await (
         genericOutbox as unknown as {
           performFetch: (entry: Record<string, unknown>) => Promise<unknown>;
         }
       ).performFetch({
         id: 'retry-delivery-1',
-        deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
-        orderPublicToken: 'retry-token-1',
-        orderNumber: 'RNT-RETRY-1',
+        event: 'order.created',
+        webhookUrl: 'https://test',
+        webhookSecret: 'test-secret',
+        eventTimestamp: new Date(),
         payload: { action: 'confirmed' },
-        companyId: 'company-1',
       });
       const rentalResult = await (
         rentalOutbox as unknown as {
@@ -553,7 +574,7 @@ describe('shared webhook transport integration', () => {
       ).performFetch({
         id: 'retry-delivery-2',
         companyId: 'company-1',
-        deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
+        event: RentalWebhookDeliveryType.PAYMENT_STATUS,
         orderPublicToken: 'retry-token-2',
         orderNumber: 'RNT-RETRY-2',
         payload: { action: 'confirmed' },
@@ -563,7 +584,8 @@ describe('shared webhook transport integration', () => {
         success: false,
         permanent: false,
         statusCode: 503,
-        error: 'Webhook failed: 503',
+        error: 'HTTP 503',
+        duration: expect.any(Number),
       });
       expect(rentalResult).toEqual({
         success: false,
@@ -586,19 +608,19 @@ describe('shared webhook transport integration', () => {
       .mockResolvedValue(activeWebhookIntegration as never);
 
     try {
-      const genericOutbox = new WebhookOutboxService({ send });
-      const rentalOutbox = new RentalWebhookOutboxService({ send });
+      const genericOutbox = new TenantWebhookOutboxService({ send });
+      const rentalOutbox = new WebhookOutboxService({ send });
       const genericResult = await (
         genericOutbox as unknown as {
           performFetch: (entry: Record<string, unknown>) => Promise<unknown>;
         }
       ).performFetch({
         id: 'blocked-delivery-1',
-        deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
-        orderPublicToken: 'blocked-token-1',
-        orderNumber: 'RNT-BLOCKED-1',
+        event: 'order.created',
         payload: { privateValue: 'must-not-escape' },
-        companyId: 'company-1',
+        webhookUrl: 'https://test',
+        webhookSecret: 'test-secret',
+        eventTimestamp: new Date(),
       });
       const rentalResult = await (
         rentalOutbox as unknown as {
@@ -607,7 +629,7 @@ describe('shared webhook transport integration', () => {
       ).performFetch({
         id: 'blocked-delivery-2',
         companyId: 'company-1',
-        deliveryType: RentalWebhookDeliveryType.PAYMENT_STATUS,
+        event: RentalWebhookDeliveryType.PAYMENT_STATUS,
         orderPublicToken: 'blocked-token-2',
         orderNumber: 'RNT-BLOCKED-2',
         payload: {
@@ -620,6 +642,7 @@ describe('shared webhook transport integration', () => {
         success: false,
         permanent: true,
         error: 'Webhook endpoint rejected by security policy',
+        duration: expect.any(Number),
       });
       expect(rentalResult).toEqual({
         success: false,
@@ -641,7 +664,6 @@ describe('webhook callsite regression', () => {
       '../../src/services/webhook.service.ts',
       '../../src/services/tenant-webhook-outbox.service.ts',
       '../../src/modules/rental/webhook-outbox.service.ts',
-      '../../src/modules/rental/rental-webhook-outbox.service.ts',
       '../../src/modules/rental/rental-webhook.service.ts',
     ];
     const sources = sourcePaths.map((path) =>
@@ -652,16 +674,11 @@ describe('webhook callsite regression', () => {
       expect(source).not.toMatch(/\bfetch\s*\(/);
     }
 
-    for (const source of sources.slice(0, 4)) {
+    for (const source of sources.slice(0, 3)) {
       expect(source).toContain('defaultWebhookTransport');
       expect(source).toContain('transport.send');
     }
 
-    expect(sources[4]).toContain(
-      'rentalWebhookOutboxService.enqueuePaymentStatus'
-    );
-    expect(sources[4]).toContain(
-      'rentalWebhookOutboxService.enqueueNewOrder'
-    );
+    expect(sources[3]).toContain('webhookOutboxService.enqueue');
   });
 });

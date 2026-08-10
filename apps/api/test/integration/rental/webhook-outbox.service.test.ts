@@ -20,7 +20,7 @@ import { defaultWebhookTransport } from '@src/services/webhook-ssrf-transport';
 const COMPANY_ID = 'test-rental-webhook-outbox-001';
 
 const cleanupOutboxData = async () => {
-  await prisma.rentalWebhookOutbox.deleteMany({
+  await prisma.webhookOutbox.deleteMany({
     where: { companyId: COMPANY_ID },
   });
 };
@@ -157,7 +157,7 @@ describe('WebhookOutboxService', () => {
     expect(result.success).toBe(true);
     expect(result.skipped).toBe(true);
 
-    const entry = await prisma.rentalWebhookOutbox.findFirst({
+    const entry = await prisma.webhookOutbox.findFirst({
       where: {
         companyId: COMPANY_ID,
         orderPublicToken: 'skip-token-001',
@@ -189,7 +189,7 @@ describe('WebhookOutboxService', () => {
     expect(queued.status).toBe(RentalWebhookOutboxStatus.FAILED);
     expect(queued.attempts).toBe(1);
 
-    const failedEntry = await prisma.rentalWebhookOutbox.findFirstOrThrow({
+    const failedEntry = await prisma.webhookOutbox.findFirstOrThrow({
       where: {
         companyId: COMPANY_ID,
         orderPublicToken: 'payment-token-001',
@@ -216,7 +216,7 @@ describe('WebhookOutboxService', () => {
 
     transportSendMock.mockResolvedValueOnce({ statusCode: 200 });
 
-    await prisma.rentalWebhookOutbox.update({
+    await prisma.webhookOutbox.update({
       where: { id: failedEntry.id },
       data: {
         nextAttemptAt: new Date(Date.now() - 1_000),
@@ -241,7 +241,7 @@ describe('WebhookOutboxService', () => {
     );
 
     const deliveredEntry =
-      await prisma.rentalWebhookOutbox.findUniqueOrThrow({
+      await prisma.webhookOutbox.findUniqueOrThrow({
         where: { id: failedEntry.id },
       });
 
@@ -271,7 +271,7 @@ describe('WebhookOutboxService', () => {
       )
     ).rejects.toThrow('Webhook failed: 400');
 
-    const entry = await prisma.rentalWebhookOutbox.findFirstOrThrow({
+    const entry = await prisma.webhookOutbox.findFirstOrThrow({
       where: {
         companyId: COMPANY_ID,
         orderPublicToken: 'new-order-token-001',
@@ -303,7 +303,7 @@ describe('WebhookOutboxService', () => {
       )
     ).rejects.toThrow('Webhook failed: 400');
 
-    const deadLetter = await prisma.rentalWebhookOutbox.findFirstOrThrow({
+    const deadLetter = await prisma.webhookOutbox.findFirstOrThrow({
       where: {
         companyId: COMPANY_ID,
         orderPublicToken: 'new-order-token-replay-001',
@@ -329,7 +329,7 @@ describe('WebhookOutboxService', () => {
       delivered: 1,
     });
 
-    const delivered = await prisma.rentalWebhookOutbox.findUniqueOrThrow({
+    const delivered = await prisma.webhookOutbox.findUniqueOrThrow({
       where: { id: deadLetter.id },
     });
     expect(delivered.status).toBe(
@@ -352,7 +352,7 @@ describe('WebhookOutboxService', () => {
       },
     });
 
-    const failed = await prisma.rentalWebhookOutbox.findFirstOrThrow({
+    const failed = await prisma.webhookOutbox.findFirstOrThrow({
       where: {
         companyId: COMPANY_ID,
         orderPublicToken: 'payment-token-requeue-idempotent-001',
@@ -397,7 +397,7 @@ describe('WebhookOutboxService', () => {
       )
     ).rejects.toThrow('Webhook failed: 400');
 
-    const deadLetter = await prisma.rentalWebhookOutbox.findFirstOrThrow({
+    const deadLetter = await prisma.webhookOutbox.findFirstOrThrow({
       where: {
         companyId: COMPANY_ID,
         orderPublicToken: 'new-order-token-no-auto-retry-001',
@@ -406,7 +406,7 @@ describe('WebhookOutboxService', () => {
 
     await webhookOutboxService.processDueEntries();
 
-    const unchanged = await prisma.rentalWebhookOutbox.findUniqueOrThrow({
+    const unchanged = await prisma.webhookOutbox.findUniqueOrThrow({
       where: { id: deadLetter.id },
     });
 
@@ -444,14 +444,14 @@ describe('WebhookOutboxService', () => {
     );
     expect(firstAttempt.statusCode).toBe(429);
 
-    const failedEntry = await prisma.rentalWebhookOutbox.findFirstOrThrow({
+    const failedEntry = await prisma.webhookOutbox.findFirstOrThrow({
       where: {
         companyId: COMPANY_ID,
         orderPublicToken: 'payment-token-retryable-429-001',
       },
     });
 
-    await prisma.rentalWebhookOutbox.update({
+    await prisma.webhookOutbox.update({
       where: { id: failedEntry.id },
       data: {
         nextAttemptAt: new Date(Date.now() - 1_000),
@@ -469,7 +469,7 @@ describe('WebhookOutboxService', () => {
       deadLettered: 1,
     });
 
-    const deadLetter = await prisma.rentalWebhookOutbox.findUniqueOrThrow({
+    const deadLetter = await prisma.webhookOutbox.findUniqueOrThrow({
       where: { id: failedEntry.id },
     });
 

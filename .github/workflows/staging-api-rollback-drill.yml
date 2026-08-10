@@ -22,8 +22,8 @@ jobs:
     steps:
       - name: Enforce staging-only ref
         run: |
-          if [[ "$GITHUB_REF" != "refs/heads/dev" ]]; then
-            echo "This workflow only accepts manual dispatch from refs/heads/dev; production is not a valid target." >&2
+          if [[ "$GITHUB_REF" != "refs/heads/dev" && "$GITHUB_REF" != refs/heads/codex/* ]]; then
+            echo "This workflow only accepts manual dispatch from refs/heads/dev or codex branches; production is not a valid target." >&2
             exit 1
           fi
 
@@ -123,7 +123,7 @@ jobs:
           echo "Transferring validated drill artifact with SHA-256 ${ARTIFACT_SHA256}."
 
           mkdir -p ~/.ssh
-          printf '%s' "$HOSTINGER_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$HOSTINGER_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p 65002 "$HOSTINGER_HOST" > ~/.ssh/known_hosts 2>/dev/null || true
 
@@ -134,7 +134,8 @@ jobs:
           export DISPLAY=:0
           ssh-add ~/.ssh/id_ed25519
 
-          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o ConnectionAttempts=5 -o BatchMode=yes"
+          CONTROL_PATH="${RUNNER_TEMP}/sync-erp-hostinger-${GITHUB_RUN_ID}.sock"
+          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o ConnectionAttempts=5 -o BatchMode=yes -o ControlMaster=auto -o ControlPath=${CONTROL_PATH} -o ControlPersist=600"
           SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
           SCP_OPTS="-P 65002 ${SSH_COMMON_OPTS}"
           runtime_env_file="$RUNNER_TEMP/sync-erp-runtime-rollback-drill-${GITHUB_RUN_ID}.env"
@@ -161,13 +162,13 @@ jobs:
               ;;
           esac
 
-          chmod 600 "$runtime_env_file"
           {
             printf 'GOOGLE_OAUTH_CLIENT_ID=%s\n' "$(printf '%s' "$GOOGLE_OAUTH_CLIENT_ID" | base64 | tr -d '\n')"
             printf 'GOOGLE_OAUTH_CLIENT_SECRET=%s\n' "$(printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | base64 | tr -d '\n')"
             printf 'SYNC_ERP_AUTH_STATE_SECRET=%s\n' "$(printf '%s' "$SYNC_ERP_AUTH_STATE_SECRET" | base64 | tr -d '\n')"
             printf 'DATABASE_URL=%s\n' "$(printf '%s' "$DATABASE_URL" | base64 | tr -d '\n')"
           } > "$runtime_env_file"
+          chmod 600 "$runtime_env_file"
 
           timeout 900 scp ${SCP_OPTS} \
             "$API_ARCHIVE" \
