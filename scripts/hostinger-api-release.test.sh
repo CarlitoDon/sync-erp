@@ -36,6 +36,9 @@ set -euo pipefail
 
 for argument in "$@"; do
   if [[ "$argument" == node_modules/prisma/build/index.js || "$argument" == */node_modules/prisma/build/index.js ]]; then
+    if [[ -n "${MOCK_MIGRATION_LOG:-}" ]]; then
+      printf 'prisma migrate deploy\n' >> "$MOCK_MIGRATION_LOG"
+    fi
     if [[ "${MOCK_MIGRATION_RESULT:-success}" == "fail" ]]; then
       echo "mock migration failure" >&2
       exit 1
@@ -213,6 +216,7 @@ setup_case() {
 run_release() {
   local root="$1"
   shift
+  local action="${1:-deploy}"
   local target="$root/public_html/apps/api-staging"
   local archive="$root/api.tar.gz"
   local runtime_env="$root/runtime.env"
@@ -228,10 +232,11 @@ run_release() {
       MOCK_HEALTH_RESULT="${MOCK_HEALTH_RESULT:-success}" \
       MOCK_MIGRATION_RESULT="${MOCK_MIGRATION_RESULT:-success}" \
       MOCK_START_RESULT="${MOCK_START_RESULT:-success}" \
+      MOCK_MIGRATION_LOG="${MOCK_MIGRATION_LOG:-$root/migrations.log}" \
       DEPLOY_DIR='apps/api-staging' \
       PM2_NAME='sync-erp-api-staging' \
       APP_PORT='3001' \
-      RUNTIME_ENV='staging' \
+      RUNTIME_ENV="${MOCK_RUNTIME_ENV:-staging}" \
       DATABASE_PROJECT_REF='ctesbnhcqubamrtcxxqi' \
       EXPECTED_SHA="$new_sha" \
       REMOTE_API_ARCHIVE="$(basename "$archive")" \
@@ -241,7 +246,9 @@ run_release() {
       WEB_URL='https://web-staging.example' \
       OAUTH_REDIRECT_URL='https://api-staging.example/callback' \
       CORS_ORIGINS='https://web-staging.example' \
-      bash "$release_script" deploy
+      ROLLBACK_DRILL_CONFIRMATION='ROLLBACK_STAGING' \
+      DRILL_ID='deterministic-test' \
+      bash "$release_script" "$action"
   } 2>&1)" || status=$?
 
   printf '%s\n' "$output"
@@ -257,6 +264,30 @@ assert_contains 'using unknown' "$success_output"
 [[ "$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('$success_root/public_html/apps/api-staging/.release-state.json')).commit)")" == "$new_sha" ]]
 [[ "$(cut -d '|' -f 2 "$success_root/pm2.store")" == "$success_root/public_html/apps/api-staging/releases/${new_sha}" ]]
 [[ ! -e "$success_root/public_html/apps/api-staging/.release-rollback/${new_sha}.json" ]]
+
+drill_root="$(setup_case rollback-drill)"
+drill_output="$(MOCK_MIGRATION_LOG="$drill_root/drill-migrations.log" run_release "$drill_root" rollback-drill)"
+assert_contains 'Rollback drill explicitly skips database migrations' "$drill_output"
+assert_contains 'Rollback drill intentionally injecting failure after new release startup' "$drill_output"
+assert_contains 'ROLLBACK_DRILL_RESULT=success' "$drill_output"
+assert_contains 'ROLLBACK_DRILL_MIGRATIONS=skipped' "$drill_output"
+assert_contains 'ROLLBACK_DRILL_ATTEMPT_PATH=' "$drill_output"
+assert_contains "ROLLBACK_DRILL_PREVIOUS_SHA=${old_sha}" "$drill_output"
+assert_contains "ROLLBACK_DRILL_PREVIOUS_RELEASE=$drill_root/public_html/apps/api-staging" "$drill_output"
+[[ ! -s "$drill_root/drill-migrations.log" ]]
+[[ "$(cut -d '|' -f 2 "$drill_root/pm2.store")" == "$drill_root/public_html/apps/api-staging" ]]
+[[ "$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('$drill_root/public_html/apps/api-staging/release.json')).commit)")" == "$old_sha" ]]
+[[ ! -e "$drill_root/public_html/apps/api-staging/.release-rollback/${new_sha}.json" ]]
+[[ ! -e "$drill_root/public_html/apps/api-staging/releases/.rollback-drill-deterministic-test" ]]
+
+production_root="$(setup_case production-rejected)"
+if production_output="$(MOCK_RUNTIME_ENV=production MOCK_MIGRATION_LOG="$production_root/production-migrations.log" run_release "$production_root" rollback-drill)"; then
+  echo 'Expected production rollback drill to be rejected.' >&2
+  exit 1
+fi
+assert_contains 'Rollback drill is staging-only' "$production_output"
+[[ ! -s "$production_root/production-migrations.log" ]]
+[[ "$(cut -d '|' -f 2 "$production_root/pm2.store")" == "$production_root/public_html/apps/api-staging" ]]
 
 health_root="$(setup_case health-failure)"
 if health_output="$(MOCK_HEALTH_RESULT=fail run_release "$health_root")"; then
@@ -278,7 +309,7 @@ assert_contains 'Migrations are forward-only' "$migration_output"
 
 missing_root="$(setup_case missing-previous)"
 rm -f "$missing_root/public_html/apps/api-staging/release.json"
-if missing_output="$(run_release "$missing_root")"; then
+if missing_output="$(run_release "$missing_root" rollback-drill)"; then
   echo 'Expected missing previous release case to fail.' >&2
   exit 1
 fi

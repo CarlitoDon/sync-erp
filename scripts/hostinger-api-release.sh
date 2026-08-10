@@ -10,8 +10,8 @@
 set -euo pipefail
 
 ACTION="${1:-}"
-if [[ "$ACTION" != "deploy" ]]; then
-  echo "Usage: $0 deploy" >&2
+if [[ "$ACTION" != "deploy" && "$ACTION" != "rollback-drill" ]]; then
+  echo "Usage: $0 deploy|rollback-drill" >&2
   exit 2
 fi
 
@@ -48,9 +48,32 @@ if [[ ! "$APP_PORT" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
+if [[ "$ACTION" == "rollback-drill" ]]; then
+  if [[ "$RUNTIME_ENV" != "staging" ||
+    "$DEPLOY_DIR" != "apps/api-staging" ||
+    "$PM2_NAME" != "sync-erp-api-staging" ||
+    "$APP_PORT" != "3001" ||
+    "$DATABASE_PROJECT_REF" != "ctesbnhcqubamrtcxxqi" ]]; then
+    echo "Rollback drill is staging-only; refusing non-staging deployment target." >&2
+    exit 2
+  fi
+  if [[ "${ROLLBACK_DRILL_CONFIRMATION:-}" != "ROLLBACK_STAGING" ]]; then
+    echo "Rollback drill requires ROLLBACK_DRILL_CONFIRMATION=ROLLBACK_STAGING." >&2
+    exit 2
+  fi
+  if [[ -z "${DRILL_ID:-}" || ! "$DRILL_ID" =~ ^[A-Za-z0-9._-]{1,80}$ ]]; then
+    echo "Rollback drill requires a safe DRILL_ID." >&2
+    exit 2
+  fi
+fi
+
 target="$HOME/public_html/${DEPLOY_DIR}"
 release_root="$target/releases"
-release_dir="$release_root/$EXPECTED_SHA"
+if [[ "$ACTION" == "rollback-drill" ]]; then
+  release_dir="$release_root/.rollback-drill-${DRILL_ID}"
+else
+  release_dir="$release_root/$EXPECTED_SHA"
+fi
 rollback_root="$target/.release-rollback"
 rollback_file="$rollback_root/$EXPECTED_SHA.json"
 state_file="$target/.release-state.json"
@@ -488,15 +511,19 @@ upsert_env "$release_staging/.env" NODE_ENV "$RUNTIME_ENV"
 upsert_env "$release_staging/.env" CORS_ORIGIN "$CORS_ORIGINS"
 upsert_env "$release_staging/.env" CORS_ALLOWED_ORIGINS "$CORS_ORIGINS"
 
-echo "Applying forward-only database migrations before switching application traffic."
-if ! (
-  cd "$release_staging"
-  DATABASE_URL="$database_url" HOSTINGER_ENV="$RUNTIME_ENV" NODE_ENV="$RUNTIME_ENV" \
-    node node_modules/prisma/build/index.js migrate deploy --config prisma.config.ts
-); then
-  echo "Database migration failed before application switch; previous release ${PREVIOUS_SHA} remains active." >&2
-  echo "Migrations are forward-only; this deployment does not attempt database rollback." >&2
-  exit 1
+if [[ "$ACTION" == "rollback-drill" ]]; then
+  echo "Rollback drill explicitly skips database migrations; migration history will not be modified."
+else
+  echo "Applying forward-only database migrations before switching application traffic."
+  if ! (
+    cd "$release_staging"
+    DATABASE_URL="$database_url" HOSTINGER_ENV="$RUNTIME_ENV" NODE_ENV="$RUNTIME_ENV" \
+      node node_modules/prisma/build/index.js migrate deploy --config prisma.config.ts
+  ); then
+    echo "Database migration failed before application switch; previous release ${PREVIOUS_SHA} remains active." >&2
+    echo "Migrations are forward-only; this deployment does not attempt database rollback." >&2
+    exit 1
+  fi
 fi
 
 mv "$release_staging" "$release_dir"
@@ -509,6 +536,25 @@ fi
 if ! start_release "$release_dir" "$PM2_NAME" "$APP_PORT"; then
   restore_previous "new PM2 startup failure"
   fail "New release ${EXPECTED_SHA} could not start; previous release restored."
+fi
+
+if [[ "$ACTION" == "rollback-drill" ]]; then
+  echo "Rollback drill intentionally injecting failure after new release startup."
+  restore_previous "intentional rollback drill failure injection"
+  rm -rf "$release_dir"
+  restored_pid="$(pm2_pid "$PREVIOUS_PM2")"
+  require_online_pm2 "$PREVIOUS_PM2"
+  echo "ROLLBACK_DRILL_RESULT=success"
+  echo "ROLLBACK_DRILL_MIGRATIONS=skipped"
+  echo "ROLLBACK_DRILL_NEW_SHA=${EXPECTED_SHA}"
+  echo "ROLLBACK_DRILL_ATTEMPT_PATH=${release_dir}"
+  echo "ROLLBACK_DRILL_PREVIOUS_SHA=${PREVIOUS_SHA}"
+  echo "ROLLBACK_DRILL_PREVIOUS_VERSION=${PREVIOUS_VERSION}"
+  echo "ROLLBACK_DRILL_PREVIOUS_RELEASE=${PREVIOUS_RELEASE}"
+  echo "ROLLBACK_DRILL_PREVIOUS_PM2=${PREVIOUS_PM2}"
+  echo "ROLLBACK_DRILL_PREVIOUS_PORT=${PREVIOUS_PORT}"
+  echo "ROLLBACK_DRILL_PREVIOUS_PID=${restored_pid}"
+  exit 0
 fi
 
 if ! verify_local_release "$release_dir" "$APP_PORT" "$EXPECTED_SHA"; then
