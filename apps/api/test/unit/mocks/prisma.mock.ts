@@ -230,6 +230,28 @@ export const mockPrisma = {
   auditLog: {
     create: vi.fn(),
   },
+  webhookOutbox: {
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    count: vi.fn(),
+    deleteMany: vi.fn(),
+  },
+  tenantWebhookOutbox: {
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    count: vi.fn(),
+    deleteMany: vi.fn(),
+  },
   $transaction: vi.fn((arg) => {
     // Handle both patterns: array of queries or callback function
     if (Array.isArray(arg)) {

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import {
   prisma,
   Prisma,
@@ -68,6 +69,7 @@ const DEFAULT_RETRY_BASE_MS = 30_000;
 const DEFAULT_RETRY_MAX_MS = 15 * 60_000;
 const DEFAULT_POLL_INTERVAL_MS = 30_000;
 const DEFAULT_DEAD_LETTER_WARN_THRESHOLD = 20;
+const DEFAULT_STALE_PROCESSING_LEASE_MS = 5 * 60_000;
 
 const webhookEventForDeliveryType = (
   event: RentalWebhookDeliveryType | string | null
@@ -222,6 +224,38 @@ export class WebhookOutboxService {
     }
 
     return summary;
+  }
+
+  /**
+   * Recover deliveries stuck in PROCESSING after a crash or a claim that
+   * never completed. Records whose lease has not been refreshed within the
+   * stale threshold are reset to PENDING with an immediate nextAttemptAt so
+   * the next poll cycle can claim and retry them. Attempts are preserved.
+   */
+  async recoverStaleProcessingClaims(
+    staleAfterMs = DEFAULT_STALE_PROCESSING_LEASE_MS
+  ): Promise<number> {
+    const staleBefore = new Date(Date.now() - staleAfterMs);
+
+    const result = await prisma.webhookOutbox.updateMany({
+      where: {
+        status: RentalWebhookOutboxStatus.PROCESSING,
+        updatedAt: { lte: staleBefore },
+      },
+      data: {
+        status: RentalWebhookOutboxStatus.PENDING,
+        nextAttemptAt: new Date(),
+      },
+    });
+
+    if (result.count > 0) {
+      console.warn(
+        '[WebhookOutbox] Recovered stale PROCESSING claims',
+        { recovered: result.count, staleBefore }
+      );
+    }
+
+    return result.count;
   }
 
   async getQueueCounts(
@@ -589,6 +623,8 @@ export class WebhookOutboxService {
     }
 
     const url = `${baseUrl}${urlPath}`;
+    const body = JSON.stringify(requestBody);
+    const signature = this.generateSignature(body, secret);
 
     try {
       const response = await this.transport.send({
@@ -597,10 +633,12 @@ export class WebhookOutboxService {
         headers: {
           'Content-Type': 'application/json',
           Authorization: secret,
+          'X-Webhook-Signature': signature,
+          'X-Webhook-Timestamp': Date.now().toString(),
           'X-Webhook-Delivery-Id': entry.id,
           'Idempotency-Key': entry.id,
         },
-        body: JSON.stringify(requestBody),
+        body,
         timeoutMs: WEBHOOK_TIMEOUT_MS,
       });
 
@@ -622,6 +660,15 @@ export class WebhookOutboxService {
       };
     }
   }
+
+  /**
+   * HMAC-SHA256 signature over the serialized request body. Receivers can
+   * verify authenticity with the integration webhook secret, matching the
+   * tenant webhook outbox convention.
+   */
+  private generateSignature(body: string, secret: string): string {
+    return crypto.createHmac('sha256', secret).update(body).digest('hex');
+  }
 }
 
 export const webhookOutboxService = new WebhookOutboxService();
@@ -633,10 +680,13 @@ export const startWebhookOutboxWorker = () => {
   );
   let isRunning = false;
 
-  const run = async () => {
+  const run = async (options?: { recoverStale?: boolean }) => {
     if (isRunning) return;
     isRunning = true;
     try {
+      if (options?.recoverStale) {
+        await webhookOutboxService.recoverStaleProcessingClaims();
+      }
       await webhookOutboxService.processDueEntries();
     } catch (error) {
       console.error(
@@ -652,7 +702,8 @@ export const startWebhookOutboxWorker = () => {
     void run();
   }, pollIntervalMs);
   timer.unref();
-  void run();
+  // Recover stale PROCESSING claims on startup, then process what is due.
+  void run({ recoverStale: true });
 
   return () => {
     clearInterval(timer);
