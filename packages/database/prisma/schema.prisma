@@ -1171,8 +1171,12 @@ model RentalOrder {
   updatedAt       DateTime          @updatedAt
   createdBy       String
 
-  // Public access token for customer tracking
-  publicToken String? @unique @default(uuid())
+  // Public access token for customer tracking.
+  // Time-boxed: publicTokenExpiresAt must be set for the token to authorize
+  // public tracking reads, and expires at the later of that timestamp or the
+  // terminal-order cut-off in the service. Never sent in public responses.
+  publicToken          String?    @unique @default(uuid())
+  publicTokenExpiresAt DateTime?
 
   // External storefront integration fields
   deliveryFee     Decimal?    @db.Decimal(15, 2)
@@ -1216,6 +1220,7 @@ model RentalOrder {
   @@index([dueDateTime])
   @@index([orderSource])
   @@index([companyId, rentalPaymentStatus]) // For filtering orders awaiting payment verification
+  @@index([publicTokenExpiresAt])
 }
 
 model RentalOrderExtension {

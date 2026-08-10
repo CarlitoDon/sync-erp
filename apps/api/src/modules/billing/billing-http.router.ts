@@ -47,6 +47,20 @@ function formatCheckoutAmount(
     : formatPlanPrice(plan);
 }
 
+/**
+ * Simple HTML escape for sandbox page interpolation.
+ * Prevents XSS when tenant-supplied data (company name, plan name) is
+ * rendered in the manual checkout page.
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function renderCheckoutPage(input: {
   companyName: string;
   planName: string;
@@ -55,6 +69,13 @@ function renderCheckoutPage(input: {
   checkoutSessionId: string;
   provider: string;
 }) {
+  const companyName = escapeHtml(input.companyName);
+  const planName = escapeHtml(input.planName);
+  const billingCycle = escapeHtml(input.billingCycle);
+  const amountLabel = escapeHtml(input.amountLabel);
+  const provider = escapeHtml(input.provider);
+  // checkoutSessionId is validated as a CUID/UUID in the route.
+
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -81,11 +102,11 @@ function renderCheckoutPage(input: {
       <h1>Sync ERP Billing Checkout</h1>
       <p>Manual checkout sandbox untuk menguji alur subscribe, webhook, dan billing runtime.</p>
       <div class="meta">
-        <div class="row"><span class="label">Company</span><strong>${input.companyName}</strong></div>
-        <div class="row"><span class="label">Plan</span><strong>${input.planName}</strong></div>
-        <div class="row"><span class="label">Billing cycle</span><strong>${input.billingCycle}</strong></div>
-        <div class="row"><span class="label">Amount</span><strong>${input.amountLabel}</strong></div>
-        <div class="row"><span class="label">Provider</span><strong>${input.provider}</strong></div>
+        <div class="row"><span class="label">Company</span><strong>${companyName}</strong></div>
+        <div class="row"><span class="label">Plan</span><strong>${planName}</strong></div>
+        <div class="row"><span class="label">Billing cycle</span><strong>${billingCycle}</strong></div>
+        <div class="row"><span class="label">Amount</span><strong>${amountLabel}</strong></div>
+        <div class="row"><span class="label">Provider</span><strong>${provider}</strong></div>
       </div>
       <div class="actions">
         <form method="post" action="/api/billing/checkout/${input.checkoutSessionId}/confirm">
@@ -120,6 +141,32 @@ async function emitManualWebhook(
   });
 }
 
+/**
+ * Verify that a redirect URL is safe to use.
+ *
+ * Prevents Open Redirect vulnerabilities by ensuring that a caller-supplied
+ * URL (successUrl, cancelUrl) belongs to the approved web app origin.
+ */
+function isSafeRedirect(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const allowed = new URL(getWebAppUrl());
+    return (
+      parsed.protocol === allowed.protocol &&
+      parsed.host === allowed.host
+    );
+  } catch {
+    return false;
+  }
+}
+
+function getSafeRedirect(
+  supplied: string | null,
+  fallback: string
+): string {
+  return supplied && isSafeRedirect(supplied) ? supplied : fallback;
+}
+
 billingHttpRouter.get('/checkout/:checkoutSessionId', async (req, res) => {
   const checkoutSession =
     await prisma.billingCheckoutSession.findUnique({
@@ -135,6 +182,18 @@ billingHttpRouter.get('/checkout/:checkoutSessionId', async (req, res) => {
 
   if (!checkoutSession) {
     res.status(404).send('Checkout session not found.');
+    return;
+  }
+
+  if (checkoutSession.status !== BillingCheckoutSessionStatus.OPEN) {
+    res
+      .status(400)
+      .send(`Checkout session is already ${checkoutSession.status.toLowerCase()}.`);
+    return;
+  }
+
+  if (checkoutSession.expiresAt < new Date()) {
+    res.status(400).send('Checkout session has expired.');
     return;
   }
 
@@ -174,6 +233,20 @@ billingHttpRouter.post(
         return;
       }
 
+      if (checkoutSession.status !== BillingCheckoutSessionStatus.OPEN) {
+        res
+          .status(400)
+          .send(
+            `Cannot confirm a ${checkoutSession.status.toLowerCase()} session.`
+          );
+        return;
+      }
+
+      if (checkoutSession.expiresAt < new Date()) {
+        res.status(400).send('Checkout session has expired.');
+        return;
+      }
+
       await emitManualWebhook({
         eventId: `manual_checkout_completed_${checkoutSession.id}`,
         eventType: 'checkout.completed',
@@ -193,8 +266,10 @@ billingHttpRouter.post(
       });
 
       res.redirect(
-        checkoutSession.successUrl ||
+        getSafeRedirect(
+          checkoutSession.successUrl,
           `${getWebAppUrl()}/settings/billing?checkout=success`
+        )
       );
     } catch (error) {
       next(error);
@@ -216,6 +291,11 @@ billingHttpRouter.post(
         return;
       }
 
+      if (checkoutSession.status !== BillingCheckoutSessionStatus.OPEN) {
+        res.status(400).send('Checkout session is not active.');
+        return;
+      }
+
       await emitManualWebhook({
         eventId: `manual_checkout_failed_${checkoutSession.id}`,
         eventType: 'checkout.failed',
@@ -229,8 +309,10 @@ billingHttpRouter.post(
       });
 
       res.redirect(
-        checkoutSession.cancelUrl ||
+        getSafeRedirect(
+          checkoutSession.cancelUrl,
           `${getWebAppUrl()}/settings/billing?checkout=failed`
+        )
       );
     } catch (error) {
       next(error);
@@ -243,17 +325,31 @@ billingHttpRouter.post(
   async (req, res, next) => {
     try {
       const checkoutSession =
-        await prisma.billingCheckoutSession.update({
-          where: { id: req.params.checkoutSessionId },
-          data: {
-            status: BillingCheckoutSessionStatus.CANCELED,
-            canceledAt: new Date(),
+        await prisma.billingCheckoutSession.findFirst({
+          where: {
+            id: req.params.checkoutSessionId,
+            status: BillingCheckoutSessionStatus.OPEN,
           },
         });
 
+      if (!checkoutSession) {
+        res.status(404).send('Active checkout session not found.');
+        return;
+      }
+
+      const updated = await prisma.billingCheckoutSession.update({
+        where: { id: checkoutSession.id },
+        data: {
+          status: BillingCheckoutSessionStatus.CANCELED,
+          canceledAt: new Date(),
+        },
+      });
+
       res.redirect(
-        checkoutSession.cancelUrl ||
+        getSafeRedirect(
+          updated.cancelUrl,
           `${getWebAppUrl()}/settings/billing?checkout=cancelled`
+        )
       );
     } catch (error) {
       next(error);

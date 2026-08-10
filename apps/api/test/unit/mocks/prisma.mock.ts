@@ -195,6 +195,8 @@ export const mockPrisma = {
   },
   rentalOrder: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    create: vi.fn(),
     update: vi.fn(),
   },
   rentalOrderExtension: {
