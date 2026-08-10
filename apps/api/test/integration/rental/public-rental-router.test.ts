@@ -56,7 +56,7 @@ const cleanupCompanyData = async (
   companyIds: string[] = [COMPANY_ID, COMPANY_B_ID]
 ) => {
   await prisma.$transaction([
-    prisma.rentalWebhookOutbox.deleteMany({
+    prisma.webhookOutbox.deleteMany({
       where: { companyId: { in: companyIds } },
     }),
     prisma.rentalBundleComponent.deleteMany({

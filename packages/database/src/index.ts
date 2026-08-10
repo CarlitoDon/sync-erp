@@ -52,7 +52,7 @@ export type {
   CleaningLog,
   CustomerRentalRisk,
   RentalPolicy,
-  RentalWebhookOutbox,
+  WebhookOutbox,
   TenantWebhookOutbox,
 } from './generated/client/client.js';
 

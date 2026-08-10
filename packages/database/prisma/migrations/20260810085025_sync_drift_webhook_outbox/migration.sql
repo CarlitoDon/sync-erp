@@ -12,7 +12,7 @@ DO $$ BEGIN
     ALTER TABLE "WebhookOutbox" ADD COLUMN IF NOT EXISTS "event" TEXT;
     
     -- Migrate existing deliveryType if column exists
-    IF EXISTS (SELECT column_name FROM information_schema.columns WHERE table_name='webhookoutbox' AND column_name='deliveryType') THEN
+    IF EXISTS (SELECT column_name FROM information_schema.columns WHERE table_name='WebhookOutbox' AND column_name='deliveryType') THEN
       UPDATE "WebhookOutbox" SET "event" = "deliveryType"::text;
       ALTER TABLE "WebhookOutbox" DROP COLUMN "deliveryType";
     END IF;
