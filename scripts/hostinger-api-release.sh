@@ -89,8 +89,8 @@ resolve_link() {
   local destination
   destination="$(readlink "$link")"
   case "$destination" in
-    /*) printf '%s\n' "$destination" ;;
-    *) printf '%s/%s\n' "$(cd "$(dirname "$link")" && pwd -P)" "$destination" ;;
+    /*) (cd "$destination" 2>/dev/null && pwd -P) || printf '%s\n' "$destination" ;;
+    *) (cd "$(dirname "$link")/$destination" 2>/dev/null && pwd -P) || printf '%s/%s\n' "$(cd "$(dirname "$link")" && pwd -P)" "$destination" ;;
   esac
 }
 
@@ -383,7 +383,9 @@ load_previous_release() {
       fail "Active release state exists without ${target}/current; refusing deployment."
     fi
     current_path="$(resolve_link "$target/current")"
-    [[ "$current_path" == "$PREVIOUS_RELEASE" ]] ||
+    current_physical="$(cd "$current_path" 2>/dev/null && pwd -P || echo "$current_path")"
+    previous_physical="$(cd "$PREVIOUS_RELEASE" 2>/dev/null && pwd -P || echo "$PREVIOUS_RELEASE")"
+    [[ "$current_physical" == "$previous_physical" ]] ||
       fail "Active release state and current symlink disagree; refusing deployment."
   elif [[ -f "$target/release.json" ]]; then
     PREVIOUS_SHA_AND_VERSION="$(read_manifest "$target" 1)" ||
