@@ -91,6 +91,7 @@ The application should be releasable through a truthful, recoverable pipeline; e
 - [x] Repair Playwright discovery, add a real script and controlled preview server, fail on zero tests/failure, retain traces, and remove generated report/result files from the tracked path. Evidence: published in `222f79f`.
 - [x] Add a deterministic API release-artifact contract: CI writes an exact-SHA `release.json`, validates the real packaged artifact before upload and after download, and tests the validator with a disposable fixture. This proves artifact shape and commit metadata only; staging canary, database migration, health/readiness, and rollback evidence remain open.
 - [x] Expose release identity through API `/health` and MCP `/health` as `release.commit` and `release.version`, with explicit `unknown` fallbacks when `release.json` is absent; deployment health checks compare the expected `GITHUB_SHA` on local and external API responses and local MCP responses. This proves the code/workflow contract only; staging canary, migration compatibility, readiness dependencies, and rollback evidence remain open.
+- [x] Add a tested API Hostinger rollback transaction: capture the previous release/PM2 metadata, stage a SHA-named release, keep the previous app active through forward-only migration, restore the previous PM2 release after local startup/health/identity failure, and fail closed without a previous release. Live staging/production rollback drills remain open.
 
 ### In progress / partially evidenced
 

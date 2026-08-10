@@ -52,6 +52,8 @@ jobs:
               - 'scripts/verify-release-health.mjs'
               - 'scripts/verify-release-health.test.mjs'
               - 'scripts/write-release-manifest.mjs'
+              - 'scripts/hostinger-api-release.sh'
+              - 'scripts/hostinger-api-release.test.sh'
               - 'turbo.json'
             web:
               - '.github/workflows/ci-cd.yml'
@@ -111,6 +113,9 @@ jobs:
 
       - name: Test release health verifier
         run: npm run test:release-health
+
+      - name: Test Hostinger API release rollback
+        run: npm run test:hostinger-release
 
       - name: Test (integration)
         run: npm run test:integration --workspace=@sync-erp/api
@@ -241,6 +246,11 @@ jobs:
             echo "port=3002" >> "$GITHUB_OUTPUT"
             echo "runtime_env=production" >> "$GITHUB_OUTPUT"
             echo "database_project_ref=vktglrwmbrhtddpmekda" >> "$GITHUB_OUTPUT"
+            echo "api_url=https://api.santiliving.com/api/trpc" >> "$GITHUB_OUTPUT"
+            echo "api_base_url=https://api.santiliving.com" >> "$GITHUB_OUTPUT"
+            echo "web_url=https://sync-erp.khusnudhoni.online" >> "$GITHUB_OUTPUT"
+            echo "oauth_redirect_url=https://api.santiliving.com/api/auth/google/callback" >> "$GITHUB_OUTPUT"
+            echo "cors_origins=http://localhost:5173,https://santiliving.com,https://santi-living.vercel.app,https://sync-erp.vercel.app,https://sync-erp.khusnudhoni.online,https://bot.santiliving.com" >> "$GITHUB_OUTPUT"
           else
             echo "deploy_dir=apps/api-staging" >> "$GITHUB_OUTPUT"
             echo "health_host=https://api-staging.santiliving.com" >> "$GITHUB_OUTPUT"
@@ -248,6 +258,11 @@ jobs:
             echo "port=3001" >> "$GITHUB_OUTPUT"
             echo "runtime_env=staging" >> "$GITHUB_OUTPUT"
             echo "database_project_ref=ctesbnhcqubamrtcxxqi" >> "$GITHUB_OUTPUT"
+            echo "api_url=https://api-staging.santiliving.com/api/trpc" >> "$GITHUB_OUTPUT"
+            echo "api_base_url=https://api-staging.santiliving.com" >> "$GITHUB_OUTPUT"
+            echo "web_url=https://sync-erp-staging.santiliving.com" >> "$GITHUB_OUTPUT"
+            echo "oauth_redirect_url=https://api-staging.santiliving.com/api/auth/google/callback" >> "$GITHUB_OUTPUT"
+            echo "cors_origins=http://localhost:5173,https://sync-erp-staging.santiliving.com,https://sync-erp-git-dev-doncarlo31s-projects.vercel.app" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Setup SSH
@@ -340,238 +355,8 @@ jobs:
             "$RUNTIME_ENV_FILE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_RUNTIME_ENV}"
 
-          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_RUNTIME_ENV='${REMOTE_RUNTIME_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' DATABASE_PROJECT_REF='${DATABASE_PROJECT_REF}' EXPECTED_SHA='${GITHUB_SHA}' bash -s" <<'EOF'
-            set -exuo pipefail
-            export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
-            target="$HOME/public_html/${DEPLOY_DIR}"
-            runtime_env_path="$HOME/${REMOTE_RUNTIME_ENV}"
-
-            cleanup_remote() {
-              rm -f "$HOME/${REMOTE_API_ARCHIVE}" "$runtime_env_path"
-            }
-            trap cleanup_remote EXIT
-
-            decode_secret() {
-              local key="$1"
-              local encoded
-              encoded="$(sed -n "s/^${key}=//p" "$runtime_env_path" | tail -n 1)"
-              test -n "$encoded"
-              printf '%s' "$encoded" | base64 --decode
-            }
-
-            test -f "$runtime_env_path"
-            google_oauth_client_id="$(decode_secret GOOGLE_OAUTH_CLIENT_ID)"
-            google_oauth_client_secret="$(decode_secret GOOGLE_OAUTH_CLIENT_SECRET)"
-            sync_erp_auth_state_secret="$(decode_secret SYNC_ERP_AUTH_STATE_SECRET)"
-            database_url="$(decode_secret DATABASE_URL)"
-            rm -f "$runtime_env_path"
-
-            case "$database_url" in
-              *"postgres.${DATABASE_PROJECT_REF}:"*|*"@db.${DATABASE_PROJECT_REF}.supabase.co"*) ;;
-              *)
-                echo "Decoded DATABASE_URL does not match the expected ${RUNTIME_ENV} Supabase project."
-                exit 1
-                ;;
-            esac
-
-            mkdir -p "$target"
-            printf '%s\n' \
-              "# PM2 proxy - API running on localhost:${APP_PORT} via PM2" \
-              'RewriteEngine On' \
-              "RewriteRule ^(.*)\$ http://localhost:${APP_PORT}/\$1 [P,L]" \
-              > "$target/.htaccess"
-            find "$target" -mindepth 1 -maxdepth 1 \
-              ! -name '.env' \
-              ! -name '.htaccess' \
-              ! -name 'tmp' \
-              ! -name 'stderr.log' \
-              -exec rm -rf {} +
-            tar -xzf "$HOME/${REMOTE_API_ARCHIVE}" -C "$target"
-            cd "$target"
-
-            test -f node_modules/express/package.json
-            test -f node_modules/@sentry/node/package.json
-            test -f node_modules/ioredis/package.json
-
-            # Always override database package from GHA artifact (contains pre-compiled Prisma engine)
-            test -f node_modules/@sync-erp/database/package.json
-            test -f node_modules/@sync-erp/database/dist/index.js
-
-            # Keep public runtime URLs aligned with the temporary domains while
-            # preserving every secret already stored in Hostinger's .env file.
-            test -f "$target/.env"
-            upsert_env() {
-              local key="$1"
-              local value="$2"
-              local env_tmp
-              env_tmp="$(mktemp "${target}/.env.XXXXXX")"
-              awk -v key="$key" -v value="$value" '
-                BEGIN { found = 0 }
-                index($0, key "=") == 1 {
-                  if (!found) {
-                    print key "=" value
-                    found = 1
-                  }
-                  next
-                }
-                { print }
-                END {
-                  if (!found) {
-                    print key "=" value
-                  }
-                }
-              ' "$target/.env" > "$env_tmp"
-              mv "$env_tmp" "$target/.env"
-            }
-
-            if [ "$APP_PORT" = "3002" ]; then
-              api_url="https://api.santiliving.com/api/trpc"
-              api_base_url="https://api.santiliving.com"
-              web_url="https://sync-erp.khusnudhoni.online"
-              oauth_redirect_url="https://api.santiliving.com/api/auth/google/callback"
-              cors_origins="http://localhost:5173,https://santiliving.com,https://santi-living.vercel.app,https://sync-erp.vercel.app,https://sync-erp.khusnudhoni.online,https://bot.santiliving.com"
-            else
-              api_url="https://api-staging.santiliving.com/api/trpc"
-              api_base_url="https://api-staging.santiliving.com"
-              web_url="https://sync-erp-staging.santiliving.com"
-              oauth_redirect_url="https://api-staging.santiliving.com/api/auth/google/callback"
-              cors_origins="http://localhost:5173,https://sync-erp-staging.santiliving.com,https://sync-erp-git-dev-doncarlo31s-projects.vercel.app"
-            fi
-
-            upsert_env "SYNC_ERP_API_URL" "$api_url"
-            upsert_env "SYNC_ERP_API_BASE_URL" "$api_base_url"
-            upsert_env "SYNC_ERP_WEB_URL" "$web_url"
-            upsert_env "GOOGLE_OAUTH_REDIRECT_URI" "$oauth_redirect_url"
-            upsert_env "GOOGLE_OAUTH_CLIENT_ID" "$google_oauth_client_id"
-            upsert_env "GOOGLE_OAUTH_CLIENT_SECRET" "$google_oauth_client_secret"
-            upsert_env "SYNC_ERP_AUTH_STATE_SECRET" "$sync_erp_auth_state_secret"
-            upsert_env "DATABASE_URL" "$database_url"
-            upsert_env "HOSTINGER_ENV" "$RUNTIME_ENV"
-            upsert_env "NODE_ENV" "$RUNTIME_ENV"
-            upsert_env "CORS_ORIGIN" "$cors_origins"
-            upsert_env "CORS_ALLOWED_ORIGINS" "$cors_origins"
-            test -n "$(sed -n 's/^GOOGLE_OAUTH_CLIENT_ID=//p' "$target/.env" | tail -n 1)"
-            test -n "$(sed -n 's/^GOOGLE_OAUTH_CLIENT_SECRET=//p' "$target/.env" | tail -n 1)"
-            test -n "$(sed -n 's/^SYNC_ERP_AUTH_STATE_SECRET=//p' "$target/.env" | tail -n 1)"
-            test "$(sed -n 's/^DATABASE_URL=//p' "$target/.env" | tail -n 1)" = "$database_url"
-            test "$(sed -n 's/^HOSTINGER_ENV=//p' "$target/.env" | tail -n 1)" = "$RUNTIME_ENV"
-            test "$(sed -n 's/^NODE_ENV=//p' "$target/.env" | tail -n 1)" = "$RUNTIME_ENV"
-            test "$(sed -n 's/^CORS_ORIGIN=//p' "$target/.env" | tail -n 1)" = "$cors_origins"
-            test "$(sed -n 's/^CORS_ALLOWED_ORIGINS=//p' "$target/.env" | tail -n 1)" = "$cors_origins"
-
-            
-
-            # Assert Prisma JS wrapper packages are present in the release.
-            for prisma_pkg in client adapter-pg; do
-              if tar -tzf "$HOME/${REMOTE_API_ARCHIVE}" 2>/dev/null | grep -q "node_modules/@prisma/${prisma_pkg}/"; then
-                test -f "node_modules/@prisma/${prisma_pkg}/package.json"
-                echo "Found @prisma/${prisma_pkg} in built artifact"
-              fi
-            done
-
-            # Apply pending schema changes before stopping the currently running API.
-            # A migration failure leaves the old process serving traffic.
-            DATABASE_URL="$database_url" HOSTINGER_ENV="$RUNTIME_ENV" NODE_ENV="$RUNTIME_ENV" node node_modules/prisma/build/index.js migrate deploy --config prisma.config.ts
-
-            rm -f "$HOME/${REMOTE_API_ARCHIVE}"
-            mkdir -p tmp
-
-            pm2="$HOME/node-pm2/node_modules/.bin/pm2"
-            old_pids=""
-            for pid_file in "$HOME/.pm2/pids/${PM2_NAME}-"*.pid; do
-              [ -r "$pid_file" ] || continue
-              old_pid=""
-              IFS= read -r old_pid < "$pid_file" || true
-              case "$old_pid" in
-                ''|*[!0-9]*) continue ;;
-              esac
-              old_pids="${old_pids} ${old_pid}"
-            done
-            "$pm2" delete "$PM2_NAME" >/dev/null 2>&1 || true
-            for old_pid in $old_pids; do
-              kill "$old_pid" 2>/dev/null || true
-            done
-            sleep 2
-
-            # PM2 can occasionally leave a child process behind on constrained
-            # shared hosting. Stop only listeners whose cwd is this deployment.
-            if command -v fuser >/dev/null 2>&1; then
-              listener_pids="$(fuser -n tcp "$APP_PORT" 2>/dev/null || true)"
-              for listener_pid in $listener_pids; do
-                case "$listener_pid" in
-                  ''|*[!0-9]*) continue ;;
-                esac
-                listener_cwd="$(readlink "/proc/${listener_pid}/cwd" 2>/dev/null || true)"
-                if [ "$listener_cwd" != "$target" ]; then
-                  echo "Refusing to stop PID ${listener_pid}: cwd ${listener_cwd:-unknown} is not ${target}."
-                  exit 1
-                fi
-                kill "$listener_pid"
-              done
-              sleep 2
-            fi
-
-            if curl -fsS --connect-timeout 2 --max-time 3 \
-              "http://127.0.0.1:${APP_PORT}/health" >/dev/null 2>&1; then
-              echo "Port ${APP_PORT} is still occupied after stopping ${PM2_NAME}."
-              exit 1
-            fi
-
-            NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
-              SYNC_ERP_API_URL="$api_url" \
-              SYNC_ERP_API_BASE_URL="$api_base_url" \
-              SYNC_ERP_WEB_URL="$web_url" \
-              GOOGLE_OAUTH_REDIRECT_URI="$oauth_redirect_url" \
-              CORS_ORIGIN="$cors_origins" \
-              CORS_ALLOWED_ORIGINS="$cors_origins" \
-              HOSTINGER_ENV="$RUNTIME_ENV" \
-              PORT="$APP_PORT" NODE_ENV="$RUNTIME_ENV" \
-              "$pm2" start dist/index.js \
-                --name "$PM2_NAME" \
-                --cwd "$target" \
-                --time
-            "$pm2" save
-
-            for attempt in 1 2 3 4 5 6; do
-              if curl -fsS --connect-timeout 5 --max-time 10 \
-                "http://127.0.0.1:${APP_PORT}/health" >/dev/null; then
-                echo "Local API process is healthy on port ${APP_PORT}."
-                break
-              fi
-              if [ "$attempt" -eq 6 ]; then
-                "$pm2" logs "$PM2_NAME" --lines 80 --nostream
-                exit 1
-              fi
-              sleep 5
-            done
-
-            node verify-release-health.mjs \
-              --url "http://127.0.0.1:${APP_PORT}/health" \
-              --expected-sha "$EXPECTED_SHA"
-            node verify-release-health.mjs \
-              --url "http://127.0.0.1:${APP_PORT}/mcp/health" \
-              --expected-sha "$EXPECTED_SHA"
-            rm -f verify-release-health.mjs
-
-            cors_headers="$(mktemp)"
-            if ! curl -fsS --connect-timeout 5 --max-time 10 \
-              -o /dev/null \
-              -D "$cors_headers" \
-              -X OPTIONS \
-              "http://127.0.0.1:${APP_PORT}/api/trpc/auth.me" \
-              -H "Origin: ${web_url}" \
-              -H 'Access-Control-Request-Method: GET'; then
-              echo "Local API CORS preflight failed for ${web_url}."
-              "$pm2" logs "$PM2_NAME" --lines 80 --nostream
-              exit 1
-            fi
-            if ! grep -Fqi "access-control-allow-origin: ${web_url}" "$cors_headers"; then
-              echo "Local API did not allow the configured web origin ${web_url}."
-              exit 1
-            fi
-            rm -f "$cors_headers"
-            echo "Local API CORS preflight allows ${web_url}."
-          EOF
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+            "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_RUNTIME_ENV='${REMOTE_RUNTIME_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' DATABASE_PROJECT_REF='${DATABASE_PROJECT_REF}' EXPECTED_SHA='${GITHUB_SHA}' API_URL='${{ steps.target.outputs.api_url }}' API_BASE_URL='${{ steps.target.outputs.api_base_url }}' WEB_URL='${{ steps.target.outputs.web_url }}' OAUTH_REDIRECT_URL='${{ steps.target.outputs.oauth_redirect_url }}' CORS_ORIGINS='${{ steps.target.outputs.cors_origins }}' PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH bash -s -- deploy" < scripts/hostinger-api-release.sh
 
       - name: Verify API health
         env:
