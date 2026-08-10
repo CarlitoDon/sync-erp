@@ -1,5 +1,9 @@
 -- Idempotent rename
-ALTER TABLE IF EXISTS "RentalWebhookOutbox" RENAME TO "WebhookOutbox";
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'RentalWebhookOutbox') THEN
+    ALTER TABLE "RentalWebhookOutbox" RENAME TO "WebhookOutbox";
+  END IF;
+END $$;
 
 -- Idempotent Add Columns
 DO $$ BEGIN
