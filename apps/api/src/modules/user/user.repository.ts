@@ -50,7 +50,7 @@ export class UserRepository {
     });
   }
 
-  async addMember(data: Prisma.CompanyMemberUncheckedCreateInput) {
+  async addMember(data: { userId: string; companyId: string }) {
     return prisma.companyMember.create({
       data,
       include: {
@@ -61,14 +61,4 @@ export class UserRepository {
     });
   }
 
-  async removeMember(userId: string, companyId: string) {
-    return prisma.companyMember.delete({
-      where: {
-        userId_companyId: {
-          userId,
-          companyId,
-        },
-      },
-    });
-  }
 }

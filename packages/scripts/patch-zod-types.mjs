@@ -33,7 +33,18 @@ type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string
 type InputJsonValue = string | number | boolean | null | InputJsonValue[] | { [key: string]: InputJsonValue };
 type DecimalJsLike = { d: number[]; e: number; s: number; toFixed: () => string };
 const objectEnumValues = { instances: { DbNull: Symbol('DbNull'), JsonNull: Symbol('JsonNull') } };
-const PrismaDecimal = Decimal; // Use decimal.js class`;
+const PrismaDecimal = Decimal; // Use decimal.js class
+const Prisma = {
+  DbNull: objectEnumValues.instances.DbNull,
+  JsonNull: objectEnumValues.instances.JsonNull,
+  AnyNull: Symbol('AnyNull'),
+};`;
+// Remove the generator's Decimal import before inserting the canonical patch
+// block, but only when the problematic runtime import is present. This keeps
+// repeated patch runs idempotent while avoiding duplicate imports.
+if (content.includes("import { JsonValue, InputJsonValue, objectEnumValues, Decimal as PrismaDecimal, DecimalJsLike } from '@prisma/client/runtime/library';")) {
+  content = content.replace(/^import Decimal from 'decimal.js';\n/m, '');
+}
 content = content.replace(problematicImport, inlineTypes);
 
 // 2. Remove or fix Prisma type import if not used properly

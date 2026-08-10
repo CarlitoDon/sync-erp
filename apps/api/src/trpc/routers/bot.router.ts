@@ -5,6 +5,29 @@ import { createEnvValidator, BOT_STATUS_TIMEOUT_MS } from '@sync-erp/shared';
 
 const env = createEnvValidator('api');
 
+// Existing companies seed the administrative role as "Administrator".
+// Keep that role equivalent to the canonical ADMIN/OWNER roles here.
+const BOT_STATUS_ADMIN_ROLES = new Set([
+  'ADMIN',
+  'OWNER',
+  'ADMINISTRATOR',
+]);
+
+const adminOrOwnerProcedure = protectedProcedure.use(
+  ({ ctx, next }) => {
+    const role = ctx.userRole?.toUpperCase();
+
+    if (!role || !BOT_STATUS_ADMIN_ROLES.has(role)) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Admin or Owner access required',
+      });
+    }
+
+    return next();
+  }
+);
+
 // In-memory cache for bot status (updated by bot push + direct fetch)
 let botState = {
   status: 'INITIALIZING',
@@ -68,7 +91,7 @@ export const botRouter = router({
       return { success: true };
     }),
 
-  getStatus: protectedProcedure.query(async () => {
+  getStatus: adminOrOwnerProcedure.query(async () => {
     // Always fetch real status from bot (fixes Passenger restart losing state)
     return fetchBotStatus();
   }),
@@ -77,7 +100,7 @@ export const botRouter = router({
    * Ping the bot — sends "pong" to admin phone via WhatsApp
    * Frontend calls this to verify bot is truly working end-to-end
    */
-  ping: protectedProcedure.mutation(async () => {
+  ping: adminOrOwnerProcedure.mutation(async () => {
     const botUrl = env.getBotUrl();
     const botSecret = env.getBotSecret();
 
@@ -110,7 +133,7 @@ export const botRouter = router({
   /**
    * Logout from WhatsApp — clears session and restarts for fresh QR
    */
-  logout: protectedProcedure.mutation(async () => {
+  logout: adminOrOwnerProcedure.mutation(async () => {
     const botUrl = env.getBotUrl();
     const botSecret = env.getBotSecret();
 

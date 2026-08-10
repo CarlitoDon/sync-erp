@@ -64,13 +64,12 @@ jobs:
         run: npm run build:web
 
       - name: Run E2E tests
-        run: npm run test:e2e 2>/dev/null || echo "No e2e suite configured yet — placeholder"
-        continue-on-error: true
+        run: npm run test:e2e --workspace=@sync-erp/web
 
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: apps/web/playwright-report/
+          path: apps/web/.playwright-report/
           retention-days: 7

@@ -1,7 +1,16 @@
 import { prisma } from '@sync-erp/database';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { API_KEY_PREFIX_LENGTH, DEFAULT_RATE_LIMIT } from '@sync-erp/shared';
+import {
+  API_KEY_PREFIX_LENGTH,
+  DEFAULT_RATE_LIMIT,
+  DomainError,
+  DomainErrorCodes,
+} from '@sync-erp/shared';
+import {
+  getInvalidApiKeyPermissions,
+  normalizeApiKeyPermissions,
+} from '../modules/auth/rbac.policy';
 
 export interface ApiKeyValidationResult {
   companyId: string;
@@ -45,8 +54,20 @@ export class ApiKeyService {
       permissions?: string[];
       rateLimit?: number;
       expiresAt?: Date;
+      integrationId?: string;
     }
   ): Promise<CreateKeyResult> {
+    const permissions = normalizeApiKeyPermissions(
+      options?.permissions ?? ['rental:read', 'rental:write']
+    );
+    if (getInvalidApiKeyPermissions(permissions).length > 0) {
+      throw new DomainError(
+        'Unsupported API key permission',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
     // Generate a secure random key with sk_ prefix
     const rawKey = `sk_${crypto.randomBytes(24).toString('hex')}`;
     const keyPrefix = rawKey.substring(0, API_KEY_PREFIX_LENGTH); // "sk_xxxxxxx"
@@ -66,12 +87,10 @@ export class ApiKeyService {
         companyId,
         webhookUrl: options?.webhookUrl,
         webhookSecret,
-        permissions: options?.permissions ?? [
-          'rental:read',
-          'rental:write',
-        ],
+        permissions,
         rateLimit: options?.rateLimit ?? DEFAULT_RATE_LIMIT,
         expiresAt: options?.expiresAt,
+        integrationId: options?.integrationId,
       },
     });
 
@@ -178,7 +197,7 @@ export class ApiKeyService {
 
         return {
           companyId: candidate.companyId,
-          permissions: candidate.permissions,
+          permissions: normalizeApiKeyPermissions(candidate.permissions),
           keyId: candidate.id,
           rateLimit: candidate.rateLimit,
           integrationId: candidate.integrationId ?? undefined,
@@ -197,6 +216,87 @@ export class ApiKeyService {
       where: { id: keyId },
       data: { isActive: false },
     });
+  }
+
+  /**
+   * Atomically issue a replacement integration key and deactivate every
+   * previously active key for that integration. The replacement preserves
+   * the old delivery configuration and expiry unless the caller overrides
+   * them, while the caller remains responsible for validating permissions.
+   */
+  async rotateKey(
+    companyId: string,
+    integrationId: string,
+    name: string,
+    options?: {
+      permissions?: string[];
+      rateLimit?: number;
+      expiresAt?: Date;
+    }
+  ): Promise<CreateKeyResult> {
+    const permissions = normalizeApiKeyPermissions(
+      options?.permissions ?? ['rental:read', 'rental:write']
+    );
+    if (getInvalidApiKeyPermissions(permissions).length > 0) {
+      throw new DomainError(
+        'Unsupported API key permission',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    const rawKey = `sk_${crypto.randomBytes(24).toString('hex')}`;
+    const keyPrefix = rawKey.substring(0, API_KEY_PREFIX_LENGTH);
+    const keyHash = await bcrypt.hash(rawKey, 10);
+
+    const apiKey = await prisma.$transaction(async (tx) => {
+      const previousKey = await tx.apiKey.findFirst({
+        where: {
+          companyId,
+          integrationId,
+          isActive: true,
+        },
+        select: {
+          webhookUrl: true,
+          webhookSecret: true,
+          rateLimit: true,
+          expiresAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const created = await tx.apiKey.create({
+        data: {
+          keyHash,
+          keyPrefix,
+          name,
+          companyId,
+          integrationId,
+          webhookUrl: previousKey?.webhookUrl,
+          webhookSecret: previousKey?.webhookSecret,
+          permissions,
+          rateLimit:
+            options?.rateLimit ??
+            previousKey?.rateLimit ??
+            DEFAULT_RATE_LIMIT,
+          expiresAt: options?.expiresAt ?? previousKey?.expiresAt,
+        },
+      });
+
+      await tx.apiKey.updateMany({
+        where: {
+          companyId,
+          integrationId,
+          isActive: true,
+          id: { not: created.id },
+        },
+        data: { isActive: false },
+      });
+
+      return created;
+    });
+
+    return { key: rawKey, id: apiKey.id, keyPrefix };
   }
 
   /**
@@ -264,11 +364,31 @@ export class ApiKeyService {
     data: {
       name?: string;
       rateLimit?: number;
+      permissions?: string[];
     }
   ): Promise<void> {
+    const permissions = data.permissions
+      ? normalizeApiKeyPermissions(data.permissions)
+      : undefined;
+
+    if (
+      permissions &&
+      getInvalidApiKeyPermissions(permissions).length > 0
+    ) {
+      throw new DomainError(
+        'Unsupported API key permission',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
     await prisma.apiKey.update({
       where: { id: keyId },
-      data,
+      data: {
+        name: data.name,
+        rateLimit: data.rateLimit,
+        permissions,
+      },
     });
   }
 }

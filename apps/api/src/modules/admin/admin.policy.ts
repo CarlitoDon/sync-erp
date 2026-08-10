@@ -8,6 +8,7 @@
  */
 
 import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import { isPrivilegedRole, normalizeRole } from '../auth/rbac.policy';
 
 /**
  * AdminPolicy - Access control for admin observability operations.
@@ -18,9 +19,18 @@ export class AdminPolicy {
    */
   static ensureAdminAccess(
     userRole: string | undefined,
-    requiredRoles: string[] = ['ADMIN', 'OWNER']
+    requiredRoles: string[] = ['ADMIN', 'OWNER', 'ADMINISTRATOR']
   ): void {
-    if (!userRole || !requiredRoles.includes(userRole)) {
+    const normalizedRole = normalizeRole(userRole);
+    const normalizedRequiredRoles = requiredRoles.map((role) =>
+      normalizeRole(role)
+    );
+    const allowed =
+      normalizedRequiredRoles.length === 0
+        ? isPrivilegedRole(normalizedRole)
+        : normalizedRequiredRoles.includes(normalizedRole);
+
+    if (!normalizedRole || !allowed) {
       throw new DomainError(
         'Admin access required for this operation',
         403,
@@ -73,7 +83,7 @@ export class AdminPolicy {
    * Check if user can view sensitive audit data.
    */
   static canViewAuditData(userRole: string | undefined): boolean {
-    return userRole === 'ADMIN' || userRole === 'OWNER';
+    return isPrivilegedRole(userRole);
   }
 
   /**

@@ -9,6 +9,12 @@ import {
   isRetryableStatusCode,
   readPositiveInt,
 } from '../../services/webhook-outbox-config';
+import {
+  defaultWebhookTransport,
+  describeWebhookError,
+  WebhookSecurityError,
+  type WebhookTransport,
+} from '../../services/webhook-ssrf-transport';
 import { integrationService } from '../../services/integration.service';
 
 type PaymentStatusAction = 'confirmed' | 'rejected' | 'claimed';
@@ -99,6 +105,10 @@ const readNumber = (
 };
 
 export class RentalWebhookOutboxService {
+  constructor(
+    private readonly transport: WebhookTransport = defaultWebhookTransport
+  ) {}
+
   async enqueueNewOrder(
     input: {
       companyId: string;
@@ -607,20 +617,15 @@ export class RentalWebhookOutboxService {
 
   private async performFetch(entry: {
     id: string;
+    companyId: string;
     deliveryType: RentalWebhookDeliveryType;
     orderPublicToken: string;
     orderNumber: string | null;
     payload: Prisma.JsonValue;
   }): Promise<FetchResult> {
-    const outboxEntry =
-      await prisma.rentalWebhookOutbox.findUniqueOrThrow({
-        where: { id: entry.id },
-        select: { companyId: true },
-      });
-
     const activeIntegration =
       await integrationService.getActiveIntegrationForCompany(
-        outboxEntry.companyId
+        entry.companyId
       );
 
     if (!activeIntegration) {
@@ -694,61 +699,32 @@ export class RentalWebhookOutboxService {
     }
 
     try {
-      const response = await fetch(request.url, {
+      const response = await this.transport.send({
+        url: request.url,
         method: 'POST',
         headers: request.headers,
         body: JSON.stringify(request.body),
-        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
+        timeoutMs: WEBHOOK_TIMEOUT_MS,
       });
 
-      if (response.ok) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         return {
           success: true,
-          statusCode: response.status,
+          statusCode: response.statusCode,
         };
-      }
-
-      const rawError = await response.json().catch(() => ({}));
-      const errorData = rawError as {
-        message?: unknown;
-        error?: unknown;
-      };
-
-      let errorMessage = `Webhook failed: ${response.status}`;
-      if (errorData) {
-        if (typeof errorData.message === 'string') {
-          errorMessage = errorData.message;
-        } else if (typeof errorData.error === 'string') {
-          errorMessage = errorData.error;
-        } else if (
-          errorData.error &&
-          typeof errorData.error === 'object'
-        ) {
-          const nestedError = errorData.error as {
-            message?: unknown;
-          };
-          if (typeof nestedError.message === 'string') {
-            errorMessage = nestedError.message;
-          } else {
-            errorMessage = JSON.stringify(errorData.error);
-          }
-        }
       }
 
       return {
         success: false,
-        permanent: !isRetryableStatusCode(response.status),
-        statusCode: response.status,
-        error: errorMessage,
+        permanent: !isRetryableStatusCode(response.statusCode),
+        statusCode: response.statusCode,
+        error: `Webhook failed: ${response.statusCode}`,
       };
     } catch (error) {
       return {
         success: false,
-        permanent: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Unknown webhook error',
+        permanent: error instanceof WebhookSecurityError,
+        error: describeWebhookError(error),
       };
     }
   }

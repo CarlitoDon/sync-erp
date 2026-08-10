@@ -8,6 +8,7 @@ const createCaller = async (userId: string, companyId: string) => {
     context: {
       userId,
       companyId,
+      isSessionAuth: true,
     },
     headers: {},
   } as never;
@@ -18,13 +19,7 @@ const createCaller = async (userId: string, companyId: string) => {
     info: {} as never,
   });
 
-  return appRouter.createCaller({
-    ...ctx,
-    userPermissions: ['*:*'],
-    idempotencyKey: undefined,
-    integrationId: undefined,
-    isApiKeyAuth: false,
-  });
+  return appRouter.createCaller(ctx);
 };
 
 describe('Purchase Order Zod Integration', () => {
@@ -49,6 +44,21 @@ describe('Purchase Order Zod Integration', () => {
       },
     });
     userId = user.id;
+
+    const role = await prisma.role.create({
+      data: {
+        companyId,
+        name: 'Member',
+      },
+    });
+
+    await prisma.companyMember.create({
+      data: {
+        userId,
+        companyId,
+        roleId: role.id,
+      },
+    });
 
     const supplier = await prisma.partner.create({
       data: {
@@ -78,6 +88,8 @@ describe('Purchase Order Zod Integration', () => {
     await prisma.order.deleteMany({ where: { companyId } });
     await prisma.product.deleteMany({ where: { companyId } });
     await prisma.partner.deleteMany({ where: { companyId } });
+    await prisma.companyMember.deleteMany({ where: { companyId } });
+    await prisma.role.deleteMany({ where: { companyId } });
     await prisma.user.delete({ where: { id: userId } });
     await prisma.company.deleteMany({ where: { id: companyId } });
   });

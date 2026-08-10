@@ -1,6 +1,8 @@
 import { Prisma } from '@sync-erp/database';
 import { type User } from '@sync-erp/database';
 import { UserRepository } from './user.repository';
+import { CompanyService } from '../company/company.service';
+import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 
 export type PublicUser = Omit<User, 'passwordHash'>;
 
@@ -19,7 +21,8 @@ export interface CreateUserInput {
 
 export class UserService {
   constructor(
-    private readonly repository: UserRepository = new UserRepository()
+    private readonly repository: UserRepository = new UserRepository(),
+    private readonly companyService: CompanyService = new CompanyService()
   ) {}
 
   async create(
@@ -74,14 +77,37 @@ export class UserService {
     companyId: string,
     roleId?: string
   ) {
+    if (roleId) {
+      throw new DomainError(
+        'Direct role assignment is not allowed; use membership role management',
+        403,
+        DomainErrorCodes.FORBIDDEN
+      );
+    }
+
     return this.repository.addMember({
       userId,
       companyId,
-      roleId,
     });
   }
 
-  async removeFromCompany(userId: string, companyId: string) {
-    return this.repository.removeMember(userId, companyId);
+  async removeFromCompany(
+    userId: string,
+    companyId: string,
+    actorId?: string
+  ) {
+    if (!actorId) {
+      throw new DomainError(
+        'Actor identity is required for membership removal',
+        403,
+        DomainErrorCodes.FORBIDDEN
+      );
+    }
+
+    return this.companyService.removeMember(
+      companyId,
+      userId,
+      actorId
+    );
   }
 }

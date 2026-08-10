@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto';
 import crypto from 'node:crypto';
 import type { Request, Response } from 'express';
 import { getHttpRuntimeConfig, isHttpMcpEnabled } from './config.js';
+import { getReleaseIdentity } from './release-identity.js';
 
 const app = express();
 app.use(express.json());
@@ -36,6 +37,7 @@ app.get('/health', (_req, res) => {
       status: isHttpMcpEnabled() ? 'ok' : 'disabled',
       service: 'sync-erp-mcp',
       version: '1.0.0',
+      release: getReleaseIdentity(),
       transport: 'streamable-http',
       activeSessions: transports.size,
       maxSessions: runtimeConfig.maxSessions,

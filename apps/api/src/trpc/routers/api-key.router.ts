@@ -1,4 +1,8 @@
-import { router, protectedProcedure } from '../trpc';
+import {
+  apiKeyManagementProcedure,
+  getSafeApiKeyPermissions,
+  router,
+} from '../trpc';
 import { z } from 'zod';
 import { prisma } from '@sync-erp/database';
 import { TRPCError } from '@trpc/server';
@@ -14,19 +18,19 @@ export const apiKeyRouter = router({
   /**
    * List all API keys for the current company
    */
-  list: protectedProcedure.query(async ({ ctx }) => {
+  list: apiKeyManagementProcedure.query(async ({ ctx }) => {
     return apiKeyService.listKeys(ctx.companyId);
   }),
 
   /**
    * Generate a new API key for the current company
    */
-  create: protectedProcedure
+  create: apiKeyManagementProcedure
     .input(
       z.object({
         name: z.string().min(2).max(100),
         webhookUrl: z.string().url().optional(),
-        permissions: z.array(z.string()).optional(),
+        permissions: z.array(z.string()).max(20).optional(),
         rateLimit: z.number().min(100).max(10000).optional(),
         expiresInDays: z.number().min(1).max(365).optional(),
       })
@@ -43,12 +47,17 @@ export const apiKeyRouter = router({
           )
         : undefined;
 
+      const permissions = getSafeApiKeyPermissions(
+        ctx,
+        input.permissions
+      );
+
       const result = await apiKeyService.createKey(
         ctx.companyId,
         input.name,
         {
           webhookUrl: input.webhookUrl,
-          permissions: input.permissions,
+          permissions,
           rateLimit: input.rateLimit,
           expiresAt,
         }
@@ -68,7 +77,7 @@ export const apiKeyRouter = router({
   /**
    * Revoke an API key
    */
-  revoke: protectedProcedure
+  revoke: apiKeyManagementProcedure
     .input(z.object({ keyId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Verify ownership
@@ -90,7 +99,7 @@ export const apiKeyRouter = router({
   /**
    * Update webhook configuration for an API key
    */
-  updateWebhook: protectedProcedure
+  updateWebhook: apiKeyManagementProcedure
     .input(
       z.object({
         keyId: z.string(),
@@ -120,13 +129,14 @@ export const apiKeyRouter = router({
   /**
    * Update API key details (name, rate limit)
    */
-  update: protectedProcedure
+  update: apiKeyManagementProcedure
     .input(
       z.object({
         keyId: z.string(),
         name: z.string().min(2).max(100).optional(),
         rateLimit: z.number().min(100).max(10000).optional(),
         webhookUrl: z.string().url().nullable().optional(),
+        permissions: z.array(z.string()).max(20).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -142,9 +152,14 @@ export const apiKeyRouter = router({
         });
       }
 
+      const permissions = input.permissions
+        ? getSafeApiKeyPermissions(ctx, input.permissions)
+        : undefined;
+
       await apiKeyService.updateKey(input.keyId, {
         name: input.name,
         rateLimit: input.rateLimit,
+        permissions,
       });
 
       if (input.webhookUrl !== undefined) {
@@ -160,7 +175,7 @@ export const apiKeyRouter = router({
   /**
    * Test webhook connectivity
    */
-  testWebhook: protectedProcedure
+  testWebhook: apiKeyManagementProcedure
     .input(
       z.object({
         webhookUrl: z.string().url(),
@@ -190,7 +205,7 @@ export const apiKeyRouter = router({
   /**
    * Get API usage stats for dashboard
    */
-  getStats: protectedProcedure.query(async ({ ctx }) => {
+  getStats: apiKeyManagementProcedure.query(async ({ ctx }) => {
     const [keys, recentOrders] = await Promise.all([
       prisma.apiKey.findMany({
         where: { companyId: ctx.companyId },

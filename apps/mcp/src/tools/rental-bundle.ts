@@ -2,6 +2,12 @@ import type { ToolSpec } from '../types.js';
 import { apiQuery, apiMutation } from '../client.js';
 import { getString, companyIdProp, idProp } from './_helpers.js';
 
+function withoutCompanyId(input: Record<string, unknown>) {
+  const scopedInput = { ...input };
+  delete scopedInput.companyId;
+  return scopedInput;
+}
+
 export function getRentalBundleTools(): ToolSpec[] {
   return [
     {
@@ -13,7 +19,12 @@ export function getRentalBundleTools(): ToolSpec[] {
         required: ['companyId'],
       },
       handler: async (args) =>
-        apiQuery('rentalBundle.list', { companyId: getString(args, 'companyId') }, getString(args, 'companyId')),
+        apiQuery(
+          'rentalBundle.list',
+          {},
+          getString(args, 'companyId'),
+          true
+        ),
     },
     {
       name: 'rental_bundle_get',
@@ -40,7 +51,11 @@ export function getRentalBundleTools(): ToolSpec[] {
       handler: async (args) => {
         const cid = getString(args, 'companyId');
         const parsed: unknown = JSON.parse(getString(args, 'input'));
-        return apiMutation('rentalBundle.create', { ...(parsed as Record<string, unknown>), companyId: cid }, cid);
+        return apiMutation(
+          'rentalBundle.create',
+          withoutCompanyId(parsed as Record<string, unknown>),
+          cid
+        );
       },
     },
     {
@@ -56,7 +71,11 @@ export function getRentalBundleTools(): ToolSpec[] {
       },
       handler: async (args) => {
         const input: unknown = JSON.parse(getString(args, 'input'));
-        return apiMutation('rentalBundle.update', input as Record<string, unknown>, getString(args, 'companyId'));
+        return apiMutation(
+          'rentalBundle.update',
+          withoutCompanyId(input as Record<string, unknown>),
+          getString(args, 'companyId')
+        );
       },
     },
     {
