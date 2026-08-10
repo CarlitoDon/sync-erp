@@ -26,6 +26,7 @@ async function createArtifactFixture() {
     schemaVersion: 1,
     service: 'sync-erp-api',
     commit: COMMIT,
+    version: '0.0.1',
   };
 
   await writeFixtureFile(
@@ -95,6 +96,7 @@ test('accepts a complete artifact with its exact release SHA', async (t) => {
       commit: COMMIT,
       migrationCount: 1,
       service: 'sync-erp-api',
+      version: '0.0.1',
     });
   });
 });

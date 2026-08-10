@@ -28,6 +28,10 @@ function requiredOption(name) {
 const output = path.resolve(requiredOption('--output'));
 const service = requiredOption('--service');
 const commit = requiredOption('--commit');
+const version = option(
+  '--version',
+  process.env.RELEASE_VERSION ?? 'unknown'
+);
 
 if (!SHA_PATTERN.test(commit)) {
   throw new Error(
@@ -35,10 +39,15 @@ if (!SHA_PATTERN.test(commit)) {
   );
 }
 
+if (!version.trim()) {
+  throw new Error('Release version must not be empty.');
+}
+
 const manifest = {
   schemaVersion: 1,
   service,
   commit,
+  version,
   repository: option(
     '--repository',
     process.env.GITHUB_REPOSITORY ?? null
