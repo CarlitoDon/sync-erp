@@ -55,20 +55,40 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+import { assertDisposableDatabase } from './test-db-guard.js';
+
+// ... (existing imports)
+
+// ...
+
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
-    adapter,
-    log:
-      process.env.NODE_ENV === 'development'
-        ? ['error', 'warn']
-        : ['error'],
-    // Increase transaction timeout to handle Railway <-> Supabase latency
-    transactionOptions: {
-      maxWait: 10000, // Max wait time to acquire transaction: 10s
-      timeout: 30000, // Transaction operation timeout: 30s
-    },
-  });
+  (() => {
+    if (process.env.NODE_ENV === 'test') {
+      const client = new PrismaClient({
+        adapter,
+        log: ['error'],
+        transactionOptions: {
+          maxWait: 10000,
+          timeout: 30000,
+        },
+      });
+      assertDisposableDatabase(client);
+      return client;
+    }
+    return new PrismaClient({
+      adapter,
+      log:
+        process.env.NODE_ENV === 'development'
+          ? ['error', 'warn']
+          : ['error'],
+      // Increase transaction timeout to handle Railway <-> Supabase latency
+      transactionOptions: {
+        maxWait: 10000, // Max wait time to acquire transaction: 10s
+        timeout: 30000, // Transaction operation timeout: 30s
+      },
+    });
+  })();
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
