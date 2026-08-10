@@ -128,7 +128,7 @@ The application should be releasable through a truthful, recoverable pipeline; e
 
 ### In progress / partially evidenced
 
-- [ ] Unify rental outbox ownership so enqueue, processor, retries, replay, signatures, and startup use one implementation. Delivery transport is unified, but the older/newer outbox implementation split and stale `PROCESSING` recovery remain open.
+- [x] Unify rental outbox ownership so enqueue, processor, retries, replay, signatures, and startup use one implementation. Evidence: PR #61 merged; canonical service `apps/api/src/modules/rental/webhook-outbox.service.ts`; new `recoverStaleProcessingClaims()` + `generateSignature()` (HMAC-SHA256 `X-Webhook-Signature` + `X-Webhook-Timestamp`); startup recovery pass before first poll; 607 tests passed (6 new unit + 1 new integration), lint 0 errors, typecheck clean.
 - [ ] Harden SSRF/egress, Redis rate-limit failure behavior, idempotency fencing/scope, public order-token minimization/expiry, checkout escaping/capabilities, and raw HTTP error classification. Webhook and order-preview SSRF controls are complete; the generic bot send-message preview path, rate-limit fail-open, and public order-token exposure remain unchecked.
 
 ### Blocked pending external authority
