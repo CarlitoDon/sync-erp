@@ -2,13 +2,25 @@ name: AI Code Review (9router-tunnel)
 
 on:
   workflow_dispatch:
+    # Manual dispatch: run with the PR number, head ref (PR branch), and base ref.
+    inputs:
+      pr_number:
+        description: 'Pull request number to review'
+        required: true
+        type: number
+      head_ref:
+        description: 'Branch/ref of the PR head to check out (must be pushed to origin)'
+        required: true
+        type: string
+      base_ref:
+        description: 'Base branch for the PR (e.g., dev, main)'
+        required: false
+        type: string
+        default: 'dev'
   # Temporarily disabled — restore automatic AI review with:
   #   pull_request:
   #     types: [opened, synchronize, ready_for_review]
   #     branches: [dev, main]
-  # pull_request:
-  #   types: [opened, synchronize, ready_for_review]
-  #   branches: [dev, main]
 
 permissions:
   contents: read
@@ -18,13 +30,15 @@ jobs:
   ai-review:
     name: 🤖 AI Code Review
     runs-on: ubuntu-latest
-    # Skip draft PRs
-    if: github.event.pull_request.draft == false
+    # Skip draft PRs (only when triggered by pull_request, not workflow_dispatch)
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Manual dispatch: check out the supplied head ref; PR events use the PR head
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.head_ref || github.event.pull_request.head.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -40,6 +54,6 @@ jobs:
           AI_API_KEY: ${{ secrets.NINE_ROUTER_TUNNEL_API_KEY }}
           AI_MODEL: murah-cepat
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}
+          PR_BASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.base_ref || github.event.pull_request.base.ref }}
         run: tsx scripts/ai-review.ts
