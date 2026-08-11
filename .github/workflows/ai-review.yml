@@ -1,9 +1,12 @@
 name: AI Code Review (9router-tunnel)
 
 on:
-  pull_request:
-    types: [opened, synchronize, ready_for_review]
-    branches: [dev, main]
+  # TEMPORARILY DISABLED: automatic AI review on pull_request is paused.
+  # Restore by uncommenting the block below (and removing `workflow_dispatch` if desired).
+  # pull_request:
+  #   types: [opened, synchronize, ready_for_review]
+  #   branches: [dev, main]
+  workflow_dispatch:
 
 permissions:
   contents: read
