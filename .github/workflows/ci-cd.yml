@@ -93,7 +93,17 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Cache node_modules
+        id: npm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: npm-node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-node-modules-${{ runner.os }}-
+
       - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Setup test database
@@ -125,6 +135,7 @@ jobs:
         run: npm run build:api
 
       - name: Prepare deployment package
+        if: github.event_name == 'push'
         run: |
           rm -rf deploy/api-mcp
           mkdir -p deploy/api-mcp/node_modules/@sync-erp/database deploy/api-mcp/prisma
@@ -152,6 +163,7 @@ jobs:
           fi
 
       - name: Write API release manifest
+        if: github.event_name == 'push'
         env:
           RELEASE_SHA: ${{ github.sha }}
           RELEASE_REPOSITORY: ${{ github.repository }}
@@ -169,12 +181,15 @@ jobs:
             --run-id "$RELEASE_RUN_ID"
 
       - name: Validate API release artifact
+        if: github.event_name == 'push'
         run: node scripts/validate-api-artifact.mjs --artifact-dir deploy/api-mcp --expected-sha "$GITHUB_SHA"
 
       - name: Include release health verifier
+        if: github.event_name == 'push'
         run: cp scripts/verify-release-health.mjs deploy/api-mcp/verify-release-health.mjs
 
       - name: Upload API build artifact
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: api-mcp-build
@@ -194,7 +209,17 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Cache node_modules
+        id: npm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: npm-node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-node-modules-${{ runner.os }}-
+
       - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Lint
@@ -216,7 +241,7 @@ jobs:
   deploy_api:
     name: Deploy API to Hostinger
     needs: [changes, ci-api]
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment:
