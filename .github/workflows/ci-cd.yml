@@ -93,17 +93,12 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Cache node_modules
-        id: npm-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: npm-node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            npm-node-modules-${{ runner.os }}-
-
+      # Always run install. setup-node restores the npm cache but not the
+      # full node_modules tree, so npm always (re)links node_modules/.bin.
+      # A never-run install on a stale manual node_modules cache left
+      # `zod-prisma-types` missing from .bin and broke `prisma generate`
+      # during db:generate (run by turbo for lint/typecheck/test/build).
       - name: Install dependencies
-        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Setup test database
@@ -209,17 +204,8 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Cache node_modules
-        id: npm-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: npm-node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            npm-node-modules-${{ runner.os }}-
-
+      # Always run install — see ci-api job comment.
       - name: Install dependencies
-        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Lint
