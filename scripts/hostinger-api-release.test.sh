@@ -47,14 +47,38 @@ for argument in "$@"; do
   fi
 done
 
+current_cwd=""
+if [[ -f "${MOCK_PM2_STORE:-}" ]]; then
+  current_line="$(cat "$MOCK_PM2_STORE")"
+  current_cwd="$(printf '%s' "$current_line" | cut -d '|' -f 2)"
+fi
+
 if [[ "${1:-}" == */verify-release-health.mjs ]]; then
-  current_cwd=""
-  if [[ -f "${MOCK_PM2_STORE:-}" ]]; then
-    current_line="$(cat "$MOCK_PM2_STORE")"
-    current_cwd="$(printf '%s' "$current_line" | cut -d '|' -f 2)"
+  edge_request=0
+  for argument in "$@"; do
+    if [[ "$argument" == https://* ]]; then
+      edge_request=1
+    fi
+  done
+  if [[ "${MOCK_EDGE_HEALTH_RESULT:-success}" == "fail" &&
+    "$edge_request" -eq 1 &&
+    "$current_cwd" == *"/releases/${EXPECTED_SHA}" ]]; then
+    echo "mock public edge release identity failure" >&2
+    exit 1
   fi
   if [[ "${MOCK_HEALTH_RESULT:-success}" == "fail" && "$current_cwd" == *"/releases/${EXPECTED_SHA}" ]]; then
     echo "mock release identity failure" >&2
+    exit 1
+  fi
+  exit 0
+fi
+
+if [[ "${1:-}" == */verify-google-oauth-config.mjs ]]; then
+  if [[ -n "${MOCK_OAUTH_LOG:-}" ]]; then
+    printf '%s\n' "$*" >> "$MOCK_OAUTH_LOG"
+  fi
+  if [[ "${MOCK_OAUTH_RESULT:-success}" == "fail" && "$current_cwd" == *"/releases/${EXPECTED_SHA}" ]]; then
+    echo "mock OAuth redirect failure" >&2
     exit 1
   fi
   exit 0
@@ -199,6 +223,7 @@ setup_case() {
   write_file "$artifact/node_modules/@sync-erp/database/package.json" '{}'
   write_file "$artifact/node_modules/@sync-erp/database/dist/index.js" 'mock database'
   write_file "$artifact/verify-release-health.mjs" 'mock verifier'
+  write_file "$artifact/verify-google-oauth-config.mjs" 'mock OAuth verifier'
   tar -czf "$archive" -C "$artifact" .
 
   {
@@ -230,9 +255,12 @@ run_release() {
       MOCK_PM2_STORE="$root/pm2.store" \
       MOCK_PM2_SAVED="$root/pm2.saved" \
       MOCK_HEALTH_RESULT="${MOCK_HEALTH_RESULT:-success}" \
+      MOCK_EDGE_HEALTH_RESULT="${MOCK_EDGE_HEALTH_RESULT:-success}" \
+      MOCK_OAUTH_RESULT="${MOCK_OAUTH_RESULT:-success}" \
       MOCK_MIGRATION_RESULT="${MOCK_MIGRATION_RESULT:-success}" \
       MOCK_START_RESULT="${MOCK_START_RESULT:-success}" \
       MOCK_MIGRATION_LOG="${MOCK_MIGRATION_LOG:-$root/migrations.log}" \
+      MOCK_OAUTH_LOG="${MOCK_OAUTH_LOG:-$root/oauth.log}" \
       DEPLOY_DIR='apps/api-staging' \
       PM2_NAME='sync-erp-api-staging' \
       APP_PORT='3001' \
@@ -259,6 +287,9 @@ success_root="$(setup_case success)"
 success_output="$(run_release "$success_root")"
 assert_contains "Activated API release ${new_sha}" "$success_output"
 assert_contains 'using unknown' "$success_output"
+assert_contains \
+  '--request-url http://127.0.0.1:3001/api/auth/google/start?intent=login --expected-redirect-uri https://api-staging.example/callback' \
+  "$(cat "$success_root/oauth.log")"
 [[ -f "$success_root/public_html/apps/api-staging/releases/${new_sha}/release.json" ]]
 [[ "$(readlink "$success_root/public_html/apps/api-staging/current")" == "$success_root/public_html/apps/api-staging/releases/${new_sha}" ]]
 [[ "$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('$success_root/public_html/apps/api-staging/.release-state.json')).commit)")" == "$new_sha" ]]
@@ -297,6 +328,24 @@ fi
 assert_contains "Previous release ${old_sha} restored" "$health_output"
 [[ "$(cut -d '|' -f 2 "$health_root/pm2.store")" == "$health_root/public_html/apps/api-staging" ]]
 [[ ! -f "$health_root/public_html/apps/api-staging/.release-state.json" ]]
+
+edge_root="$(setup_case public-edge-failure)"
+if edge_output="$(MOCK_EDGE_HEALTH_RESULT=fail run_release "$edge_root")"; then
+  echo 'Expected public edge health failure case to fail.' >&2
+  exit 1
+fi
+assert_contains "Previous release ${old_sha} restored" "$edge_output"
+[[ "$(cut -d '|' -f 2 "$edge_root/pm2.store")" == "$edge_root/public_html/apps/api-staging" ]]
+[[ ! -f "$edge_root/public_html/apps/api-staging/.release-state.json" ]]
+
+oauth_root="$(setup_case oauth-failure)"
+if oauth_output="$(MOCK_OAUTH_RESULT=fail run_release "$oauth_root")"; then
+  echo 'Expected OAuth redirect failure case to fail.' >&2
+  exit 1
+fi
+assert_contains "Previous release ${old_sha} restored" "$oauth_output"
+[[ "$(cut -d '|' -f 2 "$oauth_root/pm2.store")" == "$oauth_root/public_html/apps/api-staging" ]]
+[[ ! -f "$oauth_root/public_html/apps/api-staging/.release-state.json" ]]
 
 migration_root="$(setup_case migration-failure)"
 if migration_output="$(MOCK_MIGRATION_RESULT=fail run_release "$migration_root")"; then
