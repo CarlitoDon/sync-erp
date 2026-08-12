@@ -382,7 +382,7 @@ jobs:
           # for deployment. GitHub-hosted runner IPs can receive a WAF 403 for
           # the public health routes even when the API is healthy.
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
-            "DEPLOY_DIR='${DEPLOY_DIR}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' EXPECTED_SHA='${GITHUB_SHA}' PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH bash -s -- verify" <<'REMOTE'
+            "DEPLOY_DIR='${DEPLOY_DIR}' APP_PORT='${APP_PORT}' API_BASE_URL='${{ steps.target.outputs.api_base_url }}' OAUTH_REDIRECT_URL='${{ steps.target.outputs.oauth_redirect_url }}' RUNTIME_ENV='${RUNTIME_ENV}' EXPECTED_SHA='${GITHUB_SHA}' PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH bash -s -- verify" <<'REMOTE'
           set -euo pipefail
 
           verifier="$HOME/public_html/${DEPLOY_DIR}/current/verify-release-health.mjs"
@@ -390,14 +390,27 @@ jobs:
             echo "Active API release verifier is missing."
             exit 1
           fi
+          oauth_verifier="$HOME/public_html/${DEPLOY_DIR}/current/verify-google-oauth-config.mjs"
+          if [[ ! -f "$oauth_verifier" ]]; then
+            echo "Active API OAuth verifier is missing."
+            exit 1
+          fi
 
           for path in /health /mcp/health; do
             node "$verifier" \
               --url "http://127.0.0.1:${APP_PORT}${path}" \
               --expected-sha "$EXPECTED_SHA"
+            node "$verifier" \
+              --url "${API_BASE_URL}${path}" \
+              --expected-sha "$EXPECTED_SHA"
           done
 
-          echo "Verified API release ${EXPECTED_SHA} on ${RUNTIME_ENV} Hostinger loopback."
+          node "$oauth_verifier" \
+            --request-url "${API_BASE_URL}/api/auth/google/start?intent=login" \
+            --expected-redirect-uri "$OAUTH_REDIRECT_URL" \
+            --request-scope public-edge
+
+          echo "Verified API release ${EXPECTED_SHA} on ${RUNTIME_ENV} Hostinger loopback and public edge."
           REMOTE
 
   deploy_web:

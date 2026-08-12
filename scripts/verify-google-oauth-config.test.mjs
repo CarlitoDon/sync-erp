@@ -18,26 +18,29 @@ providerUrl.searchParams.set('redirect_uri', expectedRedirectUri);
 providerUrl.searchParams.set('response_type', 'code');
 providerUrl.searchParams.set('state', 'state-must-not-leak');
 
-function response(status, location) {
+function response(status, location, body = '') {
   return {
     status,
     headers: new Headers(location ? { location } : {}),
+    text: async () => body,
   };
 }
 
-function mockFetch(result) {
+function mockFetch(results) {
   const calls = [];
+  const queue = Array.isArray(results) ? results : [results];
   const fetchImpl = async (url, options) => {
     calls.push({ url, options });
-    return result;
+    return queue[Math.min(calls.length - 1, queue.length - 1)];
   };
   return { calls, fetchImpl };
 }
 
 test('accepts an exact public callback from a Hostinger loopback request', async () => {
-  const { calls, fetchImpl } = mockFetch(
-    response(302, providerUrl.href)
-  );
+  const { calls, fetchImpl } = mockFetch([
+    response(302, providerUrl.href),
+    response(200, undefined, '<html>Google sign in</html>'),
+  ]);
 
   const result = await verifyGoogleOAuthRedirect({
     requestUrl,
@@ -47,10 +50,30 @@ test('accepts an exact public callback from a Hostinger loopback request', async
 
   assert.equal(result.status, 302);
   assert.equal(result.followedProviderRedirect, false);
-  assert.equal(calls.length, 1);
+  assert.equal(result.providerValidated, true);
+  assert.equal(calls.length, 2);
   assert.equal(calls[0].url, requestUrl);
   assert.equal(calls[0].options.redirect, 'manual');
   assert.equal(calls[0].options.headers.cookie, undefined);
+  assert.equal(calls[0].options.signal instanceof AbortSignal, true);
+});
+
+test('validates the provider response without following it automatically', async () => {
+  const { calls, fetchImpl } = mockFetch([
+    response(302, providerUrl.href),
+    response(200, undefined, '<html>Google sign in</html>'),
+  ]);
+
+  await verifyGoogleOAuthRedirect({
+    requestUrl,
+    expectedRedirectUri,
+    fetchImpl,
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].url, providerUrl.href);
+  assert.equal(calls[1].options.redirect, 'manual');
+  assert.equal(calls[1].options.headers.cookie, undefined);
 });
 
 for (const [name, result, expectedMessage] of [
@@ -146,4 +169,98 @@ test('does not follow the provider redirect or expose its URL on request failure
   assert.equal(providerFollowed, false);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, requestUrl);
+});
+
+test('rejects an OAuth provider redirect_uri_mismatch page', async () => {
+  const { fetchImpl } = mockFetch([
+    response(302, providerUrl.href),
+    response(200, undefined, 'Error 400: redirect_uri_mismatch'),
+  ]);
+
+  await assert.rejects(
+    verifyGoogleOAuthRedirect({
+      requestUrl,
+      expectedRedirectUri,
+      fetchImpl,
+    }),
+    /Google rejected the configured callback URI/
+  );
+});
+
+test('rejects a provider redirect carrying redirect_uri_mismatch', async () => {
+  const mismatchUrl = new URL(providerUrl.href);
+  mismatchUrl.searchParams.set('error', 'redirect_uri_mismatch');
+  const { fetchImpl } = mockFetch([
+    response(302, providerUrl.href),
+    response(302, mismatchUrl.href),
+  ]);
+
+  await assert.rejects(
+    verifyGoogleOAuthRedirect({
+      requestUrl,
+      expectedRedirectUri,
+      fetchImpl,
+    }),
+    /Google rejected the configured callback URI/
+  );
+});
+
+test('rejects request and callback URLs outside the declared policy', async () => {
+  await assert.rejects(
+    verifyGoogleOAuthRedirect({
+      requestUrl: 'https://api-staging.santiliving.com/api/auth/google/start',
+      expectedRedirectUri,
+    }),
+    /loopback request URL/
+  );
+
+  await assert.rejects(
+    verifyGoogleOAuthRedirect({
+      requestUrl,
+      expectedRedirectUri: 'http://api-staging.santiliving.com/callback',
+    }),
+    /public HTTPS URL/
+  );
+
+  await assert.rejects(
+    verifyGoogleOAuthRedirect({
+      requestUrl:
+        'https://api-staging.santiliving.com/api/auth/google/start',
+      expectedRedirectUri:
+        'https://other-api-staging.santiliving.com/api/auth/google/callback',
+      requestScope: 'public-edge',
+      fetchImpl: async () => response(302, providerUrl.href),
+    }),
+    /public-edge request and callback/
+  );
+});
+
+test('allows the explicitly scoped public-edge request', async () => {
+  const publicRequestUrl =
+    'https://api-staging.santiliving.com/api/auth/google/start?intent=login';
+  const { fetchImpl } = mockFetch([
+    response(302, providerUrl.href),
+    response(200, undefined, '<html>Google sign in</html>'),
+  ]);
+
+  const result = await verifyGoogleOAuthRedirect({
+    requestUrl: publicRequestUrl,
+    expectedRedirectUri,
+    requestScope: 'public-edge',
+    fetchImpl,
+  });
+
+  assert.equal(result.providerValidated, true);
+});
+
+test('times out a hung OAuth endpoint', async () => {
+  await assert.rejects(
+    verifyGoogleOAuthRedirect({
+      requestUrl,
+      expectedRedirectUri,
+      timeoutMs: 5,
+      fetchImpl: () => new Promise(() => {}),
+    }),
+    /timed out/
+  );
 });

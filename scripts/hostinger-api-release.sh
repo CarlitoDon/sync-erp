@@ -323,6 +323,7 @@ verify_local_release() {
   local port="$2"
   local expected_commit="$3"
   local cors_headers
+  local edge_base_url="${API_BASE_URL%/}"
   local verifier_path="$release_path/verify-release-health.mjs"
   local oauth_verifier_path="$release_path/verify-google-oauth-config.mjs"
 
@@ -365,6 +366,23 @@ verify_local_release() {
     --url "http://127.0.0.1:${port}/mcp/health" \
     --expected-sha "$expected_commit"; then
     return 1
+  fi
+
+  # The GitHub runner can be blocked by the Hostinger edge WAF. Verify the
+  # public DNS/TLS/proxy path from the Hostinger host itself while the new
+  # process is already listening, but before current is switched. A failure
+  # therefore still enters the existing previous-release recovery path.
+  if [[ "$ACTION" != "rollback-drill" ]]; then
+    if ! node "$verifier_path" \
+      --url "${edge_base_url}/health" \
+      --expected-sha "$expected_commit"; then
+      return 1
+    fi
+    if ! node "$verifier_path" \
+      --url "${edge_base_url}/mcp/health" \
+      --expected-sha "$expected_commit"; then
+      return 1
+    fi
   fi
 
   if [[ "$ACTION" != "rollback-drill" ]]; then

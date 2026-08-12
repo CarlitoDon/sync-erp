@@ -54,6 +54,18 @@ if [[ -f "${MOCK_PM2_STORE:-}" ]]; then
 fi
 
 if [[ "${1:-}" == */verify-release-health.mjs ]]; then
+  edge_request=0
+  for argument in "$@"; do
+    if [[ "$argument" == https://* ]]; then
+      edge_request=1
+    fi
+  done
+  if [[ "${MOCK_EDGE_HEALTH_RESULT:-success}" == "fail" &&
+    "$edge_request" -eq 1 &&
+    "$current_cwd" == *"/releases/${EXPECTED_SHA}" ]]; then
+    echo "mock public edge release identity failure" >&2
+    exit 1
+  fi
   if [[ "${MOCK_HEALTH_RESULT:-success}" == "fail" && "$current_cwd" == *"/releases/${EXPECTED_SHA}" ]]; then
     echo "mock release identity failure" >&2
     exit 1
@@ -243,6 +255,7 @@ run_release() {
       MOCK_PM2_STORE="$root/pm2.store" \
       MOCK_PM2_SAVED="$root/pm2.saved" \
       MOCK_HEALTH_RESULT="${MOCK_HEALTH_RESULT:-success}" \
+      MOCK_EDGE_HEALTH_RESULT="${MOCK_EDGE_HEALTH_RESULT:-success}" \
       MOCK_OAUTH_RESULT="${MOCK_OAUTH_RESULT:-success}" \
       MOCK_MIGRATION_RESULT="${MOCK_MIGRATION_RESULT:-success}" \
       MOCK_START_RESULT="${MOCK_START_RESULT:-success}" \
@@ -315,6 +328,15 @@ fi
 assert_contains "Previous release ${old_sha} restored" "$health_output"
 [[ "$(cut -d '|' -f 2 "$health_root/pm2.store")" == "$health_root/public_html/apps/api-staging" ]]
 [[ ! -f "$health_root/public_html/apps/api-staging/.release-state.json" ]]
+
+edge_root="$(setup_case public-edge-failure)"
+if edge_output="$(MOCK_EDGE_HEALTH_RESULT=fail run_release "$edge_root")"; then
+  echo 'Expected public edge health failure case to fail.' >&2
+  exit 1
+fi
+assert_contains "Previous release ${old_sha} restored" "$edge_output"
+[[ "$(cut -d '|' -f 2 "$edge_root/pm2.store")" == "$edge_root/public_html/apps/api-staging" ]]
+[[ ! -f "$edge_root/public_html/apps/api-staging/.release-state.json" ]]
 
 oauth_root="$(setup_case oauth-failure)"
 if oauth_output="$(MOCK_OAUTH_RESULT=fail run_release "$oauth_root")"; then
