@@ -430,6 +430,20 @@ jobs:
             ) {
               process.exit(1);
             }
+            for (const verifierName of [
+              'verify-release-health.mjs',
+              'verify-google-oauth-config.mjs',
+            ]) {
+              const verifierPath = `${expectedReleasePath}/${verifierName}`;
+              const verifierStat = lstatSync(verifierPath);
+              if (
+                verifierStat.isSymbolicLink() ||
+                !verifierStat.isFile() ||
+                realpathSync(verifierPath) !== verifierPath
+              ) {
+                process.exit(1);
+              }
+            }
             process.stdout.write(canonicalRelease);
           } catch {
             process.exit(1);
