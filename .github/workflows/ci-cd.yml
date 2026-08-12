@@ -51,6 +51,8 @@ jobs:
               - 'scripts/validate-api-artifact.test.mjs'
               - 'scripts/verify-release-health.mjs'
               - 'scripts/verify-release-health.test.mjs'
+              - 'scripts/verify-google-oauth-config.mjs'
+              - 'scripts/verify-google-oauth-config.test.mjs'
               - 'scripts/write-release-manifest.mjs'
               - 'scripts/hostinger-api-release.sh'
               - 'scripts/hostinger-api-release.test.sh'
@@ -119,6 +121,9 @@ jobs:
       - name: Test release health verifier
         run: npm run test:release-health
 
+      - name: Test Google OAuth redirect verifier
+        run: node --test scripts/verify-google-oauth-config.test.mjs
+
       - name: Test Hostinger API release rollback
         run: npm run test:hostinger-release
 
@@ -182,6 +187,10 @@ jobs:
       - name: Include release health verifier
         if: github.event_name == 'push'
         run: cp scripts/verify-release-health.mjs deploy/api-mcp/verify-release-health.mjs
+
+      - name: Include OAuth redirect verifier
+        if: github.event_name == 'push'
+        run: cp scripts/verify-google-oauth-config.mjs deploy/api-mcp/verify-google-oauth-config.mjs
 
       - name: Upload API build artifact
         if: github.event_name == 'push'
@@ -391,16 +400,6 @@ jobs:
           echo "Verified API release ${EXPECTED_SHA} on ${RUNTIME_ENV} Hostinger loopback."
           REMOTE
 
-      - name: Verify API edge configuration
-        env:
-          HEALTH_HOST: ${{ steps.target.outputs.health_host }}
-        run: |
-          # The release step above verifies both health routes locally on the
-          # target host. Keep this public check focused on edge-specific OAuth
-          # routing, which does not depend on the WAF-sensitive health paths.
-          echo "Verifying public API OAuth redirect at ${HEALTH_HOST}..."
-          node scripts/verify-google-oauth-config.mjs "${HEALTH_HOST}"
-          echo "Public API OAuth preflight passed."
   deploy_web:
     name: Deploy Web to Vercel
     needs: [changes, ci-web]

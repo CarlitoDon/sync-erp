@@ -1,133 +1,181 @@
 #!/usr/bin/env node
 
-const apiBaseUrl = process.argv[2]?.replace(/\/+$/, '');
+import { pathToFileURL } from 'node:url';
 
-if (!apiBaseUrl) {
-  console.error(
-    'Usage: node scripts/verify-google-oauth-config.mjs <api-base-url>'
-  );
-  process.exit(1);
-}
-
-const expectedRedirectUri = `${apiBaseUrl}/api/auth/google/callback`;
-const startUrl = `${apiBaseUrl}/api/auth/google/start?intent=login`;
-const requestHeaders = {
+const requestHeaders = Object.freeze({
   'user-agent':
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131 Safari/537.36',
-};
+});
 
-function fail(message) {
-  console.error(`Google OAuth verification failed: ${message}`);
-  process.exit(1);
-}
+export class GoogleOAuthVerificationError extends Error {}
 
-function isGoogleOAuthError(url) {
-  return (
-    url.hostname === 'accounts.google.com' &&
-    (url.pathname.includes('/signin/oauth/error') ||
-      url.searchParams.has('authError'))
+function verificationError(message) {
+  return new GoogleOAuthVerificationError(
+    `Google OAuth redirect verification failed: ${message}`
   );
 }
 
-async function fetchManual(url) {
-  return fetch(url, {
-    headers: requestHeaders,
-    redirect: 'manual',
-  });
-}
-
-const startResponse = await fetchManual(startUrl);
-const authorizationLocation = startResponse.headers.get('location');
-
-if (startResponse.status !== 302 || !authorizationLocation) {
-  fail(
-    `${startUrl} returned HTTP ${startResponse.status}; expected a Google redirect.`
-  );
-}
-
-const authorizationUrl = new URL(authorizationLocation, startUrl);
-
-if (authorizationUrl.origin !== 'https://accounts.google.com') {
-  const authError = authorizationUrl.searchParams.get('authError');
-  fail(
-    authError
-      ? `${apiBaseUrl} reported ${authError}.`
-      : `${apiBaseUrl} redirected to an unexpected origin.`
-  );
-}
-
-if (
-  authorizationUrl.searchParams.get('redirect_uri') !==
-  expectedRedirectUri
-) {
-  fail(
-    `API generated ${authorizationUrl.searchParams.get('redirect_uri') || 'no redirect URI'}; expected ${expectedRedirectUri}.`
-  );
-}
-
-for (const requiredParameter of ['client_id', 'state']) {
-  if (!authorizationUrl.searchParams.get(requiredParameter)) {
-    fail(`Google authorization URL is missing ${requiredParameter}.`);
+function isAbsoluteHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
   }
 }
 
-let currentUrl = authorizationUrl;
-let providerResponse;
+/**
+ * Validate the API's OAuth redirect without contacting Google.
+ *
+ * The request URL may be a Hostinger loopback URL while
+ * expectedRedirectUri must remain the public callback URI configured for the
+ * deployment environment. The response Location is inspected but never
+ * requested, and neither cookies nor the provider URL are logged.
+ */
+export async function verifyGoogleOAuthRedirect({
+  requestUrl,
+  expectedRedirectUri,
+  fetchImpl = globalThis.fetch,
+}) {
+  if (!isAbsoluteHttpUrl(requestUrl)) {
+    throw verificationError(
+      'the request URL must be an absolute HTTP URL.'
+    );
+  }
+  if (!expectedRedirectUri) {
+    throw verificationError('the expected callback URI is missing.');
+  }
+  if (typeof fetchImpl !== 'function') {
+    throw verificationError('the HTTP client is unavailable.');
+  }
 
-for (let redirectCount = 0; redirectCount < 8; redirectCount += 1) {
-  if (isGoogleOAuthError(currentUrl)) {
-    fail(
-      `Google rejected ${expectedRedirectUri} (redirect_uri_mismatch).`
+  let startResponse;
+  try {
+    startResponse = await fetchImpl(requestUrl, {
+      headers: requestHeaders,
+      redirect: 'manual',
+    });
+  } catch {
+    throw verificationError(
+      'the local OAuth start endpoint could not be reached.'
     );
   }
 
-  providerResponse = await fetchManual(currentUrl);
-  const nextLocation = providerResponse.headers.get('location');
-
-  if (
-    !nextLocation ||
-    providerResponse.status < 300 ||
-    providerResponse.status >= 400
-  ) {
-    break;
+  if (startResponse.status !== 302) {
+    throw verificationError(
+      `the local OAuth start endpoint returned HTTP ${startResponse.status}; expected HTTP 302.`
+    );
   }
 
-  currentUrl = new URL(nextLocation, currentUrl);
+  const authorizationLocation = startResponse.headers.get('location');
+  if (!authorizationLocation) {
+    throw verificationError(
+      'the HTTP 302 response has no Location header.'
+    );
+  }
+
+  let authorizationUrl;
+  try {
+    authorizationUrl = new URL(authorizationLocation, requestUrl);
+  } catch {
+    throw verificationError(
+      'the Location header is not a valid URL.'
+    );
+  }
+
+  if (authorizationUrl.origin !== 'https://accounts.google.com') {
+    throw verificationError(
+      'the Location origin is not Google OAuth.'
+    );
+  }
+
+  if (
+    authorizationUrl.pathname.includes('/signin/oauth/error') ||
+    authorizationUrl.searchParams.has('authError')
+  ) {
+    throw verificationError(
+      'Google rejected the configured callback URI.'
+    );
+  }
+
+  if (
+    authorizationUrl.searchParams.get('redirect_uri') !==
+    expectedRedirectUri
+  ) {
+    throw verificationError(
+      'the generated callback URI does not match the configured URI.'
+    );
+  }
+
+  for (const requiredParameter of ['client_id', 'state']) {
+    if (!authorizationUrl.searchParams.get(requiredParameter)) {
+      throw verificationError(
+        `the Google authorization redirect is missing ${requiredParameter}.`
+      );
+    }
+  }
+
+  return {
+    requestUrl,
+    expectedRedirectUri,
+    status: startResponse.status,
+    followedProviderRedirect: false,
+  };
 }
 
-if (!providerResponse) {
-  fail('Google authorization endpoint did not respond.');
+function readCliOption(args, optionName) {
+  const optionIndex = args.indexOf(optionName);
+  if (optionIndex === -1) return undefined;
+  return args[optionIndex + 1];
 }
 
-if (isGoogleOAuthError(currentUrl)) {
-  fail(
-    `Google rejected ${expectedRedirectUri} (redirect_uri_mismatch).`
+function printUsage() {
+  console.error(
+    'Usage: node scripts/verify-google-oauth-config.mjs --request-url <loopback-url> --expected-redirect-uri <public-callback-url>'
   );
 }
 
-if (providerResponse.status >= 400) {
-  fail(
-    `Google authorization endpoint returned HTTP ${providerResponse.status}.`
+async function main() {
+  const args = process.argv.slice(2);
+  const requestUrl = readCliOption(args, '--request-url');
+  const expectedRedirectUri = readCliOption(
+    args,
+    '--expected-redirect-uri'
+  );
+
+  if (
+    !requestUrl ||
+    !expectedRedirectUri ||
+    args.includes('--help')
+  ) {
+    printUsage();
+    process.exitCode = 2;
+    return;
+  }
+
+  try {
+    await verifyGoogleOAuthRedirect({
+      requestUrl,
+      expectedRedirectUri,
+    });
+  } catch (error) {
+    console.error(
+      error instanceof GoogleOAuthVerificationError
+        ? error.message
+        : 'Google OAuth redirect verification failed.'
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  process.stdout.write(
+    'Google OAuth redirect preflight passed on Hostinger loopback.\n'
   );
 }
 
-if (providerResponse.status >= 300) {
-  fail('Google authorization endpoint exceeded the redirect limit.');
-}
-
-const providerBody = (await providerResponse.text()).slice(
-  0,
-  200_000
-);
 if (
-  /redirect_uri_mismatch/i.test(providerBody) ||
-  /Error 400[^<]{0,200}redirect_uri_mismatch/i.test(providerBody)
+  process.argv[1] &&
+  pathToFileURL(process.argv[1]).href === import.meta.url
 ) {
-  fail(
-    `Google rejected ${expectedRedirectUri} (redirect_uri_mismatch).`
-  );
+  await main();
 }
-
-process.stdout.write(
-  `Google OAuth preflight passed for ${expectedRedirectUri}.\n`
-);

@@ -324,6 +324,7 @@ verify_local_release() {
   local expected_commit="$3"
   local cors_headers
   local verifier_path="$release_path/verify-release-health.mjs"
+  local oauth_verifier_path="$release_path/verify-google-oauth-config.mjs"
 
   # The legacy in-place release may predate the verifier file. The new
   # release already contains the same verifier, so use it to validate the
@@ -332,6 +333,16 @@ verify_local_release() {
     verifier_path="$release_dir/verify-release-health.mjs"
   fi
   [[ -f "$verifier_path" ]] || return 1
+
+  # The OAuth verifier is shipped with the new release and runs against the
+  # API's loopback listener. Keep the expected callback public and exact; the
+  # verifier never follows or prints the provider redirect.
+  if [[ "$ACTION" != "rollback-drill" ]]; then
+    if [[ ! -f "$oauth_verifier_path" ]]; then
+      oauth_verifier_path="$release_dir/verify-google-oauth-config.mjs"
+    fi
+    [[ -f "$oauth_verifier_path" ]] || return 1
+  fi
 
   for attempt in 1 2 3 4 5 6; do
     if curl -fsS --connect-timeout 5 --max-time 10 \
@@ -345,12 +356,24 @@ verify_local_release() {
     sleep 5
   done
 
-  node "$verifier_path" \
+  if ! node "$verifier_path" \
     --url "http://127.0.0.1:${port}/health" \
-    --expected-sha "$expected_commit"
-  node "$verifier_path" \
+    --expected-sha "$expected_commit"; then
+    return 1
+  fi
+  if ! node "$verifier_path" \
     --url "http://127.0.0.1:${port}/mcp/health" \
-    --expected-sha "$expected_commit"
+    --expected-sha "$expected_commit"; then
+    return 1
+  fi
+
+  if [[ "$ACTION" != "rollback-drill" ]]; then
+    if ! node "$oauth_verifier_path" \
+      --request-url "http://127.0.0.1:${port}/api/auth/google/start?intent=login" \
+      --expected-redirect-uri "$OAUTH_REDIRECT_URL"; then
+      return 1
+    fi
+  fi
 
   cors_headers="$(mktemp)"
   if ! curl -fsS --connect-timeout 5 --max-time 10 \
@@ -489,6 +512,9 @@ for required_file in dist/index.js package.json release.json prisma.config.ts \
   [[ -f "$release_staging/$required_file" ]] ||
     fail "Extracted release is incomplete (missing ${required_file})."
 done
+if [[ "$ACTION" != "rollback-drill" && ! -f "$release_staging/verify-google-oauth-config.mjs" ]]; then
+  fail "Extracted release is incomplete (missing verify-google-oauth-config.mjs)."
+fi
 for runtime_package in \
   node_modules/express/package.json \
   node_modules/@sentry/node/package.json \
