@@ -272,11 +272,43 @@ jobs:
 
               headers_file="$(mktemp)"
               initialize_file="$(mktemp)"
+              initialize_json_file="$(mktemp)"
               tools_file="$(mktemp)"
+              tools_json_file="$(mktemp)"
               cleanup_mcp_readiness() {
-                rm -f "$headers_file" "$initialize_file" "$tools_file"
+                rm -f "$headers_file" "$initialize_file" "$initialize_json_file" "$tools_file" "$tools_json_file"
               }
               trap cleanup_mcp_readiness EXIT
+
+              decode_mcp_json() {
+                node - "$1" "$2" <<'NODE'
+                const fs = require('node:fs');
+
+                const [inputPath, outputPath] = process.argv.slice(2);
+                const body = fs.readFileSync(inputPath, 'utf8');
+                let message;
+
+                try {
+                  message = JSON.parse(body);
+                } catch {
+                  const payloads = body
+                    .split(/\r?\n\r?\n/)
+                    .map((event) => event
+                      .split(/\r?\n/)
+                      .filter((line) => line.startsWith('data:'))
+                      .map((line) => line.slice(5).replace(/^ /, ''))
+                      .join('\n'))
+                    .filter(Boolean);
+
+                  if (payloads.length !== 1) {
+                    process.exit(1);
+                  }
+                  message = JSON.parse(payloads[0]);
+                }
+
+                fs.writeFileSync(outputPath, JSON.stringify(message));
+                NODE
+              }
 
               initialized_code="$(curl -sS -D "$headers_file" -o "$initialize_file" -w "%{http_code}" \
                 --connect-timeout 5 --max-time 15 \
@@ -288,7 +320,8 @@ jobs:
               test "$initialized_code" = "200"
               session_id="$(awk 'tolower($1) == "mcp-session-id:" {gsub("\\r", "", $2); print $2; exit}' "$headers_file")"
               test -n "$session_id"
-              node -e 'const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).result; if (result?.protocolVersion !== "2025-03-26" || typeof result?.serverInfo?.name !== "string") process.exit(1)' "$initialize_file"
+              decode_mcp_json "$initialize_file" "$initialize_json_file"
+              node -e 'const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).result; if (result?.protocolVersion !== "2025-03-26" || typeof result?.serverInfo?.name !== "string") process.exit(1)' "$initialize_json_file"
 
               tools_code="$(curl -sS -o "$tools_file" -w "%{http_code}" \
                 --connect-timeout 5 --max-time 15 \
@@ -299,7 +332,8 @@ jobs:
                 -H 'Accept: application/json, text/event-stream' \
                 --data "$tools_payload")"
               test "$tools_code" = "200"
-              node -e 'const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).result; if (!Array.isArray(result?.tools)) process.exit(1)' "$tools_file"
+              decode_mcp_json "$tools_file" "$tools_json_file"
+              node -e 'const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).result; if (!Array.isArray(result?.tools)) process.exit(1)' "$tools_json_file"
 
               closed_code="$(curl -sS -o /dev/null -w "%{http_code}" \
                 --connect-timeout 5 --max-time 10 \
