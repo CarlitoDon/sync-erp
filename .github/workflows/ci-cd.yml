@@ -369,73 +369,38 @@ jobs:
           ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
             "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_RUNTIME_ENV='${REMOTE_RUNTIME_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' DATABASE_PROJECT_REF='${DATABASE_PROJECT_REF}' EXPECTED_SHA='${GITHUB_SHA}' API_URL='${{ steps.target.outputs.api_url }}' API_BASE_URL='${{ steps.target.outputs.api_base_url }}' WEB_URL='${{ steps.target.outputs.web_url }}' OAUTH_REDIRECT_URL='${{ steps.target.outputs.oauth_redirect_url }}' CORS_ORIGINS='${{ steps.target.outputs.cors_origins }}' PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH bash -s -- deploy" < scripts/hostinger-api-release.sh
 
-      - name: Verify API health
-        env:
-          HEALTH_HOST: ${{ steps.target.outputs.health_host }}
-        run: |
-          MAX_RETRIES=8
-          RETRY_DELAYS=(5 10 15 20 30 30 30 30)
+          # Verify the active release over the same authenticated SSH path used
+          # for deployment. GitHub-hosted runner IPs can receive a WAF 403 for
+          # the public health routes even when the API is healthy.
+          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+            "DEPLOY_DIR='${DEPLOY_DIR}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' EXPECTED_SHA='${GITHUB_SHA}' PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH bash -s -- verify" <<'REMOTE'
+          set -euo pipefail
 
-          echo "Verifying API health at ${HEALTH_HOST}..."
-          sleep 30
-
-          check_endpoint() {
-            local path="$1"
-            local full_url="${HEALTH_HOST}${path}"
-
-            echo "Checking ${full_url} ..."
-
-            for i in $(seq 1 $MAX_RETRIES); do
-              idx=$((i - 1))
-              local delay="${RETRY_DELAYS[$idx]:-30}"
-              local http_code
-              local curl_exit_code=0
-
-              if [[ "$path" == "/health" || "$path" == "/mcp/health" ]]; then
-                if node scripts/verify-release-health.mjs \
-                  --url "$full_url" \
-                  --expected-sha "$GITHUB_SHA"; then
-                  echo "✓ Healthy release: ${full_url} (attempt ${i}/${MAX_RETRIES})"
-                  return 0
-                fi
-                echo "⚠ Release identity check failed for ${full_url} (attempt ${i}/${MAX_RETRIES})"
-              else
-                http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 15 "${full_url}" 2>&1) || curl_exit_code=$?
-
-                if [[ "$http_code" == "200" ]]; then
-                  echo "✓ Healthy: ${full_url} (attempt ${i}/${MAX_RETRIES})"
-                  return 0
-                fi
-
-                if [[ "$curl_exit_code" -ne 0 ]]; then
-                  echo "⚠ Connection error on ${full_url}: curl exit code ${curl_exit_code} (attempt ${i}/${MAX_RETRIES})"
-                else
-                  echo "⚠ HTTP ${http_code} on ${full_url} (attempt ${i}/${MAX_RETRIES})"
-                fi
-              fi
-
-              if [[ "$i" -lt "$MAX_RETRIES" ]]; then
-                echo "  Retrying in ${delay}s..."
-                sleep "$delay"
-              fi
-            done
-
-            echo "✗ Health check failed for ${full_url} after ${MAX_RETRIES} attempts"
-            return 1
-          }
-
-          FAILED=0
-          check_endpoint "/health" || FAILED=1
-          check_endpoint "/mcp/health" || FAILED=1
-
-          node scripts/verify-google-oauth-config.mjs "${HEALTH_HOST}" || FAILED=1
-
-          if [[ "$FAILED" -ne 0 ]]; then
-            echo "One or more health checks failed."
+          verifier="$HOME/public_html/${DEPLOY_DIR}/current/verify-release-health.mjs"
+          if [[ ! -f "$verifier" ]]; then
+            echo "Active API release verifier is missing."
             exit 1
           fi
 
-          echo "All endpoints healthy."
+          for path in /health /mcp/health; do
+            node "$verifier" \
+              --url "http://127.0.0.1:${APP_PORT}${path}" \
+              --expected-sha "$EXPECTED_SHA"
+          done
+
+          echo "Verified API release ${EXPECTED_SHA} on ${RUNTIME_ENV} Hostinger loopback."
+          REMOTE
+
+      - name: Verify API edge configuration
+        env:
+          HEALTH_HOST: ${{ steps.target.outputs.health_host }}
+        run: |
+          # The release step above verifies both health routes locally on the
+          # target host. Keep this public check focused on edge-specific OAuth
+          # routing, which does not depend on the WAF-sensitive health paths.
+          echo "Verifying public API OAuth redirect at ${HEALTH_HOST}..."
+          node scripts/verify-google-oauth-config.mjs "${HEALTH_HOST}"
+          echo "Public API OAuth preflight passed."
   deploy_web:
     name: Deploy Web to Vercel
     needs: [changes, ci-web]
