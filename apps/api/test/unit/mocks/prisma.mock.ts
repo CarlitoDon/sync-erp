@@ -7,6 +7,7 @@ import { vi } from 'vitest';
 
 // Create mock functions for all Prisma operations
 export const mockPrisma = {
+  $queryRaw: vi.fn(),
   company: {
     create: vi.fn(),
     findUnique: vi.fn(),
