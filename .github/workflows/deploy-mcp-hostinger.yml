@@ -254,6 +254,61 @@ jobs:
             node verify-release-health.mjs \
               --url "http://127.0.0.1:${MCP_PORT}/health" \
               --expected-sha "$EXPECTED_SHA"
+
+            # Staging proves the MCP protocol without invoking a tool. Keep
+            # the bearer token and protocol payloads on the host: CI logs only
+            # receive the pass/fail result.
+            if [ "$DEPLOY_DIR" = "apps/mcp-staging" ]; then
+              mcp_url="http://127.0.0.1:${MCP_PORT}/mcp"
+              initialize_payload='{"jsonrpc":"2.0","id":"readiness-initialize","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"sync-erp-deploy-readiness","version":"1.0.0"}}}'
+              tools_payload='{"jsonrpc":"2.0","id":"readiness-tools-list","method":"tools/list","params":{}}'
+
+              unauthenticated_code="$(curl -sS -o /dev/null -w "%{http_code}" \
+                --connect-timeout 5 --max-time 10 \
+                -X POST "$mcp_url" \
+                -H 'Content-Type: application/json' \
+                --data "$initialize_payload" || true)"
+              test "$unauthenticated_code" = "401"
+
+              headers_file="$(mktemp)"
+              initialize_file="$(mktemp)"
+              tools_file="$(mktemp)"
+              cleanup_mcp_readiness() {
+                rm -f "$headers_file" "$initialize_file" "$tools_file"
+              }
+              trap cleanup_mcp_readiness EXIT
+
+              initialized_code="$(curl -sS -D "$headers_file" -o "$initialize_file" -w "%{http_code}" \
+                --connect-timeout 5 --max-time 15 \
+                -X POST "$mcp_url" \
+                -H "Authorization: Bearer $bearer_token" \
+                -H 'Content-Type: application/json' \
+                -H 'Accept: application/json, text/event-stream' \
+                --data "$initialize_payload")"
+              test "$initialized_code" = "200"
+              session_id="$(awk 'tolower($1) == "mcp-session-id:" {gsub("\\r", "", $2); print $2; exit}' "$headers_file")"
+              test -n "$session_id"
+              node -e 'const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).result; if (result?.protocolVersion !== "2025-03-26" || typeof result?.serverInfo?.name !== "string") process.exit(1)' "$initialize_file"
+
+              tools_code="$(curl -sS -o "$tools_file" -w "%{http_code}" \
+                --connect-timeout 5 --max-time 15 \
+                -X POST "$mcp_url" \
+                -H "Authorization: Bearer $bearer_token" \
+                -H "Mcp-Session-Id: $session_id" \
+                -H 'Content-Type: application/json' \
+                -H 'Accept: application/json, text/event-stream' \
+                --data "$tools_payload")"
+              test "$tools_code" = "200"
+              node -e 'const result = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).result; if (!Array.isArray(result?.tools)) process.exit(1)' "$tools_file"
+
+              closed_code="$(curl -sS -o /dev/null -w "%{http_code}" \
+                --connect-timeout 5 --max-time 10 \
+                -X DELETE "$mcp_url" \
+                -H "Authorization: Bearer $bearer_token" \
+                -H "Mcp-Session-Id: $session_id")"
+              test "$closed_code" = "200"
+              echo 'MCP initialize/tools-list readiness verification passed.'
+            fi
             rm -f verify-release-health.mjs
           EOF
 
