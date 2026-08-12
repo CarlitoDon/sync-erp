@@ -385,12 +385,43 @@ jobs:
             "DEPLOY_DIR='${DEPLOY_DIR}' APP_PORT='${APP_PORT}' API_BASE_URL='${{ steps.target.outputs.api_base_url }}' OAUTH_REDIRECT_URL='${{ steps.target.outputs.oauth_redirect_url }}' RUNTIME_ENV='${RUNTIME_ENV}' EXPECTED_SHA='${GITHUB_SHA}' PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH bash -s -- verify" <<'REMOTE'
           set -euo pipefail
 
-          verifier="$HOME/public_html/${DEPLOY_DIR}/current/verify-release-health.mjs"
+          release_root="$HOME/public_html/${DEPLOY_DIR}/releases"
+          release_state="$HOME/public_html/${DEPLOY_DIR}/.release-state.json"
+          if [[ ! -f "$release_state" ]]; then
+            echo "Active API release state is missing."
+            exit 1
+          fi
+          release_path="$(node --input-type=module - "$release_state" <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const [statePath] = process.argv.slice(2);
+          const state = JSON.parse(readFileSync(statePath, 'utf8'));
+          if (
+            state.schemaVersion !== 1 ||
+            typeof state.releasePath !== 'string' ||
+            !state.releasePath.startsWith('/')
+          ) {
+            process.exit(1);
+          }
+          process.stdout.write(state.releasePath);
+          NODE
+          )" || {
+            echo "Active API release state is invalid."
+            exit 1
+          }
+          case "$release_path" in
+            "$release_root"/*) ;;
+            *)
+              echo "Active API release path is outside the release root."
+              exit 1
+              ;;
+          esac
+          verifier="$release_path/verify-release-health.mjs"
+          oauth_verifier="$release_path/verify-google-oauth-config.mjs"
           if [[ ! -f "$verifier" ]]; then
             echo "Active API release verifier is missing."
             exit 1
           fi
-          oauth_verifier="$HOME/public_html/${DEPLOY_DIR}/current/verify-google-oauth-config.mjs"
           if [[ ! -f "$oauth_verifier" ]]; then
             echo "Active API OAuth verifier is missing."
             exit 1
@@ -410,7 +441,7 @@ jobs:
             --expected-redirect-uri "$OAUTH_REDIRECT_URL" \
             --request-scope public-edge
 
-          echo "Verified API release ${EXPECTED_SHA} on ${RUNTIME_ENV} Hostinger loopback and public edge."
+          echo "Verified API release ${EXPECTED_SHA} from ${RUNTIME_ENV} Hostinger release state and public edge."
           REMOTE
 
   deploy_web:
