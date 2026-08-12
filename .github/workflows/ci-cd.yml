@@ -391,31 +391,54 @@ jobs:
             echo "Active API release state is missing."
             exit 1
           fi
-          release_path="$(node --input-type=module - "$release_state" <<'NODE'
-          import { readFileSync } from 'node:fs';
+          release_path="$(node --input-type=module - "$release_state" "$release_root" "$EXPECTED_SHA" <<'NODE'
+          import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 
-          const [statePath] = process.argv.slice(2);
-          const state = JSON.parse(readFileSync(statePath, 'utf8'));
-          if (
-            state.schemaVersion !== 1 ||
-            typeof state.releasePath !== 'string' ||
-            !state.releasePath.startsWith('/')
-          ) {
+          const [statePath, releaseRoot, expectedSha] = process.argv.slice(2);
+
+          try {
+            const state = JSON.parse(readFileSync(statePath, 'utf8'));
+            const expectedReleasePath = `${releaseRoot}/${expectedSha}`;
+            if (
+              !/^[0-9a-f]{40}$/i.test(expectedSha) ||
+              state.schemaVersion !== 1 ||
+              state.service !== 'sync-erp-api' ||
+              state.commit !== expectedSha ||
+              typeof state.version !== 'string' ||
+              !state.version.trim() ||
+              state.releasePath !== expectedReleasePath
+            ) {
+              process.exit(1);
+            }
+
+            const rootStat = lstatSync(releaseRoot);
+            const releaseStat = lstatSync(state.releasePath);
+            if (
+              rootStat.isSymbolicLink() ||
+              !rootStat.isDirectory() ||
+              releaseStat.isSymbolicLink() ||
+              !releaseStat.isDirectory()
+            ) {
+              process.exit(1);
+            }
+
+            const canonicalRoot = realpathSync(releaseRoot);
+            const canonicalRelease = realpathSync(state.releasePath);
+            if (
+              canonicalRoot !== releaseRoot ||
+              canonicalRelease !== expectedReleasePath
+            ) {
+              process.exit(1);
+            }
+            process.stdout.write(canonicalRelease);
+          } catch {
             process.exit(1);
           }
-          process.stdout.write(state.releasePath);
           NODE
           )" || {
             echo "Active API release state is invalid."
             exit 1
           }
-          case "$release_path" in
-            "$release_root"/*) ;;
-            *)
-              echo "Active API release path is outside the release root."
-              exit 1
-              ;;
-          esac
           verifier="$release_path/verify-release-health.mjs"
           oauth_verifier="$release_path/verify-google-oauth-config.mjs"
           if [[ ! -f "$verifier" ]]; then
