@@ -1,7 +1,6 @@
 import { prisma } from '@sync-erp/database';
-import { isMcpEnabled } from './modules/mcp/config';
 
-export type DependencyReadiness = 'ok' | 'unavailable' | 'disabled';
+export type DependencyReadiness = 'ok' | 'unavailable' | 'external';
 
 export interface ReadinessResult {
   ready: boolean;
@@ -25,10 +24,13 @@ export async function getReadiness(): Promise<ReadinessResult> {
     database = 'unavailable';
   }
 
-  const mcp: DependencyReadiness = isMcpEnabled() ? 'ok' : 'disabled';
+  // Staging serves MCP as a separately deployed process. Its authenticated
+  // protocol readiness is verified by deploy-mcp-hostinger.yml, not by the
+  // optional in-process API MCP router configuration.
+  const mcp: DependencyReadiness = 'external';
 
   return {
-    ready: database === 'ok' && mcp === 'ok',
+    ready: database === 'ok',
     dependencies: { database, mcp },
   };
 }
