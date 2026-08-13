@@ -1,6 +1,6 @@
 # CI/CD & Infrastructure Audit
 
-Snapshot: 2026-08-09, repository 'CarlitoDon/sync-erp', local HEAD=70b7a21 ('fix/ci-use-npx'), working tree clean before this report was created and one commit ahead of 'origin/fix/ci-use-npx'. Audit is read-only; secret values are intentionally omitted.
+Historical snapshot: 2026-08-09, repository 'CarlitoDon/sync-erp', local HEAD=70b7a21 ('fix/ci-use-npx'), working tree clean before this report was created and one commit ahead of 'origin/fix/ci-use-npx'. Audit is read-only; secret values are intentionally omitted. The map, findings, and source line references below are the 2026-08-09 historical baseline. Current documentation follow-up update: 2026-08-13. Later code-level follow-ups are dated explicitly and do not rewrite the baseline or prove live provider state.
 
 ## Scope & method
 
@@ -60,7 +60,7 @@ No Hostinger, Vercel or database write was performed. No product code, config, l
 
 **Recommendation:** Immediately rotate/revoke the database password and all service/OAuth/webhook/seed credentials found in tracked files and repository secrets. Remove secret-bearing files and historical objects using the repository’s approved secret-removal process, then enable secret scanning, validity checks and push protection. Keep only redacted '.env.example' files; never place '.env' inside deploy archives.
 
-### F-02 — Release gates and environment protections are insufficient
+### F-02 — 2026-08-09 baseline: release gates and environment protections are insufficient
 
 **Severity:** P1. **Confidence:** High.
 
@@ -130,19 +130,21 @@ No Hostinger, Vercel or database write was performed. No product code, config, l
 
 **Recommendation:** Add an explicit workspace script such as 'npm run test:e2e --workspace=@sync-erp/web' (or invoke the intended Playwright command), fail when the suite is absent, remove 'continue-on-error', upload traces/screenshots on failure, and require the check before merge.
 
-### F-07 — SSH host identity verification is disabled
+### F-07 — Historical baseline (2026-08-09): SSH host identity verification is disabled
 
 **Severity:** P1. **Confidence:** High.
 
 **Verified facts:**
 
-- API deploy uses 'ssh-keyscan ... || true' at '.github/workflows/ci-cd.yml:216-221', then sets 'StrictHostKeyChecking=no' and 'UserKnownHostsFile=/dev/null' at '247-249'.
-- MCP deploy repeats the pattern at '.github/workflows/deploy-mcp-hostinger.yml:88-94,113-115'.
-- The live failure log shows the resulting “Permanently added ... to the list of known hosts” warnings while the host key is not actually pinned.
+- In the 2026-08-09 baseline checkout, API deploy uses 'ssh-keyscan ... || true' at the historical source lines '.github/workflows/ci-cd.yml:216-221', then sets 'StrictHostKeyChecking=no' and 'UserKnownHostsFile=/dev/null' at historical lines '247-249'.
+- In that same historical checkout, MCP deploy repeats the pattern at '.github/workflows/deploy-mcp-hostinger.yml:88-94,113-115'.
+- The historical live failure log shows the resulting “Permanently added ... to the list of known hosts” warnings while the host key is not actually pinned.
 
 **Impact:** A network-level attacker or DNS/host substitution can receive deployment archives and credentials, or execute commands in the SSH session.
 
 **Recommendation:** Store the Hostinger host key/fingerprint as reviewed configuration, build a temporary 'known_hosts' file from that pinned value, require 'StrictHostKeyChecking=yes', and fail closed if the key changes. Remove 'ssh-keyscan || true' and the '/dev/null' host-key options.
+
+**CICD-003 code-level remediation follow-up (2026-08-13; not external activation):** [PR #84](https://github.com/CarlitoDon/sync-erp/pull/84) adds a fail-closed helper that validates a supplied exact Hostinger host/port pin and writes a restricted temporary `known_hosts` file under the runner temporary directory. The API, MCP, and staging rollback-drill workflows use strict checking and the generated file path in the branch under review. The [CI/CD run #31693634711](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634711) passed the [Quality Gates (API) job](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634711/job/94426318093), including `Test Hostinger SSH pinning`; its Hostinger deploy job was skipped because this was pull-request CI. The `HOSTINGER_SSH_KNOWN_HOSTS` reference is only a design/required-input contract in this follow-up: its value was not read, provider/OOB verification and secret update were not performed, and live SSH, deployment, rollback, and production closure remain unproven. Use the [host-key rotation runbook](../../../runbooks/hostinger-ssh-key-rotation.md); do not record key material in Git or audit output.
 
 ### F-08 — Migration path is not exercised and has competing authorities
 
@@ -193,7 +195,7 @@ No Hostinger, Vercel or database write was performed. No product code, config, l
 
 - Root 'vercel.json:2-15' builds the web from the monorepo, uses 'npm install', and rewrites '/api/trpc/*' to the production API. 'apps/web/vercel.json:2-6' declares a different build command/output and no equivalent API rewrite.
 - The staging branch of '.github/workflows/ci-cd.yml:673-677' sets 'VITE_SYNC_ERP_API_URL' to staging, while the root rewrite remains production ('vercel.json:8-10'). Which Vercel project root/config is authoritative is not visible in this checkout.
-- The repository declares 'npm@11.6.1' in 'package.json:7', the current developer runtime reports Node 'v22.12.0'/npm '10.9.0', and CI uses Node 20 with 'npm install' in 'ci-cd.yml:89-90,158-159,611-615'. The deploy workflow also installs mutable 'vercel@latest'.
+- The repository declares `npm@11.6.1` in 'package.json:7', the current developer runtime reports Node 'v22.12.0'/npm '10.9.0', and CI uses Node 20 with 'npm install' in 'ci-cd.yml:89-90,158-159,611-615'. The deploy workflow also installs mutable 'vercel@latest'.
 
 **Impact:** Staging can route a relative API request to production, or a dashboard root setting can select a different config than the workflow expects. 'npm install' and an unpinned CLI reduce reproducibility and can change dependency resolution between releases.
 
@@ -225,7 +227,7 @@ No Hostinger, Vercel or database write was performed. No product code, config, l
 
 **Recommendation:** Pin every action to a reviewed commit SHA, restrict allowed actions to an approved list, use Dependabot/Renovate to propose digest updates, and review action permissions as part of release hardening.
 
-### F-14 — API change filter does not gate API deployment
+### F-14 — 2026-08-09 baseline: API change filter does not gate API deployment
 
 **Severity:** P2. **Confidence:** High.
 
@@ -237,6 +239,39 @@ No Hostinger, Vercel or database write was performed. No product code, config, l
 **Impact:** Documentation-only, Vercel-only or unrelated pushes to 'main'/'dev' can rebuild, migrate and restart the API. This increases outage/migration risk and makes a failed deploy more likely without delivering an API change.
 
 **Recommendation:** Gate API deployment on the API filter, explicitly include migration/config dependencies in that filter, and make manual dispatch require a reviewed ref/environment. Keep a separate deliberate 'force deploy' input for exceptional cases.
+
+## 2026-08-13 current code follow-up (not live evidence)
+
+The active workflow contract differs from the 2026-08-09 baseline in trigger
+scope and SSH handling, while the API filter finding remains applicable:
+
+- `.github/workflows/ci-cd.yml` triggers on pull requests to `main`/`dev`,
+  pushes to `main`/`dev`, and manual dispatch. `changes`, `ci-api`, and
+  `ci-web` run for those events. `deploy_api` runs only for `push`, needs
+  `changes` plus `ci-api`, and still does not check
+  `needs.changes.outputs.api`; `deploy_web` runs only for `push`, needs
+  `changes` plus `ci-web`, and requires `needs.changes.outputs.web == 'true'`.
+  Manual dispatch on this workflow has no deployment-environment input and
+  does not reach the API/Web deploy jobs.
+- The API build output is `apps/api/dist`. On a push, the workflow assembles
+  `deploy/api-mcp/` from that output, `apps/api/package.pro.json`, and the
+  required Prisma files, creates the production dependency tree under
+  `deploy/api-mcp/node_modules/`, and uploads `api-mcp-build`. This is the
+  current runner build location; it does not prove a remote deployment.
+- `.github/workflows/deploy-mcp-hostinger.yml` runs on pushes to `main`/`dev`
+  only when its listed paths change, and on manual dispatch with a required
+  `staging` or `production` environment input (default `staging`). Its source
+  logic maps `main` to production and does not restrict a manually selected
+  production environment to a particular ref. `.github/workflows/staging-api-rollback-drill.yml`
+  is manual-only, fixed to the `staging` environment, and rejects refs other
+  than `dev` or `codex/*`. `.github/workflows/e2e-playwright.yml` also has a
+  manual dispatch trigger but is not a dependency of the CI/CD deploy jobs.
+- The active Hostinger workflows declare `HOSTINGER_SSH_KNOWN_HOSTS` as only a
+  required design/input contract until provider/OOB verification and live
+  deployment evidence exist; the helper fails closed when it is missing or
+  invalid. The helper/test and PR CI prove only the repository contract;
+  secret presence/value, provider/OOB verification, live SSH, deployment,
+  rollback, and production closure remain unproven.
 
 ## Strengths
 
@@ -251,7 +286,8 @@ No Hostinger, Vercel or database write was performed. No product code, config, l
 - Hostinger PM2 state, current release contents, external DNS/proxy behavior, backups and restore capability were not accessible without expanding scope; no remote commands were run.
 - Vercel project root, environment variable values, current aliased deployment and production bundle contents were not independently inspected.
 - GitHub secret values and the live database’s '_prisma_migrations'/Supabase migration history were not read. The credential exposure finding is based on committed non-empty literals and secret-bearing files, not on a live credential test.
-- Local '70b7a21' has not executed in GitHub Actions; the latest observed remote runs use earlier SHAs. No CI run newer than 2026-07-27 appeared in the read-only query.
+- The CICD-003 branch has repository/CI evidence for the SSH pinning helper, but no provider/OOB host-key verification, secret update, or live Hostinger connection was performed; host-key and private-key values remain intentionally unrecorded.
+- At the 2026-08-09 snapshot, local '70b7a21' had not executed in GitHub Actions; the latest observed remote runs used earlier SHAs, and no CI run newer than 2026-07-27 appeared in that read-only query. Later runs are recorded only in the dated follow-up above.
 - 'actionlint'/'yamllint' are not installed in the current shell; no build/test command was run locally because this audit was read-only and must not mutate generated artifacts.
 - Whether 'apps/mcp/Dockerfile' is used by any external deployment is unknown; the checked-in workflow uses the Hostinger tar path.
 

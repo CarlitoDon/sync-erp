@@ -13,11 +13,16 @@ Usage:
 Required environment:
   HOSTINGER_HOST              Literal Hostinger hostname or IP address.
   HOSTINGER_SSH_KNOWN_HOSTS   Full reviewed OpenSSH known_hosts content.
-  RUNNER_TEMP                 Existing absolute temporary directory.
+  RUNNER_TEMP                 Existing absolute temporary directory without
+                              whitespace or control characters.
 
 Optional environment:
   HOSTINGER_SSH_PORT           SSH port; defaults to 65002 when unset.
   GITHUB_ENV                   Absolute GitHub Actions environment-file path.
+
+Internal file writer:
+  printf '%s\n' content |
+    bash scripts/hostinger-ssh-pinning.sh --write-atomic-file STAGING DESTINATION MODE
 
 On success, exports only HOSTINGER_KNOWN_HOSTS_FILE, which points to a
 0600 file under RUNNER_TEMP containing the validated known_hosts content.
@@ -36,6 +41,15 @@ hostinger_ssh_pinning_is_blank() {
   esac
 }
 
+hostinger_ssh_pinning_has_unsafe_path_chars() {
+  local value="${1-}"
+
+  case "$value" in
+    *[[:space:][:cntrl:]]*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 hostinger_ssh_pinning_cleanup_path() {
   local candidate="${1-}"
   local runner_temp_real="${2-}"
@@ -49,6 +63,80 @@ hostinger_ssh_pinning_cleanup_path() {
       rm -f "$candidate"
       ;;
   esac
+}
+
+hostinger_ssh_pinning_write_atomic_file() {
+  local staging_path="${1-}"
+  local destination_path="${2-}"
+  local mode="${3-}"
+
+  if [ "$#" -ne 3 ]; then
+    hostinger_ssh_pinning_fail 'atomic file writer requires staging path, destination path, and mode'
+    return 1
+  fi
+  case "$mode" in
+    600|700) ;;
+    *)
+      hostinger_ssh_pinning_fail 'atomic file writer accepts only mode 600 or 700'
+      return 1
+      ;;
+  esac
+  if [ -z "$staging_path" ] || [ -z "$destination_path" ]; then
+    hostinger_ssh_pinning_fail 'atomic file writer paths are required'
+    return 1
+  fi
+
+  if ! node --input-type=module -e '
+    import {
+      constants,
+      closeSync,
+      fchmodSync,
+      fstatSync,
+      fsyncSync,
+      openSync,
+      readFileSync,
+      writeSync,
+    } from "node:fs";
+
+    const [stagingPath, mode] = process.argv.slice(1);
+    if (!constants.O_NOFOLLOW) {
+      throw new Error("O_NOFOLLOW is unavailable");
+    }
+    const content = readFileSync(0);
+    const fd = openSync(
+      stagingPath,
+      constants.O_WRONLY | constants.O_NOFOLLOW | constants.O_TRUNC,
+    );
+    try {
+      if (!fstatSync(fd).isFile()) {
+        throw new Error("staging path is not a regular file");
+      }
+      fchmodSync(fd, Number.parseInt(mode, 8));
+      let offset = 0;
+      while (offset < content.length) {
+        offset += writeSync(fd, content, offset, content.length - offset);
+      }
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+  ' "$staging_path" "$mode" 2>/dev/null; then
+    hostinger_ssh_pinning_fail 'could not write the private temporary file safely'
+    return 1
+  fi
+
+  if ! node --input-type=module -e '
+    import { lstatSync, renameSync } from "node:fs";
+
+    const [stagingPath, destinationPath] = process.argv.slice(1);
+    if (!lstatSync(stagingPath).isFile()) {
+      throw new Error("staging path is not a regular file");
+    }
+    renameSync(stagingPath, destinationPath);
+  ' "$staging_path" "$destination_path" 2>/dev/null; then
+    hostinger_ssh_pinning_fail 'could not publish the private file atomically'
+    return 1
+  fi
 }
 
 hostinger_ssh_pinning_prepare() {
@@ -142,6 +230,15 @@ hostinger_ssh_pinning_prepare() {
 }
 
 hostinger_ssh_pinning_main_impl() {
+  if [ "${1-}" = '--write-atomic-file' ]; then
+    if [ "$#" -ne 4 ]; then
+      hostinger_ssh_pinning_fail 'usage: --write-atomic-file STAGING DESTINATION MODE'
+      return 1
+    fi
+    hostinger_ssh_pinning_write_atomic_file "$2" "$3" "$4"
+    return $?
+  fi
+
   local host="${HOSTINGER_HOST-}"
   local known_hosts="${HOSTINGER_SSH_KNOWN_HOSTS-}"
   local port="65002"
@@ -220,18 +317,20 @@ hostinger_ssh_pinning_main_impl() {
       return 1
       ;;
   esac
-  case "$runner_temp" in
-    *$'\n'*|*$'\r'*)
-      hostinger_ssh_pinning_fail 'RUNNER_TEMP contains an invalid line break'
-      return 1
-      ;;
-  esac
+  if hostinger_ssh_pinning_has_unsafe_path_chars "$runner_temp"; then
+    hostinger_ssh_pinning_fail 'RUNNER_TEMP contains whitespace or control characters'
+    return 1
+  fi
   if [ ! -d "$runner_temp" ]; then
     hostinger_ssh_pinning_fail 'RUNNER_TEMP must be an existing directory'
     return 1
   fi
   if ! runner_temp_real="$(cd "$runner_temp" 2>/dev/null && pwd -P)"; then
     hostinger_ssh_pinning_fail 'RUNNER_TEMP could not be resolved safely'
+    return 1
+  fi
+  if hostinger_ssh_pinning_has_unsafe_path_chars "$runner_temp_real"; then
+    hostinger_ssh_pinning_fail 'resolved RUNNER_TEMP contains whitespace or control characters'
     return 1
   fi
 

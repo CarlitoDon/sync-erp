@@ -103,17 +103,13 @@ jobs:
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
           HOSTINGER_SSH_PORT: '65002'
-          HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
         run: |
           bash scripts/hostinger-ssh-pinning.sh
-          mkdir -p ~/.ssh
-          printf '%s\n' "$HOSTINGER_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
 
       - name: Deploy package to Hostinger
         env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
           SSH_PASSPHRASE: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
+          HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
           DEPLOY_DIR: ${{ steps.target.outputs.deploy_dir }}
           API_ENV_DIR: ${{ steps.target.outputs.api_env_dir }}
           PM2_NAME: ${{ steps.target.outputs.pm2_name }}
@@ -122,30 +118,156 @@ jobs:
           HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
           HOSTINGER_SSH_PORT: '65002'
         run: |
-          eval "$(ssh-agent -a \"$SSH_AUTH_SOCK\")"
-          echo 'echo "$SSH_PASSPHRASE"' > ~/.ssh/askpass
-          chmod +x ~/.ssh/askpass
-          export SSH_ASKPASS=~/.ssh/askpass
-          export DISPLAY=:0
-          ssh-add ~/.ssh/id_ed25519
-
+          set -euo pipefail
           : "${HOSTINGER_KNOWN_HOSTS_FILE:?Missing Hostinger known-hosts file.}"
-          test -r "$HOSTINGER_KNOWN_HOSTS_FILE"
+          : "${HOSTINGER_SSH_KEY:?Missing Hostinger SSH key.}"
           case "$RUNNER_TEMP" in
             /*) ;;
             *) echo 'RUNNER_TEMP must be an absolute directory.' >&2; exit 1 ;;
           esac
           case "$RUNNER_TEMP" in
-            *$'\n'*|*$'\r'*) echo 'RUNNER_TEMP contains an invalid line break.' >&2; exit 1 ;;
+            *[[:space:][:cntrl:]]*) echo 'RUNNER_TEMP contains whitespace or control characters.' >&2; exit 1 ;;
           esac
-          case "$GITHUB_RUN_ID" in
-            ''|*[!0-9]*) echo 'GITHUB_RUN_ID must be numeric for control-socket cleanup.' >&2; exit 1 ;;
+          if [ ! -d "$RUNNER_TEMP" ]; then
+            echo 'RUNNER_TEMP must be an existing directory.' >&2
+            exit 1
+          fi
+          RUNNER_TEMP_REAL="$(cd "$RUNNER_TEMP" 2>/dev/null && pwd -P)"
+          case "$RUNNER_TEMP_REAL" in
+            *[[:space:][:cntrl:]]*) echo 'resolved RUNNER_TEMP contains whitespace or control characters.' >&2; exit 1 ;;
           esac
-          CONTROL_PATH="${RUNNER_TEMP}/sync-erp-hostinger-${GITHUB_RUN_ID}.sock"
-          case "$CONTROL_PATH" in
-            "$RUNNER_TEMP"/sync-erp-hostinger-[0-9]*.sock) ;;
-            *) echo 'Control socket path failed validation.' >&2; exit 1 ;;
+          case "$HOSTINGER_KNOWN_HOSTS_FILE" in
+            "$RUNNER_TEMP_REAL"/hostinger-known-hosts.*) ;;
+            *) echo 'Hostinger known-hosts file is outside the validated RUNNER_TEMP.' >&2; exit 1 ;;
           esac
+          if [ ! -f "$HOSTINGER_KNOWN_HOSTS_FILE" ] || [ -L "$HOSTINGER_KNOWN_HOSTS_FILE" ] || [ ! -r "$HOSTINGER_KNOWN_HOSTS_FILE" ]; then
+            echo 'Hostinger known-hosts file must be a readable regular file.' >&2
+            exit 1
+          fi
+
+          SSH_RUNTIME_DIR=""
+          SSH_KEY_FILE=""
+          SSH_KEY_STAGED_FILE=""
+          SSH_ASKPASS_FILE=""
+          SSH_ASKPASS_STAGED_FILE=""
+          SSH_AGENT_SOCKET=""
+          SSH_AGENT_PID=""
+          SSH_AGENT_CREATED=0
+          SSH_OPTS=()
+          SCP_OPTS=()
+          SSH_TARGET=""
+          MCP_ARCHIVE=""
+          REMOTE_MCP_ARCHIVE=""
+          REMOTE_UPLOAD_CLEANUP_COMMAND=""
+          REMOTE_UPLOADS_PRESENT=0
+          cleanup_local() {
+            local primary_status="$?"
+            trap - EXIT
+            if [ "$REMOTE_UPLOADS_PRESENT" -eq 1 ] && [ -n "$REMOTE_UPLOAD_CLEANUP_COMMAND" ]; then
+              # Cleanup uses the same pinned SSH options even when deployment
+              # failed before the following remote command could start.
+              ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "$REMOTE_UPLOAD_CLEANUP_COMMAND" >/dev/null 2>&1 || true
+            fi
+            if [ "$SSH_AGENT_CREATED" -eq 1 ]; then
+              ssh-agent -k >/dev/null 2>&1 || true
+            fi
+            for local_file in "$MCP_ARCHIVE" "$SSH_KEY_STAGED_FILE" "$SSH_KEY_FILE" "$SSH_ASKPASS_STAGED_FILE" "$SSH_ASKPASS_FILE" "$SSH_AGENT_SOCKET"; do
+              if [ -n "$local_file" ]; then
+                rm -f -- "$local_file" || true
+              fi
+            done
+            if [ -n "$SSH_RUNTIME_DIR" ]; then
+              rmdir -- "$SSH_RUNTIME_DIR" >/dev/null 2>&1 || true
+            fi
+            exit "$primary_status"
+          }
+          trap cleanup_local EXIT
+
+          SSH_RUNTIME_DIR="$(umask 077 && mktemp -d "$RUNNER_TEMP_REAL/sync-erp-hostinger-ssh.XXXXXXXXXX")"
+          chmod 700 "$SSH_RUNTIME_DIR"
+          case "$SSH_RUNTIME_DIR" in
+            "$RUNNER_TEMP_REAL"/sync-erp-hostinger-ssh.*) ;;
+            *) echo 'SSH runtime directory was created outside RUNNER_TEMP.' >&2; exit 1 ;;
+          esac
+          if [ ! -d "$SSH_RUNTIME_DIR" ] || [ -L "$SSH_RUNTIME_DIR" ]; then
+            echo 'SSH runtime directory must be a fresh private directory.' >&2
+            exit 1
+          fi
+          SSH_KEY_FILE="$SSH_RUNTIME_DIR/id_ed25519"
+          SSH_KEY_STAGED_FILE="$(umask 077 && mktemp "$SSH_RUNTIME_DIR/.id_ed25519.XXXXXXXXXX")"
+          case "$SSH_KEY_STAGED_FILE" in
+            "$SSH_RUNTIME_DIR"/.id_ed25519.*) ;;
+            *) echo 'SSH key staging file was created outside the private runtime directory.' >&2; exit 1 ;;
+          esac
+          if [ ! -f "$SSH_KEY_STAGED_FILE" ] || [ -L "$SSH_KEY_STAGED_FILE" ] || [ -e "$SSH_KEY_FILE" ] || [ -L "$SSH_KEY_FILE" ]; then
+            echo 'SSH key paths must be fresh regular files.' >&2
+            exit 1
+          fi
+          if ! printf '%s\n' "$HOSTINGER_SSH_KEY" |
+            bash scripts/hostinger-ssh-pinning.sh \
+              --write-atomic-file "$SSH_KEY_STAGED_FILE" "$SSH_KEY_FILE" 600; then
+            echo 'Could not write the Hostinger SSH key safely.' >&2
+            exit 1
+          fi
+          if [ ! -f "$SSH_KEY_FILE" ] || [ -L "$SSH_KEY_FILE" ]; then
+            echo 'SSH key file was not published as a regular file.' >&2
+            exit 1
+          fi
+          SSH_KEY_STAGED_FILE=""
+
+          SSH_ASKPASS_FILE="$SSH_RUNTIME_DIR/askpass"
+          SSH_ASKPASS_STAGED_FILE="$(umask 077 && mktemp "$SSH_RUNTIME_DIR/.askpass.XXXXXXXXXX")"
+          case "$SSH_ASKPASS_STAGED_FILE" in
+            "$SSH_RUNTIME_DIR"/.askpass.*) ;;
+            *) echo 'SSH askpass staging file was created outside the private runtime directory.' >&2; exit 1 ;;
+          esac
+          if [ ! -f "$SSH_ASKPASS_STAGED_FILE" ] || [ -L "$SSH_ASKPASS_STAGED_FILE" ] || [ -e "$SSH_ASKPASS_FILE" ] || [ -L "$SSH_ASKPASS_FILE" ]; then
+            echo 'SSH askpass paths must be fresh regular files.' >&2
+            exit 1
+          fi
+          if ! printf '%s\n' 'printf "%s\\n" "$SSH_PASSPHRASE"' |
+            bash scripts/hostinger-ssh-pinning.sh \
+              --write-atomic-file "$SSH_ASKPASS_STAGED_FILE" "$SSH_ASKPASS_FILE" 700; then
+            echo 'Could not write the SSH askpass helper safely.' >&2
+            exit 1
+          fi
+          if [ ! -f "$SSH_ASKPASS_FILE" ] || [ -L "$SSH_ASKPASS_FILE" ]; then
+            echo 'SSH askpass file was not published as a regular file.' >&2
+            exit 1
+          fi
+          SSH_ASKPASS_STAGED_FILE=""
+          SSH_AGENT_SOCKET="$SSH_RUNTIME_DIR/agent.sock"
+          if [ -e "$SSH_AGENT_SOCKET" ] || [ -L "$SSH_AGENT_SOCKET" ]; then
+            echo 'SSH agent socket path unexpectedly pre-existed.' >&2
+            exit 1
+          fi
+          unset SSH_AUTH_SOCK SSH_AGENT_PID
+          SSH_AGENT_OUTPUT=""
+          if ! SSH_AGENT_OUTPUT="$(ssh-agent -a "$SSH_AGENT_SOCKET")"; then
+            echo 'Could not create the SSH agent.' >&2
+            exit 1
+          fi
+          if [ -z "$SSH_AGENT_OUTPUT" ] || ! eval "$SSH_AGENT_OUTPUT"; then
+            echo 'Could not initialize the SSH agent.' >&2
+            exit 1
+          fi
+          if [ "${SSH_AUTH_SOCK:-}" != "$SSH_AGENT_SOCKET" ] || [ ! -S "$SSH_AGENT_SOCKET" ]; then
+            echo 'SSH agent did not create the expected socket.' >&2
+            exit 1
+          fi
+          case "${SSH_AGENT_PID:-}" in
+            ''|*[!0-9]*) echo 'SSH agent did not return a valid PID.' >&2; exit 1 ;;
+          esac
+          if [ "$SSH_AGENT_PID" -le 0 ] || ! kill -0 "$SSH_AGENT_PID" 2>/dev/null; then
+            echo 'SSH agent PID is not running.' >&2
+            exit 1
+          fi
+          SSH_AGENT_CREATED=1
+          export SSH_ASKPASS="$SSH_ASKPASS_FILE"
+          export SSH_ASKPASS_REQUIRE=force
+          export DISPLAY=:0
+          ssh-add "$SSH_KEY_FILE"
+
           SSH_COMMON_OPTS=(
             -o StrictHostKeyChecking=yes
             -o "UserKnownHostsFile=${HOSTINGER_KNOWN_HOSTS_FILE}"
@@ -155,35 +277,17 @@ jobs:
             -o ConnectTimeout=30
             -o ConnectionAttempts=5
             -o BatchMode=yes
-            -o ControlMaster=auto
-            -o "ControlPath=${CONTROL_PATH}"
-            -o ControlPersist=600
+            -o ControlMaster=no
           )
           SSH_OPTS=(-p "$HOSTINGER_SSH_PORT" "${SSH_COMMON_OPTS[@]}")
           SCP_OPTS=(-P "$HOSTINGER_SSH_PORT" "${SSH_COMMON_OPTS[@]}")
           SSH_TARGET="${HOSTINGER_USER}@${HOSTINGER_HOST}"
-          MCP_ARCHIVE="$(mktemp)"
+          MCP_ARCHIVE="$(umask 077 && mktemp "$SSH_RUNTIME_DIR/mcp-archive.XXXXXXXXXX")"
           REMOTE_MCP_ARCHIVE="sync-erp-mcp-${GITHUB_SHA}.tar.gz"
-
-          cleanup_control() {
-            local primary_status="$?"
-            trap - EXIT
-            if [ -S "$CONTROL_PATH" ]; then
-              ssh "${SSH_OPTS[@]}" -O exit \
-                "$SSH_TARGET" >/dev/null 2>&1 || true
-            fi
-            rm -f -- "$CONTROL_PATH" || true
-            exit "$primary_status"
-          }
-          trap cleanup_control EXIT
+          REMOTE_UPLOAD_CLEANUP_COMMAND="rm -f -- \"\$HOME/${REMOTE_MCP_ARCHIVE}\""
 
           # Check the reviewed host key before any remote mutation or transfer.
           ssh "${SSH_OPTS[@]}" "$SSH_TARGET" true >/dev/null
-          for _ in 1 2 3 4 5 6 7 8 9 10; do
-            [ -S "$CONTROL_PATH" ] && break
-            sleep 1
-          done
-          test -S "$CONTROL_PATH"
 
           # A saturated CloudLinux NPROC quota can prevent even scp from
           # forking. Kill only the exact target using shell builtins, then
@@ -222,6 +326,7 @@ jobs:
           timeout 900 scp "${SCP_OPTS[@]}" \
             "$MCP_ARCHIVE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_MCP_ARCHIVE}"
+          REMOTE_UPLOADS_PRESENT=1
 
           ssh "${SSH_OPTS[@]}" "$SSH_TARGET" \
             "DEPLOY_DIR='${DEPLOY_DIR}' API_ENV_DIR='${API_ENV_DIR}' REMOTE_MCP_ARCHIVE='${REMOTE_MCP_ARCHIVE}' PM2_NAME='${PM2_NAME}' MCP_PORT='${MCP_PORT}' EXPECTED_SHA='${GITHUB_SHA}' bash -s" <<'EOF'
@@ -229,6 +334,21 @@ jobs:
             export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
             target="$HOME/public_html/${DEPLOY_DIR}"
             api_env="$HOME/public_html/${API_ENV_DIR}/.env"
+            env_next="$target/.env.next"
+            headers_file=""
+            initialize_file=""
+            tools_file=""
+            cleanup_remote_generated_files() {
+              local primary_status="$?"
+              trap - EXIT
+              for generated_file in "$env_next" "$headers_file" "$initialize_file" "$tools_file"; do
+                if [ -n "$generated_file" ]; then
+                  rm -f -- "$generated_file" || true
+                fi
+              done
+              exit "$primary_status"
+            }
+            trap cleanup_remote_generated_files EXIT
 
             mkdir -p "$target"
             find "$target" -mindepth 1 -maxdepth 1 \
@@ -242,7 +362,7 @@ jobs:
 
             test -f node_modules/express/package.json
             test -f node_modules/@modelcontextprotocol/sdk/package.json
-            rm -f "$HOME/${REMOTE_MCP_ARCHIVE}"
+            rm -f -- "$HOME/${REMOTE_MCP_ARCHIVE}"
             mkdir -p tmp
 
             bearer_token=""
@@ -256,15 +376,20 @@ jobs:
               bearer_token="$(openssl rand -hex 32)"
             fi
 
+            umask 077
+            if ! (set -C; : > "$env_next") 2>/dev/null; then
+              echo 'MCP environment staging path already exists or could not be created.' >&2
+              exit 1
+            fi
+            chmod 600 "$env_next"
             {
               if [ -f .env ]; then
                 grep -v -E '^(MCP_PORT|SYNC_ERP_MCP_BEARER_TOKEN)=' .env || true
               fi
               printf 'MCP_PORT=%s\n' "$MCP_PORT"
               printf 'SYNC_ERP_MCP_BEARER_TOKEN=%s\n' "$bearer_token"
-            } > .env.next
-            mv .env.next .env
-            chmod 600 .env
+            } >> "$env_next"
+            mv -f -- "$env_next" .env
 
             pm2="$HOME/node-pm2/node_modules/.bin/pm2"
             NODE_OPTIONS="--v8-pool-size=1" UV_THREADPOOL_SIZE=1 \
@@ -319,10 +444,6 @@ jobs:
               headers_file="$(mktemp)"
               initialize_file="$(mktemp)"
               tools_file="$(mktemp)"
-              cleanup_mcp_readiness() {
-                rm -f "$headers_file" "$initialize_file" "$tools_file"
-              }
-              trap cleanup_mcp_readiness EXIT
 
               initialized_code="$(curl -sS -D "$headers_file" -o "$initialize_file" -w "%{http_code}" \
                 --connect-timeout 5 --max-time 15 \
