@@ -56,6 +56,8 @@ jobs:
               - 'scripts/write-release-manifest.mjs'
               - 'scripts/hostinger-api-release.sh'
               - 'scripts/hostinger-api-release.test.sh'
+              - 'scripts/hostinger-ssh-pinning.sh'
+              - 'scripts/hostinger-ssh-pinning.test.sh'
               - 'turbo.json'
             web:
               - '.github/workflows/ci-cd.yml'
@@ -129,6 +131,9 @@ jobs:
 
       - name: Test Hostinger API release rollback
         run: npm run test:hostinger-release
+
+      - name: Test Hostinger SSH pinning
+        run: bash scripts/hostinger-ssh-pinning.test.sh
 
       - name: Test (integration)
         run: npm run test:integration --workspace=@sync-erp/api
@@ -289,11 +294,16 @@ jobs:
           fi
 
       - name: Setup SSH
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+          HOSTINGER_SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
+          HOSTINGER_SSH_PORT: '65002'
+          HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
         run: |
+          bash scripts/hostinger-ssh-pinning.sh
           mkdir -p ~/.ssh
-          echo "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          printf '%s\n' "$HOSTINGER_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p 65002 "${{ secrets.HOSTINGER_HOST }}" > ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy package to Hostinger
         env:
@@ -307,11 +317,12 @@ jobs:
           DATABASE_URL: ${{ github.ref_name == 'main' && secrets.DATABASE_URL || secrets.DATABASE_URL_STAGING }}
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
+          HOSTINGER_SSH_PORT: '65002'
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           SYNC_ERP_AUTH_STATE_SECRET: ${{ secrets.SYNC_ERP_AUTH_STATE_SECRET }}
         run: |
-          eval $(ssh-agent -a $SSH_AUTH_SOCK)
+          eval "$(ssh-agent -a \"$SSH_AUTH_SOCK\")"
 
           echo 'echo "$SSH_PASSPHRASE"' > ~/.ssh/askpass
           chmod +x ~/.ssh/askpass
@@ -319,9 +330,20 @@ jobs:
           export DISPLAY=:0
 
           ssh-add ~/.ssh/id_ed25519
-          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o ConnectionAttempts=5 -o BatchMode=yes"
-          SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
-          SCP_OPTS="-P 65002 ${SSH_COMMON_OPTS}"
+          : "${HOSTINGER_KNOWN_HOSTS_FILE:?Missing Hostinger known-hosts file.}"
+          test -r "$HOSTINGER_KNOWN_HOSTS_FILE"
+          SSH_COMMON_OPTS=(
+            -o StrictHostKeyChecking=yes
+            -o "UserKnownHostsFile=${HOSTINGER_KNOWN_HOSTS_FILE}"
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=10
+            -o ConnectTimeout=30
+            -o ConnectionAttempts=5
+            -o BatchMode=yes
+          )
+          SSH_OPTS=(-p "$HOSTINGER_SSH_PORT" "${SSH_COMMON_OPTS[@]}")
+          SCP_OPTS=(-P "$HOSTINGER_SSH_PORT" "${SSH_COMMON_OPTS[@]}")
+          SSH_TARGET="${HOSTINGER_USER}@${HOSTINGER_HOST}"
           API_ARCHIVE="$(mktemp)"
           RUNTIME_ENV_FILE="$(mktemp)"
           REMOTE_API_ARCHIVE="sync-erp-api-${GITHUB_SHA}.tar.gz"
@@ -370,21 +392,24 @@ jobs:
             --exclude='./stderr.log' \
             -czf "$API_ARCHIVE" .
 
-          timeout 900 scp ${SCP_OPTS} \
+          # Check the reviewed host key before any transfer or remote mutation.
+          ssh "${SSH_OPTS[@]}" "$SSH_TARGET" true >/dev/null
+
+          timeout 900 scp "${SCP_OPTS[@]}" \
             "$API_ARCHIVE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_API_ARCHIVE}"
 
-          timeout 900 scp ${SCP_OPTS} \
+          timeout 900 scp "${SCP_OPTS[@]}" \
             "$RUNTIME_ENV_FILE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${REMOTE_RUNTIME_ENV}"
 
-          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+          ssh "${SSH_OPTS[@]}" "$SSH_TARGET" \
             "DEPLOY_DIR='${DEPLOY_DIR}' REMOTE_API_ARCHIVE='${REMOTE_API_ARCHIVE}' REMOTE_RUNTIME_ENV='${REMOTE_RUNTIME_ENV}' PM2_NAME='${PM2_NAME}' APP_PORT='${APP_PORT}' RUNTIME_ENV='${RUNTIME_ENV}' DATABASE_PROJECT_REF='${DATABASE_PROJECT_REF}' EXPECTED_SHA='${GITHUB_SHA}' API_URL='${{ steps.target.outputs.api_url }}' API_BASE_URL='${{ steps.target.outputs.api_base_url }}' WEB_URL='${{ steps.target.outputs.web_url }}' OAUTH_REDIRECT_URL='${{ steps.target.outputs.oauth_redirect_url }}' CORS_ORIGINS='${{ steps.target.outputs.cors_origins }}' PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH bash -s -- deploy" < scripts/hostinger-api-release.sh
 
           # Verify the active release over the same authenticated SSH path used
           # for deployment. GitHub-hosted runner IPs can receive a WAF 403 for
           # the public health routes even when the API is healthy.
-          ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+          ssh "${SSH_OPTS[@]}" "$SSH_TARGET" \
             "DEPLOY_DIR='${DEPLOY_DIR}' APP_PORT='${APP_PORT}' API_BASE_URL='${{ steps.target.outputs.api_base_url }}' OAUTH_REDIRECT_URL='${{ steps.target.outputs.oauth_redirect_url }}' RUNTIME_ENV='${RUNTIME_ENV}' EXPECTED_SHA='${GITHUB_SHA}' PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH bash -s -- verify" <<'REMOTE'
           set -euo pipefail
 

@@ -103,6 +103,13 @@ jobs:
           path: ${{ steps.package.outputs.artifact }}
           retention-days: 7
 
+      - name: Pin Hostinger SSH host key
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+          HOSTINGER_SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
+          HOSTINGER_SSH_PORT: '65002'
+        run: bash scripts/hostinger-ssh-pinning.sh
+
       - name: Execute failure-injected release and rollback
         id: rollback
         env:
@@ -111,6 +118,7 @@ jobs:
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
           HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          HOSTINGER_SSH_PORT: '65002'
           DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
@@ -125,8 +133,6 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$HOSTINGER_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p 65002 "$HOSTINGER_HOST" > ~/.ssh/known_hosts 2>/dev/null || true
-
           eval "$(ssh-agent -a "$SSH_AUTH_SOCK")"
           echo 'echo "$SSH_PASSPHRASE"' > ~/.ssh/askpass
           chmod +x ~/.ssh/askpass
@@ -135,9 +141,23 @@ jobs:
           ssh-add ~/.ssh/id_ed25519
 
           CONTROL_PATH="${RUNNER_TEMP}/sync-erp-hostinger-${GITHUB_RUN_ID}.sock"
-          SSH_COMMON_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=30 -o ConnectionAttempts=5 -o BatchMode=yes -o ControlMaster=auto -o ControlPath=${CONTROL_PATH} -o ControlPersist=600"
-          SSH_OPTS="-p 65002 ${SSH_COMMON_OPTS}"
-          SCP_OPTS="-P 65002 ${SSH_COMMON_OPTS}"
+          : "${HOSTINGER_KNOWN_HOSTS_FILE:?Missing Hostinger known-hosts file.}"
+          test -r "$HOSTINGER_KNOWN_HOSTS_FILE"
+          SSH_COMMON_OPTS=(
+            -o StrictHostKeyChecking=yes
+            -o "UserKnownHostsFile=${HOSTINGER_KNOWN_HOSTS_FILE}"
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=10
+            -o ConnectTimeout=30
+            -o ConnectionAttempts=5
+            -o BatchMode=yes
+            -o ControlMaster=auto
+            -o "ControlPath=${CONTROL_PATH}"
+            -o ControlPersist=600
+          )
+          SSH_OPTS=(-p "$HOSTINGER_SSH_PORT" "${SSH_COMMON_OPTS[@]}")
+          SCP_OPTS=(-P "$HOSTINGER_SSH_PORT" "${SSH_COMMON_OPTS[@]}")
+          SSH_TARGET="${HOSTINGER_USER}@${HOSTINGER_HOST}"
           runtime_env_file="$RUNNER_TEMP/sync-erp-runtime-rollback-drill-${GITHUB_RUN_ID}.env"
           remote_archive="sync-erp-api-rollback-drill-${GITHUB_RUN_ID}.tar.gz"
           remote_runtime_env="sync-erp-runtime-rollback-drill-${GITHUB_RUN_ID}.env"
@@ -170,15 +190,18 @@ jobs:
           } > "$runtime_env_file"
           chmod 600 "$runtime_env_file"
 
-          timeout 900 scp ${SCP_OPTS} \
+          # Check the reviewed host key before any transfer or remote mutation.
+          ssh "${SSH_OPTS[@]}" "$SSH_TARGET" true >/dev/null
+
+          timeout 900 scp "${SCP_OPTS[@]}" \
             "$API_ARCHIVE" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${remote_archive}"
-          timeout 900 scp ${SCP_OPTS} \
+          timeout 900 scp "${SCP_OPTS[@]}" \
             "$runtime_env_file" \
             "${HOSTINGER_USER}@${HOSTINGER_HOST}:~/${remote_runtime_env}"
 
           rollback_output="$(
-            ssh ${SSH_OPTS} "${HOSTINGER_USER}@${HOSTINGER_HOST}" \
+            ssh "${SSH_OPTS[@]}" "$SSH_TARGET" \
               "DEPLOY_DIR='apps/api-staging' REMOTE_API_ARCHIVE='${remote_archive}' REMOTE_RUNTIME_ENV='${remote_runtime_env}' PM2_NAME='sync-erp-api-staging' APP_PORT='3001' RUNTIME_ENV='staging' DATABASE_PROJECT_REF='ctesbnhcqubamrtcxxqi' EXPECTED_SHA='${GITHUB_SHA}' ROLLBACK_DRILL_CONFIRMATION='ROLLBACK_STAGING' DRILL_ID='${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}' API_URL='https://api-staging.santiliving.com/api/trpc' API_BASE_URL='https://api-staging.santiliving.com' WEB_URL='https://sync-erp-staging.santiliving.com' OAUTH_REDIRECT_URL='https://api-staging.santiliving.com/api/auth/google/callback' CORS_ORIGINS='http://localhost:5173,https://sync-erp-staging.santiliving.com,https://sync-erp-git-dev-doncarlo31s-projects.vercel.app' PATH=/opt/alt/alt-nodejs20/root/usr/bin:\$PATH bash -s -- rollback-drill" < scripts/hostinger-api-release.sh
           )"
           printf '%s\n' "$rollback_output"
