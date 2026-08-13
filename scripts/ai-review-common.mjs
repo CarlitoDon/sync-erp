@@ -379,6 +379,17 @@ async function cancelReader(reader) {
   }
 }
 
+async function cancelResponseBody(response) {
+  try {
+    const cancel = response?.body?.cancel;
+    if (typeof cancel === 'function') {
+      await cancel.call(response.body);
+    }
+  } catch {
+    // The response is already being rejected with a sanitized error.
+  }
+}
+
 function toUint8Array(value) {
   if (value instanceof Uint8Array) return value;
   if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) {
@@ -395,6 +406,7 @@ async function readResponseStream(response, service, maxChars, timeoutMs) {
   try {
     reader = response.body.getReader();
   } catch {
+    invokeSafely(() => cancelResponseBody(response));
     fail(`${service} response could not be read`);
   }
 
@@ -410,31 +422,52 @@ async function readResponseStream(response, service, maxChars, timeoutMs) {
         }
         if (result.done) {
           text += decoder.decode();
-          if (text.length > maxChars) throw new ResponseLimitError();
+          if (text.length > maxChars) {
+            invokeSafely(() => cancelReader(reader));
+            throw new ResponseLimitError();
+          }
           return text;
         }
 
         const chunk = toUint8Array(result.value);
         if (!chunk) throw new ResponseReadError();
-        byteCount += chunk.byteLength;
-        if (byteCount > maxChars) {
-          await cancelReader(reader);
+        if (chunk.byteLength > maxChars - byteCount) {
+          invokeSafely(() => cancelReader(reader));
           throw new ResponseLimitError();
         }
+        byteCount += chunk.byteLength;
         text += decoder.decode(chunk, { stream: true });
         if (text.length > maxChars) {
-          await cancelReader(reader);
+          invokeSafely(() => cancelReader(reader));
           throw new ResponseLimitError();
         }
       }
     } catch (error) {
       if (error instanceof ResponseLimitError) throw error;
-      if (error instanceof ResponseReadError) throw error;
+      if (error instanceof ResponseReadError) {
+        invokeSafely(() => cancelReader(reader));
+        throw error;
+      }
+      invokeSafely(() => cancelReader(reader));
       throw new ResponseReadError();
     }
   };
 
   try {
+    let contentLength;
+    try {
+      contentLength = getContentLength(response, service);
+    } catch (error) {
+      invokeSafely(() => cancelReader(reader));
+      throw error;
+    }
+    if (
+      contentLength !== undefined &&
+      BigInt(contentLength) > BigInt(maxChars)
+    ) {
+      invokeSafely(() => cancelReader(reader));
+      throw new ResponseLimitError();
+    }
     return await withTimeout(consume, {
       timeoutMs,
       onTimeout: () => cancelReader(reader),
@@ -445,7 +478,10 @@ async function readResponseStream(response, service, maxChars, timeoutMs) {
     if (error instanceof ResponseLimitError) {
       fail(`${service} response exceeds size limit`);
     }
-    fail(`${service} response could not be read`);
+    if (error instanceof ResponseReadError) {
+      fail(`${service} response could not be read`);
+    }
+    throw error;
   } finally {
     if (reader && typeof reader.releaseLock === 'function') {
       try {
@@ -470,7 +506,7 @@ export async function requestHttp({
 }) {
   if (typeof fetchImpl !== 'function') fail('Fetch implementation is unavailable');
   if (!['GET', 'POST'].includes(method)) fail('Unsupported HTTP method');
-  const responseLimit = validateResponseLimit(maxResponseChars);
+  validateResponseLimit(maxResponseChars);
   const requestTimeout = validateTimeoutMs(timeoutMs);
 
   const controller =
@@ -500,19 +536,20 @@ export async function requestHttp({
   if (!response || !Number.isInteger(response.status)) {
     fail(`${service} returned an invalid HTTP response`);
   }
-  assertContentLengthWithinLimit(response, service, responseLimit);
   return response;
 }
 
-async function readResponseText(response, service, maxChars, timeoutMs) {
+async function readResponseTextFallback(response, service, maxChars, timeoutMs) {
   const maxBytes = validateResponseLimit(maxChars);
-  assertContentLengthWithinLimit(response, service, maxBytes);
-
-  if (response.body && typeof response.body.getReader === 'function') {
-    return readResponseStream(response, service, maxBytes, timeoutMs);
+  try {
+    assertContentLengthWithinLimit(response, service, maxBytes);
+  } catch (error) {
+    invokeSafely(() => cancelResponseBody(response));
+    throw error;
   }
 
   if (typeof response.text !== 'function') {
+    invokeSafely(() => cancelResponseBody(response));
     fail(`${service} returned an unreadable response`);
   }
   let text;
@@ -521,11 +558,13 @@ async function readResponseText(response, service, maxChars, timeoutMs) {
       () => response.text(),
       {
         timeoutMs,
+        onTimeout: () => cancelResponseBody(response),
         message: `${service} response timed out`,
       }
     );
   } catch (error) {
     if (error instanceof HttpTimeoutError) fail(error.message);
+    invokeSafely(() => cancelResponseBody(response));
     fail(`${service} response could not be read`);
   }
   if (
@@ -536,6 +575,23 @@ async function readResponseText(response, service, maxChars, timeoutMs) {
     fail(`${service} response exceeds size limit`);
   }
   return text;
+}
+
+export async function readBoundedResponseBody(
+  response,
+  {
+    service = 'HTTP service',
+    maxChars = LIMITS.maxGithubResponseChars,
+    timeoutMs = HTTP_TIMEOUT_MS,
+  } = {}
+) {
+  const maxBytes = validateResponseLimit(maxChars);
+  const bodyTimeout = validateTimeoutMs(timeoutMs);
+
+  if (response?.body && typeof response.body.getReader === 'function') {
+    return readResponseStream(response, service, maxBytes, bodyTimeout);
+  }
+  return readResponseTextFallback(response, service, maxBytes, bodyTimeout);
 }
 
 export async function fetchJson({
@@ -560,10 +616,21 @@ export async function fetchJson({
     maxResponseChars: maxChars,
     timeoutMs,
   });
-  if (response.status < 200 || response.status >= 300) {
+  const success = response.status >= 200 && response.status < 300;
+  let raw;
+  try {
+    raw = await readBoundedResponseBody(response, {
+      service,
+      maxChars,
+      timeoutMs,
+    });
+  } catch (error) {
+    if (!success) fail(`${service} returned HTTP ${response.status}`);
+    throw error;
+  }
+  if (!success) {
     fail(`${service} returned HTTP ${response.status}`);
   }
-  const raw = await readResponseText(response, service, maxChars, timeoutMs);
   try {
     return JSON.parse(raw);
   } catch {

@@ -7,6 +7,7 @@ import {
   isRecord,
   loadExpectedContext,
   parseReviewArtifact,
+  readBoundedResponseBody,
   readBoundedJsonFile,
   redactSensitiveText,
   requestHttp,
@@ -66,7 +67,18 @@ export async function revalidateAndPublish({
       commit_id: reviewArtifact.headSha,
     }),
   });
-  if (response.status !== 200) {
+  const success = response.status === 200;
+  try {
+    await readBoundedResponseBody(response, {
+      service: 'GitHub review publication API',
+    });
+  } catch (error) {
+    if (!success) {
+      fail(`GitHub review publication returned HTTP ${response.status}`);
+    }
+    throw error;
+  }
+  if (!success) {
     fail(`GitHub review publication returned HTTP ${response.status}`);
   }
   return {

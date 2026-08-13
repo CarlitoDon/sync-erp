@@ -347,6 +347,7 @@ test('HTTP requests time out and response bodies stay bounded without body expos
   );
   assert.equal(cancelled, true);
 
+  let fallbackTextRead = false;
   await assert.rejects(
     () =>
       fetchJson({
@@ -356,7 +357,10 @@ test('HTTP requests time out and response bodies stay bounded without body expos
         timeoutMs: 20,
         fetchImpl: async () =>
           response(200, undefined, {
-            text: () => new Promise(() => {}),
+            text: () => {
+              fallbackTextRead = true;
+              return new Promise(() => {});
+            },
           }),
       }),
     (error) => {
@@ -365,16 +369,94 @@ test('HTTP requests time out and response bodies stay bounded without body expos
       return true;
     }
   );
+  assert.equal(fallbackTextRead, true);
+});
+
+test('chunked stream over-limit is detected incrementally and cancels the reader', async () => {
+  let readCount = 0;
+  let cancelCount = 0;
+  let releaseCount = 0;
+  const chunks = [Buffer.from('123'), Buffer.from('456')];
+  const reader = {
+    async read() {
+      return { done: false, value: chunks[readCount++] };
+    },
+    async cancel() {
+      cancelCount += 1;
+    },
+    releaseLock() {
+      releaseCount += 1;
+    },
+  };
+
+  await assert.rejects(
+    () =>
+      fetchJson({
+        url: 'https://provider.example.test/v1/chat/completions',
+        service: 'AI provider',
+        maxChars: 5,
+        fetchImpl: async () =>
+          response(200, undefined, {
+            body: { getReader: () => reader },
+          }),
+      }),
+    /AI provider response exceeds size limit/
+  );
+  assert.equal(readCount, 2);
+  assert.equal(cancelCount, 1);
+  assert.equal(releaseCount, 1);
+});
+
+test('stream read errors cancel the reader and keep response details out of errors', async () => {
+  let cancelCount = 0;
+  let releaseCount = 0;
+  const reader = {
+    async read() {
+      throw new Error('stream-body-secret');
+    },
+    async cancel() {
+      cancelCount += 1;
+    },
+    releaseLock() {
+      releaseCount += 1;
+    },
+  };
+
+  await assert.rejects(
+    () =>
+      fetchJson({
+        url: 'https://provider.example.test/v1/chat/completions',
+        service: 'AI provider',
+        fetchImpl: async () =>
+          response(200, undefined, {
+            body: { getReader: () => reader },
+          }),
+      }),
+    (error) => {
+      assert.match(error.message, /AI provider response could not be read/);
+      assert.doesNotMatch(error.message, /stream-body-secret/);
+      return true;
+    }
+  );
+  assert.equal(cancelCount, 1);
+  assert.equal(releaseCount, 1);
 });
 
 test('GitHub HTTP errors are status-only and never include response bodies', async () => {
+  let bodyRead = false;
   await assert.rejects(
     () =>
       fetchPullRequest(
         IDENTITY.repository,
         IDENTITY.prNumber,
         'github-secret-token',
-        async () => response(404, { message: 'github-secret-token' })
+        async () =>
+          response(404, { message: 'github-secret-token' }, {
+            text: async () => {
+              bodyRead = true;
+              return JSON.stringify({ message: 'github-secret-token' });
+            },
+          })
       ),
     (error) => {
       assert.match(error.message, /GitHub pull request API returned HTTP 404/);
@@ -382,6 +464,38 @@ test('GitHub HTTP errors are status-only and never include response bodies', asy
       return true;
     }
   );
+  assert.equal(bodyRead, true);
+});
+
+test('non-2xx chunked bodies are cancelled before status-only errors', async () => {
+  let cancelCount = 0;
+  const reader = {
+    async read() {
+      return { done: false, value: Buffer.from('too-large') };
+    },
+    async cancel() {
+      cancelCount += 1;
+    },
+    releaseLock() {},
+  };
+
+  await assert.rejects(
+    () =>
+      fetchJson({
+        url: 'https://github.example.test/repos/owner/repo/pulls/42',
+        service: 'GitHub pull request API',
+        maxChars: 4,
+        fetchImpl: async () =>
+          response(503, undefined, {
+            body: { getReader: () => reader },
+          }),
+      }),
+    (error) => {
+      assert.equal(error.message, 'GitHub pull request API returned HTTP 503');
+      return true;
+    }
+  );
+  assert.equal(cancelCount, 1);
 });
 
 test('publisher re-fetches and rejects a stale head before any POST', async () => {
@@ -405,6 +519,7 @@ test('publisher re-fetches and rejects a stale head before any POST', async () =
 
 test('publisher performs only the intended re-fetch GET and review POST', async () => {
   const calls = [];
+  let publicationBodyRead = false;
   const result = await revalidateAndPublish({
     artifact: artifact('REQUEST_CHANGES'),
     expected: IDENTITY,
@@ -413,13 +528,19 @@ test('publisher performs only the intended re-fetch GET and review POST', async 
       calls.push({ url, init });
       return calls.length === 1
         ? response(200, pullRequest())
-        : response(200, { id: 123 });
+        : response(200, { id: 123 }, {
+            text: async () => {
+              publicationBodyRead = true;
+              return JSON.stringify({ id: 123 });
+            },
+          });
     },
   });
   assert.equal(result.verdict, 'REQUEST_CHANGES');
   assert.equal(result.event, 'COMMENT');
   assert.equal(result.commitId, HEAD_SHA);
   assert.equal(calls.length, 2);
+  assert.equal(publicationBodyRead, true);
   assert.equal(calls[0].init.method, 'GET');
   assert.equal(calls[1].init.method, 'POST');
   assert.match(calls[1].url, /\/repos\/owner\/repo\/pulls\/42\/reviews$/);
