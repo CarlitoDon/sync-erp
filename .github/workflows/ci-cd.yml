@@ -95,6 +95,9 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Test AI review security contract
+        run: npm run test:ai-review-security
+
       # Always run install. setup-node restores the npm cache but not the
       # full node_modules tree, so npm always (re)links node_modules/.bin.
       # A never-run install on a stale manual node_modules cache left

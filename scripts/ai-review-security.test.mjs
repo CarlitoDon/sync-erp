@@ -7,8 +7,10 @@ import {
   buildReviewBody,
   buildBoundedDiff,
   fetchPullRequest,
+  fetchJson,
   parseReviewArtifact,
   parseReviewPayload,
+  redactSensitiveText,
   requestHttp,
   serializeReviewArtifact,
   validatePrNumber,
@@ -32,10 +34,14 @@ const IDENTITY = {
   headRepository: 'owner/repo',
 };
 
-function response(status, value) {
+function response(status, value, { headers, body, text } = {}) {
   return {
     status,
-    text: async () => (typeof value === 'string' ? value : JSON.stringify(value)),
+    ...(headers === undefined ? {} : { headers }),
+    ...(body === undefined ? {} : { body }),
+    text:
+      text ??
+      (async () => (typeof value === 'string' ? value : JSON.stringify(value))),
   };
 }
 
@@ -81,6 +87,25 @@ test('workflow keeps a trusted-base trigger and least-privilege job split', asyn
   assert.doesNotMatch(workflow, /^\s+pull_request:/m);
   assert.doesNotMatch(workflow, /workflow_dispatch/);
   assert.doesNotMatch(workflow, /head_ref|base_ref|inputs\./);
+  assert.match(
+    workflow,
+    /types: \[opened, edited, reopened, synchronize, ready_for_review\]/
+  );
+  const expectedActionPins = [
+    'actions/checkout@11d5960a326750d5838078e36cf38b85af677262',
+    'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020',
+    'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
+    'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093',
+  ];
+  for (const actionPin of expectedActionPins) assert.match(workflow, new RegExp(actionPin));
+  assert.equal(
+    (workflow.match(/uses: [^\s]+@[0-9a-f]{40}/g) || []).length,
+    6
+  );
+  assert.doesNotMatch(workflow, /uses: [^\s]+@v[0-9]+/);
+  assert.equal((workflow.match(/runs-on: ubuntu-24\.04/g) || []).length, 2);
+  assert.match(workflow, /analyzer:[\s\S]*timeout-minutes: 15/);
+  assert.match(workflow, /publisher:[\s\S]*timeout-minutes: 10/);
   assert.equal(
     (workflow.match(/ref: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/g) || []).length,
     2
@@ -93,6 +118,39 @@ test('workflow keeps a trusted-base trigger and least-privilege job split', asyn
   const publisher = workflow.slice(workflow.indexOf('publisher:'));
   assert.match(analyzer, /AI_API_KEY:/);
   assert.doesNotMatch(publisher, /AI_API_KEY|NINE_ROUTER_TUNNEL_API_KEY/);
+  const analyzerSetup = analyzer.indexOf('name: Setup Node.js');
+  const analyzerContract = analyzer.indexOf(
+    'run: node --test scripts/ai-review-security.test.mjs'
+  );
+  const analyzerSecret = analyzer.indexOf('AI_API_KEY:');
+  assert.ok(analyzerSetup >= 0 && analyzerContract > analyzerSetup);
+  assert.ok(analyzerContract < analyzerSecret);
+});
+
+test('security contract is wired into pull-request CI before dependency install', async () => {
+  const [packageText, ciWorkflow] = await Promise.all([
+    readFile(new URL('../package.json', import.meta.url), 'utf8'),
+    readFile(new URL('../.github/workflows/ci-cd.yml', import.meta.url), 'utf8'),
+  ]);
+  const packageJson = JSON.parse(packageText);
+  assert.equal(
+    packageJson.scripts['test:ai-review-security'],
+    'node --test scripts/ai-review-security.test.mjs'
+  );
+  const ciApi = ciWorkflow.indexOf('  ci-api:');
+  const setupNode = ciWorkflow.indexOf(
+    '- uses: actions/setup-node@v4',
+    ciApi
+  );
+  const contract = ciWorkflow.indexOf(
+    'run: npm run test:ai-review-security',
+    setupNode
+  );
+  const install = ciWorkflow.indexOf('name: Install dependencies', setupNode);
+  assert.ok(ciApi >= 0);
+  assert.ok(setupNode > ciApi);
+  assert.ok(contract > setupNode);
+  assert.ok(contract < install);
 });
 
 test('trusted modules contain no shell execution or PR-head checkout behavior', async () => {
@@ -210,6 +268,105 @@ test('malformed and oversized provider output is rejected without exposing respo
   );
 });
 
+test('HTTP requests time out and response bodies stay bounded without body exposure', async () => {
+  let requestSignal;
+  await assert.rejects(
+    () =>
+      requestHttp({
+        url: 'https://github.example.test/slow',
+        token: 'github-secret-token',
+        timeoutMs: 20,
+        fetchImpl: (_url, init) => {
+          requestSignal = init.signal;
+          return new Promise(() => {});
+        },
+      }),
+    (error) => {
+      assert.match(error.message, /HTTP service request timed out/);
+      assert.doesNotMatch(error.message, /github-secret-token|response-body-secret/);
+      return true;
+    }
+  );
+  assert.equal(requestSignal.aborted, true);
+
+  let textRead = false;
+  await assert.rejects(
+    () =>
+      fetchJson({
+        url: 'https://provider.example.test/v1/chat/completions',
+        token: 'provider-secret-token',
+        service: 'AI provider',
+        maxChars: 10,
+        fetchImpl: async () =>
+          response(200, 'response-body-secret', {
+            headers: { get: () => '11' },
+            text: async () => {
+              textRead = true;
+              return 'response-body-secret';
+            },
+          }),
+      }),
+    (error) => {
+      assert.match(error.message, /AI provider response exceeds size limit/);
+      assert.doesNotMatch(error.message, /response-body-secret|provider-secret-token/);
+      return true;
+    }
+  );
+  assert.equal(textRead, false);
+
+  let cancelled = false;
+  await assert.rejects(
+    () =>
+      fetchJson({
+        url: 'https://provider.example.test/v1/chat/completions',
+        token: 'provider-secret-token',
+        service: 'AI provider',
+        maxChars: 5,
+        fetchImpl: async () =>
+          response(200, undefined, {
+            body: {
+              getReader() {
+                return {
+                  async read() {
+                    return { done: false, value: Buffer.from('response-body-secret') };
+                  },
+                  async cancel() {
+                    cancelled = true;
+                  },
+                  releaseLock() {},
+                };
+              },
+            },
+          }),
+      }),
+    (error) => {
+      assert.match(error.message, /AI provider response exceeds size limit/);
+      assert.doesNotMatch(error.message, /response-body-secret|provider-secret-token/);
+      return true;
+    }
+  );
+  assert.equal(cancelled, true);
+
+  await assert.rejects(
+    () =>
+      fetchJson({
+        url: 'https://provider.example.test/v1/chat/completions',
+        token: 'provider-secret-token',
+        service: 'AI provider',
+        timeoutMs: 20,
+        fetchImpl: async () =>
+          response(200, undefined, {
+            text: () => new Promise(() => {}),
+          }),
+      }),
+    (error) => {
+      assert.match(error.message, /AI provider response timed out/);
+      assert.doesNotMatch(error.message, /response-body-secret|provider-secret-token/);
+      return true;
+    }
+  );
+});
+
 test('GitHub HTTP errors are status-only and never include response bodies', async () => {
   await assert.rejects(
     () =>
@@ -260,11 +417,17 @@ test('publisher performs only the intended re-fetch GET and review POST', async 
     },
   });
   assert.equal(result.verdict, 'REQUEST_CHANGES');
+  assert.equal(result.event, 'COMMENT');
+  assert.equal(result.commitId, HEAD_SHA);
   assert.equal(calls.length, 2);
   assert.equal(calls[0].init.method, 'GET');
   assert.equal(calls[1].init.method, 'POST');
   assert.match(calls[1].url, /\/repos\/owner\/repo\/pulls\/42\/reviews$/);
-  assert.equal(JSON.parse(calls[1].init.body).event, 'REQUEST_CHANGES');
+  const publication = JSON.parse(calls[1].init.body);
+  assert.equal(publication.event, 'COMMENT');
+  assert.equal(publication.commit_id, HEAD_SHA);
+  assert.match(publication.body, /AI verdict is advisory|Advisory AI verdict/);
+  assert.match(publication.body, /REQUEST_CHANGES/);
   assert.doesNotMatch(calls[1].init.body, /github-write-token/);
 });
 
@@ -319,4 +482,15 @@ test('artifact identity and shell-injection-shaped inputs fail closed', () => {
   });
   assert.match(body, /\$\(touch \/tmp\/pwned\)/);
   assert.match(requestHttp.toString(), /fetchImpl/);
+});
+
+test('redaction removes every non-empty secret, including short values', () => {
+  const redacted = redactSensitiveText(
+    'short=x one=abc two=yz long=provider-secret-token',
+    ['', 'x', 'abc', 'yz', 'provider-secret-token']
+  );
+  assert.equal(
+    redacted,
+    'short=[REDACTED] one=[REDACTED] two=[REDACTED] long=[REDACTED]'
+  );
 });

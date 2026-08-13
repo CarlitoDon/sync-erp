@@ -49,6 +49,10 @@ export async function revalidateAndPublish({
     },
     [token]
   );
+  // The immediate revalidation plus commit_id prevents publishing an AI review
+  // decision for a different analyzed commit. This is not atomic: a remaining
+  // event race can publish a comment after the head moves, but it is
+  // non-authoritative because the GitHub event is COMMENT.
   const response = await requestHttp({
     url: buildGithubReviewUrl(expected.repository, expected.prNumber),
     token,
@@ -58,13 +62,19 @@ export async function revalidateAndPublish({
     extraHeaders: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       body,
-      event: reviewArtifact.verdict,
+      event: 'COMMENT',
+      commit_id: reviewArtifact.headSha,
     }),
   });
   if (response.status !== 200) {
     fail(`GitHub review publication returned HTTP ${response.status}`);
   }
-  return { verdict: reviewArtifact.verdict, body };
+  return {
+    verdict: reviewArtifact.verdict,
+    event: 'COMMENT',
+    commitId: reviewArtifact.headSha,
+    body,
+  };
 }
 
 export async function runPublisher({ env = process.env, fetchImpl } = {}) {
@@ -86,8 +96,9 @@ export async function runPublisher({ env = process.env, fetchImpl } = {}) {
 export async function main() {
   try {
     const result = await runPublisher();
-    console.log(`AI review published (${result.verdict}).`);
-    if (result.verdict === 'REQUEST_CHANGES') process.exitCode = 1;
+    console.log(
+      `AI review comment published (advisory verdict: ${result.verdict}).`
+    );
   } catch (error) {
     const token = process.env.GITHUB_TOKEN;
     const message = error instanceof Error ? error.message : 'Unknown publisher error';

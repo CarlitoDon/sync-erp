@@ -27,6 +27,8 @@ export const LIMITS = Object.freeze({
   maxEventChars: 1_000_000,
 });
 
+export const HTTP_TIMEOUT_MS = 30_000;
+
 const SHA_PATTERN = /^[0-9a-f]{40}$/i;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
@@ -290,6 +292,171 @@ function buildHeaders(token, extraHeaders = {}) {
   return headers;
 }
 
+class HttpTimeoutError extends Error {}
+class ResponseLimitError extends Error {}
+class ResponseReadError extends Error {}
+
+function validateTimeoutMs(timeoutMs) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) {
+    fail('Invalid HTTP timeout');
+  }
+  return timeoutMs;
+}
+
+function validateResponseLimit(maxChars) {
+  if (!Number.isSafeInteger(maxChars) || maxChars < 1) {
+    fail('Invalid HTTP response size limit');
+  }
+  return maxChars;
+}
+
+function invokeSafely(callback) {
+  try {
+    const result = callback?.();
+    if (result && typeof result.then === 'function') {
+      void result.catch(() => {});
+    }
+  } catch {
+    // Timeout and cancellation paths must keep their sanitized error.
+  }
+}
+
+async function withTimeout(operation, { timeoutMs, onTimeout, message }) {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      invokeSafely(onTimeout);
+      reject(new HttpTimeoutError(message));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([
+      Promise.resolve().then(operation),
+      timeoutPromise,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function getContentLength(response, service) {
+  let value;
+  try {
+    if (response.headers && typeof response.headers.get === 'function') {
+      value = response.headers.get('content-length');
+    } else if (isRecord(response.headers)) {
+      value =
+        response.headers['content-length'] ?? response.headers['Content-Length'];
+    }
+  } catch {
+    fail(`${service} returned an invalid Content-Length`);
+  }
+
+  if (value === undefined || value === null || value === '') return undefined;
+  const text = String(value);
+  if (!/^\d+$/.test(text)) {
+    fail(`${service} returned an invalid Content-Length`);
+  }
+  return text;
+}
+
+function assertContentLengthWithinLimit(response, service, maxBytes) {
+  const contentLength = getContentLength(response, service);
+  if (
+    contentLength !== undefined &&
+    BigInt(contentLength) > BigInt(maxBytes)
+  ) {
+    fail(`${service} response exceeds size limit`);
+  }
+}
+
+async function cancelReader(reader) {
+  try {
+    await reader.cancel();
+  } catch {
+    // The response is already being rejected with a sanitized error.
+  }
+}
+
+function toUint8Array(value) {
+  if (value instanceof Uint8Array) return value;
+  if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) {
+    return new Uint8Array(value);
+  }
+  if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+  return undefined;
+}
+
+async function readResponseStream(response, service, maxChars, timeoutMs) {
+  let reader;
+  try {
+    reader = response.body.getReader();
+  } catch {
+    fail(`${service} response could not be read`);
+  }
+
+  const decoder = new TextDecoder();
+  let byteCount = 0;
+  let text = '';
+  const consume = async () => {
+    try {
+      while (true) {
+        const result = await reader.read();
+        if (!isRecord(result) || typeof result.done !== 'boolean') {
+          throw new ResponseReadError();
+        }
+        if (result.done) {
+          text += decoder.decode();
+          if (text.length > maxChars) throw new ResponseLimitError();
+          return text;
+        }
+
+        const chunk = toUint8Array(result.value);
+        if (!chunk) throw new ResponseReadError();
+        byteCount += chunk.byteLength;
+        if (byteCount > maxChars) {
+          await cancelReader(reader);
+          throw new ResponseLimitError();
+        }
+        text += decoder.decode(chunk, { stream: true });
+        if (text.length > maxChars) {
+          await cancelReader(reader);
+          throw new ResponseLimitError();
+        }
+      }
+    } catch (error) {
+      if (error instanceof ResponseLimitError) throw error;
+      if (error instanceof ResponseReadError) throw error;
+      throw new ResponseReadError();
+    }
+  };
+
+  try {
+    return await withTimeout(consume, {
+      timeoutMs,
+      onTimeout: () => cancelReader(reader),
+      message: `${service} response timed out`,
+    });
+  } catch (error) {
+    if (error instanceof HttpTimeoutError) fail(error.message);
+    if (error instanceof ResponseLimitError) {
+      fail(`${service} response exceeds size limit`);
+    }
+    fail(`${service} response could not be read`);
+  } finally {
+    if (reader && typeof reader.releaseLock === 'function') {
+      try {
+        reader.releaseLock();
+      } catch {
+        // The stream may still be cancelling after a timeout.
+      }
+    }
+  }
+}
+
 export async function requestHttp({
   url,
   token,
@@ -298,38 +465,74 @@ export async function requestHttp({
   service = 'HTTP service',
   fetchImpl = globalThis.fetch,
   extraHeaders,
+  maxResponseChars = LIMITS.maxGithubResponseChars,
+  timeoutMs = HTTP_TIMEOUT_MS,
 }) {
   if (typeof fetchImpl !== 'function') fail('Fetch implementation is unavailable');
   if (!['GET', 'POST'].includes(method)) fail('Unsupported HTTP method');
+  const responseLimit = validateResponseLimit(maxResponseChars);
+  const requestTimeout = validateTimeoutMs(timeoutMs);
+
+  const controller =
+    typeof AbortController === 'function' ? new AbortController() : undefined;
+  const requestInit = {
+    method,
+    headers: buildHeaders(token, extraHeaders),
+    ...(body === undefined ? {} : { body }),
+    ...(controller === undefined ? {} : { signal: controller.signal }),
+  };
 
   let response;
   try {
-    response = await fetchImpl(url, {
-      method,
-      headers: buildHeaders(token, extraHeaders),
-      ...(body === undefined ? {} : { body }),
-    });
-  } catch {
+    response = await withTimeout(
+      () => fetchImpl(url, requestInit),
+      {
+        timeoutMs: requestTimeout,
+        onTimeout: () => controller?.abort(),
+        message: `${service} request timed out`,
+      }
+    );
+  } catch (error) {
+    if (error instanceof HttpTimeoutError) fail(error.message);
     fail(`${service} request failed before receiving a response`);
   }
 
   if (!response || !Number.isInteger(response.status)) {
     fail(`${service} returned an invalid HTTP response`);
   }
+  assertContentLengthWithinLimit(response, service, responseLimit);
   return response;
 }
 
-async function readResponseText(response, service, maxChars) {
+async function readResponseText(response, service, maxChars, timeoutMs) {
+  const maxBytes = validateResponseLimit(maxChars);
+  assertContentLengthWithinLimit(response, service, maxBytes);
+
+  if (response.body && typeof response.body.getReader === 'function') {
+    return readResponseStream(response, service, maxBytes, timeoutMs);
+  }
+
   if (typeof response.text !== 'function') {
     fail(`${service} returned an unreadable response`);
   }
   let text;
   try {
-    text = await response.text();
-  } catch {
+    text = await withTimeout(
+      () => response.text(),
+      {
+        timeoutMs,
+        message: `${service} response timed out`,
+      }
+    );
+  } catch (error) {
+    if (error instanceof HttpTimeoutError) fail(error.message);
     fail(`${service} response could not be read`);
   }
-  if (typeof text !== 'string' || text.length > maxChars) {
+  if (
+    typeof text !== 'string' ||
+    text.length > maxBytes ||
+    Buffer.byteLength(text, 'utf8') > maxBytes
+  ) {
     fail(`${service} response exceeds size limit`);
   }
   return text;
@@ -343,6 +546,7 @@ export async function fetchJson({
   service = 'HTTP service',
   fetchImpl = globalThis.fetch,
   maxChars = LIMITS.maxGithubResponseChars,
+  timeoutMs = HTTP_TIMEOUT_MS,
   extraHeaders,
 }) {
   const response = await requestHttp({
@@ -353,11 +557,13 @@ export async function fetchJson({
     service,
     fetchImpl,
     extraHeaders,
+    maxResponseChars: maxChars,
+    timeoutMs,
   });
   if (response.status < 200 || response.status >= 300) {
     fail(`${service} returned HTTP ${response.status}`);
   }
-  const raw = await readResponseText(response, service, maxChars);
+  const raw = await readResponseText(response, service, maxChars, timeoutMs);
   try {
     return JSON.parse(raw);
   } catch {
@@ -566,7 +772,7 @@ export function parseReviewPayload(value) {
 export function redactSensitiveText(value, secrets = []) {
   if (typeof value !== 'string') return value;
   return secrets
-    .filter((secret) => typeof secret === 'string' && secret.length >= 8)
+    .filter((secret) => typeof secret === 'string' && secret.length > 0)
     .reduce((result, secret) => result.split(secret).join('[REDACTED]'), value);
 }
 
@@ -586,12 +792,14 @@ export function redactReviewSecrets(review, secrets = []) {
 
 export function buildReviewBody(review, secrets = []) {
   const safeReview = redactReviewSecrets(review, secrets);
-  const icon = safeReview.verdict === 'APPROVE' ? '✅' : '🚫';
-  const header = `## ${icon} AI Code Review\n\n`;
+  const header = '## 📝 AI Code Review (advisory)\n\n';
+  const advisory =
+    '> Advisory only: the AI verdict does not authorize GitHub APPROVE or REQUEST_CHANGES; this publication is a COMMENT.\n\n';
+  const verdict = `**Advisory AI verdict:** \`${safeReview.verdict}\`\n\n`;
   const summary = `**Summary:** ${safeReview.summary}\n\n`;
 
   if (safeReview.issues.length === 0) {
-    const body = `${header}${summary}No issues found.`;
+    const body = `${header}${advisory}${verdict}${summary}No issues found.`;
     if (body.length > LIMITS.maxReviewBodyChars) {
       fail('GitHub review body exceeds size limit');
     }
@@ -609,7 +817,7 @@ export function buildReviewBody(review, secrets = []) {
         `- ${severityIcon[issue.severity]} **${issue.severity.toUpperCase()}** \`${issue.file}:${issue.line}\`\n  ${issue.message}`
     )
     .join('\n');
-  const body = `${header}${summary}### Issues Found\n\n${issueList}`;
+  const body = `${header}${advisory}${verdict}${summary}### Issues Found\n\n${issueList}`;
   if (body.length > LIMITS.maxReviewBodyChars) {
     fail('GitHub review body exceeds size limit');
   }

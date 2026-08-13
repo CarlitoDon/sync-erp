@@ -6,7 +6,7 @@ name: AI Code Review (trusted base)
 # install dependencies or execute code from the pull request head.
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review]
+    types: [opened, edited, reopened, synchronize, ready_for_review]
     branches: [dev, main]
 
 permissions:
@@ -20,23 +20,28 @@ jobs:
   analyzer:
     name: Analyze PR with AI
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: read
       pull-requests: read
     steps:
       # SECURITY: this is the trusted base commit, never github.event.pull_request.head.sha.
       - name: Checkout trusted base
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 1
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22.12.0
+
+      # Run the trusted contract test before any step receives AI_API_KEY.
+      - name: Test AI review security contract
+        run: node --test scripts/ai-review-security.test.mjs
 
       # No dependency installation: the analyzer is Node 22-compatible and API-only.
       - name: Run trusted analyzer
@@ -57,7 +62,7 @@ jobs:
         run: node scripts/ai-review-analyzer.mjs
 
       - name: Upload bounded review result
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ai-review-result-${{ github.event.pull_request.number }}
           path: review-result.json
@@ -68,26 +73,27 @@ jobs:
     name: Publish AI review
     needs: analyzer
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: write
     steps:
       # SECURITY: publisher also runs only trusted base code; it receives no AI key.
       - name: Checkout trusted base
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 1
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22.12.0
 
       - name: Download bounded review result
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: ai-review-result-${{ github.event.pull_request.number }}
           path: review-result
