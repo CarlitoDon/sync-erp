@@ -123,6 +123,7 @@ assert_workflow_ssh_contract() {
   for required_option in \
     '-o StrictHostKeyChecking=yes' \
     '-o "UserKnownHostsFile=${HOSTINGER_KNOWN_HOSTS_FILE}"' \
+    '-o GlobalKnownHostsFile=none' \
     'SSH_OPTS=(-p "$HOSTINGER_SSH_PORT"' \
     'SCP_OPTS=(-P "$HOSTINGER_SSH_PORT"'; do
     if ! grep -F -- "$required_option" "$workflow_path" >/dev/null 2>&1; then
@@ -136,6 +137,9 @@ assert_workflow_ssh_contract() {
   fi
   if grep -E 'HOSTINGER_SSH_PORT:[[:space:]]*' "$workflow_path" | grep -vF "HOSTINGER_SSH_PORT: '65002'" >/dev/null 2>&1; then
     fail "Hostinger workflow declares a non-65002 SSH port: $workflow_path"
+  fi
+  if grep -E 'GlobalKnownHostsFile[[:space:]]*=' "$workflow_path" | grep -vF 'GlobalKnownHostsFile=none' >/dev/null 2>&1; then
+    fail "Hostinger workflow weakens global known_hosts isolation: $workflow_path"
   fi
 
   if grep -nE '^[[:space:]]+ssh[[:space:]]' "$workflow_path" | grep -vF 'ssh "${SSH_OPTS[@]}"' >/dev/null 2>&1; then
@@ -154,6 +158,20 @@ assert_workflow_ssh_contract() {
   first_control_socket_line="$(grep -nE 'CONTROL_PATH=|Control(Path|Master|Persist)=' "$workflow_path" | head -n 1 | cut -d: -f1 || true)"
   if [ -n "$first_control_socket_line" ] && [ "$helper_line" -ge "$first_control_socket_line" ]; then
     fail "Hostinger workflow configures a control socket before host pinning: $workflow_path"
+  fi
+
+  if grep -F 'CONTROL_PATH=' "$workflow_path" >/dev/null 2>&1; then
+    for cleanup_contract in \
+      'case "$CONTROL_PATH" in' \
+      'trap cleanup_control EXIT' \
+      'trap - EXIT' \
+      'ssh "${SSH_OPTS[@]}" -O exit' \
+      'rm -f -- "$CONTROL_PATH"' \
+      'exit "$primary_status"'; do
+      if ! grep -F -- "$cleanup_contract" "$workflow_path" >/dev/null 2>&1; then
+        fail "Hostinger control-socket cleanup is missing '${cleanup_contract}': $workflow_path"
+      fi
+    done
   fi
 }
 

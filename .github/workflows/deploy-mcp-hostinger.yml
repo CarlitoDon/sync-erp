@@ -131,10 +131,25 @@ jobs:
 
           : "${HOSTINGER_KNOWN_HOSTS_FILE:?Missing Hostinger known-hosts file.}"
           test -r "$HOSTINGER_KNOWN_HOSTS_FILE"
+          case "$RUNNER_TEMP" in
+            /*) ;;
+            *) echo 'RUNNER_TEMP must be an absolute directory.' >&2; exit 1 ;;
+          esac
+          case "$RUNNER_TEMP" in
+            *$'\n'*|*$'\r'*) echo 'RUNNER_TEMP contains an invalid line break.' >&2; exit 1 ;;
+          esac
+          case "$GITHUB_RUN_ID" in
+            ''|*[!0-9]*) echo 'GITHUB_RUN_ID must be numeric for control-socket cleanup.' >&2; exit 1 ;;
+          esac
           CONTROL_PATH="${RUNNER_TEMP}/sync-erp-hostinger-${GITHUB_RUN_ID}.sock"
+          case "$CONTROL_PATH" in
+            "$RUNNER_TEMP"/sync-erp-hostinger-[0-9]*.sock) ;;
+            *) echo 'Control socket path failed validation.' >&2; exit 1 ;;
+          esac
           SSH_COMMON_OPTS=(
             -o StrictHostKeyChecking=yes
             -o "UserKnownHostsFile=${HOSTINGER_KNOWN_HOSTS_FILE}"
+            -o GlobalKnownHostsFile=none
             -o ServerAliveInterval=30
             -o ServerAliveCountMax=10
             -o ConnectTimeout=30
@@ -151,8 +166,14 @@ jobs:
           REMOTE_MCP_ARCHIVE="sync-erp-mcp-${GITHUB_SHA}.tar.gz"
 
           cleanup_control() {
-            ssh "${SSH_OPTS[@]}" -O exit \
-              "$SSH_TARGET" >/dev/null 2>&1 || true
+            local primary_status="$?"
+            trap - EXIT
+            if [ -S "$CONTROL_PATH" ]; then
+              ssh "${SSH_OPTS[@]}" -O exit \
+                "$SSH_TARGET" >/dev/null 2>&1 || true
+            fi
+            rm -f -- "$CONTROL_PATH" || true
+            exit "$primary_status"
           }
           trap cleanup_control EXIT
 
