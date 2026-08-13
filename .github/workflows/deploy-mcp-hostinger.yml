@@ -10,7 +10,6 @@ on:
       - 'scripts/verify-release-health.mjs'
       - 'scripts/write-release-manifest.mjs'
       - 'scripts/hostinger-ssh-pinning.sh'
-      - 'scripts/hostinger-ssh-pinning.test.sh'
   workflow_dispatch:
     inputs:
       environment:

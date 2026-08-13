@@ -62,6 +62,8 @@ hostinger_ssh_pinning_prepare() {
   local host_field=""
   local key_type=""
   local key_blob=""
+  local key_material=""
+  local matched_key_material=""
   local matched_count=0
 
   (
@@ -119,6 +121,12 @@ hostinger_ssh_pinning_prepare() {
         hostinger_ssh_pinning_fail 'known_hosts content contains an invalid host key'
         exit 1
       fi
+      key_material="$key_type $key_blob"
+      if [ "$matched_count" -gt 0 ] && [ "$key_material" != "$matched_key_material" ]; then
+        hostinger_ssh_pinning_fail 'known_hosts content contains conflicting exact Hostinger host keys'
+        exit 1
+      fi
+      matched_key_material="$key_material"
       matched_count=$((matched_count + 1))
     done < "$pin_file"
 
@@ -133,7 +141,7 @@ hostinger_ssh_pinning_prepare() {
   )
 }
 
-hostinger_ssh_pinning_main() {
+hostinger_ssh_pinning_main_impl() {
   local host="${HOSTINGER_HOST-}"
   local known_hosts="${HOSTINGER_SSH_KNOWN_HOSTS-}"
   local port="65002"
@@ -278,6 +286,24 @@ hostinger_ssh_pinning_main() {
 
   export HOSTINGER_KNOWN_HOSTS_FILE="$pin_file"
   return 0
+}
+
+hostinger_ssh_pinning_main() {
+  local xtrace_was_enabled=0
+  case "$-" in
+    *x*)
+      xtrace_was_enabled=1
+      set +x
+      ;;
+  esac
+
+  local status=0
+  hostinger_ssh_pinning_main_impl "$@" || status=$?
+
+  if [ "$xtrace_was_enabled" -eq 1 ]; then
+    set -x
+  fi
+  return "$status"
 }
 
 if [ "${BASH_SOURCE[0]}" = "$0" ] && [ -z "${BASH_SOURCE[1]-}" ]; then

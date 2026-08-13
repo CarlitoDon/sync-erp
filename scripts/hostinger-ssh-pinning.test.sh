@@ -201,6 +201,7 @@ run_helper() {
     negated) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$negated_known_hosts") ;;
     multi_host) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$multi_host_known_hosts") ;;
     mixed_malformed) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$mixed_malformed_known_hosts") ;;
+    duplicate_conflict) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$duplicate_conflicting_known_hosts") ;;
     mismatch) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$mismatch_known_hosts") ;;
     *) fail 'unknown HOSTINGER_SSH_KNOWN_HOSTS test state' ;;
   esac
@@ -239,6 +240,83 @@ assert_rejected_pin() {
   assert_no_helper_files "$case_runner"
   assert_no_pin_output "$synthetic_public_key" "$case_stdout" "$pin_state stdout leaked the supplied key"
   assert_no_pin_output "$synthetic_public_key" "$case_stderr" "$pin_state stderr leaked the supplied key"
+  assert_no_pin_output "$synthetic_second_public_key" "$case_stdout" "$pin_state stdout leaked the second supplied key"
+  assert_no_pin_output "$synthetic_second_public_key" "$case_stderr" "$pin_state stderr leaked the second supplied key"
+}
+
+assert_xtrace_output_clean() {
+  local label="$1"
+  local output_file=""
+
+  for output_file in "$case_stdout" "$case_stderr"; do
+    assert_no_pin_output "$xtrace_known_hosts" "$output_file" "$label exposed the multiline pin"
+    assert_no_pin_output 'SYNTHETIC_PIN_SENTINEL' "$output_file" "$label exposed the pin sentinel"
+    assert_no_pin_output 'XTRACE_MULTILINE_PIN_DO_NOT_LOG' "$output_file" "$label exposed the xtrace marker"
+  done
+}
+
+assert_xtrace_source_behavior() {
+  new_case xtrace-source
+  if ! env -i \
+    "PATH=$PATH" \
+    "HOME=$test_root/home" \
+    "HOSTINGER_HOST=$test_host" \
+    "HOSTINGER_SSH_KNOWN_HOSTS=$xtrace_known_hosts" \
+    "RUNNER_TEMP=$case_runner" \
+    "GITHUB_ENV=$case_env" \
+    bash -c '
+      set -x
+      source_path="$1"
+      shift
+      source "$source_path"
+      success_status=$?
+      case "$-" in *x*) success_xtrace=on ;; *) success_xtrace=off ;; esac
+      HOSTINGER_HOST=
+      export HOSTINGER_HOST
+      source "$source_path"
+      failure_status=$?
+      case "$-" in *x*) failure_xtrace=on ;; *) failure_xtrace=off ;; esac
+      printf "success_status=%s success_xtrace=%s failure_status=%s failure_xtrace=%s\\n" \
+        "$success_status" "$success_xtrace" "$failure_status" "$failure_xtrace"
+    ' _ "$helper_path" > "$case_stdout" 2> "$case_stderr"; then
+    fail 'source xtrace regression case did not complete'
+  fi
+  assert_equal \
+    'success_status=0 success_xtrace=on failure_status=1 failure_xtrace=on' \
+    "$(cat "$case_stdout")" \
+    'source xtrace regression case did not restore the caller state'
+  assert_xtrace_output_clean 'source xtrace regression case'
+}
+
+assert_xtrace_executed_behavior() {
+  new_case xtrace-executed
+  if ! env -i \
+    "PATH=$PATH" \
+    "HOME=$test_root/home" \
+    "HOSTINGER_HOST=$test_host" \
+    "HOSTINGER_SSH_KNOWN_HOSTS=$xtrace_known_hosts" \
+    "RUNNER_TEMP=$case_runner" \
+    "GITHUB_ENV=$case_env" \
+    bash -c '
+      set -x
+      bash -x "$1"
+      success_status=$?
+      case "$-" in *x*) success_xtrace=on ;; *) success_xtrace=off ;; esac
+      HOSTINGER_HOST=
+      export HOSTINGER_HOST
+      bash -x "$1"
+      failure_status=$?
+      case "$-" in *x*) failure_xtrace=on ;; *) failure_xtrace=off ;; esac
+      printf "success_status=%s success_xtrace=%s failure_status=%s failure_xtrace=%s\\n" \
+        "$success_status" "$success_xtrace" "$failure_status" "$failure_xtrace"
+    ' _ "$helper_path" > "$case_stdout" 2> "$case_stderr"; then
+    fail 'executed xtrace regression case did not complete'
+  fi
+  assert_equal \
+    'success_status=0 success_xtrace=on failure_status=1 failure_xtrace=on' \
+    "$(cat "$case_stdout")" \
+    'executed xtrace regression case did not complete with the expected states'
+  assert_xtrace_output_clean 'executed xtrace regression case'
 }
 
 if [ ! -x "$helper_path" ]; then
@@ -257,6 +335,14 @@ if ! synthetic_public_key="$(ssh-keygen -y -f "$synthetic_key" 2>/dev/null)"; th
   fail 'ssh-keygen could not derive the synthetic public test key'
 fi
 
+synthetic_second_key="$test_root/synthetic-ed25519-second"
+if ! ssh-keygen -q -t ed25519 -N '' -f "$synthetic_second_key" >/dev/null 2>&1; then
+  fail 'ssh-keygen could not create the second synthetic test key'
+fi
+if ! synthetic_second_public_key="$(ssh-keygen -y -f "$synthetic_second_key" 2>/dev/null)"; then
+  fail 'ssh-keygen could not derive the second synthetic test key'
+fi
+
 test_host='host.example.test'
 test_known_hosts="[${test_host}]:65002 ${synthetic_public_key} # SYNTHETIC_PIN_SENTINEL"
 mismatch_known_hosts="[other.example.test]:65002 ${synthetic_public_key}"
@@ -264,6 +350,8 @@ wildcard_known_hosts="[*.example.test]:65002 ${synthetic_public_key}"
 negated_known_hosts="[*.example.test]:65002,[!other.example.test]:65002 ${synthetic_public_key}"
 multi_host_known_hosts="[${test_host}]:65002,[other.example.test]:65002 ${synthetic_public_key}"
 mixed_malformed_known_hosts="${test_known_hosts}"$'\n'"not-a-known-host-record"
+duplicate_conflicting_known_hosts="[${test_host}]:65002 ${synthetic_public_key}"$'\n'"[${test_host}]:65002 ${synthetic_second_public_key}"
+xtrace_known_hosts="${test_known_hosts}"$'\n'"# XTRACE_MULTILINE_PIN_DO_NOT_LOG"
 
 new_case valid
 if run_helper valid valid unset; then :; else fail 'valid known_hosts content was rejected'; fi
@@ -308,6 +396,9 @@ case "$current_process_path" in
   *) fail 'sourced helper did not export the path in the current process' ;;
 esac
 
+assert_xtrace_source_behavior
+assert_xtrace_executed_behavior
+
 new_case missing-host
 if run_helper missing valid unset; then fail 'missing HOSTINGER_HOST was accepted'; fi
 assert_no_helper_files "$case_runner"
@@ -336,6 +427,7 @@ assert_rejected_pin wildcard-pin wildcard
 assert_rejected_pin negated-pin negated
 assert_rejected_pin multi-host-pin multi_host
 assert_rejected_pin mixed-malformed-pin mixed_malformed
+assert_rejected_pin duplicate-conflicting-pin duplicate_conflict
 
 new_case host-mismatch
 if run_helper mismatch valid unset; then fail 'hostname mismatch was accepted'; fi
