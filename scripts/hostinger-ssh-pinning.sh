@@ -58,7 +58,8 @@ hostinger_ssh_pinning_prepare() {
   local runner_temp_real="$4"
   local lookup="[$host]:$port"
   local pin_file=""
-  local matched_keys=""
+  local line=""
+  local host_field=""
   local key_type=""
   local key_blob=""
   local matched_count=0
@@ -93,34 +94,22 @@ hostinger_ssh_pinning_prepare() {
       exit 1
     fi
 
-    # -F parses OpenSSH known_hosts content and performs the exact bracketed
-    # host/port lookup. All output is suppressed because it contains the pin.
-    if ! ssh-keygen -F "$lookup" -f "$pin_file" >/dev/null 2>&1; then
-      hostinger_ssh_pinning_fail 'known_hosts content has no valid exact Hostinger host/port pin'
-      exit 1
-    fi
+    # Do not use ssh-keygen -F here: it intentionally matches OpenSSH
+    # wildcard, negated, and multi-host patterns. The pin must be a literal
+    # host field, and every non-comment record must be that exact field.
+    while IFS= read -r line || [ -n "$line" ]; do
+      if hostinger_ssh_pinning_is_blank "$line" || [[ "$line" =~ ^[[:space:]]*# ]]; then
+        continue
+      fi
 
-    # -F checks the host field but does not reject a fingerprint in the key
-    # field. Extract only the matching key records and make ssh-keygen parse
-    # each public key from stdin; all output remains suppressed.
-    if ! matched_keys="$(
-      ssh-keygen -F "$lookup" -f "$pin_file" 2>/dev/null |
-        awk '
-          /^[[:space:]]*#/ { next }
-          {
-            offset = ($1 ~ /^@/) ? 1 : 0
-            print $(offset + 2), $(offset + 3)
-          }
-        '
-    )"; then
-      hostinger_ssh_pinning_fail 'known_hosts key records could not be inspected safely'
-      exit 1
-    fi
-    if [ -z "$matched_keys" ]; then
-      hostinger_ssh_pinning_fail 'known_hosts content has no parseable Hostinger host key'
-      exit 1
-    fi
-    while IFS=' ' read -r key_type key_blob; do
+      host_field=""
+      key_type=""
+      key_blob=""
+      read -r host_field key_type key_blob _ <<< "$line" || true
+      if [ "$host_field" != "$lookup" ]; then
+        hostinger_ssh_pinning_fail 'known_hosts content contains a non-literal or unrelated host record'
+        exit 1
+      fi
       if [ -z "$key_type" ] || [ -z "$key_blob" ]; then
         hostinger_ssh_pinning_fail 'known_hosts content contains an incomplete host key'
         exit 1
@@ -131,11 +120,10 @@ hostinger_ssh_pinning_prepare() {
         exit 1
       fi
       matched_count=$((matched_count + 1))
-    done <<EOF
-$matched_keys
-EOF
+    done < "$pin_file"
+
     if [ "$matched_count" -eq 0 ]; then
-      hostinger_ssh_pinning_fail 'known_hosts content has no parseable Hostinger host key'
+      hostinger_ssh_pinning_fail 'known_hosts content has no literal exact Hostinger host/port pin'
       exit 1
     fi
 

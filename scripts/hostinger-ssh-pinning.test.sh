@@ -63,6 +63,100 @@ assert_no_helper_files() {
   done
 }
 
+assert_workflow_helper_step() {
+  local workflow_path="$1"
+  local helper_block=""
+  local host_line=""
+  local pin_line=""
+  local helper_line=""
+
+  helper_block="$(awk '
+    /^      - name: Setup SSH$/ || /^      - name: Pin Hostinger SSH host key$/ {
+      in_helper_step = 1
+      next
+    }
+    in_helper_step && /^      - name:/ { exit }
+    in_helper_step { print }
+  ' "$workflow_path")"
+  if [ -z "$helper_block" ]; then
+    fail "Hostinger workflow does not have a bounded SSH pinning step: $workflow_path"
+  fi
+
+  if ! grep -F 'HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}' <<<"$helper_block" >/dev/null 2>&1; then
+    fail "Hostinger workflow pinning step does not receive HOSTINGER_HOST: $workflow_path"
+  fi
+  if ! grep -F 'HOSTINGER_SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}' <<<"$helper_block" >/dev/null 2>&1; then
+    fail "Hostinger workflow pinning step does not receive the reviewed known_hosts secret: $workflow_path"
+  fi
+  if ! grep -F 'scripts/hostinger-ssh-pinning.sh' <<<"$helper_block" >/dev/null 2>&1; then
+    fail "Hostinger workflow pinning step does not invoke the shared helper: $workflow_path"
+  fi
+
+  host_line="$(grep -nF 'HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}' <<<"$helper_block" | head -n 1 | cut -d: -f1 || true)"
+  pin_line="$(grep -nF 'HOSTINGER_SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}' <<<"$helper_block" | head -n 1 | cut -d: -f1 || true)"
+  helper_line="$(grep -nF 'scripts/hostinger-ssh-pinning.sh' <<<"$helper_block" | head -n 1 | cut -d: -f1 || true)"
+  if [ -z "$host_line" ] || [ -z "$pin_line" ] || [ -z "$helper_line" ] ||
+    [ "$helper_line" -le "$host_line" ] || [ "$helper_line" -le "$pin_line" ]; then
+    fail "Hostinger workflow helper is not invoked after both host and pin secret are in its environment: $workflow_path"
+  fi
+}
+
+assert_workflow_ssh_contract() {
+  local workflow_path="$1"
+  local helper_line=""
+  local first_ssh_operation_line=""
+  local first_control_socket_line=""
+  local known_hosts_secret_refs=""
+  local port_declarations=""
+
+  assert_workflow_helper_step "$workflow_path"
+
+  known_hosts_secret_refs="$(grep -Fc 'HOSTINGER_SSH_KNOWN_HOSTS' "$workflow_path" || true)"
+  assert_equal 1 "$known_hosts_secret_refs" 'workflow referenced HOSTINGER_SSH_KNOWN_HOSTS somewhere beyond the secret binding'
+  if ! grep -F 'HOSTINGER_SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}' "$workflow_path" >/dev/null 2>&1; then
+    fail "workflow does not bind the reviewed known_hosts secret by name: $workflow_path"
+  fi
+
+  if grep -E 'ssh-keyscan|StrictHostKeyChecking[[:space:]]*=[[:space:]]*no|UserKnownHostsFile[[:space:]]*=[[:space:]]*/dev/null' "$workflow_path" >/dev/null 2>&1; then
+    fail "Hostinger workflow contains a forbidden unpinned SSH option: $workflow_path"
+  fi
+  for required_option in \
+    '-o StrictHostKeyChecking=yes' \
+    '-o "UserKnownHostsFile=${HOSTINGER_KNOWN_HOSTS_FILE}"' \
+    'SSH_OPTS=(-p "$HOSTINGER_SSH_PORT"' \
+    'SCP_OPTS=(-P "$HOSTINGER_SSH_PORT"'; do
+    if ! grep -F -- "$required_option" "$workflow_path" >/dev/null 2>&1; then
+      fail "Hostinger workflow is missing required SSH contract '${required_option}': $workflow_path"
+    fi
+  done
+
+  port_declarations="$(grep -Fc "HOSTINGER_SSH_PORT: '65002'" "$workflow_path" || true)"
+  if [ "$port_declarations" -lt 2 ]; then
+    fail "Hostinger workflow does not pin both helper and operation environments to port 65002: $workflow_path"
+  fi
+  if grep -E 'HOSTINGER_SSH_PORT:[[:space:]]*' "$workflow_path" | grep -vF "HOSTINGER_SSH_PORT: '65002'" >/dev/null 2>&1; then
+    fail "Hostinger workflow declares a non-65002 SSH port: $workflow_path"
+  fi
+
+  if grep -nE '^[[:space:]]+ssh[[:space:]]' "$workflow_path" | grep -vF 'ssh "${SSH_OPTS[@]}"' >/dev/null 2>&1; then
+    fail "Hostinger workflow has an SSH operation that bypasses SSH_OPTS: $workflow_path"
+  fi
+  if grep -nE '^[[:space:]]+(timeout[[:space:]]+[0-9]+[[:space:]]+)?scp[[:space:]]' "$workflow_path" | grep -vF 'scp "${SCP_OPTS[@]}"' >/dev/null 2>&1; then
+    fail "Hostinger workflow has an SCP operation that bypasses SCP_OPTS: $workflow_path"
+  fi
+
+  helper_line="$(grep -nF 'scripts/hostinger-ssh-pinning.sh' "$workflow_path" | head -n 1 | cut -d: -f1 || true)"
+  first_ssh_operation_line="$(grep -nE '^[[:space:]]+(ssh[[:space:]]|ssh-add[[:space:]]|eval[[:space:]]+.*ssh-agent|timeout[[:space:]]+[0-9]+[[:space:]]+scp[[:space:]])' "$workflow_path" | head -n 1 | cut -d: -f1 || true)"
+  if [ -z "$helper_line" ] || [ -z "$first_ssh_operation_line" ] || [ "$helper_line" -ge "$first_ssh_operation_line" ]; then
+    fail "Hostinger workflow performs an SSH-related operation before host pinning: $workflow_path"
+  fi
+
+  first_control_socket_line="$(grep -nE 'CONTROL_PATH=|Control(Path|Master|Persist)=' "$workflow_path" | head -n 1 | cut -d: -f1 || true)"
+  if [ -n "$first_control_socket_line" ] && [ "$helper_line" -ge "$first_control_socket_line" ]; then
+    fail "Hostinger workflow configures a control socket before host pinning: $workflow_path"
+  fi
+}
+
 new_case() {
   local name="$1"
 
@@ -103,6 +197,10 @@ run_helper() {
     valid) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$test_known_hosts") ;;
     invalid) helper_env+=(HOSTINGER_SSH_KNOWN_HOSTS='SYNTHETIC_PIN_SENTINEL_DO_NOT_LOG') ;;
     fingerprint) helper_env+=(HOSTINGER_SSH_KNOWN_HOSTS='[host.example.test]:65002 ssh-ed25519 SHA256:SYNTHETIC_PIN_SENTINEL_DO_NOT_LOG') ;;
+    wildcard) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$wildcard_known_hosts") ;;
+    negated) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$negated_known_hosts") ;;
+    multi_host) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$multi_host_known_hosts") ;;
+    mixed_malformed) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$mixed_malformed_known_hosts") ;;
     mismatch) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$mismatch_known_hosts") ;;
     *) fail 'unknown HOSTINGER_SSH_KNOWN_HOSTS test state' ;;
   esac
@@ -130,8 +228,24 @@ run_helper() {
   return 1
 }
 
+assert_rejected_pin() {
+  local name="$1"
+  local pin_state="$2"
+
+  new_case "$name"
+  if run_helper valid "$pin_state" unset; then
+    fail "$pin_state known_hosts content was accepted"
+  fi
+  assert_no_helper_files "$case_runner"
+  assert_no_pin_output "$synthetic_public_key" "$case_stdout" "$pin_state stdout leaked the supplied key"
+  assert_no_pin_output "$synthetic_public_key" "$case_stderr" "$pin_state stderr leaked the supplied key"
+}
+
 if [ ! -x "$helper_path" ]; then
   fail 'helper must be executable'
+fi
+if grep -E '(^|[[:space:]])(ssh|scp|ssh-keyscan|curl|nc|ncat|telnet|wget|dig|nslookup)([[:space:]]|$)|openssl[[:space:]]+s_client' "$helper_path" >/dev/null 2>&1; then
+  fail 'helper contains a network-capable command; pin validation must remain local and offline'
 fi
 
 mkdir -p "$test_root/home"
@@ -146,6 +260,10 @@ fi
 test_host='host.example.test'
 test_known_hosts="[${test_host}]:65002 ${synthetic_public_key} # SYNTHETIC_PIN_SENTINEL"
 mismatch_known_hosts="[other.example.test]:65002 ${synthetic_public_key}"
+wildcard_known_hosts="[*.example.test]:65002 ${synthetic_public_key}"
+negated_known_hosts="[*.example.test]:65002,[!other.example.test]:65002 ${synthetic_public_key}"
+multi_host_known_hosts="[${test_host}]:65002,[other.example.test]:65002 ${synthetic_public_key}"
+mixed_malformed_known_hosts="${test_known_hosts}"$'\n'"not-a-known-host-record"
 
 new_case valid
 if run_helper valid valid unset; then :; else fail 'valid known_hosts content was rejected'; fi
@@ -214,6 +332,11 @@ assert_no_helper_files "$case_runner"
 assert_no_pin_output 'SYNTHETIC_PIN_SENTINEL_DO_NOT_LOG' "$case_stdout" 'fingerprint stdout leaked the supplied pin'
 assert_no_pin_output 'SYNTHETIC_PIN_SENTINEL_DO_NOT_LOG' "$case_stderr" 'fingerprint stderr leaked the supplied pin'
 
+assert_rejected_pin wildcard-pin wildcard
+assert_rejected_pin negated-pin negated
+assert_rejected_pin multi-host-pin multi_host
+assert_rejected_pin mixed-malformed-pin mixed_malformed
+
 new_case host-mismatch
 if run_helper mismatch valid unset; then fail 'hostname mismatch was accepted'; fi
 assert_no_helper_files "$case_runner"
@@ -274,12 +397,7 @@ for workflow in "${expected_workflows[@]}"; do
   if [ ! -f "$workflow_path" ]; then
     fail "expected Hostinger workflow consumer is missing: $workflow"
   fi
-  if ! grep -F 'scripts/hostinger-ssh-pinning.sh' "$workflow_path" >/dev/null 2>&1; then
-    fail "Hostinger workflow consumer does not invoke the shared pinning helper: $workflow"
-  fi
-  if grep -E 'ssh-keyscan|StrictHostKeyChecking=no|UserKnownHostsFile=/dev/null' "$workflow_path" >/dev/null 2>&1; then
-    fail "Hostinger workflow consumer contains a forbidden unpinned SSH option: $workflow"
-  fi
+  assert_workflow_ssh_contract "$workflow_path"
 done
 
 printf 'Hostinger SSH pinning contract tests passed: validation, exact lookup, secure file export, cleanup, redaction, transfer gate, and workflow guards.\n'
