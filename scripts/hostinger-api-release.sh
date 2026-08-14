@@ -354,13 +354,29 @@ try {
 }
 
 const processes = JSON.parse(readFileSync(0, "utf8"));
-const matches = processes.filter((process) => process.name === name);
-if (matches.length !== 1) process.exit(1);
+const matches = processes.filter((pm2Process) => pm2Process.name === name);
+if (matches.length !== 1) {
+  process.stderr.write(JSON.stringify({
+    error: "PM2_NAME_MATCH_COUNT_MISMATCH",
+    name,
+    count: matches.length,
+  }) + "\n");
+  process.exit(1);
+}
 
-const env = matches[0].pm2_env ?? {};
-const actualCwd = canonicalize(env.pm_cwd ?? env.cwd);
-const actualScript = canonicalize(env.pm_exec_path);
-if (!actualCwd || !actualScript) process.exit(1);
+const pm2Process = matches[0];
+const env = pm2Process.pm2_env ?? pm2Process ?? {};
+const actualCwd = canonicalize(env.pm_cwd ?? env.cwd ?? env.pm2_env?.pm_cwd);
+const actualScript = canonicalize(env.pm_exec_path ?? env.pm2_env?.pm_exec_path);
+if (!actualCwd || !actualScript) {
+  process.stderr.write(JSON.stringify({
+    error: "MISSING_METADATA",
+    name,
+    actualCwd,
+    actualScript,
+  }) + "\n");
+  process.exit(1);
+}
 
 const isInPlace = actualCwd === expectedCwd;
 const releaseRelativePath = releaseRoot ? relative(releaseRoot, actualCwd) : "";
@@ -371,7 +387,7 @@ const isImmutableRelease =
   !releaseRelativePath.includes("\\\\") &&
   !releaseRelativePath.startsWith("..");
 const expectedScript = canonicalize(resolve(actualCwd, "dist/index.js"));
-const actualPort = String(env.env?.PORT ?? env.PORT ?? "");
+const actualPort = String(env.env?.PORT ?? env.PORT ?? env.pm2_env?.env?.PORT ?? env.pm2_env?.PORT ?? "");
 const isValid =
   (isInPlace || isImmutableRelease) &&
   Boolean(expectedScript) &&
@@ -380,6 +396,7 @@ const isValid =
 
 if (!isValid) {
   process.stderr.write(JSON.stringify({
+    error: "PM2_OWNERSHIP_MISMATCH",
     name,
     expectedCwd,
     actualCwd,
@@ -391,9 +408,7 @@ if (!isValid) {
     isImmutableRelease,
     expectedPort: String(expectedPort),
     actualPort,
-    envPort: env.PORT ?? null,
-    nestedEnvPort: env.env?.PORT ?? null,
-  }) + "\\n");
+  }) + "\n");
   process.exit(1);
 }
 
