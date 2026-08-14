@@ -152,7 +152,7 @@ case "$command_name" in
   jlist)
     if [[ -f "$store" ]]; then
       IFS='|' read -r name cwd port pid < "$store"
-      printf '[{"name":"%s","pm2_env":{"pm_cwd":"%s","pm_exec_path":"%s/dist/index.js","PORT":"%s","status":"online","pid":%s}}]\n' \
+      printf '[{"name":"%s","pm2_env":{"pm_cwd":"%s","pm_exec_path":"%s/dist/index.js","env":{"PORT":"%s"},"status":"online","pid":%s}}]\n' \
         "$name" "$cwd" "$cwd" "$port" "$pid"
     else
       printf '[]\n'
