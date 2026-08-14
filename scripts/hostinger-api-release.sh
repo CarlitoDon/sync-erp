@@ -353,8 +353,8 @@ try {
   // A first in-place bootstrap may not have a releases directory yet.
 }
 
-const processes = JSON.parse(readFileSync(0, "utf8"));
-const matches = processes.filter((pm2Process) => pm2Process.name === name);
+const pm2Processes = JSON.parse(readFileSync(0, "utf8"));
+const matches = pm2Processes.filter((pm2Process) => pm2Process.name === name);
 if (matches.length !== 1) {
   process.stderr.write(JSON.stringify({
     error: "PM2_NAME_MATCH_COUNT_MISMATCH",
