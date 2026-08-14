@@ -39,6 +39,7 @@
     "test:release-health": "node --test scripts/verify-release-health.test.mjs",
     "test:ai-review-security": "node --test scripts/ai-review-security.test.mjs",
     "test:hostinger-release": "bash scripts/hostinger-api-release.test.sh",
+    "test:hostinger-ssh-pinning": "bash scripts/hostinger-ssh-pinning.test.sh",
     "knip": "export $(cat packages/database/.env | xargs) && knip",
     "clean": "turbo run clean && rm -rf node_modules"
   },
