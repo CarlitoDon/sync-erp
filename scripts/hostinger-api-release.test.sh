@@ -421,7 +421,7 @@ if production_outside_pm2_output="$(run_production_release "$production_outside_
 fi
 assert_contains 'not owned by the expected API release' "$production_outside_pm2_output"
 # Assert diagnostic fields are present
-assert_contains '"processName":"sync-erp-api"' "$production_outside_pm2_output"
+assert_contains '"name":"sync-erp-api"' "$production_outside_pm2_output"
 assert_contains '"actualCwd"' "$production_outside_pm2_output"
 assert_contains '"expectedCwd"' "$production_outside_pm2_output"
 [[ "$(cut -d '|' -f 2 "$production_outside_pm2_root/pm2.store")" == "$production_outside_pm2_cwd" ]]
