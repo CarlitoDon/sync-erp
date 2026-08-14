@@ -283,6 +283,22 @@ run_release() {
   return "$status"
 }
 
+setup_versioned_current() {
+  local root="$1"
+  local target="$root/public_html/apps/api-staging"
+  local old_release="$target/releases/$old_sha"
+
+  mkdir -p "$old_release/dist"
+  cp "$target/dist/index.js" "$old_release/dist/index.js"
+  cp "$target/.env" "$old_release/.env"
+  write_file "$old_release/release.json" \
+    "{\"schemaVersion\":1,\"service\":\"sync-erp-api\",\"commit\":\"${old_sha}\",\"version\":\"old\"}"
+  ln -s "$old_release" "$target/current"
+  write_file "$target/.release-state.json" \
+    "{\"schemaVersion\":1,\"service\":\"sync-erp-api\",\"commit\":\"${old_sha}\",\"version\":\"old\",\"releasePath\":\"${old_release}\",\"pm2Name\":\"sync-erp-api-staging\",\"port\":3001}"
+  printf 'sync-erp-api-staging|%s|3001|4242\n' "$old_release" > "$root/pm2.store"
+}
+
 success_root="$(setup_case success)"
 success_output="$(run_release "$success_root")"
 assert_contains "Activated API release ${new_sha}" "$success_output"
@@ -295,6 +311,14 @@ assert_contains \
 [[ "$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('$success_root/public_html/apps/api-staging/.release-state.json')).commit)")" == "$new_sha" ]]
 [[ "$(cut -d '|' -f 2 "$success_root/pm2.store")" == "$success_root/public_html/apps/api-staging/releases/${new_sha}" ]]
 [[ ! -e "$success_root/public_html/apps/api-staging/.release-rollback/${new_sha}.json" ]]
+
+existing_current_root="$(setup_case existing-current-symlink)"
+setup_versioned_current "$existing_current_root"
+existing_current_output="$(run_release "$existing_current_root")"
+assert_contains "Activated API release ${new_sha}" "$existing_current_output"
+[[ "$(readlink "$existing_current_root/public_html/apps/api-staging/current")" == "$existing_current_root/public_html/apps/api-staging/releases/${new_sha}" ]]
+[[ "$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('$existing_current_root/public_html/apps/api-staging/.release-state.json')).commit)")" == "$new_sha" ]]
+[[ "$(cut -d '|' -f 2 "$existing_current_root/pm2.store")" == "$existing_current_root/public_html/apps/api-staging/releases/${new_sha}" ]]
 
 drill_root="$(setup_case rollback-drill)"
 drill_output="$(MOCK_MIGRATION_LOG="$drill_root/drill-migrations.log" run_release "$drill_root" rollback-drill)"
