@@ -376,7 +376,7 @@ if (
   !isInPlace && !isImmutableRelease ||
   !expectedScript ||
   actualScript !== expectedScript ||
-  String(env.PORT ?? "") !== String(expectedPort)
+  String(env.env?.PORT ?? env.PORT ?? "") !== String(expectedPort)
 ) {
   process.exit(1);
 }
