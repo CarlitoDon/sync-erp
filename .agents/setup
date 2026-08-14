@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+log() {
+  printf '[%s] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"
+}
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+node_version="$(tr -d '[:space:]' < .node-version)"
+npm_version="$(node -p "require('./package.json').packageManager.split('@')[1]" 2>/dev/null || sed -n 's/.*"packageManager": "npm@\([^"]*\)".*/\1/p' package.json)"
+node_home="$HOME/.local/node-v${node_version}"
+local_bin="$HOME/.local/bin"
+
+log "Ensuring Node.js ${node_version}"
+if [[ ! -x "$node_home/bin/node" ]] || [[ "$($node_home/bin/node --version)" != "v${node_version}" ]]; then
+  case "$(uname -m)" in
+    x86_64) node_arch="x64" ;;
+    aarch64|arm64) node_arch="arm64" ;;
+    *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+  esac
+  command -v curl >/dev/null || { echo 'curl is required to install Node.js' >&2; exit 1; }
+  archive="$(mktemp)"
+  trap 'rm -f "$archive"' EXIT
+  curl --fail --location --retry 3 --silent --show-error \
+    "https://nodejs.org/dist/v${node_version}/node-v${node_version}-linux-${node_arch}.tar.gz" \
+    --output "$archive"
+  rm -rf "$node_home"
+  mkdir -p "$node_home"
+  tar -xzf "$archive" --strip-components=1 -C "$node_home"
+  rm -f "$archive"
+  trap - EXIT
+fi
+
+mkdir -p "$local_bin"
+for executable in node npm npx corepack; do
+  ln -sfn "$node_home/bin/$executable" "$local_bin/$executable"
+done
+profile_marker="# sync-erp Amp orb Node.js"
+if ! grep -Fqx "$profile_marker" "$HOME/.bash_profile" 2>/dev/null; then
+  cat >> "$HOME/.bash_profile" <<'EOF'
+
+# sync-erp Amp orb Node.js
+export PATH="$HOME/.local/bin:$PATH"
+EOF
+fi
+export PATH="$local_bin:$PATH"
+
+log "Ensuring npm ${npm_version}"
+if [[ "$(npm --version)" != "$npm_version" ]]; then
+  npm install --global --no-audit --no-fund "npm@${npm_version}"
+fi
+
+log "Verifying toolchain in a non-interactive login shell"
+REPO_ROOT="$repo_root" NODE_VERSION="$node_version" NPM_VERSION="$npm_version" \
+  /bin/bash -lc 'cd "$REPO_ROOT"; [[ "$(node --version)" == "v$NODE_VERSION" ]] && [[ "$(npm --version)" == "$NPM_VERSION" ]]'
+
+log "Installing workspace dependencies"
+npm install --prefer-offline --no-audit --no-fund --legacy-peer-deps
+log "Setup complete"
