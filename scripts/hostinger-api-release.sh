@@ -188,7 +188,16 @@ atomic_symlink() {
   local temporary="${link}.tmp.$$"
   rm -f "$temporary"
   ln -s "$destination" "$temporary"
-  mv -f "$temporary" "$link"
+  if ! node --input-type=module - "$temporary" "$link" <<'NODE'
+import { renameSync } from 'node:fs';
+
+const [temporary, link] = process.argv.slice(2);
+renameSync(temporary, link);
+NODE
+  then
+    rm -f "$temporary"
+    return 1
+  fi
 }
 
 validate_release() {
