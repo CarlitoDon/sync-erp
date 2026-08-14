@@ -353,8 +353,8 @@ try {
   // A first in-place bootstrap may not have a releases directory yet.
 }
 
-const processes = JSON.parse(readFileSync(0, "utf8"));
-const matches = processes.filter((pm2Process) => pm2Process.name === name);
+const pm2Processes = JSON.parse(readFileSync(0, "utf8"));
+const matches = pm2Processes.filter((pm2Process) => pm2Process.name === name);
 if (matches.length !== 1) {
   process.stderr.write(JSON.stringify({
     error: "PM2_NAME_MATCH_COUNT_MISMATCH",
@@ -659,8 +659,20 @@ load_previous_release() {
       PREVIOUS_PORT="$APP_PORT"
       PREVIOUS_IS_LEGACY=2
       BASE_ENV_FILE="$target/.env"
-      require_owned_pm2 "$PM2_NAME" "$target" "$APP_PORT"
-      echo "Explicit production bootstrap authorization accepted; retaining the legacy in-place API as the rollback target."
+
+      pid="$(pm2_pid "$PM2_NAME")"
+      case "$pid" in
+        ''|0)
+          echo "Explicit production bootstrap authorization accepted; retaining legacy in-place API as bootstrap material (no PM2 active)."
+          ;;
+        *[!0-9]*)
+          fail "Could not determine PM2 process status for ${PM2_NAME}; refusing bootstrap."
+          ;;
+        *)
+          require_owned_pm2 "$PM2_NAME" "$target" "$APP_PORT"
+          echo "Explicit production bootstrap authorization accepted; retaining legacy in-place API as rollback target."
+          ;;
+      esac
     else
       unexpected_entry="$(find "$target" -mindepth 1 -maxdepth 1 \
         ! -name '.env' ! -name '.htaccess' -print -quit)"
@@ -681,6 +693,15 @@ load_previous_release() {
 
   if [[ "$PREVIOUS_IS_FRESH" -eq 1 ]]; then
     return 0
+  fi
+
+  if [[ "$PREVIOUS_IS_LEGACY" -eq 2 ]]; then
+    pid="$(pm2_pid "$PREVIOUS_PM2")"
+    case "$pid" in
+      ''|0)
+        return 0
+        ;;
+    esac
   fi
 
   [[ "$PREVIOUS_PORT" =~ ^[0-9]+$ ]] ||
@@ -712,6 +733,17 @@ restore_previous() {
     rm -rf "$release_dir"
     rmdir -- "$release_root" 2>/dev/null || true
     return 0
+  fi
+
+  if [[ "$PREVIOUS_IS_LEGACY" -eq 2 ]]; then
+    pid="$(pm2_pid "$PREVIOUS_PM2")"
+    case "$pid" in
+      ''|0)
+        echo "No PM2 process was active for legacy bootstrap; leaving legacy files intact after ${reason} and removing only new failed release."
+        rm -rf "$release_dir"
+        return 0
+        ;;
+    esac
   fi
 
   echo "Restoring previous release ${PREVIOUS_SHA} after ${reason}."

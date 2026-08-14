@@ -410,6 +410,17 @@ production_release_cwd_output="$(run_production_release "$production_release_cwd
 assert_contains 'legacy in-place release retained as the rollback target' "$production_release_cwd_output"
 [[ "$(cut -d '|' -f 2 "$production_release_cwd_root/pm2.store")" == "$production_release_cwd_root/public_html/apps/api/releases/${new_sha}" ]]
 
+production_no_pm2_root="$(prepare_production_bootstrap production-bootstrap-no-pm2)"
+rm -f "$production_no_pm2_root/pm2.store"
+# The default PM2 mock returns 0 while its store is absent, then records the
+# newly activated release when the bootstrap reaches PM2 startup.
+production_no_pm2_output="$(run_production_release "$production_no_pm2_root")"
+assert_contains 'retaining legacy in-place API as bootstrap material (no PM2 active)' "$production_no_pm2_output"
+[[ -f "$production_no_pm2_root/public_html/apps/api/releases/${new_sha}/release.json" ]]
+[[ "$(readlink "$production_no_pm2_root/public_html/apps/api/current")" == "$production_no_pm2_root/public_html/apps/api/releases/${new_sha}" ]]
+[[ "$(cut -d '|' -f 2 "$production_no_pm2_root/pm2.store")" == "$production_no_pm2_root/public_html/apps/api/releases/${new_sha}" ]]
+[[ -f "$production_no_pm2_root/pm2.saved" ]]
+
 production_outside_pm2_root="$(prepare_production_bootstrap production-bootstrap-outside-pm2)"
 production_outside_pm2_cwd="$production_outside_pm2_root/outside-api"
 mkdir -p "$production_outside_pm2_cwd/dist"
