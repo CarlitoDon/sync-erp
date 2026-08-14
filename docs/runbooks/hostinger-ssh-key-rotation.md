@@ -1,24 +1,21 @@
 # Hostinger SSH Host-Key Rotation Runbook
 
-Document update: 2026-08-13. This is a design/procedure document, not a
-provider/OOB verification record or live-deployment evidence.
+Document update: 2026-08-14. This is primarily a rotation procedure; the
+metadata-only evidence section records the current operational activation.
 
 This runbook covers rotation of the Hostinger server's SSH host identity used by
-GitHub Actions. It is a procedure, not evidence that a rotation has happened.
-No current fingerprint, public-key line, private key, secret value, owner, date,
-provider ticket, or live deployment result is recorded here.
+GitHub Actions. It remains a procedure; the current evidence section records
+only metadata and run references. No current fingerprint, public-key line,
+private key, or secret value is recorded here.
 
 ## Scope and safety boundary
 
 The server host key and the deploy authentication key are different things:
 
 - The server host key identifies the remote Hostinger endpoint. The active
-  Hostinger workflows declare `HOSTINGER_SSH_KNOWN_HOSTS` as a required
-  design/input contract only for the pinning helper until provider/OOB
-  verification and live deployment evidence exist. A missing or invalid input
-  fails closed. This runbook does not assert that the secret is configured,
-  that its value is provider/OOB-approved, or that a live deployment consumed
-  it.
+  Hostinger workflows require `HOSTINGER_SSH_KNOWN_HOSTS`; a missing, invalid,
+  or mismatched input fails closed before transfer. The current metadata-only
+  evidence below shows operational staging use, but never reveals the value.
 - `HOSTINGER_SSH_KEY` and its passphrase authenticate the deployment client.
   Rotate them only through a separately approved credential procedure; do not
   substitute an authentication-key rotation for host-identity verification.
@@ -30,20 +27,24 @@ ephemeral runner files only.
 
 ## Current evidence boundary
 
-[PR #84](https://github.com/CarlitoDon/sync-erp/pull/84) contains the CICD-003
-code remediation at the observed head `e1f377361271450a789884554ef7ffbd665e6c71`.
-The [CI/CD run #31693634711](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634711)
-passed its repository quality jobs, including the `Test Hostinger SSH pinning`
-step in the [Quality Gates (API) job](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634711/job/94426318093).
-The [Playwright E2E run #31693634657](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634657)
-also passed. The API and web deploy jobs in the PR CI run were skipped.
+[PR #84](https://github.com/CarlitoDon/sync-erp/pull/84) merged the CICD-003
+source remediation as `c862f5a2a695a03ffa0428f2f8f8a66a937b5b8b`.
+Authenticated cPanel/server information and an independent out-of-band
+comparison confirmed the exact shared target, port `65002`, and raw
+`ssh-ed25519` identity. The reviewed value was installed through the GitHub
+secret manager; only the `2026-08-14T00:32:07Z` update metadata is retained.
+No host-key line or fingerprint is recorded here.
 
-This evidence proves repository/CI behavior only. The
-`HOSTINGER_SSH_KNOWN_HOSTS` reference is still only a design/required-input
-contract: this evidence does not prove that the secret exists, contains the
-provider-approved key, or was used successfully against Hostinger.
-Provider/OOB verification, a live SSH connection, a deployment, rollback, and
-production closure remain separate gates.
+Strict API deployment [run #31758446770](https://github.com/CarlitoDon/sync-erp/actions/runs/31758446770)
+and standalone MCP [run #31758446761](https://github.com/CarlitoDon/sync-erp/actions/runs/31758446761)
+consumed the shared input successfully. [PR #85](https://github.com/CarlitoDon/sync-erp/pull/85)
+then repaired atomic replacement of an existing `current` symlink. API
+[run #31760295823](https://github.com/CarlitoDon/sync-erp/actions/runs/31760295823)
+deployed exact release `9e77f4c1…`; staging rollback
+[run #31761990061](https://github.com/CarlitoDon/sync-erp/actions/runs/31761990061)
+completed without active-release drift and restored the same release with
+external API and MCP health checks passing. This is operational staging
+evidence, not production application deployment or production rollback proof.
 
 ## Preconditions
 
@@ -70,8 +71,7 @@ Before changing the secret:
 ### 1. Compare the old and replacement identities
 
 Use the approved secret-management interface to inspect metadata or a redacted
-comparison only. This step still treats `HOSTINGER_SSH_KNOWN_HOSTS` as a
-design/required-input contract; do not print or copy its current value. Confirm
+comparison only. Do not print or copy the current value. Confirm
 with the provider/OOB evidence:
 
 - exact Hostinger target and port `65002`;
@@ -111,9 +111,8 @@ aligned; changing either requires a new provider/OOB verification and review.
 
 Through the approved GitHub secret or secret-manager interface, replace the
 value for the `HOSTINGER_SSH_KNOWN_HOSTS` required workflow input with the
-provider/OOB-verified candidate. Until this external activation step and a
-live deployment are separately evidenced, the name remains only a
-design/required-input contract.
+provider/OOB-verified candidate. Treat the replacement as pending until a
+strict read-only probe and separately authorized deployment are evidenced.
 
 - Replace the whole reviewed value; do not edit a tracked file or workflow.
 - Do not change `HOSTINGER_SSH_KEY` unless the separate authentication-key
@@ -182,6 +181,6 @@ non-secret fields and references at the time of the change:
   decoded secret was committed, logged, or retained in an artifact.
 
 The [CICD-003 risk entry](../audits/2026-08-09-full-repository-audit/RISK-REGISTER.md)
-remains open until the live/provider gates above are evidenced. The existing
-CI checks and [PR #84](https://github.com/CarlitoDon/sync-erp/pull/84) are not
-production-closure evidence.
+records operational closure for the current shared endpoint and staging
+workflow paths. Any target, port, algorithm, or identity change reopens the
+rotation gate. The recorded staging evidence is not production-closure proof.

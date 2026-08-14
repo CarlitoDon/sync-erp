@@ -1,22 +1,22 @@
 # CI/CD
 
-Source review/update: 2026-08-13. This page describes the checked-in workflow
+Source review/update: 2026-08-14. This page describes the checked-in workflow
 contract; dated audit snapshots remain historical evidence and are not rewritten
 here. Nothing below is production-closure evidence.
 
 ## Batasan bukti
 
 Dokumen ini menjelaskan kontrak workflow yang tersimpan di repository. [PR
-#84](https://github.com/CarlitoDon/sync-erp/pull/84) menambahkan hardening
-SSH Hostinger. [CI/CD run #31693634711](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634711)
-memvalidasi hanya committed SHA `e1f3773`; run tersebut tidak membuktikan
-commit atau diff sesudahnya. Setiap commit atau diff setelah SHA tersebut
-memerlukan CI baru sebelum dapat dikutip sebagai tervalidasi; state yang belum
-di-commit tidak dapat dikutip sebagai validasi dari run tersebut. [Playwright
-E2E run #31693634657](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634657)
-berhasil untuk pull request tersebut, tetapi job deploy Hostinger di PR
-berstatus `skipped`. Secret value, fingerprint/host-key value, koneksi live,
-deployment, rollback, dan production closure tidak dibuktikan oleh checks itu.
+#84](https://github.com/CarlitoDon/sync-erp/pull/84) mengaktifkan hardening SSH
+Hostinger untuk API, MCP, dan staging rollback. Provider/OOB comparison dan
+metadata update secret telah diverifikasi tanpa merekam nilainya. Strict live
+use terbukti pada API [run #31758446770](https://github.com/CarlitoDon/sync-erp/actions/runs/31758446770)
+dan MCP [run #31758446761](https://github.com/CarlitoDon/sync-erp/actions/runs/31758446761).
+[PR #85](https://github.com/CarlitoDon/sync-erp/pull/85) memperbaiki atomic
+replacement untuk symlink `current`; API [run #31760295823](https://github.com/CarlitoDon/sync-erp/actions/runs/31760295823)
+dan rollback staging [run #31761990061](https://github.com/CarlitoDon/sync-erp/actions/runs/31761990061)
+lulus pada exact release `9e77f4c1…` tanpa active-release drift. Ini bukan bukti
+deployment atau rollback aplikasi production.
 
 Jangan menaruh host-key line, fingerprint, private key, passphrase, atau secret
 value di Git, dokumentasi, log, artifact, issue, atau pull request. Untuk
@@ -95,10 +95,10 @@ Jobs:
   - tidak memeriksa `needs.changes.outputs.api`, sehingga filter API saat ini
     bersifat informasional dan bukan gate deploy
   - download dan validasi artifact production terhadap `GITHUB_SHA`
-  - menggunakan `HOSTINGER_SSH_KNOWN_HOSTS` sebagai design/required-input
-    contract untuk helper; input yang hilang atau invalid membuat helper gagal
-    secara fail-closed. Ini hanya kontrak source, bukan bukti secret terkonfigurasi, nilai
-    disetujui provider/OOB, atau koneksi/deployment live
+  - menggunakan `HOSTINGER_SSH_KNOWN_HOSTS` yang telah diaktifkan melalui secret
+    manager dan diverifikasi secara provider/OOB; input yang hilang atau invalid
+    membuat helper gagal secara fail-closed sebelum transfer
+  - memaksa negosiasi `ssh-ed25519` agar cocok dengan raw host key yang direview
   - memakai `StrictHostKeyChecking=yes` dan `UserKnownHostsFile` untuk SSH/SCP
   - transfer dan aktivasi release melalui SSH, lalu memverifikasi release/health
 - `deploy_web`
@@ -139,10 +139,8 @@ File: `.github/workflows/deploy-mcp-hostinger.yml`
 - CD standalone — tidak depend pada CI/CD utama
 - build `apps/mcp/dist`, package `deploy/mcp/`, dan production dependency tree
   `deploy/mcp/node_modules/` di runner
-- menggunakan `HOSTINGER_SSH_KNOWN_HOSTS` sebagai design/required-input
-  contract untuk helper; input yang hilang atau invalid membuat helper gagal
-  secara fail-closed. Provider/OOB identity, secret configuration, dan live use tetap tidak
-  terbukti
+- menggunakan kontrak `HOSTINGER_SSH_KNOWN_HOSTS` yang sama; strict live use
+  pada target staging terbukti di run #31758446761
 - memakai strict SSH/SCP host checking sebelum transfer atau remote mutation
 - health/release verification setelah deploy
 
@@ -153,11 +151,9 @@ File: `.github/workflows/staging-api-rollback-drill.yml`
 - hanya melalui `workflow_dispatch`
 - environment workflow selalu `staging`; ref yang diterima hanya `dev` atau
   `codex/*`
-- failure-injected dan memakai kontrak pinning Hostinger yang sama dengan
-  `HOSTINGER_SSH_KNOWN_HOSTS` sebagai required design/input; helper gagal secara
-  fail-closed
-  bila input hilang atau invalid, dan workflow tetap bukan bukti provider/OOB
-  activation atau rollback production
+- failure-injected dan memakai kontrak pinning Hostinger yang sama; helper gagal
+  secara fail-closed bila input hilang, invalid, atau mismatch
+- run #31761990061 membuktikan rollback staging dan restored external health
 - bukan bukti bahwa rollback production sudah dilakukan
 
 ### E2E (Playwright) — Non-blocking
@@ -172,11 +168,11 @@ File: `.github/workflows/e2e-playwright.yml`
 
 ## Secret names referenced by the deployment workflows
 
-Daftar berikut hanya nama yang direferensikan oleh
+Daftar berikut adalah nama yang direferensikan oleh
 `.github/workflows/ci-cd.yml`, `.github/workflows/deploy-mcp-hostinger.yml`,
-dan `.github/workflows/staging-api-rollback-drill.yml`. Ini bukan bukti bahwa
-secret telah dikonfigurasi, berisi nilai yang benar, atau telah diverifikasi
-terhadap provider/OOB.
+dan `.github/workflows/staging-api-rollback-drill.yml`. Kecuali metadata-only
+evidence untuk `HOSTINGER_SSH_KNOWN_HOSTS` di atas, daftar ini tidak membuktikan
+konfigurasi atau nilai secret lain.
 
 ### Backend / Hostinger
 
@@ -184,10 +180,9 @@ terhadap provider/OOB.
 - `HOSTINGER_USER`
 - `HOSTINGER_SSH_KEY`
 - `HOSTINGER_SSH_PASSPHRASE`
-- `HOSTINGER_SSH_KNOWN_HOSTS` — hanya design/required workflow input
-  `known_hosts` yang divalidasi helper sampai provider/OOB verification dan live
-  deployment evidence tersedia; nilai, keberadaan, dan verifikasi provider/OOB
-  belum dibuktikan
+- `HOSTINGER_SSH_KNOWN_HOSTS` — required `known_hosts` input; provider/OOB
+  comparison, secret update metadata, dan strict staging use sudah dibuktikan
+  tanpa mengungkap nilainya
 
 ### API runtime
 
@@ -215,9 +210,8 @@ terhadap provider/OOB.
   dideploy pada setiap push branch deploy karena output filter API belum menjadi
   gate.
 - API deploy saat ini menggunakan artifact runner-built dari `deploy/api-mcp/`
-  dan SSH/SCP ke Hostinger; `HOSTINGER_SSH_KNOWN_HOSTS` adalah design/required
-  input only sampai provider/OOB verification dan live deployment evidence
-  tersedia, dan koneksi harus cocok dengan file pin yang dibuat helper.
-  Konfigurasi secret, verifikasi provider/OOB, dan penggunaan live belum terbukti.
+  dan strict SSH/SCP ke Hostinger. Koneksi harus cocok dengan file pin yang
+  dibuat helper; staging activation terbukti, sedangkan production application
+  deployment dan rollback tetap menjadi gate terpisah.
 - MCP dan rollback drill adalah workflow terpisah, tetapi memakai kontrak pinning Hostinger yang sama.
 - Untuk branch protection, disarankan mewajibkan workflow `CI/CD` lulus sebelum merge ke `main` atau `dev`.
