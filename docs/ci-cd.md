@@ -31,12 +31,14 @@ Alur yang didefinisikan oleh workflow saat ini:
    `workflow_dispatch` memulai quality workflow `CI/CD`.
 2. Pada `push`, `deploy_api` menunggu `changes` + quality gate API dan dapat
    berjalan untuk setiap push ke `main`/`dev`; output filter `api` belum menjadi
-   gate deploy.
+   gate deploy. Manual dispatch dapat memilih `api_deploy_mode=deploy` atau
+   `api_deploy_mode=bootstrap` untuk menjalankan jalur API yang sama dengan
+   artifact dan quality gate yang sama.
 3. Pada `push`, `deploy_web` menunggu `changes` + quality gate Web dan hanya
    berjalan bila output filter `web` bernilai `true`.
-4. Pull request dan manual dispatch pada `ci-cd.yml` menjalankan quality jobs
-   tanpa deploy API/Web; `workflow_dispatch` pada workflow ini tidak memiliki
-   input environment.
+4. Pull request dan manual dispatch default pada `ci-cd.yml` menjalankan
+   quality jobs tanpa deploy API/Web. Manual dispatch hanya deploy API bila
+   `api_deploy_mode` dipilih secara eksplisit; deploy Web tetap push-only.
 
 ## Branch Strategy
 
@@ -53,7 +55,10 @@ Alur yang didefinisikan oleh workflow saat ini:
   - tidak deploy
 - `workflow_dispatch` pada `.github/workflows/ci-cd.yml`
   - menjalankan quality jobs
-  - tidak deploy karena job deploy mensyaratkan event `push`
+  - dapat menjalankan API dengan `api_deploy_mode=deploy` atau
+    `api_deploy_mode=bootstrap`; bootstrap hanya diotorisasi untuk
+    `workflow_dispatch` pada ref penuh `refs/heads/main` dan dipetakan ke
+    aksi release `deploy` yang valid
 
 ## Workflow
 
@@ -76,7 +81,8 @@ Jobs:
   - **integration test** — `test:integration` API
   - build API (selective: `npm run build:api`), dengan output utama di
     `apps/api/dist`
-  - pada event `push`, menyiapkan `deploy/api-mcp/` dari `apps/api/dist`,
+  - pada event `push`, atau manual dispatch dengan `api_deploy_mode` bukan
+    `none`, menyiapkan `deploy/api-mcp/` dari `apps/api/dist`,
     `apps/api/package.pro.json`, dan file Prisma yang diperlukan; production
     dependency tree dibuat di `deploy/api-mcp/` melalui
     `npm install --prefix deploy/api-mcp --omit=dev`, lalu artifact itu
@@ -89,8 +95,8 @@ Jobs:
   - **berjalan paralel** dengan `ci-api`
   - mengunggah output `apps/web/dist/` sebagai artifact Web
 - `deploy_api`
-  - hanya jalan pada event `push` ke `main` atau `dev`; `workflow_dispatch` pada
-    `ci-cd.yml` tidak menjalankan job ini
+  - jalan pada event `push` ke `main`/`dev`, atau manual dispatch dengan
+    `api_deploy_mode` bukan `none`
   - menunggu `changes` + `ci-api` selesai
   - tidak memeriksa `needs.changes.outputs.api`, sehingga filter API saat ini
     bersifat informasional dan bukan gate deploy
@@ -101,6 +107,24 @@ Jobs:
   - memaksa negosiasi `ssh-ed25519` agar cocok dengan raw host key yang direview
   - memakai `StrictHostKeyChecking=yes` dan `UserKnownHostsFile` untuk SSH/SCP
   - transfer dan aktivasi release melalui SSH, lalu memverifikasi release/health
+
+### First production API activation
+
+Target production API yang belum memiliki `.release-state.json`, `current`, atau
+legacy `release.json` dapat diaktifkan satu kali melalui jalur bootstrap yang
+diotorisasi workflow. Jalur ini hanya cocok untuk `main` dengan target
+`apps/api`, port `3002`, dan database project production yang tepat. Sebelum
+bootstrap, Hostinger harus sudah memiliki non-empty
+`~/public_html/apps/api/.env`; workflow tidak mengambil secret tambahan dari
+Git dan tidak mencetak isi file tersebut.
+
+Bootstrap menolak target ambigu, mempertahankan legacy in-place API bila masih
+ada sebagai rollback target, menjalankan migration/health/OAuth/CORS checks
+yang sama, lalu menulis immutable release state. Setelah state terbentuk,
+deployment berikutnya kembali ke jalur normal yang membutuhkan previous
+known-good release. Jika `.env` belum ada atau target tidak dapat
+diidentifikasi dengan aman, deployment tetap fail-closed dan harus dipulihkan
+melalui runbook/akses Hostinger terlebih dahulu.
 - `deploy_web`
   - hanya jalan pada event `push` ke `main` atau `dev`
   - hanya jalan jika output `web` dari active web path filter bernilai `true`;

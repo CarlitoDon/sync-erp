@@ -79,9 +79,58 @@ rollback_file="$rollback_root/$EXPECTED_SHA.json"
 state_file="$target/.release-state.json"
 pm2="$HOME/node-pm2/node_modules/.bin/pm2"
 
+# The production API was historically deployed in-place and may have a
+# usable .env plus a running legacy process, but no release metadata. A
+# bootstrap is permitted only when the workflow supplies this explicit
+# authorization. Once the first release state is written, normal deployments
+# use the immutable-release path and this branch is never reached again.
+bootstrap_confirmation="BOOTSTRAP_PRODUCTION_API"
+legacy_sha="0000000000000000000000000000000000000000"
+PREVIOUS_IS_FRESH=0
+PREVIOUS_IS_LEGACY=0
+BASE_ENV_FILE=""
+
+if [[ "$ACTION" == "deploy" && "${BOOTSTRAP_CONFIRMATION:-}" == "$bootstrap_confirmation" ]]; then
+  if [[ "$RUNTIME_ENV" != "production" ||
+    "$DEPLOY_DIR" != "apps/api" ||
+    "$PM2_NAME" != "sync-erp-api" ||
+    "$APP_PORT" != "3002" ||
+    "$DATABASE_PROJECT_REF" != "vktglrwmbrhtddpmekda" ]]; then
+    echo "Production bootstrap authorization does not match the API production target." >&2
+    exit 2
+  fi
+fi
+
 fail() {
   echo "ERROR: $*" >&2
   exit 1
+}
+
+validate_bootstrap_paths() {
+  local parent_path="$HOME"
+  local component
+
+  for component in public_html apps "${DEPLOY_DIR##*/}"; do
+    parent_path="$parent_path/$component"
+    if [[ -L "$parent_path" ]]; then
+      fail "Production bootstrap path component ${parent_path} must not be a symlink."
+    fi
+    if [[ ! -d "$parent_path" ]]; then
+      fail "Production bootstrap path component ${parent_path} must be an existing directory."
+    fi
+  done
+  if [[ ! -d "$target" || -L "$target" ]]; then
+    fail "Production bootstrap target ${target} must be a real directory."
+  fi
+
+  for path_name in release_root rollback_root; do
+    local path_value="${!path_name}"
+    if [[ -e "$path_value" || -L "$path_value" ]]; then
+      if [[ ! -d "$path_value" || -L "$path_value" ]]; then
+        fail "Production bootstrap path ${path_value} must be a real directory; refusing symlinked or non-directory state."
+      fi
+    fi
+  done
 }
 
 resolve_link() {
@@ -207,6 +256,18 @@ validate_release() {
   local manifest_values
   local manifest_commit
 
+  if [[ "$allow_unknown_version" == "2" ]]; then
+    if [[ ! -d "$release_path" || -L "$release_path" ]]; then
+      fail "Legacy production application directory is missing or unsafe: ${release_path}."
+    fi
+    for required_file in .env dist/index.js; do
+      if [[ ! -f "$release_path/$required_file" || -L "$release_path/$required_file" ]]; then
+        fail "Legacy production application is incomplete (missing ${required_file}); refusing bootstrap."
+      fi
+    done
+    return 0
+  fi
+
   if [[ ! -d "$release_path" ]]; then
     fail "Previous release directory is missing: ${release_path}. Refusing deployment; restore it from the retained release or backup first."
   fi
@@ -224,6 +285,13 @@ validate_release() {
   fi
 }
 
+verify_legacy_local_release() {
+  local port="$1"
+
+  curl -fsS --connect-timeout 5 --max-time 10 \
+    "http://127.0.0.1:${port}/health" >/dev/null
+}
+
 pm2_pid() {
   local name="$1"
   "$pm2" pid "$name" 2>/dev/null | tail -n 1 | tr -d '[:space:]' || true
@@ -238,6 +306,45 @@ require_online_pm2() {
       fail "Previous PM2 process ${name} is not online; refusing destructive deployment. Start the known-good release or restore PM2 state first."
       ;;
   esac
+}
+
+require_offline_pm2() {
+  local name="$1"
+  local pid
+  pid="$(pm2_pid "$name")"
+  case "$pid" in
+    ''|0) ;;
+    *[!0-9]*) fail "Could not determine whether PM2 process ${name} is online; refusing fresh bootstrap." ;;
+    *) fail "Fresh production bootstrap found an existing PM2 process ${name}; refusing to stop an unverified process." ;;
+  esac
+}
+
+require_owned_pm2() {
+  local name="$1"
+  local expected_cwd="$2"
+  local expected_port="$3"
+
+  if ! "$pm2" jlist | node --input-type=module -e '
+import { readFileSync } from "node:fs";
+
+const [name, expectedCwd, expectedPort] = process.argv.slice(1);
+const processes = JSON.parse(readFileSync(0, "utf8"));
+const match = processes.find((process) => process.name === name);
+const env = match?.pm2_env ?? {};
+const actualCwd = env.pm_cwd ?? env.cwd;
+const actualScript = env.pm_exec_path;
+if (
+  !match ||
+  actualCwd !== expectedCwd ||
+  actualScript !== `${expectedCwd}/dist/index.js` ||
+  String(env.PORT ?? "") !== String(expectedPort)
+) {
+  process.exit(1);
+}
+' "$name" "$expected_cwd" "$expected_port"
+  then
+    fail "PM2 process ${name} is not owned by the expected API release at ${expected_cwd} on port ${expected_port}."
+  fi
 }
 
 write_proxy() {
@@ -423,6 +530,8 @@ verify_local_release() {
 load_previous_release() {
   PREVIOUS_STATE_EXISTS=0
   PREVIOUS_IS_LEGACY=0
+  PREVIOUS_IS_FRESH=0
+  BASE_ENV_FILE=""
 
   if [[ -f "$state_file" ]]; then
     PREVIOUS_STATE_EXISTS=1
@@ -457,21 +566,65 @@ load_previous_release() {
     PREVIOUS_PM2="$PM2_NAME"
     PREVIOUS_PORT="$APP_PORT"
     PREVIOUS_IS_LEGACY=1
+  elif [[ "$ACTION" == "deploy" && "${BOOTSTRAP_CONFIRMATION:-}" == "$bootstrap_confirmation" ]]; then
+    validate_bootstrap_paths
+    if [[ ! -d "$target" || -L "$target" ]]; then
+      fail "Production bootstrap requires an existing application directory: ${target}."
+    fi
+    if [[ ! -f "$target/.env" || -L "$target/.env" || ! -s "$target/.env" ]]; then
+      fail "Production bootstrap requires a pre-provisioned non-empty ${target}/.env; refusing to create a release without the existing runtime configuration."
+    fi
+    if [[ -e "$target/current" || -L "$target/current" ]]; then
+      fail "Production bootstrap found ${target}/current without release state; reconcile the target before retrying."
+    fi
+
+    if [[ -d "$target/dist" && ! -L "$target/dist" &&
+      -f "$target/dist/index.js" && ! -L "$target/dist/index.js" ]]; then
+      PREVIOUS_SHA="$legacy_sha"
+      PREVIOUS_VERSION="legacy-unknown"
+      PREVIOUS_RELEASE="$target"
+      PREVIOUS_PM2="$PM2_NAME"
+      PREVIOUS_PORT="$APP_PORT"
+      PREVIOUS_IS_LEGACY=2
+      BASE_ENV_FILE="$target/.env"
+      require_owned_pm2 "$PM2_NAME" "$target" "$APP_PORT"
+      echo "Explicit production bootstrap authorization accepted; retaining the legacy in-place API as the rollback target."
+    else
+      unexpected_entry="$(find "$target" -mindepth 1 -maxdepth 1 \
+        ! -name '.env' ! -name '.htaccess' -print -quit)"
+      if [[ -n "$unexpected_entry" ]]; then
+        fail "Production bootstrap target contains existing files but no recognizable legacy API; refusing destructive initialization."
+      fi
+      PREVIOUS_IS_FRESH=1
+      PREVIOUS_RELEASE=""
+      PREVIOUS_PM2="$PM2_NAME"
+      PREVIOUS_PORT="$APP_PORT"
+      BASE_ENV_FILE="$target/.env"
+      require_offline_pm2 "$PM2_NAME"
+      echo "Explicit production bootstrap authorization accepted; no legacy API was found, so this is a first runtime activation."
+    fi
   else
     fail "No previous known-good release found under ${target}; refusing deployment. Restore a release and PM2 definition before retrying."
+  fi
+
+  if [[ "$PREVIOUS_IS_FRESH" -eq 1 ]]; then
+    return 0
   fi
 
   [[ "$PREVIOUS_PORT" =~ ^[0-9]+$ ]] ||
     fail "Previous release metadata has an invalid port; refusing deployment."
   validate_release "$PREVIOUS_RELEASE" "$PREVIOUS_SHA" "$PREVIOUS_IS_LEGACY"
   require_online_pm2 "$PREVIOUS_PM2"
-  if ! curl -fsS --connect-timeout 5 --max-time 10 \
-    "http://127.0.0.1:${PREVIOUS_PORT}/health" >/dev/null; then
+  if ! verify_legacy_local_release "$PREVIOUS_PORT"; then
     fail "Previous release ${PREVIOUS_SHA} is not healthy on port ${PREVIOUS_PORT}; refusing destructive deployment."
   fi
+  BASE_ENV_FILE="${BASE_ENV_FILE:-$PREVIOUS_RELEASE/.env}"
 }
 
 write_rollback_metadata() {
+  if [[ "$PREVIOUS_IS_FRESH" -eq 1 ]]; then
+    return 0
+  fi
   mkdir -p "$rollback_root"
   write_state "$rollback_file" \
     "$PREVIOUS_SHA" "$PREVIOUS_VERSION" "$PREVIOUS_RELEASE" \
@@ -480,6 +633,15 @@ write_rollback_metadata() {
 
 restore_previous() {
   local reason="$1"
+
+  if [[ "$PREVIOUS_IS_FRESH" -eq 1 ]]; then
+    echo "No previous API release existed; removing the failed bootstrap release after ${reason}."
+    stop_release "$PM2_NAME"
+    rm -rf "$release_dir"
+    rmdir -- "$release_root" 2>/dev/null || true
+    return 0
+  fi
+
   echo "Restoring previous release ${PREVIOUS_SHA} after ${reason}."
   validate_release "$PREVIOUS_RELEASE" "$PREVIOUS_SHA" "$PREVIOUS_IS_LEGACY"
 
@@ -488,7 +650,11 @@ restore_previous() {
     stop_release "$PREVIOUS_PM2"
   fi
   start_release "$PREVIOUS_RELEASE" "$PREVIOUS_PM2" "$PREVIOUS_PORT"
-  if ! verify_local_release "$PREVIOUS_RELEASE" "$PREVIOUS_PORT" "$PREVIOUS_SHA"; then
+  if [[ "$PREVIOUS_IS_LEGACY" -eq 2 ]]; then
+    if ! verify_legacy_local_release "$PREVIOUS_PORT"; then
+      fail "Rollback could not make the legacy production API healthy; investigate PM2 and Hostinger manually before retrying."
+    fi
+  elif ! verify_local_release "$PREVIOUS_RELEASE" "$PREVIOUS_PORT" "$PREVIOUS_SHA"; then
     fail "Rollback could not make previous release ${PREVIOUS_SHA} healthy; investigate PM2 and Hostinger manually before retrying."
   fi
 
@@ -508,6 +674,9 @@ restore_previous() {
 cleanup_remote() {
   if [[ -n "${release_staging:-}" && -d "$release_staging" ]]; then
     rm -rf "$release_staging"
+  fi
+  if [[ "${PREVIOUS_IS_FRESH:-0}" -eq 1 ]]; then
+    rmdir -- "$release_root" 2>/dev/null || true
   fi
   rm -f "$HOME/${REMOTE_API_ARCHIVE}" "$HOME/${REMOTE_RUNTIME_ENV}"
 }
@@ -558,7 +727,7 @@ IFS=$'\t' read -r NEW_SHA NEW_VERSION <<< "$new_manifest"
 [[ "$NEW_SHA" == "$EXPECTED_SHA" ]] ||
   fail "Extracted release identity ${NEW_SHA} does not match expected ${EXPECTED_SHA}."
 
-cp "$PREVIOUS_RELEASE/.env" "$release_staging/.env"
+cp "$BASE_ENV_FILE" "$release_staging/.env"
 google_oauth_client_id="$(decode_secret GOOGLE_OAUTH_CLIENT_ID)"
 google_oauth_client_secret="$(decode_secret GOOGLE_OAUTH_CLIENT_SECRET)"
 sync_erp_auth_state_secret="$(decode_secret SYNC_ERP_AUTH_STATE_SECRET)"
@@ -633,4 +802,10 @@ atomic_symlink "$release_dir" "$target/current"
 write_state "$state_file" "$EXPECTED_SHA" "$NEW_VERSION" "$release_dir" "$PM2_NAME" "$APP_PORT"
 "$pm2" save
 rm -f "$rollback_file"
-echo "Activated API release ${EXPECTED_SHA} from ${release_dir}; previous release ${PREVIOUS_SHA} remains retained."
+if [[ "$PREVIOUS_IS_FRESH" -eq 1 ]]; then
+  echo "Activated API release ${EXPECTED_SHA} from ${release_dir}; production bootstrap completed without a previous release."
+elif [[ "$PREVIOUS_IS_LEGACY" -eq 2 ]]; then
+  echo "Activated API release ${EXPECTED_SHA} from ${release_dir}; legacy in-place release retained as the rollback target."
+else
+  echo "Activated API release ${EXPECTED_SHA} from ${release_dir}; previous release ${PREVIOUS_SHA} remains retained."
+fi

@@ -18,17 +18,18 @@ file owns every operation.
 ## Mechanism
 1. **Frontend (Vercel)**: Deployed using fully controlled **Vercel CLI commands via Actions**. Vercel's native Git auto-integrations should be disabled/ignored at Vercel's side for this repo to prevent duplicate deployment runs.
 2. **Backend (Hostinger API)**: Generated and built inside GitHub Actions runners to bypass environment limitations typically seen on Shared Hostings. `npm run build:api` produces `apps/api/dist`; on a push, CI copies that output, `apps/api/package.pro.json`, and the required Prisma files into `deploy/api-mcp/`, runs `npm install --prefix deploy/api-mcp --omit=dev`, and overlays the compiled `@sync-erp/database` package before uploading `api-mcp-build`. The release tarball is validated against the expected release SHA, then transferred and activated remotely through an `ssh` inline script. Hostinger receives the runner-built production dependency tree; it is not the place where the workspace dependency tree is installed.
+   An explicit manual `workflow_dispatch` with `api_deploy_mode=bootstrap` on `refs/heads/main` carries narrowly scoped authorization for the one-time case where the target has no release metadata: the remote script requires an existing non-empty runtime `.env`, rejects ambiguous target contents, and writes immutable release state before subsequent normal deployments.
 3. **Standalone MCP (Hostinger)**: `apps/mcp/dist` is built on the runner, copied into `deploy/mcp/`, and paired with a production-only dependency tree created under `deploy/mcp/node_modules/` before transfer.
 
 ## Triggers and gates
 
 - `.github/workflows/ci-cd.yml` runs on pull requests to `main`/`dev`, pushes to
   `main`/`dev`, and manual dispatch. `changes`, `ci-api`, and `ci-web` run on
-  those events; `deploy_api` runs only for `push`, needs `changes` plus
-  `ci-api`, and does not consume the `api` change-filter output, while
-  `deploy_web` runs only for `push`, needs `changes` plus `ci-web`, and requires
-  the `web` output to be `true`. Manual dispatch has no deployment-environment
-  input and does not run API/Web deploy jobs.
+  those events; `deploy_api` runs for `push` or an explicit manual
+  `api_deploy_mode` (`deploy`/`bootstrap`), needs `changes` plus `ci-api`, and
+  does not consume the `api` change-filter output, while `deploy_web` runs only
+  for `push`, needs `changes` plus `ci-web`, and requires the `web` output to be
+  `true`. Bootstrap is restricted to production `main`.
 - `.github/workflows/deploy-mcp-hostinger.yml` runs for path-filtered pushes to
   `main`/`dev` and manual dispatch with a required `environment` choice of
   `staging` or `production` (default `staging`). Its source maps `main` to
