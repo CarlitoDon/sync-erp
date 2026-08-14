@@ -149,6 +149,15 @@ case "$command_name" in
     name="${2:-}"
     [[ -f "$store" && "$(cut -d '|' -f 1 "$store")" == "$name" ]]
     ;;
+  jlist)
+    if [[ -f "$store" ]]; then
+      IFS='|' read -r name cwd port pid < "$store"
+      printf '[{"name":"%s","pm2_env":{"pm_cwd":"%s","pm_exec_path":"%s/dist/index.js","PORT":"%s","status":"online","pid":%s}}]\n' \
+        "$name" "$cwd" "$cwd" "$port" "$pid"
+    else
+      printf '[]\n'
+    fi
+    ;;
   start)
     name=""
     cwd=""
@@ -283,6 +292,88 @@ run_release() {
   return "$status"
 }
 
+run_production_release() {
+  local root="$1"
+  shift
+  local action="${1:-deploy}"
+  local bootstrap_confirmation="${2:-BOOTSTRAP_PRODUCTION_API}"
+  local target="$root/public_html/apps/api"
+  local archive="$root/api.tar.gz"
+  local runtime_env="$root/runtime.env"
+  local output
+  local status=0
+
+  output="$({
+    HOME="$root" \
+      PATH="$root/bin:$PATH" \
+      REAL_NODE="$real_node" \
+      MOCK_PM2_STORE="$root/pm2.store" \
+      MOCK_PM2_SAVED="$root/pm2.saved" \
+      MOCK_HEALTH_RESULT="${MOCK_HEALTH_RESULT:-success}" \
+      MOCK_EDGE_HEALTH_RESULT="${MOCK_EDGE_HEALTH_RESULT:-success}" \
+      MOCK_OAUTH_RESULT="${MOCK_OAUTH_RESULT:-success}" \
+      MOCK_MIGRATION_RESULT="${MOCK_MIGRATION_RESULT:-success}" \
+      MOCK_START_RESULT="${MOCK_START_RESULT:-success}" \
+      MOCK_MIGRATION_LOG="${MOCK_MIGRATION_LOG:-$root/production-migrations.log}" \
+      MOCK_OAUTH_LOG="${MOCK_OAUTH_LOG:-$root/production-oauth.log}" \
+      DEPLOY_DIR='apps/api' \
+      PM2_NAME='sync-erp-api' \
+      APP_PORT='3002' \
+      RUNTIME_ENV='production' \
+      DATABASE_PROJECT_REF='vktglrwmbrhtddpmekda' \
+      EXPECTED_SHA="$new_sha" \
+      REMOTE_API_ARCHIVE="$(basename "$archive")" \
+      REMOTE_RUNTIME_ENV="$(basename "$runtime_env")" \
+      API_URL='https://api.example/api/trpc' \
+      API_BASE_URL='https://api.example' \
+      WEB_URL='https://web.example' \
+      OAUTH_REDIRECT_URL='https://api.example/callback' \
+      CORS_ORIGINS='https://web.example' \
+      BOOTSTRAP_CONFIRMATION="$bootstrap_confirmation" \
+      bash "$release_script" "$action"
+  } 2>&1)" || status=$?
+
+  printf '%s\n' "$output"
+  return "$status"
+}
+
+assert_workflow_bootstrap_contract() {
+  local workflow_path="$repo_root/.github/workflows/ci-cd.yml"
+  local deploy_case
+  local bootstrap_case
+  local ssh_invocation
+
+  deploy_case="$(awk '/^            deploy\)/,/^              ;;/' "$workflow_path")"
+  bootstrap_case="$(awk '/^            bootstrap\)/,/^              ;;/' "$workflow_path")"
+  ssh_invocation="$(grep -F 'bash -s -- '\''${RELEASE_ACTION}'\''' "$workflow_path")"
+  [[ "$deploy_case" == *'BOOTSTRAP_CONFIRMATION=""'* ]] || { echo 'ordinary deploy mode still authorizes bootstrap' >&2; exit 1; }
+  [[ "$deploy_case" != *'BOOTSTRAP_PRODUCTION_API'* ]] || { echo 'ordinary deploy mode contains bootstrap token' >&2; exit 1; }
+  [[ "$bootstrap_case" == *'GITHUB_EVENT_NAME" != "workflow_dispatch"'* ]] || { echo 'bootstrap mode is not restricted to workflow_dispatch' >&2; exit 1; }
+  [[ "$bootstrap_case" == *"BOOTSTRAP_CONFIRMATION='BOOTSTRAP_PRODUCTION_API'"* ]] || { echo 'bootstrap mode does not set the bootstrap token' >&2; exit 1; }
+  [[ "$bootstrap_case" == *"RELEASE_ACTION='deploy'"* ]] || { echo 'bootstrap mode does not map to deploy action' >&2; exit 1; }
+  [[ "$ssh_invocation" == *"bash -s -- '\${RELEASE_ACTION}'"* ]] || { echo 'workflow does not pass the normalized release action' >&2; exit 1; }
+
+  printf 'Workflow bootstrap contract assertions passed.\n'
+}
+
+prepare_production_bootstrap() {
+  local name="$1"
+  local root
+  local target
+  local production_database_url
+
+  root="$(setup_case "$name")"
+  target="$root/public_html/apps/api"
+  mkdir -p "$root/public_html"
+  mv "$root/public_html/apps/api-staging" "$target"
+  rm -f "$target/release.json"
+  production_database_url="$(printf 'postgres.vktglrwmbrhtddpmekda:5432/db' | base64 | tr -d '\n')"
+  sed -i.bak "s|^[^=]*=$(printf 'postgres.ctesbnhcqubamrtcxxqi:5432/db' | base64 | tr -d '\n')$|DATABASE_URL=${production_database_url}|" "$root/runtime.env"
+  rm -f "$root/runtime.env.bak"
+  printf 'sync-erp-api|%s|3002|4242\n' "$target" > "$root/pm2.store"
+  printf '%s\n' "$root"
+}
+
 setup_versioned_current() {
   local root="$1"
   local target="$root/public_html/apps/api-staging"
@@ -298,6 +389,75 @@ setup_versioned_current() {
     "{\"schemaVersion\":1,\"service\":\"sync-erp-api\",\"commit\":\"${old_sha}\",\"version\":\"old\",\"releasePath\":\"${old_release}\",\"pm2Name\":\"sync-erp-api-staging\",\"port\":3001}"
   printf 'sync-erp-api-staging|%s|3001|4242\n' "$old_release" > "$root/pm2.store"
 }
+
+assert_workflow_bootstrap_contract
+
+production_bootstrap_root="$(prepare_production_bootstrap production-bootstrap)"
+production_bootstrap_output="$(run_production_release "$production_bootstrap_root")"
+assert_contains 'Explicit production bootstrap authorization accepted' "$production_bootstrap_output"
+assert_contains 'legacy in-place release retained as the rollback target' "$production_bootstrap_output"
+[[ -f "$production_bootstrap_root/public_html/apps/api/releases/${new_sha}/release.json" ]]
+[[ "$(readlink "$production_bootstrap_root/public_html/apps/api/current")" == "$production_bootstrap_root/public_html/apps/api/releases/${new_sha}" ]]
+[[ "$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('$production_bootstrap_root/public_html/apps/api/.release-state.json')).commit)")" == "$new_sha" ]]
+[[ "$(cut -d '|' -f 2 "$production_bootstrap_root/pm2.store")" == "$production_bootstrap_root/public_html/apps/api/releases/${new_sha}" ]]
+
+production_bootstrap_failure_root="$(prepare_production_bootstrap production-bootstrap-failure)"
+if bootstrap_failure_output="$(MOCK_HEALTH_RESULT=fail run_production_release "$production_bootstrap_failure_root")"; then
+  echo 'Expected production bootstrap health failure case to fail.' >&2
+  exit 1
+fi
+assert_contains 'Previous release 0000000000000000000000000000000000000000 restored' "$bootstrap_failure_output"
+[[ "$(cut -d '|' -f 2 "$production_bootstrap_failure_root/pm2.store")" == "$production_bootstrap_failure_root/public_html/apps/api" ]]
+[[ ! -f "$production_bootstrap_failure_root/public_html/apps/api/.release-state.json" ]]
+[[ ! -e "$production_bootstrap_failure_root/public_html/apps/api/current" ]]
+
+fresh_bootstrap_root="$(prepare_production_bootstrap fresh-bootstrap)"
+rm -rf "$fresh_bootstrap_root/public_html/apps/api/dist"
+rm -f "$fresh_bootstrap_root/pm2.store"
+cp "$fresh_bootstrap_root/api.tar.gz" "$fresh_bootstrap_root/api.tar.gz.retry"
+cp "$fresh_bootstrap_root/runtime.env" "$fresh_bootstrap_root/runtime.env.retry"
+fresh_bootstrap_failure_output="$(MOCK_HEALTH_RESULT=fail run_production_release "$fresh_bootstrap_root")" || true
+[[ ! -e "$fresh_bootstrap_root/public_html/apps/api/current" ]]
+[[ ! -d "$fresh_bootstrap_root/public_html/apps/api/releases" ]]
+cp "$fresh_bootstrap_root/api.tar.gz.retry" "$fresh_bootstrap_root/api.tar.gz"
+cp "$fresh_bootstrap_root/runtime.env.retry" "$fresh_bootstrap_root/runtime.env"
+fresh_bootstrap_output="$(run_production_release "$fresh_bootstrap_root")"
+assert_contains 'production bootstrap completed without a previous release' "$fresh_bootstrap_output"
+
+symlink_root_case="$(prepare_production_bootstrap symlink-root-rejected)"
+symlink_external="$symlink_root_case/external"
+mkdir -p "$symlink_external"
+write_file "$symlink_external/sentinel" 'untouched'
+ln -s "$symlink_external" "$symlink_root_case/public_html/apps/api/releases"
+if symlink_root_output="$(run_production_release "$symlink_root_case")"; then
+  echo 'Expected symlinked release root bootstrap to fail.' >&2
+  exit 1
+fi
+assert_contains 'must be a real directory' "$symlink_root_output"
+[[ "$(cat "$symlink_external/sentinel")" == 'untouched' ]]
+
+symlink_dist_case="$(prepare_production_bootstrap symlink-dist-rejected)"
+symlink_dist_external="$symlink_dist_case/external-dist"
+mkdir -p "$symlink_dist_external"
+write_file "$symlink_dist_external/index.js" 'external legacy'
+rm -rf "$symlink_dist_case/public_html/apps/api/dist"
+ln -s "$symlink_dist_external" "$symlink_dist_case/public_html/apps/api/dist"
+if symlink_dist_output="$(run_production_release "$symlink_dist_case")"; then
+  echo 'Expected symlinked legacy dist bootstrap to fail.' >&2
+  exit 1
+fi
+assert_contains 'no recognizable legacy API' "$symlink_dist_output"
+[[ "$(cat "$symlink_dist_external/index.js")" == 'external legacy' ]]
+
+fresh_pm2_case="$(prepare_production_bootstrap fresh-pm2-rejected)"
+rm -rf "$fresh_pm2_case/public_html/apps/api/dist"
+printf 'sync-erp-api|%s|3002|4242\n' "$fresh_pm2_case/unrelated" > "$fresh_pm2_case/pm2.store"
+if fresh_pm2_output="$(run_production_release "$fresh_pm2_case")"; then
+  echo 'Expected unrelated PM2 fresh bootstrap to fail.' >&2
+  exit 1
+fi
+assert_contains 'existing PM2 process sync-erp-api' "$fresh_pm2_output"
+[[ "$(cut -d '|' -f 2 "$fresh_pm2_case/pm2.store")" == "$fresh_pm2_case/unrelated" ]]
 
 success_root="$(setup_case success)"
 success_output="$(run_release "$success_root")"
