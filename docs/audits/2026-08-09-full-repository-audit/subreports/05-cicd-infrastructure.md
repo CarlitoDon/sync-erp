@@ -144,7 +144,7 @@ No Hostinger, Vercel or database write was performed. No product code, config, l
 
 **Recommendation:** Store the Hostinger host key/fingerprint as reviewed configuration, build a temporary 'known_hosts' file from that pinned value, require 'StrictHostKeyChecking=yes', and fail closed if the key changes. Remove 'ssh-keyscan || true' and the '/dev/null' host-key options.
 
-**CICD-003 code-level remediation follow-up (2026-08-13; not external activation):** [PR #84](https://github.com/CarlitoDon/sync-erp/pull/84) adds a fail-closed helper that validates a supplied exact Hostinger host/port pin and writes a restricted temporary `known_hosts` file under the runner temporary directory. The API, MCP, and staging rollback-drill workflows use strict checking and the generated file path in the branch under review. The [CI/CD run #31693634711](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634711) passed the [Quality Gates (API) job](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634711/job/94426318093), including `Test Hostinger SSH pinning`; its Hostinger deploy job was skipped because this was pull-request CI. The `HOSTINGER_SSH_KNOWN_HOSTS` reference is only a design/required-input contract in this follow-up: its value was not read, provider/OOB verification and secret update were not performed, and live SSH, deployment, rollback, and production closure remain unproven. Use the [host-key rotation runbook](../../../runbooks/hostinger-ssh-key-rotation.md); do not record key material in Git or audit output.
+**CICD-003 operational follow-up (2026-08-14):** [PR #84](https://github.com/CarlitoDon/sync-erp/pull/84) merged the fail-closed helper and strict API, MCP, and staging rollback wiring. Authenticated cPanel/server information and an independent out-of-band comparison confirmed the exact shared Hostinger endpoint, port `65002`, and raw `ssh-ed25519` identity; the reviewed value was installed through the GitHub secret interface without exposing key or fingerprint material. Strict live use passed in API [run #31758446770](https://github.com/CarlitoDon/sync-erp/actions/runs/31758446770) and MCP [run #31758446761](https://github.com/CarlitoDon/sync-erp/actions/runs/31758446761). The first rollback exercise exposed existing `current`-symlink drift rather than a pinning bypass; [PR #85](https://github.com/CarlitoDon/sync-erp/pull/85) repaired the atomic switch and added regression coverage. API [run #31760295823](https://github.com/CarlitoDon/sync-erp/actions/runs/31760295823) and staging rollback [run #31761990061](https://github.com/CarlitoDon/sync-erp/actions/runs/31761990061) then passed on exact release `9e77f4c1…`, with no active-release drift warning and restored external health. This closes the original host-identity finding for the shared endpoint/staging workflow paths; production release readiness remains separate. Use the [host-key rotation runbook](../../../runbooks/hostinger-ssh-key-rotation.md) for any identity change.
 
 ### F-08 — Migration path is not exercised and has competing authorities
 
@@ -240,7 +240,7 @@ No Hostinger, Vercel or database write was performed. No product code, config, l
 
 **Recommendation:** Gate API deployment on the API filter, explicitly include migration/config dependencies in that filter, and make manual dispatch require a reviewed ref/environment. Keep a separate deliberate 'force deploy' input for exceptional cases.
 
-## 2026-08-13 current code follow-up (not live evidence)
+## 2026-08-14 current workflow and live staging follow-up
 
 The active workflow contract differs from the 2026-08-09 baseline in trigger
 scope and SSH handling, while the API filter finding remains applicable:
@@ -266,12 +266,12 @@ scope and SSH handling, while the API filter finding remains applicable:
   is manual-only, fixed to the `staging` environment, and rejects refs other
   than `dev` or `codex/*`. `.github/workflows/e2e-playwright.yml` also has a
   manual dispatch trigger but is not a dependency of the CI/CD deploy jobs.
-- The active Hostinger workflows declare `HOSTINGER_SSH_KNOWN_HOSTS` as only a
-  required design/input contract until provider/OOB verification and live
-  deployment evidence exist; the helper fails closed when it is missing or
-  invalid. The helper/test and PR CI prove only the repository contract;
-  secret presence/value, provider/OOB verification, live SSH, deployment,
-  rollback, and production closure remain unproven.
+- The active Hostinger workflows require the same reviewed
+  `HOSTINGER_SSH_KNOWN_HOSTS` input, restrict negotiation to the verified raw
+  `ssh-ed25519` identity, and fail closed before transfer when the input is
+  missing, malformed, or mismatched. Provider/OOB comparison, secret metadata,
+  strict API/MCP use, and staging rollback are evidenced in the dated follow-up
+  above. Production application deployment and rollback remain unproven.
 
 ## Strengths
 
@@ -286,7 +286,7 @@ scope and SSH handling, while the API filter finding remains applicable:
 - Hostinger PM2 state, current release contents, external DNS/proxy behavior, backups and restore capability were not accessible without expanding scope; no remote commands were run.
 - Vercel project root, environment variable values, current aliased deployment and production bundle contents were not independently inspected.
 - GitHub secret values and the live database’s '_prisma_migrations'/Supabase migration history were not read. The credential exposure finding is based on committed non-empty literals and secret-bearing files, not on a live credential test.
-- The CICD-003 branch has repository/CI evidence for the SSH pinning helper, but no provider/OOB host-key verification, secret update, or live Hostinger connection was performed; host-key and private-key values remain intentionally unrecorded.
+- CICD-003 provider/OOB comparison, secret update, and live API/MCP/rollback evidence are recorded above without key or fingerprint values. A future endpoint, port, algorithm, or identity change requires the rotation runbook; production release readiness remains separate.
 - At the 2026-08-09 snapshot, local '70b7a21' had not executed in GitHub Actions; the latest observed remote runs used earlier SHAs, and no CI run newer than 2026-07-27 appeared in that read-only query. Later runs are recorded only in the dated follow-up above.
 - 'actionlint'/'yamllint' are not installed in the current shell; no build/test command was run locally because this audit was read-only and must not mutate generated artifacts.
 - Whether 'apps/mcp/Dockerfile' is used by any external deployment is unknown; the checked-in workflow uses the Hostinger tar path.

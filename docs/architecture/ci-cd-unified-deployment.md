@@ -1,8 +1,8 @@
 # Unified Deployment CI/CD (Hostinger + Vercel)
 
-Current source review/update: 2026-08-13. Dated audit findings and run
-references below are snapshots; this document describes the checked-in design
-and does not assert provider activation or production closure.
+Current source review/update: 2026-08-14. Dated audit findings and run
+references below are snapshots. The Hostinger trust contract has staging
+activation evidence; this document does not assert production closure.
 
 ## Problem
 Multiple disjointed GitHub Actions files (`ci.yml`, `ci-cd.yml`, `deploy-*.yml`) existed simultaneously, causing CI runner waste, duplicate deployments, and architectural confusion (e.g. attempting to mix Vercel Git Integration with explicit Hooks).
@@ -44,38 +44,39 @@ file owns every operation.
 The API deployment (`.github/workflows/ci-cd.yml`), MCP deployment
 (`.github/workflows/deploy-mcp-hostinger.yml`), and staging rollback drill
 (`.github/workflows/staging-api-rollback-drill.yml`) use the same code-level
-contract in the CICD-003 branch:
+contract merged through PR #84:
 
-1. The active workflows declare `HOSTINGER_SSH_KNOWN_HOSTS` as a required
-   design/input contract containing reviewed OpenSSH `known_hosts` content. The
-   helper fails closed when the input is missing or invalid. This repository
-   does not prove that the secret is configured, that its value is
-   provider-approved, or that it was used in a live connection; until those
-   provider/OOB and live-deployment gates exist, this reference remains
-   design/required-input only.
+1. The active workflows require `HOSTINGER_SSH_KNOWN_HOSTS` containing reviewed
+   OpenSSH `known_hosts` content. The helper fails closed when the input is
+   missing or invalid. Metadata-only evidence confirms provider/OOB comparison,
+   secret-manager update, and live staging use without disclosing the value.
 2. `scripts/hostinger-ssh-pinning.sh` validates the supplied target and exact
    SSH host/port pin, rejects malformed input, and writes a restricted
    temporary file under the runner temporary directory.
 3. SSH and SCP use `StrictHostKeyChecking=yes`, the generated
    `UserKnownHostsFile`, and `GlobalKnownHostsFile=none`. The workflows check
    the supplied host key before transfer or remote mutation and fail closed on
-   a mismatch.
-4. The helper contract is exercised by the CI test wired into the API quality
-   job. This proves the repository behavior, not the current secret value or
-   provider identity.
+   a mismatch. They explicitly negotiate `ssh-ed25519` because the endpoint
+   otherwise offers a host certificate ahead of the reviewed raw host key.
+4. The helper contract is exercised by CI; live API, MCP, and rollback runs
+   prove that the strict contract is usable against the reviewed endpoint.
 
 For a provider-approved change, follow the [Hostinger SSH host-key rotation
-runbook](../runbooks/hostinger-ssh-key-rotation.md). Provider/OOB verification,
-secret update, live SSH, deployment, rollback, and production closure must be
-recorded separately.
+runbook](../runbooks/hostinger-ssh-key-rotation.md). Future provider/OOB
+verification, secret updates, and live validation must be recorded separately
+for every identity change.
 
 ## Evidence boundary
 
-[PR #84](https://github.com/CarlitoDon/sync-erp/pull/84) is the code-remediation
-review for this contract. The [CI/CD run #31693634711](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634711)
-and [Playwright E2E run #31693634657](https://github.com/CarlitoDon/sync-erp/actions/runs/31693634657)
-passed for the pull request; the Hostinger deploy job was skipped. These are
-repository/CI checks and do not assert production deployment or rollback.
+[PR #84](https://github.com/CarlitoDon/sync-erp/pull/84) merged the trust
+contract. API [run #31758446770](https://github.com/CarlitoDon/sync-erp/actions/runs/31758446770)
+and MCP [run #31758446761](https://github.com/CarlitoDon/sync-erp/actions/runs/31758446761)
+prove strict live staging use. [PR #85](https://github.com/CarlitoDon/sync-erp/pull/85)
+repaired atomic current-symlink replacement; API
+[run #31760295823](https://github.com/CarlitoDon/sync-erp/actions/runs/31760295823)
+and rollback [run #31761990061](https://github.com/CarlitoDon/sync-erp/actions/runs/31761990061)
+prove exact release `9e77f4c1…`, no active-release drift, and restored external
+health. These runs do not assert production application deployment or rollback.
 
 ## Code Coverage / Components
 - `.github/workflows/ci-cd.yml`: Holds the runner build/package path for
@@ -83,10 +84,10 @@ repository/CI checks and do not assert production deployment or rollback.
   execution.
 - `docs/ci-cd.md`: Reflects 100% CLI mode.
 
-## Gap Analysis (code-level remediation; operational closure pending)
+## Gap Analysis (staging activation; production readiness separate)
 - Prisma/runtime dependency placement: The current workflow builds the
   production dependency tree under `deploy/api-mcp/` on the runner and overlays
   the compiled database package before transfer; the remote path does not run a
   workspace install. This documents the code path, not a live deployment proof.
 - Vercel deployments: Dropped deploy hooks rate-limit failures by switching natively to prebuilt configurations via token.
-- Hostinger SSH host identity: The permissive `ssh-keyscan`/disabled-checking path is replaced in PR #84 by a fail-closed reviewed-pin helper and strict SSH/SCP options. The required-input reference is a code-level design contract only; the provider-approved pin, configured secret, live connection, deployment, and rollback are not proven by this documentation or the PR CI run.
+- Hostinger SSH host identity: The permissive path was replaced in PR #84 by a fail-closed reviewed-pin helper and strict SSH/SCP options. Provider/OOB comparison, secret update metadata, API/MCP live use, and staging rollback are evidenced above. Production deployment governance and production rollback remain open separately.
