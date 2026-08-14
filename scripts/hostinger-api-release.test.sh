@@ -401,6 +401,27 @@ assert_contains 'legacy in-place release retained as the rollback target' "$prod
 [[ "$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('$production_bootstrap_root/public_html/apps/api/.release-state.json')).commit)")" == "$new_sha" ]]
 [[ "$(cut -d '|' -f 2 "$production_bootstrap_root/pm2.store")" == "$production_bootstrap_root/public_html/apps/api/releases/${new_sha}" ]]
 
+production_release_cwd_root="$(prepare_production_bootstrap production-bootstrap-release-cwd)"
+production_release_cwd="$production_release_cwd_root/public_html/apps/api/releases/$old_sha"
+mkdir -p "$production_release_cwd/dist"
+write_file "$production_release_cwd/dist/index.js" 'legacy immutable release'
+printf 'sync-erp-api|%s|3002|4242\n' "$production_release_cwd" > "$production_release_cwd_root/pm2.store"
+production_release_cwd_output="$(run_production_release "$production_release_cwd_root")"
+assert_contains 'legacy in-place release retained as the rollback target' "$production_release_cwd_output"
+[[ "$(cut -d '|' -f 2 "$production_release_cwd_root/pm2.store")" == "$production_release_cwd_root/public_html/apps/api/releases/${new_sha}" ]]
+
+production_outside_pm2_root="$(prepare_production_bootstrap production-bootstrap-outside-pm2)"
+production_outside_pm2_cwd="$production_outside_pm2_root/outside-api"
+mkdir -p "$production_outside_pm2_cwd/dist"
+write_file "$production_outside_pm2_cwd/dist/index.js" 'unrelated API'
+printf 'sync-erp-api|%s|3002|4242\n' "$production_outside_pm2_cwd" > "$production_outside_pm2_root/pm2.store"
+if production_outside_pm2_output="$(run_production_release "$production_outside_pm2_root")"; then
+  echo 'Expected production bootstrap with an unrelated PM2 cwd to fail.' >&2
+  exit 1
+fi
+assert_contains 'not owned by the expected API release' "$production_outside_pm2_output"
+[[ "$(cut -d '|' -f 2 "$production_outside_pm2_root/pm2.store")" == "$production_outside_pm2_cwd" ]]
+
 production_bootstrap_failure_root="$(prepare_production_bootstrap production-bootstrap-failure)"
 if bootstrap_failure_output="$(MOCK_HEALTH_RESULT=fail run_production_release "$production_bootstrap_failure_root")"; then
   echo 'Expected production bootstrap health failure case to fail.' >&2

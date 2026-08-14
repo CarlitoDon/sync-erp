@@ -325,22 +325,63 @@ require_owned_pm2() {
   local expected_port="$3"
 
   if ! "$pm2" jlist | node --input-type=module -e '
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync, realpathSync } from "node:fs";
+import { relative, resolve } from "node:path";
 
-const [name, expectedCwd, expectedPort] = process.argv.slice(1);
+const [name, rawExpectedCwd, expectedPort] = process.argv.slice(1);
+const canonicalize = (value) => {
+  if (typeof value !== "string" || !value) return null;
+  try {
+    return realpathSync(value);
+  } catch {
+    return null;
+  }
+};
+
+const expectedCwd = canonicalize(rawExpectedCwd);
+if (!expectedCwd) process.exit(1);
+
+const rawReleaseRoot = `${rawExpectedCwd}/releases`;
+let releaseRoot = null;
+try {
+  const releaseRootStat = lstatSync(rawReleaseRoot);
+  if (!releaseRootStat.isDirectory() || releaseRootStat.isSymbolicLink()) {
+    process.exit(1);
+  }
+  releaseRoot = canonicalize(rawReleaseRoot);
+} catch {
+  // A first in-place bootstrap may not have a releases directory yet.
+}
+
 const processes = JSON.parse(readFileSync(0, "utf8"));
-const match = processes.find((process) => process.name === name);
-const env = match?.pm2_env ?? {};
-const actualCwd = env.pm_cwd ?? env.cwd;
-const actualScript = env.pm_exec_path;
+const matches = processes.filter((process) => process.name === name);
+if (matches.length !== 1) process.exit(1);
+
+const env = matches[0].pm2_env ?? {};
+const actualCwd = canonicalize(env.pm_cwd ?? env.cwd);
+const actualScript = canonicalize(env.pm_exec_path);
+if (!actualCwd || !actualScript) process.exit(1);
+
+const isInPlace = actualCwd === expectedCwd;
+const releaseRelativePath = releaseRoot ? relative(releaseRoot, actualCwd) : "";
+const isImmutableRelease =
+  Boolean(releaseRoot) &&
+  /^[0-9a-f]{40}$/i.test(releaseRelativePath) &&
+  !releaseRelativePath.includes("/") &&
+  !releaseRelativePath.includes("\\\\") &&
+  !releaseRelativePath.startsWith("..");
+const expectedScript = canonicalize(resolve(actualCwd, "dist/index.js"));
+
 if (
-  !match ||
-  actualCwd !== expectedCwd ||
-  actualScript !== `${expectedCwd}/dist/index.js` ||
+  !isInPlace && !isImmutableRelease ||
+  !expectedScript ||
+  actualScript !== expectedScript ||
   String(env.PORT ?? "") !== String(expectedPort)
 ) {
   process.exit(1);
 }
+
+process.stdout.write(actualCwd);
 ' "$name" "$expected_cwd" "$expected_port"
   then
     fail "PM2 process ${name} is not owned by the expected API release at ${expected_cwd} on port ${expected_port}."
