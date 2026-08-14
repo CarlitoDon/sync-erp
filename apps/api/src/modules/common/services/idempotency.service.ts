@@ -15,6 +15,13 @@ import * as idempotencyRepo from '../repositories/idempotency.repository';
 // Zombie lock timeout in milliseconds (5 minutes)
 const ZOMBIE_LOCK_TIMEOUT_MS = 5 * 60 * 1000;
 
+/**
+ * How long a PROCESSING lock may survive without activity before it is
+ * considered stale and can be reclaimed. Mirrors the zombie-lock timeout so
+ * the two staleness signals stay consistent.
+ */
+const PROCESSING_TTL_MS = 5 * 60 * 1000;
+
 export class IdempotencyService {
   /**
    * Try to lock an idempotency key.
@@ -86,16 +93,68 @@ export class IdempotencyService {
       });
       return { saved: false };
     } catch (err) {
-      if (
-        (err as Prisma.PrismaClientKnownRequestError).code === 'P2002'
-      ) {
+      if (!isUniqueConstraintError(err)) {
+        throw err;
+      }
+
+      // Another worker won the create race. Re-read the row so the fencing
+      // checks (ownership, scope, entity, staleness) apply to the actual
+      // winning record instead of granting a fresh lock by default.
+      const winner = await idempotencyRepo.findById(key);
+      if (!winner) {
         throw new DomainError(
           'Concurrent conflict: Idempotency key created by another process.',
           409,
           DomainErrorCodes.OPERATION_NOT_ALLOWED
         );
       }
-      throw err;
+
+      if (winner.companyId !== companyId) {
+        throw new DomainError(
+          'Idempotency key ownership mismatch',
+          403,
+          DomainErrorCodes.FORBIDDEN
+        );
+      }
+      if (winner.scope !== scope) {
+        throw new DomainError(
+          `Idempotency key scope mismatch: expected ${scope}`,
+          400,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
+        );
+      }
+      if (winner.entityId && winner.entityId !== entityId) {
+        throw new DomainError(
+          `Idempotency key entity mismatch: key is bound to entity ${winner.entityId}`,
+          400,
+          DomainErrorCodes.OPERATION_NOT_ALLOWED
+        );
+      }
+
+      if (winner.status === IdempotencyStatus.COMPLETED) {
+        return {
+          saved: true,
+          response: winner.response as T,
+        };
+      }
+
+      if (winner.status === IdempotencyStatus.PROCESSING) {
+        const lockAge = Date.now() - winner.updatedAt.getTime();
+        if (lockAge <= PROCESSING_TTL_MS) {
+          throw new DomainError(
+            'Request with this key is currently processing. Please wait.',
+            409,
+            DomainErrorCodes.OPERATION_NOT_ALLOWED
+          );
+        }
+        // Stale PROCESSING winner: the loser may proceed; the winner's
+        // complete()/fail() will fail on the deleted/missing row or be
+        // reconciled by the next lock attempt.
+        return { saved: false };
+      }
+
+      // FAILED winner: allow retry.
+      return { saved: false };
     }
   }
 
@@ -148,4 +207,16 @@ export class IdempotencyService {
       await idempotencyRepo.deleteById(key);
     }
   }
+}
+
+/**
+ * Narrow an unknown thrown value to a Prisma unique-constraint error (P2002).
+ */
+function isUniqueConstraintError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: unknown }).code === 'P2002'
+  );
 }

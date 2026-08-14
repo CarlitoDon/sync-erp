@@ -18,56 +18,56 @@ datasource db {
 }
 
 model Company {
-  id                      String                    @id @default(uuid())
-  name                    String
-  businessShape           BusinessShape             @default(PENDING)
-  onboardingStatus        CompanyOnboardingStatus   @default(NOT_INITIALIZED)
-  onboardingStep          CompanyOnboardingStep     @default(WELCOME)
-  onboardingCompletedAt   DateTime?
-  onboardingMeta          Json?
-  inviteCode              String?                   @unique @default(cuid())
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
-  accounts                Account[]
-  apiKeys                 ApiKey[]
-  auditLogs               AuditLog[]
-  attachments             Attachment[]
-  bankAccounts            BankAccount[]
-  cashTransactions        CashTransaction[]
-  members                 CompanyMember[]
-  customerRentalRisks     CustomerRentalRisk[]
-  documentSequences       DocumentSequence[]
-  billInstallments        BillInstallmentSchedule[]
-  fulfillments            Fulfillment[]
-  idempotencyKeys         IdempotencyKey[]
-  movements               InventoryMovement[]
-  invoices                Invoice[]
-  journals                JournalEntry[]
-  orders                  Order[]
-  partners                Partner[]
-  payments                Payment[]
-  products                Product[]
-  categories              ProductCategory[]
-  rentalDamagePolicies    RentalDamagePolicy[]
-  rentalDeposits          RentalDeposit[]
-  rentalItems             RentalItem[]
-  rentalItemUnits         RentalItemUnit[]
-  rentalOrders            RentalOrder[]
-  rentalOrderExtensions   RentalOrderExtension[]
+  id                        String                     @id @default(uuid())
+  name                      String
+  businessShape             BusinessShape              @default(PENDING)
+  onboardingStatus          CompanyOnboardingStatus    @default(NOT_INITIALIZED)
+  onboardingStep            CompanyOnboardingStep      @default(WELCOME)
+  onboardingCompletedAt     DateTime?
+  onboardingMeta            Json?
+  inviteCode                String?                    @unique @default(cuid())
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  accounts                  Account[]
+  apiKeys                   ApiKey[]
+  auditLogs                 AuditLog[]
+  attachments               Attachment[]
+  bankAccounts              BankAccount[]
+  cashTransactions          CashTransaction[]
+  members                   CompanyMember[]
+  customerRentalRisks       CustomerRentalRisk[]
+  documentSequences         DocumentSequence[]
+  billInstallments          BillInstallmentSchedule[]
+  fulfillments              Fulfillment[]
+  idempotencyKeys           IdempotencyKey[]
+  movements                 InventoryMovement[]
+  invoices                  Invoice[]
+  journals                  JournalEntry[]
+  orders                    Order[]
+  partners                  Partner[]
+  payments                  Payment[]
+  products                  Product[]
+  categories                ProductCategory[]
+  rentalDamagePolicies      RentalDamagePolicy[]
+  rentalDeposits            RentalDeposit[]
+  rentalItems               RentalItem[]
+  rentalItemUnits           RentalItemUnit[]
+  rentalOrders              RentalOrder[]
+  rentalOrderExtensions     RentalOrderExtension[]
   rentalOrderExtensionItems RentalOrderExtensionItem[]
-  rentalPolicies          RentalPolicy[]
-  rentalReturns           RentalReturn[]
-  roles                   Role[]
-  sagaLogs                SagaLog[]
-  configs                 SystemConfig[]
-  warehouses              Warehouse[]
-  rentalBundles           RentalBundle[]
-  integrations            Integration[]
-  rentalWebhookOutbox     RentalWebhookOutbox[]
-  tenantWebhookOutbox     TenantWebhookOutbox[]
-  subscription            CompanySubscription?
-  billingCheckoutSessions BillingCheckoutSession[]
-  billingWebhookEvents    BillingWebhookEvent[]
+  rentalPolicies            RentalPolicy[]
+  rentalReturns             RentalReturn[]
+  roles                     Role[]
+  sagaLogs                  SagaLog[]
+  configs                   SystemConfig[]
+  warehouses                Warehouse[]
+  rentalBundles             RentalBundle[]
+  integrations              Integration[]
+  webhookOutbox             WebhookOutbox[]
+  tenantWebhookOutbox       TenantWebhookOutbox[]
+  subscription              CompanySubscription?
+  billingCheckoutSessions   BillingCheckoutSession[]
+  billingWebhookEvents      BillingWebhookEvent[]
 
   paymentMethods CompanyPaymentMethod[]
 }
@@ -214,8 +214,11 @@ model Integration {
   // Relations
   apiKeys ApiKey[] // Keys associated with this integration
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  webhookOutboxes WebhookOutbox[]
+  rentalBundles   RentalBundle[]
+  rentalOrders    RentalOrder[]
 
   @@unique([companyId, appId]) // One installation per app per company
   @@index([companyId])
@@ -252,10 +255,11 @@ model ApiKey {
   @@index([isActive])
 }
 
-model RentalWebhookOutbox {
+model WebhookOutbox {
   id               String                    @id @default(cuid())
   companyId        String
-  deliveryType     RentalWebhookDeliveryType
+  integrationId    String?
+  event            String?
   orderPublicToken String
   orderNumber      String?
   payload          Json
@@ -270,10 +274,11 @@ model RentalWebhookOutbox {
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   company          Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  integration      Integration?              @relation(fields: [integrationId], references: [id])
 
   @@index([companyId, createdAt])
   @@index([status, nextAttemptAt])
-  @@index([deliveryType, status, nextAttemptAt])
+  @@index([event, status, nextAttemptAt])
   @@index([orderPublicToken])
 }
 
@@ -1021,21 +1026,21 @@ model CashTransactionItem {
 }
 
 model RentalItem {
-  id                   String                  @id @default(uuid())
+  id                   String                     @id @default(uuid())
   companyId            String
-  productId            String                  @unique
-  dailyRate            Decimal                 @db.Decimal(15, 2)
-  weeklyRate           Decimal                 @db.Decimal(15, 2)
-  monthlyRate          Decimal                 @db.Decimal(15, 2)
+  productId            String                     @unique
+  dailyRate            Decimal                    @db.Decimal(15, 2)
+  weeklyRate           Decimal                    @db.Decimal(15, 2)
+  monthlyRate          Decimal                    @db.Decimal(15, 2)
   depositPolicyType    DepositPolicyType
-  depositPercentage    Decimal?                @db.Decimal(5, 2)
-  depositPerUnit       Decimal?                @db.Decimal(15, 2)
-  isActive             Boolean                 @default(true)
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
+  depositPercentage    Decimal?                   @db.Decimal(5, 2)
+  depositPerUnit       Decimal?                   @db.Decimal(15, 2)
+  isActive             Boolean                    @default(true)
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
   rentalDamagePolicies RentalDamagePolicy[]
-  company              Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  product              Product                 @relation(fields: [productId], references: [id])
+  company              Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product              Product                    @relation(fields: [productId], references: [id])
   units                RentalItemUnit[]
   orderItems           RentalOrderItem[]
   orderExtensionItems  RentalOrderExtensionItem[]
@@ -1065,10 +1070,13 @@ model RentalBundle {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  company    Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  integration   Integration? @relation(fields: [integrationId], references: [id])
+  integrationId String?
+
   // Components are REQUIRED - bundles must have at least one component (enforced in application)
-  components RentalBundleComponent[]
-  orderItems RentalOrderItem[]
+  components          RentalBundleComponent[]
+  orderItems          RentalOrderItem[]
   orderExtensionItems RentalOrderExtensionItem[]
 
   @@unique([companyId, externalId])
@@ -1143,6 +1151,8 @@ model RentalOrder {
   id              String            @id @default(uuid())
   companyId       String
   partnerId       String
+  integrationId   String?
+  integration     Integration?      @relation(fields: [integrationId], references: [id])
   orderNumber     String
   rentalStartDate DateTime
   rentalEndDate   DateTime
@@ -1161,8 +1171,12 @@ model RentalOrder {
   updatedAt       DateTime          @updatedAt
   createdBy       String
 
-  // Public access token for customer tracking
-  publicToken String? @unique @default(uuid())
+  // Public access token for customer tracking.
+  // Time-boxed: publicTokenExpiresAt must be set for the token to authorize
+  // public tracking reads, and expires at the later of that timestamp or the
+  // terminal-order cut-off in the service. Never sent in public responses.
+  publicToken          String?    @unique @default(uuid())
+  publicTokenExpiresAt DateTime?
 
   // External storefront integration fields
   deliveryFee     Decimal?    @db.Decimal(15, 2)
@@ -1206,29 +1220,30 @@ model RentalOrder {
   @@index([dueDateTime])
   @@index([orderSource])
   @@index([companyId, rentalPaymentStatus]) // For filtering orders awaiting payment verification
+  @@index([publicTokenExpiresAt])
 }
 
 model RentalOrderExtension {
-  id                String      @id @default(uuid())
+  id                String                     @id @default(uuid())
   rentalOrderId     String
   companyId         String
   extensionNumber   Int
   previousEndDate   DateTime
   newEndDate        DateTime
   additionalDays    Int
-  additionalAmount  Decimal     @db.Decimal(15, 2)
-  deliveryFee       Decimal     @default(0) @db.Decimal(15, 2)
+  additionalAmount  Decimal                    @db.Decimal(15, 2)
+  deliveryFee       Decimal                    @default(0) @db.Decimal(15, 2)
   deliveryFeeLabel  String?
-  additionalDeposit Decimal     @default(0) @db.Decimal(15, 2)
+  additionalDeposit Decimal                    @default(0) @db.Decimal(15, 2)
   reason            String?
-  isPaid            Boolean     @default(false)
+  isPaid            Boolean                    @default(false)
   paidAt            DateTime?
   paymentId         String?
-  createdAt         DateTime    @default(now())
+  createdAt         DateTime                   @default(now())
   createdBy         String
-  company           Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company           Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
   items             RentalOrderExtensionItem[]
-  rentalOrder       RentalOrder @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
+  rentalOrder       RentalOrder                @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
 
   @@index([rentalOrderId])
   @@index([companyId])
@@ -1263,17 +1278,17 @@ model RentalOrderExtensionItem {
 }
 
 model RentalOrderItem {
-  id             String        @id @default(uuid())
+  id             String                     @id @default(uuid())
   rentalOrderId  String
   rentalItemId   String? // NULL if ordering a bundle
   rentalBundleId String? // NULL if ordering single item
   quantity       Int
-  unitPrice      Decimal       @db.Decimal(15, 2)
+  unitPrice      Decimal                    @db.Decimal(15, 2)
   pricingTier    PricingTier
-  subtotal       Decimal       @db.Decimal(15, 2)
-  rentalItem     RentalItem?   @relation(fields: [rentalItemId], references: [id])
-  rentalBundle   RentalBundle? @relation(fields: [rentalBundleId], references: [id])
-  rentalOrder    RentalOrder   @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
+  subtotal       Decimal                    @db.Decimal(15, 2)
+  rentalItem     RentalItem?                @relation(fields: [rentalItemId], references: [id])
+  rentalBundle   RentalBundle?              @relation(fields: [rentalBundleId], references: [id])
+  rentalOrder    RentalOrder                @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
   extensions     RentalOrderExtensionItem[]
 
   @@index([rentalOrderId])

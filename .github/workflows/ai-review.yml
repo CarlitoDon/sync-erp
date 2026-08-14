@@ -1,40 +1,114 @@
-name: AI Code Review (9router-tunnel)
+name: AI Code Review (trusted base)
 
+# SECURITY BOUNDARY: pull_request_target loads this workflow from the trusted
+# base branch. It must never be changed back to pull_request with a PR-head
+# checkout. Both jobs below checkout only the immutable base SHA and never
+# install dependencies or execute code from the pull request head.
 on:
-  pull_request:
-    types: [opened, synchronize, ready_for_review]
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
     branches: [dev, main]
 
 permissions:
   contents: read
-  pull-requests: write
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  ai-review:
-    name: 🤖 AI Code Review
-    runs-on: ubuntu-latest
-    # Skip draft PRs
+  analyzer:
+    name: Analyze PR with AI
     if: github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # SECURITY: this is the trusted base commit, never github.event.pull_request.head.sha.
+      - name: Checkout trusted base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22'
+          node-version: 22.12.0
 
-      - name: Install tsx
-        run: npm install -g tsx
+      # Run the trusted contract test before any step receives AI_API_KEY.
+      - name: Test AI review security contract
+        run: node --test scripts/ai-review-security.test.mjs
 
-      - name: Run AI Review
+      # No dependency installation: the analyzer is Node 22-compatible and API-only.
+      - name: Run trusted analyzer
         env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           AI_API_BASE_URL: https://rl3ubev.abc-tunnel.us/v1
           AI_API_KEY: ${{ secrets.NINE_ROUTER_TUNNEL_API_KEY }}
           AI_MODEL: murah-cepat
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REVIEW_RESULT_PATH: review-result.json
+        run: node scripts/ai-review-analyzer.mjs
+
+      - name: Upload bounded review result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ai-review-result-${{ github.event.pull_request.number }}
+          path: review-result.json
+          if-no-files-found: error
+          retention-days: 1
+
+  publisher:
+    name: Publish AI review
+    needs: analyzer
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # SECURITY: publisher also runs only trusted base code; it receives no AI key.
+      - name: Checkout trusted base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.12.0
+
+      - name: Download bounded review result
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ai-review-result-${{ github.event.pull_request.number }}
+          path: review-result
+
+      # The publisher re-fetches PR metadata and aborts on any head SHA change.
+      - name: Publish review through GitHub REST
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-        run: tsx scripts/ai-review.ts
+          EXPECTED_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          REVIEW_RESULT_PATH: review-result/review-result.json
+        run: node scripts/ai-review-publisher.mjs

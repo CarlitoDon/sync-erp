@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import {
   prisma,
   Prisma,
@@ -68,15 +69,20 @@ const DEFAULT_RETRY_BASE_MS = 30_000;
 const DEFAULT_RETRY_MAX_MS = 15 * 60_000;
 const DEFAULT_POLL_INTERVAL_MS = 30_000;
 const DEFAULT_DEAD_LETTER_WARN_THRESHOLD = 20;
+const DEFAULT_STALE_PROCESSING_LEASE_MS = 5 * 60_000;
 
 const webhookEventForDeliveryType = (
-  deliveryType: RentalWebhookDeliveryType
+  event: RentalWebhookDeliveryType | string | null
 ) => {
-  switch (deliveryType) {
+  switch (event) {
     case RentalWebhookDeliveryType.NEW_ORDER:
+    case 'order.created':
       return 'order.created';
     case RentalWebhookDeliveryType.PAYMENT_STATUS:
+    case 'payment.status.changed':
       return 'payment.status.changed';
+    default:
+      return event ?? 'unknown';
   }
 };
 
@@ -101,7 +107,7 @@ export class WebhookOutboxService {
   ) {}
 
   async enqueue(
-    deliveryType: RentalWebhookDeliveryType,
+    event: RentalWebhookDeliveryType,
     input: {
       companyId: string;
       integrationId?: string;
@@ -129,10 +135,10 @@ export class WebhookOutboxService {
       };
     }
 
-    const delivery = await prisma.rentalWebhookOutbox.create({
+    const delivery = await prisma.webhookOutbox.create({
       data: {
         companyId: input.companyId,
-        deliveryType,
+        event,
         orderPublicToken: input.orderPublicToken,
         orderNumber: input.orderNumber,
         autoRetry: input.autoRetry ?? true,
@@ -152,7 +158,7 @@ export class WebhookOutboxService {
   }
 
   async processDueEntries(limit = 20): Promise<ProcessSummary> {
-    const dueEntries = await prisma.rentalWebhookOutbox.findMany({
+    const dueEntries = await prisma.webhookOutbox.findMany({
       where: {
         status: {
           in: [
@@ -220,6 +226,38 @@ export class WebhookOutboxService {
     return summary;
   }
 
+  /**
+   * Recover deliveries stuck in PROCESSING after a crash or a claim that
+   * never completed. Records whose lease has not been refreshed within the
+   * stale threshold are reset to PENDING with an immediate nextAttemptAt so
+   * the next poll cycle can claim and retry them. Attempts are preserved.
+   */
+  async recoverStaleProcessingClaims(
+    staleAfterMs = DEFAULT_STALE_PROCESSING_LEASE_MS
+  ): Promise<number> {
+    const staleBefore = new Date(Date.now() - staleAfterMs);
+
+    const result = await prisma.webhookOutbox.updateMany({
+      where: {
+        status: RentalWebhookOutboxStatus.PROCESSING,
+        updatedAt: { lte: staleBefore },
+      },
+      data: {
+        status: RentalWebhookOutboxStatus.PENDING,
+        nextAttemptAt: new Date(),
+      },
+    });
+
+    if (result.count > 0) {
+      console.warn(
+        '[WebhookOutbox] Recovered stale PROCESSING claims',
+        { recovered: result.count, staleBefore }
+      );
+    }
+
+    return result.count;
+  }
+
   async getQueueCounts(
     companyId?: string
   ): Promise<OutboxQueueCounts> {
@@ -227,25 +265,25 @@ export class WebhookOutboxService {
 
     const [pending, processing, failed, deadLetter] =
       await Promise.all([
-        prisma.rentalWebhookOutbox.count({
+        prisma.webhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.PENDING,
           },
         }),
-        prisma.rentalWebhookOutbox.count({
+        prisma.webhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.PROCESSING,
           },
         }),
-        prisma.rentalWebhookOutbox.count({
+        prisma.webhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.FAILED,
           },
         }),
-        prisma.rentalWebhookOutbox.count({
+        prisma.webhookOutbox.count({
           where: {
             ...where,
             status: RentalWebhookOutboxStatus.DEAD_LETTER,
@@ -279,38 +317,38 @@ export class WebhookOutboxService {
   async listDeliveries(input: {
     companyId: string;
     statuses?: RentalWebhookOutboxStatus[];
-    deliveryType?: RentalWebhookDeliveryType;
+    event?: RentalWebhookDeliveryType;
     limit?: number;
     offset?: number;
   }) {
     const limit = Math.min(Math.max(input.limit ?? 20, 1), 200);
     const offset = Math.max(input.offset ?? 0, 0);
 
-    const where: Prisma.RentalWebhookOutboxWhereInput = {
+    const where: Prisma.WebhookOutboxWhereInput = {
       companyId: input.companyId,
       ...(input.statuses?.length
         ? { status: { in: input.statuses } }
         : {}),
-      ...(input.deliveryType
-        ? { deliveryType: input.deliveryType }
+      ...(input.event
+        ? { event: input.event }
         : {}),
     };
 
     const [data, total] = await Promise.all([
-      prisma.rentalWebhookOutbox.findMany({
+      prisma.webhookOutbox.findMany({
         where,
         orderBy: [{ updatedAt: 'desc' }],
         skip: offset,
         take: limit,
       }),
-      prisma.rentalWebhookOutbox.count({ where }),
+      prisma.webhookOutbox.count({ where }),
     ]);
 
     return { data, pagination: { total, limit, offset } };
   }
 
   async getDeliveryDetail(input: { companyId: string; id: string }) {
-    return prisma.rentalWebhookOutbox.findFirst({
+    return prisma.webhookOutbox.findFirst({
       where: { id: input.id, companyId: input.companyId },
     });
   }
@@ -319,12 +357,12 @@ export class WebhookOutboxService {
     id: string,
     options?: { companyId?: string }
   ): Promise<boolean> {
-    const where: Prisma.RentalWebhookOutboxWhereInput = {
+    const where: Prisma.WebhookOutboxWhereInput = {
       id,
       ...(options?.companyId ? { companyId: options.companyId } : {}),
     };
 
-    const entry = await prisma.rentalWebhookOutbox.findFirst({ where });
+    const entry = await prisma.webhookOutbox.findFirst({ where });
     if (!entry) return false;
 
     if (
@@ -334,7 +372,7 @@ export class WebhookOutboxService {
       return false;
     }
 
-    await prisma.rentalWebhookOutbox.update({
+    await prisma.webhookOutbox.update({
       where: { id: entry.id },
       data: {
         status: RentalWebhookOutboxStatus.PENDING,
@@ -362,7 +400,7 @@ export class WebhookOutboxService {
           RentalWebhookOutboxStatus.DEAD_LETTER,
         ];
 
-    const candidates = await prisma.rentalWebhookOutbox.findMany({
+    const candidates = await prisma.webhookOutbox.findMany({
       where: {
         companyId: input.companyId,
         status: { in: filterStatuses },
@@ -375,7 +413,7 @@ export class WebhookOutboxService {
 
     if (candidates.length === 0) return 0;
 
-    const result = await prisma.rentalWebhookOutbox.updateMany({
+    const result = await prisma.webhookOutbox.updateMany({
       where: { id: { in: candidates.map((item) => item.id) } },
       data: {
         status: RentalWebhookOutboxStatus.PENDING,
@@ -398,7 +436,7 @@ export class WebhookOutboxService {
     const fetchResult = await this.performFetch(claimedEntry);
 
     if (fetchResult.success) {
-      await prisma.rentalWebhookOutbox.update({
+      await prisma.webhookOutbox.update({
         where: { id: claimedEntry.id },
         data: {
           status: RentalWebhookOutboxStatus.DELIVERED,
@@ -423,7 +461,7 @@ export class WebhookOutboxService {
       fetchResult.permanent
     );
 
-    await prisma.rentalWebhookOutbox.update({
+    await prisma.webhookOutbox.update({
       where: { id: claimedEntry.id },
       data: {
         status: nextStatus,
@@ -450,7 +488,7 @@ export class WebhookOutboxService {
   }
 
   private async claimDelivery(id: string) {
-    const candidate = await prisma.rentalWebhookOutbox.findFirst({
+    const candidate = await prisma.webhookOutbox.findFirst({
       where: {
         id,
         status: {
@@ -464,7 +502,7 @@ export class WebhookOutboxService {
 
     if (!candidate) return null;
 
-    const claimed = await prisma.rentalWebhookOutbox.updateMany({
+    const claimed = await prisma.webhookOutbox.updateMany({
       where: { id: candidate.id, status: candidate.status },
       data: {
         status: RentalWebhookOutboxStatus.PROCESSING,
@@ -475,7 +513,7 @@ export class WebhookOutboxService {
 
     if (claimed.count === 0) return null;
 
-    return prisma.rentalWebhookOutbox.findUniqueOrThrow({
+    return prisma.webhookOutbox.findUniqueOrThrow({
       where: { id: candidate.id },
     });
   }
@@ -512,7 +550,7 @@ export class WebhookOutboxService {
 
   private async performFetch(entry: {
     id: string;
-    deliveryType: RentalWebhookDeliveryType;
+    event: RentalWebhookDeliveryType | string | null;
     orderPublicToken: string;
     orderNumber: string | null;
     payload: Prisma.JsonValue;
@@ -564,7 +602,7 @@ export class WebhookOutboxService {
     }
 
     const plugin = integrationRegistry.get(activeIntegration.appId);
-    const event = webhookEventForDeliveryType(entry.deliveryType);
+    const event = webhookEventForDeliveryType(entry.event);
 
     let requestBody = entry.payload;
     if (plugin?.buildWebhookPayload) {
@@ -585,6 +623,8 @@ export class WebhookOutboxService {
     }
 
     const url = `${baseUrl}${urlPath}`;
+    const body = JSON.stringify(requestBody);
+    const signature = this.generateSignature(body, secret);
 
     try {
       const response = await this.transport.send({
@@ -593,10 +633,12 @@ export class WebhookOutboxService {
         headers: {
           'Content-Type': 'application/json',
           Authorization: secret,
+          'X-Webhook-Signature': signature,
+          'X-Webhook-Timestamp': Date.now().toString(),
           'X-Webhook-Delivery-Id': entry.id,
           'Idempotency-Key': entry.id,
         },
-        body: JSON.stringify(requestBody),
+        body,
         timeoutMs: WEBHOOK_TIMEOUT_MS,
       });
 
@@ -618,6 +660,15 @@ export class WebhookOutboxService {
       };
     }
   }
+
+  /**
+   * HMAC-SHA256 signature over the serialized request body. Receivers can
+   * verify authenticity with the integration webhook secret, matching the
+   * tenant webhook outbox convention.
+   */
+  private generateSignature(body: string, secret: string): string {
+    return crypto.createHmac('sha256', secret).update(body).digest('hex');
+  }
 }
 
 export const webhookOutboxService = new WebhookOutboxService();
@@ -629,10 +680,13 @@ export const startWebhookOutboxWorker = () => {
   );
   let isRunning = false;
 
-  const run = async () => {
+  const run = async (options?: { recoverStale?: boolean }) => {
     if (isRunning) return;
     isRunning = true;
     try {
+      if (options?.recoverStale) {
+        await webhookOutboxService.recoverStaleProcessingClaims();
+      }
       await webhookOutboxService.processDueEntries();
     } catch (error) {
       console.error(
@@ -648,7 +702,8 @@ export const startWebhookOutboxWorker = () => {
     void run();
   }, pollIntervalMs);
   timer.unref();
-  void run();
+  // Recover stale PROCESSING claims on startup, then process what is due.
+  void run({ recoverStale: true });
 
   return () => {
     clearInterval(timer);

@@ -105,7 +105,7 @@ export const IntegrationScalarFieldEnumSchema = z.enum(['id','companyId','appId'
 
 export const ApiKeyScalarFieldEnumSchema = z.enum(['id','keyHash','keyPrefix','name','companyId','integrationId','permissions','webhookUrl','webhookSecret','rateLimit','isActive','expiresAt','lastUsedAt','createdAt','updatedAt']);
 
-export const RentalWebhookOutboxScalarFieldEnumSchema = z.enum(['id','companyId','deliveryType','orderPublicToken','orderNumber','payload','autoRetry','status','attempts','nextAttemptAt','lastAttemptAt','deliveredAt','lastError','lastStatusCode','createdAt','updatedAt']);
+export const WebhookOutboxScalarFieldEnumSchema = z.enum(['id','companyId','integrationId','event','orderPublicToken','orderNumber','payload','autoRetry','status','attempts','nextAttemptAt','lastAttemptAt','deliveredAt','lastError','lastStatusCode','createdAt','updatedAt']);
 
 export const TenantWebhookOutboxScalarFieldEnumSchema = z.enum(['id','companyId','apiKeyId','event','payload','webhookUrl','webhookSecret','eventTimestamp','status','attempts','nextAttemptAt','lastAttemptAt','deliveredAt','lastError','lastStatusCode','createdAt','updatedAt']);
 
@@ -183,13 +183,13 @@ export const CashTransactionItemScalarFieldEnumSchema = z.enum(['id','cashTransa
 
 export const RentalItemScalarFieldEnumSchema = z.enum(['id','companyId','productId','dailyRate','weeklyRate','monthlyRate','depositPolicyType','depositPercentage','depositPerUnit','isActive','createdAt','updatedAt']);
 
-export const RentalBundleScalarFieldEnumSchema = z.enum(['id','companyId','externalId','name','shortName','description','dailyRate','weeklyRate','monthlyRate','dimensions','capacity','imagePath','isActive','createdAt','updatedAt']);
+export const RentalBundleScalarFieldEnumSchema = z.enum(['id','companyId','externalId','name','shortName','description','dailyRate','weeklyRate','monthlyRate','dimensions','capacity','imagePath','isActive','createdAt','updatedAt','integrationId']);
 
 export const RentalBundleComponentScalarFieldEnumSchema = z.enum(['id','bundleId','rentalItemId','quantity','componentLabel']);
 
 export const RentalItemUnitScalarFieldEnumSchema = z.enum(['id','rentalItemId','companyId','unitCode','acquiredAt','acquisitionCost','sourceOrderId','sourceOrderItemId','sourceFulfillmentId','sourceBillId','sourceBatchCode','sizeLabel','color','sourceNotes','condition','status','totalRentalDays','totalRentalCount','lastDeepCleaningAt','retiredAt','retirementReason','flaggedForRetirement','createdAt','updatedAt']);
 
-export const RentalOrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','orderNumber','rentalStartDate','rentalEndDate','dueDateTime','status','subtotal','depositAmount','totalAmount','policySnapshot','notes','confirmedAt','activatedAt','completedAt','cancelledAt','createdAt','updatedAt','createdBy','publicToken','deliveryFee','deliveryAddress','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','paymentMethod','discountAmount','discountLabel','orderSource','rentalPaymentStatus','paymentClaimedAt','paymentConfirmedAt','paymentConfirmedBy','paymentReference','paymentFailedAt','paymentFailReason']);
+export const RentalOrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','integrationId','orderNumber','rentalStartDate','rentalEndDate','dueDateTime','status','subtotal','depositAmount','totalAmount','policySnapshot','notes','confirmedAt','activatedAt','completedAt','cancelledAt','createdAt','updatedAt','createdBy','publicToken','publicTokenExpiresAt','deliveryFee','deliveryAddress','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','paymentMethod','discountAmount','discountLabel','orderSource','rentalPaymentStatus','paymentClaimedAt','paymentConfirmedAt','paymentConfirmedBy','paymentReference','paymentFailedAt','paymentFailReason']);
 
 export const RentalOrderExtensionScalarFieldEnumSchema = z.enum(['id','rentalOrderId','companyId','extensionNumber','previousEndDate','newEndDate','additionalDays','additionalAmount','deliveryFee','deliveryFeeLabel','additionalDeposit','reason','isPaid','paidAt','paymentId','createdAt','createdBy']);
 
@@ -592,14 +592,15 @@ export const ApiKeySchema = z.object({
 export type ApiKey = z.infer<typeof ApiKeySchema>
 
 /////////////////////////////////////////
-// RENTAL WEBHOOK OUTBOX SCHEMA
+// WEBHOOK OUTBOX SCHEMA
 /////////////////////////////////////////
 
-export const RentalWebhookOutboxSchema = z.object({
-  deliveryType: RentalWebhookDeliveryTypeSchema,
+export const WebhookOutboxSchema = z.object({
   status: RentalWebhookOutboxStatusSchema,
   id: z.string(),
   companyId: z.string(),
+  integrationId: z.string().nullable(),
+  event: z.string().nullable(),
   orderPublicToken: z.string(),
   orderNumber: z.string().nullable(),
   payload: JsonValueSchema,
@@ -614,7 +615,7 @@ export const RentalWebhookOutboxSchema = z.object({
   updatedAt: z.coerce.date(),
 })
 
-export type RentalWebhookOutbox = z.infer<typeof RentalWebhookOutboxSchema>
+export type WebhookOutbox = z.infer<typeof WebhookOutboxSchema>
 
 /////////////////////////////////////////
 // TENANT WEBHOOK OUTBOX SCHEMA
@@ -1336,6 +1337,7 @@ export const RentalBundleSchema = z.object({
   isActive: z.boolean(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
+  integrationId: z.string().nullable(),
 })
 
 export type RentalBundle = z.infer<typeof RentalBundleSchema>
@@ -1398,6 +1400,7 @@ export const RentalOrderSchema = z.object({
   id: z.string(),
   companyId: z.string(),
   partnerId: z.string(),
+  integrationId: z.string().nullable(),
   orderNumber: z.string(),
   rentalStartDate: z.coerce.date(),
   rentalEndDate: z.coerce.date(),
@@ -1415,6 +1418,7 @@ export const RentalOrderSchema = z.object({
   updatedAt: z.coerce.date(),
   createdBy: z.string(),
   publicToken: z.string().nullable(),
+  publicTokenExpiresAt: z.coerce.date().nullable(),
   deliveryFee: z.instanceof(PrismaDecimal, { message: "Field 'deliveryFee' must be a Decimal. Location: ['Models', 'RentalOrder']"}).nullable(),
   deliveryAddress: z.string().nullable(),
   street: z.string().nullable(),

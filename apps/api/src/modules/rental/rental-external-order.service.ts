@@ -178,7 +178,10 @@ export class RentalExternalOrderService {
 
   async getByToken(token: string) {
     const order = await prisma.rentalOrder.findFirst({
-      where: { publicToken: token },
+      where: {
+        publicToken: token,
+        publicTokenExpiresAt: { gt: new Date() },
+      },
       include: {
         partner: {
           select: {
@@ -366,6 +369,7 @@ export class RentalExternalOrderService {
         rentalEndDate: input.rentalEndDate,
         dueDateTime: input.rentalEndDate,
         publicToken: crypto.randomUUID(),
+        publicTokenExpiresAt: this.publicTokenExpiry(),
         status: RentalOrderStatus.DRAFT,
         rentalPaymentStatus: RentalPaymentStatus.PENDING,
         subtotal,
@@ -739,6 +743,7 @@ export class RentalExternalOrderService {
           ? {
               status: RentalOrderStatus.CONFIRMED,
               confirmedAt: new Date(),
+              publicTokenExpiresAt: new Date(),
             }
           : {}),
       },
@@ -863,6 +868,15 @@ export class RentalExternalOrderService {
     });
 
     return { success: true };
+  }
+
+  /**
+   * TTL for newly minted public order tokens. The token is a tracking
+   * credential for a draft order; once the order moves past DRAFT the
+   * terminal cut-off in revokePublicAccessOnTerminal() also revokes it.
+   */
+  private publicTokenExpiry(): Date {
+    return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   }
 
   private getDurationDays(startDate: Date, endDate: Date): number {

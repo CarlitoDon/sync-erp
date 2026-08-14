@@ -24,6 +24,7 @@ import { billingHttpRouter } from './modules/billing/billing-http.router';
 import { attachmentHttpRouter } from './modules/attachment/attachment-http.router';
 import { getCorsOrigin } from './cors';
 import { getReleaseIdentity } from './release-identity';
+import { getReadiness } from './readiness';
 
 export function createApp() {
   const app = express();
@@ -54,6 +55,18 @@ export function createApp() {
   app.get('/health', (_req, res) => {
     res.json({
       status: 'ok',
+      release: getReleaseIdentity(),
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  app.get('/readyz', async (_req, res) => {
+    const readiness = await getReadiness();
+    const status = readiness.ready ? 200 : 503;
+
+    res.status(status).json({
+      status: readiness.ready ? 'ok' : 'unavailable',
+      dependencies: readiness.dependencies,
       release: getReleaseIdentity(),
       timestamp: new Date().toISOString(),
     });

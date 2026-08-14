@@ -2,7 +2,8 @@
  * Webhook service for rental notifications
  * Enqueues deliveries through the rental webhook outbox for partner integrations
  */
-import { rentalWebhookOutboxService } from './rental-webhook-outbox.service';
+import { RentalWebhookDeliveryType } from '@sync-erp/database';
+import { webhookOutboxService } from './webhook-outbox.service';
 
 interface NotifyPaymentStatusParams {
   companyId: string;
@@ -34,8 +35,19 @@ export class RentalWebhookService {
   async notifyPaymentStatus(
     params: NotifyPaymentStatusParams
   ): Promise<void> {
-    const result =
-      await rentalWebhookOutboxService.enqueuePaymentStatus(params);
+    const result = await webhookOutboxService.enqueue(
+      RentalWebhookDeliveryType.PAYMENT_STATUS,
+      {
+        companyId: params.companyId,
+        orderPublicToken: params.token,
+        payload: {
+          action: params.action,
+          paymentReference: params.paymentReference,
+          failReason: params.failReason,
+          paymentMethod: params.paymentMethod,
+        },
+      }
+    );
 
     if (!result.success) {
       console.error(
@@ -54,10 +66,20 @@ export class RentalWebhookService {
     params: NotifyNewOrderParams,
     options: NotifyOptions = {}
   ): Promise<void> {
-    const result = await rentalWebhookOutboxService.enqueueNewOrder(
-      params,
+    const result = await webhookOutboxService.enqueue(
+      RentalWebhookDeliveryType.NEW_ORDER,
       {
+        companyId: params.companyId,
+        orderPublicToken: params.token,
+        orderNumber: params.orderNumber,
         autoRetry: !options.throwOnFailure,
+        payload: {
+          action: 'new_order',
+          orderNumber: params.orderNumber,
+          customerName: params.customerName,
+          customerPhone: params.customerPhone,
+          totalAmount: params.totalAmount,
+        },
       }
     );
 

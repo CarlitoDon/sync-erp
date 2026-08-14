@@ -1,0 +1,22 @@
+## Phase 2 Security Hardening
+
+This PR executes the security-focused items of Phase 2 as per the audit roadmap.
+
+### Workstream 1: Rate-Limiting & Error Hardening
+- **Fail-closed Redis rate limiting:** Changed `RedisRateLimitService` to throw on Redis failure instead of allowing a silent bypass. Callers that prefer availability over multi-instance consistency can still use `AdaptiveRateLimitService` with its bounded in-memory fallback.
+- **Raw HTTP error classification:** Hardened `errorHandler` to only classify allowlisted Prisma P-codes. AppError/DomainError are now correctly distinguished, and raw error internals (SQL, stack traces) are stripped from 5xx responses.
+
+### Workstream 2: Token & Security Hardening
+- **Order-token TTL & minimization:** Added `publicTokenExpiresAt` to `RentalOrder` with a 30-day default. Implemented strict expiry checks in `getByToken`. Minimized the public tracking DTO to remove PII (address, phone, internal refs).
+- **Idempotency fencing:** Hardened `IdempotencyService` against create races. When a conflict occurs, the service re-reads the winning record to enforce ownership and scope boundaries on the actual persisted key.
+
+### Workstream 3: SSRF & Checkout Hardening
+- **Bot egress protection:** Verified and explicitly disabled `linkPreview` on all bot `sendMessage` and `sendOrder` paths to contain server-side link resolution.
+- **Checkout hardening:** Added HTML escaping for interpolated tenant data in the manual billing checkout page. Enforced the session state machine (only OPEN sessions allowed) and `expiresAt` validation. Added safe-redirect validation for success/cancel URLs.
+
+### Validation
+- **Unit tests:** New suites for error classification, Redis fail-closed, token TTL/minimization, idempotency races, and bot SSRF.
+- **Integration tests:** Verified that the minimized DTO and token expiry don't break existing Santi Living flows.
+- **Gates:** `npm run lint`, `npx tsc -b`, and `turbo run test` all pass.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

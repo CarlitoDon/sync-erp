@@ -8,7 +8,7 @@ registerIntegrations();
 
 const PORT = Number(process.env.PORT || 3001);
 const app = createApp();
-const stopRentalWebhookOutboxWorker =
+const stopWebhookOutboxWorker =
   startWebhookOutboxWorker();
 const stopTenantWebhookOutboxWorker =
   startTenantWebhookOutboxWorker();
@@ -20,7 +20,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 
 const gracefulShutdown = (signal: string) => {
   console.warn(`\n[${signal}] Shutting down gracefully...`);
-  stopRentalWebhookOutboxWorker();
+  stopWebhookOutboxWorker();
   stopTenantWebhookOutboxWorker();
   server.close(() => {
     console.warn('[API] Server closed successfully.');

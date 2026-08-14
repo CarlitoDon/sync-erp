@@ -1,29 +1,59 @@
 # CI/CD
 
+Source review/update: 2026-08-14. This page describes the checked-in workflow
+contract; dated audit snapshots remain historical evidence and are not rewritten
+here. Nothing below is production-closure evidence.
+
+## Batasan bukti
+
+Dokumen ini menjelaskan kontrak workflow yang tersimpan di repository. [PR
+#84](https://github.com/CarlitoDon/sync-erp/pull/84) mengaktifkan hardening SSH
+Hostinger untuk API, MCP, dan staging rollback. Provider/OOB comparison dan
+metadata update secret telah diverifikasi tanpa merekam nilainya. Strict live
+use terbukti pada API [run #31758446770](https://github.com/CarlitoDon/sync-erp/actions/runs/31758446770)
+dan MCP [run #31758446761](https://github.com/CarlitoDon/sync-erp/actions/runs/31758446761).
+[PR #85](https://github.com/CarlitoDon/sync-erp/pull/85) memperbaiki atomic
+replacement untuk symlink `current`; API [run #31760295823](https://github.com/CarlitoDon/sync-erp/actions/runs/31760295823)
+dan rollback staging [run #31761990061](https://github.com/CarlitoDon/sync-erp/actions/runs/31761990061)
+lulus pada exact release `9e77f4c1…` tanpa active-release drift. Ini bukan bukti
+deployment atau rollback aplikasi production.
+
+Jangan menaruh host-key line, fingerprint, private key, passphrase, atau secret
+value di Git, dokumentasi, log, artifact, issue, atau pull request. Untuk
+rotasi host key, ikuti [runbook Hostinger SSH host-key
+rotation](runbooks/hostinger-ssh-key-rotation.md).
+
 ## Target Flow
 
-Alur utama sekarang:
+Alur yang didefinisikan oleh workflow saat ini:
 
-1. `git commit`
-2. `git push`
-3. GitHub Actions menjalankan `CI/CD`
-4. Jika quality gates lolos:
-   - backend API deploy ke Hostinger
-   - frontend web deploy ke Vercel
+1. `pull_request` ke `main` atau `dev`, `push` ke `main` atau `dev`, atau
+   `workflow_dispatch` memulai quality workflow `CI/CD`.
+2. Pada `push`, `deploy_api` menunggu `changes` + quality gate API dan dapat
+   berjalan untuk setiap push ke `main`/`dev`; output filter `api` belum menjadi
+   gate deploy.
+3. Pada `push`, `deploy_web` menunggu `changes` + quality gate Web dan hanya
+   berjalan bila output filter `web` bernilai `true`.
+4. Pull request dan manual dispatch pada `ci-cd.yml` menjalankan quality jobs
+   tanpa deploy API/Web; `workflow_dispatch` pada workflow ini tidak memiliki
+   input environment.
 
 ## Branch Strategy
 
 - `main`
   - menjalankan CI
   - deploy backend ke production Hostinger: `~/public_html/apps/api`
-  - deploy frontend ke Vercel production
+  - deploy frontend ke Vercel production bila filter Web bernilai `true`
 - `dev`
   - menjalankan CI
   - deploy backend ke staging Hostinger: `~/public_html/apps/api-staging`
-  - deploy frontend ke Vercel preview
+  - deploy frontend ke Vercel preview bila filter Web bernilai `true`
 - `pull_request` ke `main` atau `dev`
   - hanya menjalankan CI
   - tidak deploy
+- `workflow_dispatch` pada `.github/workflows/ci-cd.yml`
+  - menjalankan quality jobs
+  - tidak deploy karena job deploy mensyaratkan event `push`
 
 ## Workflow
 
@@ -34,7 +64,9 @@ File: `.github/workflows/ci-cd.yml`
 Jobs:
 
 - `changes`
-  - mendeteksi area yang berubah agar deploy hanya jalan saat relevan
+  - mendeteksi area yang berubah dan menghasilkan output `api`/`web`
+  - output `web` dipakai untuk gate `deploy_web`; output `api` saat ini belum
+    dipakai sebagai gate `deploy_api`
 - `ci-api`
   - install dependencies
   - setup test database
@@ -42,98 +74,144 @@ Jobs:
   - typecheck
   - unit test
   - **integration test** — `test:integration` API
-  - build API (selective: `npm run build:api`)
+  - build API (selective: `npm run build:api`), dengan output utama di
+    `apps/api/dist`
+  - pada event `push`, menyiapkan `deploy/api-mcp/` dari `apps/api/dist`,
+    `apps/api/package.pro.json`, dan file Prisma yang diperlukan; production
+    dependency tree dibuat di `deploy/api-mcp/` melalui
+    `npm install --prefix deploy/api-mcp --omit=dev`, lalu artifact itu
+    diunggah sebagai `api-mcp-build`
 - `ci-web`
   - install dependencies
   - lint
   - typecheck
   - build Web (selective: `npm run build:web`)
   - **berjalan paralel** dengan `ci-api`
+  - mengunggah output `apps/web/dist/` sebagai artifact Web
 - `deploy_api`
-  - hanya jalan pada `push` ke `main` atau `dev`
-  - hanya jalan jika area backend berubah
+  - hanya jalan pada event `push` ke `main` atau `dev`; `workflow_dispatch` pada
+    `ci-cd.yml` tidak menjalankan job ini
   - menunggu `changes` + `ci-api` selesai
-  - build dan package artifact production
-  - rsync ke Hostinger
-  - install dependency production
-  - generate Prisma client
-  - restart Passenger
-  - verifikasi `/health` dan `/mcp/health`
+  - tidak memeriksa `needs.changes.outputs.api`, sehingga filter API saat ini
+    bersifat informasional dan bukan gate deploy
+  - download dan validasi artifact production terhadap `GITHUB_SHA`
+  - menggunakan `HOSTINGER_SSH_KNOWN_HOSTS` yang telah diaktifkan melalui secret
+    manager dan diverifikasi secara provider/OOB; input yang hilang atau invalid
+    membuat helper gagal secara fail-closed sebelum transfer
+  - memaksa negosiasi `ssh-ed25519` agar cocok dengan raw host key yang direview
+  - memakai `StrictHostKeyChecking=yes` dan `UserKnownHostsFile` untuk SSH/SCP
+  - transfer dan aktivasi release melalui SSH, lalu memverifikasi release/health
 - `deploy_web`
-  - hanya jalan pada `push` ke `main` atau `dev`
-  - hanya jalan jika area frontend berubah
+  - hanya jalan pada event `push` ke `main` atau `dev`
+  - hanya jalan jika output `web` dari active web path filter bernilai `true`;
+    filter ini mencakup frontend `apps/web/**` plus workflow
+    `.github/workflows/ci-cd.yml`, shared `packages/shared/**`, root
+    `package.json` dan `package-lock.json`, `turbo.json`, serta konfigurasi
+    Vercel `vercel.json` dan `apps/web/vercel.json` — bukan hanya perubahan
+    frontend
   - menunggu `changes` + `ci-web` selesai
-  - prioritas deploy via Vercel deploy hook
-  - fallback ke Vercel CLI jika hook belum dikonfigurasi atau hook tetap kena `429`
+  - output filter `web` adalah gate job; output filter `api` bukan gate
+  - build dan deploy memakai Vercel CLI
   - retry otomatis untuk rate limit / kegagalan sementara
 
-### Deploy Bot (otomatis — terpisah)
+### Deploy Bot (historical reference only)
 
-File: `.github/workflows/deploy-bot-hostinger.yml`
+`.github/workflows/deploy-bot-hostinger.yml` tidak ada di checkout ini. Catatan
+lama tentang deploy bot tidak menjadi kontrak workflow saat ini; jangan
+menganggap alur bot atau pinning SSH bot sudah terverifikasi dari dokumentasi
+historis.
 
-- trigger: push ke `main`/`dev` (jika path `apps/bot` berubah)
-- CD standalone — tidak depend pada CI/CD utama
-- build, package, rsync/scp ke Hostinger
-- fingerprint-based dependency caching
-- restart Passenger (`tmp/restart.txt`)
-
-### Deploy MCP (otomatis — terpisah)
+### Deploy MCP (terpisah: push path-filtered dan manual)
 
 File: `.github/workflows/deploy-mcp-hostinger.yml`
 
-- trigger: push ke `main`/`dev` (jika path `apps/mcp` berubah)
+- trigger push ke `main`/`dev` bila salah satu path workflow, `apps/mcp/**`,
+  `packages/shared/**`, atau helper release/pinning yang tercantum berubah
+- trigger `workflow_dispatch` dengan input `environment` wajib: `staging` atau
+  `production` (default `staging`)
+- known `workflow_dispatch` routing residual, terpisah dari closure CICD-003:
+  pada `main`, langkah `Resolve deployment target` memakai logika source-target
+  yang mengutamakan `GITHUB_REF_NAME == main`, sehingga manual dispatch dengan
+  label input `environment: staging` tetap resolve ke target production
+  (`apps/mcp`, `sync-erp-mcp`, port `3006`). Label environment workflow dapat
+  tetap `staging`, tetapi resolusi target source tetap production; ini bukan
+  bukti closure CICD-003
 - CD standalone — tidak depend pada CI/CD utama
-- build, package, scp ke Hostinger
-- fingerprint-based dependency caching
-- health check `/health` dan `/mcp/health` setelah deploy
-- restart Passenger (`tmp/restart.txt`)
+- build `apps/mcp/dist`, package `deploy/mcp/`, dan production dependency tree
+  `deploy/mcp/node_modules/` di runner
+- menggunakan kontrak `HOSTINGER_SSH_KNOWN_HOSTS` yang sama; strict live use
+  pada target staging terbukti di run #31758446761
+- memakai strict SSH/SCP host checking sebelum transfer atau remote mutation
+- health/release verification setelah deploy
 
-### Manual Fallback
+### Staging Rollback Drill
 
-File: `.github/workflows/deploy-api-hostinger.yml`
+File: `.github/workflows/staging-api-rollback-drill.yml`
 
-- hanya untuk `workflow_dispatch`
-- dipakai jika butuh redeploy backend manual saat darurat
+- hanya melalui `workflow_dispatch`
+- environment workflow selalu `staging`; ref yang diterima hanya `dev` atau
+  `codex/*`
+- failure-injected dan memakai kontrak pinning Hostinger yang sama; helper gagal
+  secara fail-closed bila input hilang, invalid, atau mismatch
+- run #31761990061 membuktikan rollback staging dan restored external health
+- bukan bukti bahwa rollback production sudah dilakukan
 
 ### E2E (Playwright) — Non-blocking
 
 File: `.github/workflows/e2e-playwright.yml`
 
-- trigger: push ke `main`/`dev`, PR ke `main`/`dev`
+- trigger: push ke `main`/`dev`, PR ke `main`/`dev`, dan `workflow_dispatch`
 - **berjalan paralel** dan **independen** dari CI/CD
 - tidak memblokir deploy
 - menjalankan Playwright E2E test di apps/web
 - menyimpan report sebagai artifact
 
-## Required GitHub Secrets
+## Secret names referenced by the deployment workflows
+
+Daftar berikut adalah nama yang direferensikan oleh
+`.github/workflows/ci-cd.yml`, `.github/workflows/deploy-mcp-hostinger.yml`,
+dan `.github/workflows/staging-api-rollback-drill.yml`. Kecuali metadata-only
+evidence untuk `HOSTINGER_SSH_KNOWN_HOSTS` di atas, daftar ini tidak membuktikan
+konfigurasi atau nilai secret lain.
 
 ### Backend / Hostinger
 
 - `HOSTINGER_HOST`
 - `HOSTINGER_USER`
 - `HOSTINGER_SSH_KEY`
+- `HOSTINGER_SSH_PASSPHRASE`
+- `HOSTINGER_SSH_KNOWN_HOSTS` — required `known_hosts` input; provider/OOB
+  comparison, secret update metadata, dan strict staging use sudah dibuktikan
+  tanpa mengungkap nilainya
+
+### API runtime
+
+- `DATABASE_URL`
+- `DATABASE_URL_STAGING`
+- `GOOGLE_OAUTH_CLIENT_ID`
+- `GOOGLE_OAUTH_CLIENT_SECRET`
+- `SYNC_ERP_AUTH_STATE_SECRET`
 
 ### Frontend / Vercel
 
-- Default deploy frontend memakai Vercel Git integration yang sudah terhubung ke repo.
-- `VERCEL_ORG_ID` dan `VERCEL_PROJECT_ID_WEB` hanya dibutuhkan jika ingin memaksa deploy dari GitHub Actions.
-
-Jika ingin override dan deploy langsung dari GitHub Actions, set `VERCEL_DEPLOY_VIA_CI=true` lalu pilih minimal salah satu jalur berikut:
-
-- `VERCEL_DEPLOY_HOOK_PRODUCTION_WEB` dan `VERCEL_DEPLOY_HOOK_PREVIEW_WEB`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID_WEB`
 - `VERCEL_TOKEN`
-
-Recommended:
-
-- `VERCEL_DEPLOY_HOOK_PRODUCTION_WEB`
-- `VERCEL_DEPLOY_HOOK_PREVIEW_WEB`
 
 ## Notes
 
-- CI dan CD sekarang dipusatkan di satu workflow utama agar status branch lebih mudah dibaca.
-- Deploy otomatis hanya terjadi setelah push ke branch deploy.
-- Deploy frontend dan backend dipisah per area perubahan agar lebih cepat dan lebih hemat runner time.
-- Untuk frontend, mode default adalah hand-off ke Vercel Git integration agar tidak perlu menjaga token CLI di GitHub.
-- Jika override CI diaktifkan, deploy hook lebih disarankan daripada full CLI login flow karena lebih ringan dan lebih tahan rate limit.
-- Jika deploy hook terus menerima `429`, workflow akan fallback ke Vercel CLI selama `VERCEL_TOKEN` tersedia.
+- API dan Web CI/CD dipusatkan di satu workflow utama agar status branch lebih mudah dibaca; MCP dan rollback drill tetap workflow terpisah.
+- API deploy otomatis terjadi pada setiap `push` ke branch deploy setelah `ci-api`
+  lulus; Web deploy tetap dibatasi oleh filter Web. API filter belum menjadi
+  gate.
+- MCP memiliki jalur push path-filtered dan manual dengan pilihan `staging` atau
+  `production`; rollback drill hanya manual dan staging-only.
+- Deploy frontend dibatasi oleh filter area Web; API saat ini tetap dapat
+  dideploy pada setiap push branch deploy karena output filter API belum menjadi
+  gate.
+- API deploy saat ini menggunakan artifact runner-built dari `deploy/api-mcp/`
+  dan strict SSH/SCP ke Hostinger. Koneksi harus cocok dengan file pin yang
+  dibuat helper; staging activation terbukti, sedangkan production application
+  deployment dan rollback tetap menjadi gate terpisah.
+- MCP dan rollback drill adalah workflow terpisah, tetapi memakai kontrak pinning Hostinger yang sama.
 - Untuk branch protection, disarankan mewajibkan workflow `CI/CD` lulus sebelum merge ke `main` atau `dev`.

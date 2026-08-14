@@ -87,3 +87,148 @@ describe('IdempotencyService Unit', () => {
     expect(mockPrisma.idempotencyKey.create).toHaveBeenCalled();
   });
 });
+
+describe('IdempotencyService fencing on create race', () => {
+  let service: IdempotencyService;
+  const key = 'race-key';
+  const companyId = 'company-1';
+  const scope = IdempotencyScope.BILL_CREATE;
+  const entityId = 'bill-7';
+
+  beforeEach(() => {
+    service = new IdempotencyService();
+    vi.clearAllMocks();
+  });
+
+  const p2002 = () => {
+    const err = new Error('Unique constraint');
+    (err as Error & { code?: string }).code = 'P2002';
+    return err;
+  };
+
+  const winnerRow = (overrides: Record<string, unknown> = {}) => ({
+    id: key,
+    companyId,
+    scope,
+    entityId,
+    status: IdempotencyStatus.PROCESSING,
+    updatedAt: new Date(),
+    createdAt: new Date(),
+    response: null,
+    ...overrides,
+  });
+
+  it('returns cached response when the race winner already COMPLETED', async () => {
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValue(null);
+    mockPrisma.idempotencyKey.create.mockRejectedValueOnce(p2002());
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValueOnce(
+      winnerRow({
+        status: IdempotencyStatus.COMPLETED,
+        response: { id: 'bill-1' },
+      })
+    );
+
+    const result = await service.lock(key, companyId, scope, entityId);
+
+    expect(result).toEqual({ saved: true, response: { id: 'bill-1' } });
+  });
+
+  it('throws 409 when the race winner is actively PROCESSING', async () => {
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValue(null);
+    mockPrisma.idempotencyKey.create.mockRejectedValueOnce(p2002());
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValueOnce(
+      winnerRow({ updatedAt: new Date() })
+    );
+
+    await expect(
+      service.lock(key, companyId, scope, entityId)
+    ).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('allows retry when the race winner is a stale PROCESSING lock', async () => {
+    // First findUnique (initial read) -> null; second (post-conflict re-read)
+    // -> stale PROCESSING row.
+    mockPrisma.idempotencyKey.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(
+        winnerRow({
+          updatedAt: new Date(Date.now() - 10 * 60 * 1000), // > 5 min stale
+        })
+      );
+    mockPrisma.idempotencyKey.create.mockRejectedValueOnce(p2002());
+
+    const result = await service.lock(key, companyId, scope, entityId);
+
+    expect(result).toEqual({ saved: false });
+  });
+
+  it('allows retry when the race winner is FAILED', async () => {
+    mockPrisma.idempotencyKey.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(
+        winnerRow({ status: IdempotencyStatus.FAILED })
+      );
+    mockPrisma.idempotencyKey.create.mockRejectedValueOnce(p2002());
+
+    const result = await service.lock(key, companyId, scope, entityId);
+
+    expect(result).toEqual({ saved: false });
+  });
+
+  it('enforces ownership when the race winner belongs to another company', async () => {
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValue(null);
+    mockPrisma.idempotencyKey.create.mockRejectedValueOnce(p2002());
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValueOnce(
+      winnerRow({ companyId: 'other-company' })
+    );
+
+    await expect(
+      service.lock(key, companyId, scope, entityId)
+    ).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('enforces scope when the race winner used a different scope', async () => {
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValue(null);
+    mockPrisma.idempotencyKey.create.mockRejectedValueOnce(p2002());
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValueOnce(
+      winnerRow({ scope: IdempotencyScope.PAYMENT_CREATE })
+    );
+
+    await expect(
+      service.lock(key, companyId, scope, entityId)
+    ).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('enforces entity binding when the race winner is bound to another entity', async () => {
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValue(null);
+    mockPrisma.idempotencyKey.create.mockRejectedValueOnce(p2002());
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValueOnce(
+      winnerRow({ entityId: 'bill-other' })
+    );
+
+    await expect(
+      service.lock(key, companyId, scope, entityId)
+    ).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('throws 409 when the winner row vanished between create-failure and re-read', async () => {
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValue(null);
+    mockPrisma.idempotencyKey.create.mockRejectedValueOnce(p2002());
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.lock(key, companyId, scope, entityId)
+    ).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('rethrows non-unique constraint errors from create', async () => {
+    mockPrisma.idempotencyKey.findUnique.mockResolvedValue(null);
+    mockPrisma.idempotencyKey.create.mockRejectedValueOnce(
+      new Error('connection refused')
+    );
+
+    await expect(
+      service.lock(key, companyId, scope, entityId)
+    ).rejects.toThrow('connection refused');
+  });
+});

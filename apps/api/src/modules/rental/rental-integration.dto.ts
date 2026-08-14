@@ -77,10 +77,20 @@ const decimalToNumber = (value: DecimalLike) => {
   }
 
   if (typeof value === 'number') {
-    return value;
+    return Number.isFinite(value) ? value : 0;
   }
 
-  return Number(value);
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'toNumber' in value &&
+    typeof value.toNumber === 'function'
+  ) {
+    const numeric = value.toNumber();
+    return Number.isFinite(numeric) ? numeric : 0;
+  }
+
+  return 0;
 };
 
 export const toIntegrationCustomerDto = (customer: {
@@ -138,6 +148,15 @@ export const toIntegrationOrderSummaryDto = (order: {
   createdAt: order.createdAt,
 });
 
+/**
+ * DTO for the public order-tracking endpoint (`GET /rental/orders/by-token`).
+ *
+ * Deliberately minimal: the token is a bearer credential shared with an
+ * external storefront, so this response contains only tracking status and
+ * totals. PII (customer identity, full address, payment reference, failure
+ * reason) and internal identifiers are omitted; partner is reduced to a
+ * display name. This is the minimization boundary for public order tokens.
+ */
 export const toIntegrationOrderDto = (order: IntegrationOrder) => ({
   id: order.id,
   orderNumber: order.orderNumber,
@@ -153,14 +172,6 @@ export const toIntegrationOrderDto = (order: IntegrationOrder) => ({
   updatedAt: order.updatedAt,
   deliveryFee: decimalToNumber(order.deliveryFee),
   deliveryAddress: order.deliveryAddress,
-  street: order.street,
-  kelurahan: order.kelurahan,
-  kecamatan: order.kecamatan,
-  kota: order.kota,
-  provinsi: order.provinsi,
-  zip: order.zip,
-  latitude: decimalToNumber(order.latitude),
-  longitude: decimalToNumber(order.longitude),
   paymentMethod: order.paymentMethod,
   discountAmount: decimalToNumber(order.discountAmount),
   discountLabel: order.discountLabel,
@@ -168,21 +179,8 @@ export const toIntegrationOrderDto = (order: IntegrationOrder) => ({
   rentalPaymentStatus: order.rentalPaymentStatus,
   paymentClaimedAt: order.paymentClaimedAt,
   paymentConfirmedAt: order.paymentConfirmedAt,
-  paymentReference: order.paymentReference,
-  paymentFailedAt: order.paymentFailedAt,
-  paymentFailReason: order.paymentFailReason,
   partner: {
     name: order.partner.name,
-    phone: order.partner.phone,
-    address: order.partner.address,
-    street: order.partner.street,
-    kelurahan: order.partner.kelurahan,
-    kecamatan: order.partner.kecamatan,
-    kota: order.partner.kota,
-    provinsi: order.partner.provinsi,
-    zip: order.partner.zip,
-    latitude: decimalToNumber(order.partner.latitude),
-    longitude: decimalToNumber(order.partner.longitude),
   },
   items: order.items.map((item) => ({
     rentalItemId: item.rentalItemId,

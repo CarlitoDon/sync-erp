@@ -89,8 +89,8 @@ resolve_link() {
   local destination
   destination="$(readlink "$link")"
   case "$destination" in
-    /*) printf '%s\n' "$destination" ;;
-    *) printf '%s/%s\n' "$(cd "$(dirname "$link")" && pwd -P)" "$destination" ;;
+    /*) (cd "$destination" 2>/dev/null && pwd -P) || printf '%s\n' "$destination" ;;
+    *) (cd "$(dirname "$link")/$destination" 2>/dev/null && pwd -P) || printf '%s/%s\n' "$(cd "$(dirname "$link")" && pwd -P)" "$destination" ;;
   esac
 }
 
@@ -188,7 +188,16 @@ atomic_symlink() {
   local temporary="${link}.tmp.$$"
   rm -f "$temporary"
   ln -s "$destination" "$temporary"
-  mv -f "$temporary" "$link"
+  if ! node --input-type=module - "$temporary" "$link" <<'NODE'
+import { renameSync } from 'node:fs';
+
+const [temporary, link] = process.argv.slice(2);
+renameSync(temporary, link);
+NODE
+  then
+    rm -f "$temporary"
+    return 1
+  fi
 }
 
 validate_release() {
@@ -323,7 +332,9 @@ verify_local_release() {
   local port="$2"
   local expected_commit="$3"
   local cors_headers
+  local edge_base_url="${API_BASE_URL%/}"
   local verifier_path="$release_path/verify-release-health.mjs"
+  local oauth_verifier_path="$release_path/verify-google-oauth-config.mjs"
 
   # The legacy in-place release may predate the verifier file. The new
   # release already contains the same verifier, so use it to validate the
@@ -332,6 +343,16 @@ verify_local_release() {
     verifier_path="$release_dir/verify-release-health.mjs"
   fi
   [[ -f "$verifier_path" ]] || return 1
+
+  # The OAuth verifier is shipped with the new release and runs against the
+  # API's loopback listener. Keep the expected callback public and exact; the
+  # verifier never follows or prints the provider redirect.
+  if [[ "$ACTION" != "rollback-drill" ]]; then
+    if [[ ! -f "$oauth_verifier_path" ]]; then
+      oauth_verifier_path="$release_dir/verify-google-oauth-config.mjs"
+    fi
+    [[ -f "$oauth_verifier_path" ]] || return 1
+  fi
 
   for attempt in 1 2 3 4 5 6; do
     if curl -fsS --connect-timeout 5 --max-time 10 \
@@ -345,12 +366,41 @@ verify_local_release() {
     sleep 5
   done
 
-  node "$verifier_path" \
+  if ! node "$verifier_path" \
     --url "http://127.0.0.1:${port}/health" \
-    --expected-sha "$expected_commit"
-  node "$verifier_path" \
+    --expected-sha "$expected_commit"; then
+    return 1
+  fi
+  if ! node "$verifier_path" \
     --url "http://127.0.0.1:${port}/mcp/health" \
-    --expected-sha "$expected_commit"
+    --expected-sha "$expected_commit"; then
+    return 1
+  fi
+
+  # The GitHub runner can be blocked by the Hostinger edge WAF. Verify the
+  # public DNS/TLS/proxy path from the Hostinger host itself while the new
+  # process is already listening, but before current is switched. A failure
+  # therefore still enters the existing previous-release recovery path.
+  if [[ "$ACTION" != "rollback-drill" ]]; then
+    if ! node "$verifier_path" \
+      --url "${edge_base_url}/health" \
+      --expected-sha "$expected_commit"; then
+      return 1
+    fi
+    if ! node "$verifier_path" \
+      --url "${edge_base_url}/mcp/health" \
+      --expected-sha "$expected_commit"; then
+      return 1
+    fi
+  fi
+
+  if [[ "$ACTION" != "rollback-drill" ]]; then
+    if ! node "$oauth_verifier_path" \
+      --request-url "http://127.0.0.1:${port}/api/auth/google/start?intent=login" \
+      --expected-redirect-uri "$OAUTH_REDIRECT_URL"; then
+      return 1
+    fi
+  fi
 
   cors_headers="$(mktemp)"
   if ! curl -fsS --connect-timeout 5 --max-time 10 \
@@ -383,8 +433,22 @@ load_previous_release() {
       fail "Active release state exists without ${target}/current; refusing deployment."
     fi
     current_path="$(resolve_link "$target/current")"
-    [[ "$current_path" == "$PREVIOUS_RELEASE" ]] ||
-      fail "Active release state and current symlink disagree; refusing deployment."
+    current_physical="$(cd "$current_path" 2>/dev/null && pwd -P || echo "$current_path")"
+    previous_physical="$(cd "$PREVIOUS_RELEASE" 2>/dev/null && pwd -P || echo "$PREVIOUS_RELEASE")"
+    if [[ "$current_physical" != "$previous_physical" ]]; then
+      if [[ -d "$current_physical" && -f "$current_physical/release.json" ]]; then
+        echo "WARNING: Active release state (${previous_physical}) disagrees with current symlink (${current_physical}). Aligning state to current symlink." >&2
+        PREVIOUS_RELEASE="$current_physical"
+        if manifest_values="$(read_manifest "$PREVIOUS_RELEASE" 1 2>/dev/null)"; then
+          IFS=$'\t' read -r PREVIOUS_SHA PREVIOUS_VERSION <<< "$manifest_values"
+        fi
+      elif [[ -d "$previous_physical" && -f "$previous_physical/release.json" ]]; then
+        echo "WARNING: Active release state (${previous_physical}) disagrees with current symlink (${current_physical}). Re-aligning symlink to active state." >&2
+        atomic_symlink "$previous_physical" "$target/current"
+      else
+        fail "Active release state (${previous_physical}) and current symlink (${current_physical}) disagree; refusing deployment."
+      fi
+    fi
   elif [[ -f "$target/release.json" ]]; then
     PREVIOUS_SHA_AND_VERSION="$(read_manifest "$target" 1)" ||
       fail "Legacy active release manifest is unreadable; refusing deployment."
@@ -475,6 +539,9 @@ for required_file in dist/index.js package.json release.json prisma.config.ts \
   [[ -f "$release_staging/$required_file" ]] ||
     fail "Extracted release is incomplete (missing ${required_file})."
 done
+if [[ "$ACTION" != "rollback-drill" && ! -f "$release_staging/verify-google-oauth-config.mjs" ]]; then
+  fail "Extracted release is incomplete (missing verify-google-oauth-config.mjs)."
+fi
 for runtime_package in \
   node_modules/express/package.json \
   node_modules/@sentry/node/package.json \
