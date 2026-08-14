@@ -12,7 +12,8 @@ Usage:
 
 Required environment:
   HOSTINGER_HOST              Literal Hostinger hostname or IP address.
-  HOSTINGER_SSH_KNOWN_HOSTS   Full reviewed OpenSSH known_hosts content.
+  HOSTINGER_SSH_KNOWN_HOSTS   Full reviewed OpenSSH known_hosts content using
+                              the verified ssh-ed25519 Hostinger host key.
   RUNNER_TEMP                 Existing absolute temporary directory without
                               whitespace or control characters.
 
@@ -202,6 +203,10 @@ hostinger_ssh_pinning_prepare() {
       fi
       if [ -z "$key_type" ] || [ -z "$key_blob" ]; then
         hostinger_ssh_pinning_fail 'known_hosts content contains an incomplete host key'
+        exit 1
+      fi
+      if [ "$key_type" != 'ssh-ed25519' ]; then
+        hostinger_ssh_pinning_fail 'known_hosts content must use the verified ssh-ed25519 Hostinger host key'
         exit 1
       fi
       if ! printf '%s %s\n' "$key_type" "$key_blob" |

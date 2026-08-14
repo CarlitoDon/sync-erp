@@ -474,6 +474,7 @@ jobs:
             -o StrictHostKeyChecking=yes
             -o "UserKnownHostsFile=${HOSTINGER_KNOWN_HOSTS_FILE}"
             -o GlobalKnownHostsFile=none
+            -o HostKeyAlgorithms=ssh-ed25519
             -o ServerAliveInterval=30
             -o ServerAliveCountMax=10
             -o ConnectTimeout=30

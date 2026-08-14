@@ -273,6 +273,7 @@ assert_workflow_ssh_contract() {
     '-o StrictHostKeyChecking=yes' \
     '-o "UserKnownHostsFile=${HOSTINGER_KNOWN_HOSTS_FILE}"' \
     '-o GlobalKnownHostsFile=none' \
+    '-o HostKeyAlgorithms=ssh-ed25519' \
     '-o ControlMaster=no' \
     'SSH_OPTS=(-p "$HOSTINGER_SSH_PORT"' \
     'SCP_OPTS=(-P "$HOSTINGER_SSH_PORT"'; do
@@ -501,6 +502,7 @@ run_helper() {
     multi_host) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$multi_host_known_hosts") ;;
     mixed_malformed) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$mixed_malformed_known_hosts") ;;
     duplicate_conflict) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$duplicate_conflicting_known_hosts") ;;
+    wrong_algorithm) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$rsa_known_hosts") ;;
     mismatch) helper_env+=("HOSTINGER_SSH_KNOWN_HOSTS=$mismatch_known_hosts") ;;
     *) fail 'unknown HOSTINGER_SSH_KNOWN_HOSTS test state' ;;
   esac
@@ -701,6 +703,14 @@ if ! synthetic_second_public_key="$(ssh-keygen -y -f "$synthetic_second_key" 2>/
   fail 'ssh-keygen could not derive the second synthetic test key'
 fi
 
+synthetic_rsa_key="$test_root/synthetic-rsa"
+if ! ssh-keygen -q -t rsa -b 2048 -N '' -f "$synthetic_rsa_key" >/dev/null 2>&1; then
+  fail 'ssh-keygen could not create the synthetic RSA test key'
+fi
+if ! synthetic_rsa_public_key="$(ssh-keygen -y -f "$synthetic_rsa_key" 2>/dev/null)"; then
+  fail 'ssh-keygen could not derive the synthetic RSA public test key'
+fi
+
 test_host='host.example.test'
 test_known_hosts="[${test_host}]:65002 ${synthetic_public_key} # SYNTHETIC_PIN_SENTINEL"
 mismatch_known_hosts="[other.example.test]:65002 ${synthetic_public_key}"
@@ -709,6 +719,7 @@ negated_known_hosts="[*.example.test]:65002,[!other.example.test]:65002 ${synthe
 multi_host_known_hosts="[${test_host}]:65002,[other.example.test]:65002 ${synthetic_public_key}"
 mixed_malformed_known_hosts="${test_known_hosts}"$'\n'"not-a-known-host-record"
 duplicate_conflicting_known_hosts="[${test_host}]:65002 ${synthetic_public_key}"$'\n'"[${test_host}]:65002 ${synthetic_second_public_key}"
+rsa_known_hosts="[${test_host}]:65002 ${synthetic_rsa_public_key}"
 xtrace_known_hosts="${test_known_hosts}"$'\n'"# XTRACE_MULTILINE_PIN_DO_NOT_LOG"
 
 new_case valid
@@ -787,6 +798,7 @@ assert_rejected_pin negated-pin negated
 assert_rejected_pin multi-host-pin multi_host
 assert_rejected_pin mixed-malformed-pin mixed_malformed
 assert_rejected_pin duplicate-conflicting-pin duplicate_conflict
+assert_rejected_pin wrong-host-key-algorithm wrong_algorithm
 
 new_case host-mismatch
 if run_helper mismatch valid unset; then fail 'hostname mismatch was accepted'; fi

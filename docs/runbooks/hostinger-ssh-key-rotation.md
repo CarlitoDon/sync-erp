@@ -101,6 +101,12 @@ the file mode restricted, suppress all key/fingerprint output, and delete the
 file after validation. Never paste the candidate into a shell command, commit,
 log, artifact, or chat transcript.
 
+The active Hostinger endpoint presents host certificates ahead of its raw host
+keys during default OpenSSH negotiation. The workflows therefore require the
+provider/OOB-verified raw `ssh-ed25519` key and explicitly set
+`HostKeyAlgorithms=ssh-ed25519`. Keep the secret and this negotiation constraint
+aligned; changing either requires a new provider/OOB verification and review.
+
 ### 3. Replace the Actions secret
 
 Through the approved GitHub secret or secret-manager interface, replace the
@@ -126,6 +132,7 @@ temporary file and options equivalent to:
 
 ```text
 ssh -p 65002 \
+  -o HostKeyAlgorithms=ssh-ed25519 \
   -o StrictHostKeyChecking=yes \
   -o UserKnownHostsFile=<ephemeral-reviewed-known-hosts-file> \
   -o GlobalKnownHostsFile=none \
