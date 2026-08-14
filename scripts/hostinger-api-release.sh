@@ -371,13 +371,29 @@ const isImmutableRelease =
   !releaseRelativePath.includes("\\\\") &&
   !releaseRelativePath.startsWith("..");
 const expectedScript = canonicalize(resolve(actualCwd, "dist/index.js"));
+const actualPort = String(env.env?.PORT ?? env.PORT ?? "");
+const isValid =
+  (isInPlace || isImmutableRelease) &&
+  Boolean(expectedScript) &&
+  actualScript === expectedScript &&
+  actualPort === String(expectedPort);
 
-if (
-  !isInPlace && !isImmutableRelease ||
-  !expectedScript ||
-  actualScript !== expectedScript ||
-  String(env.env?.PORT ?? env.PORT ?? "") !== String(expectedPort)
-) {
+if (!isValid) {
+  process.stderr.write(JSON.stringify({
+    name,
+    expectedCwd,
+    actualCwd,
+    actualScript,
+    expectedScript,
+    releaseRoot,
+    releaseRelativePath,
+    isInPlace,
+    isImmutableRelease,
+    expectedPort: String(expectedPort),
+    actualPort,
+    envPort: env.PORT ?? null,
+    nestedEnvPort: env.env?.PORT ?? null,
+  }) + "\\n");
   process.exit(1);
 }
 
