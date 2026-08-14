@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+expected_node="$(tr -d '[:space:]' < .node-version)"
+expected_npm="$(sed -n 's/.*"packageManager": "npm@\([^"]*\)".*/\1/p' package.json)"
+
+if ! command -v node >/dev/null 2>&1 \
+  || ! command -v npm >/dev/null 2>&1 \
+  || [[ "$(node --version)" != "v${expected_node}" ]] \
+  || [[ "$(npm --version)" != "$expected_npm" ]] \
+  || [[ ! -d node_modules ]]; then
+  echo "Orb prerequisites are missing or stale; rerun .agents/setup." >&2
+  exit 1
+fi
+
+printf 'Orb ready: Node.js %s, npm %s, dependencies present.\n' \
+  "$(node --version)" "$(npm --version)"
