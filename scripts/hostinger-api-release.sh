@@ -787,6 +787,14 @@ cleanup_remote() {
 trap cleanup_remote EXIT
 
 load_previous_release
+
+# --- Begin Idempotency Check ---
+if [[ "$ACTION" == "deploy" && "${PREVIOUS_SHA:-}" == "$EXPECTED_SHA" ]]; then
+  echo "Release ${EXPECTED_SHA} is already active and verified."
+  exit 0
+fi
+# --- End Idempotency Check ---
+
 write_rollback_metadata
 
 mkdir -p "$release_root"
