@@ -6,6 +6,7 @@ import {
   buildGithubPullRequestUrl,
   buildReviewBody,
   buildBoundedDiff,
+  buildBoundedReviewInput,
   fetchPullRequest,
   fetchJson,
   parseReviewArtifact,
@@ -168,7 +169,42 @@ test('trusted modules contain no shell execution or PR-head checkout behavior', 
   assert.match(publisher, /Pull request head SHA changed after analysis/);
 });
 
-test('bounded diff rejects oversized files, patches, and total input', () => {
+test('PR #104-sized review input accepts every complete changed-file patch', async () => {
+  const patchLengths = [12_687, 20_596, 2_756, 2_394, 1_885];
+  const files = patchLengths.map((length, index) => ({
+    filename: `src/pr-104-file-${index + 1}.ts`,
+    status: 'modified',
+    patch: String(index).repeat(length),
+  }));
+  const totalPatchChars = patchLengths.reduce((total, length) => total + length, 0);
+  const reviewInput = buildBoundedReviewInput(pullRequest(), files);
+  let providerInput;
+
+  assert.equal(LIMITS.maxPatchChars, 50_000);
+  assert.equal(LIMITS.maxDiffChars, 60_000);
+  assert.equal(LIMITS.maxReviewInputChars, 90_000);
+  assert.equal(totalPatchChars, 40_318);
+  for (const file of files) {
+    assert.match(reviewInput, new RegExp(`File: ${file.filename}`));
+  }
+  assert.ok(reviewInput.length <= LIMITS.maxReviewInputChars);
+
+  const result = await callAiReview({
+    reviewInput,
+    apiBaseUrl: 'https://provider.example/v1',
+    apiKey: 'provider-secret-token',
+    model: 'test-model',
+    fetchImpl: async (_url, init) => {
+      providerInput = JSON.parse(init.body).messages[1].content;
+      return response(200, { choices: [{ message: { content: JSON.stringify(review()) } }] });
+    },
+  });
+
+  assert.deepEqual(result, review());
+  assert.equal(providerInput, `Review this pull request:\n\n${reviewInput}`);
+});
+
+test('bounded diff and review input reject oversized patches, files, and inputs', async () => {
   assert.throws(
     () => buildBoundedDiff([{ filename: 'a.ts', status: 'modified', patch: 'x'.repeat(LIMITS.maxPatchChars + 1) }]),
     /patch exceeds size limit/
@@ -185,11 +221,27 @@ test('bounded diff rejects oversized files, patches, and total input', () => {
   );
   assert.throws(
     () => buildBoundedDiff([
-      { filename: 'a.ts', status: 'modified', patch: 'x'.repeat(15_000) },
-      { filename: 'b.ts', status: 'modified', patch: 'x'.repeat(15_000) },
+      { filename: 'a.ts', status: 'modified', patch: 'x'.repeat(30_000) },
+      { filename: 'b.ts', status: 'modified', patch: 'x'.repeat(30_000) },
     ]),
     /diff exceeds size limit/
   );
+  let fetchCalled = false;
+  await assert.rejects(
+    () =>
+      callAiReview({
+        reviewInput: 'x'.repeat(LIMITS.maxReviewInputChars + 1),
+        apiBaseUrl: 'https://provider.example/v1',
+        apiKey: 'provider-secret-token',
+        model: 'test-model',
+        fetchImpl: async () => {
+          fetchCalled = true;
+          return response(200, { choices: [{ message: { content: JSON.stringify(review()) } }] });
+        },
+      }),
+    /AI review input exceeds size limit/
+  );
+  assert.equal(fetchCalled, false);
 });
 
 test('PR identity validation requires the exact open non-draft base/head tuple', () => {
