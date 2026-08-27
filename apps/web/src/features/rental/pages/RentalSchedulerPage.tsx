@@ -1,135 +1,118 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import {
+  CalendarDaysIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PlusIcon,
+} from '@heroicons/react/24/outline';
 import { trpc } from '@/lib/trpc';
 import { useCompany } from '@/contexts/CompanyContext';
 import {
   PageContainer,
   PageHeader,
 } from '@/components/layout/PageLayout';
-import { LoadingState, NoCompanySelected } from '@/components/ui';
-import { Card } from '@/components/ui/Card';
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CalendarDaysIcon,
-  PlusCircleIcon,
-} from '@heroicons/react/24/outline';
-import { Link } from 'react-router-dom';
+  Button,
+  LoadingState,
+  NoCompanySelected,
+} from '@/components/ui';
+import { Card, CardContent } from '@/components/ui/Card';
 import CreateOrderModal from '../modals/CreateOrderModal';
+import { RentalAvailabilityTimeline } from '../components/RentalAvailabilityTimeline';
+import {
+  addCalendarDays,
+  endOfLocalDay,
+  SCHEDULER_WINDOW_OPTIONS,
+  startOfLocalDay,
+  type SchedulerWindowDays,
+} from '../utils/schedulerTimeline';
 
-const STATUS_COLORS: Record<string, string> = {
-  CONFIRMED: 'bg-yellow-400',
-  ACTIVE: 'bg-green-500',
-};
-
-const UNIT_STATUS_COLORS: Record<string, string> = {
-  AVAILABLE: 'bg-green-100',
-  RESERVED: 'bg-yellow-100',
-  RENTED: 'bg-blue-100',
-  MAINTENANCE: 'bg-red-100',
-  CLEANING: 'bg-orange-100',
-};
+function formatRangeDate(date: Date): string {
+  return date.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
 
 export default function RentalSchedulerPage() {
   const { currentCompany } = useCompany();
-
-  // Date range state - default to current week
-  const [startDate, setStartDate] = useState(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    today.setDate(today.getDate() - today.getDay()); // Start of week
-    return today;
-  });
-
-  const [daysToShow] = useState(14); // Show 2 weeks
+  const [startDate, setStartDate] = useState(() =>
+    startOfLocalDay(new Date())
+  );
+  const [daysToShow, setDaysToShow] =
+    useState<SchedulerWindowDays>(14);
   const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
 
-  const endDate = useMemo(() => {
-    const end = new Date(startDate);
-    end.setDate(end.getDate() + daysToShow);
-    return end;
-  }, [startDate, daysToShow]);
+  const visibleEndDate = useMemo(
+    () => addCalendarDays(startDate, daysToShow - 1),
+    [daysToShow, startDate]
+  );
+  const queryEndDate = useMemo(
+    () => endOfLocalDay(visibleEndDate),
+    [visibleEndDate]
+  );
+  const {
+    data: timeline,
+    isLoading,
+    isError,
+    refetch,
+  } = trpc.rental.availability.timeline.useQuery(
+    { startDate, endDate: queryEndDate },
+    { enabled: !!currentCompany?.id }
+  );
 
-  const { data: timeline, isLoading } =
-    trpc.rental.availability.timeline.useQuery(
-      { startDate, endDate },
-      { enabled: !!currentCompany?.id }
+  const navigateWindow = (direction: 'previous' | 'next') => {
+    setStartDate((currentStart) =>
+      addCalendarDays(
+        currentStart,
+        direction === 'next' ? daysToShow : -daysToShow
+      )
     );
-
-  // Generate array of dates for header
-  const dates = useMemo(() => {
-    const result: Date[] = [];
-    const current = new Date(startDate);
-    for (let i = 0; i < daysToShow; i++) {
-      result.push(new Date(current));
-      current.setDate(current.getDate() + 1);
-    }
-    return result;
-  }, [startDate, daysToShow]);
-
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    setStartDate((prev) => {
-      const next = new Date(prev);
-      next.setDate(next.getDate() + (direction === 'next' ? 7 : -7));
-      return next;
-    });
   };
 
-  const goToToday = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    today.setDate(today.getDate() - today.getDay());
-    setStartDate(today);
-  };
+  const goToToday = () => setStartDate(startOfLocalDay(new Date()));
 
-  if (isLoading) return <LoadingState />;
-  if (!currentCompany)
+  if (!currentCompany) {
     return (
-      <NoCompanySelected message="Pilih perusahaan untuk melihat jadwal rental." />
+      <NoCompanySelected message="Pilih perusahaan untuk melihat jadwal ketersediaan rental." />
     );
+  }
 
-  // Helper to calculate booking position/width
-  const getBookingStyle = (
-    bookingStart: Date,
-    bookingEnd: Date
-  ): { left: string; width: string } | null => {
-    const rangeStart = startDate.getTime();
-    const rangeEnd = endDate.getTime();
-    const bStart = new Date(bookingStart).getTime();
-    const bEnd = new Date(bookingEnd).getTime();
+  if (isLoading) {
+    return <LoadingState className="min-h-96" />;
+  }
 
-    // Check if booking overlaps with visible range
-    if (bEnd < rangeStart || bStart > rangeEnd) return null;
-
-    const dayMs = 24 * 60 * 60 * 1000;
-    const totalDays = daysToShow;
-
-    const clampedStart = Math.max(bStart, rangeStart);
-    const clampedEnd = Math.min(bEnd, rangeEnd);
-
-    const leftDays = (clampedStart - rangeStart) / dayMs;
-    const widthDays = (clampedEnd - clampedStart) / dayMs;
-
-    return {
-      left: `${(leftDays / totalDays) * 100}%`,
-      width: `${Math.max((widthDays / totalDays) * 100, 2)}%`,
-    };
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('id-ID', {
-      weekday: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const isToday = (date: Date) => {
-    const today = new Date();
+  if (isError || !timeline) {
     return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
+      <PageContainer>
+        <PageHeader
+          title="Rental Scheduler"
+          description="Lihat ketersediaan unit dan jadwal rental"
+        />
+        <Card className="mt-6">
+          <CardContent className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 text-rose-700">
+              <CalendarDaysIcon
+                className="h-6 w-6"
+                aria-hidden="true"
+              />
+            </span>
+            <h2 className="mt-4 text-base font-semibold text-slate-900">
+              Jadwal tidak dapat dimuat
+            </h2>
+            <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">
+              Periksa koneksi Anda, lalu coba muat ulang timeline
+              ketersediaan.
+            </p>
+            <Button className="mt-5" onClick={() => void refetch()}>
+              Coba lagi
+            </Button>
+          </CardContent>
+        </Card>
+      </PageContainer>
     );
-  };
+  }
 
   return (
     <>
@@ -137,215 +120,140 @@ export default function RentalSchedulerPage() {
         isOpen={isCreateOrderOpen}
         onClose={() => setIsCreateOrderOpen(false)}
         onSuccess={() => setIsCreateOrderOpen(false)}
-      />``
+      />
 
       <PageContainer>
         <PageHeader
           title="Rental Scheduler"
-          description="Lihat ketersediaan unit dan jadwal rental"
+          description="Pantau ketersediaan unit dan booking rental dalam satu timeline."
           actions={
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigateWeek('prev')}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <ChevronLeftIcon className="w-5 h-5" />
-              </button>
-              <button
-                onClick={goToToday}
-                className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg"
-              >
-                Hari Ini
-              </button>
-              <button
-                onClick={() => navigateWeek('next')}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <ChevronRightIcon className="w-5 h-5" />
-              </button>
-            </div>
+            <Button onClick={() => setIsCreateOrderOpen(true)}>
+              <PlusIcon className="h-4 w-4" aria-hidden="true" />
+              Buat order
+            </Button>
           }
         />
 
-        {/* Date range display */}
-        <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
-          <CalendarDaysIcon className="w-4 h-4" />
-          <span>
-            {startDate.toLocaleDateString('id-ID', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}{' '}
-            -{' '}
-            {endDate.toLocaleDateString('id-ID', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </span>
+        <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <CalendarDaysIcon
+                className="h-4 w-4 text-primary-700"
+                aria-hidden="true"
+              />
+              <span>
+                {formatRangeDate(startDate)} –{' '}
+                {formatRangeDate(visibleEndDate)}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-slate-500">
+              Gunakan scroll atau tarik area kosong timeline untuk
+              melihat tanggal dan unit lainnya.
+            </p>
+          </div>
+
+          <div
+            className="flex flex-wrap items-center gap-2"
+            aria-label="Kontrol timeline rental"
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateWindow('previous')}
+              aria-label="Rentang sebelumnya"
+              title="Rentang sebelumnya"
+            >
+              <ChevronLeftIcon
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
+              <span className="hidden sm:inline">Sebelumnya</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={goToToday}>
+              Hari ini
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateWindow('next')}
+              aria-label="Rentang berikutnya"
+              title="Rentang berikutnya"
+            >
+              <span className="hidden sm:inline">Berikutnya</span>
+              <ChevronRightIcon
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
+            </Button>
+            <label
+              className="sr-only"
+              htmlFor="scheduler-visible-range"
+            >
+              Rentang hari yang ditampilkan
+            </label>
+            <select
+              id="scheduler-visible-range"
+              value={daysToShow}
+              onChange={(event) =>
+                setDaysToShow(
+                  Number(event.target.value) as SchedulerWindowDays
+                )
+              }
+              className="h-8 rounded-lg border border-gray-300 bg-white px-2 text-xs font-medium text-slate-700 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+            >
+              {SCHEDULER_WINDOW_OPTIONS.map((days) => (
+                <option key={days} value={days}>
+                  {days} hari
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Mobile scroll hint */}
-        <p className="text-xs text-gray-400 mb-2 sm:hidden">
-          ← Geser untuk melihat jadwal →
-        </p>
-
-        <Card className="overflow-hidden">
-          {/* Horizontal scroll container for mobile */}
-          <div className="overflow-x-auto">
-            <div className="min-w-200">
-              {/* Timeline Header */}
-              <div className="flex border-b bg-gray-50">
-                <div className="w-48 shrink-0 p-3 font-medium text-gray-700 border-r">
-                  Item / Unit
-                </div>
-                <div className="flex-1 flex">
-                  {dates.map((date, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex-1 text-center py-2 text-xs border-r last:border-r-0 ${
-                        isToday(date)
-                          ? 'bg-primary-100 font-bold text-primary-700'
-                          : 'text-gray-600'
-                      }`}
-                    >
-                      {formatDate(date)}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Timeline Body */}
-              {timeline?.items.length === 0 ? (
-                <div className="p-12 text-center text-gray-500">
-                  <CalendarDaysIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>Belum ada item rental.</p>
-                  <Link
-                    to="/rental/items"
-                    className="text-primary-600 hover:underline"
-                  >
-                    Tambah item rental →
-                  </Link>
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {timeline?.items.map((item) => (
-                    <div key={item.id}>
-                      {/* Item Header */}
-                      <div className="flex bg-gray-50/50">
-                        <div className="w-48 shrink-0 p-2 font-medium text-gray-700 border-r text-sm">
-                          {item.name}
-                        </div>
-                        <div className="flex-1 p-2 text-xs text-gray-500">
-                          {item.units.length} unit
-                        </div>
-                      </div>
-
-                      {/* Units */}
-                      {item.units.map((unit) => (
-                        <div
-                          key={unit.id}
-                          className="flex hover:bg-gray-50"
-                        >
-                          {/* Unit Label */}
-                          <div
-                            className={`w-48 shrink-0 p-2 pl-6 border-r text-sm flex items-center gap-2 ${UNIT_STATUS_COLORS[unit.status] || ''}`}
-                          >
-                            <span className="font-mono">
-                              {unit.unitCode}
-                            </span>
-                            <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                unit.status === 'AVAILABLE'
-                                  ? 'bg-green-200 text-green-800'
-                                  : unit.status === 'RENTED'
-                                    ? 'bg-blue-200 text-blue-800'
-                                    : 'bg-gray-200 text-gray-700'
-                              }`}
-                            >
-                              {unit.status}
-                            </span>
-                            {unit.status === 'AVAILABLE' && (
-                              <button
-                                onClick={() =>
-                                  setIsCreateOrderOpen(true)
-                                }
-                                className="ml-auto p-0.5 text-green-600 hover:bg-green-200 rounded transition-colors"
-                                title="Buat order untuk unit ini"
-                              >
-                                <PlusCircleIcon className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Timeline Grid */}
-                          <div className="flex-1 relative h-10">
-                            {/* Grid lines */}
-                            <div className="absolute inset-0 flex">
-                              {dates.map((date, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`flex-1 border-r last:border-r-0 ${
-                                    isToday(date)
-                                      ? 'bg-primary-50/50'
-                                      : ''
-                                  }`}
-                                />
-                              ))}
-                            </div>
-
-                            {/* Booking blocks */}
-                            {unit.bookings.map((booking) => {
-                              const style = getBookingStyle(
-                                booking.startDate,
-                                booking.endDate
-                              );
-                              if (!style) return null;
-
-                              return (
-                                <Link
-                                  key={booking.orderId}
-                                  to={`/rental/orders/${booking.orderId}`}
-                                  className={`absolute top-1 bottom-1 rounded-md ${STATUS_COLORS[booking.status] || 'bg-gray-400'} text-white text-xs flex items-center px-2 overflow-hidden hover:opacity-80 transition-opacity`}
-                                  style={style}
-                                  title={`${booking.orderNumber} - ${booking.partnerName}`}
-                                >
-                                  <span className="truncate">
-                                    {booking.orderNumber}
-                                  </span>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+        <Card className="mt-4 overflow-hidden">
+          <RentalAvailabilityTimeline
+            timeline={timeline}
+            startDate={startDate}
+            daysToShow={daysToShow}
+            onCreateOrder={() => setIsCreateOrderOpen(true)}
+          />
         </Card>
 
-        {/* Legend */}
-        <div className="mt-4 flex items-center gap-4 text-xs text-gray-600">
-          <span className="font-medium">Legend:</span>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-yellow-400" />
-            <span>Confirmed</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-green-500" />
-            <span>Active</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-green-200" />
-            <span>Available</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-blue-200" />
-            <span>Rented</span>
-          </div>
+        <div
+          className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600"
+          aria-label="Legenda status timeline"
+        >
+          <span className="font-semibold text-slate-700">
+            Legenda:
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className="h-2.5 w-2.5 rounded-sm bg-amber-500"
+              aria-hidden="true"
+            />
+            Booking dikonfirmasi
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className="h-2.5 w-2.5 rounded-sm bg-emerald-600"
+              aria-hidden="true"
+            />
+            Booking aktif
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className="h-2.5 w-2.5 rounded-sm bg-primary-100 ring-1 ring-primary-200"
+              aria-hidden="true"
+            />
+            Hari ini
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className="h-2.5 w-2.5 rounded-sm bg-slate-100 ring-1 ring-slate-200"
+              aria-hidden="true"
+            />
+            Akhir pekan
+          </span>
         </div>
       </PageContainer>
     </>
