@@ -244,6 +244,23 @@ test('bounded diff and review input reject oversized patches, files, and inputs'
   assert.equal(fetchCalled, false);
 });
 
+test('AI provider request explicitly accepts and sends standard JSON', async () => {
+  let providerRequest;
+  await callAiReview({
+    reviewInput: 'bounded',
+    apiBaseUrl: 'https://provider.example/v1',
+    apiKey: 'provider-secret-token',
+    model: 'test-model',
+    fetchImpl: async (url, init) => {
+      providerRequest = { url, init };
+      return response(200, { choices: [{ message: { content: JSON.stringify(review()) } }] });
+    },
+  });
+
+  assert.equal(providerRequest.init.headers.Accept, 'application/json');
+  assert.equal(providerRequest.init.headers['Content-Type'], 'application/json');
+});
+
 test('PR identity validation requires the exact open non-draft base/head tuple', () => {
   assert.deepEqual(validatePullRequestIdentity(pullRequest(), IDENTITY), IDENTITY);
   assert.throws(

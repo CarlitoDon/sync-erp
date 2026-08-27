@@ -99,7 +99,10 @@ export async function callAiReview({
     service: 'AI provider',
     fetchImpl,
     maxChars: LIMITS.maxProviderResponseChars,
-    extraHeaders: { 'Content-Type': 'application/json' },
+    extraHeaders: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({
       model,
       messages: [
