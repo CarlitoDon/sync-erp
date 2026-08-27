@@ -83,7 +83,10 @@ export async function callAiReview({
   model,
   fetchImpl,
 }) {
-  if (typeof reviewInput !== 'string' || reviewInput.length > LIMITS.maxDiffChars + 30_000) {
+  if (
+    typeof reviewInput !== 'string' ||
+    reviewInput.length > LIMITS.maxReviewInputChars
+  ) {
     fail('AI review input exceeds size limit');
   }
   if (typeof model !== 'string' || model.length === 0 || model.length > 200) {
@@ -96,7 +99,10 @@ export async function callAiReview({
     service: 'AI provider',
     fetchImpl,
     maxChars: LIMITS.maxProviderResponseChars,
-    extraHeaders: { 'Content-Type': 'application/json' },
+    extraHeaders: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({
       model,
       messages: [
