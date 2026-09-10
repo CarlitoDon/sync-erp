@@ -1,15 +1,11 @@
-name: Deploy MCP to Hostinger
+name: Deploy MCP to Hostinger (legacy, manual only)
+
+# LEGACY / MANUAL ONLY: superseded by .github/workflows/deploy-mcp-coolify.yml
+# for push-driven MCP deployments. This workflow must not be used as an
+# automatic Hostinger fallback; run it only for deliberate legacy validation or
+# recovery via workflow_dispatch.
 
 on:
-  push:
-    branches: [main, dev]
-    paths:
-      - '.github/workflows/deploy-mcp-hostinger.yml'
-      - 'apps/mcp/**'
-      - 'packages/shared/**'
-      - 'scripts/verify-release-health.mjs'
-      - 'scripts/write-release-manifest.mjs'
-      - 'scripts/hostinger-ssh-pinning.sh'
   workflow_dispatch:
     inputs:
       environment:

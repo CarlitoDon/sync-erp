@@ -1,0 +1,147 @@
+name: Deploy MCP via Coolify
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - '.github/workflows/deploy-mcp-coolify.yml'
+      - '.github/workflows/deploy-coolify.yml'
+      - 'apps/mcp/**'
+      - 'packages/shared/**'
+      - 'scripts/verify-release-health.mjs'
+      - 'scripts/write-release-manifest.mjs'
+      - 'scripts/trigger-coolify-deploy.sh'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-mcp-coolify-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  route:
+    name: Validate MCP deployment route
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      environment: ${{ steps.route.outputs.environment }}
+    steps:
+      - name: Resolve branch and environment
+        id: route
+        env:
+          REQUESTED_ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            branch_environment=production
+          elif [[ "$GITHUB_REF" == refs/heads/dev ]]; then
+            branch_environment=staging
+          else
+            echo "MCP Coolify deploys are restricted to refs/heads/dev (staging) or refs/heads/main (production); got '${GITHUB_REF}'." >&2
+            exit 1
+          fi
+
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            case "$REQUESTED_ENVIRONMENT" in
+              staging|production) ;;
+              *)
+                echo "Unsupported MCP environment '${REQUESTED_ENVIRONMENT}'. Expected staging or production." >&2
+                exit 1
+                ;;
+            esac
+            if [[ "$REQUESTED_ENVIRONMENT" != "$branch_environment" ]]; then
+              echo "Branch '${GITHUB_REF_NAME}' can only deploy to '${branch_environment}', not '${REQUESTED_ENVIRONMENT}'." >&2
+              exit 1
+            fi
+          elif [[ "$GITHUB_EVENT_NAME" != push ]]; then
+            echo "MCP deployment requires push or workflow_dispatch; got '${GITHUB_EVENT_NAME}'." >&2
+            exit 1
+          fi
+
+          printf 'environment=%s\n' "$branch_environment" >> "$GITHUB_OUTPUT"
+
+  build_mcp:
+    name: Build and validate MCP release
+    needs: route
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build MCP
+        run: npm run build --workspace=@sync-erp/mcp
+
+      - name: Prepare deployment package
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_REF: ${{ github.ref }}
+          RELEASE_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          rm -rf deploy/mcp
+          mkdir -p deploy/mcp
+          cp -R apps/mcp/dist deploy/mcp/dist
+          cp apps/mcp/package.json deploy/mcp/package.json
+          RELEASE_VERSION="$(node -e 'console.log(JSON.parse(require("node:fs").readFileSync("apps/mcp/package.json", "utf8")).version)')"
+          node scripts/write-release-manifest.mjs \
+            --output deploy/mcp/release.json \
+            --service sync-erp-mcp \
+            --commit "$RELEASE_SHA" \
+            --version "$RELEASE_VERSION" \
+            --repository "$RELEASE_REPOSITORY" \
+            --ref "$RELEASE_REF" \
+            --run-id "$RELEASE_RUN_ID"
+          cp scripts/verify-release-health.mjs deploy/mcp/verify-release-health.mjs
+
+          npm install \
+            --prefix deploy/mcp \
+            --omit=dev \
+            --no-audit \
+            --no-fund \
+            --legacy-peer-deps
+
+          test -f deploy/mcp/node_modules/express/package.json
+          test -f deploy/mcp/node_modules/@modelcontextprotocol/sdk/package.json
+
+      - name: Upload MCP build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-build
+          path: deploy/mcp/
+          retention-days: 7
+
+  deploy_mcp:
+    name: Trigger MCP Coolify deployment
+    needs: [route, build_mcp]
+    if: needs.build_mcp.result == 'success'
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      service: mcp
+      environment: ${{ needs.route.outputs.environment }}
+      caller_event: ${{ github.event_name }}
+    secrets: inherit

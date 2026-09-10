@@ -1,0 +1,183 @@
+name: Trigger Coolify deployment
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: 'Coolify service to deploy'
+        required: true
+        type: string
+      environment:
+        description: 'Coolify environment to deploy'
+        required: true
+        type: string
+      caller_event:
+        description: 'Original event from the caller workflow'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy (direct manual runs are bot-only)'
+        required: true
+        type: choice
+        options:
+          - api
+          - bot
+          - mcp
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coolify-${{ inputs.service }}-${{ inputs.environment }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    name: Trigger ${{ inputs.service }} Coolify (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: ${{ inputs.environment }}
+    env:
+      COOLIFY_CALLER_EVENT_NAME: ${{ inputs.caller_event || github.event_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Validate service, environment, and branch route
+        env:
+          COOLIFY_SERVICE: ${{ inputs.service }}
+          COOLIFY_ENVIRONMENT: ${{ inputs.environment }}
+          COOLIFY_CALLER_EVENT_NAME: ${{ inputs.caller_event }}
+        run: |
+          set -euo pipefail
+
+          if [[ -n "$COOLIFY_CALLER_EVENT_NAME" ]]; then
+            case "$COOLIFY_CALLER_EVENT_NAME" in
+              push|workflow_dispatch) ;;
+              *)
+                echo "Unsupported caller event '${COOLIFY_CALLER_EVENT_NAME}'. Expected push or workflow_dispatch." >&2
+                exit 1
+                ;;
+            esac
+          elif [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && "$COOLIFY_SERVICE" != bot ]]; then
+            echo "Direct manual runs of this reusable workflow are bot-only; use the gated API or MCP workflow dispatch for ${COOLIFY_SERVICE}." >&2
+            exit 1
+          fi
+
+          case "$COOLIFY_SERVICE" in
+            api|bot|mcp) ;;
+            *)
+              echo "Unsupported Coolify service '${COOLIFY_SERVICE}'. Expected api, bot, or mcp." >&2
+              exit 1
+              ;;
+          esac
+
+          case "$COOLIFY_ENVIRONMENT" in
+            staging|production) ;;
+            *)
+              echo "Unsupported Coolify environment '${COOLIFY_ENVIRONMENT}'. Expected staging or production." >&2
+              exit 1
+              ;;
+          esac
+
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            expected_environment=production
+          elif [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
+            expected_environment=staging
+          else
+            echo "Coolify deploys are restricted to refs/heads/dev (staging) or refs/heads/main (production); got '${GITHUB_REF}'." >&2
+            exit 1
+          fi
+
+          if [[ "$COOLIFY_ENVIRONMENT" != "$expected_environment" ]]; then
+            echo "Branch '${GITHUB_REF_NAME}' can only deploy to '${expected_environment}', not '${COOLIFY_ENVIRONMENT}'." >&2
+            exit 1
+          fi
+
+          # Note: GITHUB_EVENT_NAME inside a reused workflow run carries the
+          # caller event (e.g. 'push'), not 'workflow_call', so entry is
+          # gated by the COOLIFY_CALLER_EVENT_NAME input + branch route above.
+
+      - name: Trigger API staging Coolify deployment
+        if: inputs.service == 'api' && inputs.environment == 'staging'
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK_API_STAGING }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_API_STAGING.' >&2
+            exit 1
+          fi
+          bash scripts/trigger-coolify-deploy.sh api staging
+
+      - name: Trigger API production Coolify deployment
+        if: inputs.service == 'api' && inputs.environment == 'production'
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK_API_PRODUCTION }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_API_PRODUCTION.' >&2
+            exit 1
+          fi
+          bash scripts/trigger-coolify-deploy.sh api production
+
+      - name: Trigger bot staging Coolify deployment
+        if: inputs.service == 'bot' && inputs.environment == 'staging'
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK_BOT_STAGING }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_BOT_STAGING.' >&2
+            exit 1
+          fi
+          bash scripts/trigger-coolify-deploy.sh bot staging
+
+      - name: Trigger bot production Coolify deployment
+        if: inputs.service == 'bot' && inputs.environment == 'production'
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK_BOT_PRODUCTION }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_BOT_PRODUCTION.' >&2
+            exit 1
+          fi
+          bash scripts/trigger-coolify-deploy.sh bot production
+
+      - name: Trigger MCP staging Coolify deployment
+        if: inputs.service == 'mcp' && inputs.environment == 'staging'
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK_MCP_STAGING }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_MCP_STAGING.' >&2
+            exit 1
+          fi
+          bash scripts/trigger-coolify-deploy.sh mcp staging
+
+      - name: Trigger MCP production Coolify deployment
+        if: inputs.service == 'mcp' && inputs.environment == 'production'
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK_MCP_PRODUCTION }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_MCP_PRODUCTION.' >&2
+            exit 1
+          fi
+          bash scripts/trigger-coolify-deploy.sh mcp production

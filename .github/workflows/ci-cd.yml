@@ -16,6 +16,7 @@ on:
           - none
           - deploy
           - bootstrap
+          - legacy-hostinger
 
 permissions:
   contents: read
@@ -51,6 +52,7 @@ jobs:
           filters: |
             api:
               - '.github/workflows/ci-cd.yml'
+              - '.github/workflows/deploy-coolify.yml'
               - 'apps/api/**'
               - 'apps/mcp/**'
               - 'packages/database/**'
@@ -68,6 +70,8 @@ jobs:
               - 'scripts/hostinger-api-release.test.sh'
               - 'scripts/hostinger-ssh-pinning.sh'
               - 'scripts/hostinger-ssh-pinning.test.sh'
+              - 'scripts/trigger-coolify-deploy.sh'
+              - 'scripts/trigger-coolify-deploy.test.sh'
               - 'turbo.json'
             web:
               - '.github/workflows/ci-cd.yml'
@@ -144,6 +148,9 @@ jobs:
 
       - name: Test Hostinger SSH pinning
         run: bash scripts/hostinger-ssh-pinning.test.sh
+
+      - name: Test Coolify deploy trigger
+        run: bash scripts/trigger-coolify-deploy.test.sh
 
       - name: Test (integration)
         run: npm run test:integration --workspace=@sync-erp/api
@@ -251,10 +258,44 @@ jobs:
           path: apps/web/dist/
           retention-days: 7
 
-  deploy_api:
-    name: Deploy API to Hostinger
+  validate_api_artifact_for_coolify:
+    name: Validate API artifact for Coolify trigger
     needs: [changes, ci-api]
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode != 'none')
+    if: |
+      (github.event_name == 'push' && needs.changes.outputs.api == 'true') ||
+      (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode == 'deploy')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download API build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-mcp-build
+          path: deploy/api-mcp/
+
+      - name: Validate downloaded API release artifact
+        run: node scripts/validate-api-artifact.mjs --artifact-dir deploy/api-mcp --expected-sha "$GITHUB_SHA"
+
+  deploy_api:
+    name: Trigger API Coolify deployment
+    needs: [changes, ci-api, validate_api_artifact_for_coolify]
+    if: |
+      needs.validate_api_artifact_for_coolify.result == 'success' &&
+      ((github.event_name == 'push' && needs.changes.outputs.api == 'true') ||
+       (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode == 'deploy'))
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      service: api
+      environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      caller_event: ${{ github.event_name }}
+    secrets: inherit
+
+  deploy_api_hostinger_legacy:
+    name: Legacy Hostinger API deploy (manual)
+    needs: [changes, ci-api]
+    if: github.event_name == 'workflow_dispatch' && (inputs.api_deploy_mode == 'bootstrap' || inputs.api_deploy_mode == 'legacy-hostinger')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment:
@@ -332,6 +373,10 @@ jobs:
           set -euo pipefail
           case "$API_DEPLOY_MODE" in
             deploy)
+              BOOTSTRAP_CONFIRMATION=""
+              RELEASE_ACTION='deploy'
+              ;;
+            legacy-hostinger)
               BOOTSTRAP_CONFIRMATION=""
               RELEASE_ACTION='deploy'
               ;;
