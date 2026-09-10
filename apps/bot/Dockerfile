@@ -19,6 +19,7 @@ RUN npm ci --ignore-scripts
 
 # Copy only build inputs; do not bake local env/session files into the image.
 COPY apps/api/src ./apps/api/src
+COPY apps/mcp/src ./apps/mcp/src
 COPY apps/api/tsconfig.json apps/api/tsup.config.ts ./apps/api/
 COPY apps/bot/src ./apps/bot/src
 COPY apps/bot/tsconfig.json apps/bot/tsup.config.ts ./apps/bot/
