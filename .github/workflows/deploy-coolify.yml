@@ -106,10 +106,9 @@ jobs:
             exit 1
           fi
 
-          if [[ "$GITHUB_EVENT_NAME" != workflow_call && "$GITHUB_EVENT_NAME" != workflow_dispatch ]]; then
-            echo "Coolify deployment requires workflow_call or workflow_dispatch; got '${GITHUB_EVENT_NAME}'." >&2
-            exit 1
-          fi
+          # Note: GITHUB_EVENT_NAME inside a reused workflow run carries the
+          # caller event (e.g. 'push'), not 'workflow_call', so entry is
+          # gated by the COOLIFY_CALLER_EVENT_NAME input + branch route above.
 
       - name: Trigger API staging Coolify deployment
         if: inputs.service == 'api' && inputs.environment == 'staging'
