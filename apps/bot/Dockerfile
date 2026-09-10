@@ -50,6 +50,9 @@ COPY --from=builder /repo/packages/shared/package.json ./packages/shared/package
 
 EXPOSE 3003
 
+# node:20-alpine ships without wget; HEALTHCHECK + Coolify probes need it.
+RUN apk add --no-cache wget
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3003/health || exit 1
 
