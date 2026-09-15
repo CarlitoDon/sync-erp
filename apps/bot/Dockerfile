@@ -19,6 +19,7 @@ RUN npm ci --ignore-scripts
 
 # Copy only build inputs; do not bake local env/session files into the image.
 COPY apps/api/src ./apps/api/src
+COPY apps/mcp/src ./apps/mcp/src
 COPY apps/api/tsconfig.json apps/api/tsup.config.ts ./apps/api/
 COPY apps/bot/src ./apps/bot/src
 COPY apps/bot/tsconfig.json apps/bot/tsup.config.ts ./apps/bot/
@@ -49,6 +50,9 @@ COPY --from=builder /repo/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /repo/packages/shared/package.json ./packages/shared/package.json
 
 EXPOSE 3003
+
+# node:20-alpine ships without wget; HEALTHCHECK + Coolify probes need it.
+RUN apk add --no-cache wget
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3003/health || exit 1
