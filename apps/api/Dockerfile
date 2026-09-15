@@ -3,6 +3,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /repo
 
+# Force development environment so build tooling (turbo, tsup, prisma) is installed
+ENV NODE_ENV=development
+
 # Copy manifests first so dependency installation remains cacheable.
 COPY package*.json ./
 COPY turbo.json tsconfig.json tsconfig.base.json ./
@@ -15,7 +18,7 @@ COPY packages/eslint-plugin/package.json ./packages/eslint-plugin/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 
 # Skip lifecycle scripts until the workspace source and Prisma schema are present.
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts --include=dev
 
 # Copy only build inputs; do not bake local env/session files into the image.
 COPY apps/api/src ./apps/api/src
