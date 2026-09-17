@@ -6,7 +6,6 @@ import { BrandMark } from '@/components/brand/BrandMark';
 import {
   ShoppingBagIcon,
   SparklesIcon,
-  WrenchScrewdriverIcon,
   Cog6ToothIcon,
   BanknotesIcon,
   CheckCircleIcon,
@@ -14,6 +13,9 @@ import {
   InformationCircleIcon,
   ArrowLeftIcon,
   BuildingOffice2Icon,
+  BriefcaseIcon,
+  TruckIcon,
+  CheckIcon,
 } from '@heroicons/react/24/outline';
 import { useCompany } from '@/contexts/CompanyContext';
 import { trpc } from '@/lib/trpc';
@@ -38,6 +40,14 @@ function normalizeStep(raw: unknown): Step {
     return raw as CompanyOnboardingStep;
   }
   return CompanyOnboardingStep.WELCOME;
+}
+
+function parseBusinessShape(raw: unknown): BusinessShape {
+  if (raw === BusinessShape.RENTAL) return BusinessShape.RENTAL;
+  if (raw === BusinessShape.SERVICE) return BusinessShape.SERVICE;
+  if (raw === BusinessShape.RETAIL) return BusinessShape.RETAIL;
+  if (raw === BusinessShape.MANUFACTURING) return BusinessShape.MANUFACTURING;
+  return BusinessShape.RENTAL;
 }
 
 const ONBOARDING_STEPS_META = [
@@ -70,6 +80,9 @@ export default function OnboardingPage() {
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(100000);
   const [payNow, setPayNow] = useState(true);
+  const [selectedShape, setSelectedShape] = useState<BusinessShape>(() =>
+    parseBusinessShape(currentCompany?.businessShape)
+  );
 
   const step = useMemo(() => {
     if (!onboardingState.data) return CompanyOnboardingStep.WELCOME;
@@ -205,90 +218,108 @@ export default function OnboardingPage() {
     subtitle: string,
     badgeText: string,
     content: React.ReactNode,
-    maxWidth = 'max-w-xl'
+    maxWidth = 'max-w-5xl'
   ) => (
-    <div className="auth-grid-background flex min-h-screen flex-col justify-between px-4 py-8 sm:px-6 lg:px-8">
-      <div className="ambient-glow" />
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+      {/* Ambient soft glow at top */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-b from-blue-100/40 via-sky-50/20 to-transparent blur-3xl" />
+      </div>
 
-      {/* Header Bar */}
-      <header className="relative z-10 mx-auto flex w-full max-w-4xl items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BrandMark size="md" />
-          <div>
-            <span className="text-base font-bold tracking-tight text-slate-900">
+      {/* Top Navbar */}
+      <header className="sticky top-0 z-20 w-full border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <BrandMark size="sm" />
+            <span className="text-sm font-bold tracking-tight text-slate-900">
               Sync ERP
             </span>
-            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-              <BuildingOffice2Icon className="h-3.5 w-3.5" />
-              {currentCompany.name}
-            </span>
+            <span className="text-slate-300">/</span>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+              <BuildingOffice2Icon className="h-3.5 w-3.5 text-slate-500" />
+              <span>{currentCompany.name}</span>
+            </div>
           </div>
-        </div>
 
-        <button
-          onClick={() => {
-            setCurrentCompany(null);
-            navigate('/select-company');
-          }}
-          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/80 px-3 py-1 text-xs font-medium text-slate-600 shadow-2xs backdrop-blur-md transition-colors hover:bg-slate-100 hover:text-slate-900"
-        >
-          <ArrowLeftIcon className="h-3.5 w-3.5" />
-          <span>Ganti Workspace</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentCompany(null);
+              navigate('/select-company');
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-2xs transition-colors hover:bg-slate-50 hover:text-slate-900 active:scale-95"
+          >
+            <ArrowLeftIcon className="h-3.5 w-3.5 text-slate-400" />
+            <span>Ganti Workspace</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Container */}
-      <main className={`relative z-10 my-auto mx-auto w-full ${maxWidth} py-6`}>
-        {/* Progress Stepper Bar */}
-        <nav aria-label="Progress" className="mb-6">
-          <ol className="flex items-center justify-between gap-2">
+      <main className={`relative z-10 mx-auto w-full ${maxWidth} px-4 py-8 sm:px-6`}>
+        {/* Modern Segmented Progress Stepper */}
+        <nav aria-label="Progress" className="mb-8">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
             {ONBOARDING_STEPS_META.map((s) => {
               const isDone = s.number < currentStepNumber;
               const isCurrent = s.number === currentStepNumber;
 
               return (
-                <li
+                <div
                   key={s.id}
-                  className="flex-1"
-                  aria-current={isCurrent ? 'step' : undefined}
+                  className={`flex flex-col gap-2 rounded-2xl border p-3.5 transition-all duration-200 ${
+                    isCurrent
+                      ? 'border-blue-500/50 bg-white shadow-sm ring-1 ring-blue-500/20'
+                      : isDone
+                      ? 'border-slate-200/80 bg-white/70 shadow-2xs'
+                      : 'border-slate-200/40 bg-white/40 opacity-60'
+                  }`}
                 >
-                  <div className="flex flex-col items-center gap-1.5 group">
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${
-                        isDone
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : isCurrent
-                          ? 'bg-blue-600 text-white ring-4 ring-blue-500/20 shadow-md shadow-blue-500/25'
-                          : 'border border-slate-300 bg-white text-slate-400'
-                      }`}
-                    >
-                      {isDone ? (
-                        <CheckCircleIcon className="h-4 w-4" />
-                      ) : (
-                        s.number
-                      )}
-                    </div>
+                  <div
+                    className={`h-1.5 w-full rounded-full transition-all duration-300 ${
+                      isDone
+                        ? 'bg-emerald-500'
+                        : isCurrent
+                        ? 'bg-blue-600'
+                        : 'bg-slate-200'
+                    }`}
+                  />
+                  <div className="flex items-center justify-between">
                     <span
-                      className={`text-[11px] font-semibold tracking-tight transition-colors hidden sm:inline ${
+                      className={`text-[11px] font-bold tabular-nums tracking-wide uppercase ${
                         isCurrent
                           ? 'text-blue-600'
                           : isDone
-                          ? 'text-slate-700'
+                          ? 'text-emerald-700'
                           : 'text-slate-400'
                       }`}
                     >
-                      {s.label}
+                      Langkah 0{s.number}
                     </span>
+                    {isDone && (
+                      <CheckCircleIcon className="h-4 w-4 text-emerald-600" />
+                    )}
                   </div>
-                </li>
+                  <span
+                    className={`text-xs font-semibold tracking-tight truncate ${
+                      isCurrent
+                        ? 'text-slate-900'
+                        : isDone
+                        ? 'text-slate-700'
+                        : 'text-slate-400'
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                </div>
               );
             })}
-          </ol>
+          </div>
         </nav>
 
         {/* Card Box */}
-        <div className="glass-panel overflow-hidden rounded-3xl p-6 sm:p-10 transition-all duration-300">
-          <div className="mb-8 text-center sm:text-left">
+        <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 shadow-xl shadow-slate-900/5 transition-all duration-300">
+          <div className="mb-8">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200/60 mb-3">
               <SparklesIcon className="h-3.5 w-3.5 text-blue-600" />
               <span>{badgeText}</span>
@@ -296,7 +327,7 @@ export default function OnboardingPage() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
               {title}
             </h1>
-            <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+            <p className="mt-2 text-sm text-slate-500 max-w-2xl leading-relaxed">
               {subtitle}
             </p>
           </div>
@@ -306,7 +337,7 @@ export default function OnboardingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 mx-auto w-full max-w-4xl text-center text-xs text-slate-400">
+      <footer className="mx-auto w-full max-w-5xl px-4 py-6 text-center text-xs text-slate-400">
         <p>© 2026 Sync ERP. Seluruh hak cipta dilindungi.</p>
       </footer>
     </div>
@@ -314,142 +345,191 @@ export default function OnboardingPage() {
 
   // STEP 1: BUSINESS SHAPE
   if (step === 'BUSINESS_SHAPE' || step === 'WELCOME') {
+    const SHAPES = [
+      {
+        id: BusinessShape.RENTAL,
+        name: 'Rental & Persewaan Aset',
+        description:
+          'Penyewaan unit fisik, peralatan, kendaraan, atau properti dengan tracking deposit dan siklus pengembalian.',
+        icon: TruckIcon,
+        features: [
+          'Inventaris aset disewakan & serial number',
+          'Uang jaminan sewa (deposit) & denda return',
+          'Kalender booking & jadwal pengembalian',
+        ],
+      },
+      {
+        id: BusinessShape.SERVICE,
+        name: 'Jasa & Layanan Profesional',
+        description:
+          'Konsultan, agensi kreatif, software vendor, atau kontraktor dengan sistem penagihan termin/jam.',
+        icon: BriefcaseIcon,
+        features: [
+          'Billing termin, milestone, atau jam kerja',
+          'Pencatatan beban tenaga kerja langsung',
+          'Operasional murni tanpa stok fisik barang',
+        ],
+      },
+      {
+        id: BusinessShape.RETAIL,
+        name: 'Retail & Toko Produk',
+        description:
+          'Penjualan barang jadi, toko fisik, minimarket, distributor, atau e-commerce dengan perputaran stok aktif.',
+        icon: ShoppingBagIcon,
+        features: [
+          'Stok barang masuk/keluar & barcode POS',
+          'Tingkatan harga (grosir, eceran, promo)',
+          'Perhitungan HPP otomatis (Average / FIFO)',
+        ],
+      },
+      {
+        id: BusinessShape.MANUFACTURING,
+        name: 'Manufaktur & Pabrikasi',
+        description:
+          'Pengolahan bahan mentah menjadi produk jadi melalui tahapan work order dan kalkulasi HPP pabrik.',
+        icon: Cog6ToothIcon,
+        features: [
+          'Bill of Materials (BOM) & resep produksi',
+          'Surat Perintah Kerja (SPK / Work Order)',
+          'Alokasi biaya bahan baku, tenaga kerja, & overhead',
+        ],
+      },
+    ];
+
+    const currentSelected =
+      SHAPES.find((s) => s.id === selectedShape) || SHAPES[0];
+
     return shell(
       'Pilih Model Operasional Bisnis',
       'Sync ERP akan secara otomatis mengonfigurasi bagan akun (Chart of Accounts), alur transaksi, dan modul yang sesuai dengan model usaha Anda.',
       'Langkah 1 dari 4 • Setup Operasional',
-      <div className="space-y-4">
-        {/* Card: Service & Rental */}
-        <div
-          onClick={() =>
-            selectShape.mutate(
-              { shape: BusinessShape.SERVICE },
-              {
-                onSuccess: (data: OnboardingCompanyUpdate) => {
-                  setCompanyFromMutation(data);
-                  onboardingState.refetch();
-                },
-              }
-            )
-          }
-          className="group relative flex cursor-pointer flex-col rounded-2xl border-2 border-blue-200/80 bg-blue-50/40 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-50/80 hover:shadow-lg hover:shadow-blue-500/10 active:scale-[0.99]"
-        >
-          <div className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-full bg-blue-600 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs">
-            <SparklesIcon className="h-3 w-3" />
-            Rekomendasi Utama
-          </div>
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-blue-700 text-white shadow-md shadow-blue-600/20">
-              <WrenchScrewdriverIcon className="h-6 w-6" />
-            </div>
-            <div className="flex-1 pr-24">
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
-                Rental & Layanan Jasa (Service)
-              </h3>
-              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
-                Persewaan perlengkapan, booking jadwal, deposit uang jaminan,
-                pengantaran/pengembalian, dan tagihan invoice berkala.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <span className="rounded-md bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 shadow-2xs">
-                  Sewa Berkala
-                </span>
-                <span className="rounded-md bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 shadow-2xs">
-                  Deposit Jaminan
-                </span>
-                <span className="rounded-md bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 shadow-2xs">
-                  Logistik & Ongkir
-                </span>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {SHAPES.map((item) => {
+            const Icon = item.icon;
+            const isSelected = selectedShape === item.id;
+
+            return (
+              <div
+                key={item.id}
+                onClick={() => setSelectedShape(item.id)}
+                onDoubleClick={() => {
+                  setSelectedShape(item.id);
+                  selectShape.mutate(
+                    { shape: item.id },
+                    {
+                      onSuccess: (data: OnboardingCompanyUpdate) => {
+                        setCompanyFromMutation(data);
+                        onboardingState.refetch();
+                      },
+                    }
+                  );
+                }}
+                className={`group relative flex cursor-pointer flex-col justify-between rounded-2xl border p-5 transition-all duration-200 select-none ${
+                  isSelected
+                    ? 'border-blue-600 bg-blue-50/25 ring-2 ring-blue-600/20 shadow-md shadow-blue-500/5'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50 hover:shadow-md hover:shadow-slate-900/5 hover:-translate-y-0.5 active:scale-[0.99]'
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors duration-200 ${
+                        isSelected
+                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                          : 'bg-slate-100 text-slate-700 group-hover:bg-slate-200'
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+
+                    {/* Radio Check Indicator */}
+                    <div
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
+                        isSelected
+                          ? 'bg-blue-600 text-white ring-2 ring-blue-600/20'
+                          : 'border-2 border-slate-300 bg-white group-hover:border-slate-400'
+                      }`}
+                    >
+                      {isSelected && (
+                        <CheckIcon className="h-3 w-3 stroke-[3]" />
+                      )}
+                    </div>
+                  </div>
+
+                  <h3
+                    className={`text-base font-bold transition-colors ${
+                      isSelected
+                        ? 'text-blue-700'
+                        : 'text-slate-900 group-hover:text-blue-600'
+                    }`}
+                  >
+                    {item.name}
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed min-h-[34px]">
+                    {item.description}
+                  </p>
+                </div>
+
+                <div className="mt-4 border-t border-slate-100 pt-3">
+                  <ul className="space-y-1.5">
+                    {item.features.map((feat) => (
+                      <li
+                        key={feat}
+                        className="flex items-center gap-2 text-xs text-slate-600"
+                      >
+                        <CheckIcon
+                          className={`h-3.5 w-3.5 shrink-0 ${
+                            isSelected ? 'text-blue-600' : 'text-slate-400'
+                          }`}
+                        />
+                        <span className="truncate">{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
-        {/* Card: Retail */}
-        <div
-          onClick={() =>
-            selectShape.mutate(
-              { shape: BusinessShape.RETAIL },
-              {
-                onSuccess: (data: OnboardingCompanyUpdate) => {
-                  setCompanyFromMutation(data);
-                  onboardingState.refetch();
-                },
-              }
-            )
-          }
-          className="group flex cursor-pointer flex-col rounded-2xl border border-slate-200 bg-white/90 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-400 hover:shadow-md active:scale-[0.99]"
-        >
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-600/20">
-              <ShoppingBagIcon className="h-6 w-6" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-cyan-700 transition-colors">
-                Retail & Toko Produk
-              </h3>
-              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
-                Penjualan barang jadi, toko fisik, minimarket, distributor, atau
-                e-commerce dengan manajemen perputaran stok aktif.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                  Stok Barang Masuk/Keluar
-                </span>
-                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                  Barcode POS
-                </span>
-                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                  Harga Grosir/Ecer
-                </span>
-              </div>
-            </div>
+        {/* Action Confirmation Footer */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 pt-6">
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <InformationCircleIcon className="h-4 w-4 text-slate-400 shrink-0" />
+            <span>
+              Pilihan: <strong className="text-slate-800">{currentSelected.name}</strong>. Anda dapat menyesuaikan modul di Pengaturan Perusahaan nanti.
+            </span>
           </div>
-        </div>
 
-        {/* Card: Manufacturing */}
-        <div
-          onClick={() =>
-            selectShape.mutate(
-              { shape: BusinessShape.MANUFACTURING },
-              {
-                onSuccess: (data: OnboardingCompanyUpdate) => {
-                  setCompanyFromMutation(data);
-                  onboardingState.refetch();
-                },
-              }
-            )
-          }
-          className="group flex cursor-pointer flex-col rounded-2xl border border-slate-200 bg-white/90 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-400 hover:shadow-md active:scale-[0.99]"
-        >
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-600 text-white shadow-md shadow-amber-600/20">
-              <Cog6ToothIcon className="h-6 w-6" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-amber-700 transition-colors">
-                Manufaktur & Pabrikasi
-              </h3>
-              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
-                Pengolahan bahan mentah menjadi barang jadi menggunakan formula
-                Bill of Materials (BOM) dan tracking biaya produksi.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                  Bill of Materials (BOM)
-                </span>
-                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                  Work in Progress (WIP)
-                </span>
-                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                  HPP Produksi
-                </span>
-              </div>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() =>
+              selectShape.mutate(
+                { shape: selectedShape },
+                {
+                  onSuccess: (data: OnboardingCompanyUpdate) => {
+                    setCompanyFromMutation(data);
+                    onboardingState.refetch();
+                  },
+                }
+              )
+            }
+            disabled={selectShape.isPending}
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition-all duration-150 hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {selectShape.isPending ? (
+              'Menyimpan Konfigurasi…'
+            ) : (
+              <>
+                <span>Lanjutkan: {currentSelected.name.split(' ')[0]}</span>
+                <ArrowRightIcon className="h-4 w-4" />
+              </>
+            )}
+          </button>
         </div>
       </div>,
-      'max-w-2xl'
+      'max-w-5xl'
     );
   }
 

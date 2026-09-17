@@ -22,8 +22,11 @@ import {
   Squares2X2Icon,
   ChatBubbleOvalLeftEllipsisIcon,
 } from '@heroicons/react/24/outline';
+import { useCompany } from '@/contexts/CompanyContext';
+import { BusinessShape } from '@sync-erp/shared';
 
 export default function SidebarNav() {
+  const { currentCompany } = useCompany();
   return (
     <nav
       className="sidebar-scrollbar flex-1 overflow-y-auto px-3 py-4"
@@ -164,44 +167,46 @@ export default function SidebarNav() {
           icon={<ChatBubbleOvalLeftEllipsisIcon />}
         />
       </SidebarGroup>
-      {/* Rental feature */}
-      <SidebarGroup label="Rental" icon={<ArchiveBoxIcon />}>
-        <SidebarItem
-          path="/rental/items"
-          label="Items"
-          icon={<ArchiveBoxIcon />}
-        />
-        <SidebarItem
-          path="/rental/bundles"
-          label="Bundles"
-          icon={<CubeIcon />}
-        />
-        <SidebarItem
-          path="/rental/orders"
-          label="Orders"
-          icon={<ShoppingCartIcon />}
-        />
-        <SidebarItem
-          path="/rental/returns"
-          label="Returns"
-          icon={<DocumentTextIcon />}
-        />
-        <SidebarItem
-          path="/rental/overdue"
-          label="Overdue"
-          icon={<DocumentCheckIcon />}
-        />
-        <SidebarItem
-          path="/rental/scheduler"
-          label="Scheduler"
-          icon={<CalendarDaysIcon />}
-        />
-        <SidebarItem
-          path="/rental/settings"
-          label="Settings"
-          icon={<Cog6ToothIcon />}
-        />
-      </SidebarGroup>
+      {/* Rental feature - only for RENTAL business shape */}
+      {currentCompany?.businessShape === BusinessShape.RENTAL && (
+        <SidebarGroup label="Rental" icon={<ArchiveBoxIcon />}>
+          <SidebarItem
+            path="/rental/items"
+            label="Items"
+            icon={<ArchiveBoxIcon />}
+          />
+          <SidebarItem
+            path="/rental/bundles"
+            label="Bundles"
+            icon={<CubeIcon />}
+          />
+          <SidebarItem
+            path="/rental/orders"
+            label="Orders"
+            icon={<ShoppingCartIcon />}
+          />
+          <SidebarItem
+            path="/rental/returns"
+            label="Returns"
+            icon={<DocumentTextIcon />}
+          />
+          <SidebarItem
+            path="/rental/overdue"
+            label="Overdue"
+            icon={<DocumentCheckIcon />}
+          />
+          <SidebarItem
+            path="/rental/scheduler"
+            label="Scheduler"
+            icon={<CalendarDaysIcon />}
+          />
+          <SidebarItem
+            path="/rental/settings"
+            label="Settings"
+            icon={<Cog6ToothIcon />}
+          />
+        </SidebarGroup>
+      )}
     </nav>
   );
 }

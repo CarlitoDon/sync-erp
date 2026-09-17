@@ -426,6 +426,10 @@ export class CompanyService {
         value: shape !== BusinessShape.SERVICE,
       },
       {
+        key: 'rental.enabled',
+        value: shape === BusinessShape.RENTAL,
+      },
+      {
         key: 'inventory.costing_method',
         value: defaultCostingMethod || 'AVG',
       },
@@ -551,10 +555,61 @@ export class CompanyService {
           ]
         : [];
 
+    // Add rental specific accounts
+    const rentalAccounts =
+      shape === BusinessShape.RENTAL
+        ? [
+            {
+              code: '1500',
+              name: 'Aset Inventaris Disewakan',
+              type: 'ASSET' as const,
+            },
+            {
+              code: '2100',
+              name: 'Titipan Uang Jaminan Sewa',
+              type: 'LIABILITY' as const,
+            },
+            {
+              code: '4100',
+              name: 'Pendapatan Sewa',
+              type: 'REVENUE' as const,
+            },
+            {
+              code: '4110',
+              name: 'Pendapatan Denda & Keterlambatan',
+              type: 'REVENUE' as const,
+            },
+          ]
+        : [];
+
+    // Add service specific accounts
+    const serviceAccounts =
+      shape === BusinessShape.SERVICE
+        ? [
+            {
+              code: '2150',
+              name: 'Uang Muka Proyek',
+              type: 'LIABILITY' as const,
+            },
+            {
+              code: '4200',
+              name: 'Pendapatan Jasa Profesional',
+              type: 'REVENUE' as const,
+            },
+            {
+              code: '5100',
+              name: 'Beban Tenaga Kerja Langsung',
+              type: 'EXPENSE' as const,
+            },
+          ]
+        : [];
+
     const allAccounts = [
       ...baseAccounts,
       ...inventoryAccounts,
       ...manufacturingAccounts,
+      ...rentalAccounts,
+      ...serviceAccounts,
     ];
 
     for (const account of allAccounts) {
