@@ -5,8 +5,16 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/trpc/:path*",
-      "destination": "https://api.santiliving.com/api/trpc/:path*"
+      "source": "/api/:path*",
+      "destination": "https://api-sync-erp.khusnudhoni.online/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://api-sync-erp.khusnudhoni.online/health"
+    },
+    {
+      "source": "/readyz",
+      "destination": "https://api-sync-erp.khusnudhoni.online/readyz"
     },
     {
       "source": "/(.*)",

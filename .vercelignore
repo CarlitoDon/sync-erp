@@ -22,7 +22,13 @@ deploy/
 # Local tool state
 .trae/
 .wwebjs_auth/
-apps/bot/.wwebjs_auth/
+**/.wwebjs_auth/**
+**/.wwebjs_auth
+**/Singleton*
+apps/bot/
+apps/mcp/
+.worktrees/
+.claude/
 supabase/.temp/
 cookies.txt
 *.session
