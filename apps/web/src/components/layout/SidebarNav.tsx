@@ -1,212 +1,111 @@
 import SidebarItem from '@/components/layout/SidebarItem';
 import SidebarGroup from '@/components/layout/SidebarGroup';
+import SidebarSubItem from '@/components/layout/SidebarSubItem';
 import {
   HomeIcon,
-  TruckIcon,
-  UserGroupIcon,
   CubeIcon,
-  ShoppingCartIcon,
   ArchiveBoxIcon,
-  DocumentTextIcon,
   BanknotesIcon,
-  BuildingOfficeIcon,
-  CreditCardIcon,
-  DocumentCheckIcon,
   ArrowDownTrayIcon,
-  ArrowUpTrayIcon,
   CurrencyDollarIcon,
   Cog6ToothIcon,
-  ClipboardDocumentListIcon,
-  WalletIcon,
-  CalendarDaysIcon,
-  Squares2X2Icon,
-  ChatBubbleOvalLeftEllipsisIcon,
 } from '@heroicons/react/24/outline';
 import { useCompany } from '@/contexts/CompanyContext';
 import { BusinessShape } from '@sync-erp/shared';
 
 export default function SidebarNav() {
   const { currentCompany } = useCompany();
+
   return (
     <nav
-      className="sidebar-scrollbar flex-1 overflow-y-auto px-3 py-4"
+      className="sidebar-scrollbar flex-1 overflow-y-auto px-3 py-3"
       aria-label="Primary navigation"
     >
-      {/* Dashboard */}
+      {/* 01. Dashboard - Primary Hub */}
       <SidebarItem
         path="/dashboard"
         label="Dashboard"
         icon={<HomeIcon />}
       />
 
-      {/* Sales Division */}
-      <SidebarGroup label="Sales" icon={<CurrencyDollarIcon />}>
-        <SidebarItem
-          path="/customers"
-          label="Customers"
-          icon={<UserGroupIcon />}
-        />
-        <SidebarItem
-          path="/quotations"
-          label="Quotations"
-          icon={<ClipboardDocumentListIcon />}
-        />
-        <SidebarItem
-          path="/sales-orders"
-          label="Sales Orders"
-          icon={<ShoppingCartIcon />}
-        />
-      </SidebarGroup>
-
-      {/* Purchasing Division */}
-      <SidebarGroup label="Purchasing" icon={<ArrowDownTrayIcon />}>
-        <SidebarItem
-          path="/suppliers"
-          label="Suppliers"
-          icon={<TruckIcon />}
-        />
-        <SidebarItem
-          path="/purchase-orders"
-          label="Purchase Orders"
-          icon={<DocumentCheckIcon />}
-        />
-      </SidebarGroup>
-
-      {/* Inventory Division - Operations Hub */}
-      <SidebarGroup label="Inventory" icon={<CubeIcon />}>
-        <SidebarItem
-          path="/products"
-          label="Products"
-          icon={<CubeIcon />}
-        />
-        <SidebarItem
-          path="/inventory"
-          label="Stock Levels"
+      {/* 02. Rental feature - Top Priority for Rental business (e.g. Santi Living) */}
+      {currentCompany?.businessShape === BusinessShape.RENTAL && (
+        <SidebarGroup
+          label="Rental Operations"
           icon={<ArchiveBoxIcon />}
-        />
-        <SidebarItem
-          path="/receipts"
-          label="Receipts"
-          icon={<ArrowDownTrayIcon />}
-        />
-        <SidebarItem
-          path="/shipments"
-          label="Deliveries"
-          icon={<ArrowUpTrayIcon />}
-        />
+          activePrefixes={['/rental']}
+        >
+          <SidebarSubItem path="/rental/scheduler" label="Scheduler Kalender" />
+          <SidebarSubItem path="/rental/orders" label="Daftar Pesanan Sewa" />
+          <SidebarSubItem path="/rental/items" label="Katalog & Unit Sewa" />
+          <SidebarSubItem path="/rental/bundles" label="Paket Sewa (Bundles)" />
+          <SidebarSubItem path="/rental/returns" label="Pengembalian Unit" />
+          <SidebarSubItem path="/rental/overdue" label="Pesanan Overdue" />
+          <SidebarSubItem path="/rental/settings" label="Pengaturan Rental" />
+        </SidebarGroup>
+      )}
+
+      {/* 03. Sales Division */}
+      <SidebarGroup
+        label="Sales"
+        icon={<CurrencyDollarIcon />}
+        activePrefixes={['/customers', '/quotations', '/sales-orders']}
+      >
+        <SidebarSubItem path="/customers" label="Customers" />
+        <SidebarSubItem path="/quotations" label="Quotations" />
+        <SidebarSubItem path="/sales-orders" label="Sales Orders" />
       </SidebarGroup>
 
-      {/* Finance Division */}
-      <SidebarGroup label="Finance" icon={<BanknotesIcon />}>
-        <SidebarItem
-          path="/invoices"
-          label="Customer Invoices"
-          icon={<DocumentTextIcon />}
-        />
-        <SidebarItem
-          path="/bills"
-          label="Vendor Bills"
-          icon={<CreditCardIcon />}
-        />
-        <SidebarItem
-          path="/payments"
-          label="Payments"
-          icon={<WalletIcon />}
-        />
-        <SidebarItem
-          path="/cash-bank"
-          label="Cash & Bank"
-          icon={<BanknotesIcon />}
-        />
-        <SidebarItem
-          path="/expenses"
-          label="Expenses"
-          icon={<BanknotesIcon />}
-        />
-        <SidebarItem
-          path="/finance"
-          label="Journal & Ledger"
-          icon={<BanknotesIcon />}
-        />
+      {/* 04. Purchasing Division */}
+      <SidebarGroup
+        label="Purchasing"
+        icon={<ArrowDownTrayIcon />}
+        activePrefixes={['/suppliers', '/purchase-orders']}
+      >
+        <SidebarSubItem path="/suppliers" label="Suppliers" />
+        <SidebarSubItem path="/purchase-orders" label="Purchase Orders" />
       </SidebarGroup>
 
-      {/* Settings */}
+      {/* 05. Inventory Division */}
+      <SidebarGroup
+        label="Inventory"
+        icon={<CubeIcon />}
+        activePrefixes={['/products', '/inventory', '/receipts', '/shipments']}
+      >
+        <SidebarSubItem path="/products" label="Products" />
+        <SidebarSubItem path="/inventory" label="Stock Levels" />
+        <SidebarSubItem path="/receipts" label="Receipts" />
+        <SidebarSubItem path="/shipments" label="Deliveries" />
+      </SidebarGroup>
+
+      {/* 06. Finance Division */}
+      <SidebarGroup
+        label="Finance"
+        icon={<BanknotesIcon />}
+        activePrefixes={['/invoices', '/bills', '/payments', '/cash-bank', '/expenses', '/finance']}
+      >
+        <SidebarSubItem path="/invoices" label="Customer Invoices" />
+        <SidebarSubItem path="/bills" label="Vendor Bills" />
+        <SidebarSubItem path="/payments" label="Payments" />
+        <SidebarSubItem path="/cash-bank" label="Cash & Bank" />
+        <SidebarSubItem path="/expenses" label="Expenses" />
+        <SidebarSubItem path="/finance" label="Journal & Ledger" />
+      </SidebarGroup>
+
+      {/* 07. Settings & Integrations */}
       <SidebarGroup
         label="Settings"
         icon={<Cog6ToothIcon />}
-        defaultOpen={false}
+        activePrefixes={['/companies', '/settings', '/integrations', '/docs']}
       >
-        <SidebarItem
-          path="/companies"
-          label="Companies"
-          icon={<BuildingOfficeIcon />}
-        />
-        <SidebarItem
-          path="/settings/billing"
-          label="Billing"
-          icon={<CreditCardIcon />}
-        />
-        <SidebarItem
-          path="/settings/payment-methods"
-          label="Metode Pembayaran"
-          icon={<CreditCardIcon />}
-        />
-        <SidebarItem
-          path="/integrations"
-          label="Integrations"
-          icon={<Squares2X2Icon />}
-        />
-        <SidebarItem
-          path="/docs/api"
-          label="API Docs"
-          icon={<DocumentTextIcon />}
-        />
-        <SidebarItem
-          path="/settings/whatsapp"
-          label="WhatsApp"
-          icon={<ChatBubbleOvalLeftEllipsisIcon />}
-        />
+        <SidebarSubItem path="/companies" label="Companies" />
+        <SidebarSubItem path="/settings/billing" label="Billing & Paket" />
+        <SidebarSubItem path="/settings/payment-methods" label="Metode Pembayaran" />
+        <SidebarSubItem path="/integrations" label="Integrations" />
+        <SidebarSubItem path="/docs/api" label="API Docs" />
+        <SidebarSubItem path="/settings/whatsapp" label="WhatsApp Gateway" />
       </SidebarGroup>
-      {/* Rental feature - only for RENTAL business shape */}
-      {currentCompany?.businessShape === BusinessShape.RENTAL && (
-        <SidebarGroup label="Rental" icon={<ArchiveBoxIcon />}>
-          <SidebarItem
-            path="/rental/items"
-            label="Items"
-            icon={<ArchiveBoxIcon />}
-          />
-          <SidebarItem
-            path="/rental/bundles"
-            label="Bundles"
-            icon={<CubeIcon />}
-          />
-          <SidebarItem
-            path="/rental/orders"
-            label="Orders"
-            icon={<ShoppingCartIcon />}
-          />
-          <SidebarItem
-            path="/rental/returns"
-            label="Returns"
-            icon={<DocumentTextIcon />}
-          />
-          <SidebarItem
-            path="/rental/overdue"
-            label="Overdue"
-            icon={<DocumentCheckIcon />}
-          />
-          <SidebarItem
-            path="/rental/scheduler"
-            label="Scheduler"
-            icon={<CalendarDaysIcon />}
-          />
-          <SidebarItem
-            path="/rental/settings"
-            label="Settings"
-            icon={<Cog6ToothIcon />}
-          />
-        </SidebarGroup>
-      )}
     </nav>
   );
 }
+

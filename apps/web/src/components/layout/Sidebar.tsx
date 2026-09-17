@@ -147,46 +147,73 @@ export default function Sidebar() {
         {/* Footer */}
         <div
           className={`
-          mt-auto space-y-2 border-t border-slate-200/80 bg-slate-50/70 p-3
+          mt-auto space-y-2 border-t border-slate-200/80 bg-slate-50/50 p-3
           ${isCompact ? 'items-center' : ''}
         `}
         >
           {/* Company Switcher */}
           {!isCompact && (
-            <div className="mb-2">
+            <div className="mb-1.5">
               <CompanySwitcher />
             </div>
           )}
 
-          {/* User Info */}
-          {!isCompact && user && (
-            <div className="rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-slate-900 shadow-2xs">
-              <p className="truncate text-xs font-semibold text-slate-900">
-                {user.name}
-              </p>
-              {currentCompany && (
-                <p className="mt-0.5 truncate text-[11px] font-medium text-slate-500">
-                  {currentCompany.name}
-                </p>
+          {/* User Profile Pill & Integrated Logout Capsule (Pinterest/Linear Style) */}
+          {user && (
+            <div
+              className={`
+                flex items-center rounded-xl border border-slate-200/80 bg-white p-2 shadow-2xs
+                ${isCompact ? 'justify-center p-1.5' : 'justify-between gap-2.5'}
+              `}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                {/* Avatar with Initials */}
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-[11px] font-bold text-white shadow-2xs">
+                  {user.name
+                    ?.split(' ')
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase() || 'U'}
+                </div>
+
+                {!isCompact && (
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-slate-900 leading-tight">
+                      {user.name}
+                    </p>
+                    <p className="truncate text-[10.5px] font-medium text-slate-500">
+                      {user.email || currentCompany?.name || 'Administrator'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {!isCompact && (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 active:scale-95"
+                  title="Logout"
+                  aria-label="Logout"
+                >
+                  <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                </button>
               )}
             </div>
           )}
 
-          {/* Logout */}
-          <button
-            type="button"
-            onClick={handleLogout}
-            className={`
-              flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-500 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 active:scale-[0.98]
-              ${isCompact ? 'justify-center' : ''}
-            `}
-            title={isCompact ? 'Logout' : undefined}
-          >
-            <ArrowRightOnRectangleIcon className="w-4 h-4" />
-            {!isCompact && (
-              <span className="text-xs font-semibold">Logout</span>
-            )}
-          </button>
+          {/* Compact logout button */}
+          {isCompact && (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex h-8 w-8 mx-auto items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+              title="Logout"
+            >
+              <ArrowRightOnRectangleIcon className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </aside>
     </>
