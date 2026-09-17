@@ -1,5 +1,5 @@
-import { useState, useEffect, ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useEffect, useRef, ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { useSidebar } from '@/contexts/SidebarContext';
 
@@ -9,6 +9,7 @@ interface SidebarGroupProps {
   children: ReactNode;
   defaultOpen?: boolean;
   activePrefixes?: string[];
+  defaultPath?: string;
 }
 
 export default function SidebarGroup({
@@ -17,18 +18,23 @@ export default function SidebarGroup({
   children,
   defaultOpen = false,
   activePrefixes = [],
+  defaultPath,
 }: SidebarGroupProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isCollapsed, isMobileOpen } = useSidebar();
   const isCompact = isCollapsed && !isMobileOpen;
 
-  // Check if any route under this group is currently active
   const isChildActive = activePrefixes.some(
     (prefix) =>
       location.pathname === prefix || location.pathname.startsWith(`${prefix}/`)
   );
 
   const [isOpen, setIsOpen] = useState(defaultOpen || isChildActive);
+  const [showFlyout, setShowFlyout] = useState(false);
+  const [flyoutTop, setFlyoutTop] = useState(0);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-expand group if current route navigates inside this group
   useEffect(() => {
@@ -37,23 +43,106 @@ export default function SidebarGroup({
     }
   }, [isChildActive]);
 
-  // When sidebar is collapsed, show compact icon
+  const handleMouseEnter = () => {
+    if (!isCompact) return;
+    if (leaveTimeoutRef.current) clearTimeout(leaveTimeoutRef.current);
+
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      // Keep flyout safely within viewport height
+      const clampedTop = Math.min(rect.top - 8, window.innerHeight - 320);
+      setFlyoutTop(Math.max(16, clampedTop));
+    }
+    setShowFlyout(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (!isCompact) return;
+    leaveTimeoutRef.current = setTimeout(() => {
+      setShowFlyout(false);
+    }, 150);
+  };
+
+  const handleCompactClick = () => {
+    if (defaultPath) {
+      navigate(defaultPath);
+      setShowFlyout(false);
+    } else {
+      setShowFlyout((prev) => !prev);
+    }
+  };
+
+  // When sidebar is collapsed, show compact icon with direct click navigation & floating flyout
   if (isCompact) {
     return (
-      <div className="py-1">
+      <div
+        className="relative py-1 flex justify-center"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
         <button
+          ref={buttonRef}
           type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          title={label}
+          onClick={handleCompactClick}
+          title={`${label}${defaultPath ? ' (Klik untuk buka)' : ''}`}
+          aria-label={label}
           className={`
-            flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-slate-500
+            group relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500
             transition duration-[var(--duration-fast)] ease-[var(--ease-out)]
-            hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
-            ${isChildActive ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200/60' : ''}
+            hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95
+            ${
+              isChildActive
+                ? 'bg-blue-50 font-semibold text-blue-700 ring-1 ring-blue-200/60 shadow-2xs'
+                : ''
+            }
           `}
         >
-          <span className="h-5 w-5">{icon}</span>
+          {isChildActive && (
+            <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-blue-600" />
+          )}
+          <span
+            className={`h-5 w-5 transition-colors ${
+              isChildActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-700'
+            }`}
+          >
+            {icon}
+          </span>
         </button>
+
+        {/* Floating Flyout Submenu in Compact Mode */}
+        {showFlyout && (
+          <div
+            style={{ top: `${flyoutTop}px` }}
+            className="fixed left-[4.8rem] z-[100] w-56 rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-xl shadow-slate-900/10 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2 mb-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                {label}
+              </span>
+              {defaultPath && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate(defaultPath);
+                    setShowFlyout(false);
+                  }}
+                  className="text-[11px] font-semibold text-blue-600 hover:underline"
+                >
+                  Buka &rarr;
+                </button>
+              )}
+            </div>
+
+            <div
+              className="space-y-0.5"
+              onClick={() => setShowFlyout(false)}
+            >
+              {children}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

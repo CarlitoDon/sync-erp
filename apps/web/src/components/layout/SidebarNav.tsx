@@ -34,6 +34,7 @@ export default function SidebarNav() {
           label="Rental Operations"
           icon={<ArchiveBoxIcon />}
           activePrefixes={['/rental']}
+          defaultPath="/rental/orders"
         >
           <SidebarSubItem path="/rental/scheduler" label="Scheduler Kalender" />
           <SidebarSubItem path="/rental/orders" label="Daftar Pesanan Sewa" />
@@ -50,6 +51,7 @@ export default function SidebarNav() {
         label="Sales"
         icon={<CurrencyDollarIcon />}
         activePrefixes={['/customers', '/quotations', '/sales-orders']}
+        defaultPath="/sales-orders"
       >
         <SidebarSubItem path="/customers" label="Customers" />
         <SidebarSubItem path="/quotations" label="Quotations" />
@@ -61,6 +63,7 @@ export default function SidebarNav() {
         label="Purchasing"
         icon={<ArrowDownTrayIcon />}
         activePrefixes={['/suppliers', '/purchase-orders']}
+        defaultPath="/purchase-orders"
       >
         <SidebarSubItem path="/suppliers" label="Suppliers" />
         <SidebarSubItem path="/purchase-orders" label="Purchase Orders" />
@@ -71,6 +74,7 @@ export default function SidebarNav() {
         label="Inventory"
         icon={<CubeIcon />}
         activePrefixes={['/products', '/inventory', '/receipts', '/shipments']}
+        defaultPath="/inventory"
       >
         <SidebarSubItem path="/products" label="Products" />
         <SidebarSubItem path="/inventory" label="Stock Levels" />
@@ -83,6 +87,7 @@ export default function SidebarNav() {
         label="Finance"
         icon={<BanknotesIcon />}
         activePrefixes={['/invoices', '/bills', '/payments', '/cash-bank', '/expenses', '/finance']}
+        defaultPath="/invoices"
       >
         <SidebarSubItem path="/invoices" label="Customer Invoices" />
         <SidebarSubItem path="/bills" label="Vendor Bills" />
@@ -97,6 +102,7 @@ export default function SidebarNav() {
         label="Settings"
         icon={<Cog6ToothIcon />}
         activePrefixes={['/companies', '/settings', '/integrations', '/docs']}
+        defaultPath="/companies"
       >
         <SidebarSubItem path="/companies" label="Companies" />
         <SidebarSubItem path="/settings/billing" label="Billing & Paket" />

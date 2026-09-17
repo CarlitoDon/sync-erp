@@ -78,68 +78,69 @@ export default function Sidebar() {
           md:translate-x-0
         `}
       >
-        {/* Logo Header */}
+        {/* Logo Header (Fixed 64px height in both states to prevent layout shifts) */}
         <div
           className={`
-          flex h-16 items-center border-b border-slate-200/80 px-4
-          ${isCompact ? 'justify-center' : 'justify-between'}
+          flex h-16 items-center border-b border-slate-200/80
+          ${isCompact ? 'justify-center px-2' : 'justify-between px-4'}
         `}
         >
-          <Link
-            to="/dashboard"
-            onClick={closeMobile}
-            className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-          >
-            <BrandMark tone="gradient" size="sm" />
-            {!isCompact && (
-              <span className="min-w-0">
-                <span className="block truncate text-[15px] font-bold tracking-tight text-slate-950">
-                  Sync ERP
-                </span>
-                <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                  Operations
-                </span>
-              </span>
-            )}
-          </Link>
-
-          {/* Desktop collapse toggle */}
-          {!isCompact && (
+          {!isCompact ? (
             <>
-              <button
-                type="button"
+              <Link
+                to="/dashboard"
                 onClick={closeMobile}
-                className="flex rounded-lg p-1.5 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.96] md:hidden"
-                title="Close navigation"
-                aria-label="Close navigation"
+                className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={toggleCollapse}
-                className="hidden rounded-lg p-1.5 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.96] md:flex"
-                title="Collapse sidebar"
-                aria-label="Collapse sidebar"
-              >
-                <ChevronDoubleLeftIcon className="h-4 w-4" />
-              </button>
+                <BrandMark tone="gradient" size="sm" />
+                <span className="min-w-0">
+                  <span className="block truncate text-[15px] font-bold tracking-tight text-slate-950">
+                    Sync ERP
+                  </span>
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                    Operations
+                  </span>
+                </span>
+              </Link>
+
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={closeMobile}
+                  className="flex rounded-lg p-1.5 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.96] md:hidden"
+                  title="Close navigation"
+                  aria-label="Close navigation"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleCollapse}
+                  className="hidden rounded-lg p-1.5 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.96] md:flex"
+                  title="Collapse sidebar"
+                  aria-label="Collapse sidebar"
+                >
+                  <ChevronDoubleLeftIcon className="h-4 w-4" />
+                </button>
+              </div>
             </>
+          ) : (
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              className="group relative flex h-10 w-10 items-center justify-center rounded-xl transition duration-[var(--duration-fast)] hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95"
+              title="Buka sidebar (Expand)"
+              aria-label="Buka sidebar"
+            >
+              <div className="transition-transform duration-200 group-hover:scale-90">
+                <BrandMark tone="gradient" size="sm" />
+              </div>
+              <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-2xs transition-colors group-hover:border-blue-300 group-hover:bg-blue-50 group-hover:text-blue-600">
+                <ChevronDoubleRightIcon className="h-2.5 w-2.5" />
+              </span>
+            </button>
           )}
         </div>
-
-        {/* Collapsed expand button */}
-        {isCompact && (
-          <button
-            type="button"
-            onClick={toggleCollapse}
-            className="mx-auto mt-3 hidden rounded-lg p-2 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.96] md:flex"
-            title="Expand sidebar"
-            aria-label="Expand sidebar"
-          >
-            <ChevronDoubleRightIcon className="h-4 w-4" />
-          </button>
-        )}
 
         {/* Navigation */}
         <SidebarNav />
