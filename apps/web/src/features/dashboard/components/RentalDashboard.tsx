@@ -216,25 +216,18 @@ export function RentalDashboard() {
             </CardContent>
           </Card>
 
-          <Card
-            className="relative min-h-[18rem] overflow-hidden border-slate-800 text-white"
-            style={{
-              background:
-                'radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.34), transparent 12rem), linear-gradient(145deg, #111827 0%, #0f172a 100%)',
-            }}
-          >
-            <div className="absolute -bottom-16 -right-14 h-48 w-48 rounded-full border border-white/[0.06]" />
-            <CardContent className="relative flex h-full min-h-[18rem] flex-col p-6 sm:p-6">
+          <div className="flex min-h-[18rem] flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm shadow-slate-900/5 transition-all">
+            <div>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary-200">
+                  <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 ring-1 ring-blue-200/60">
                     In progress
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold text-white">
+                  </span>
+                  <h3 className="mt-1.5 text-lg font-bold text-slate-900">
                     Active rentals
                   </h3>
                 </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] text-primary-200">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50 text-slate-700 shadow-2xs">
                   <ClipboardDocumentListIcon className="h-5 w-5" />
                 </span>
               </div>
@@ -244,29 +237,29 @@ export function RentalDashboard() {
                   className="mt-8 animate-pulse"
                   aria-label="Loading active rentals"
                 >
-                  <div className="h-12 w-24 rounded bg-white/10" />
-                  <div className="mt-3 h-4 w-40 rounded bg-white/10" />
+                  <div className="h-12 w-24 rounded bg-slate-200" />
+                  <div className="mt-3 h-4 w-40 rounded bg-slate-100" />
                 </div>
               ) : (
-                <div className="mt-7" aria-live="polite">
-                  <p className="text-5xl font-semibold tracking-[-0.05em] text-white">
+                <div className="mt-6" aria-live="polite">
+                  <p className="font-mono text-5xl font-bold tracking-tight text-slate-900">
                     {activeCount}
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">
-                    Rental orders currently active
+                  <p className="mt-2 text-xs font-medium text-slate-500">
+                    Pesanan sewa yang sedang aktif berjalan
                   </p>
                 </div>
               )}
+            </div>
 
-              <Link
-                to="/rental/orders"
-                className="mt-auto inline-flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.08] px-4 py-3 text-sm font-semibold text-white transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-white/[0.13] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:scale-[0.98]"
-              >
-                View active orders
-                <ArrowRightIcon className="h-4 w-4" />
-              </Link>
-            </CardContent>
-          </Card>
+            <Link
+              to="/rental/orders"
+              className="mt-8 inline-flex items-center justify-between rounded-xl bg-slate-900 px-4 py-3 text-xs font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+            >
+              <span>Lihat Semua Pesanan Aktif</span>
+              <ArrowRightIcon className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </section>
     </div>

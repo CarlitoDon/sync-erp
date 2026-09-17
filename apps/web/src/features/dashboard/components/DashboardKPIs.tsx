@@ -61,7 +61,7 @@ export function DashboardKPIs() {
           currency={kpis.currency}
           isLoading={loading}
           icon={ArrowTrendingUpIcon}
-          tone="indigo"
+          tone="blue"
           description="Sales recorded to date"
         />
         <StatCard

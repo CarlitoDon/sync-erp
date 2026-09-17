@@ -45,7 +45,7 @@ export default function SidebarItem({
       title={isCompact ? label : undefined}
     >
       {isActive && (
-        <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary-300 shadow-[0_0_12px_rgba(165,180,252,0.8)]" />
+        <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary-400 shadow-[0_0_10px_rgba(59,130,246,0.4)]" />
       )}
       <span
         className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-primary-300' : 'text-slate-400 group-hover:text-slate-200'}`}

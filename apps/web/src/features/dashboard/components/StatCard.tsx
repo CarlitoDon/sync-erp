@@ -2,7 +2,7 @@ import type { ComponentType, SVGProps } from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { formatCurrency, formatNumber } from '@/utils/format';
 
-type StatCardTone = 'indigo' | 'emerald' | 'amber' | 'sky';
+type StatCardTone = 'blue' | 'indigo' | 'emerald' | 'amber' | 'sky';
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
 interface StatCardProps {
@@ -19,9 +19,13 @@ const toneStyles: Record<
   StatCardTone,
   { icon: string; line: string }
 > = {
+  blue: {
+    icon: 'border-blue-100 bg-blue-50 text-blue-700',
+    line: 'from-blue-500/70 via-blue-300/30 to-transparent',
+  },
   indigo: {
-    icon: 'border-primary-100 bg-primary-50 text-primary-700',
-    line: 'from-primary-500/70 via-primary-300/30 to-transparent',
+    icon: 'border-blue-100 bg-blue-50 text-blue-700',
+    line: 'from-blue-500/70 via-blue-300/30 to-transparent',
   },
   emerald: {
     icon: 'border-emerald-100 bg-emerald-50 text-emerald-700',
@@ -48,7 +52,7 @@ export function StatCard({
   description,
   isLoading = false,
   icon: Icon,
-  tone = 'indigo',
+  tone = 'blue',
 }: StatCardProps) {
   // Format number with currency if provided
   const formattedValue =

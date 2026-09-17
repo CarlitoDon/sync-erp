@@ -57,10 +57,10 @@ export default function Dashboard() {
     return (
       <PageContainer>
         <div className="space-y-8">
-          <div className="min-h-48 animate-pulse rounded-[1.75rem] bg-slate-900 p-8">
-            <div className="mb-4 h-3 w-32 rounded bg-white/10" />
-            <div className="h-9 w-64 rounded bg-white/15" />
-            <div className="mt-4 h-4 w-80 max-w-full rounded bg-white/10" />
+          <div className="min-h-48 animate-pulse rounded-3xl border border-slate-200/80 bg-white p-8 shadow-sm">
+            <div className="mb-4 h-3 w-32 rounded bg-slate-200" />
+            <div className="h-9 w-64 rounded bg-slate-200" />
+            <div className="mt-4 h-4 w-80 max-w-full rounded bg-slate-100" />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
@@ -182,54 +182,62 @@ export default function Dashboard() {
       />
 
       {/* Workspace identity and status */}
-      <section className="relative mb-8 overflow-hidden rounded-[1.75rem] border border-slate-800 bg-slate-950 px-5 py-6 text-white shadow-[0_20px_55px_rgba(15,23,42,0.18)] sm:px-8 sm:py-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(99,102,241,0.32),transparent_24rem),radial-gradient(circle_at_90%_20%,rgba(56,189,248,0.13),transparent_20rem)]" />
-        <div className="absolute -bottom-32 left-1/3 h-64 w-64 rounded-full border border-white/[0.04]" />
-        <div className="relative flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+      <section className="relative mb-8 overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm shadow-slate-900/5">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-blue-50/60 blur-3xl" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-start gap-4 sm:items-center sm:gap-5">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.1] text-lg font-semibold text-white shadow-inner sm:h-14 sm:w-14">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-xl font-bold text-white shadow-md shadow-slate-900/10">
               {currentCompany?.name?.charAt(0).toUpperCase() || (
-                <BuildingOffice2Icon className="h-6 w-6" />
+                <BuildingOffice2Icon className="h-7 w-7" />
               )}
             </span>
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-200">
-                Operations workspace
-              </p>
-              <h1 className="mt-2 truncate text-3xl font-semibold tracking-[-0.035em] text-white sm:text-4xl">
-                {currentCompany?.name || 'Welcome to Sync ERP'}
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-200/60">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+                  Operations Workspace • {currentCompany?.businessShape === 'RENTAL' ? 'Rental & Sewa' : currentCompany?.businessShape || 'Standard'}
+                </span>
+              </div>
+              <h1 className="mt-2 truncate text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                {currentCompany?.name || 'Sync ERP Workspace'}
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-                Your live overview of finance, inventory, and daily
-                operations.
+              <p className="mt-1 max-w-2xl text-xs sm:text-sm leading-relaxed text-slate-500">
+                Ringkasan menyeluruh kesehatan finansial, pergerakan inventaris, dan operasional bisnis harian.
               </p>
             </div>
           </div>
 
           <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-            <div className="flex min-w-52 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3.5 backdrop-blur-sm">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.08] text-primary-200">
+            <div className="flex min-w-48 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-3 shadow-2xs">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-700 shadow-2xs">
                 <CalendarDaysIcon className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">
-                  Today
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Hari Ini
                 </p>
-                <p className="mt-0.5 text-sm font-semibold text-white">
+                <p className="mt-0.5 text-sm font-bold text-slate-900">
                   {dashboardDateFormatter.format(new Date())}
                 </p>
               </div>
             </div>
-            <div className="inline-flex items-center gap-2.5 rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.08] px-4 py-3.5 text-sm font-medium text-emerald-100">
-              <SignalIcon className="h-5 w-5 text-emerald-300" />
-              <span>
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-300/70">
-                  Status
-                </span>
-                <span className="mt-0.5 block font-semibold">
-                  Workspace live
+
+            <div className="flex min-w-48 items-center gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/50 px-4 py-3 shadow-2xs">
+              <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                <SignalIcon className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-600" />
                 </span>
               </span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/70">
+                  Status Sistem
+                </p>
+                <p className="mt-0.5 text-sm font-bold text-emerald-800">
+                  Workspace Aktif
+                </p>
+              </div>
             </div>
           </div>
         </div>

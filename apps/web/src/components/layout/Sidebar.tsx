@@ -71,7 +71,7 @@ export default function Sidebar() {
       <aside
         className={`
           fixed left-0 top-0 z-50 flex h-screen max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden
-          border-r border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.18),_transparent_18rem),linear-gradient(180deg,_#111827_0%,_#0b1220_100%)]
+          border-r border-slate-800/80 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950
           text-white shadow-2xl shadow-slate-950/20 transition-all duration-[var(--duration-slow)] ease-[var(--ease-drawer)]
           ${isCompact ? 'w-[4.5rem]' : 'w-[17rem]'}
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
