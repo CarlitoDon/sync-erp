@@ -129,7 +129,7 @@ export function RentalDashboard() {
             </Link>
             <Link
               to="/rental/scheduler"
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white shadow-sm transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98]"
             >
               <CalendarDaysIcon className="h-4 w-4" />
               Scheduler
@@ -186,7 +186,7 @@ export function RentalDashboard() {
                           </p>
                         </div>
                       </div>
-                      <span className="w-fit rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      <span className="w-fit rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-mono font-semibold text-slate-600 tabular-nums">
                         {formatDate(new Date(booking.endDate))}
                       </span>
                     </li>
@@ -242,7 +242,7 @@ export function RentalDashboard() {
                 </div>
               ) : (
                 <div className="mt-6" aria-live="polite">
-                  <p className="font-mono text-5xl font-bold tracking-tight text-slate-900">
+                  <p className="font-mono text-5xl font-bold tracking-tight text-slate-950 tabular-nums">
                     {activeCount}
                   </p>
                   <p className="mt-2 text-xs font-medium text-slate-500">
@@ -254,7 +254,7 @@ export function RentalDashboard() {
 
             <Link
               to="/rental/orders"
-              className="mt-8 inline-flex items-center justify-between rounded-xl bg-slate-900 px-4 py-3 text-xs font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+              className="mt-8 inline-flex items-center justify-between rounded-xl bg-blue-600 px-4 py-3 text-xs font-semibold text-white shadow-sm shadow-blue-600/20 transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-blue-700 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               <span>Lihat Semua Pesanan Aktif</span>
               <ArrowRightIcon className="h-4 w-4" />

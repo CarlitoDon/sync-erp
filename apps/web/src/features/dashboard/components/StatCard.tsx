@@ -91,7 +91,7 @@ export function StatCard({
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               {title}
             </p>
-            <p className="mt-3 break-words text-2xl font-semibold tracking-[-0.03em] text-slate-950">
+            <p className="mt-3 break-words font-mono text-2xl font-semibold tracking-tight text-slate-950 tabular-nums">
               {formattedValue}
             </p>
             {description && (
