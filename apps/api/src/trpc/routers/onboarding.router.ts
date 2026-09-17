@@ -9,6 +9,7 @@ import {
   CompanyOnboardingStep,
   PaymentTerms,
   PaymentMethodType,
+  AccountType,
 } from '@sync-erp/database';
 import { container, ServiceKeys } from '../../modules/common/di';
 import type { CompanyService } from '../../modules/company/company.service';
@@ -28,9 +29,18 @@ const SelectBusinessShapeSchema = z.object({
     .refine((shape) => shape !== BusinessShape.PENDING),
 });
 
+const AccountItemSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().trim().min(1, 'Nama akun wajib diisi'),
+  type: z.enum(['CASH', 'BANK']),
+  accountNumber: z.string().trim().optional(),
+  balance: z.number().min(0, 'Saldo tidak boleh negatif'),
+});
+
 const SubmitOpeningBalanceSchema = z.object({
-  cash: z.number().min(0),
-  bank: z.number().min(0),
+  cash: z.number().min(0).optional(),
+  bank: z.number().min(0).optional(),
+  accounts: z.array(AccountItemSchema).optional(),
 });
 
 const RunFirstTransactionRetailSchema = z.object({
@@ -269,48 +279,264 @@ export const onboardingRouter = router({
         });
       }
 
-      const total = input.cash + input.bank;
-      let openingJournalId: string | null = null;
+      // Cleanup existing opening balance journal if re-running opening balance
+      const existingJournal = await prisma.journalEntry.findFirst({
+        where: {
+          companyId,
+          reference: 'ONBOARDING_OPENING_BALANCE',
+        },
+        select: { id: true },
+      });
 
-      if (total > 0) {
-        const existing = await prisma.journalEntry.findFirst({
-          where: {
-            companyId,
-            reference: 'ONBOARDING_OPENING_BALANCE',
-          },
-          select: { id: true },
+      if (existingJournal) {
+        await prisma.journalLine.deleteMany({
+          where: { journalId: existingJournal.id },
         });
+        await prisma.journalEntry.delete({
+          where: { id: existingJournal.id },
+        });
+      }
 
-        if (existing) {
-          openingJournalId = existing.id;
-        } else {
-          const accountService = container.resolve<AccountService>(
-            ServiceKeys.ACCOUNT_SERVICE
-          );
-          const journalRepository = container.resolve<JournalRepository>(
-            ServiceKeys.JOURNAL_REPOSITORY
-          );
-          const journalCoreService = new JournalCoreService(
-            journalRepository,
-            accountService
-          );
+      const accountService = container.resolve<AccountService>(
+        ServiceKeys.ACCOUNT_SERVICE
+      );
+      const journalRepository = container.resolve<JournalRepository>(
+        ServiceKeys.JOURNAL_REPOSITORY
+      );
+      const journalCoreService = new JournalCoreService(
+        journalRepository,
+        accountService
+      );
 
+      let openingJournalId: string | null = null;
+      let total = 0;
+      let totalCash = 0;
+      let totalBank = 0;
+      const accountMetaList: Array<{
+        name: string;
+        type: 'CASH' | 'BANK';
+        code: string;
+        balance: number;
+        accountId: string;
+      }> = [];
+
+      if (input.accounts && input.accounts.length > 0) {
+        // Ensure Cash parent account (1000) exists
+        let cashParent = await prisma.account.findUnique({
+          where: { companyId_code: { companyId, code: '1000' } },
+        });
+        if (!cashParent) {
+          cashParent = await prisma.account.create({
+            data: {
+              companyId,
+              code: '1000',
+              name: 'Kas',
+              type: AccountType.ASSET,
+              isGroup: true,
+            },
+          });
+        } else if (!cashParent.isGroup) {
+          await prisma.account.update({
+            where: { id: cashParent.id },
+            data: { isGroup: true },
+          });
+        }
+
+        // Ensure Bank parent account (1050) exists
+        let bankParent = await prisma.account.findUnique({
+          where: { companyId_code: { companyId, code: '1050' } },
+        });
+        if (!bankParent) {
+          bankParent = await prisma.account.create({
+            data: {
+              companyId,
+              code: '1050',
+              name: 'Rekening Bank',
+              type: AccountType.ASSET,
+              isGroup: true,
+            },
+          });
+        } else if (!bankParent.isGroup) {
+          await prisma.account.update({
+            where: { id: bankParent.id },
+            data: { isGroup: true },
+          });
+        }
+
+        // Ensure Capital account (3200) exists
+        const capitalAccount = await prisma.account.findUnique({
+          where: { companyId_code: { companyId, code: '3200' } },
+        });
+        if (!capitalAccount) {
+          await prisma.account.create({
+            data: {
+              companyId,
+              code: '3200',
+              name: 'Modal Pemilik',
+              type: AccountType.EQUITY,
+            },
+          });
+        }
+
+        const debitLines: Array<{
+          accountCode: string;
+          debit: number;
+          credit: number;
+          description: string;
+        }> = [];
+
+        for (let i = 0; i < input.accounts.length; i++) {
+          const accItem = input.accounts[i];
+          const isCash = accItem.type === 'CASH';
+          const prefix = isCash ? '100' : '105';
+          const parentId = isCash ? cashParent.id : bankParent.id;
+
+          if (isCash) totalCash += accItem.balance;
+          else totalBank += accItem.balance;
+
+          // Find existing account with same name or create new
+          let glAccount = await prisma.account.findFirst({
+            where: {
+              companyId,
+              name: accItem.name,
+              type: AccountType.ASSET,
+            },
+          });
+
+          if (!glAccount) {
+            const maxCode = await prisma.account.findFirst({
+              where: {
+                companyId,
+                code: { startsWith: prefix },
+                NOT: { code: isCash ? '1000' : '1050' },
+              },
+              orderBy: { code: 'desc' },
+              select: { code: true },
+            });
+
+            let nextNum = isCash ? 1001 : 1051;
+            if (maxCode) {
+              const parsed = parseInt(maxCode.code, 10);
+              if (!isNaN(parsed) && parsed >= nextNum) {
+                nextNum = parsed + 1;
+              }
+            }
+
+            glAccount = await prisma.account.create({
+              data: {
+                companyId,
+                code: nextNum.toString(),
+                name: accItem.name,
+                type: AccountType.ASSET,
+                parentId,
+                isGroup: false,
+              },
+            });
+          }
+
+          accountMetaList.push({
+            name: accItem.name,
+            type: accItem.type,
+            code: glAccount.code,
+            balance: accItem.balance,
+            accountId: glAccount.id,
+          });
+
+          // If BANK, link BankAccount
+          if (!isCash) {
+            const existingBankAcc = await prisma.bankAccount.findFirst({
+              where: { companyId, accountId: glAccount.id },
+            });
+            if (!existingBankAcc) {
+              await prisma.bankAccount.create({
+                data: {
+                  companyId,
+                  accountId: glAccount.id,
+                  bankName: accItem.name,
+                  accountNumber: accItem.accountNumber || '',
+                  currency: 'IDR',
+                },
+              });
+            }
+          }
+
+          // Register payment method
+          const methodCode = `${accItem.type}_${glAccount.code}`;
+          const existingMethod = await prisma.companyPaymentMethod.findFirst({
+            where: { companyId, code: methodCode },
+          });
+          if (!existingMethod) {
+            await prisma.companyPaymentMethod.create({
+              data: {
+                companyId,
+                code: methodCode,
+                name: accItem.name,
+                type: isCash ? PaymentMethodType.CASH : PaymentMethodType.BANK,
+                accountId: glAccount.id,
+                isActive: true,
+                isDefault: i === 0,
+                sortOrder: i,
+              },
+            });
+          }
+
+          if (accItem.balance > 0) {
+            debitLines.push({
+              accountCode: glAccount.code,
+              debit: accItem.balance,
+              credit: 0,
+              description: `Saldo awal: ${accItem.name}`,
+            });
+          }
+        }
+
+        total = totalCash + totalBank;
+
+        if (total > 0 && debitLines.length > 0) {
+          const lines = [
+            ...debitLines,
+            {
+              accountCode: '3200',
+              debit: 0,
+              credit: total,
+              description: 'Modal awal pemilik (onboarding)',
+            },
+          ];
+
+          const created = await journalCoreService.resolveAndCreate(
+            companyId,
+            {
+              date: new Date(),
+              reference: 'ONBOARDING_OPENING_BALANCE',
+              memo: 'Saldo awal kas & bank (onboarding)',
+              lines,
+            }
+          );
+          openingJournalId = created.id;
+        }
+      } else {
+        // Legacy fallback
+        totalCash = input.cash || 0;
+        totalBank = input.bank || 0;
+        total = totalCash + totalBank;
+
+        if (total > 0) {
           const debitLines = [
-            ...(input.cash > 0
+            ...(totalCash > 0
               ? [
                   {
-                    accountCode: '1100',
-                    debit: input.cash,
+                    accountCode: '1000',
+                    debit: totalCash,
                     credit: 0,
                     description: 'Opening cash',
                   },
                 ]
               : []),
-            ...(input.bank > 0
+            ...(totalBank > 0
               ? [
                   {
-                    accountCode: '1200',
-                    debit: input.bank,
+                    accountCode: '1050',
+                    debit: totalBank,
                     credit: 0,
                     description: 'Opening bank',
                   },
@@ -337,7 +563,6 @@ export const onboardingRouter = router({
               lines,
             }
           );
-
           openingJournalId = created.id;
         }
       }
@@ -356,10 +581,11 @@ export const onboardingRouter = router({
           onboardingMeta: {
             ...baseMeta,
             openingBalance: {
-              cash: input.cash,
-              bank: input.bank,
+              cash: totalCash,
+              bank: totalBank,
               total,
               journalId: openingJournalId,
+              accounts: accountMetaList,
             },
           },
         },
