@@ -272,7 +272,11 @@ export const onboardingRouter = router({
         });
       }
 
-      if (company.onboardingStep !== CompanyOnboardingStep.OPENING_BALANCE) {
+      const allowedOpeningSteps: CompanyOnboardingStep[] = [
+        CompanyOnboardingStep.OPENING_BALANCE,
+        CompanyOnboardingStep.FIRST_TRANSACTION,
+      ];
+      if (!allowedOpeningSteps.includes(company.onboardingStep)) {
         throw new TRPCError({
           code: 'PRECONDITION_FAILED',
           message: 'Onboarding step mismatch',
@@ -613,10 +617,10 @@ export const onboardingRouter = router({
         });
       }
 
-      if (company.businessShape !== BusinessShape.RETAIL) {
+      if (company.businessShape === BusinessShape.PENDING) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: 'First transaction v1 only supports Retail',
+          message: 'Pilih tipe bisnis terlebih dahulu sebelum mencatat transaksi',
         });
       }
 
