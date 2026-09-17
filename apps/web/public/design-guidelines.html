@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50 antialiased">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sync ERP — Design System & Guidelines</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+          },
+          boxShadow: {
+            'card': '0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04)',
+            'card-hover': '0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-feature-settings: "cv02" 1, "cv03" 1, "cv04" 1, "cv11" 1;
+    }
+    .tabular {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="min-h-full text-slate-800 flex flex-col selection:bg-blue-100 selection:text-blue-900">
+  
+  <!-- Header -->
+  <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-blue-600 via-blue-500 to-sky-400 flex items-center justify-center text-white shadow-sm shadow-blue-500/25 ring-1 ring-white/20">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div>
+          <span class="text-base font-bold tracking-tight text-slate-900">Sync ERP</span>
+          <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">Design System v2.0</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/select-company" class="text-xs font-semibold text-slate-600 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+          Back to App &rarr;
+        </a>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Vercel & Apple Standards Approved
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+    <div class="border-b border-slate-200 pb-8">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 mb-3 border border-slate-200">
+        Enterprise Clarity & Zero Fluff
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">Sync ERP Visual & UX Guidelines</h1>
+      <p class="mt-3 text-lg text-slate-600 max-w-3xl leading-relaxed">
+        Engineered for high-frequency business operations. Combining Apple-grade spatial elegance and typographic discipline with Vercel’s Web Interface Guidelines for maximum speed, accessibility, and focus.
+      </p>
+    </div>
+
+    <!-- The STRICT NO PURPLE Rule Highlight -->
+    <section class="rounded-2xl border-2 border-rose-200 bg-rose-50/40 p-6 sm:p-8">
+      <div class="flex items-start gap-4">
+        <div class="h-10 w-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-rose-600/20">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-bold text-rose-950">Strict Color Rule: No Purple, Violet, or Indigo</h2>
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-rose-600 text-white">Mandatory</span>
+          </div>
+          <p class="text-sm text-rose-900 leading-relaxed max-w-4xl">
+            Saturated purple and indigo gradients are strictly banned across all components, badges, gradients, and navigation. 
+            Sync ERP is an enterprise financial accounting and operations suite—not a recreational toy. We use high-contrast <strong>Monochrome Slate</strong> with a focused <strong>Deep Tech Blue</strong> primary action palette.
+          </p>
+          <div class="pt-3 flex flex-wrap gap-3">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/80 border border-rose-200 text-xs font-mono text-rose-700">
+              <span class="line-through">indigo-600</span> &rarr; <span class="font-bold text-blue-600">blue-600</span>
+            </div>
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/80 border border-rose-200 text-xs font-mono text-rose-700">
+              <span class="line-through">purple-500</span> &rarr; <span class="font-bold text-slate-700">slate-700</span>
+            </div>
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/80 border border-rose-200 text-xs font-mono text-rose-700">
+              <span class="line-through">violet-50</span> &rarr; <span class="font-bold text-blue-50">blue-50</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Palette Swatches Section -->
+    <section class="space-y-6">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">1. Approved Color System</h2>
+        <p class="text-sm text-slate-500 mt-1">High-contrast, purpose-driven colors aligned with WCAG AA/AAA compliance.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Slate Palette -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-sm">Monochrome Foundation</h3>
+            <span class="text-xs font-mono text-slate-400">slate-*</span>
+          </div>
+          <div class="space-y-2">
+            <div class="h-10 rounded-lg bg-slate-950 px-3 flex items-center justify-between text-xs text-white font-mono">
+              <span>slate-950</span><span>#020617</span>
+            </div>
+            <div class="h-10 rounded-lg bg-slate-900 px-3 flex items-center justify-between text-xs text-white font-mono">
+              <span>slate-900 (Titles)</span><span>#0F172A</span>
+            </div>
+            <div class="h-10 rounded-lg bg-slate-700 px-3 flex items-center justify-between text-xs text-white font-mono">
+              <span>slate-700 (Body)</span><span>#334155</span>
+            </div>
+            <div class="h-10 rounded-lg bg-slate-400 px-3 flex items-center justify-between text-xs text-white font-mono">
+              <span>slate-400 (Muted)</span><span>#94A3B8</span>
+            </div>
+            <div class="h-10 rounded-lg bg-slate-100 px-3 flex items-center justify-between text-xs text-slate-800 font-mono border border-slate-200">
+              <span>slate-100 (Fills)</span><span>#F1F5F9</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Action Palette -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-sm">Primary Brand Accent</h3>
+            <span class="text-xs font-mono text-blue-600 font-semibold">blue-*</span>
+          </div>
+          <div class="space-y-2">
+            <div class="h-10 rounded-lg bg-blue-700 px-3 flex items-center justify-between text-xs text-white font-mono">
+              <span>blue-700 (Hover)</span><span>#1D4ED8</span>
+            </div>
+            <div class="h-10 rounded-lg bg-blue-600 px-3 flex items-center justify-between text-xs text-white font-mono shadow-xs">
+              <span>blue-600 (Action)</span><span>#2563EB</span>
+            </div>
+            <div class="h-10 rounded-lg bg-blue-500 px-3 flex items-center justify-between text-xs text-white font-mono">
+              <span>blue-500 (Focus)</span><span>#3B82F6</span>
+            </div>
+            <div class="h-10 rounded-lg bg-sky-500 px-3 flex items-center justify-between text-xs text-white font-mono">
+              <span>sky-500 (Cyan Stop)</span><span>#0EA5E9</span>
+            </div>
+            <div class="h-10 rounded-lg bg-blue-50 px-3 flex items-center justify-between text-xs text-blue-700 font-mono border border-blue-200/60">
+              <span>blue-50 (Badges)</span><span>#EFF6FF</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Semantic Status -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-sm">Semantic Accents</h3>
+            <span class="text-xs font-mono text-slate-400">status</span>
+          </div>
+          <div class="space-y-2">
+            <div class="h-10 rounded-lg bg-emerald-600 px-3 flex items-center justify-between text-xs text-white font-mono">
+              <span>emerald-600 (Paid)</span><span>#059669</span>
+            </div>
+            <div class="h-10 rounded-lg bg-amber-500 px-3 flex items-center justify-between text-xs text-white font-mono">
+              <span>amber-500 (Pending)</span><span>#D97706</span>
+            </div>
+            <div class="h-10 rounded-lg bg-rose-600 px-3 flex items-center justify-between text-xs text-white font-mono">
+              <span>rose-600 (Overdue)</span><span>#E11D48</span>
+            </div>
+            <div class="h-10 rounded-lg bg-emerald-50 px-3 flex items-center justify-between text-xs text-emerald-800 font-mono border border-emerald-200">
+              <span>emerald-50 (Tag)</span><span>#ECFDF5</span>
+            </div>
+            <div class="h-10 rounded-lg bg-rose-50 px-3 flex items-center justify-between text-xs text-rose-800 font-mono border border-rose-200">
+              <span>rose-50 (Alert)</span><span>#FFF1F2</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Surface & Glassmorphism -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-sm">Surfaces & Shadows</h3>
+            <span class="text-xs font-mono text-slate-400">elevation</span>
+          </div>
+          <div class="space-y-2">
+            <div class="p-3 rounded-lg border border-slate-200/80 bg-white/95 shadow-sm text-xs space-y-1">
+              <div class="font-semibold text-slate-900">Card Surface</div>
+              <div class="text-[11px] text-slate-500 font-mono">bg-white/95 border-slate-200</div>
+            </div>
+            <div class="p-3 rounded-lg border border-slate-200/80 bg-slate-50/80 text-xs space-y-1">
+              <div class="font-semibold text-slate-900">Subtle Container</div>
+              <div class="text-[11px] text-slate-500 font-mono">bg-slate-50/80 border-slate-200</div>
+            </div>
+            <div class="p-3 rounded-lg border border-blue-200/80 bg-blue-50/40 text-xs space-y-1">
+              <div class="font-semibold text-blue-950">Active Selected Card</div>
+              <div class="text-[11px] text-blue-600 font-mono">bg-blue-50/40 border-blue-500</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Component Library Section -->
+    <section class="space-y-6">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">2. Live Interactive Components</h2>
+        <p class="text-sm text-slate-500 mt-1">Ready-to-use patterns satisfying the Vercel accessibility and tactile feedback requirements.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Buttons Showcase -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card space-y-4">
+          <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">Button Hierarchy (min 44px)</h3>
+          
+          <div class="space-y-3">
+            <div>
+              <button type="button" class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition-all duration-150 hover:from-blue-500 hover:to-blue-600 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">
+                <span>Primary Action</span>
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
+              <span class="text-[11px] text-slate-400 block mt-1">Primary CTA — Deep Tech Blue gradient</span>
+            </div>
+
+            <div>
+              <button type="button" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-2xs transition-all duration-150 hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                Secondary Button
+              </button>
+              <span class="text-[11px] text-slate-400 block mt-1">Secondary / Cancel — Neutral Slate border</span>
+            </div>
+
+            <div class="flex gap-2">
+              <button type="button" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+                Ghost Action
+              </button>
+              <button type="button" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-rose-600/20 hover:bg-rose-500 active:scale-[0.98] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                Delete Company
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Inputs Showcase -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card space-y-4">
+          <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">Accessible Form Controls</h3>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="company-demo" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                Company Legal Name <span class="text-rose-500">*</span>
+              </label>
+              <div class="relative">
+                <input
+                  id="company-demo"
+                  type="text"
+                  name="companyName"
+                  autocomplete="organization"
+                  spellcheck="false"
+                  placeholder="e.g. PT Maju Bersama…"
+                  class="block w-full rounded-xl border border-slate-300 bg-white/95 py-2.5 px-3.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-xs transition-colors focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15"
+                />
+              </div>
+              <p class="mt-1 text-[11px] text-slate-500">Official legal entity name registered in Indonesia.</p>
+            </div>
+
+            <div>
+              <label for="code-demo" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                Company Code (Monospace)
+              </label>
+              <input
+                id="code-demo"
+                type="text"
+                name="companyCode"
+                spellcheck="false"
+                value="SYNC-ID-2026"
+                class="block w-full rounded-xl border border-slate-300 bg-white/95 py-2.5 px-3.5 font-mono text-sm font-semibold tracking-wider text-slate-900 shadow-xs transition-colors focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Badges & Status Chips -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card space-y-4">
+          <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">Status Badges & Tokens</h3>
+          
+          <div class="flex flex-wrap gap-2 pt-2">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200/60">
+              <span class="h-1.5 w-1.5 rounded-full bg-blue-600"></span> Primary Info
+            </span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span> Paid / Active
+            </span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+              <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Pending Review
+            </span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200">
+              <span class="h-1.5 w-1.5 rounded-full bg-rose-600"></span> Overdue (14d)
+            </span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+              <span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span> Draft Mode
+            </span>
+          </div>
+
+          <div class="pt-3 border-t border-slate-100 space-y-2">
+            <div class="text-xs font-semibold text-slate-700">Financial Numerics (Tabular)</div>
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center text-sm font-mono tabular">
+              <span class="text-slate-500 font-sans text-xs">Total Invoiced:</span>
+              <span class="font-bold text-slate-900">Rp&nbsp;148.500.000</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Do's and Don'ts Table -->
+    <section class="space-y-6">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">3. Vercel & Apple Best Practices (Do's & Don'ts)</h2>
+        <p class="text-sm text-slate-500 mt-1">Specific criteria evaluated during code reviews and UI audits.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- DO -->
+        <div class="rounded-2xl border-2 border-emerald-200 bg-emerald-50/20 p-6 space-y-4">
+          <div class="flex items-center gap-2">
+            <div class="h-7 w-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">&check;</div>
+            <h3 class="text-base font-bold text-emerald-950">DO (Enterprise Standards)</h3>
+          </div>
+          <ul class="space-y-3 text-sm text-slate-700">
+            <li class="flex items-start gap-2">
+              <span class="text-emerald-600 font-bold">&bull;</span>
+              <span><strong>Tabular figures:</strong> Always format money and quantities with <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs font-mono">tabular-nums</code> for clean vertical alignment.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-emerald-600 font-bold">&bull;</span>
+              <span><strong>Punctuation &amp; Copy:</strong> Use real unicode ellipsis <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs font-mono">…</code> and specific action labels like <em>"Create Company"</em>.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-emerald-600 font-bold">&bull;</span>
+              <span><strong>Semantic HTML:</strong> Use genuine <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs font-mono">&lt;button&gt;</code> and <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs font-mono">&lt;a&gt;</code> for keyboard accessibility.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-emerald-600 font-bold">&bull;</span>
+              <span><strong>Focus Rings:</strong> Explicit <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs font-mono">focus-visible:ring-4 focus-visible:ring-blue-500/15</code> on all inputs.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-emerald-600 font-bold">&bull;</span>
+              <span><strong>Paste freedom:</strong> Never disable paste in inputs. Always allow users to paste bank numbers, tax IDs, and names.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- DON'T -->
+        <div class="rounded-2xl border-2 border-rose-200 bg-rose-50/20 p-6 space-y-4">
+          <div class="flex items-center gap-2">
+            <div class="h-7 w-7 rounded-full bg-rose-600 text-white flex items-center justify-center text-sm font-bold">&times;</div>
+            <h3 class="text-base font-bold text-rose-950">DON'T (Strict Anti-Patterns)</h3>
+          </div>
+          <ul class="space-y-3 text-sm text-slate-700">
+            <li class="flex items-start gap-2">
+              <span class="text-rose-600 font-bold">&bull;</span>
+              <span><strong>NO PURPLE / INDIGO:</strong> Do not use <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs font-mono">bg-indigo-600</code> or purple gradients.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-rose-600 font-bold">&bull;</span>
+              <span><strong>No <code class="text-xs font-mono">transition: all</code>:</strong> Always explicitly define transitioning properties (<code class="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs font-mono">transition-colors</code> or <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs font-mono">transition-transform</code>).</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-rose-600 font-bold">&bull;</span>
+              <span><strong>No clickable divs:</strong> Avoid <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-xs font-mono">&lt;div onClick&gt;</code> without keyboard navigation handlers and role attributes.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-rose-600 font-bold">&bull;</span>
+              <span><strong>No missing labels:</strong> Never rely purely on placeholders. Placeholders disappear once text is typed.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-rose-600 font-bold">&bull;</span>
+              <span><strong>No generic buttons:</strong> Avoid vague words like <em>"Submit"</em> or <em>"Click Here"</em>.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Onboarding Card Mockup -->
+    <section class="space-y-6">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">4. Live Pattern Mockup: Company Setup Stepper</h2>
+        <p class="text-sm text-slate-500 mt-1">How the design system translates into real product workflows.</p>
+      </div>
+
+      <div class="rounded-3xl border border-slate-200/80 bg-gradient-to-b from-slate-50/50 via-white to-slate-50/30 p-8 shadow-card">
+        <div class="max-w-xl mx-auto space-y-6">
+          <!-- Stepper Indicator -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-xs">1</span>
+              <span class="text-xs font-semibold text-slate-900">Identity</span>
+            </div>
+            <div class="h-0.5 flex-1 mx-3 bg-blue-600"></div>
+            <div class="flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-blue-700">2</span>
+              <span class="text-xs font-medium text-slate-500">Branch</span>
+            </div>
+            <div class="h-0.5 flex-1 mx-3 bg-slate-200"></div>
+            <div class="flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-400">3</span>
+              <span class="text-xs font-medium text-slate-400">Billing</span>
+            </div>
+          </div>
+
+          <!-- Active Card -->
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card space-y-4">
+            <div class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200/60">
+              <svg class="h-3.5 w-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              Step 1 of 3
+            </div>
+            <h3 class="text-xl font-bold text-slate-900">Create New Legal Entity</h3>
+            <p class="text-sm text-slate-500">Configure your primary ERP tenant and fiscal accounting book.</p>
+
+            <div class="space-y-3 pt-2">
+              <label for="mock-company" class="block text-xs font-semibold text-slate-700">
+                Company Name
+              </label>
+              <input
+                id="mock-company"
+                type="text"
+                value="PT Maju Gemilang Abadi"
+                class="block w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-sm font-semibold text-slate-900 shadow-xs focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15"
+              />
+            </div>
+
+            <div class="pt-4 flex items-center justify-between border-t border-slate-100">
+              <button type="button" class="text-xs font-semibold text-slate-500 hover:text-slate-800">
+                Cancel
+              </button>
+              <button type="button" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm shadow-blue-600/20 hover:bg-blue-500 active:scale-[0.98] transition-all">
+                Save &amp; Continue &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 bg-white py-8 mt-16 text-center text-xs text-slate-500 space-y-2">
+    <p>Sync ERP Design System &bull; Strictly Slate, Tech Blue, and High-Contrast Ergonomics.</p>
+    <p>Conforms to Vercel Web Interface Guidelines & Apple Human Interface Principles.</p>
+  </footer>
+
+</body>
+</html>
