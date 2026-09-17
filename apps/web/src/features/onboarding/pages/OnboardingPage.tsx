@@ -690,43 +690,52 @@ export default function OnboardingPage() {
       'Langkah 2 dari 4 • Posisi Keuangan',
       <div className="space-y-6">
         {/* Top Control Bar: Counters & Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
-            <span className="text-sm font-bold text-slate-900">
-              Daftar Akun Kas & Bank
-            </span>
-            <span className="ml-2 inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-              {accounts.length} Akun
-            </span>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-900">
+                Daftar Akun Kas & Bank
+              </h2>
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                {accounts.length} Akun
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Setiap akun otomatis didaftarkan ke Bagan Akun (CoA) dan metode pembayaran aktif.
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleLoadUserAccounts}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-2xs transition-colors hover:bg-blue-100/70 active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 active:scale-95 cursor-pointer"
+              title="Muat 7 contoh akun riil dari operasional"
             >
-              <SparklesIcon className="h-3.5 w-3.5 text-blue-600" />
-              <span>Muat Contoh Akun Riil</span>
+              <SparklesIcon className="h-3.5 w-3.5 text-amber-500" />
+              <span>Contoh Riil</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => handleAddAccount('CASH')}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 hover:text-slate-900 active:scale-95"
-            >
-              <PlusIcon className="h-3.5 w-3.5 text-slate-500" />
-              <span>+ Kas</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleAddAccount('BANK')}
-              className="inline-flex items-center gap-1 rounded-lg border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-blue-700 active:scale-95"
-            >
-              <PlusIcon className="h-3.5 w-3.5" />
-              <span>+ Rekening Bank</span>
-            </button>
+            {/* Segmented Add Control */}
+            <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50/80 p-0.5">
+              <button
+                type="button"
+                onClick={() => handleAddAccount('CASH')}
+                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-white hover:text-slate-900 hover:shadow-2xs transition active:scale-95 cursor-pointer"
+              >
+                <PlusIcon className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Kas</span>
+              </button>
+              <div className="h-3.5 w-px bg-slate-200" />
+              <button
+                type="button"
+                onClick={() => handleAddAccount('BANK')}
+                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-white hover:text-slate-900 hover:shadow-2xs transition active:scale-95 cursor-pointer"
+              >
+                <PlusIcon className="h-3.5 w-3.5 text-blue-600" />
+                <span>Rekening Bank</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -816,33 +825,6 @@ export default function OnboardingPage() {
               </div>
             );
           })}
-        </div>
-
-        {/* Quick Add Helper Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-3 text-xs text-slate-600">
-          <div className="flex items-center gap-2">
-            <InformationCircleIcon className="h-4 w-4 text-slate-400 shrink-0" />
-            <span>
-              Setiap akun akan didaftarkan ke Bagan Akun (CoA) dan menjadi metode pembayaran aktif.
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleAddAccount('CASH')}
-              className="font-semibold text-emerald-700 hover:underline cursor-pointer"
-            >
-              + Tambah Kas
-            </button>
-            <span className="text-slate-300">•</span>
-            <button
-              type="button"
-              onClick={() => handleAddAccount('BANK')}
-              className="font-semibold text-blue-600 hover:underline cursor-pointer"
-            >
-              + Tambah Rekening Bank
-            </button>
-          </div>
         </div>
 
         {/* Total Summary Cards */}
