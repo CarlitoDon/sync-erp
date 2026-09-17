@@ -93,11 +93,10 @@ function computeNextStep(company: {
     return { blockedReason: 'OPENING_BALANCE_REQUIRED', nextAction: 'SUBMIT_OPENING_BALANCE' };
   }
 
-  if (company.onboardingStep === CompanyOnboardingStep.FIRST_TRANSACTION) {
-    return { blockedReason: 'FIRST_TRANSACTION_REQUIRED', nextAction: 'RUN_FIRST_TRANSACTION' };
-  }
-
-  if (company.onboardingStep === CompanyOnboardingStep.ALIVE_MOMENT) {
+  if (
+    company.onboardingStep === CompanyOnboardingStep.FIRST_TRANSACTION ||
+    company.onboardingStep === CompanyOnboardingStep.ALIVE_MOMENT
+  ) {
     return { blockedReason: 'FINALIZE_REQUIRED', nextAction: 'COMPLETE' };
   }
 
@@ -275,6 +274,7 @@ export const onboardingRouter = router({
       const allowedOpeningSteps: CompanyOnboardingStep[] = [
         CompanyOnboardingStep.OPENING_BALANCE,
         CompanyOnboardingStep.FIRST_TRANSACTION,
+        CompanyOnboardingStep.ALIVE_MOMENT,
       ];
       if (!allowedOpeningSteps.includes(company.onboardingStep)) {
         throw new TRPCError({
@@ -581,7 +581,7 @@ export const onboardingRouter = router({
       return prisma.company.update({
         where: { id: companyId },
         data: {
-          onboardingStep: CompanyOnboardingStep.FIRST_TRANSACTION,
+          onboardingStep: CompanyOnboardingStep.ALIVE_MOMENT,
           onboardingMeta: {
             ...baseMeta,
             openingBalance: {
@@ -761,11 +761,17 @@ export const onboardingRouter = router({
         const postedBill = await billService.post(bill.id, companyId);
         billId = postedBill.id;
 
+        const defaultMethod = await prisma.companyPaymentMethod.findFirst({
+          where: { companyId, isActive: true },
+          orderBy: { sortOrder: 'asc' },
+        });
+
         const payment = await paymentService.create(companyId, {
           invoiceId: postedBill.id,
           amount: Number(postedBill.amount),
           businessDate: new Date(),
-          method: PaymentMethodType.CASH,
+          method: defaultMethod?.type ?? PaymentMethodType.CASH,
+          paymentMethodId: defaultMethod?.id,
           reference: `${reference}-PAY`,
           correlationId: `${reference}-PAY`,
         });
@@ -814,7 +820,11 @@ export const onboardingRouter = router({
       return company;
     }
 
-    if (company.onboardingStep !== CompanyOnboardingStep.ALIVE_MOMENT) {
+    const allowedCompleteSteps: CompanyOnboardingStep[] = [
+      CompanyOnboardingStep.ALIVE_MOMENT,
+      CompanyOnboardingStep.FIRST_TRANSACTION,
+    ];
+    if (!allowedCompleteSteps.includes(company.onboardingStep)) {
       throw new TRPCError({
         code: 'PRECONDITION_FAILED',
         message: 'Onboarding step mismatch',

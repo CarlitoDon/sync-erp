@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, CurrencyInput, Input, Label } from '@/components/ui';
-import { Tooltip } from '@/components/ui/Tooltip';
+import { Button, CurrencyInput } from '@/components/ui';
 import { BrandMark } from '@/components/brand/BrandMark';
 import {
   ShoppingBagIcon,
@@ -52,11 +51,54 @@ function parseBusinessShape(raw: unknown): BusinessShape {
   return BusinessShape.RENTAL;
 }
 
+interface SavedAccountMeta {
+  name: string;
+  type: 'CASH' | 'BANK';
+  code?: string;
+  balance: number;
+  accountId?: string;
+}
+
+interface SavedOpeningBalanceMeta {
+  cash?: number;
+  bank?: number;
+  total?: number;
+  journalId?: string;
+  accounts?: SavedAccountMeta[];
+}
+
+function parseOpeningBalanceMeta(raw: unknown): SavedOpeningBalanceMeta | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const obj = raw as Record<string, unknown>;
+  if (!('openingBalance' in obj) || !obj.openingBalance || typeof obj.openingBalance !== 'object') {
+    return null;
+  }
+  const ob = obj.openingBalance as Record<string, unknown>;
+  const total = typeof ob.total === 'number' ? ob.total : undefined;
+  const cash = typeof ob.cash === 'number' ? ob.cash : undefined;
+  const bank = typeof ob.bank === 'number' ? ob.bank : undefined;
+  const journalId = typeof ob.journalId === 'string' ? ob.journalId : undefined;
+
+  let accounts: SavedAccountMeta[] | undefined = undefined;
+  if (Array.isArray(ob.accounts)) {
+    accounts = ob.accounts
+      .filter((a): a is Record<string, unknown> => Boolean(a && typeof a === 'object'))
+      .map((a) => ({
+        name: typeof a.name === 'string' ? a.name : '',
+        type: a.type === 'CASH' ? ('CASH' as const) : ('BANK' as const),
+        code: typeof a.code === 'string' ? a.code : undefined,
+        balance: typeof a.balance === 'number' ? a.balance : 0,
+        accountId: typeof a.accountId === 'string' ? a.accountId : undefined,
+      }));
+  }
+
+  return { total, cash, bank, journalId, accounts };
+}
+
 const ONBOARDING_STEPS_META = [
   { id: 'BUSINESS_SHAPE', label: 'Tipe Bisnis', number: 1 },
   { id: 'OPENING_BALANCE', label: 'Saldo Awal', number: 2 },
-  { id: 'FIRST_TRANSACTION', label: 'Transaksi Pertama', number: 3 },
-  { id: 'ALIVE_MOMENT', label: 'Selesai', number: 4 },
+  { id: 'ALIVE_MOMENT', label: 'Selesai', number: 3 },
 ];
 
 export default function OnboardingPage() {
@@ -72,7 +114,6 @@ export default function OnboardingPage() {
   const start = trpc.onboarding.start.useMutation();
   const selectShape = trpc.onboarding.selectBusinessShape.useMutation();
   const submitOpeningBalance = trpc.onboarding.submitOpeningBalance.useMutation();
-  const runFirstTransaction = trpc.onboarding.runFirstTransactionRetail.useMutation();
   const complete = trpc.onboarding.complete.useMutation();
 
   const [accounts, setAccounts] = useState<
@@ -144,15 +185,34 @@ export default function OnboardingPage() {
     ]);
   };
 
-  const [supplierName, setSupplierName] = useState('');
-  const [productName, setProductName] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [unitPrice, setUnitPrice] = useState(100000);
-  const [payNow, setPayNow] = useState(true);
   const [selectedShape, setSelectedShape] = useState<BusinessShape>(() =>
     parseBusinessShape(currentCompany?.businessShape)
   );
   const [activeStepOverride, setActiveStepOverride] = useState<CompanyOnboardingStep | null>(null);
+
+  const savedMeta = useMemo(() => {
+    return parseOpeningBalanceMeta(onboardingState.data?.onboardingMeta);
+  }, [onboardingState.data?.onboardingMeta]);
+
+  // Synchronize saved accounts from server if available
+  useEffect(() => {
+    if (savedMeta?.accounts && savedMeta.accounts.length > 0) {
+      setAccounts(
+        savedMeta.accounts.map((acc, index) => ({
+          id: acc.accountId ?? String(index + 1),
+          name: acc.name,
+          type: acc.type,
+          balance: acc.balance,
+        }))
+      );
+    }
+  }, [savedMeta]);
+
+  const displayTotalBalance = savedMeta?.total ?? totalBalance;
+  const displayAccounts =
+    savedMeta?.accounts && savedMeta.accounts.length > 0
+      ? savedMeta.accounts
+      : accounts;
 
   useEffect(() => {
     if (currentCompany?.businessShape) {
@@ -173,16 +233,20 @@ export default function OnboardingPage() {
       case CompanyOnboardingStep.OPENING_BALANCE:
         return 2;
       case CompanyOnboardingStep.FIRST_TRANSACTION:
-        return 3;
       case CompanyOnboardingStep.ALIVE_MOMENT:
       case CompanyOnboardingStep.DONE:
-        return 4;
+        return 3;
       default:
         return 1;
     }
   }, [serverStep]);
 
-  const step = activeStepOverride ?? serverStep;
+  const effectiveServerStep =
+    serverStep === CompanyOnboardingStep.FIRST_TRANSACTION
+      ? CompanyOnboardingStep.ALIVE_MOMENT
+      : serverStep;
+
+  const step = activeStepOverride ?? effectiveServerStep;
 
   useEffect(() => {
     if (!currentCompany) return;
@@ -227,10 +291,9 @@ export default function OnboardingPage() {
       case CompanyOnboardingStep.OPENING_BALANCE:
         return 2;
       case CompanyOnboardingStep.FIRST_TRANSACTION:
-        return 3;
       case CompanyOnboardingStep.ALIVE_MOMENT:
       case CompanyOnboardingStep.DONE:
-        return 4;
+        return 3;
       default:
         return 1;
     }
@@ -352,9 +415,9 @@ export default function OnboardingPage() {
 
       {/* Main Container - well-spaced from top */}
       <main className={`relative z-10 mx-auto w-full ${maxWidth} px-4 pt-10 pb-16 sm:px-6`}>
-        {/* Progress Stepper: 4 Equal Level Cards with Guaranteed Zero Height Jump */}
+        {/* Progress Stepper: 3 Equal Level Cards with Guaranteed Zero Height Jump */}
         <nav aria-label="Progress" className="mb-8">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {ONBOARDING_STEPS_META.map((s) => {
               const isCurrent = s.number === currentStepNumber;
               const isServerPassed = s.number < serverStepNumber;
@@ -527,7 +590,7 @@ export default function OnboardingPage() {
     return shell(
       'Pilih Model Operasional Bisnis',
       'Sync ERP akan secara otomatis mengonfigurasi bagan akun (Chart of Accounts), alur transaksi, dan modul yang sesuai dengan model usaha Anda.',
-      'Langkah 1 dari 4 • Setup Operasional',
+      'Langkah 1 dari 3 • Setup Operasional',
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {SHAPES.map((item) => {
@@ -687,7 +750,7 @@ export default function OnboardingPage() {
     return shell(
       'Saldo Awal Kas & Bank',
       'Daftarkan akun kas fisik (dompet/kasir) dan rekening bank operasional yang Anda miliki saat memulai pembukuan, beserta saldo awalnya masing-masing.',
-      'Langkah 2 dari 4 • Posisi Keuangan',
+      'Langkah 2 dari 3 • Posisi Keuangan',
       <div className="space-y-6">
         {/* Top Control Bar: Counters & Action Buttons */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -902,94 +965,167 @@ export default function OnboardingPage() {
     );
   }
 
-  // STEP 3: FIRST TRANSACTION
-  if (step === 'FIRST_TRANSACTION') {
-    const totalTx = (quantity || 0) * (unitPrice || 0);
+  // STEP 3: ALIVE MOMENT (CELEBRATION & COMPLETION)
+  if (step === 'ALIVE_MOMENT' || step === 'FIRST_TRANSACTION') {
+    const shapeLabel =
+      selectedShape === BusinessShape.RENTAL
+        ? 'Rental & Persewaan Aset'
+        : selectedShape === BusinessShape.SERVICE
+          ? 'Jasa Profesional'
+          : selectedShape === BusinessShape.MANUFACTURING
+            ? 'Manufaktur & Produksi'
+            : 'Retail & Perdagangan';
 
     return shell(
-      'Uji Coba Transaksi Pertama',
-      'Kita simulasikan transaksi pembelian barang/aset pertama agar sistem jurnal akuntansi dan buku besar Anda langsung terverifikasi aktif.',
-      'Langkah 3 dari 4 • Aktivasi Jurnal',
-      <div className="space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input
-            label="Nama Supplier / Pemasok"
-            value={supplierName}
-            onChange={(e) => setSupplierName(e.target.value)}
-            placeholder="Contoh: PT Sumber Rejeki"
-            required
-          />
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1">
-              <Label>Nama Barang / Aset</Label>
-              <Tooltip content="Nama item yang akan dicatat ke inventaris aset dan laporan pembelian.">
-                <InformationCircleIcon className="h-4 w-4 text-slate-400" />
-              </Tooltip>
-            </div>
-            <Input
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              placeholder="Contoh: Unit AC Portable"
-              required
-            />
+      'Sistem Siap Digunakan',
+      `Konfigurasi operasional dan saldo awal kas/bank untuk ${currentCompany.name} telah selesai diverifikasi.`,
+      'Langkah 3 dari 3 • Konfirmasi & Selesai',
+      <div className="space-y-6">
+        {/* Readiness Banner */}
+        <div className="flex items-center gap-4 rounded-2xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50/80 via-white to-slate-50/50 p-4 sm:p-5 shadow-2xs">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20">
+            <CheckCircleIcon className="h-7 w-7" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900">
+              {currentCompany.name} Siap Memulai Operasional
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-600 leading-relaxed">
+              Bagan akun (CoA) telah aktif dan jurnal saldo awal seimbang telah dibukukan secara otomatis di Buku Besar.
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input
-            label="Kuantitas (Qty)"
-            type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-            selectOnFocus
-            required
-          />
-          <CurrencyInput
-            label="Harga Satuan"
-            value={unitPrice}
-            onChange={setUnitPrice}
-          />
-        </div>
-
-        {/* Live Total & Pay Now Toggle */}
-        <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-600">Estimasi Total Pembelian:</span>
-            <span className="font-bold font-mono text-base text-slate-900">
-              Rp {totalTx.toLocaleString('id-ID')}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between border-t border-slate-200/80 pt-3">
+        {/* Configuration Summary 3 Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
             <div>
-              <div className="text-sm font-semibold text-slate-900">
-                Bayar Langsung (Lunas)
-              </div>
-              <div className="text-xs text-slate-500">
-                Otomatis potong Kas/Bank dan terbitkan bukti pembayaran
-              </div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Model Bisnis
+              </span>
+              <p className="mt-1 text-sm font-bold text-slate-900">{shapeLabel}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {selectedShape === BusinessShape.RENTAL
+                  ? 'Katalog sewa, tracking deposit & siklus sewa aktif'
+                  : 'Modul & alur transaksi aktif'}
+              </p>
             </div>
-            <button
-              type="button"
-              className={`h-7 w-12 rounded-full p-0.5 transition-colors ${
-                payNow ? 'bg-blue-600' : 'bg-slate-300'
-              }`}
-              onClick={() => setPayNow((v) => !v)}
-            >
-              <span
-                className={`block h-6 w-6 bg-white rounded-full transition-transform shadow-xs ${
-                  payNow ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <CheckIcon className="h-3.5 w-3.5" />
+              <span>Modul Diaktifkan</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Saldo Awal
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                  {displayAccounts.length} Akun
+                </span>
+              </div>
+              <p className="mt-1 font-mono text-base font-bold text-slate-900">
+                Rp {displayTotalBalance.toLocaleString('id-ID')}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Modal awal pemilik tercatat
+              </p>
+            </div>
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <CheckIcon className="h-3.5 w-3.5" />
+              <span>Terhubung ke Kas & Bank</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                General Ledger
+              </span>
+              <p className="mt-1 text-sm font-bold text-slate-900">CoA Standar Aktif</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Jurnal saldo awal #ONBOARDING_OPENING_BALANCE
+              </p>
+            </div>
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <CheckIcon className="h-3.5 w-3.5" />
+              <span>Jurnal Pembukuan Seimbang</span>
+            </div>
           </div>
         </div>
 
+        {/* Registered Accounts Chips Preview */}
+        {displayAccounts.length > 0 && (
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/60 p-4 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700">
+                Daftar Akun Kas & Bank yang Terdaftar:
+              </span>
+              <span className="text-[11px] text-slate-500">
+                Total Saldo: <strong className="font-mono text-slate-900 font-bold">Rp {displayTotalBalance.toLocaleString('id-ID')}</strong>
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {displayAccounts.map((acc, i) => (
+                <div
+                  key={i}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white px-3 py-1.5 text-xs shadow-2xs"
+                >
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                      acc.type === 'CASH'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-sky-100 text-sky-800'
+                    }`}
+                  >
+                    {acc.type}
+                  </span>
+                  <span className="font-medium text-slate-800">{acc.name}</span>
+                  <span className="font-mono font-bold text-slate-900">
+                    Rp {(acc.balance || 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Actionable Next Steps in Dashboard */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 space-y-3">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
+            <SparklesIcon className="h-4 w-4 text-amber-500" />
+            <span>Langkah Selanjutnya di Dashboard:</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+              <span className="text-xs font-bold text-slate-800 block">1. Katalog Barang Sewa</span>
+              <span className="text-[11px] text-slate-500 mt-1 block leading-normal">
+                Daftarkan unit rental, tentukan tarif per periode & nominal deposit jaminan.
+              </span>
+            </div>
+            <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+              <span className="text-xs font-bold text-slate-800 block">2. Pesanan & Pelanggan</span>
+              <span className="text-[11px] text-slate-500 mt-1 block leading-normal">
+                Buat pesanan sewa perdana atau simpan kontak pelanggan ke database.
+              </span>
+            </div>
+            <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+              <span className="text-xs font-bold text-slate-800 block">3. Profil & Rekening Usaha</span>
+              <span className="text-[11px] text-slate-500 mt-1 block leading-normal">
+                Lengkapi logo, alamat, dan nomor rekening pada kop faktur invoice.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Navigation Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
           <button
             type="button"
             onClick={() => setActiveStepOverride(CompanyOnboardingStep.OPENING_BALANCE)}
-            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98]"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98] cursor-pointer"
           >
             <ArrowLeftIcon className="h-4 w-4 text-slate-400" />
             <span>Kembali ke Saldo Awal</span>
@@ -998,86 +1134,31 @@ export default function OnboardingPage() {
           <button
             type="button"
             onClick={() =>
-              runFirstTransaction.mutate(
-                {
-                  supplierName,
-                  productName,
-                  quantity,
-                  unitPrice,
-                  payNow,
+              complete.mutate(undefined, {
+                onSuccess: (data: OnboardingCompanyUpdate) => {
+                  setCompanyFromMutation(data);
+                  navigate(getPostOnboardingPath(), { replace: true });
                 },
-                {
-                  onSuccess: () => {
-                    setActiveStepOverride(null);
-                    onboardingState.refetch();
-                  },
-                }
-              )
+              })
             }
-            disabled={runFirstTransaction.isPending || !supplierName || !productName}
-            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition-all duration-150 hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={complete.isPending}
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-md transition-all duration-150 hover:bg-slate-800 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           >
-            {runFirstTransaction.isPending ? (
-              'Mencatat Transaksi Pertama...'
+            {complete.isPending ? (
+              'Membuka Dashboard...'
             ) : (
               <>
-                <span>Proses Transaksi & Selesaikan</span>
+                <span>Buka Dashboard Workspace Sekarang</span>
                 <ArrowRightIcon className="h-4 w-4" />
               </>
             )}
           </button>
         </div>
-      </div>
+      </div>,
+      'max-w-5xl'
     );
   }
 
-  // STEP 4: ALIVE MOMENT (CELEBRATION)
-  if (step === 'ALIVE_MOMENT') {
-    return shell(
-      'Sistem Telah Aktif & Siap Digunakan!',
-      'Selamat! Workspace perusahaan Anda telah berhasil diinisialisasi dengan konfigurasi lengkap.',
-      'Langkah 4 dari 4 • Selesai',
-      <div className="text-center space-y-6">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-xl shadow-emerald-500/25">
-          <CheckCircleIcon className="h-9 w-9" />
-        </div>
-
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 text-left space-y-2 text-xs text-emerald-900">
-          <div className="flex items-center gap-2 font-semibold text-sm">
-            <span>✨ Apa yang telah disiapkan untuk Anda:</span>
-          </div>
-          <ul className="list-disc list-inside space-y-1 text-emerald-800">
-            <li>Bagan akun akuntansi (Chart of Accounts) standar industri</li>
-            <li>Jurnal umum dan buku besar otomatis</li>
-            <li>Modul rental, pesanan, dan manajemen mitra pelanggan</li>
-          </ul>
-        </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            complete.mutate(undefined, {
-              onSuccess: (data: OnboardingCompanyUpdate) => {
-                setCompanyFromMutation(data);
-                navigate(getPostOnboardingPath(), { replace: true });
-              },
-            })
-          }
-          disabled={complete.isPending}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 text-base font-bold text-white shadow-lg shadow-emerald-600/25 transition-all duration-200 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] disabled:opacity-50"
-        >
-          {complete.isPending ? (
-            'Membuka Dashboard...'
-          ) : (
-            <>
-              <span>Buka Dashboard Workspace Sekarang</span>
-              <ArrowRightIcon className="h-5 w-5" />
-            </>
-          )}
-        </button>
-      </div>
-    );
-  }
 
   if (step === 'DONE') {
     navigate(getPostOnboardingPath(), { replace: true });
