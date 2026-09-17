@@ -83,11 +83,37 @@ export default function OnboardingPage() {
   const [selectedShape, setSelectedShape] = useState<BusinessShape>(() =>
     parseBusinessShape(currentCompany?.businessShape)
   );
+  const [activeStepOverride, setActiveStepOverride] = useState<CompanyOnboardingStep | null>(null);
 
-  const step = useMemo(() => {
+  useEffect(() => {
+    if (currentCompany?.businessShape) {
+      setSelectedShape(parseBusinessShape(currentCompany.businessShape));
+    }
+  }, [currentCompany?.businessShape]);
+
+  const serverStep = useMemo(() => {
     if (!onboardingState.data) return CompanyOnboardingStep.WELCOME;
     return normalizeStep(onboardingState.data.onboardingStep);
   }, [onboardingState.data]);
+
+  const serverStepNumber = useMemo(() => {
+    switch (serverStep) {
+      case CompanyOnboardingStep.BUSINESS_SHAPE:
+      case CompanyOnboardingStep.WELCOME:
+        return 1;
+      case CompanyOnboardingStep.OPENING_BALANCE:
+        return 2;
+      case CompanyOnboardingStep.FIRST_TRANSACTION:
+        return 3;
+      case CompanyOnboardingStep.ALIVE_MOMENT:
+      case CompanyOnboardingStep.DONE:
+        return 4;
+      default:
+        return 1;
+    }
+  }, [serverStep]);
+
+  const step = activeStepOverride ?? serverStep;
 
   useEffect(() => {
     if (!currentCompany) return;
@@ -255,68 +281,98 @@ export default function OnboardingPage() {
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className={`relative z-10 mx-auto w-full ${maxWidth} px-4 py-8 sm:px-6`}>
-        {/* Modern Segmented Progress Stepper */}
+      {/* Main Container - well-spaced from top */}
+      <main className={`relative z-10 mx-auto w-full ${maxWidth} px-4 pt-10 pb-16 sm:px-6`}>
+        {/* Progress Stepper: 4 Equal Level Cards with Guaranteed Zero Height Jump */}
         <nav aria-label="Progress" className="mb-8">
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
             {ONBOARDING_STEPS_META.map((s) => {
-              const isDone = s.number < currentStepNumber;
               const isCurrent = s.number === currentStepNumber;
+              const isServerPassed = s.number < serverStepNumber;
+              const isAccessible = s.number <= serverStepNumber;
 
               return (
-                <div
+                <button
+                  type="button"
                   key={s.id}
-                  className={`flex flex-col gap-2 rounded-2xl border p-3.5 transition-all duration-200 ${
+                  disabled={!isAccessible}
+                  onClick={() => {
+                    if (isAccessible) {
+                      const targetStep = s.id as CompanyOnboardingStep;
+                      setActiveStepOverride(targetStep === serverStep ? null : targetStep);
+                    }
+                  }}
+                  className={`group flex flex-col justify-between h-[84px] rounded-2xl border p-3.5 text-left transition-all duration-200 bg-white ${
                     isCurrent
-                      ? 'border-blue-500/50 bg-white shadow-sm ring-1 ring-blue-500/20'
-                      : isDone
-                      ? 'border-slate-200/80 bg-white/70 shadow-2xs'
-                      : 'border-slate-200/40 bg-white/40 opacity-60'
+                      ? 'border-blue-600 shadow-sm shadow-blue-600/10 ring-1 ring-blue-500/20'
+                      : isServerPassed
+                      ? 'border-slate-200/90 shadow-2xs hover:border-blue-400 hover:shadow-xs cursor-pointer'
+                      : isAccessible
+                      ? 'border-blue-200/80 shadow-2xs hover:border-blue-400 hover:shadow-xs cursor-pointer'
+                      : 'border-slate-200/60 opacity-50 cursor-not-allowed'
                   }`}
                 >
-                  <div
-                    className={`h-1.5 w-full rounded-full transition-all duration-300 ${
-                      isDone
-                        ? 'bg-emerald-500'
-                        : isCurrent
-                        ? 'bg-blue-600'
-                        : 'bg-slate-200'
-                    }`}
-                  />
-                  <div className="flex items-center justify-between">
+                  {/* Progress Bar Track: Strictly identical Y position in all 4 cards */}
+                  <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className={`h-full w-full rounded-full transition-all duration-300 ${
+                        isCurrent
+                          ? 'bg-blue-600'
+                          : isServerPassed
+                          ? 'bg-emerald-500'
+                          : 'bg-transparent'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Step Number & Indicator Row: Fixed h-4 */}
+                  <div className="flex items-center justify-between h-4">
                     <span
                       className={`text-[11px] font-bold tabular-nums tracking-wide uppercase ${
                         isCurrent
                           ? 'text-blue-600'
-                          : isDone
+                          : isServerPassed
                           ? 'text-emerald-700'
+                          : isAccessible
+                          ? 'text-slate-600 group-hover:text-blue-600'
                           : 'text-slate-400'
                       }`}
                     >
                       Langkah 0{s.number}
                     </span>
-                    {isDone && (
-                      <CheckCircleIcon className="h-4 w-4 text-emerald-600" />
-                    )}
+
+                    <div className="flex items-center justify-center w-4 h-4">
+                      {isCurrent ? (
+                        <span className="h-2 w-2 rounded-full bg-blue-600 ring-2 ring-blue-100 shrink-0" />
+                      ) : isServerPassed ? (
+                        <CheckCircleIcon className="h-4 w-4 text-emerald-600 shrink-0" />
+                      ) : isAccessible ? (
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
+                      ) : (
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-200 shrink-0" />
+                      )}
+                    </div>
                   </div>
+
+                  {/* Step Label: Fixed 1 line */}
                   <span
                     className={`text-xs font-semibold tracking-tight truncate ${
                       isCurrent
                         ? 'text-slate-900'
-                        : isDone
+                        : isServerPassed
                         ? 'text-slate-700'
+                        : isAccessible
+                        ? 'text-slate-700 group-hover:text-blue-600'
                         : 'text-slate-400'
                     }`}
                   >
                     {s.label}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>
         </nav>
-
         {/* Card Box */}
         <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 shadow-xl shadow-slate-900/5 transition-all duration-300">
           <div className="mb-8">
@@ -502,31 +558,55 @@ export default function OnboardingPage() {
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() =>
-              selectShape.mutate(
-                { shape: selectedShape },
-                {
-                  onSuccess: (data: OnboardingCompanyUpdate) => {
-                    setCompanyFromMutation(data);
-                    onboardingState.refetch();
-                  },
-                }
-              )
-            }
-            disabled={selectShape.isPending}
-            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition-all duration-150 hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {selectShape.isPending ? (
-              'Menyimpan Konfigurasi…'
-            ) : (
-              <>
-                <span>Lanjutkan: {currentSelected.name.split(' ')[0]}</span>
-                <ArrowRightIcon className="h-4 w-4" />
-              </>
+          <div className="flex flex-col-reverse sm:flex-row items-center gap-3 w-full sm:w-auto">
+            {serverStepNumber > 1 && (
+              <button
+                type="button"
+                onClick={() => setActiveStepOverride(null)}
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98]"
+              >
+                <span>Batal & Lanjut ke Langkah 0{serverStepNumber}</span>
+              </button>
             )}
-          </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  selectedShape === currentCompany?.businessShape &&
+                  serverStepNumber > 1
+                ) {
+                  setActiveStepOverride(null);
+                  return;
+                }
+                selectShape.mutate(
+                  { shape: selectedShape },
+                  {
+                    onSuccess: (data: OnboardingCompanyUpdate) => {
+                      setActiveStepOverride(null);
+                      setCompanyFromMutation(data);
+                      onboardingState.refetch();
+                    },
+                  }
+                );
+              }}
+              disabled={selectShape.isPending}
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition-all duration-150 hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {selectShape.isPending ? (
+                'Menyimpan Konfigurasi…'
+              ) : (
+                <>
+                  <span>
+                    {selectedShape === currentCompany?.businessShape && serverStepNumber > 1
+                      ? `Lanjut ke Langkah 0${serverStepNumber}`
+                      : `Lanjutkan: ${currentSelected.name.split(' ')[0]}`}
+                  </span>
+                  <ArrowRightIcon className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>,
       'max-w-5xl'
@@ -617,31 +697,43 @@ export default function OnboardingPage() {
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            submitOpeningBalance.mutate(
-              { cash, bank },
-              {
-                onSuccess: (data: OnboardingCompanyUpdate) => {
-                  setCompanyFromMutation(data);
-                  onboardingState.refetch();
-                },
-              }
-            )
-          }
-          disabled={submitOpeningBalance.isPending}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-blue-600/25 transition-all duration-200 hover:from-blue-500 hover:to-blue-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitOpeningBalance.isPending ? (
-            'Menyimpan Saldo Awal...'
-          ) : (
-            <>
-              <span>Simpan & Lanjutkan</span>
-              <ArrowRightIcon className="h-4 w-4" />
-            </>
-          )}
-        </button>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={() => setActiveStepOverride(CompanyOnboardingStep.BUSINESS_SHAPE)}
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98]"
+          >
+            <ArrowLeftIcon className="h-4 w-4 text-slate-400" />
+            <span>Kembali ke Tipe Bisnis</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              submitOpeningBalance.mutate(
+                { cash, bank },
+                {
+                  onSuccess: (data: OnboardingCompanyUpdate) => {
+                    setActiveStepOverride(null);
+                    setCompanyFromMutation(data);
+                    onboardingState.refetch();
+                  },
+                }
+              )
+            }
+            disabled={submitOpeningBalance.isPending}
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition-all duration-150 hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitOpeningBalance.isPending ? (
+              'Menyimpan Saldo Awal...'
+            ) : (
+              <>
+                <span>Simpan & Lanjutkan</span>
+                <ArrowRightIcon className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        </div>
       </div>
     );
   }
@@ -729,34 +821,48 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            runFirstTransaction.mutate(
-              {
-                supplierName,
-                productName,
-                quantity,
-                unitPrice,
-                payNow,
-              },
-              {
-                onSuccess: () => onboardingState.refetch(),
-              }
-            )
-          }
-          disabled={runFirstTransaction.isPending || !supplierName || !productName}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-blue-600/25 transition-all duration-200 hover:from-blue-500 hover:to-blue-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {runFirstTransaction.isPending ? (
-            'Mencatat Transaksi Pertama...'
-          ) : (
-            <>
-              <span>Proses Transaksi & Selesaikan</span>
-              <ArrowRightIcon className="h-4 w-4" />
-            </>
-          )}
-        </button>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={() => setActiveStepOverride(CompanyOnboardingStep.OPENING_BALANCE)}
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98]"
+          >
+            <ArrowLeftIcon className="h-4 w-4 text-slate-400" />
+            <span>Kembali ke Saldo Awal</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              runFirstTransaction.mutate(
+                {
+                  supplierName,
+                  productName,
+                  quantity,
+                  unitPrice,
+                  payNow,
+                },
+                {
+                  onSuccess: () => {
+                    setActiveStepOverride(null);
+                    onboardingState.refetch();
+                  },
+                }
+              )
+            }
+            disabled={runFirstTransaction.isPending || !supplierName || !productName}
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition-all duration-150 hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {runFirstTransaction.isPending ? (
+              'Mencatat Transaksi Pertama...'
+            ) : (
+              <>
+                <span>Proses Transaksi & Selesaikan</span>
+                <ArrowRightIcon className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        </div>
       </div>
     );
   }

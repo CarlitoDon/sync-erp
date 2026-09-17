@@ -389,10 +389,11 @@ export class CompanyService {
   async selectShape(
     companyId: string,
     newShape: BusinessShape,
-    currentShape: BusinessShape
+    currentShape: BusinessShape,
+    allowDuringOnboarding = false
   ): Promise<Company> {
     // Policy check - ensure shape can be changed
-    CompanyPolicy.ensureCanSelectShape(currentShape);
+    CompanyPolicy.ensureCanSelectShape(currentShape, allowDuringOnboarding);
     CompanyPolicy.ensureValidTargetShape(newShape);
 
     // Update shape

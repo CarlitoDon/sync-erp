@@ -156,6 +156,48 @@ export const onboardingRouter = router({
       }
 
       if (company.businessShape !== BusinessShape.PENDING) {
+        if (company.businessShape === input.shape) {
+          return prisma.company.update({
+            where: { id: companyId },
+            data: {
+              onboardingStatus: CompanyOnboardingStatus.IN_PROGRESS,
+              onboardingStep: CompanyOnboardingStep.OPENING_BALANCE,
+            },
+            select: {
+              id: true,
+              businessShape: true,
+              onboardingStatus: true,
+              onboardingStep: true,
+              onboardingCompletedAt: true,
+              onboardingMeta: true,
+            },
+          });
+        }
+
+        // Shape is being changed during onboarding: verify no journal entries exist
+        const journalCount = await prisma.journalEntry.count({
+          where: { companyId },
+        });
+
+        if (journalCount > 0) {
+          throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message:
+              'Tipe bisnis tidak dapat diubah karena jurnal transaksi sudah tercatat.',
+          });
+        }
+
+        const companyService = container.resolve<CompanyService>(
+          ServiceKeys.COMPANY_SERVICE
+        );
+
+        await companyService.selectShape(
+          companyId,
+          input.shape,
+          company.businessShape,
+          true
+        );
+
         return prisma.company.update({
           where: { id: companyId },
           data: {
