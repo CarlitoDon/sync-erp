@@ -73,18 +73,18 @@ export default function CompanySwitcher() {
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-controls="company-switcher-options"
-        className="flex w-full items-center gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3 py-2.5 text-left transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-primary-300/40 hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:scale-[0.99]"
+        className="flex w-full items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-left shadow-2xs transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.99]"
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-950 shadow-sm">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-xs">
           <span className="text-xs font-bold">
             {currentCompany?.name?.charAt(0) || '?'}
           </span>
         </div>
         <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
             Company
           </span>
-          <span className="block truncate text-sm font-medium text-white">
+          <span className="block truncate text-xs font-semibold text-slate-900">
             {currentCompany?.name || 'Select Company'}
           </span>
         </span>

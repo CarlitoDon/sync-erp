@@ -106,30 +106,27 @@ export function RentalDashboard() {
       <section aria-labelledby="rental-operations-heading">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-700">
-              Daily workflow
-            </p>
             <h2
               id="rental-operations-heading"
-              className="mt-1 text-xl font-semibold tracking-tight text-slate-950"
+              className="text-xl font-bold text-slate-900"
             >
-              Rental operations
+              Rental Operations
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               Returns, pickups, and active orders that need attention.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2.5">
             <Link
               to="/rental/orders"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-primary-200 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-2xs transition-all duration-150 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.98]"
             >
-              <ClipboardDocumentListIcon className="h-4 w-4" />
+              <ClipboardDocumentListIcon className="h-4 w-4 text-slate-500" />
               Orders
             </Link>
             <Link
               to="/rental/scheduler"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition-all duration-150 hover:from-blue-500 hover:to-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98]"
             >
               <CalendarDaysIcon className="h-4 w-4" />
               Scheduler
@@ -216,18 +213,19 @@ export function RentalDashboard() {
             </CardContent>
           </Card>
 
-          <div className="flex min-h-[18rem] flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm shadow-slate-900/5 transition-all">
+          <div className="flex min-h-[18rem] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-card transition-all hover:shadow-card-hover">
             <div>
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 ring-1 ring-blue-200/60">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200/60">
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
                     In progress
                   </span>
-                  <h3 className="mt-1.5 text-lg font-bold text-slate-900">
-                    Active rentals
+                  <h3 className="mt-2 text-lg font-bold text-slate-900">
+                    Active Rentals
                   </h3>
                 </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50 text-slate-700 shadow-2xs">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 shadow-2xs">
                   <ClipboardDocumentListIcon className="h-5 w-5" />
                 </span>
               </div>
@@ -241,8 +239,8 @@ export function RentalDashboard() {
                   <div className="mt-3 h-4 w-40 rounded bg-slate-100" />
                 </div>
               ) : (
-                <div className="mt-6" aria-live="polite">
-                  <p className="font-mono text-5xl font-bold tracking-tight text-slate-950 tabular-nums">
+                <div className="mt-5" aria-live="polite">
+                  <p className="font-mono text-5xl font-extrabold tracking-tight text-slate-950 tabular-nums">
                     {activeCount}
                   </p>
                   <p className="mt-2 text-xs font-medium text-slate-500">
@@ -254,7 +252,7 @@ export function RentalDashboard() {
 
             <Link
               to="/rental/orders"
-              className="mt-8 inline-flex items-center justify-between rounded-xl bg-blue-600 px-4 py-3 text-xs font-semibold text-white shadow-sm shadow-blue-600/20 transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-blue-700 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="mt-8 inline-flex items-center justify-between rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition-all duration-150 hover:from-blue-500 hover:to-blue-600 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               <span>Lihat Semua Pesanan Aktif</span>
               <ArrowRightIcon className="h-4 w-4" />

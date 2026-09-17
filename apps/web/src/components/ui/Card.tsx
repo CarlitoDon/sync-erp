@@ -11,7 +11,7 @@ export function Card({
 }: CardProps) {
   return (
     <div
-      className={`rounded-2xl border border-slate-200/80 bg-white/90 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_30px_rgba(15,23,42,0.03)] ${className}`}
+      className={`rounded-2xl border border-slate-200 bg-white shadow-card ${className}`}
       {...props}
     >
       {children}

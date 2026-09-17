@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileMenuButton from '@/components/layout/MobileMenuButton';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -6,10 +6,12 @@ import { AdSenseScript } from '@/components/ads/AdSenseScript';
 import { AdSenseSlot } from '@/components/ads/AdSenseSlot';
 import { getFooterAdSenseSlot } from '@/components/ads/adsense';
 import { useBillingFeatures } from '@/hooks/useBillingFeatures';
-import { BrandMark } from '@/components/brand/BrandMark';
+
+import { useCompany } from '@/contexts/CompanyContext';
 
 export default function Layout() {
   const { isCollapsed } = useSidebar();
+  const { currentCompany } = useCompany();
   const location = useLocation();
   const { adsEnabled } = useBillingFeatures();
   const suppressAds =
@@ -32,20 +34,43 @@ export default function Layout() {
         ${isCollapsed ? 'md:ml-[4.5rem]' : 'md:ml-[17rem]'}
       `}
       >
-        {/* Simplified Header (Mobile only shows hamburger) */}
-        <header className="glass sticky top-0 z-30 border-b border-slate-200/70 md:hidden">
-          <div className="relative flex h-16 items-center justify-between px-4">
-            <MobileMenuButton />
-            <Link
-              to="/dashboard"
-              className="absolute left-1/2 flex max-w-[calc(100vw-7rem)] -translate-x-1/2 items-center gap-2"
-            >
-              <BrandMark size="sm" />
-              <span className="truncate text-lg font-semibold text-slate-950">
-                Sync ERP
+        {/* Sticky Top Header (Matches design-guidelines.html) */}
+        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
+          <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-3">
+              <div className="md:hidden">
+                <MobileMenuButton />
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 via-blue-500 to-sky-400 text-xs font-bold text-white shadow-sm shadow-blue-500/25 ring-1 ring-white/20">
+                  {currentCompany?.name?.charAt(0) || 'S'}
+                </div>
+                <div className="min-w-0">
+                  <span className="truncate text-sm font-bold tracking-tight text-slate-900">
+                    {currentCompany?.name || 'Sync ERP'}
+                  </span>
+                  <span className="ml-2 inline-flex items-center rounded border border-blue-200/60 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                    {currentCompany?.businessShape === 'RENTAL'
+                      ? 'Rental & Sewa'
+                      : currentCompany?.businessShape || 'Operations'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <a
+                href="/design-guidelines.html"
+                target="_blank"
+                rel="noreferrer"
+                className="hidden rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:inline-flex"
+              >
+                Design System &rarr;
+              </a>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                Workspace Aktif
               </span>
-            </Link>
-            <div className="w-10" /> {/* Spacer for balance */}
+            </div>
           </div>
         </header>
 

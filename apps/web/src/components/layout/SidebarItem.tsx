@@ -34,21 +34,21 @@ export default function SidebarItem({
       className={`
         group relative flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[13px]
         transition duration-[var(--duration-normal)] ease-[var(--ease-out)]
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white
         ${
           isActive
-            ? 'bg-white/[0.1] font-semibold text-white shadow-sm ring-1 ring-inset ring-white/[0.08]'
-            : 'font-medium text-slate-300 hover:bg-white/[0.06] hover:text-white'
+            ? 'bg-blue-50 font-semibold text-blue-700 ring-1 ring-blue-200/60 shadow-2xs'
+            : 'font-medium text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
         }
         ${isCompact ? 'justify-center px-0' : ''}
       `}
       title={isCompact ? label : undefined}
     >
       {isActive && (
-        <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary-400 shadow-[0_0_10px_rgba(59,130,246,0.4)]" />
+        <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-blue-600" />
       )}
       <span
-        className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-primary-300' : 'text-slate-400 group-hover:text-slate-200'}`}
+        className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'}`}
       >
         {icon}
       </span>

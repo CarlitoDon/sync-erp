@@ -81,29 +81,26 @@ export function StatCard({
   }
 
   return (
-    <Card className="relative overflow-hidden">
-      <div
-        className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${styles.line}`}
-      />
+    <Card className="relative overflow-hidden transition-all duration-150 hover:shadow-card-hover">
       <CardContent className="p-5 sm:p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               {title}
-            </p>
-            <p className="mt-3 break-words font-mono text-2xl font-semibold tracking-tight text-slate-950 tabular-nums">
+            </span>
+            <p className="mt-2.5 break-words font-mono text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-950 tabular-nums">
               {formattedValue}
             </p>
             {description && (
-              <p className="mt-2 text-xs leading-5 text-slate-500">
+              <p className="mt-1.5 text-xs text-slate-500">
                 {description}
               </p>
             )}
           </div>
           <span
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${styles.icon}`}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${styles.icon}`}
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-4 w-4" />
           </span>
         </div>
       </CardContent>

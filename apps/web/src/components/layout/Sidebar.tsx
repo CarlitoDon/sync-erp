@@ -71,8 +71,8 @@ export default function Sidebar() {
       <aside
         className={`
           fixed left-0 top-0 z-50 flex h-screen max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden
-          border-r border-slate-800/80 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950
-          text-white shadow-2xl shadow-slate-950/20 transition-all duration-[var(--duration-slow)] ease-[var(--ease-drawer)]
+          border-r border-slate-200/80 bg-white/95 backdrop-blur-xl
+          text-slate-900 shadow-sm shadow-slate-900/5 transition-all duration-[var(--duration-slow)] ease-[var(--ease-drawer)]
           ${isCompact ? 'w-[4.5rem]' : 'w-[17rem]'}
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0
@@ -81,22 +81,22 @@ export default function Sidebar() {
         {/* Logo Header */}
         <div
           className={`
-          flex h-[4.5rem] items-center border-b border-white/[0.08] px-4
+          flex h-16 items-center border-b border-slate-200/80 px-4
           ${isCompact ? 'justify-center' : 'justify-between'}
         `}
         >
           <Link
             to="/dashboard"
             onClick={closeMobile}
-            className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           >
-            <BrandMark tone="light" />
+            <BrandMark tone="gradient" size="sm" />
             {!isCompact && (
               <span className="min-w-0">
-                <span className="block truncate text-[17px] font-semibold tracking-tight text-white">
+                <span className="block truncate text-[15px] font-bold tracking-tight text-slate-950">
                   Sync ERP
                 </span>
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
                   Operations
                 </span>
               </span>
@@ -109,7 +109,7 @@ export default function Sidebar() {
               <button
                 type="button"
                 onClick={closeMobile}
-                className="flex rounded-lg p-2 text-slate-300 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:scale-[0.96] md:hidden"
+                className="flex rounded-lg p-1.5 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.96] md:hidden"
                 title="Close navigation"
                 aria-label="Close navigation"
               >
@@ -118,7 +118,7 @@ export default function Sidebar() {
               <button
                 type="button"
                 onClick={toggleCollapse}
-                className="hidden rounded-lg p-2 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:scale-[0.96] md:flex"
+                className="hidden rounded-lg p-1.5 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.96] md:flex"
                 title="Collapse sidebar"
                 aria-label="Collapse sidebar"
               >
@@ -133,7 +133,7 @@ export default function Sidebar() {
           <button
             type="button"
             onClick={toggleCollapse}
-            className="mx-auto mt-3 hidden rounded-lg p-2 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:scale-[0.96] md:flex"
+            className="mx-auto mt-3 hidden rounded-lg p-2 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.96] md:flex"
             title="Expand sidebar"
             aria-label="Expand sidebar"
           >
@@ -147,7 +147,7 @@ export default function Sidebar() {
         {/* Footer */}
         <div
           className={`
-          mt-auto space-y-2 border-t border-white/[0.08] bg-black/10 p-3
+          mt-auto space-y-2 border-t border-slate-200/80 bg-slate-50/70 p-3
           ${isCompact ? 'items-center' : ''}
         `}
         >
@@ -160,12 +160,12 @@ export default function Sidebar() {
 
           {/* User Info */}
           {!isCompact && user && (
-            <div className="rounded-xl border border-white/[0.08] bg-white/[0.05] px-3 py-2.5">
-              <p className="truncate text-sm font-medium text-slate-100">
+            <div className="rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-slate-900 shadow-2xs">
+              <p className="truncate text-xs font-semibold text-slate-900">
                 {user.name}
               </p>
               {currentCompany && (
-                <p className="mt-0.5 truncate text-xs text-slate-400">
+                <p className="mt-0.5 truncate text-[11px] font-medium text-slate-500">
                   {currentCompany.name}
                 </p>
               )}
@@ -177,14 +177,14 @@ export default function Sidebar() {
             type="button"
             onClick={handleLogout}
             className={`
-              flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-slate-400 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-rose-400/10 hover:text-rose-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 active:scale-[0.98]
+              flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-500 transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 active:scale-[0.98]
               ${isCompact ? 'justify-center' : ''}
             `}
             title={isCompact ? 'Logout' : undefined}
           >
-            <ArrowRightOnRectangleIcon className="w-5 h-5" />
+            <ArrowRightOnRectangleIcon className="w-4 h-4" />
             {!isCompact && (
-              <span className="text-sm font-medium">Logout</span>
+              <span className="text-xs font-semibold">Logout</span>
             )}
           </button>
         </div>

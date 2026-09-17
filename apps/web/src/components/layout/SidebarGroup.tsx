@@ -33,13 +33,13 @@ export default function SidebarGroup({
         aria-expanded={isOpen}
         className="
           group flex w-full items-center gap-2 rounded-lg px-3 py-1.5
-          text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400
-          transition-colors duration-[var(--duration-fast)] hover:text-slate-200
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300
+          text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400
+          transition-colors duration-[var(--duration-fast)] hover:text-slate-700
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
         "
       >
         <ChevronRightIcon
-          className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-[var(--duration-normal)] ease-[var(--ease-out)] group-hover:text-slate-300 ${
+          className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-[var(--duration-normal)] ease-[var(--ease-out)] group-hover:text-slate-600 ${
             isOpen ? 'rotate-90' : 'rotate-0'
           }`}
         />
