@@ -2,7 +2,8 @@
  * Rental Order Lifecycle API Contracts
  * Feature: 045-rental-flow-alignment
  *
- * Single Source of Truth for Zod schemas in @sync-erp/shared
+ * Single Source of Truth for Zod schemas in @sync-erp/shared (packages/shared/src/validators/rental.ts)
+ * Note: Canonical schemas are updated in-place without duplicate "*ContractSchema" naming.
  */
 
 import { z } from 'zod';
@@ -14,15 +15,32 @@ export const UnitAssignmentInputSchema = z.object({
   unitId: z.string().uuid(),
 });
 
-export const ConfirmRentalOrderContractSchema = z.object({
+export const ConfirmRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
-  depositAmount: z.number().nonnegative(), // DP ~30%
+  /**
+   * Down Payment (DP ~30%) paid by customer upon confirmation.
+   * Stored in RentalOrder.depositAmount for database backward compatibility.
+   */
+  depositAmount: z.number().nonnegative(),
   paymentMethod: z.enum(['CASH', 'BANK', 'QRIS']).default('BANK'),
   paymentAccountId: z.string().uuid().optional(),
   unitAssignments: z.array(UnitAssignmentInputSchema).optional(),
 });
 
-export type ConfirmRentalOrderContract = z.infer<typeof ConfirmRentalOrderContractSchema>;
+export type ConfirmRentalOrderInput = z.infer<typeof ConfirmRentalOrderSchema>;
+
+// Fallback for stock shortage (FR-004)
+export const ManualConfirmRentalOrderSchema = z.object({
+  orderId: z.string().uuid(),
+  skipStockCheck: z.boolean().default(false),
+  paymentMethodId: z.string().uuid(),
+  paymentAmount: z.number().nonnegative(),
+  paymentReference: z.string().optional(),
+  accountingTreatment: z.enum(['POST_CASH_JOURNAL', 'OPENING_BALANCE_NO_POSTING']).default('POST_CASH_JOURNAL'),
+  reason: z.string().min(5, 'Alasan konfirmasi manual harus diisi'),
+});
+
+export type ManualConfirmRentalOrderInput = z.infer<typeof ManualConfirmRentalOrderSchema>;
 
 // ==========================================
 // 2. Release Units (Serah Terima & Pelunasan 70%)
@@ -34,7 +52,7 @@ export const UnitReleaseInputSchema = z.object({
   notes: z.string().optional(),
 });
 
-export const ReleaseRentalOrderContractSchema = z.object({
+export const ReleaseRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
   unitAssignments: z.array(UnitReleaseInputSchema).min(1),
   skipPhotoCheck: z.boolean().optional(),
@@ -47,12 +65,12 @@ export const ReleaseRentalOrderContractSchema = z.object({
   }).optional(),
 });
 
-export type ReleaseRentalOrderContract = z.infer<typeof ReleaseRentalOrderContractSchema>;
+export type ReleaseRentalOrderInput = z.infer<typeof ReleaseRentalOrderSchema>;
 
 // ==========================================
 // 3. Extension (Full & Partial with Fleet Fee)
 // ==========================================
-export const ExtendRentalOrderItemContractSchema = z.object({
+export const ExtendRentalOrderItemSchema = z.object({
   rentalOrderItemId: z.string().uuid().optional(),
   rentalItemId: z.string().uuid().optional(),
   quantity: z.number().int().positive().optional(),
@@ -60,13 +78,13 @@ export const ExtendRentalOrderItemContractSchema = z.object({
   additionalAmount: z.number().nonnegative().optional(),
 });
 
-export const ExtendRentalOrderContractSchema = z.object({
+export const ExtendRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
   newEndDate: z.string().datetime().transform((str) => new Date(str)),
   additionalAmount: z.number().nonnegative().optional(),
-  deliveryFee: z.number().nonnegative().optional(), // Biaya Tambahan Armada
+  deliveryFee: z.number().nonnegative().optional(), // Biaya Tambahan Armada (extra fleet trip fee)
   deliveryFeeLabel: z.string().optional().default('Biaya Tambahan Armada'),
-  items: z.array(ExtendRentalOrderItemContractSchema).min(1).optional(),
+  items: z.array(ExtendRentalOrderItemSchema).min(1).optional(),
   payment: z.object({
     amount: z.number().nonnegative(),
     paymentMethod: z.enum(['CASH', 'BANK', 'QRIS']).default('BANK'),
@@ -74,12 +92,12 @@ export const ExtendRentalOrderContractSchema = z.object({
   }).optional(),
 });
 
-export type ExtendRentalOrderContract = z.infer<typeof ExtendRentalOrderContractSchema>;
+export type ExtendRentalOrderInput = z.infer<typeof ExtendRentalOrderSchema>;
 
 // ==========================================
 // 4. Return Units (Inspection & Damage Billing)
 // ==========================================
-export const UnitReturnContractSchema = z.object({
+export const UnitReturnSchema = z.object({
   unitId: z.string().uuid(),
   condition: z.enum(['NEW', 'GOOD', 'FAIR', 'NEEDS_REPAIR']),
   damageSeverity: z.enum(['MINOR', 'MAJOR', 'UNUSABLE']).optional(),
@@ -87,10 +105,10 @@ export const UnitReturnContractSchema = z.object({
   afterPhotos: z.array(z.string()).default([]),
 });
 
-export const ProcessReturnContractSchema = z.object({
+export const ProcessReturnSchema = z.object({
   orderId: z.string().uuid(),
   actualReturnDate: z.date(),
-  units: z.array(UnitReturnContractSchema).nonempty(),
+  units: z.array(UnitReturnSchema).nonempty(),
   // On-the-spot damage/cleaning payment
   damagePayment: z.object({
     amount: z.number().nonnegative(),
@@ -99,12 +117,12 @@ export const ProcessReturnContractSchema = z.object({
   }).optional(),
 });
 
-export type ProcessReturnContract = z.infer<typeof ProcessReturnContractSchema>;
+export type ProcessReturnInput = z.infer<typeof ProcessReturnSchema>;
 
 // ==========================================
 // 5. Cancel Order (Refund DP & Stock Release)
 // ==========================================
-export const CancelRentalOrderContractSchema = z.object({
+export const CancelRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
   reason: z.string().min(5, 'Alasan pembatalan harus diisi'),
   refundPayment: z.object({
@@ -113,4 +131,4 @@ export const CancelRentalOrderContractSchema = z.object({
   }).optional(),
 });
 
-export type CancelRentalOrderContract = z.infer<typeof CancelRentalOrderContractSchema>;
+export type CancelRentalOrderInput = z.infer<typeof CancelRentalOrderSchema>;
