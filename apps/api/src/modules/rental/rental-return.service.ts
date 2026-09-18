@@ -125,8 +125,13 @@ export class RentalReturnService {
         feature: 'mediaAccess',
       });
 
+      const rawUnits =
+        input.unitReturns && input.unitReturns.length > 0
+          ? input.unitReturns
+          : input.units;
+
       // Batch fetch units
-      const unitIds = input.units.map((u) => u.unitId);
+      const unitIds = rawUnits.map((u) => u.unitId);
       const unitsList = await tx.rentalItemUnit.findMany({
         where: { id: { in: unitIds } },
         include: {
@@ -145,7 +150,7 @@ export class RentalReturnService {
         orderBy: [{ rentalItemId: 'desc' }, { category: 'desc' }],
       });
 
-      for (const u of input.units) {
+      for (const u of rawUnits) {
         const afterPhotos = u.afterPhotos ?? [];
 
         if (!hasMediaAccess && afterPhotos.length > 0) {
@@ -193,7 +198,7 @@ export class RentalReturnService {
 
       // Create condition logs
       await Promise.all(
-        input.units.map((unit) =>
+        rawUnits.map((unit) =>
           tx.itemConditionLog.create({
             data: {
               rentalItemUnitId: unit.unitId,
@@ -201,10 +206,11 @@ export class RentalReturnService {
               conditionType: 'RETURN',
               beforePhotos: [],
               afterPhotos: unit.afterPhotos ?? [],
-              condition: unit.condition,
+              condition: unit.condition ?? 'GOOD',
               damageSeverity: unit.damageSeverity || null,
               notes:
                 unit.damageNotes ??
+                unit.notes ??
                 (hasMediaAccess ? undefined : 'No media access on current plan'),
               recordedAt: input.actualReturnDate,
               assessedBy: userId,
@@ -213,13 +219,56 @@ export class RentalReturnService {
         )
       );
 
-      // Set units to RETURNED
-      await tx.rentalItemUnit.updateMany({
-        where: { id: { in: input.units.map((u) => u.unitId) } },
-        data: { status: UnitStatus.RETURNED },
-      });
+      // Route clean units to AVAILABLE, soiled/damaged units to MAINTENANCE
+      const availableUnitIds: string[] = [];
+      const maintenanceUnitIds: string[] = [];
+
+      for (const u of rawUnits) {
+        const isDamagedOrDirty =
+          u.conditionStatus === 'DIRTY' ||
+          u.conditionStatus === 'DAMAGED' ||
+          Boolean(u.damageSeverity) ||
+          u.condition === 'NEEDS_REPAIR' ||
+          u.condition === 'FAIR';
+
+        if (isDamagedOrDirty) {
+          maintenanceUnitIds.push(u.unitId);
+        } else {
+          availableUnitIds.push(u.unitId);
+        }
+      }
+
+      if (availableUnitIds.length > 0) {
+        await tx.rentalItemUnit.updateMany({
+          where: { id: { in: availableUnitIds } },
+          data: { status: UnitStatus.AVAILABLE },
+        });
+      }
+
+      if (maintenanceUnitIds.length > 0) {
+        await tx.rentalItemUnit.updateMany({
+          where: { id: { in: maintenanceUnitIds } },
+          data: { status: UnitStatus.MAINTENANCE },
+        });
+      }
+
+      // On-the-spot damage/cleaning fee journal posting
+      if (input.damagePayment && input.damagePayment.amount > 0) {
+        await this.journalService.postRentalDamageFee({
+          companyId,
+          orderId: order.id,
+          orderNumber: order.orderNumber!,
+          damageFeeAmount: input.damagePayment.amount,
+          paymentAccountId: input.damagePayment.paymentAccountId,
+          paymentMethod: input.damagePayment.paymentMethod,
+          customerName: order.partner?.name,
+          tx,
+          businessDate: input.actualReturnDate,
+        });
+      }
 
       // Create return record
+      const isSettled = Boolean(input.damagePayment) || damageCharges.isZero();
       const rentalReturn = await tx.rentalReturn.create({
         data: {
           rentalOrderId: order.id,
@@ -233,7 +282,8 @@ export class RentalReturnService {
           depositDeduction: settlement.depositDeduction,
           depositRefund: settlement.depositRefund,
           additionalChargesDue: settlement.additionalChargesDue,
-          settlementStatus: ReturnStatus.DRAFT,
+          settlementStatus: isSettled ? ReturnStatus.SETTLED : ReturnStatus.DRAFT,
+          settledAt: isSettled ? new Date() : null,
           processedBy: userId,
         },
       });

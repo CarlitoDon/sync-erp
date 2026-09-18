@@ -197,11 +197,11 @@ flowchart TB
 
 | State | Keterangan | Valid Transitions Menuju State Berikutnya |
 | :--- | :--- | :--- |
-| **`DRAFT`** | Order dibuat, rincian biaya & kebijakan dihitung, menunggu pembayaran deposit. | `CONFIRMED`, `CANCELLED` |
-| **`CONFIRMED`** | Pembayaran deposit terverifikasi, unit serial fisik dialokasikan (`RESERVED`). Siap kirim. | `ACTIVE`, `CANCELLED` |
-| **`ACTIVE`** | Barang telah diserahterimakan ke customer, kondisi awal terdokumentasi, sewa berjalan. | `COMPLETED` |
-| **`COMPLETED`** | Barang telah dikembalikan, diinspeksi, denda/kerusakan diselesaikan dari deposit, order ditutup. | *(Terminal State)* |
-| **`CANCELLED`** | Order dibatalkan sebelum rilis unit. Unit dilepas kembali ke `AVAILABLE`, deposit di-refund. | *(Terminal State)* |
+| **`DRAFT`** | Order dibuat, rincian biaya & kebijakan dihitung, menunggu pembayaran uang muka (DP ~30%). Belum ada nomor seri unit fisik yang terikat. | `CONFIRMED`, `CANCELLED` |
+| **`CONFIRMED`** | Pembayaran DP terverifikasi, unit serial fisik dialokasikan (`RESERVED`). Jurnal uang muka (Debet Kas/Bank, Kredit Uang Muka Sewa `2200`) terposting. Siap kirim. | `ACTIVE`, `CANCELLED` |
+| **`ACTIVE`** | Barang telah diserahterimakan ke customer, kondisi awal terdokumentasi, sisa 70% dilunasi di lokasi (chip `Lunas`), jurnal pendapatan sewa terposting, sewa berjalan. | `COMPLETED` |
+| **`COMPLETED`** | Barang telah dikembalikan, diinspeksi (baik → `AVAILABLE`, bernoda/rusak → `MAINTENANCE`), denda/cuci ditagih langsung di tempat tanpa potongan deposit semu, order ditutup. | *(Terminal State)* |
+| **`CANCELLED`** | Order dibatalkan sebelum rilis unit. Unit dilepas kembali ke `AVAILABLE`, DP di-refund via jurnal pembalik (Debet Uang Muka Sewa `2200`, Kredit Kas/Bank). | *(Terminal State)* |
 
 ---
 
@@ -211,7 +211,7 @@ flowchart TB
 | :--- | :--- | :--- |
 | **`PENDING`** | Order baru dibuat, menunggu transfer / scan QRIS. | Customer kirim bukti bayar atau klik "Sudah Bayar" |
 | **`AWAITING_CONFIRM`** | Customer mengklaim pembayaran (`paymentClaimedAt`). | Admin verifikasi mutasi bank / webhook QRIS |
-| **`CONFIRMED`** | Pembayaran berhasil diverifikasi admin / gateway (`paymentConfirmedAt`). Deposit masuk status `HELD`. | Lanjut ke konfirmasi order & assign unit |
+| **`CONFIRMED`** | Pembayaran berhasil diverifikasi admin / gateway (`paymentConfirmedAt`). DP tercatat di `depositAmount`, jurnal uang muka terposting. | Lanjut ke konfirmasi order & assign unit |
 | **`FAILED`** | Pembayaran ditolak karena mutasi tidak ditemukan, kadaluarsa, atau nominal salah. | Customer diminta transfer ulang atau upload bukti |
 
 ---

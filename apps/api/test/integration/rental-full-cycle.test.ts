@@ -119,6 +119,7 @@ describe('US3: Full Rental Asset Lifecycle', () => {
       { code: '2105', name: 'GRNI Accrued', type: 'LIABILITY' },
       { code: '2300', name: 'VAT Payable', type: 'LIABILITY' },
       { code: '2400', name: 'Customer Deposits', type: 'LIABILITY' }, // For Rental Deposits
+      { code: '2200', name: 'Uang Muka Sewa', type: 'LIABILITY' },   // Down Payment Liability
       { code: '4100', name: 'Sales Revenue', type: 'REVENUE' },
       { code: '4200', name: 'Rental Revenue', type: 'REVENUE' },
       { code: '5000', name: 'COGS', type: 'EXPENSE' },
@@ -466,7 +467,7 @@ describe('US3: Full Rental Asset Lifecycle', () => {
     });
     expect(depositJournal).toBeDefined();
     const depositLiabilityCredit = depositJournal?.lines.find(
-      (l) => l.account.code === '2400'
+      (l) => l.account.code === '2200' || l.account.code === '2400'
     );
     expect(Number(depositLiabilityCredit?.credit)).toBe(1000000);
 

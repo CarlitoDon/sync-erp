@@ -130,7 +130,7 @@ export class RentalOrderFulfillmentService {
 
           if (availableUnits.length < qty) {
             throw new DomainError(
-              `Insufficient available units for rental item. Need ${qty}, found ${availableUnits.length}`,
+              `Insufficient available units for rental item. Need ${qty}, found ${availableUnits.length}. Use manual confirmation with reason override per FR-004.`,
               400,
               DomainErrorCodes.INSUFFICIENT_STOCK
             );
@@ -257,15 +257,19 @@ export class RentalOrderFulfillmentService {
         },
       });
 
-      // Post deposit journal
-      await this.journalService.postRentalDeposit(
-        companyId,
-        deposit.id,
-        order.orderNumber!,
-        Number(depositAmount),
-        paymentMethodStr,
-        tx
-      );
+      // Post down payment journal (~30% DP)
+      if (depositAmount.gt(0)) {
+        await this.journalService.postRentalDownPayment({
+          companyId,
+          orderId: order.id,
+          orderNumber: order.orderNumber!,
+          downPaymentAmount: depositAmount.toNumber(),
+          paymentAccountId: input.paymentAccountId,
+          paymentMethod: paymentMethodStr,
+          customerName: order.partner?.name,
+          tx,
+        });
+      }
 
       await recordAudit({
         companyId,
@@ -497,15 +501,18 @@ export class RentalOrderFulfillmentService {
         input.accountingTreatment ?? 'POST_CASH_JOURNAL';
       const journalPosted = accountingTreatment === 'POST_CASH_JOURNAL';
 
-      if (journalPosted) {
-        await this.journalService.postRentalDeposit(
+      if (journalPosted && depositAmount.gt(0)) {
+        await this.journalService.postRentalDownPayment({
           companyId,
-          deposit.id,
-          order.orderNumber!,
-          Number(depositAmount),
-          paymentMethod.code,
-          tx
-        );
+          orderId: order.id,
+          orderNumber: order.orderNumber!,
+          downPaymentAmount: depositAmount.toNumber(),
+          paymentAccountId:
+            input.paymentAccountId ?? paymentMethod.accountId ?? undefined,
+          paymentMethod: paymentMethod.code,
+          customerName: order.partner?.name,
+          tx,
+        });
       }
 
       await recordAudit({
@@ -608,12 +615,35 @@ export class RentalOrderFulfillmentService {
         data: { status: UnitStatus.RENTED },
       });
 
+      // Extract payment & compute settlement values
+      const payment = input.payment;
+      const downPaymentAmount = Number(order.depositAmount || 0);
+      const rentalRevenueAmount = Number(order.subtotal);
+      const deliveryFeeAmount = Number(order.deliveryFee || 0);
+      const totalExpected = new Decimal(rentalRevenueAmount).plus(deliveryFeeAmount);
+      // Cap the DP recognized in this release to the order total.
+      // If deposit > order total, the excess stays in acc 2200 until the
+      // return/refund flow clears it with a separate deposit-refund journal.
+      const effectiveDownPayment = Math.min(
+        downPaymentAmount,
+        totalExpected.toNumber()
+      );
+      const settlementAmount =
+        payment?.settlementAmount !== undefined
+          ? payment.settlementAmount
+          : Math.max(0, totalExpected.minus(effectiveDownPayment).toNumber());
+
       // Update order
       const updated = await tx.rentalOrder.update({
         where: { id: order.id },
         data: {
           status: RentalOrderStatus.ACTIVE,
           activatedAt: new Date(),
+          rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
+          paymentConfirmedAt: new Date(),
+          paymentConfirmedBy: userId,
+          ...(payment?.reference && { paymentReference: payment.reference }),
+          ...(payment?.paymentMethod && { paymentMethod: payment.paymentMethod }),
         },
         include: {
           items: true,
@@ -621,6 +651,26 @@ export class RentalOrderFulfillmentService {
           deposit: true,
         },
       });
+
+      // Post settlement journal upon release (70% balance + DP recognition)
+      if (settlementAmount > 0 || effectiveDownPayment > 0) {
+        await this.journalService.postRentalReleaseSettlement({
+          companyId,
+          orderId: order.id,
+          orderNumber: order.orderNumber!,
+          settlementAmount,
+          downPaymentAmount: effectiveDownPayment,
+          rentalRevenueAmount,
+          deliveryFeeAmount,
+          paymentAccountId: payment?.paymentAccountId,
+          paymentMethod:
+            payment?.paymentMethod ||
+            order.paymentMethod ||
+            PaymentMethodType.CASH,
+          customerName: order.partner?.name,
+          tx,
+        });
+      }
 
       await recordAudit({
         companyId,

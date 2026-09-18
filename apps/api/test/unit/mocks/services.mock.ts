@@ -75,6 +75,12 @@ export const mockJournalService = {
   postGoodsReceipt: vi.fn(),
   postBill: vi.fn(),
   postRentalDeposit: vi.fn(),
+  postRentalReturn: vi.fn(),
+  postRentalDownPayment: vi.fn(),
+  postRentalReleaseSettlement: vi.fn(),
+  postRentalExtension: vi.fn(),
+  postRentalDamageFee: vi.fn(),
+  postRentalCancellationRefund: vi.fn(),
 };
 
 export const mockReportService = {

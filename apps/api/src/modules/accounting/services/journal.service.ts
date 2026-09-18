@@ -13,7 +13,14 @@ import { JournalRepository } from '../repositories/journal.repository';
 import { AccountService } from './account.service';
 import { JournalSalesService } from './journal-sales.service';
 import { JournalProcurementService } from './journal-procurement.service';
-import { JournalRentalService } from './journal-rental.service';
+import {
+  JournalRentalService,
+  PostRentalDownPaymentParams,
+  PostRentalReleaseSettlementParams,
+  PostRentalExtensionParams,
+  PostRentalDamageFeeParams,
+  PostRentalCancellationRefundParams,
+} from './journal-rental.service';
 import { JournalInventoryService } from './journal-inventory.service';
 
 /**
@@ -511,6 +518,36 @@ export class JournalService {
   // RENTAL JOURNALS (Delegated)
   // ==========================================
 
+  async postRentalDownPayment(
+    params: PostRentalDownPaymentParams
+  ): Promise<JournalEntry> {
+    return this.rental.postRentalDownPayment(params);
+  }
+
+  async postRentalReleaseSettlement(
+    params: PostRentalReleaseSettlementParams
+  ): Promise<JournalEntry> {
+    return this.rental.postRentalReleaseSettlement(params);
+  }
+
+  async postRentalExtension(
+    params: PostRentalExtensionParams
+  ): Promise<JournalEntry> {
+    return this.rental.postRentalExtension(params);
+  }
+
+  async postRentalDamageFee(
+    params: PostRentalDamageFeeParams
+  ): Promise<JournalEntry> {
+    return this.rental.postRentalDamageFee(params);
+  }
+
+  async postRentalCancellationRefund(
+    params: PostRentalCancellationRefundParams
+  ): Promise<JournalEntry> {
+    return this.rental.postRentalCancellationRefund(params);
+  }
+
   async postRentalDeposit(
     companyId: string,
     depositId: string,
@@ -558,3 +595,10 @@ export class JournalService {
 
 // Re-export types for backward compatibility
 export type { CreateJournalEntryInput, CreateJournalLineInput };
+export type {
+  PostRentalDownPaymentParams,
+  PostRentalReleaseSettlementParams,
+  PostRentalExtensionParams,
+  PostRentalDamageFeeParams,
+  PostRentalCancellationRefundParams,
+};

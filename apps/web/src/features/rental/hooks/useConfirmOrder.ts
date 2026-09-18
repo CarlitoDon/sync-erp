@@ -1,10 +1,14 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { apiAction } from '@/hooks/useApiAction';
 import {
   ManualConfirmAccountingTreatment,
   RentalPaymentStatus,
   PaymentMethodTypeSchema,
+  ConfirmRentalOrderSchema,
+  ManualConfirmRentalOrderSchema,
+  RentalPaymentMethodSchema,
+  type RentalPaymentMethod,
 } from '@sync-erp/shared';
 import { toast } from 'react-hot-toast';
 
@@ -37,6 +41,12 @@ export function useConfirmOrder({
   const [manualMode, setManualMode] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState('');
   const [paymentAmount, setPaymentAmount] = useState(0);
+  const [depositInput, setDepositInput] = useState(0);
+  const [depositPaymentMethod, setDepositPaymentMethod] =
+    useState<RentalPaymentMethod>('BANK');
+  const [depositPaymentAccountId, setDepositPaymentAccountId] = useState<
+    string | undefined
+  >();
   const [paymentReference, setPaymentReference] = useState('');
   const [manualNotes, setManualNotes] = useState('');
   const [skipStockCheck, setSkipStockCheck] = useState(false);
@@ -47,6 +57,9 @@ export function useConfirmOrder({
     setManualMode(false);
     setPaymentMethodId('');
     setPaymentAmount(0);
+    setDepositInput(0);
+    setDepositPaymentMethod('BANK');
+    setDepositPaymentAccountId(undefined);
     setPaymentReference('');
     setManualNotes('');
     setSkipStockCheck(false);
@@ -67,6 +80,42 @@ export function useConfirmOrder({
 
   const { data: paymentMethods = [] } =
     trpc.paymentMethod.list.useQuery(undefined, { enabled: isOpen });
+  const { data: accounts = [] } = trpc.finance.listAccounts.useQuery(
+    undefined,
+    { enabled: isOpen }
+  );
+
+  const cashBankAccounts = useMemo(() => {
+    const headers = new Set(['1100', '1200', '1210']);
+    return accounts.filter((account) => {
+      if (account.isGroup || headers.has(account.code)) return false;
+      return (
+        (account.code >= '1100' && account.code <= '1199') ||
+        (account.code >= '1200' && account.code <= '1299')
+      );
+    });
+  }, [accounts]);
+
+  const suggestedDeposit = order
+    ? Number(order.depositAmount) > 0
+      ? Number(order.depositAmount)
+      : Number(order.totalAmount) * 0.3
+    : 0;
+
+  useEffect(() => {
+    if (isOpen && order) {
+      setDepositInput(suggestedDeposit);
+      setPaymentAmount(suggestedDeposit);
+      setDepositPaymentMethod('BANK');
+      setDepositPaymentAccountId(undefined);
+    }
+    if (!isOpen) {
+      setDepositInput(0);
+      setPaymentAmount(0);
+      setDepositPaymentMethod('BANK');
+      setDepositPaymentAccountId(undefined);
+    }
+  }, [isOpen, order?.id, order?.depositAmount, order?.totalAmount, suggestedDeposit]);
 
   // Availability check
   const availabilityCheck = useMemo(() => {
@@ -181,9 +230,7 @@ export function useConfirmOrder({
   // Derived values
   const totalItems =
     order?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-  const depositAmount = order?.depositAmount
-    ? Number(order.depositAmount)
-    : 0;
+  const depositAmount = depositInput;
 
   // Handlers
   const handleQuickCreatePaymentMethod = useCallback(
@@ -213,27 +260,59 @@ export function useConfirmOrder({
     toast.error('Perlakuan akuntansi tidak valid.');
   }, []);
 
+  const setDepositMethodFromString = useCallback((value: string) => {
+    const parsed = RentalPaymentMethodSchema.safeParse(value);
+    if (parsed.success) {
+      setDepositPaymentMethod(parsed.data);
+    } else {
+      toast.error('Metode pembayaran DP tidak valid.');
+    }
+  }, []);
+
   const handleConfirm = useCallback(async () => {
     if (!order || !canConfirm) return;
     await apiAction(
-      () => confirmMutation.mutateAsync({ orderId: order.id }),
+      () => {
+        const payload = ConfirmRentalOrderSchema.parse({
+          orderId: order.id,
+          depositAmount: depositInput,
+          paymentMethod: depositPaymentMethod,
+          paymentAccountId: depositPaymentAccountId,
+          paymentReference: paymentReference || undefined,
+          unitAssignments: [],
+        });
+        return confirmMutation.mutateAsync(payload);
+      },
       'Order dikonfirmasi! Unit otomatis di-assign.'
     );
-  }, [order, canConfirm, confirmMutation]);
+  }, [
+    order,
+    canConfirm,
+    confirmMutation,
+    depositInput,
+    depositPaymentMethod,
+    depositPaymentAccountId,
+    paymentReference,
+  ]);
 
   const handleManualConfirm = useCallback(async () => {
     if (!order || !paymentMethodId || !manualNotes.trim()) return;
     await apiAction(
-      () =>
-        manualConfirmMutation.mutateAsync({
+      () => {
+        const payload = ManualConfirmRentalOrderSchema.parse({
           orderId: order.id,
           paymentMethodId,
-          paymentAmount: paymentAmount || depositAmount,
+          paymentAmount: paymentAmount || depositInput,
+          depositAmount: depositInput,
+          paymentMethod: depositPaymentMethod,
+          paymentAccountId: depositPaymentAccountId,
           paymentReference: paymentReference || undefined,
           skipStockCheck,
           accountingTreatment,
           notes: manualNotes,
-        }),
+        });
+        return manualConfirmMutation.mutateAsync(payload);
+      },
       'Order dikonfirmasi secara manual!'
     );
   }, [
@@ -242,7 +321,9 @@ export function useConfirmOrder({
     manualNotes,
     manualConfirmMutation,
     paymentAmount,
-    depositAmount,
+    depositInput,
+    depositPaymentMethod,
+    depositPaymentAccountId,
     paymentReference,
     skipStockCheck,
     accountingTreatment,
@@ -304,6 +385,15 @@ export function useConfirmOrder({
     setSkipStockCheck,
     accountingTreatment,
     handleAccountingTreatmentChange,
+
+    // DP payment form state
+    depositInput,
+    setDepositInput,
+    depositPaymentMethod,
+    setDepositMethodFromString,
+    depositPaymentAccountId,
+    setDepositPaymentAccountId,
+    cashBankAccounts,
 
     // Handlers
     handleConfirm,

@@ -12,6 +12,8 @@ import {
   ProcessReturnSchema,
   UpdateRentalPolicySchema,
   ExtendRentalOrderSchema,
+  CancelRentalOrderSchema,
+  ExtendRentalOrderPaymentSchema,
   CreateInvoiceFromReturnSchema,
   ConvertStockToUnitSchema,
   type RentalItemWithRelations,
@@ -24,12 +26,23 @@ import type {
   UnitStatus,
 } from '@sync-erp/database';
 import { RentalService } from '../../modules/rental/rental.service';
+import { RentalOrderLifecycleService } from '../../modules/rental/rental-order-lifecycle.service';
 import { container, ServiceKeys } from '../../modules/common/di';
 import { mapToPortableOrder } from '../../modules/rental/rental.mapper';
 
 const rentalService = container.resolve<RentalService>(
   ServiceKeys.RENTAL_SERVICE
 );
+const lifecycleService = new RentalOrderLifecycleService();
+
+export const ConvertOverdueOrderSchema = z.object({
+  orderId: z.string().uuid(),
+  additionalDays: z.number().int().positive().optional(),
+  reason: z.string().optional(),
+  deliveryFee: z.number().nonnegative().optional(),
+  deliveryFeeLabel: z.string().optional(),
+  payment: ExtendRentalOrderPaymentSchema.optional(),
+});
 
 // ==========================================
 // Router Definition
@@ -213,20 +226,35 @@ export const rentalRouter = router({
       ),
 
     cancel: protectedProcedure
-      .input(
-        z.object({ orderId: z.string().uuid(), reason: z.string() })
-      )
+      .input(CancelRentalOrderSchema)
       .mutation(
         async ({ ctx, input }): Promise<PortableRentalOrder> => {
-          const result = await rentalService.cancelOrder(
+          const result = await lifecycleService.cancelOrder(
             ctx.companyId,
             input.orderId,
             input.reason,
-            ctx.userId
+            ctx.userId,
+            input.refundPayment
           );
           return mapToPortableOrder(result);
         }
       ),
+
+    convertOverdue: protectedProcedure
+      .input(ConvertOverdueOrderSchema)
+      .mutation(async ({ ctx, input }) => {
+        const result = await lifecycleService.convertOverdueToExtension(
+          ctx.companyId,
+          input,
+          ctx.userId
+        );
+        return {
+          order: mapToPortableOrder(result.order),
+          overdueDays: result.overdueDays,
+          additionalAmount: result.additionalAmount,
+          waMessageTemplate: result.waMessageTemplate,
+        };
+      }),
 
     extend: protectedProcedure
       .input(ExtendRentalOrderSchema)

@@ -83,6 +83,12 @@ describe('Rental Deposit Refund Scenarios', () => {
         },
         {
           companyId: COMPANY_ID,
+          code: '2200',
+          name: 'Uang Muka Sewa',
+          type: AccountType.LIABILITY,
+        },
+        {
+          companyId: COMPANY_ID,
           code: '2400',
           name: 'Customer Deposits',
           type: AccountType.LIABILITY,

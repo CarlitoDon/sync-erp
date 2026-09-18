@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import FormModal from '@/components/ui/FormModal';
+import Select from '@/components/ui/Select';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import { apiAction } from '@/hooks/useApiAction';
 import { toast } from 'react-hot-toast';
 import {
   RentalOrderWithRelations,
   UnitCondition,
+  RentalPaymentMethodSchema,
+  type RentalPaymentMethod,
 } from '@sync-erp/shared';
 import { PhotoUploader } from '../components';
 import {
   CONDITION_OPTIONS,
   DAMAGE_SEVERITY_OPTIONS,
+  PAYMENT_METHOD_OPTIONS,
 } from '../constants';
 
 interface UnitReturnData {
@@ -41,6 +46,27 @@ export default function ReturnModal({
     new Date().toISOString().slice(0, 16)
   );
   const [units, setUnits] = useState<UnitReturnData[]>([]);
+
+  // T027: On-the-spot damage/cleaning fee payment (FR-013/FR-018).
+  // Unit bersih (GOOD/NEW) -> AVAILABLE, bernoda/rusak (FAIR/NEEDS_REPAIR
+  // atau damageSeverity terisi) -> MAINTENANCE. Tanpa potongan deposit semu.
+  const [damageAmount, setDamageAmount] = useState(0);
+  const [damageMethod, setDamageMethod] =
+    useState<RentalPaymentMethod>('CASH');
+  const [damageAccountId, setDamageAccountId] = useState<
+    string | undefined
+  >();
+  const { data: accounts = [] } = trpc.finance.listAccounts.useQuery(
+    undefined,
+    { enabled: isOpen }
+  );
+  const cashBankAccounts = accounts.filter((account) => {
+    if (account.isGroup) return false;
+    return (
+      (account.code >= '1100' && account.code <= '1199') ||
+      (account.code >= '1200' && account.code <= '1299')
+    );
+  });
 
   const processReturnMutation =
     trpc.rental.returns.process.useMutation({
@@ -77,6 +103,9 @@ export default function ReturnModal({
 
       setUnits(unitEntries);
       setActualReturnDate(new Date().toISOString().slice(0, 16));
+      setDamageAmount(0);
+      setDamageMethod('CASH');
+      setDamageAccountId(undefined);
     }
   }, [isOpen, order]);
 
@@ -145,6 +174,14 @@ export default function ReturnModal({
             (typeof unitsPayload)[0],
             ...(typeof unitsPayload)[0][],
           ],
+          damagePayment:
+            damageAmount > 0
+              ? {
+                  amount: damageAmount,
+                  paymentMethod: damageMethod,
+                  paymentAccountId: damageAccountId,
+                }
+              : undefined,
         }),
       'Return berhasil diproses'
     );
@@ -262,6 +299,55 @@ export default function ReturnModal({
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* T027: On-the-spot damage/cleaning fee (tanpa potongan deposit) */}
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
+          <h4 className="font-medium text-amber-900">
+            Biaya Cuci / Denda Kerusakan (bayar di tempat)
+          </h4>
+          <p className="text-xs text-amber-700">
+            Unit GOOD/NEW kembali ke AVAILABLE. Unit FAIR/NEEDS_REPAIR
+            atau bernoda diarahkan ke MAINTENANCE. Biaya ditagih
+            langsung tanpa memotong deposit semu.
+          </p>
+          <CurrencyInput
+            label="Nominal denda/cuci (0 jika tidak ada)"
+            value={damageAmount}
+            onChange={setDamageAmount}
+            min={0}
+          />
+          {damageAmount > 0 && (
+            <>
+              <Select
+                label="Metode pembayaran denda"
+                value={damageMethod}
+                onChange={(value) => {
+                  const parsed =
+                    RentalPaymentMethodSchema.safeParse(value);
+                  if (parsed.success) setDamageMethod(parsed.data);
+                }}
+                options={PAYMENT_METHOD_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: option.label,
+                }))}
+                required
+              />
+              <Select
+                label="Akun Kas/Bank penerima denda"
+                value={damageAccountId ?? ''}
+                onChange={(value) =>
+                  setDamageAccountId(value || undefined)
+                }
+                options={cashBankAccounts.map((account) => ({
+                  value: account.id,
+                  label: `${account.code} — ${account.name}`,
+                }))}
+                placeholder="Pilih akun penerimaan"
+                required={damageMethod !== RentalPaymentMethodSchema.enum.CASH}
+              />
+            </>
           )}
         </div>
 

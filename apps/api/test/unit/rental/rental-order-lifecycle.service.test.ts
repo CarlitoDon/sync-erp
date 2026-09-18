@@ -415,7 +415,7 @@ describe('RentalOrderLifecycleService', () => {
       expect(orderUpdateArg.data.totalAmount.toString()).toBe(
         '877000'
       );
-      expect(mockJournalService.postRentalDeposit).not.toHaveBeenCalled();
+      expect(mockJournalService.postRentalDownPayment).not.toHaveBeenCalled();
       expect(result.id).toBe('order-extend-1');
     });
 

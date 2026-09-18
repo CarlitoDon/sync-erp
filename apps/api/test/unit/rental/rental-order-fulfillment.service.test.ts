@@ -100,7 +100,7 @@ describe('RentalOrderFulfillmentService', () => {
 
       expect(result.status).toBe(RentalOrderStatus.CONFIRMED);
       expect(prisma.rentalDeposit.create).toHaveBeenCalled();
-      expect(mockJournalService.postRentalDeposit).toHaveBeenCalled();
+      expect(mockJournalService.postRentalDownPayment).toHaveBeenCalled();
       expect(prisma.rentalItemUnit.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: { status: UnitStatus.RESERVED },
@@ -212,13 +212,14 @@ describe('RentalOrderFulfillmentService', () => {
           }),
         })
       );
-      expect(mockJournalService.postRentalDeposit).toHaveBeenCalledWith(
-        COMPANY_ID,
-        'deposit-1',
-        'ORD-001',
-        50000,
-        'BANK',
-        expect.anything()
+      expect(mockJournalService.postRentalDownPayment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          companyId: COMPANY_ID,
+          orderId: 'order-1',
+          orderNumber: 'ORD-001',
+          downPaymentAmount: 50000,
+          paymentMethod: 'BANK',
+        })
       );
       expect(prisma.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -299,7 +300,7 @@ describe('RentalOrderFulfillmentService', () => {
         data: { status: UnitStatus.RESERVED },
       });
       expect(prisma.rentalOrder.update).toHaveBeenCalled();
-      expect(mockJournalService.postRentalDeposit).not.toHaveBeenCalled();
+      expect(mockJournalService.postRentalDownPayment).not.toHaveBeenCalled();
       expect(prisma.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({

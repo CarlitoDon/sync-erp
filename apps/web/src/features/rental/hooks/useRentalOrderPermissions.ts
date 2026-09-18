@@ -26,6 +26,8 @@ export interface RentalOrderPermissions {
   canReturn: boolean;
   canCancel: boolean;
   canVerifyPayment: boolean;
+  canExtend: boolean;
+  canConvertOverdue: boolean;
 }
 
 /**
@@ -48,6 +50,8 @@ export function useRentalOrderPermissions(
       canReturn: false,
       canCancel: false,
       canVerifyPayment: false,
+      canExtend: false,
+      canConvertOverdue: false,
     };
   }
 
@@ -69,6 +73,9 @@ export function useRentalOrderPermissions(
   const canCancel = isDraft;
   const canVerifyPayment =
     isWebsiteOrder && isAwaitingPaymentVerification;
+  // T031/T034: extension (full/partial) & overdue daily conversion
+  const canExtend = isConfirmed || isActive;
+  const canConvertOverdue = isActive;
 
   return {
     isDraft,
@@ -83,5 +90,7 @@ export function useRentalOrderPermissions(
     canReturn,
     canCancel,
     canVerifyPayment,
+    canExtend,
+    canConvertOverdue,
   };
 }
