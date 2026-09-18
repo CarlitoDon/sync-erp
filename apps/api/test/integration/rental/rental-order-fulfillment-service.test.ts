@@ -101,8 +101,11 @@ describe('RentalOrderFulfillmentService Integration', () => {
     const accounts = [
       { code: '1100', name: 'Cash', type: 'ASSET' },
       { code: '1200', name: 'Bank', type: 'ASSET' },
+      { code: '2200', name: 'Uang Muka Sewa', type: 'LIABILITY' },
       { code: '2400', name: 'Customer Deposits', type: 'LIABILITY' },
+      { code: '4200', name: 'Rental Revenue', type: 'REVENUE' },
     ];
+
 
     for (const acc of accounts) {
       await prisma.account.create({
@@ -316,12 +319,12 @@ describe('RentalOrderFulfillmentService Integration', () => {
     });
 
     expect(journal).toBeDefined();
-    // Debit Cash (1100), Credit Deposit Liability (2400)
+    // Debit Cash (1100), Credit Down Payment Liability (2200)
     const debitLine = journal?.lines.find(
       (l) => l.account.code === '1100'
     );
     const creditLine = journal?.lines.find(
-      (l) => l.account.code === '2400'
+      (l) => l.account.code === '2200'
     );
     expect(Number(debitLine?.debit)).toBe(50000);
     expect(Number(creditLine?.credit)).toBe(50000);

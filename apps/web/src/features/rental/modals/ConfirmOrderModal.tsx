@@ -1,5 +1,6 @@
 import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,8 @@ import {
 } from '@heroicons/react/24/outline';
 import QuickAddUnitsModal from './QuickAddUnitsModal';
 import { useConfirmOrder } from '../hooks';
+import { PAYMENT_METHOD_OPTIONS } from '../constants';
+import { RentalPaymentMethodSchema } from '@sync-erp/shared';
 
 interface Props {
   isOpen: boolean;
@@ -35,6 +38,13 @@ export default function ConfirmOrderModal({
     availabilityCheck,
     totalItems,
     depositAmount,
+    depositInput,
+    setDepositInput,
+    depositPaymentMethod,
+    setDepositMethodFromString,
+    depositPaymentAccountId,
+    setDepositPaymentAccountId,
+    cashBankAccounts,
     isPaymentPending,
     canConfirm,
     showQuickAddModal,
@@ -222,6 +232,46 @@ export default function ConfirmOrderModal({
                 </span>
               </div>
 
+              {/* Down Payment */}
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+                <h4 className="font-medium text-blue-900">Uang Muka (DP ±30%)</h4>
+                <CurrencyInput
+                  label="Nominal DP"
+                  value={depositInput}
+                  onChange={setDepositInput}
+                  min={0}
+                  max={Number(order?.totalAmount ?? 0)}
+                  required
+                />
+                <Select
+                  label="Metode Pembayaran DP"
+                  value={depositPaymentMethod}
+                  onChange={setDepositMethodFromString}
+                  options={PAYMENT_METHOD_OPTIONS.map((option) => ({
+                    value: option.value,
+                    label: option.label,
+                  }))}
+                  required
+                />
+                <Select
+                  label="Akun Kas/Bank DP"
+                  value={depositPaymentAccountId ?? ''}
+                  onChange={(value) => setDepositPaymentAccountId(value || undefined)}
+                  options={cashBankAccounts.map((account) => ({
+                    value: account.id,
+                    label: `${account.code} — ${account.name}`,
+                  }))}
+                  placeholder="Pilih akun penerimaan"
+                  required={depositPaymentMethod !== RentalPaymentMethodSchema.enum.CASH}
+                />
+                <Input
+                  label="Referensi Pembayaran"
+                  value={paymentReference}
+                  onChange={(event) => setPaymentReference(event.target.value)}
+                  placeholder="No. transfer / bukti bayar (opsional)"
+                />
+              </div>
+
               {/* Info Box - only show if can confirm */}
               {canConfirm && (
                 <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
@@ -262,7 +312,7 @@ export default function ConfirmOrderModal({
                   </h4>
 
                   <Select
-                    label="Metode Pembayaran"
+                    label="Metode Pembayaran (Payment Method Lama)"
                     value={paymentMethodId}
                     onChange={setPaymentMethodId}
                     placeholder="Pilih metode pembayaran"
@@ -275,13 +325,43 @@ export default function ConfirmOrderModal({
                     createLabel="Tambah metode pembayaran"
                   />
 
-                  <Input
-                    label="Jumlah Pembayaran"
-                    type="number"
+                  <CurrencyInput
+                    label="Nominal DP"
+                    value={depositInput}
+                    onChange={setDepositInput}
+                    min={0}
+                    max={Number(order?.totalAmount ?? 0)}
+                    required
+                  />
+
+                  <Select
+                    label="Metode Pembayaran DP"
+                    value={depositPaymentMethod}
+                    onChange={setDepositMethodFromString}
+                    options={PAYMENT_METHOD_OPTIONS.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
+                    required
+                  />
+
+                  <Select
+                    label="Akun Kas/Bank DP"
+                    value={depositPaymentAccountId ?? ''}
+                    onChange={(value) => setDepositPaymentAccountId(value || undefined)}
+                    options={cashBankAccounts.map((account) => ({
+                      value: account.id,
+                      label: `${account.code} — ${account.name}`,
+                    }))}
+                    placeholder="Pilih akun penerimaan"
+                    required={depositPaymentMethod !== RentalPaymentMethodSchema.enum.CASH}
+                  />
+
+                  <CurrencyInput
+                    label="Jumlah Pembayaran (Legacy)"
                     value={paymentAmount}
-                    onChange={(e) =>
-                      setPaymentAmount(Number(e.target.value))
-                    }
+                    onChange={setPaymentAmount}
+                    min={0}
                   />
 
                   <Input

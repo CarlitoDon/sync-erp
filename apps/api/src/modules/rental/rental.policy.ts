@@ -206,7 +206,12 @@ export class RentalPolicy {
         UnitStatus.RENTED,
         UnitStatus.RETIRED,
       ],
-      [UnitStatus.RENTED]: [UnitStatus.RETURNED, UnitStatus.RETIRED],
+      [UnitStatus.RENTED]: [
+        UnitStatus.AVAILABLE,
+        UnitStatus.MAINTENANCE,
+        UnitStatus.RETURNED,
+        UnitStatus.RETIRED,
+      ],
       [UnitStatus.RETURNED]: [UnitStatus.CLEANING, UnitStatus.RETIRED],
       [UnitStatus.CLEANING]: [
         UnitStatus.AVAILABLE,

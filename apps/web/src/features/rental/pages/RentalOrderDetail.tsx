@@ -17,6 +17,8 @@ import CancelOrderModal from '../modals/CancelOrderModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
 import ReturnModal from '../modals/ReturnModal';
 import VerifyPaymentModal from '../modals/VerifyPaymentModal';
+import RentalExtensionModal from '../modals/RentalExtensionModal';
+import ConvertOverdueModal from '../modals/ConvertOverdueModal';
 import { OrderSource, type PortableRentalOrder } from '@sync-erp/shared';
 import {
   UserIcon,
@@ -24,6 +26,7 @@ import {
   ComputerDesktopIcon,
 } from '@heroicons/react/24/outline';
 import { useRentalOrderModals } from '../hooks/useRentalOrderModals';
+import { useState } from 'react';
 import { useRentalOrderPermissions } from '../hooks/useRentalOrderPermissions';
 import { useRentalOrderCalculations } from '../hooks/useRentalOrderCalculations';
 import { RentalPeriodCard } from '../components/RentalPeriodCard';
@@ -67,6 +70,8 @@ export default function RentalOrderDetail() {
 
   const permissions = useRentalOrderPermissions(order);
   const calculations = useRentalOrderCalculations(order);
+  const [isExtendOpen, setIsExtendOpen] = useState(false);
+  const [isOverdueOpen, setIsOverdueOpen] = useState(false);
 
   if (isLoading) return <LoadingState />;
   if (!order) return <EmptyState message="Rental Order not found" />;
@@ -113,6 +118,20 @@ export default function RentalOrderDetail() {
         onClose={modals.verifyPayment.close}
         order={order}
         onSuccess={modals.verifyPayment.onSuccess}
+      />
+
+      <RentalExtensionModal
+        isOpen={isExtendOpen}
+        onClose={() => setIsExtendOpen(false)}
+        order={order}
+        onSuccess={() => setIsExtendOpen(false)}
+      />
+
+      <ConvertOverdueModal
+        isOpen={isOverdueOpen}
+        onClose={() => setIsOverdueOpen(false)}
+        order={order}
+        onSuccess={() => undefined}
       />
 
       <PageContainer>
@@ -206,17 +225,18 @@ export default function RentalOrderDetail() {
 
           {/* Sidebar - Right Col */}
           <div className="space-y-6">
-            {permissions.isWebsiteOrder && (
-              <RentalPaymentStatusCard
-                rentalPaymentStatus={order.rentalPaymentStatus}
-                paymentClaimedAt={order.paymentClaimedAt}
-                paymentConfirmedAt={order.paymentConfirmedAt}
-                paymentReference={order.paymentReference}
-                paymentFailReason={order.paymentFailReason}
-                permissions={permissions}
-                onVerifyPayment={modals.verifyPayment.open}
-              />
-            )}
+            {/* T022: selalu tampilkan status pembayaran agar order lunas
+                tidak pernah tampil "Belum Bayar" (chip Lunas dari
+                rentalPaymentStatus CONFIRMED). */}
+            <RentalPaymentStatusCard
+              rentalPaymentStatus={order.rentalPaymentStatus}
+              paymentClaimedAt={order.paymentClaimedAt}
+              paymentConfirmedAt={order.paymentConfirmedAt}
+              paymentReference={order.paymentReference}
+              paymentFailReason={order.paymentFailReason}
+              permissions={permissions}
+              onVerifyPayment={modals.verifyPayment.open}
+            />
 
             <RentalActionsCard
               permissions={permissions}
@@ -224,6 +244,8 @@ export default function RentalOrderDetail() {
               onRelease={handleRelease}
               onReturn={handleReturn}
               onCancel={handleCancelOrder}
+              onExtend={() => setIsExtendOpen(true)}
+              onConvertOverdue={() => setIsOverdueOpen(true)}
             />
 
             <RentalFinancialSummary calculations={calculations} />

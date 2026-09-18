@@ -495,7 +495,14 @@ export type CancelRentalRefundPaymentInput = z.infer<
 
 export const CancelRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
+  /**
+   * Cancellation reason for audit trail (min 5 chars).
+   */
   reason: z.string().min(5, 'Cancellation reason required'),
+  /**
+   * Optional DP refund payment. When provided, posts reversal journal
+   * (Debet Uang Muka Sewa 2200, Kredit Kas/Bank) per FR-020.
+   */
   refundPayment: CancelRentalRefundPaymentSchema.optional(),
 });
 

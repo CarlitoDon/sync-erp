@@ -22,6 +22,8 @@ import {
   DomainErrorCodes,
   type CreateRentalOrderInput,
   type ExtendRentalOrderInput,
+  type CancelRentalRefundPaymentInput,
+  type ExtendRentalOrderPaymentInput,
   type PrismaRentalOrderWithRelations,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
@@ -32,7 +34,7 @@ export class RentalOrderLifecycleService {
   constructor(
     private readonly repository: RentalRepository = new RentalRepository(),
     private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
-    _journalService: JournalService = new JournalService(),
+    private readonly journalService: JournalService = new JournalService(),
     private readonly webhookService: RentalWebhookService = new RentalWebhookService()
   ) {}
 
@@ -332,7 +334,8 @@ export class RentalOrderLifecycleService {
     companyId: string,
     orderId: string,
     reason: string,
-    userId: string
+    userId: string,
+    refundPayment?: CancelRentalRefundPaymentInput
   ): Promise<RentalOrder> {
     const order = await this.repository.findOrderById(orderId);
     if (!order || order.companyId !== companyId) {
@@ -385,6 +388,26 @@ export class RentalOrderLifecycleService {
             status: 'REFUNDED',
             refundedAt: new Date(),
           },
+        });
+      }
+
+      // Post cancellation refund journal (FR-015/FR-020) if DP exists or refundPayment provided
+      const refundAmount =
+        refundPayment?.amount !== undefined
+          ? refundPayment.amount
+          : Number(order.depositAmount || 0);
+
+      if (refundAmount > 0) {
+        await this.journalService.postRentalCancellationRefund({
+          companyId,
+          orderId: order.id,
+          orderNumber: order.orderNumber!,
+          refundAmount,
+          paymentAccountId: refundPayment?.paymentAccountId,
+          paymentMethod:
+            refundPayment?.paymentMethod ?? order.paymentMethod ?? 'BANK',
+          customerName: order.partner?.name,
+          tx,
         });
       }
 
@@ -657,6 +680,13 @@ export class RentalOrderLifecycleService {
           ? itemLevelPreviousEndDate
           : order.rentalEndDate;
 
+      const effectiveDeliveryFeeLabel =
+        input.deliveryFeeLabel ??
+        (deliveryFee.gt(0) ? 'Biaya Tambahan Armada' : undefined);
+      const isPaid = input.isPaid ?? Boolean(input.payment);
+      const paidAt =
+        input.paidAt ?? (input.payment ? new Date() : undefined);
+
       const extension = await tx.rentalOrderExtension.create({
         data: {
           rentalOrderId: order.id,
@@ -667,11 +697,11 @@ export class RentalOrderLifecycleService {
           additionalDays: maxAdditionalDays,
           additionalAmount: totalAdditionalAmount,
           deliveryFee,
-          deliveryFeeLabel: input.deliveryFeeLabel,
+          deliveryFeeLabel: effectiveDeliveryFeeLabel,
           additionalDeposit: input.additionalDeposit || 0,
           reason: extensionReason,
-          isPaid: input.isPaid ?? false,
-          paidAt: input.paidAt,
+          isPaid,
+          paidAt,
           paymentId: input.paymentId,
           createdAt: input.businessDate,
           createdBy: userId,
@@ -706,6 +736,27 @@ export class RentalOrderLifecycleService {
         include: { items: true, extensions: true },
       });
 
+      // Post extension journal if payment is provided or marked paid
+      const extPaymentAmount =
+        input.payment?.amount ?? totalAdditionalAmount.toNumber();
+      if (extPaymentAmount > 0 && isPaid) {
+        await this.journalService.postRentalExtension({
+          companyId,
+          orderId: order.id,
+          orderNumber: order.orderNumber!,
+          extensionAmount: itemAdditionalAmount.toNumber(),
+          extraDeliveryFee: deliveryFee.toNumber(),
+          paymentAccountId: input.payment?.paymentAccountId,
+          paymentMethod: input.payment?.paymentMethod ?? 'BANK',
+          tx,
+          businessDate: input.businessDate
+            ? input.businessDate instanceof Date
+              ? input.businessDate
+              : new Date(input.businessDate)
+            : new Date(),
+        });
+      }
+
       await recordAudit({
         companyId,
         actorId: userId,
@@ -718,8 +769,9 @@ export class RentalOrderLifecycleService {
           additionalDays: maxAdditionalDays,
           itemAdditionalAmount: itemAdditionalAmount.toString(),
           deliveryFee: deliveryFee.toString(),
-          deliveryFeeLabel: input.deliveryFeeLabel,
+          deliveryFeeLabel: effectiveDeliveryFeeLabel,
           additionalAmount: totalAdditionalAmount.toString(),
+          unitIds: input.unitIds,
           amountBasis:
             isItemLevelExtension
               ? 'selected_order_items'
@@ -738,8 +790,8 @@ export class RentalOrderLifecycleService {
             unitPrice: item.unitPrice.toString(),
             additionalAmount: item.additionalAmount.toString(),
           })),
-          isPaid: input.isPaid ?? false,
-          paidAt: input.paidAt?.toISOString(),
+          isPaid,
+          paidAt: paidAt?.toISOString(),
           paymentId: input.paymentId,
           updateOrderTotal: input.updateOrderTotal !== false,
           updateOrderDates: shouldUpdateOrderDates,
@@ -759,6 +811,114 @@ export class RentalOrderLifecycleService {
     }
 
     return updatedOrder;
+  }
+
+  /**
+   * Convert overdue rental days to daily rental extension (T032 / FR-010).
+   * Generates extension record and customer-ready WhatsApp copy template.
+   */
+  async convertOverdueToExtension(
+    companyId: string,
+    input: {
+      orderId: string;
+      additionalDays?: number;
+      reason?: string;
+      deliveryFee?: number;
+      deliveryFeeLabel?: string;
+      payment?: ExtendRentalOrderPaymentInput;
+    },
+    userId: string
+  ): Promise<{
+    order: PrismaRentalOrderWithRelations;
+    overdueDays: number;
+    additionalAmount: number;
+    waMessageTemplate: string;
+  }> {
+    const order = await this.repository.findOrderById(input.orderId);
+    if (!order || order.companyId !== companyId) {
+      throw new DomainError(
+        'Order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+    if (order.status !== RentalOrderStatus.ACTIVE) {
+      throw new DomainError(
+        'Only ACTIVE orders can be converted',
+        400,
+        DomainErrorCodes.OPERATION_NOT_ALLOWED
+      );
+    }
+
+    const now = new Date();
+    const overdueDays =
+      input.additionalDays && input.additionalDays > 0
+        ? input.additionalDays
+        : Math.max(
+            1,
+            Math.ceil(
+              (now.getTime() - order.rentalEndDate.getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          );
+
+    const originalDays = Math.max(
+      1,
+      Math.ceil(
+        (order.rentalEndDate.getTime() - order.rentalStartDate.getTime()) /
+          (1000 * 60 * 60 * 24)
+      )
+    );
+    const dailyRate = order.subtotal.div(originalDays).toDecimalPlaces(2);
+    const additionalAmount = dailyRate.times(overdueDays).toDecimalPlaces(2);
+    const newEndDate = new Date(
+      order.rentalEndDate.getTime() + overdueDays * 24 * 60 * 60 * 1000
+    );
+
+    const updatedOrder = await this.extendOrder(
+      companyId,
+      {
+        orderId: order.id,
+        newEndDate,
+        additionalAmount: additionalAmount.toNumber(),
+        deliveryFee: input.deliveryFee,
+        deliveryFeeLabel: input.deliveryFeeLabel ?? 'Biaya Tambahan Armada',
+        reason:
+          input.reason ??
+          `Konversi keterlambatan ${overdueDays} hari ke sewa harian`,
+        updateOrderDates: true,
+        updateOrderTotal: true,
+        payment: input.payment,
+        isPaid: Boolean(input.payment),
+      },
+      userId
+    );
+
+    const formattedDate = newEndDate.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    const totalDue = additionalAmount.plus(input.deliveryFee ?? 0).toNumber();
+
+    const waMessageTemplate =
+      `Halo Kak Customer,\n\n` +
+      `Konfirmasi perpanjangan sewa harian untuk pesanan *${order.orderNumber}*:\n` +
+      `- Durasi perpanjangan: ${overdueDays} hari\n` +
+      `- Batas waktu sewa baru: ${formattedDate}\n` +
+      `- Biaya sewa harian: Rp ${additionalAmount.toNumber().toLocaleString('id-ID')}\n` +
+      (input.deliveryFee
+        ? `- Biaya tambahan armada: Rp ${input.deliveryFee.toLocaleString('id-ID')}\n`
+        : '') +
+      `- *Total Tagihan*: Rp ${totalDue.toLocaleString('id-ID')}\n\n` +
+      `Pembayaran dapat ditransfer melalui rekening resmi kami. Terima kasih! 🙏\n- *Santi Living*`;
+
+    return {
+      order: updatedOrder,
+      overdueDays,
+      additionalAmount: additionalAmount.toNumber(),
+      waMessageTemplate,
+    };
   }
 }
 

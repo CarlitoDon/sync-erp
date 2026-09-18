@@ -116,6 +116,13 @@ describe('Rental Invoice Integration', () => {
         },
         {
           companyId: COMPANY_ID,
+          code: '2200',
+          name: 'Uang Muka Sewa',
+          type: AccountType.LIABILITY,
+          isGroup: false,
+        },
+        {
+          companyId: COMPANY_ID,
           code: '4200',
           name: 'Rental Revenue',
           type: AccountType.REVENUE,
