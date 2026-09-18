@@ -240,11 +240,28 @@ export default function RentalItemsPage() {
                           className="bg-white p-3 rounded-lg border border-gray-200 hover:border-primary-300 transition-colors"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-mono font-semibold text-gray-900">
-                              {unit.unitCode}
-                            </span>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="font-mono font-semibold text-gray-900 truncate">
+                                {unit.unitCode}
+                              </span>
+                              {unit.color && (
+                                <span
+                                  className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${
+                                    unit.color.toLowerCase() === 'merah'
+                                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                      : unit.color.toLowerCase() === 'hijau'
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : unit.color.toLowerCase() === 'cream'
+                                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                      : 'bg-slate-100 text-slate-700 border border-slate-200'
+                                  }`}
+                                >
+                                  {unit.color}
+                                </span>
+                              )}
+                            </div>
                             <span
-                              className={`px-2 py-0.5 text-xs rounded-full ${UNIT_STATUS_COLORS[unit.status] || 'bg-gray-100'}`}
+                              className={`px-2 py-0.5 text-xs rounded-full shrink-0 ${UNIT_STATUS_COLORS[unit.status] || 'bg-gray-100'}`}
                             >
                               {unit.status}
                             </span>

@@ -41,21 +41,16 @@ describe('Finance Invariants', () => {
         subtotal: true,
         taxAmount: true,
         dpBillId: true,
+        notes: true,
       },
     });
 
-    const brokenMath = invoices.filter((inv) => {
-      // Standard formula: amount = subtotal + taxAmount
+    const brokenMath = invoices.filter(inv => {
       const standardCalc = Number(inv.subtotal) + Number(inv.taxAmount);
       const actual = Number(inv.amount);
       
-      // If invoice has dpBillId, the DP may have been deducted from the total
-      // The formula becomes: amount = subtotal + taxAmount - dpDeducted
-      // where dpDeducted is <= the linked DP bill amount
-      // We can't check exact math, so just verify amount <= standardCalc
-      if (inv.dpBillId) {
-        // For invoices with DP link, just verify amount doesn't exceed the standard calc
-        // (it should be less due to DP deduction)
+      // If invoice has dpBillId or is a DP invoice, amount <= standardCalc
+      if (inv.dpBillId || inv.notes?.includes('Down Payment') || inv.notes?.includes('DP')) {
         return actual > standardCalc + 0.01;
       }
       

@@ -159,7 +159,7 @@ describe('SidebarItem', () => {
       );
 
       const link = screen.getByRole('link');
-      expect(link).toHaveClass('text-slate-300');
+      expect(link).toHaveClass('text-slate-600');
       expect(link).not.toHaveAttribute('aria-current');
     });
 

@@ -16,17 +16,24 @@ import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
 export class CompanyPolicy {
   /**
    * Check if shape selection is allowed.
-   * Shape can only be selected if currently PENDING.
+   * Shape can only be selected if currently PENDING,
+   * or during onboarding before transactions exist.
    */
-  static canSelectShape(currentShape: BusinessShape): boolean {
-    return currentShape === BusinessShape.PENDING;
+  static canSelectShape(
+    currentShape: BusinessShape,
+    allowDuringOnboarding = false
+  ): boolean {
+    return currentShape === BusinessShape.PENDING || allowDuringOnboarding;
   }
 
   /**
    * Ensure shape selection is allowed, throw if not.
    */
-  static ensureCanSelectShape(currentShape: BusinessShape): void {
-    if (!this.canSelectShape(currentShape)) {
+  static ensureCanSelectShape(
+    currentShape: BusinessShape,
+    allowDuringOnboarding = false
+  ): void {
+    if (!this.canSelectShape(currentShape, allowDuringOnboarding)) {
       throw new DomainError(
         'Business shape cannot be changed after initial selection',
         400,

@@ -24,6 +24,12 @@ export class PartnerService {
       email: data.email,
       phone: data.phone,
       address: data.address,
+      street: data.street,
+      kelurahan: data.kelurahan,
+      kecamatan: data.kecamatan,
+      kota: data.kota,
+      provinsi: data.provinsi,
+      zip: data.zip,
       type: data.type as PartnerType,
     });
   }
@@ -76,5 +82,21 @@ export class PartnerService {
       );
     }
     await this.repository.delete(id);
+  }
+
+  async merge(
+    companyId: string,
+    targetPartnerId: string,
+    sourcePartnerIds: string[]
+  ): Promise<Partner> {
+    const existing = await this.getById(targetPartnerId, companyId);
+    if (!existing) {
+      throw new DomainError(
+        'Target partner not found',
+        404,
+        DomainErrorCodes.PARTNER_NOT_FOUND
+      );
+    }
+    return this.repository.merge(companyId, targetPartnerId, sourcePartnerIds);
   }
 }

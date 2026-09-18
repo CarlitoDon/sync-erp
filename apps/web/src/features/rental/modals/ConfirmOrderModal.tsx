@@ -51,6 +51,8 @@ export default function ConfirmOrderModal({
     setManualNotes,
     skipStockCheck,
     setSkipStockCheck,
+    accountingTreatment,
+    handleAccountingTreatmentChange,
     handleConfirm,
     handleManualConfirm,
     handleQuickCreatePaymentMethod,
@@ -290,6 +292,28 @@ export default function ConfirmOrderModal({
                     }
                     placeholder="No. transfer, bukti bayar, dll"
                   />
+
+                  <Select
+                    label="Perlakuan Akuntansi"
+                    value={accountingTreatment}
+                    onChange={handleAccountingTreatmentChange}
+                    options={[
+                      {
+                        value: 'POST_CASH_JOURNAL',
+                        label: 'Posting jurnal kas (pembayaran baru)',
+                      },
+                      {
+                        value: 'OPENING_BALANCE_NO_POSTING',
+                        label: 'Saldo awal tanpa posting jurnal',
+                      },
+                    ]}
+                  />
+                  {accountingTreatment === 'OPENING_BALANCE_NO_POSTING' && (
+                    <p className="text-xs text-amber-700">
+                      Gunakan hanya untuk migrasi saldo historis. Tidak ada
+                      jurnal kas baru yang akan dibuat.
+                    </p>
+                  )}
 
                   {!availabilityCheck.isAvailable && (
                     <div className="flex items-center gap-2">

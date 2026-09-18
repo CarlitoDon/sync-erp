@@ -42,6 +42,18 @@ export async function revalidateAndPublish({
   }
   validatePullRequestIdentity(currentPullRequest, expected);
 
+  if (reviewArtifact.status === 'skipped') {
+    console.warn(
+      `::warning title=AI Review Publication Skipped::AI review was skipped during analysis (${reviewArtifact.reason}). No review comment published.`
+    );
+    console.log(`AI review publication skipped: ${reviewArtifact.reason}`);
+    return {
+      status: 'skipped',
+      reason: reviewArtifact.reason,
+      commitId: reviewArtifact.headSha,
+    };
+  }
+
   const body = buildReviewBody(
     {
       verdict: reviewArtifact.verdict,
@@ -82,6 +94,7 @@ export async function revalidateAndPublish({
     fail(`GitHub review publication returned HTTP ${response.status}`);
   }
   return {
+    status: 'completed',
     verdict: reviewArtifact.verdict,
     event: 'COMMENT',
     commitId: reviewArtifact.headSha,
@@ -108,9 +121,13 @@ export async function runPublisher({ env = process.env, fetchImpl } = {}) {
 export async function main() {
   try {
     const result = await runPublisher();
-    console.log(
-      `AI review comment published (advisory verdict: ${result.verdict}).`
-    );
+    if (result.status === 'skipped') {
+      console.log(`AI review publication skipped (${result.reason}).`);
+    } else {
+      console.log(
+        `AI review comment published (advisory verdict: ${result.verdict}).`
+      );
+    }
   } catch (error) {
     const token = process.env.GITHUB_TOKEN;
     const message = error instanceof Error ? error.message : 'Unknown publisher error';

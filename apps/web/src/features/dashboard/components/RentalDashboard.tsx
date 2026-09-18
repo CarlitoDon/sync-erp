@@ -106,30 +106,27 @@ export function RentalDashboard() {
       <section aria-labelledby="rental-operations-heading">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-700">
-              Daily workflow
-            </p>
             <h2
               id="rental-operations-heading"
-              className="mt-1 text-xl font-semibold tracking-tight text-slate-950"
+              className="text-xl font-bold text-slate-900"
             >
-              Rental operations
+              Rental Operations
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               Returns, pickups, and active orders that need attention.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2.5">
             <Link
               to="/rental/orders"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-primary-200 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-2xs transition-all duration-150 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.98]"
             >
-              <ClipboardDocumentListIcon className="h-4 w-4" />
+              <ClipboardDocumentListIcon className="h-4 w-4 text-slate-500" />
               Orders
             </Link>
             <Link
               to="/rental/scheduler"
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white shadow-sm transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition-all duration-150 hover:from-blue-500 hover:to-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98]"
             >
               <CalendarDaysIcon className="h-4 w-4" />
               Scheduler
@@ -186,7 +183,7 @@ export function RentalDashboard() {
                           </p>
                         </div>
                       </div>
-                      <span className="w-fit rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      <span className="w-fit rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-mono font-semibold text-slate-600 tabular-nums">
                         {formatDate(new Date(booking.endDate))}
                       </span>
                     </li>
@@ -216,25 +213,19 @@ export function RentalDashboard() {
             </CardContent>
           </Card>
 
-          <Card
-            className="relative min-h-[18rem] overflow-hidden border-slate-800 text-white"
-            style={{
-              background:
-                'radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.34), transparent 12rem), linear-gradient(145deg, #111827 0%, #0f172a 100%)',
-            }}
-          >
-            <div className="absolute -bottom-16 -right-14 h-48 w-48 rounded-full border border-white/[0.06]" />
-            <CardContent className="relative flex h-full min-h-[18rem] flex-col p-6 sm:p-6">
+          <div className="flex min-h-[18rem] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-card transition-all hover:shadow-card-hover">
+            <div>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary-200">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200/60">
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
                     In progress
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold text-white">
-                    Active rentals
+                  </span>
+                  <h3 className="mt-2 text-lg font-bold text-slate-900">
+                    Active Rentals
                   </h3>
                 </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] text-primary-200">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 shadow-2xs">
                   <ClipboardDocumentListIcon className="h-5 w-5" />
                 </span>
               </div>
@@ -244,29 +235,29 @@ export function RentalDashboard() {
                   className="mt-8 animate-pulse"
                   aria-label="Loading active rentals"
                 >
-                  <div className="h-12 w-24 rounded bg-white/10" />
-                  <div className="mt-3 h-4 w-40 rounded bg-white/10" />
+                  <div className="h-12 w-24 rounded bg-slate-200" />
+                  <div className="mt-3 h-4 w-40 rounded bg-slate-100" />
                 </div>
               ) : (
-                <div className="mt-7" aria-live="polite">
-                  <p className="text-5xl font-semibold tracking-[-0.05em] text-white">
+                <div className="mt-5" aria-live="polite">
+                  <p className="font-mono text-5xl font-extrabold tracking-tight text-slate-950 tabular-nums">
                     {activeCount}
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">
-                    Rental orders currently active
+                  <p className="mt-2 text-xs font-medium text-slate-500">
+                    Pesanan sewa yang sedang aktif berjalan
                   </p>
                 </div>
               )}
+            </div>
 
-              <Link
-                to="/rental/orders"
-                className="mt-auto inline-flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.08] px-4 py-3 text-sm font-semibold text-white transition duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:bg-white/[0.13] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:scale-[0.98]"
-              >
-                View active orders
-                <ArrowRightIcon className="h-4 w-4" />
-              </Link>
-            </CardContent>
-          </Card>
+            <Link
+              to="/rental/orders"
+              className="mt-8 inline-flex items-center justify-between rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition-all duration-150 hover:from-blue-500 hover:to-blue-600 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
+              <span>Lihat Semua Pesanan Aktif</span>
+              <ArrowRightIcon className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </section>
     </div>

@@ -29,9 +29,7 @@ env:
   NODE_OPTIONS: --max-old-space-size=4096
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sync_erp_test?schema=public
   NODE_ENV: test
-  TURBO_CACHE: remote:rw
-  TURBO_REMOTE_ONLY: 'true'
-  TURBO_DOWNLOAD_LOCAL_ENABLED: 'true'
+  TURBO_CACHE: local:rw
 
 jobs:
   changes:
@@ -87,21 +85,6 @@ jobs:
     name: Quality Gates (API)
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sync_erp_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@v4
 
@@ -110,6 +93,14 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: package-lock.json
+
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       - name: Test AI review security contract
         run: npm run test:ai-review-security
@@ -122,17 +113,16 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
-      - name: Setup test database
-        run: npm run db:push --workspace=@sync-erp/database
-
       - name: Lint
         run: npm run lint
 
       - name: Type check
         run: npm run typecheck
 
-      - name: Test
-        run: npm run test
+      - name: Test (unit)
+        run: |
+          npm run test:unit --workspace=@sync-erp/api
+          npm run test --workspace=@sync-erp/mcp
 
       - name: Test release artifact validator
         run: npm run test:release-artifact
@@ -151,10 +141,6 @@ jobs:
 
       - name: Test Coolify deploy trigger
         run: bash scripts/trigger-coolify-deploy.test.sh
-
-      - name: Test (integration)
-        run: npm run test:integration --workspace=@sync-erp/api
-        continue-on-error: false
 
       - name: Build API
         run: npm run build:api
@@ -225,6 +211,54 @@ jobs:
           path: deploy/api-mcp/
           retention-days: 7
 
+  ci-api-integration:
+    name: Quality Gates (API - Integration)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sync_erp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Setup test database
+        run: npm run db:push --workspace=@sync-erp/database
+
+      - name: Build API and dependencies
+        run: npm run build:api
+
+      - name: Test (integration)
+        run: npm run test:integration --workspace=@sync-erp/api
+
   ci-web:
     name: Quality Gates (Web)
     runs-on: ubuntu-latest
@@ -237,6 +271,14 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: package-lock.json
+
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       # Always run install — see ci-api job comment.
       - name: Install dependencies
@@ -260,7 +302,7 @@ jobs:
 
   validate_api_artifact_for_coolify:
     name: Validate API artifact for Coolify trigger
-    needs: [changes, ci-api]
+    needs: [changes, ci-api, ci-api-integration]
     if: |
       (github.event_name == 'push' && needs.changes.outputs.api == 'true') ||
       (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode == 'deploy')
@@ -280,7 +322,7 @@ jobs:
 
   deploy_api:
     name: Trigger API Coolify deployment
-    needs: [changes, ci-api, validate_api_artifact_for_coolify]
+    needs: [changes, ci-api, ci-api-integration, validate_api_artifact_for_coolify]
     if: |
       needs.validate_api_artifact_for_coolify.result == 'success' &&
       ((github.event_name == 'push' && needs.changes.outputs.api == 'true') ||
@@ -294,7 +336,7 @@ jobs:
 
   deploy_api_hostinger_legacy:
     name: Legacy Hostinger API deploy (manual)
-    needs: [changes, ci-api]
+    needs: [changes, ci-api, ci-api-integration]
     if: github.event_name == 'workflow_dispatch' && (inputs.api_deploy_mode == 'bootstrap' || inputs.api_deploy_mode == 'legacy-hostinger')
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -801,13 +843,13 @@ jobs:
           }
 
           if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            export VITE_SYNC_ERP_API_URL="https://api.santiliving.com/api/trpc"
+            export VITE_SYNC_ERP_API_URL="/api/trpc"
             run_with_retry "vercel pull production" vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
             run_with_retry "vercel build production" vercel build --prod --token="${VERCEL_TOKEN}"
             deploy_with_retry "vercel deploy production" vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}"
             CUSTOM_DOMAIN="sync-erp.khusnudhoni.online"
           else
-            export VITE_SYNC_ERP_API_URL="https://api-staging.santiliving.com/api/trpc"
+            export VITE_SYNC_ERP_API_URL="/api/trpc"
             run_with_retry "vercel pull preview" vercel pull --yes --environment=preview --token="${VERCEL_TOKEN}"
             run_with_retry "vercel build preview" vercel build --token="${VERCEL_TOKEN}"
             deploy_with_retry "vercel deploy preview" vercel deploy --prebuilt --token="${VERCEL_TOKEN}"

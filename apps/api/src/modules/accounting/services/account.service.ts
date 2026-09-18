@@ -169,6 +169,11 @@ export class AccountService {
         name: 'VAT Payable',
         type: AccountType.LIABILITY,
       },
+      {
+        code: '2400',
+        name: 'Customer Deposits',
+        type: AccountType.LIABILITY,
+      },
 
       // Equity (3xxx)
       {
