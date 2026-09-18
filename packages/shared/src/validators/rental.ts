@@ -84,6 +84,15 @@ export type DepositPolicyType = z.infer<
   typeof DepositPolicyTypeSchema
 >;
 
+export const RentalPaymentMethodSchema = z.enum([
+  'CASH',
+  'BANK',
+  'QRIS',
+]);
+export type RentalPaymentMethod = z.infer<
+  typeof RentalPaymentMethodSchema
+>;
+
 // ==========================================
 // Rental Item Management
 // ==========================================
@@ -298,21 +307,36 @@ export const CreateRentalOrderSchema = z
     }
   );
 
+export const UnitAssignmentInputSchema = z.object({
+  unitId: z.string().uuid(),
+});
+export type UnitAssignmentInput = z.infer<
+  typeof UnitAssignmentInputSchema
+>;
+
 // Simplified: Admin just confirms, deposit is pre-calculated
 export const ConfirmRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
-  // Optional: deposit already calculated during order creation
+  /**
+   * Down Payment (DP ~30%) paid by customer upon confirmation.
+   * Stored in RentalOrder.depositAmount for database backward compatibility.
+   * Optional: falls back to pre-calculated order.depositAmount if omitted.
+   */
   depositAmount: z.number().nonnegative().optional(),
-  // Optional: defaults to TRANSFER for website orders
-  paymentMethod: z.string().optional(),
+  /**
+   * Payment method used for Down Payment (CASH, BANK, QRIS).
+   */
+  paymentMethod: z.union([RentalPaymentMethodSchema, z.string()]).optional(),
+  /**
+   * Destination Cash/Bank account ID (UUID) for double-entry DP journal posting.
+   */
+  paymentAccountId: z.string().uuid().optional(),
   paymentReference: z.string().optional(),
-  // Optional: if not provided, units will be auto-assigned
+  /**
+   * Optional physical unit assignments. If not provided, units will be auto-assigned.
+   */
   unitAssignments: z
-    .array(
-      z.object({
-        unitId: z.string().uuid(),
-      })
-    )
+    .array(UnitAssignmentInputSchema)
     .optional()
     .default([]),
 });
@@ -326,19 +350,40 @@ export type ManualConfirmAccountingTreatment = z.infer<
 >;
 
 // Manual confirm for admin to override stock/payment checks
-export const ManualConfirmRentalOrderSchema = z.object({
-  orderId: z.string().uuid(),
-  // Override flags
-  skipStockCheck: z.boolean().default(false),
-  // Payment info
-  paymentMethodId: z.string().uuid(), // From CompanyPaymentMethod
-  paymentAmount: z.number().nonnegative(),
-  paymentReference: z.string().optional(),
-  // Accounting treatment
-  accountingTreatment: ManualConfirmAccountingTreatmentSchema.default('POST_CASH_JOURNAL'),
-  // Notes for audit trail
-  notes: z.string().min(5, 'Notes required for manual confirmation'),
-});
+export const ManualConfirmRentalOrderSchema = z
+  .object({
+    orderId: z.string().uuid(),
+    // Override flags
+    skipStockCheck: z.boolean().default(false),
+    // Payment info
+    paymentMethodId: z.string().uuid(), // From CompanyPaymentMethod
+    paymentAmount: z.number().nonnegative(),
+    /**
+     * Down Payment (DP ~30%) collected for manual confirmation.
+     * Stored in RentalOrder.depositAmount for database backward compatibility.
+     */
+    depositAmount: z.number().nonnegative().optional(),
+    paymentMethod: RentalPaymentMethodSchema.optional(),
+    paymentAccountId: z.string().uuid().optional(),
+    paymentReference: z.string().optional(),
+    // Accounting treatment
+    accountingTreatment: ManualConfirmAccountingTreatmentSchema.default(
+      'POST_CASH_JOURNAL'
+    ),
+    // Notes or reason for audit trail
+    notes: z
+      .string()
+      .min(5, 'Notes required for manual confirmation')
+      .optional(),
+    reason: z
+      .string()
+      .min(5, 'Alasan konfirmasi manual harus diisi')
+      .optional(),
+  })
+  .refine((data) => Boolean(data.notes || data.reason), {
+    message: 'Notes or reason required for manual confirmation',
+    path: ['notes'],
+  });
 
 export const HistoricalRentalSettlementSchema = z.object({
   orderId: z.string().uuid(),
@@ -401,25 +446,60 @@ export const ConvertStockToUnitSchema = z
     }
   });
 
-const UnitReleaseSchema = z.object({
+export const UnitReleaseInputSchema = z.object({
   unitId: z.string().uuid(),
   beforePhotos: z.array(z.string()).default([]),
   condition: z.enum(['NEW', 'GOOD', 'FAIR', 'NEEDS_REPAIR']),
   notes: z.string().optional(),
 });
+export type UnitReleaseInput = z.infer<typeof UnitReleaseInputSchema>;
+
+export const UnitReleaseSchema = UnitReleaseInputSchema;
+export type UnitRelease = UnitReleaseInput;
+
+export const ReleasePaymentSchema = z.object({
+  /**
+   * Remaining rental settlement amount (~70% balance plus ongkir) paid upon delivery.
+   */
+  settlementAmount: z.number().nonnegative(),
+  /**
+   * Payment method used for settlement (CASH, BANK, QRIS). Defaults to CASH for delivery.
+   */
+  paymentMethod: RentalPaymentMethodSchema.default('CASH'),
+  /**
+   * Destination Cash/Bank account ID (UUID) for double-entry settlement journal posting.
+   */
+  paymentAccountId: z.string().uuid().optional(),
+  reference: z.string().optional(),
+});
+export type ReleasePaymentInput = z.infer<typeof ReleasePaymentSchema>;
 
 export const ReleaseRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
-  unitAssignments: z.array(UnitReleaseSchema).min(1),
+  unitAssignments: z.array(UnitReleaseInputSchema).min(1),
   skipPhotoCheck: z.boolean().optional(),
+  /**
+   * Integrated Settlement Payment (70% balance upon delivery).
+   */
+  payment: ReleasePaymentSchema.optional(),
 });
+
+export const CancelRentalRefundPaymentSchema = z.object({
+  amount: z.number().nonnegative(),
+  paymentAccountId: z.string().uuid().optional(),
+  paymentMethod: RentalPaymentMethodSchema.optional(),
+});
+export type CancelRentalRefundPaymentInput = z.infer<
+  typeof CancelRentalRefundPaymentSchema
+>;
 
 export const CancelRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
   reason: z.string().min(5, 'Cancellation reason required'),
+  refundPayment: CancelRentalRefundPaymentSchema.optional(),
 });
 
-const ExtendRentalOrderItemSchema = z
+export const ExtendRentalOrderItemSchema = z
   .object({
     rentalOrderItemId: z.string().uuid().optional(),
     rentalItemId: z.string().uuid().optional(),
@@ -440,32 +520,60 @@ const ExtendRentalOrderItemSchema = z
       path: ['rentalOrderItemId'],
     }
   );
+export type ExtendRentalOrderItemInput = z.infer<
+  typeof ExtendRentalOrderItemSchema
+>;
+
+export const ExtendRentalOrderPaymentSchema = z.object({
+  amount: z.number().nonnegative(),
+  paymentMethod: RentalPaymentMethodSchema.default('BANK'),
+  paymentAccountId: z.string().uuid().optional(),
+});
+export type ExtendRentalOrderPaymentInput = z.infer<
+  typeof ExtendRentalOrderPaymentSchema
+>;
 
 export const ExtendRentalOrderSchema = z
   .object({
     orderId: z.string().uuid(),
-    newEndDate: z
-      .string()
-      .datetime()
-      .transform((str) => new Date(str)),
+    newEndDate: z.union([
+      z.date(),
+      z.string().datetime().transform((str) => new Date(str)),
+    ]),
     additionalAmount: z.number().nonnegative().optional(),
+    /**
+     * Biaya Tambahan Armada (extra fleet trip fee for rental extension delivery/collection).
+     */
     deliveryFee: z.number().nonnegative().optional(),
+    /**
+     * Optional label for delivery fee. Defaults to 'Biaya Tambahan Armada' in UI and services.
+     */
     deliveryFeeLabel: z.string().optional(),
     additionalDeposit: z.number().nonnegative().optional(),
     items: z.array(ExtendRentalOrderItemSchema).min(1).optional(),
+    /**
+     * Optional physical unit IDs to extend (for partial unit extensions).
+     */
+    unitIds: z.array(z.string().uuid()).optional(),
+    /**
+     * Integrated Extension Payment.
+     */
+    payment: ExtendRentalOrderPaymentSchema.optional(),
     reason: z.string().optional(),
     notes: z.string().optional(),
     isPaid: z.boolean().optional(),
     paidAt: z
-      .string()
-      .datetime()
-      .transform((str) => new Date(str))
+      .union([
+        z.date(),
+        z.string().datetime().transform((str) => new Date(str)),
+      ])
       .optional(),
     paymentId: z.string().uuid().optional(),
     businessDate: z
-      .string()
-      .datetime()
-      .transform((str) => new Date(str))
+      .union([
+        z.date(),
+        z.string().datetime().transform((str) => new Date(str)),
+      ])
       .optional(),
     allowHistorical: z.boolean().optional(),
     updateOrderTotal: z.boolean().optional(),
@@ -485,19 +593,59 @@ export const ExtendRentalOrderSchema = z
 // Returns & Settlement
 // ==========================================
 
-const UnitReturnSchema = z.object({
+export const UnitReturnSchema = z.object({
   unitId: z.string().uuid(),
   afterPhotos: z.array(z.string()).default([]),
-  condition: z.enum(['NEW', 'GOOD', 'FAIR', 'NEEDS_REPAIR']),
+  condition: z
+    .enum(['NEW', 'GOOD', 'FAIR', 'NEEDS_REPAIR'])
+    .optional()
+    .default('GOOD'),
+  conditionStatus: z.enum(['GOOD', 'DIRTY', 'DAMAGED']).optional(),
   damageSeverity: z.enum(['MINOR', 'MAJOR', 'UNUSABLE']).optional(),
   damageNotes: z.string().optional(),
+  notes: z.string().optional(),
 });
+export type UnitReturnInput = z.infer<typeof UnitReturnSchema>;
 
-export const ProcessReturnSchema = z.object({
-  orderId: z.string().uuid(),
-  actualReturnDate: z.date(),
-  units: z.array(UnitReturnSchema).nonempty(),
+export const ReturnDamagePaymentSchema = z.object({
+  amount: z.number().nonnegative(),
+  paymentMethod: RentalPaymentMethodSchema.default('CASH'),
+  paymentAccountId: z.string().uuid().optional(),
+  notes: z.string().optional(),
 });
+export type ReturnDamagePaymentInput = z.infer<
+  typeof ReturnDamagePaymentSchema
+>;
+
+export const ProcessReturnSchema = z
+  .object({
+    orderId: z.string().uuid(),
+    actualReturnDate: z
+      .union([
+        z.date(),
+        z.string().datetime().transform((str) => new Date(str)),
+      ])
+      .default(() => new Date()),
+    returnDate: z
+      .union([
+        z.date(),
+        z.string().datetime().transform((str) => new Date(str)),
+      ])
+      .optional(),
+    units: z.array(UnitReturnSchema).default([]),
+    unitReturns: z.array(UnitReturnSchema).optional(),
+    // On-the-spot damage/cleaning payment
+    damagePayment: ReturnDamagePaymentSchema.optional(),
+  })
+  .refine(
+    (data) =>
+      (data.units && data.units.length > 0) ||
+      (data.unitReturns && data.unitReturns.length > 0),
+    {
+      message: 'At least one unit must be returned',
+      path: ['units'],
+    }
+  );
 
 export const FinalizeReturnSchema = z.object({
   returnId: z.string().uuid(),

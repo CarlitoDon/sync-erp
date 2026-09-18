@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx turbo run build --filter=@sync-erp/web",
+  "buildCommand": "unset TURBO_REMOTE_ONLY && npx turbo run build --filter=@sync-erp/web",
   "outputDirectory": "apps/web/dist",
   "installCommand": "npm install",
   "framework": "vite",
