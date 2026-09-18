@@ -253,6 +253,9 @@ jobs:
       - name: Setup test database
         run: npm run db:push --workspace=@sync-erp/database
 
+      - name: Build API and dependencies
+        run: npm run build:api
+
       - name: Test (integration)
         run: npm run test:integration --workspace=@sync-erp/api
 
