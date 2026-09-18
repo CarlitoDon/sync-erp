@@ -1,6 +1,6 @@
 # Implementation Plan: Alur Operasional Rental Riil (Rental Flow Alignment)
 
-**Branch**: `feat/unified-routing-khusnudhoni` | **Date**: 2026-09-18 | **Spec**: [specs/045-rental-flow-alignment/spec.md](spec.md)
+**Branch**: `045-rental-flow-alignment` | **Date**: 2026-09-18 | **Spec**: [specs/045-rental-flow-alignment/spec.md](spec.md)
 
 **Input**: Feature specification from `specs/045-rental-flow-alignment/spec.md`
 

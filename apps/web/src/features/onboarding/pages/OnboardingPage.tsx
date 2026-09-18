@@ -125,7 +125,7 @@ export default function OnboardingPage() {
       balance: number;
     }>
   >([
-    { id: '1', name: 'Kas Dompet / Tunai', type: PaymentMethodType.CASH, balance: 0 },
+    { id: '1', name: 'Kas Utama / Tunai', type: PaymentMethodType.CASH, balance: 0 },
     { id: '2', name: 'Rekening Bank Operasional', type: PaymentMethodType.BANK, balance: 0 },
   ]);
 
@@ -145,8 +145,10 @@ export default function OnboardingPage() {
       .reduce((sum, a) => sum + (a.balance || 0), 0);
   }, [accounts]);
 
-  const handleAddAccount = (type: typeof PaymentMethodType.CASH | typeof PaymentMethodType.BANK) => {
-    const id = Date.now().toString();
+  const handleAddAccount = (
+    type: typeof PaymentMethodType.CASH | typeof PaymentMethodType.BANK
+  ) => {
+    const id = String(Date.now());
     const count = accounts.filter((a) => a.type === type).length + 1;
     const defaultName =
       type === PaymentMethodType.CASH ? `Kas Tunai ${count}` : `Rekening Bank ${count}`;
@@ -172,18 +174,6 @@ export default function OnboardingPage() {
   const handleRemoveAccount = (id: string) => {
     if (accounts.length <= 1) return;
     setAccounts((prev) => prev.filter((acc) => acc.id !== id));
-  };
-
-  const handleLoadUserAccounts = () => {
-    setAccounts([
-      { id: '1', name: 'Kas Dompet Hitam', type: PaymentMethodType.CASH, balance: 150000 },
-      { id: '2', name: 'Bank Jago Dhoni Pemasukan', type: PaymentMethodType.BANK, balance: 11380415 },
-      { id: '3', name: 'Bank Jago Dhoni Brankas Digital', type: PaymentMethodType.BANK, balance: 6000000 },
-      { id: '4', name: 'Bank Jago Dhoni Operasional', type: PaymentMethodType.BANK, balance: 154688 },
-      { id: '5', name: 'Bank BCA Dhoni Operasional', type: PaymentMethodType.BANK, balance: 80966 },
-      { id: '6', name: 'Bank Jago Mila Pemasukan', type: PaymentMethodType.BANK, balance: 515857 },
-      { id: '7', name: 'Bank BCA Mila Pemasukan', type: PaymentMethodType.BANK, balance: 0 },
-    ]);
   };
 
   const [selectedShape, setSelectedShape] = useState<BusinessShape>(() =>
@@ -750,7 +740,7 @@ export default function OnboardingPage() {
   if (step === 'OPENING_BALANCE') {
     return shell(
       'Saldo Awal Kas & Bank',
-      'Daftarkan akun kas fisik (dompet/kasir) dan rekening bank operasional yang Anda miliki saat memulai pembukuan, beserta saldo awalnya masing-masing.',
+      'Daftarkan akun kas fisik (kasir/toko) dan rekening bank operasional yang Anda miliki saat memulai pembukuan, beserta saldo awalnya masing-masing.',
       'Langkah 2 dari 3 • Posisi Keuangan',
       <div className="space-y-6">
         {/* Top Control Bar: Counters & Action Buttons */}
@@ -770,16 +760,6 @@ export default function OnboardingPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleLoadUserAccounts}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 active:scale-95 cursor-pointer"
-              title="Muat 7 contoh akun riil dari operasional"
-            >
-              <SparklesIcon className="h-3.5 w-3.5 text-amber-500" />
-              <span>Contoh Riil</span>
-            </button>
-
             {/* Segmented Add Control */}
             <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50/80 p-0.5">
               <button
@@ -856,8 +836,8 @@ export default function OnboardingPage() {
                       }
                       placeholder={
                         isCash
-                          ? 'Nama kas (cth: Kas Dompet Hitam)'
-                          : 'Nama bank (cth: Bank Jago Pemasukan)'
+                          ? 'Nama kas (cth: Kas Kasir / Toko)'
+                          : 'Nama bank (cth: Bank BCA Operasional)'
                       }
                       className="w-full rounded-lg border-0 p-0 text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-0"
                     />
