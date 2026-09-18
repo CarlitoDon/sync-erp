@@ -1,11 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import FormModal from '@/components/ui/FormModal';
+import Select from '@/components/ui/Select';
+import { Input } from '@/components/ui/input';
 import { apiAction } from '@/hooks/useApiAction';
 import { useBillingFeatures } from '@/hooks/useBillingFeatures';
 import type { RentalOrderWithRelations } from '@sync-erp/shared';
+import {
+  ReleaseRentalOrderSchema,
+  RentalPaymentMethodSchema,
+  type RentalPaymentMethod,
+} from '@sync-erp/shared';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import { PhotoUploader } from '../components';
-import { CONDITION_OPTIONS } from '../constants';
+import { CONDITION_OPTIONS, PAYMENT_METHOD_OPTIONS } from '../constants';
 
 interface UnitAssignment {
   unitId: string;
@@ -66,6 +74,46 @@ export default function UnitAssignmentModal({
   const [assignments, setAssignments] = useState<UnitAssignment[]>([]);
   const [skipPhotoCheck, setSkipPhotoCheck] = useState(true);
 
+  // T020: Integrated 70% settlement payment inputs (FR-005)
+  const totalExpected = useMemo(() => {
+    if (!order) return 0;
+    return Number(order.subtotal ?? 0) + Number(order.deliveryFee ?? 0);
+  }, [order]);
+  const depositPaid = useMemo(
+    () => (order ? Number(order.depositAmount ?? 0) : 0),
+    [order]
+  );
+  const defaultSettlement = useMemo(
+    () =>
+      Math.max(
+        0,
+        totalExpected - Math.min(depositPaid, totalExpected)
+      ),
+    [totalExpected, depositPaid]
+  );
+  const [settlementAmount, setSettlementAmount] = useState(0);
+  const [settlementMethod, setSettlementMethod] =
+    useState<RentalPaymentMethod>('CASH');
+  const [settlementAccountId, setSettlementAccountId] = useState<
+    string | undefined
+  >();
+  const [settlementReference, setSettlementReference] = useState('');
+
+  const { data: accounts = [] } = trpc.finance.listAccounts.useQuery(
+    undefined,
+    { enabled: isOpen }
+  );
+  const cashBankAccounts = useMemo(() => {
+    const headers = new Set(['1100', '1200', '1210']);
+    return accounts.filter((account) => {
+      if (account.isGroup || headers.has(account.code)) return false;
+      return (
+        (account.code >= '1100' && account.code <= '1199') ||
+        (account.code >= '1200' && account.code <= '1299')
+      );
+    });
+  }, [accounts]);
+
   // Initialize assignments from reserved units when modal opens
   useEffect(() => {
     if (isOpen && reservedUnits.length > 0 && assignments.length === 0) {
@@ -83,8 +131,19 @@ export default function UnitAssignmentModal({
     // Reset when modal closes
     if (!isOpen) {
       setAssignments([]);
+      setSettlementAmount(0);
+      setSettlementMethod('CASH');
+      setSettlementAccountId(undefined);
+      setSettlementReference('');
     }
   }, [isOpen, reservedUnits]);
+
+  // Prefill settlement amount when order loads
+  useEffect(() => {
+    if (isOpen && order) {
+      setSettlementAmount(defaultSettlement);
+    }
+  }, [isOpen, order?.id, defaultSettlement]);
 
   const handleAddPhoto = (unitId: string, base64: string) => {
     setAssignments((prev) =>
@@ -124,7 +183,22 @@ export default function UnitAssignmentModal({
         condition: a.condition as 'NEW' | 'GOOD' | 'FAIR' | 'NEEDS_REPAIR',
         notes: a.notes || undefined,
       })),
+      payment: {
+        settlementAmount,
+        paymentMethod: settlementMethod,
+        paymentAccountId: settlementAccountId,
+        reference: settlementReference || undefined,
+      },
     };
+
+    const parsed = ReleaseRentalOrderSchema.safeParse(payload);
+    if (!parsed.success) {
+      const { toast } = await import('react-hot-toast');
+      toast.error(
+        parsed.error.issues[0]?.message ?? 'Input pelunasan tidak valid'
+      );
+      return;
+    }
 
     await apiAction(
       () => releaseMutation.mutateAsync(payload),
@@ -228,6 +302,66 @@ export default function UnitAssignmentModal({
               );
             })}
           </div>
+        </div>
+
+        {/* T020: Integrated 70% settlement payment (FR-005) */}
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+          <h4 className="font-medium text-blue-900">
+            Pelunasan Sisa Sewa (±70%) di Lokasi
+          </h4>
+          <div className="grid grid-cols-2 gap-2 text-sm text-blue-800">
+            <span>
+              Total sewa + ongkir: Rp{' '}
+              {totalExpected.toLocaleString('id-ID')}
+            </span>
+            <span>DP diterima: Rp {depositPaid.toLocaleString('id-ID')}</span>
+          </div>
+          <CurrencyInput
+            label="Nominal pelunasan"
+            value={settlementAmount}
+            onChange={setSettlementAmount}
+            min={0}
+            required
+          />
+          <Select
+            label="Metode pembayaran"
+            value={settlementMethod}
+            onChange={(value) => {
+              const parsed = RentalPaymentMethodSchema.safeParse(value);
+              if (parsed.success) setSettlementMethod(parsed.data);
+            }}
+            options={PAYMENT_METHOD_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+            required
+          />
+          <Select
+            label="Akun Kas/Bank tujuan"
+            value={settlementAccountId ?? ''}
+            onChange={(value) =>
+              setSettlementAccountId(value || undefined)
+            }
+            options={cashBankAccounts.map((account) => ({
+              value: account.id,
+              label: `${account.code} — ${account.name}`,
+            }))}
+            placeholder="Pilih akun penerimaan"
+            required={settlementMethod !== RentalPaymentMethodSchema.enum.CASH}
+          />
+          <Input
+            label="Referensi pembayaran"
+            value={settlementReference}
+            onChange={(event) =>
+              setSettlementReference(event.target.value)
+            }
+            placeholder="No. transfer / bukti QRIS (opsional)"
+          />
+          <p className="text-xs text-blue-700">
+            Order otomatis menjadi ACTIVE dan chip pembayaran menjadi
+            Lunas setelah serah terima. Jurnal pendapatan sewa
+            terposting otomatis.
+          </p>
         </div>
 
         {/* Skip Photo Checkbox */}

@@ -5,7 +5,11 @@ import {
   CardContent,
   ActionButton,
 } from '@/components/ui';
-import { TruckIcon } from '@heroicons/react/24/outline';
+import {
+  TruckIcon,
+  CalendarDaysIcon,
+  ClockIcon,
+} from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { RentalOrderPermissions } from '../hooks/useRentalOrderPermissions';
 
@@ -15,6 +19,8 @@ interface RentalActionsCardProps {
   onRelease: () => void;
   onReturn: () => void;
   onCancel: () => void;
+  onExtend?: () => void;
+  onConvertOverdue?: () => void;
 }
 
 export function RentalActionsCard({
@@ -23,6 +29,8 @@ export function RentalActionsCard({
   onRelease,
   onReturn,
   onCancel,
+  onExtend,
+  onConvertOverdue,
 }: RentalActionsCardProps) {
   return (
     <Card>
@@ -63,6 +71,28 @@ export function RentalActionsCard({
             onClick={onReturn}
           >
             Return Units (Kembalikan)
+          </ActionButton>
+        )}
+
+        {permissions.canExtend && onExtend && (
+          <ActionButton
+            variant="outline"
+            className="w-full flex justify-center gap-2"
+            onClick={onExtend}
+          >
+            <CalendarDaysIcon className="w-4 h-4" />
+            Perpanjang Sewa (Full/Partial)
+          </ActionButton>
+        )}
+
+        {permissions.canConvertOverdue && onConvertOverdue && (
+          <ActionButton
+            variant="outline"
+            className="w-full flex justify-center gap-2"
+            onClick={onConvertOverdue}
+          >
+            <ClockIcon className="w-4 h-4" />
+            Konversi Sewa Harian
           </ActionButton>
         )}
 
