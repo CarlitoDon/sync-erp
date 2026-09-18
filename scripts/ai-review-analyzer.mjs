@@ -7,12 +7,14 @@ import {
   fetchJson,
   fetchPullRequest,
   fetchPullRequestFiles,
+  isAiProviderUnavailable,
   isRecord,
   loadExpectedContext,
   parseReviewPayload,
   redactSensitiveText,
   requireEnv,
   serializeReviewArtifact,
+  serializeSkippedReviewArtifact,
   validatePullRequestIdentity,
 } from './ai-review-common.mjs';
 
@@ -142,28 +144,70 @@ export async function runAnalyzer({ env = process.env, fetchImpl } = {}) {
     fetchImpl
   );
   const reviewInput = buildBoundedReviewInput(pullRequest, files);
-  const review = await callAiReview({
-    reviewInput,
-    apiBaseUrl,
-    apiKey,
-    model,
-    fetchImpl,
-  });
-  const artifact = serializeReviewArtifact({
-    identity,
-    review,
-    secrets: [apiKey, token],
-  });
+
+  let review;
+  let skipped = false;
+  let skipReason = '';
+
+  try {
+    review = await callAiReview({
+      reviewInput,
+      apiBaseUrl,
+      apiKey,
+      model,
+      fetchImpl,
+    });
+  } catch (error) {
+    if (isAiProviderUnavailable(error)) {
+      skipped = true;
+      skipReason =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message.trim()
+          : 'AI provider unavailable';
+      const safeReason = redactSensitiveText(skipReason, [apiKey, token]);
+      console.warn(
+        `::warning title=AI Code Review Skipped::AI review endpoint unavailable (${safeReason}). Review skipped without failing PR.`
+      );
+      console.warn(`AI review skipped: ${safeReason}`);
+    } else {
+      throw error;
+    }
+  }
+
+  const artifact = skipped
+    ? serializeSkippedReviewArtifact({
+        identity,
+        reason: skipReason,
+        secrets: [apiKey, token],
+      })
+    : serializeReviewArtifact({
+        identity,
+        review,
+        secrets: [apiKey, token],
+      });
+
   await writeFile(resultPath, artifact, { encoding: 'utf8', mode: 0o600 });
-  return { identity, review };
+  return skipped
+    ? {
+        identity,
+        skipped: true,
+        reason: redactSensitiveText(skipReason, [apiKey, token]),
+      }
+    : { identity, review, skipped: false };
 }
 
 export async function main() {
   try {
     const result = await runAnalyzer();
-    console.log(
-      `AI review analysis completed for PR #${result.identity.prNumber} (${result.review.verdict}).`
-    );
+    if (result.skipped) {
+      console.log(
+        `AI review analysis skipped for PR #${result.identity.prNumber} (${result.reason}).`
+      );
+    } else {
+      console.log(
+        `AI review analysis completed for PR #${result.identity.prNumber} (${result.review.verdict}).`
+      );
+    }
   } catch (error) {
     const apiKey = process.env.AI_API_KEY;
     const token = process.env.GITHUB_TOKEN;
