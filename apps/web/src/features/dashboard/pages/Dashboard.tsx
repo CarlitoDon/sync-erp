@@ -21,12 +21,10 @@ import {
 import {
   ArchiveBoxIcon,
   BanknotesIcon,
-  BuildingOffice2Icon,
   CalendarDaysIcon,
   CreditCardIcon,
   CubeIcon,
   DocumentTextIcon,
-  SignalIcon,
   TagIcon,
 } from '@heroicons/react/24/outline';
 
@@ -57,10 +55,10 @@ export default function Dashboard() {
     return (
       <PageContainer>
         <div className="space-y-8">
-          <div className="min-h-48 animate-pulse rounded-[1.75rem] bg-slate-900 p-8">
-            <div className="mb-4 h-3 w-32 rounded bg-white/10" />
-            <div className="h-9 w-64 rounded bg-white/15" />
-            <div className="mt-4 h-4 w-80 max-w-full rounded bg-white/10" />
+          <div className="min-h-48 animate-pulse rounded-3xl border border-slate-200/80 bg-white p-8 shadow-sm">
+            <div className="mb-4 h-3 w-32 rounded bg-slate-200" />
+            <div className="h-9 w-64 rounded bg-slate-200" />
+            <div className="mt-4 h-4 w-80 max-w-full rounded bg-slate-100" />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
@@ -181,59 +179,34 @@ export default function Dashboard() {
         businessShape={currentCompany?.businessShape}
       />
 
-      {/* Workspace identity and status */}
-      <section className="relative mb-8 overflow-hidden rounded-[1.75rem] border border-slate-800 bg-slate-950 px-5 py-6 text-white shadow-[0_20px_55px_rgba(15,23,42,0.18)] sm:px-8 sm:py-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(99,102,241,0.32),transparent_24rem),radial-gradient(circle_at_90%_20%,rgba(56,189,248,0.13),transparent_20rem)]" />
-        <div className="absolute -bottom-32 left-1/3 h-64 w-64 rounded-full border border-white/[0.04]" />
-        <div className="relative flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-start gap-4 sm:items-center sm:gap-5">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.1] text-lg font-semibold text-white shadow-inner sm:h-14 sm:w-14">
-              {currentCompany?.name?.charAt(0).toUpperCase() || (
-                <BuildingOffice2Icon className="h-6 w-6" />
-              )}
-            </span>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-200">
-                Operations workspace
-              </p>
-              <h1 className="mt-2 truncate text-3xl font-semibold tracking-[-0.035em] text-white sm:text-4xl">
-                {currentCompany?.name || 'Welcome to Sync ERP'}
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-                Your live overview of finance, inventory, and daily
-                operations.
-              </p>
+      {/* Workspace Hero Header (Exact alignment with design-guidelines.html) */}
+      <div className="mb-8 border-b border-slate-200 pb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+              Operations Workspace • {currentCompany?.businessShape === 'RENTAL' ? 'Rental & Sewa' : currentCompany?.businessShape || 'Standard'}
             </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
+              {currentCompany?.name || 'Sync ERP'} Overview
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base">
+              Ringkasan menyeluruh kesehatan finansial, pergerakan inventaris, dan operasional bisnis harian.
+            </p>
           </div>
 
-          <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-            <div className="flex min-w-52 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3.5 backdrop-blur-sm">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.08] text-primary-200">
-                <CalendarDaysIcon className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">
-                  Today
-                </p>
-                <p className="mt-0.5 text-sm font-semibold text-white">
-                  {dashboardDateFormatter.format(new Date())}
-                </p>
-              </div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs">
+              <CalendarDaysIcon className="h-4 w-4 text-slate-400" />
+              <span>{dashboardDateFormatter.format(new Date())}</span>
             </div>
-            <div className="inline-flex items-center gap-2.5 rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.08] px-4 py-3.5 text-sm font-medium text-emerald-100">
-              <SignalIcon className="h-5 w-5 text-emerald-300" />
-              <span>
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-300/70">
-                  Status
-                </span>
-                <span className="mt-0.5 block font-semibold">
-                  Workspace live
-                </span>
-              </span>
-            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 shadow-2xs">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+              Workspace Aktif
+            </span>
           </div>
         </div>
-      </section>
+      </div>
 
       {renderDashboard()}
     </PageContainer>

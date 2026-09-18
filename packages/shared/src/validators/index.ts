@@ -44,6 +44,12 @@ export const CreatePartnerSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
+  street: z.string().optional(),
+  kelurahan: z.string().optional(),
+  kecamatan: z.string().optional(),
+  kota: z.string().optional(),
+  provinsi: z.string().optional(),
+  zip: z.string().optional(),
 });
 
 export const UpdatePartnerSchema = z.object({
@@ -51,6 +57,17 @@ export const UpdatePartnerSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
+  street: z.string().optional(),
+  kelurahan: z.string().optional(),
+  kecamatan: z.string().optional(),
+  kota: z.string().optional(),
+  provinsi: z.string().optional(),
+  zip: z.string().optional(),
+});
+
+export const MergePartnersSchema = z.object({
+  targetPartnerId: z.string().uuid(),
+  sourcePartnerIds: z.array(z.string().uuid()).min(1),
 });
 
 export const CreateCustomerSchema = CreatePartnerSchema.extend({
@@ -335,6 +352,7 @@ export const AssignRoleSchema = z.object({
 
 export type CreatePartnerInput = z.infer<typeof CreatePartnerSchema>;
 export type UpdatePartnerInput = z.infer<typeof UpdatePartnerSchema>;
+export type MergePartnersInput = z.infer<typeof MergePartnersSchema>;
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;

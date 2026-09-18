@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import {
   LIMITS,
@@ -9,17 +11,20 @@ import {
   buildBoundedReviewInput,
   fetchPullRequest,
   fetchJson,
+  isAiProviderUnavailable,
   parseReviewArtifact,
   parseReviewPayload,
   redactSensitiveText,
   requestHttp,
   serializeReviewArtifact,
+  serializeSkippedReviewArtifact,
   validatePrNumber,
   validatePullRequestIdentity,
 } from './ai-review-common.mjs';
 import {
   callAiReview,
   parseProviderReview,
+  runAnalyzer,
 } from './ai-review-analyzer.mjs';
 import { revalidateAndPublish } from './ai-review-publisher.mjs';
 
@@ -78,6 +83,12 @@ function review(verdict = 'APPROVE') {
 function artifact(verdict = 'APPROVE') {
   return JSON.parse(
     serializeReviewArtifact({ identity: IDENTITY, review: review(verdict) })
+  );
+}
+
+function skippedArtifact(reason = 'AI provider returned HTTP 530') {
+  return JSON.parse(
+    serializeSkippedReviewArtifact({ identity: IDENTITY, reason })
   );
 }
 
@@ -684,3 +695,326 @@ test('redaction removes every non-empty secret, including short values', () => {
     'short=[REDACTED] one=[REDACTED] two=[REDACTED] long=[REDACTED]'
   );
 });
+
+test('isAiProviderUnavailable classifies 5xx, timeouts, connection drops, and malformed JSON', () => {
+  for (const status of [500, 502, 503, 504, 520, 521, 522, 524, 530]) {
+    assert.equal(
+      isAiProviderUnavailable(new Error(`AI provider returned HTTP ${status}`)),
+      true
+    );
+  }
+  assert.equal(
+    isAiProviderUnavailable(new Error('AI provider request timed out')),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(new Error('AI provider response timed out')),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(
+      new Error('AI provider request failed before receiving a response')
+    ),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(new Error('AI provider response could not be read')),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(
+      new Error('AI provider returned an invalid HTTP response')
+    ),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(
+      new Error('AI provider returned an unreadable response')
+    ),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(new Error('AI provider returned malformed JSON')),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(
+      new Error('AI provider returned malformed review JSON')
+    ),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(new Error('Malformed AI provider response')),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(new Error('connect ECONNREFUSED 127.0.0.1:8045')),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(new Error('getaddrinfo ENOTFOUND rl3ubev.abc-tunnel.us')),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(new Error('read ECONNRESET')),
+    true
+  );
+  assert.equal(
+    isAiProviderUnavailable(new Error('connect ETIMEDOUT 192.0.2.1:443')),
+    true
+  );
+
+  for (const status of [400, 401, 403, 404, 422]) {
+    assert.equal(
+      isAiProviderUnavailable(new Error(`AI provider returned HTTP ${status}`)),
+      false
+    );
+  }
+  assert.equal(
+    isAiProviderUnavailable(
+      new Error('GitHub pull request API returned HTTP 503')
+    ),
+    false
+  );
+  assert.equal(
+    isAiProviderUnavailable(
+      new Error('Pull request head SHA changed after analysis')
+    ),
+    false
+  );
+  assert.equal(
+    isAiProviderUnavailable(new Error('Invalid pull request number')),
+    false
+  );
+  assert.equal(
+    isAiProviderUnavailable(new Error('Invalid expected pull request identity')),
+    false
+  );
+  assert.equal(isAiProviderUnavailable(null), false);
+  assert.equal(isAiProviderUnavailable(undefined), false);
+  assert.equal(isAiProviderUnavailable('string error'), false);
+});
+
+test('skipped review artifact serializes, parses, and redacts sensitive data', () => {
+  const secretKey = 'nine-router-secret-key-999';
+  const raw = serializeSkippedReviewArtifact({
+    identity: IDENTITY,
+    reason: `Provider unavailable: ${secretKey} connection failed`,
+    secrets: [secretKey],
+  });
+  assert.doesNotMatch(raw, new RegExp(secretKey));
+  assert.match(raw, /\[REDACTED\]/);
+
+  const parsed = parseReviewArtifact(JSON.parse(raw), IDENTITY);
+  assert.equal(parsed.status, 'skipped');
+  assert.equal(parsed.schemaVersion, 1);
+  assert.equal(parsed.repository, IDENTITY.repository);
+  assert.equal(parsed.prNumber, IDENTITY.prNumber);
+  assert.equal(parsed.baseRef, IDENTITY.baseRef);
+  assert.equal(parsed.baseSha, IDENTITY.baseSha);
+  assert.equal(parsed.headSha, IDENTITY.headSha);
+  assert.equal(parsed.headRepository, IDENTITY.headRepository);
+  assert.match(parsed.reason, /\[REDACTED\]/);
+
+  assert.throws(
+    () =>
+      parseReviewArtifact(
+        { ...JSON.parse(raw), status: 'completed' },
+        IDENTITY
+      ),
+    /Malformed review artifact status/
+  );
+  assert.throws(
+    () =>
+      parseReviewArtifact(
+        { ...JSON.parse(raw), extraKey: 'forbidden' },
+        IDENTITY
+      ),
+    /Review artifact contains an unexpected schema/
+  );
+  assert.throws(
+    () =>
+      parseReviewArtifact(
+        { ...JSON.parse(raw), headSha: NEXT_HEAD_SHA },
+        IDENTITY
+      ),
+    /Review artifact identity does not match/
+  );
+  assert.throws(
+    () =>
+      parseReviewArtifact(
+        { ...JSON.parse(raw), reason: '' },
+        IDENTITY
+      ),
+    /Empty skipped review reason/
+  );
+});
+
+test('runAnalyzer handles provider 5xx/outage gracefully by writing skipped artifact', async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'ai-review-analyzer-test-'));
+  const resultPath = join(tempDir, 'review-result.json');
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(' '));
+
+  try {
+    const env = {
+      GITHUB_EVENT_NAME: 'pull_request_target',
+      GITHUB_REPOSITORY: IDENTITY.repository,
+      GITHUB_TOKEN: 'test-gh-token',
+      PR_NUMBER: String(IDENTITY.prNumber),
+      EXPECTED_BASE_REF: IDENTITY.baseRef,
+      EXPECTED_BASE_SHA: IDENTITY.baseSha,
+      EXPECTED_HEAD_SHA: IDENTITY.headSha,
+      EXPECTED_HEAD_REPOSITORY: IDENTITY.headRepository,
+      AI_API_BASE_URL: 'https://rl3ubev.abc-tunnel.us/v1',
+      AI_API_KEY: 'test-ai-key',
+      AI_MODEL: 'murah-cepat',
+      REVIEW_RESULT_PATH: resultPath,
+    };
+
+    const result = await runAnalyzer({
+      env,
+      fetchImpl: async (url) => {
+        if (url.includes('/pulls/42/files')) {
+          return response(200, [
+            { filename: 'src/index.ts', status: 'modified', patch: '+hello' },
+          ]);
+        }
+        if (url.includes('/pulls/42')) {
+          return response(200, pullRequest());
+        }
+        if (url.includes('/chat/completions')) {
+          return response(530, 'Origin DNS error', {
+            text: async () => 'Origin DNS error',
+          });
+        }
+        return response(404, 'Not found');
+      },
+    });
+
+    assert.equal(result.skipped, true);
+    assert.match(result.reason, /HTTP 530/);
+    assert.equal(result.identity.prNumber, IDENTITY.prNumber);
+
+    assert.ok(
+      warnings.some((w) =>
+        w.includes('::warning title=AI Code Review Skipped::')
+      )
+    );
+
+    const fileContent = JSON.parse(await readFile(resultPath, 'utf8'));
+    assert.equal(fileContent.status, 'skipped');
+    const parsed = parseReviewArtifact(fileContent, IDENTITY);
+    assert.equal(parsed.status, 'skipped');
+    assert.match(parsed.reason, /HTTP 530/);
+  } finally {
+    console.warn = originalWarn;
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('runAnalyzer fails closed on PR branch, draft, or head mismatch', async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'ai-review-analyzer-security-'));
+  const resultPath = join(tempDir, 'review-result.json');
+
+  try {
+    const envDraft = {
+      GITHUB_EVENT_NAME: 'pull_request_target',
+      GITHUB_REPOSITORY: IDENTITY.repository,
+      GITHUB_TOKEN: 'test-gh-token',
+      PR_NUMBER: String(IDENTITY.prNumber),
+      EXPECTED_BASE_REF: IDENTITY.baseRef,
+      EXPECTED_BASE_SHA: IDENTITY.baseSha,
+      EXPECTED_HEAD_SHA: IDENTITY.headSha,
+      EXPECTED_HEAD_REPOSITORY: IDENTITY.headRepository,
+      AI_API_BASE_URL: 'https://rl3ubev.abc-tunnel.us/v1',
+      AI_API_KEY: 'test-ai-key',
+      AI_MODEL: 'murah-cepat',
+      REVIEW_RESULT_PATH: resultPath,
+    };
+
+    await assert.rejects(
+      () =>
+        runAnalyzer({
+          env: envDraft,
+          fetchImpl: async (url) => {
+            if (url.includes('/pulls/42')) {
+              return response(200, pullRequest({ draft: true }));
+            }
+            return response(200, []);
+          },
+        }),
+      /not the expected open, non-draft pull request/
+    );
+
+    const envDisallowedBase = {
+      ...envDraft,
+      EXPECTED_BASE_REF: 'feature-branch',
+    };
+    await assert.rejects(
+      () =>
+        runAnalyzer({
+          env: envDisallowedBase,
+          fetchImpl: async () => response(200, pullRequest()),
+        }),
+      /Invalid or disallowed base branch/
+    );
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('publisher skips review POST when artifact is skipped and verifies PR head SHA', async () => {
+  const skippedArt = skippedArtifact('AI provider returned HTTP 530');
+  const calls = [];
+  const warnings = [];
+  const logs = [];
+  const originalWarn = console.warn;
+  const originalLog = console.log;
+  console.warn = (...args) => warnings.push(args.join(' '));
+  console.log = (...args) => logs.push(args.join(' '));
+
+  try {
+    const result = await revalidateAndPublish({
+      artifact: skippedArt,
+      expected: IDENTITY,
+      token: 'github-write-token',
+      fetchImpl: async (url, init) => {
+        calls.push({ url, init });
+        return response(200, pullRequest());
+      },
+    });
+
+    assert.equal(result.status, 'skipped');
+    assert.equal(result.commitId, HEAD_SHA);
+    assert.match(result.reason, /HTTP 530/);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].init.method, 'GET');
+    assert.ok(
+      warnings.some((w) =>
+        w.includes('::warning title=AI Review Publication Skipped::')
+      )
+    );
+
+    await assert.rejects(
+      () =>
+        revalidateAndPublish({
+          artifact: skippedArt,
+          expected: IDENTITY,
+          token: 'github-write-token',
+          fetchImpl: async () => {
+            return response(
+              200,
+              pullRequest({ head: { ...pullRequest().head, sha: NEXT_HEAD_SHA } })
+            );
+          },
+        }),
+      /head SHA changed after analysis/
+    );
+  } finally {
+    console.warn = originalWarn;
+    console.log = originalLog;
+  }
+});
+

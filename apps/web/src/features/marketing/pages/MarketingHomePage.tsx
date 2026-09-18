@@ -167,17 +167,8 @@ const pipeline = [
   { label: 'Cash flow', value: '82%' },
 ];
 
-const APP_ORIGIN = 'https://sync-erp.vercel.app';
-
-function getAppHref(path: string) {
-  if (typeof window === 'undefined') {
-    return path;
-  }
-
-  const { hostname } = window.location;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-
-  return isLocalhost ? path : `${APP_ORIGIN}${path}`;
+function getAppHref(path: string): string {
+  return path;
 }
 
 function formatMarketingPrice(plan: BillingPlan): {

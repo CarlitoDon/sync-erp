@@ -317,6 +317,14 @@ export const ConfirmRentalOrderSchema = z.object({
     .default([]),
 });
 
+export const ManualConfirmAccountingTreatmentSchema = z.enum([
+  'POST_CASH_JOURNAL',
+  'OPENING_BALANCE_NO_POSTING',
+]);
+export type ManualConfirmAccountingTreatment = z.infer<
+  typeof ManualConfirmAccountingTreatmentSchema
+>;
+
 // Manual confirm for admin to override stock/payment checks
 export const ManualConfirmRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
@@ -326,6 +334,8 @@ export const ManualConfirmRentalOrderSchema = z.object({
   paymentMethodId: z.string().uuid(), // From CompanyPaymentMethod
   paymentAmount: z.number().nonnegative(),
   paymentReference: z.string().optional(),
+  // Accounting treatment
+  accountingTreatment: ManualConfirmAccountingTreatmentSchema.default('POST_CASH_JOURNAL'),
   // Notes for audit trail
   notes: z.string().min(5, 'Notes required for manual confirmation'),
 });
@@ -401,6 +411,7 @@ const UnitReleaseSchema = z.object({
 export const ReleaseRentalOrderSchema = z.object({
   orderId: z.string().uuid(),
   unitAssignments: z.array(UnitReleaseSchema).min(1),
+  skipPhotoCheck: z.boolean().optional(),
 });
 
 export const CancelRentalOrderSchema = z.object({

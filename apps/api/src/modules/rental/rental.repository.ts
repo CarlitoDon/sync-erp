@@ -68,6 +68,8 @@ export class RentalRepository {
             status: true,
             condition: true,
             rentalItemId: true,
+            color: true,
+            sizeLabel: true,
           },
           orderBy: { unitCode: 'asc' },
         },

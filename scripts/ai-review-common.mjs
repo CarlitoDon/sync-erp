@@ -907,6 +907,22 @@ function validateArtifactIdentity(artifact, expected) {
   return identity;
 }
 
+export function isAiProviderUnavailable(error) {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message;
+  return (
+    /AI provider returned HTTP 5\d\d/.test(msg) ||
+    /AI provider (?:request|response) timed out/.test(msg) ||
+    /AI provider request failed before receiving a response/.test(msg) ||
+    /AI provider response could not be read/.test(msg) ||
+    /AI provider returned an invalid HTTP response/.test(msg) ||
+    /AI provider returned an unreadable response/.test(msg) ||
+    /AI provider returned malformed (?:review )?JSON/.test(msg) ||
+    /Malformed AI provider response/.test(msg) ||
+    /\b(?:ECONNREFUSED|ENOTFOUND|ECONNRESET|ETIMEDOUT)\b/.test(msg)
+  );
+}
+
 export function serializeReviewArtifact({ identity, review, secrets = [] }) {
   const normalizedIdentity = validateExpectedIdentity(identity);
   const safeReview = redactReviewSecrets(review, secrets);
@@ -929,21 +945,68 @@ export function serializeReviewArtifact({ identity, review, secrets = [] }) {
   return `${raw}\n`;
 }
 
+export function serializeSkippedReviewArtifact({
+  identity,
+  reason,
+  secrets = [],
+}) {
+  const normalizedIdentity = validateExpectedIdentity(identity);
+  const safeReason = assertSafeText(
+    redactSensitiveText(reason, secrets),
+    'skipped review reason',
+    LIMITS.maxSummaryChars,
+    { allowEmpty: false }
+  );
+  const artifact = {
+    schemaVersion: 1,
+    repository: normalizedIdentity.repository,
+    prNumber: normalizedIdentity.prNumber,
+    baseRef: normalizedIdentity.baseRef,
+    baseSha: normalizedIdentity.baseSha,
+    headSha: normalizedIdentity.headSha,
+    headRepository: normalizedIdentity.headRepository,
+    status: 'skipped',
+    reason: safeReason,
+  };
+  const raw = JSON.stringify(artifact);
+  if (raw.length > LIMITS.maxArtifactChars) {
+    fail('Review artifact exceeds size limit');
+  }
+  return `${raw}\n`;
+}
+
 export function parseReviewArtifact(value, expected) {
   if (!isRecord(value)) fail('Malformed review artifact');
   const keys = Object.keys(value).sort().join(',');
+  if (value.schemaVersion !== 1) fail('Unsupported review artifact version');
+  const identity = validateArtifactIdentity(value, expected);
+
+  if (
+    keys ===
+    'baseRef,baseSha,headRepository,headSha,prNumber,reason,repository,schemaVersion,status'
+  ) {
+    if (value.status !== 'skipped') fail('Malformed review artifact status');
+    const reason = assertSafeText(
+      value.reason,
+      'skipped review reason',
+      LIMITS.maxSummaryChars,
+      { allowEmpty: false }
+    );
+    return { ...identity, status: 'skipped', reason, schemaVersion: 1 };
+  }
+
   if (
     keys !==
     'baseRef,baseSha,headRepository,headSha,issues,prNumber,repository,schemaVersion,summary,verdict'
   ) {
     fail('Review artifact contains an unexpected schema');
   }
-  if (value.schemaVersion !== 1) fail('Unsupported review artifact version');
-  const identity = validateArtifactIdentity(value, expected);
+
   const review = parseReviewPayload({
     verdict: value.verdict,
     summary: value.summary,
     issues: value.issues,
   });
-  return { ...identity, ...review, schemaVersion: 1 };
+  return { ...identity, ...review, status: 'completed', schemaVersion: 1 };
 }
+

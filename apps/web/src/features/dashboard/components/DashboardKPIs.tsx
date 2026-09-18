@@ -37,21 +37,18 @@ export function DashboardKPIs() {
     <section aria-labelledby="business-overview-heading">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-700">
-            Financial health
-          </p>
           <h2
             id="business-overview-heading"
-            className="mt-1 text-xl font-semibold tracking-tight text-slate-950"
+            className="text-xl font-bold text-slate-900"
           >
-            Business overview
+            Financial Health &amp; Overview
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             A current snapshot of your key business values.
           </p>
         </div>
-        <span className="w-fit rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm">
-          {kpis.currency}
+        <span className="w-fit rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-mono font-semibold text-slate-600 shadow-2xs">
+          Currency: {kpis.currency}
         </span>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -61,7 +58,7 @@ export function DashboardKPIs() {
           currency={kpis.currency}
           isLoading={loading}
           icon={ArrowTrendingUpIcon}
-          tone="indigo"
+          tone="blue"
           description="Sales recorded to date"
         />
         <StatCard

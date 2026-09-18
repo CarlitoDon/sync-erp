@@ -51,24 +51,24 @@ export const Button = React.forwardRef<
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+      'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
 
     const variants = {
       primary:
-        'bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500',
+        'bg-blue-600 text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700 focus-visible:ring-blue-500 focus-visible:ring-offset-white',
       secondary:
-        'bg-secondary-600 text-white hover:bg-secondary-700 focus-visible:ring-secondary-500',
+        'border border-slate-300 bg-white text-slate-800 shadow-2xs hover:bg-slate-50 focus-visible:ring-slate-400 focus-visible:ring-offset-white',
       outline:
-        'border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-900',
-      ghost: 'hover:bg-gray-100 text-gray-900',
+        'border border-slate-300 bg-transparent hover:bg-slate-100 text-slate-800 focus-visible:ring-slate-400 focus-visible:ring-offset-white',
+      ghost: 'hover:bg-slate-100 text-slate-600 hover:text-slate-900',
       danger:
-        'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
+        'bg-rose-600 text-white shadow-sm shadow-rose-600/20 hover:bg-rose-700 focus-visible:ring-rose-500 focus-visible:ring-offset-white',
     };
 
     const sizes = {
-      sm: 'h-8 px-3 text-xs',
-      md: 'h-10 px-4 py-2 text-sm',
-      lg: 'h-12 px-8 text-base',
+      sm: 'h-8 min-h-[32px] px-3 text-xs',
+      md: 'h-10 min-h-[40px] px-4 py-2 text-sm',
+      lg: 'h-12 min-h-[44px] px-6 text-base',
     };
 
     return (

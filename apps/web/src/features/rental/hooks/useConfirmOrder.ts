@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { trpc } from '@/lib/trpc';
 import { apiAction } from '@/hooks/useApiAction';
 import {
+  ManualConfirmAccountingTreatment,
   RentalPaymentStatus,
   PaymentMethodTypeSchema,
 } from '@sync-erp/shared';
@@ -39,6 +40,18 @@ export function useConfirmOrder({
   const [paymentReference, setPaymentReference] = useState('');
   const [manualNotes, setManualNotes] = useState('');
   const [skipStockCheck, setSkipStockCheck] = useState(false);
+  const [accountingTreatment, setAccountingTreatment] =
+    useState<ManualConfirmAccountingTreatment>('POST_CASH_JOURNAL');
+
+  const resetManualConfirmForm = useCallback(() => {
+    setManualMode(false);
+    setPaymentMethodId('');
+    setPaymentAmount(0);
+    setPaymentReference('');
+    setManualNotes('');
+    setSkipStockCheck(false);
+    setAccountingTreatment('POST_CASH_JOURNAL');
+  }, []);
 
   // Queries
   const { data: order, isLoading } =
@@ -147,7 +160,7 @@ export function useConfirmOrder({
       onSuccess: () => {
         utils.rental.orders.list.invalidate();
         utils.rental.orders.getById.invalidate({ id: orderId! });
-        setManualMode(false);
+        resetManualConfirmForm();
         onSuccess();
         onClose();
       },
@@ -188,6 +201,18 @@ export function useConfirmOrder({
     [createPaymentMethodMutation]
   );
 
+  const handleAccountingTreatmentChange = useCallback((value: string) => {
+    if (
+      value === 'POST_CASH_JOURNAL' ||
+      value === 'OPENING_BALANCE_NO_POSTING'
+    ) {
+      setAccountingTreatment(value);
+      return;
+    }
+
+    toast.error('Perlakuan akuntansi tidak valid.');
+  }, []);
+
   const handleConfirm = useCallback(async () => {
     if (!order || !canConfirm) return;
     await apiAction(
@@ -206,6 +231,7 @@ export function useConfirmOrder({
           paymentAmount: paymentAmount || depositAmount,
           paymentReference: paymentReference || undefined,
           skipStockCheck,
+          accountingTreatment,
           notes: manualNotes,
         }),
       'Order dikonfirmasi secara manual!'
@@ -219,12 +245,13 @@ export function useConfirmOrder({
     depositAmount,
     paymentReference,
     skipStockCheck,
+    accountingTreatment,
   ]);
 
   const handleCloseModal = useCallback(() => {
-    setManualMode(false);
+    resetManualConfirmForm();
     onClose();
-  }, [onClose]);
+  }, [onClose, resetManualConfirmForm]);
 
   const handleOpenQuickAdd = useCallback(() => {
     setShowQuickAddModal(true);
@@ -275,6 +302,8 @@ export function useConfirmOrder({
     setManualNotes,
     skipStockCheck,
     setSkipStockCheck,
+    accountingTreatment,
+    handleAccountingTreatmentChange,
 
     // Handlers
     handleConfirm,

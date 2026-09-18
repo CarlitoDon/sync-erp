@@ -9,6 +9,7 @@ import { prisma } from '@sync-erp/database';
 import {
   RentalReturn,
   RentalOrderStatus,
+  RentalPaymentStatus,
   UnitStatus,
   DepositStatus,
   ReturnStatus,
@@ -242,6 +243,8 @@ export class RentalReturnService {
         where: { id: order.id },
         data: {
           status: RentalOrderStatus.COMPLETED,
+          rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
+          paymentConfirmedAt: new Date(),
           completedAt: new Date(),
         },
       });
@@ -334,6 +337,8 @@ export class RentalReturnService {
         where: { id: returnRecord.rentalOrderId },
         data: {
           status: RentalOrderStatus.COMPLETED,
+          rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
+          paymentConfirmedAt: returnRecord.settledAt ?? new Date(),
           completedAt: new Date(),
         },
       });

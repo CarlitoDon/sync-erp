@@ -117,6 +117,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            if [[ "${COOLIFY_CALLER_EVENT_NAME:-}" == "push" ]]; then
+              echo '::notice::Skipping Coolify deploy for api (staging): secret COOLIFY_DEPLOY_WEBHOOK_API_STAGING is not configured.'
+              exit 0
+            fi
             echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_API_STAGING.' >&2
             exit 1
           fi
@@ -129,6 +133,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            if [[ "${COOLIFY_CALLER_EVENT_NAME:-}" == "push" ]]; then
+              echo '::notice::Skipping Coolify deploy for api (production): secret COOLIFY_DEPLOY_WEBHOOK_API_PRODUCTION is not configured.'
+              exit 0
+            fi
             echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_API_PRODUCTION.' >&2
             exit 1
           fi
@@ -141,6 +149,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            if [[ "${COOLIFY_CALLER_EVENT_NAME:-}" == "push" ]]; then
+              echo '::notice::Skipping Coolify deploy for bot (staging): secret COOLIFY_DEPLOY_WEBHOOK_BOT_STAGING is not configured.'
+              exit 0
+            fi
             echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_BOT_STAGING.' >&2
             exit 1
           fi
@@ -153,6 +165,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            if [[ "${COOLIFY_CALLER_EVENT_NAME:-}" == "push" ]]; then
+              echo '::notice::Skipping Coolify deploy for bot (production): secret COOLIFY_DEPLOY_WEBHOOK_BOT_PRODUCTION is not configured.'
+              exit 0
+            fi
             echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_BOT_PRODUCTION.' >&2
             exit 1
           fi
@@ -165,6 +181,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            if [[ "${COOLIFY_CALLER_EVENT_NAME:-}" == "push" ]]; then
+              echo '::notice::Skipping Coolify deploy for mcp (staging): secret COOLIFY_DEPLOY_WEBHOOK_MCP_STAGING is not configured.'
+              exit 0
+            fi
             echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_MCP_STAGING.' >&2
             exit 1
           fi
@@ -177,6 +197,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            if [[ "${COOLIFY_CALLER_EVENT_NAME:-}" == "push" ]]; then
+              echo '::notice::Skipping Coolify deploy for mcp (production): secret COOLIFY_DEPLOY_WEBHOOK_MCP_PRODUCTION is not configured.'
+              exit 0
+            fi
             echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_MCP_PRODUCTION.' >&2
             exit 1
           fi

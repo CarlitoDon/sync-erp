@@ -64,6 +64,7 @@ export default function UnitAssignmentModal({
 
   // State for photo uploads per unit
   const [assignments, setAssignments] = useState<UnitAssignment[]>([]);
+  const [skipPhotoCheck, setSkipPhotoCheck] = useState(true);
 
   // Initialize assignments from reserved units when modal opens
   useEffect(() => {
@@ -101,7 +102,9 @@ export default function UnitAssignmentModal({
         a.unitId === unitId
           ? {
               ...a,
-              beforePhotos: a.beforePhotos.filter((_, i) => i !== photoIndex),
+              beforePhotos: a.beforePhotos.filter(
+                (_, idx) => idx !== photoIndex
+              ),
             }
           : a
       )
@@ -114,12 +117,10 @@ export default function UnitAssignmentModal({
 
     const payload = {
       orderId: order.id,
+      skipPhotoCheck,
       unitAssignments: assignments.map((a) => ({
         unitId: a.unitId,
-        beforePhotos:
-          mediaAccess && a.beforePhotos.length === 0
-            ? ['placeholder-photo']
-            : a.beforePhotos,
+        beforePhotos: a.beforePhotos,
         condition: a.condition as 'NEW' | 'GOOD' | 'FAIR' | 'NEEDS_REPAIR',
         notes: a.notes || undefined,
       })),
@@ -229,8 +230,25 @@ export default function UnitAssignmentModal({
           </div>
         </div>
 
+        {/* Skip Photo Checkbox */}
+        <div className="flex items-center gap-2 pt-3 border-t">
+          <input
+            type="checkbox"
+            id="skipPhotoCheck"
+            checked={skipPhotoCheck}
+            onChange={(e) => setSkipPhotoCheck(e.target.checked)}
+            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+          <label
+            htmlFor="skipPhotoCheck"
+            className="text-xs text-gray-600 cursor-pointer select-none"
+          >
+            Serahkan langsung tanpa wajib lampiran foto
+          </label>
+        </div>
+
         {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
+        <div className="flex justify-end gap-3 pt-3 border-t">
           <button
             type="button"
             onClick={onClose}

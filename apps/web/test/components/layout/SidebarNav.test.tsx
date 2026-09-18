@@ -3,6 +3,16 @@ import { MemoryRouter } from 'react-router-dom';
 import SidebarNav from '@/components/layout/SidebarNav';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 
+vi.mock('@/contexts/CompanyContext', () => ({
+  useCompany: vi.fn(() => ({
+    currentCompany: null,
+    companies: [],
+    setCurrentCompany: vi.fn(),
+    refreshCompanies: vi.fn(),
+    isLoading: false,
+  })),
+}));
+
 // We need to provide SidebarProvider for SidebarItem which is used inside SidebarNav
 const renderComponent = (initialRoute = '/') => {
   return render(

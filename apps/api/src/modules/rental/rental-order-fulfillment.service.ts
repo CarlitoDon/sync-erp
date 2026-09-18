@@ -8,6 +8,7 @@ import { prisma } from '@sync-erp/database';
 import {
   RentalOrder,
   RentalOrderStatus,
+  RentalPaymentStatus,
   UnitStatus,
   DepositPolicyType,
   DepositStatus,
@@ -237,10 +238,15 @@ export class RentalOrderFulfillmentService {
       }
 
       // Update order
+      const isFullyPaid = depositAmount.gte(order.totalAmount);
       const updated = await tx.rentalOrder.update({
         where: { id: order.id },
         data: {
           status: RentalOrderStatus.CONFIRMED,
+          rentalPaymentStatus: isFullyPaid
+            ? RentalPaymentStatus.CONFIRMED
+            : order.rentalPaymentStatus,
+          paymentConfirmedAt: isFullyPaid ? new Date() : undefined,
           depositAmount,
           confirmedAt: new Date(),
         },
@@ -464,10 +470,15 @@ export class RentalOrderFulfillmentService {
       }
 
       // Update order
+      const isFullyPaid = depositAmount.gte(order.totalAmount);
       const updated = await tx.rentalOrder.update({
         where: { id: order.id },
         data: {
           status: RentalOrderStatus.CONFIRMED,
+          rentalPaymentStatus: isFullyPaid
+            ? RentalPaymentStatus.CONFIRMED
+            : order.rentalPaymentStatus,
+          paymentConfirmedAt: isFullyPaid ? new Date() : undefined,
           depositAmount,
           confirmedAt: new Date(),
           notes: order.notes
@@ -481,15 +492,21 @@ export class RentalOrderFulfillmentService {
         },
       });
 
-      // Post deposit journal
-      await this.journalService.postRentalDeposit(
-        companyId,
-        deposit.id,
-        order.orderNumber!,
-        Number(depositAmount),
-        paymentMethod.code,
-        tx
-      );
+      // Post deposit journal conditionally based on accounting treatment
+      const accountingTreatment =
+        input.accountingTreatment ?? 'POST_CASH_JOURNAL';
+      const journalPosted = accountingTreatment === 'POST_CASH_JOURNAL';
+
+      if (journalPosted) {
+        await this.journalService.postRentalDeposit(
+          companyId,
+          deposit.id,
+          order.orderNumber!,
+          Number(depositAmount),
+          paymentMethod.code,
+          tx
+        );
+      }
 
       await recordAudit({
         companyId,
@@ -503,6 +520,8 @@ export class RentalOrderFulfillmentService {
           manualOverride: true,
           skipStockCheck: input.skipStockCheck,
           paymentMethodId: input.paymentMethodId,
+          accountingTreatment,
+          journalPosted,
           notes: input.notes,
         },
       });
@@ -549,7 +568,11 @@ export class RentalOrderFulfillmentService {
           );
         }
 
-        if (hasMediaAccess && beforePhotos.length === 0) {
+        if (
+          hasMediaAccess &&
+          !input.skipPhotoCheck &&
+          beforePhotos.length === 0
+        ) {
           throw new DomainError(
             'All units must have before photos',
             400,
