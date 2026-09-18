@@ -32,7 +32,7 @@ const SelectBusinessShapeSchema = z.object({
 const AccountItemSchema = z.object({
   id: z.string().optional(),
   name: z.string().trim().min(1, 'Nama akun wajib diisi'),
-  type: z.enum(['CASH', 'BANK']),
+  type: z.enum([PaymentMethodType.CASH, PaymentMethodType.BANK]),
   accountNumber: z.string().trim().optional(),
   balance: z.number().min(0, 'Saldo tidak boleh negatif'),
 });
@@ -318,7 +318,7 @@ export const onboardingRouter = router({
       let totalBank = 0;
       const accountMetaList: Array<{
         name: string;
-        type: 'CASH' | 'BANK';
+        type: typeof PaymentMethodType.CASH | typeof PaymentMethodType.BANK;
         code: string;
         balance: number;
         accountId: string;
@@ -391,7 +391,7 @@ export const onboardingRouter = router({
 
         for (let i = 0; i < input.accounts.length; i++) {
           const accItem = input.accounts[i];
-          const isCash = accItem.type === 'CASH';
+          const isCash = accItem.type === PaymentMethodType.CASH;
           const prefix = isCash ? '100' : '105';
           const parentId = isCash ? cashParent.id : bankParent.id;
 

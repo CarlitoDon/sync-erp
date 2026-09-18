@@ -57,7 +57,14 @@ const renderWithProviders = (initialRoute = '/') => {
       id: '1',
       name: 'Test User',
       email: 'test@example.com',
-    } as any,
+      emailVerifiedAt: new Date(),
+      image: null,
+      role: 'USER',
+      activeCompanyId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      companyMembers: [],
+    },
     isLoading: false,
     login: vi.fn(),
     register: vi.fn(),
@@ -69,7 +76,7 @@ const renderWithProviders = (initialRoute = '/') => {
   });
 
   vi.mocked(CompanyContext.useCompany).mockReturnValue({
-    currentCompany: { id: '1', name: 'Test Co' } as any,
+    currentCompany: null,
     companies: [],
     setCurrentCompany: vi.fn(),
     refreshCompanies: vi.fn(),

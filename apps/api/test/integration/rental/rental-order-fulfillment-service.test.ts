@@ -350,6 +350,7 @@ describe('RentalOrderFulfillmentService Integration', () => {
         paymentAmount: 50000,
         paymentReference: 'MANUAL-REF-001',
         skipStockCheck: true,
+        accountingTreatment: 'POST_CASH_JOURNAL',
         notes: 'Manual Confirmation Reason',
       },
       ACTOR_ID

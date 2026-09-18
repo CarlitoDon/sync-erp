@@ -27,6 +27,12 @@ interface Partner {
   email: string | null;
   phone: string | null;
   address: string | null;
+  street?: string | null;
+  kelurahan?: string | null;
+  kecamatan?: string | null;
+  kota?: string | null;
+  provinsi?: string | null;
+  zip?: string | null;
 }
 
 export interface PartnerListPageProps {
@@ -46,10 +52,12 @@ export interface PartnerListPageProps {
 const PartnerRow = memo(function PartnerRow({
   partner,
   basePath,
+  onEdit,
   onDelete,
 }: {
   partner: Partner;
   basePath: string;
+  onEdit: (partner: Partner) => void;
   onDelete: (id: string) => void;
 }) {
   return (
@@ -64,8 +72,18 @@ const PartnerRow = memo(function PartnerRow({
       </td>
       <td className="px-6 py-4 text-gray-500">{partner.email || '-'}</td>
       <td className="px-6 py-4 text-gray-500">{partner.phone || '-'}</td>
-      <td className="px-6 py-4 text-gray-500">{partner.address || '-'}</td>
-      <td className="px-6 py-4 text-right">
+      <td className="px-6 py-4 text-gray-500">
+        {partner.address || '-'}
+        {partner.kecamatan ? ` (${partner.kecamatan})` : ''}
+      </td>
+      <td className="px-6 py-4 text-right space-x-2">
+        <button
+          type="button"
+          onClick={() => onEdit(partner)}
+          className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+        >
+          Edit
+        </button>
         <ActionButton onClick={() => onDelete(partner.id)} variant="danger">
           Delete
         </ActionButton>
@@ -99,6 +117,12 @@ export default function PartnerListPage({
     },
   });
 
+  const updateMutation = trpc.partner.update.useMutation({
+    onSuccess: () => {
+      utils.partner.list.invalidate();
+    },
+  });
+
   const deleteMutation = trpc.partner.delete.useMutation({
     onSuccess: () => {
       utils.partner.list.invalidate();
@@ -113,6 +137,52 @@ export default function PartnerListPage({
     address: '',
     type,
   });
+
+  const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    kecamatan: '',
+    kota: '',
+  });
+
+  const handleOpenEdit = useCallback((p: Partner) => {
+    setEditingPartner(p);
+    setEditFormData({
+      name: p.name,
+      email: p.email || '',
+      phone: p.phone || '',
+      address: p.address || '',
+      kecamatan: p.kecamatan || '',
+      kota: p.kota || '',
+    });
+  }, []);
+
+  const handleEditSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!editingPartner) return;
+      await apiAction(
+        () =>
+          updateMutation.mutateAsync({
+            id: editingPartner.id,
+            data: {
+              name: editFormData.name,
+              email: editFormData.email || undefined,
+              phone: editFormData.phone || undefined,
+              address: editFormData.address || undefined,
+              kecamatan: editFormData.kecamatan || undefined,
+              kota: editFormData.kota || undefined,
+            },
+          }),
+        `${label} updated!`
+      );
+      setEditingPartner(null);
+    },
+    [editingPartner, editFormData, updateMutation, label]
+  );
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -234,6 +304,83 @@ export default function PartnerListPage({
         </form>
       </FormModal>
 
+      {/* Edit Modal Form */}
+      <FormModal
+        isOpen={!!editingPartner}
+        onClose={() => setEditingPartner(null)}
+        title={`Edit ${label}`}
+      >
+        <form onSubmit={handleEditSubmit} className="grid grid-cols-2 gap-4">
+          <Input
+            label="Name"
+            type="text"
+            required
+            value={editFormData.name}
+            onChange={(e) =>
+              setEditFormData({ ...editFormData, name: e.target.value })
+            }
+          />
+          <Input
+            label="Phone"
+            type="text"
+            value={editFormData.phone}
+            onChange={(e) =>
+              setEditFormData({ ...editFormData, phone: e.target.value })
+            }
+          />
+          <Input
+            label="Email"
+            type="email"
+            value={editFormData.email}
+            onChange={(e) =>
+              setEditFormData({ ...editFormData, email: e.target.value })
+            }
+          />
+          <Input
+            label="Kecamatan"
+            type="text"
+            value={editFormData.kecamatan}
+            onChange={(e) =>
+              setEditFormData({ ...editFormData, kecamatan: e.target.value })
+            }
+          />
+          <Input
+            label="Kota/Kabupaten"
+            type="text"
+            value={editFormData.kota}
+            onChange={(e) =>
+              setEditFormData({ ...editFormData, kota: e.target.value })
+            }
+          />
+          <Input
+            label="Address"
+            type="text"
+            value={editFormData.address}
+            onChange={(e) =>
+              setEditFormData({
+                ...editFormData,
+                address: e.target.value,
+              })
+            }
+          />
+          <div className="col-span-2 flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => setEditingPartner(null)}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </FormModal>
+
       <Card className="overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -268,6 +415,7 @@ export default function PartnerListPage({
                   key={partner.id}
                   partner={partner}
                   basePath={basePath}
+                  onEdit={handleOpenEdit}
                   onDelete={handleDelete}
                 />
               ))

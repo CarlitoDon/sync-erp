@@ -24,6 +24,7 @@ import {
   BusinessShape,
   CompanyOnboardingStatus,
   CompanyOnboardingStep,
+  PaymentMethodType,
 } from '@sync-erp/shared';
 import type { RouterOutputs } from '@/types/api';
 import {
@@ -53,7 +54,7 @@ function parseBusinessShape(raw: unknown): BusinessShape {
 
 interface SavedAccountMeta {
   name: string;
-  type: 'CASH' | 'BANK';
+  type: typeof PaymentMethodType.CASH | typeof PaymentMethodType.BANK;
   code?: string;
   balance: number;
   accountId?: string;
@@ -85,7 +86,7 @@ function parseOpeningBalanceMeta(raw: unknown): SavedOpeningBalanceMeta | null {
       .filter((a): a is Record<string, unknown> => Boolean(a && typeof a === 'object'))
       .map((a) => ({
         name: typeof a.name === 'string' ? a.name : '',
-        type: a.type === 'CASH' ? ('CASH' as const) : ('BANK' as const),
+        type: a.type === PaymentMethodType.CASH ? PaymentMethodType.CASH : PaymentMethodType.BANK,
         code: typeof a.code === 'string' ? a.code : undefined,
         balance: typeof a.balance === 'number' ? a.balance : 0,
         accountId: typeof a.accountId === 'string' ? a.accountId : undefined,
@@ -120,12 +121,12 @@ export default function OnboardingPage() {
     Array<{
       id: string;
       name: string;
-      type: 'CASH' | 'BANK';
+      type: typeof PaymentMethodType.CASH | typeof PaymentMethodType.BANK;
       balance: number;
     }>
   >([
-    { id: '1', name: 'Kas Dompet / Tunai', type: 'CASH', balance: 0 },
-    { id: '2', name: 'Rekening Bank Operasional', type: 'BANK', balance: 0 },
+    { id: '1', name: 'Kas Dompet / Tunai', type: PaymentMethodType.CASH, balance: 0 },
+    { id: '2', name: 'Rekening Bank Operasional', type: PaymentMethodType.BANK, balance: 0 },
   ]);
 
   const totalBalance = useMemo(() => {
@@ -134,21 +135,21 @@ export default function OnboardingPage() {
 
   const totalCash = useMemo(() => {
     return accounts
-      .filter((a) => a.type === 'CASH')
+      .filter((a) => a.type === PaymentMethodType.CASH)
       .reduce((sum, a) => sum + (a.balance || 0), 0);
   }, [accounts]);
 
   const totalBank = useMemo(() => {
     return accounts
-      .filter((a) => a.type === 'BANK')
+      .filter((a) => a.type === PaymentMethodType.BANK)
       .reduce((sum, a) => sum + (a.balance || 0), 0);
   }, [accounts]);
 
-  const handleAddAccount = (type: 'CASH' | 'BANK') => {
+  const handleAddAccount = (type: typeof PaymentMethodType.CASH | typeof PaymentMethodType.BANK) => {
     const id = Date.now().toString();
     const count = accounts.filter((a) => a.type === type).length + 1;
     const defaultName =
-      type === 'CASH' ? `Kas Tunai ${count}` : `Rekening Bank ${count}`;
+      type === PaymentMethodType.CASH ? `Kas Tunai ${count}` : `Rekening Bank ${count}`;
     setAccounts((prev) => [
       ...prev,
       { id, name: defaultName, type, balance: 0 },
@@ -159,7 +160,7 @@ export default function OnboardingPage() {
     id: string,
     updates: Partial<{
       name: string;
-      type: 'CASH' | 'BANK';
+      type: typeof PaymentMethodType.CASH | typeof PaymentMethodType.BANK;
       balance: number;
     }>
   ) => {
@@ -175,13 +176,13 @@ export default function OnboardingPage() {
 
   const handleLoadUserAccounts = () => {
     setAccounts([
-      { id: '1', name: 'Kas Dompet Hitam', type: 'CASH', balance: 150000 },
-      { id: '2', name: 'Bank Jago Dhoni Pemasukan', type: 'BANK', balance: 11380415 },
-      { id: '3', name: 'Bank Jago Dhoni Brankas Digital', type: 'BANK', balance: 6000000 },
-      { id: '4', name: 'Bank Jago Dhoni Operasional', type: 'BANK', balance: 154688 },
-      { id: '5', name: 'Bank BCA Dhoni Operasional', type: 'BANK', balance: 80966 },
-      { id: '6', name: 'Bank Jago Mila Pemasukan', type: 'BANK', balance: 515857 },
-      { id: '7', name: 'Bank BCA Mila Pemasukan', type: 'BANK', balance: 0 },
+      { id: '1', name: 'Kas Dompet Hitam', type: PaymentMethodType.CASH, balance: 150000 },
+      { id: '2', name: 'Bank Jago Dhoni Pemasukan', type: PaymentMethodType.BANK, balance: 11380415 },
+      { id: '3', name: 'Bank Jago Dhoni Brankas Digital', type: PaymentMethodType.BANK, balance: 6000000 },
+      { id: '4', name: 'Bank Jago Dhoni Operasional', type: PaymentMethodType.BANK, balance: 154688 },
+      { id: '5', name: 'Bank BCA Dhoni Operasional', type: PaymentMethodType.BANK, balance: 80966 },
+      { id: '6', name: 'Bank Jago Mila Pemasukan', type: PaymentMethodType.BANK, balance: 515857 },
+      { id: '7', name: 'Bank BCA Mila Pemasukan', type: PaymentMethodType.BANK, balance: 0 },
     ]);
   };
 
@@ -805,7 +806,7 @@ export default function OnboardingPage() {
         {/* Dynamic Accounts List */}
         <div className="space-y-3">
           {accounts.map((acc, index) => {
-            const isCash = acc.type === 'CASH';
+            const isCash = acc.type === PaymentMethodType.CASH;
 
             return (
               <div
@@ -934,7 +935,7 @@ export default function OnboardingPage() {
               submitOpeningBalance.mutate(
                 {
                   accounts: accounts.map((a) => ({
-                    name: a.name.trim() || (a.type === 'CASH' ? 'Kas' : 'Bank'),
+                    name: a.name.trim() || (a.type === PaymentMethodType.CASH ? 'Kas' : 'Bank'),
                     type: a.type,
                     balance: a.balance || 0,
                   })),
@@ -1075,7 +1076,7 @@ export default function OnboardingPage() {
                 >
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                      acc.type === 'CASH'
+                      acc.type === PaymentMethodType.CASH
                         ? 'bg-amber-100 text-amber-800'
                         : 'bg-sky-100 text-sky-800'
                     }`}

@@ -49,4 +49,81 @@ export class PartnerRepository {
       where: { id },
     });
   }
+
+  async merge(
+    companyId: string,
+    targetPartnerId: string,
+    sourcePartnerIds: string[]
+  ): Promise<Partner> {
+    return prisma.$transaction(async (tx) => {
+      const target = await tx.partner.findFirst({
+        where: { id: targetPartnerId, companyId },
+      });
+      if (!target) {
+        throw new Error('Target partner not found');
+      }
+
+      for (const sourceId of sourcePartnerIds) {
+        if (sourceId === targetPartnerId) continue;
+        const source = await tx.partner.findFirst({
+          where: { id: sourceId, companyId },
+        });
+        if (!source) continue;
+
+        // Re-link RentalOrder
+        await tx.rentalOrder.updateMany({
+          where: { partnerId: sourceId, companyId },
+          data: { partnerId: targetPartnerId },
+        });
+
+        // Re-link Order
+        await tx.order.updateMany({
+          where: { partnerId: sourceId, companyId },
+          data: { partnerId: targetPartnerId },
+        });
+
+        // Re-link Invoice
+        await tx.invoice.updateMany({
+          where: { partnerId: sourceId, companyId },
+          data: { partnerId: targetPartnerId },
+        });
+
+        // Re-link or merge CustomerRentalRisk
+        const sourceRisk = await tx.customerRentalRisk.findUnique({
+          where: { partnerId: sourceId },
+        });
+        if (sourceRisk) {
+          const targetRisk = await tx.customerRentalRisk.findUnique({
+            where: { partnerId: targetPartnerId },
+          });
+          if (targetRisk) {
+            await tx.customerRentalRisk.update({
+              where: { id: targetRisk.id },
+              data: {
+                totalRentals: targetRisk.totalRentals + sourceRisk.totalRentals,
+                lateReturns: targetRisk.lateReturns + sourceRisk.lateReturns,
+                damageIncidents: targetRisk.damageIncidents + sourceRisk.damageIncidents,
+                depositForfeits: targetRisk.depositForfeits + sourceRisk.depositForfeits,
+              },
+            });
+            await tx.customerRentalRisk.delete({
+              where: { id: sourceRisk.id },
+            });
+          } else {
+            await tx.customerRentalRisk.update({
+              where: { id: sourceRisk.id },
+              data: { partnerId: targetPartnerId },
+            });
+          }
+        }
+
+        // Delete source partner
+        await tx.partner.delete({
+          where: { id: sourceId },
+        });
+      }
+
+      return target;
+    });
+  }
 }

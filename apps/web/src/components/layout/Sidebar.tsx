@@ -129,8 +129,8 @@ export default function Sidebar() {
               type="button"
               onClick={toggleCollapse}
               className="group relative flex h-10 w-10 items-center justify-center rounded-xl transition duration-[var(--duration-fast)] hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95"
-              title="Buka sidebar (Expand)"
-              aria-label="Buka sidebar"
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
             >
               <div className="transition-transform duration-200 group-hover:scale-90">
                 <BrandMark tone="gradient" size="sm" />
@@ -184,7 +184,7 @@ export default function Sidebar() {
                       {user.name}
                     </p>
                     <p className="truncate text-[10.5px] font-medium text-slate-500">
-                      {user.email || currentCompany?.name || 'Administrator'}
+                      {currentCompany?.name || user.email || 'Administrator'}
                     </p>
                   </div>
                 )}

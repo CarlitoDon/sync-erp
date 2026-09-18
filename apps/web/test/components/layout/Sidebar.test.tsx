@@ -142,7 +142,7 @@ describe('Sidebar', () => {
       setupMocks();
       renderComponent();
 
-      expect(screen.getByText('S')).toBeInTheDocument();
+      expect(screen.getByLabelText('Sync ERP')).toBeInTheDocument();
       expect(screen.getByText('Sync ERP')).toBeInTheDocument();
     });
 
@@ -178,11 +178,11 @@ describe('Sidebar', () => {
       expect(screen.getByText('Acme Corp')).toBeInTheDocument();
     });
 
-    it('shows logout text when expanded', () => {
+    it('shows logout button when expanded', () => {
       setupMocks({ sidebar: { isCollapsed: false } });
       renderComponent();
 
-      expect(screen.getByText('Logout')).toBeInTheDocument();
+      expect(screen.getByTitle('Logout')).toBeInTheDocument();
     });
 
     it('shows collapse button when expanded', () => {
@@ -283,7 +283,7 @@ describe('Sidebar', () => {
       setupMocks({ sidebar: { isCollapsed: false } });
       renderComponent();
 
-      fireEvent.click(screen.getByText('Logout'));
+      fireEvent.click(screen.getByTitle('Logout'));
 
       expect(mockLogout).toHaveBeenCalled();
     });

@@ -4,6 +4,7 @@ import { PartnerService } from '../../modules/partner/partner.service';
 import {
   CreatePartnerSchema,
   UpdatePartnerSchema,
+  MergePartnersSchema,
 } from '@sync-erp/shared';
 import { z } from 'zod';
 
@@ -67,6 +68,19 @@ export const partnerRouter = router({
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       return partnerService.delete(input.id, ctx.companyId);
+    }),
+
+  /**
+   * Merge duplicate partners into target partner
+   */
+  merge: protectedProcedure
+    .input(MergePartnersSchema)
+    .mutation(async ({ ctx, input }) => {
+      return partnerService.merge(
+        ctx.companyId,
+        input.targetPartnerId,
+        input.sourcePartnerIds
+      );
     }),
 });
 

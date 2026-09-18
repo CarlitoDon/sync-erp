@@ -39,8 +39,6 @@ import { OrderStatusFilter, SearchInput } from '../components';
 import {
   ORDER_STATUS_COLORS,
   ORDER_STATUS_LABELS,
-  PAYMENT_STATUS_COLORS,
-  PAYMENT_STATUS_LABELS,
 } from '../constants';
 
 const PAGE_SIZE = 50;
@@ -89,9 +87,31 @@ export default function RentalOrdersPage() {
       result = result.filter((o) => o.status === statusFilter);
     }
     if (paymentFilter !== 'ALL') {
-      result = result.filter(
-        (o) => o.rentalPaymentStatus === paymentFilter
-      );
+      result = result.filter((o) => {
+        const deposit = Number(o.depositAmount || 0);
+        const total = Number(o.totalAmount || 0);
+        const isComplete = o.status === RentalOrderStatus.COMPLETED;
+        const isConfirmed =
+          o.rentalPaymentStatus === RentalPaymentStatus.CONFIRMED;
+        const isFullDeposit =
+          o.status !== RentalOrderStatus.DRAFT &&
+          deposit >= total &&
+          total > 0;
+
+        if (paymentFilter === RentalPaymentStatus.CONFIRMED) {
+          return isComplete || isConfirmed || isFullDeposit;
+        }
+        if (paymentFilter === RentalPaymentStatus.PENDING) {
+          return (
+            !isComplete &&
+            !isConfirmed &&
+            !isFullDeposit &&
+            deposit === 0 &&
+            o.rentalPaymentStatus === RentalPaymentStatus.PENDING
+          );
+        }
+        return o.rentalPaymentStatus === paymentFilter;
+      });
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -355,15 +375,69 @@ export default function RentalOrdersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {order.rentalPaymentStatus && (
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${PAYMENT_STATUS_COLORS[order.rentalPaymentStatus] || 'bg-gray-100 text-gray-700'}`}
-                      >
-                        {PAYMENT_STATUS_LABELS[
-                          order.rentalPaymentStatus
-                        ] || order.rentalPaymentStatus}
-                      </span>
-                    )}
+                    {(() => {
+                      const deposit = Number(order.depositAmount || 0);
+                      const total = Number(order.totalAmount || 0);
+                      const isComplete =
+                        order.status === RentalOrderStatus.COMPLETED;
+                      const isConfirmed =
+                        order.rentalPaymentStatus ===
+                        RentalPaymentStatus.CONFIRMED;
+                      const isFullDeposit =
+                        order.status !== RentalOrderStatus.DRAFT &&
+                        deposit >= total &&
+                        total > 0;
+
+                      if (isComplete || isConfirmed || isFullDeposit) {
+                        return (
+                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            Lunas
+                          </span>
+                        );
+                      }
+
+                      if (
+                        order.rentalPaymentStatus ===
+                        RentalPaymentStatus.AWAITING_CONFIRM
+                      ) {
+                        return (
+                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                            Menunggu Verifikasi
+                          </span>
+                        );
+                      }
+
+                      if (
+                        order.rentalPaymentStatus ===
+                        RentalPaymentStatus.FAILED
+                      ) {
+                        return (
+                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                            Gagal
+                          </span>
+                        );
+                      }
+
+                      if (
+                        order.status !== RentalOrderStatus.DRAFT &&
+                        deposit > 0
+                      ) {
+                        return (
+                          <span
+                            className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800"
+                            title={`DP: ${formatCurrency(deposit)} dari ${formatCurrency(total)}`}
+                          >
+                            DP Terbayar
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+                          Belum Bayar
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">

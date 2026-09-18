@@ -17,15 +17,9 @@ import {
   PaymentMethodType,
   UnitCondition,
 } from '@sync-erp/database';
-import { DomainError, asMock } from '@sync-erp/shared';
+import { DomainError, asMock, ManualConfirmRentalOrderInput } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
-
 // No local mock for @sync-erp/database needed, relying on global setup
-
-// Mock audit log
-vi.mock('@modules/common/audit/audit-log.service', () => ({
-  recordAudit: vi.fn(),
-}));
 
 describe('RentalOrderFulfillmentService', () => {
   let service: RentalOrderFulfillmentService;
@@ -142,6 +136,7 @@ describe('RentalOrderFulfillmentService', () => {
       paymentReference: 'REF-123',
       notes: 'Manual confirm',
       skipStockCheck: false,
+      accountingTreatment: 'POST_CASH_JOURNAL' as const,
     };
 
     const mockOrder = {
@@ -217,7 +212,106 @@ describe('RentalOrderFulfillmentService', () => {
           }),
         })
       );
-      expect(mockJournalService.postRentalDeposit).toHaveBeenCalled();
+      expect(mockJournalService.postRentalDeposit).toHaveBeenCalledWith(
+        COMPANY_ID,
+        'deposit-1',
+        'ORD-001',
+        50000,
+        'BANK',
+        expect.anything()
+      );
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            companyId: COMPANY_ID,
+            actorId: ACTOR_ID,
+            payloadSnapshot: expect.objectContaining({
+              accountingTreatment: 'POST_CASH_JOURNAL',
+              journalPosted: true,
+            }),
+          }),
+        })
+      );
+    });
+
+    it('should manually confirm order without posting journal when accountingTreatment is OPENING_BALANCE_NO_POSTING', async () => {
+      // Mock order items
+      asMock(prisma.rentalOrderItem.findMany).mockResolvedValue([
+        {
+          rentalItemId: 'item-1',
+          quantity: 1,
+          rentalBundleId: null,
+        },
+      ]);
+
+      // Mock available units
+      asMock(prisma.rentalItemUnit.findMany).mockResolvedValue([
+        { id: 'unit-1', status: UnitStatus.AVAILABLE },
+      ]);
+      asMock(prisma.rentalItemUnit.updateMany).mockResolvedValue({
+        count: 1,
+      });
+
+      mockRentalRepository.getCurrentPolicy.mockResolvedValue({
+        defaultDepositPolicyType: DepositPolicyType.PER_UNIT,
+      } as never);
+
+      asMock(prisma.rentalDeposit.create).mockResolvedValue({
+        id: 'deposit-1',
+        amount: new Decimal(50000),
+      });
+
+      asMock(prisma.rentalOrderUnitAssignment.createMany).mockResolvedValue({ count: 1 });
+
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
+        ...mockOrder,
+        status: RentalOrderStatus.CONFIRMED,
+        depositAmount: new Decimal(50000),
+      });
+
+      const openingBalanceInput: ManualConfirmRentalOrderInput = {
+        ...input,
+        accountingTreatment: 'OPENING_BALANCE_NO_POSTING',
+      };
+
+      const result = await service.manualConfirmOrder(
+        COMPANY_ID,
+        openingBalanceInput,
+        ACTOR_ID
+      );
+
+      expect(result.status).toBe(RentalOrderStatus.CONFIRMED);
+      expect(prisma.rentalDeposit.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            amount: expect.objectContaining({ d: [50000] }),
+            paymentMethod: 'BANK',
+            paymentReference: 'REF-123',
+          }),
+        })
+      );
+      expect(prisma.rentalOrderUnitAssignment.createMany).toHaveBeenCalled();
+      expect(prisma.rentalItemUnit.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: { in: ['unit-1'] },
+          status: UnitStatus.AVAILABLE,
+        },
+        data: { status: UnitStatus.RESERVED },
+      });
+      expect(prisma.rentalOrder.update).toHaveBeenCalled();
+      expect(mockJournalService.postRentalDeposit).not.toHaveBeenCalled();
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            companyId: COMPANY_ID,
+            actorId: ACTOR_ID,
+            payloadSnapshot: expect.objectContaining({
+              accountingTreatment: 'OPENING_BALANCE_NO_POSTING',
+              journalPosted: false,
+            }),
+          }),
+        })
+      );
     });
 
     it('should skip stock check if requested', async () => {
