@@ -34,8 +34,9 @@ export default function SidebarNav() {
           label="Rental Operations"
           icon={<ArchiveBoxIcon />}
           activePrefixes={['/rental']}
-          defaultPath="/rental/orders"
+          defaultPath="/rental/tasks"
         >
+          <SidebarSubItem path="/rental/tasks" label="Tugas Admin" />
           <SidebarSubItem path="/rental/scheduler" label="Scheduler Kalender" />
           <SidebarSubItem path="/rental/orders" label="Daftar Pesanan Sewa" />
           <SidebarSubItem path="/rental/items" label="Katalog & Unit Sewa" />

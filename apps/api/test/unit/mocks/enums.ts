@@ -206,6 +206,11 @@ export enum RentalOrderStatus {
   ACTIVE = 'ACTIVE',
 }
 
+export enum ReturnStatus {
+  DRAFT = 'DRAFT',
+  SETTLED = 'SETTLED',
+}
+
 export enum OrderSource {
   ADMIN = 'ADMIN',
   WEBSITE = 'WEBSITE',
