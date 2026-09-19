@@ -17,9 +17,18 @@ const RentalSettings = lazy(
 const RentalScheduler = lazy(
   () => import('./pages/RentalSchedulerPage')
 );
+const RentalTasks = lazy(() => import('./pages/RentalTasksPage'));
 
 export const RentalRoutes = (
   <Route path="rental">
+    <Route
+      path="tasks"
+      element={
+        <LazyRoute>
+          <RentalTasks />
+        </LazyRoute>
+      }
+    />
     <Route
       path="items"
       element={

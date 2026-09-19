@@ -1,16 +1,20 @@
 import { Router, type Request, type Response } from 'express';
-import { ZodError, type ZodType } from 'zod';
+import { ZodError, type ZodType, type ZodTypeDef } from 'zod';
 import {
   IdempotencyScope,
   Prisma,
 } from '@sync-erp/database';
-import { DomainError } from '@sync-erp/shared';
+import {
+  DomainError,
+  GetRentalAdminTasksInputSchema,
+} from '@sync-erp/shared';
 import {
   apiKeyService,
   type ApiKeyValidationResult,
 } from '../services/api-key.service';
 import { IdempotencyService } from '../modules/common/services/idempotency.service';
 import { RentalExternalOrderService } from '../modules/rental/rental-external-order.service';
+import { RentalAdminTaskService } from '../modules/rental/rental-admin-task.service';
 import {
   RentalIntegrationCancelOrderSchema,
   RentalIntegrationClaimPaymentSchema,
@@ -33,6 +37,7 @@ type AuthedRequest = Request & {
 const idSchema = RentalIntegrationUpdateOrderSchema.shape.id.unwrap();
 const tokenSchema = RentalIntegrationClaimPaymentSchema.shape.token;
 const service = new RentalExternalOrderService();
+const adminTaskService = new RentalAdminTaskService();
 const idempotencyService = new IdempotencyService();
 
 export const integrationV1HttpRouter = Router();
@@ -68,12 +73,25 @@ const sendError = (res: Response, error: unknown) => {
   });
 };
 
-const parseBody = <T>(schema: ZodType<T>, body: unknown): T => {
+const parseBody = <T>(
+  schema: ZodType<T, ZodTypeDef, unknown>,
+  body: unknown
+): T => {
   return schema.parse(body);
 };
 
-const parseParam = <T>(schema: ZodType<T>, value: unknown): T => {
+const parseParam = <T>(
+  schema: ZodType<T, ZodTypeDef, unknown>,
+  value: unknown
+): T => {
   return schema.parse(value);
+};
+
+const parseQuery = <T>(
+  schema: ZodType<T, ZodTypeDef, unknown>,
+  query: unknown
+): T => {
+  return schema.parse(query);
 };
 
 const requireAuth = (req: AuthedRequest) => {
@@ -448,6 +466,25 @@ integrationV1HttpRouter.post(
           ...input,
           orderNumber: current.orderNumber,
         }
+      );
+
+      res.json(result);
+    } catch (error) {
+      sendError(res, error);
+    }
+  }
+);
+
+integrationV1HttpRouter.get(
+  '/rental/tasks',
+  async (req: AuthedRequest, res) => {
+    try {
+      const auth = requireAuth(req);
+      requirePermission(auth, 'rental:read');
+      const input = parseQuery(GetRentalAdminTasksInputSchema, req.query);
+      const result = await adminTaskService.getAdminTaskQueue(
+        auth.companyId,
+        input
       );
 
       res.json(result);

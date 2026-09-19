@@ -175,4 +175,33 @@ describe('SidebarNav', () => {
       expect(financeLink).toHaveAttribute('aria-current', 'page');
     });
   });
+
+  describe('Rental Operations', () => {
+    it('renders Tugas Admin navigation link when company business shape is RENTAL', async () => {
+      const { useCompany } = await import('@/contexts/CompanyContext');
+      const { BusinessShape, asPartial } = await import('@sync-erp/shared');
+      type CompanyType = NonNullable<ReturnType<typeof useCompany>['currentCompany']>;
+
+      vi.mocked(useCompany).mockReturnValue({
+        currentCompany: asPartial<CompanyType>({
+          id: 'rental-company-1',
+          name: 'Santi Living',
+          businessShape: BusinessShape.RENTAL,
+        }),
+        companies: [],
+        setCurrentCompany: vi.fn(),
+        refreshCompanies: vi.fn(),
+        isLoading: false,
+      });
+
+      renderComponent('/rental/tasks');
+
+      const adminTaskLink = screen.getByRole('link', {
+        name: /tugas admin/i,
+      });
+      expect(adminTaskLink).toBeInTheDocument();
+      expect(adminTaskLink).toHaveAttribute('href', '/rental/tasks');
+      expect(adminTaskLink).toHaveAttribute('aria-current', 'page');
+    });
+  });
 });
