@@ -65,11 +65,11 @@ export function calculateLateFee(
   const lateMs = actualReturnDateTime.getTime() - gracePeriodDeadline.getTime();
   const lateDays = lateMs / (1000 * 60 * 60 * 24);
 
-  // Late fee calculation
-  const totalLateFee = lateFeeDailyRate.times(lateDays);
+  // Late fee calculation (rounded to whole currency integer)
+  const totalLateFee = lateFeeDailyRate.times(lateDays).round();
 
   // Extended rental fee (customer still "using" the item)
-  const extendedRentalFee = dailyRentalRate.times(lateDays);
+  const extendedRentalFee = dailyRentalRate.times(lateDays).round();
 
   // Total charges = late fee + extended rental
   const grandTotal = totalLateFee.plus(extendedRentalFee);

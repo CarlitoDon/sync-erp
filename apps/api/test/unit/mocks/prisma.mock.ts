@@ -196,17 +196,21 @@ export const mockPrisma = {
   },
   rentalOrder: {
     findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
   },
   rentalReturn: {
     findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
   },
   rentalOrderExtension: {
     create: vi.fn(),
@@ -229,6 +233,7 @@ export const mockPrisma = {
   },
   itemConditionLog: {
     create: vi.fn(),
+    findMany: vi.fn(),
   },
   rentalDeposit: {
     create: vi.fn(),
@@ -237,6 +242,12 @@ export const mockPrisma = {
   rentalPolicy: {
     findFirst: vi.fn(),
     create: vi.fn(),
+  },
+  rentalDamagePolicy: {
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
   },
   auditLog: {
     create: vi.fn(),

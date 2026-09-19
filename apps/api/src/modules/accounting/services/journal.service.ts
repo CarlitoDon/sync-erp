@@ -19,6 +19,7 @@ import {
   PostRentalReleaseSettlementParams,
   PostRentalExtensionParams,
   PostRentalDamageFeeParams,
+  PostRentalLateFeeParams,
   PostRentalCancellationRefundParams,
 } from './journal-rental.service';
 import { JournalInventoryService } from './journal-inventory.service';
@@ -60,9 +61,10 @@ export class JournalService {
     companyId: string,
     journalId: string,
     reason?: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    reversalDate?: Date
   ): Promise<JournalEntry> {
-    return this.core.reverse(companyId, journalId, reason, tx);
+    return this.core.reverse(companyId, journalId, reason, tx, reversalDate);
   }
 
   async create(
@@ -542,6 +544,12 @@ export class JournalService {
     return this.rental.postRentalDamageFee(params);
   }
 
+  async postRentalLateFee(
+    params: PostRentalLateFeeParams
+  ): Promise<JournalEntry> {
+    return this.rental.postRentalLateFee(params);
+  }
+
   async postRentalCancellationRefund(
     params: PostRentalCancellationRefundParams
   ): Promise<JournalEntry> {
@@ -600,5 +608,6 @@ export type {
   PostRentalReleaseSettlementParams,
   PostRentalExtensionParams,
   PostRentalDamageFeeParams,
+  PostRentalLateFeeParams,
   PostRentalCancellationRefundParams,
 };

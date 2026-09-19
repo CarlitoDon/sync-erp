@@ -17,6 +17,7 @@ import {
   RentalOrderExtensionSchema as GeneratedRentalOrderExtensionSchema,
   RentalOrderExtensionItemSchema as GeneratedRentalOrderExtensionItemSchema,
   RentalReturnSchema as GeneratedRentalReturnSchema,
+  ReturnStatusSchema,
 } from '../generated/zod/index.js';
 
 // Re-export generated schemas for use in other packages
@@ -83,6 +84,9 @@ export const DepositPolicyType = DepositPolicyTypeSchema.enum;
 export type DepositPolicyType = z.infer<
   typeof DepositPolicyTypeSchema
 >;
+
+export const ReturnStatus = ReturnStatusSchema.enum;
+export type ReturnStatus = z.infer<typeof ReturnStatusSchema>;
 
 export const RentalPaymentMethodSchema = z.enum([
   'CASH',

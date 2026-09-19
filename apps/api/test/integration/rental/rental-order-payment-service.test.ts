@@ -109,6 +109,26 @@ describe('RentalOrderPaymentService Integration', () => {
       ACTOR_ID
     );
     rentalItemId = rentalItem.id;
+
+    // Create unit
+    await prisma.rentalItemUnit.createMany({
+      data: [
+        {
+          companyId: COMPANY_ID,
+          rentalItemId,
+          unitCode: 'UNIT-AUTO-1',
+          status: 'AVAILABLE',
+          condition: 'GOOD',
+        },
+        {
+          companyId: COMPANY_ID,
+          rentalItemId,
+          unitCode: 'UNIT-AUTO-2',
+          status: 'AVAILABLE',
+          condition: 'GOOD',
+        },
+      ],
+    });
   });
 
   beforeEach(async () => {
@@ -127,6 +147,10 @@ describe('RentalOrderPaymentService Integration', () => {
         where: { companyId: COMPANY_ID },
       }),
     ]);
+    await prisma.rentalItemUnit.updateMany({
+      where: { companyId: COMPANY_ID },
+      data: { status: 'AVAILABLE' },
+    });
     vi.clearAllMocks();
   });
 

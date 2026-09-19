@@ -15,6 +15,8 @@ import {
   EntityType,
   AuditLogAction,
   PaymentMethodType,
+  JournalSourceType,
+  OrderSource,
 } from '@sync-erp/database';
 import { RentalRepository } from './rental.repository';
 import { JournalService } from '../accounting/services/journal.service';
@@ -237,10 +239,13 @@ export class RentalOrderFulfillmentService {
         );
       }
 
-      // Update order
+      // Update order conditionally (H7 idempotency guard)
       const isFullyPaid = depositAmount.gte(order.totalAmount);
-      const updated = await tx.rentalOrder.update({
-        where: { id: order.id },
+      const updateResult = await tx.rentalOrder.updateMany({
+        where: {
+          id: order.id,
+          status: RentalOrderStatus.DRAFT,
+        },
         data: {
           status: RentalOrderStatus.CONFIRMED,
           rentalPaymentStatus: isFullyPaid
@@ -250,25 +255,52 @@ export class RentalOrderFulfillmentService {
           depositAmount,
           confirmedAt: new Date(),
         },
+      });
+
+      if (updateResult.count === 0) {
+        throw new DomainError(
+          'Order is no longer in DRAFT status or has already been confirmed',
+          409,
+          DomainErrorCodes.ORDER_INVALID_STATE
+        );
+      }
+
+      const updated = (await tx.rentalOrder.findUniqueOrThrow({
+        where: { id: order.id },
         include: {
           items: true,
           unitAssignments: true,
           deposit: true,
         },
-      });
+      })) as RentalOrder;
 
-      // Post down payment journal (~30% DP)
-      if (depositAmount.gt(0)) {
-        await this.journalService.postRentalDownPayment({
-          companyId,
-          orderId: order.id,
-          orderNumber: order.orderNumber!,
-          downPaymentAmount: depositAmount.toNumber(),
-          paymentAccountId: input.paymentAccountId,
-          paymentMethod: paymentMethodStr,
-          customerName: order.partner?.name,
-          tx,
+      // Post down payment journal (~30% DP) only if payment is confirmed (H2) and not already posted (H7)
+      const isPaymentConfirmed =
+        order.orderSource !== OrderSource.WEBSITE ||
+        isFullyPaid ||
+        order.rentalPaymentStatus === RentalPaymentStatus.CONFIRMED;
+
+      if (depositAmount.gt(0) && isPaymentConfirmed) {
+        const existingDpJournal = await tx.journalEntry.findFirst({
+          where: {
+            companyId,
+            sourceType: JournalSourceType.RENTAL_DEPOSIT,
+            sourceId: order.id,
+          },
         });
+
+        if (!existingDpJournal) {
+          await this.journalService.postRentalDownPayment({
+            companyId,
+            orderId: order.id,
+            orderNumber: order.orderNumber!,
+            downPaymentAmount: depositAmount.toNumber(),
+            paymentAccountId: input.paymentAccountId,
+            paymentMethod: paymentMethodStr,
+            customerName: order.partner?.name,
+            tx,
+          });
+        }
       }
 
       await recordAudit({
@@ -473,10 +505,13 @@ export class RentalOrderFulfillmentService {
         }
       }
 
-      // Update order
+      // Update order conditionally (H7 idempotency guard)
       const isFullyPaid = depositAmount.gte(order.totalAmount);
-      const updated = await tx.rentalOrder.update({
-        where: { id: order.id },
+      const updateResult = await tx.rentalOrder.updateMany({
+        where: {
+          id: order.id,
+          status: RentalOrderStatus.DRAFT,
+        },
         data: {
           status: RentalOrderStatus.CONFIRMED,
           rentalPaymentStatus: isFullyPaid
@@ -489,12 +524,24 @@ export class RentalOrderFulfillmentService {
             ? `${order.notes}\n[Manual Confirm: ${input.notes}]`
             : `[Manual Confirm: ${input.notes}]`,
         },
+      });
+
+      if (updateResult.count === 0) {
+        throw new DomainError(
+          'Order is no longer in DRAFT status or has already been confirmed',
+          409,
+          DomainErrorCodes.ORDER_INVALID_STATE
+        );
+      }
+
+      const updated = (await tx.rentalOrder.findUniqueOrThrow({
+        where: { id: order.id },
         include: {
           items: true,
           unitAssignments: true,
           deposit: true,
         },
-      });
+      })) as RentalOrder;
 
       // Post deposit journal conditionally based on accounting treatment
       const accountingTreatment =
@@ -502,17 +549,27 @@ export class RentalOrderFulfillmentService {
       const journalPosted = accountingTreatment === 'POST_CASH_JOURNAL';
 
       if (journalPosted && depositAmount.gt(0)) {
-        await this.journalService.postRentalDownPayment({
-          companyId,
-          orderId: order.id,
-          orderNumber: order.orderNumber!,
-          downPaymentAmount: depositAmount.toNumber(),
-          paymentAccountId:
-            input.paymentAccountId ?? paymentMethod.accountId ?? undefined,
-          paymentMethod: paymentMethod.code,
-          customerName: order.partner?.name,
-          tx,
+        const existingDpJournal = await tx.journalEntry.findFirst({
+          where: {
+            companyId,
+            sourceType: JournalSourceType.RENTAL_DEPOSIT,
+            sourceId: order.id,
+          },
         });
+
+        if (!existingDpJournal) {
+          await this.journalService.postRentalDownPayment({
+            companyId,
+            orderId: order.id,
+            orderNumber: order.orderNumber!,
+            downPaymentAmount: depositAmount.toNumber(),
+            paymentAccountId:
+              input.paymentAccountId ?? paymentMethod.accountId ?? undefined,
+            paymentMethod: paymentMethod.code,
+            customerName: order.partner?.name,
+            tx,
+          });
+        }
       }
 
       await recordAudit({
@@ -564,6 +621,28 @@ export class RentalOrderFulfillmentService {
 
       // Paid plans keep photo evidence requirements; free plans use no-media logs.
       const unitIds = input.unitAssignments.map((a) => a.unitId);
+
+      // M1: Ensure all units being released belong to this order
+      if (!order.unitAssignments || order.unitAssignments.length === 0) {
+        throw new DomainError(
+          `No units assigned to order ${order.id}`,
+          400,
+          DomainErrorCodes.INVALID_INPUT
+        );
+      }
+      const assignedUnitIds = new Set(
+        order.unitAssignments.map((a) => a.rentalItemUnitId)
+      );
+      for (const unitId of unitIds) {
+        if (!assignedUnitIds.has(unitId)) {
+          throw new DomainError(
+            `Unit ${unitId} is not assigned to order ${order.id}`,
+            400,
+            DomainErrorCodes.INVALID_INPUT
+          );
+        }
+      }
+
       for (const assignment of input.unitAssignments) {
         const beforePhotos = assignment.beforePhotos ?? [];
 
@@ -633,9 +712,12 @@ export class RentalOrderFulfillmentService {
           ? payment.settlementAmount
           : Math.max(0, totalExpected.minus(effectiveDownPayment).toNumber());
 
-      // Update order
-      const updated = await tx.rentalOrder.update({
-        where: { id: order.id },
+      // Update order conditionally (H7 idempotency guard)
+      const releaseUpdateResult = await tx.rentalOrder.updateMany({
+        where: {
+          id: order.id,
+          status: RentalOrderStatus.CONFIRMED,
+        },
         data: {
           status: RentalOrderStatus.ACTIVE,
           activatedAt: new Date(),
@@ -645,31 +727,54 @@ export class RentalOrderFulfillmentService {
           ...(payment?.reference && { paymentReference: payment.reference }),
           ...(payment?.paymentMethod && { paymentMethod: payment.paymentMethod }),
         },
+      });
+
+      if (releaseUpdateResult.count === 0) {
+        throw new DomainError(
+          'Order is no longer in CONFIRMED status or has already been released',
+          409,
+          DomainErrorCodes.ORDER_INVALID_STATE
+        );
+      }
+
+      const updated = (await tx.rentalOrder.findUniqueOrThrow({
+        where: { id: order.id },
         include: {
           items: true,
           unitAssignments: true,
           deposit: true,
         },
-      });
+      })) as RentalOrder;
 
-      // Post settlement journal upon release (70% balance + DP recognition)
+      // Post settlement journal upon release (70% balance + DP recognition) only if not already posted (H7)
       if (settlementAmount > 0 || effectiveDownPayment > 0) {
-        await this.journalService.postRentalReleaseSettlement({
-          companyId,
-          orderId: order.id,
-          orderNumber: order.orderNumber!,
-          settlementAmount,
-          downPaymentAmount: effectiveDownPayment,
-          rentalRevenueAmount,
-          deliveryFeeAmount,
-          paymentAccountId: payment?.paymentAccountId,
-          paymentMethod:
-            payment?.paymentMethod ||
-            order.paymentMethod ||
-            PaymentMethodType.CASH,
-          customerName: order.partner?.name,
-          tx,
+        const existingReleaseJournal = await tx.journalEntry.findFirst({
+          where: {
+            companyId,
+            sourceType: JournalSourceType.PAYMENT,
+            sourceId: order.id,
+            reference: { startsWith: 'Rental Release:' },
+          },
         });
+
+        if (!existingReleaseJournal) {
+          await this.journalService.postRentalReleaseSettlement({
+            companyId,
+            orderId: order.id,
+            orderNumber: order.orderNumber!,
+            settlementAmount,
+            downPaymentAmount: effectiveDownPayment,
+            rentalRevenueAmount,
+            deliveryFeeAmount,
+            paymentAccountId: payment?.paymentAccountId,
+            paymentMethod:
+              payment?.paymentMethod ||
+              order.paymentMethod ||
+              PaymentMethodType.CASH,
+            customerName: order.partner?.name,
+            tx,
+          });
+        }
       }
 
       await recordAudit({

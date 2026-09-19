@@ -64,8 +64,8 @@ export default function CancelOrderModal({
 
   useEffect(() => {
     if (isOpen) {
-      setRefundEnabled(depositPaid > 0);
-      setRefundAmount(depositPaid);
+      setRefundEnabled(false);
+      setRefundAmount(0);
       setRefundMethod('BANK');
       setRefundAccountId(undefined);
     }
@@ -75,7 +75,7 @@ export default function CancelOrderModal({
       setRefundAmount(0);
       setRefundAccountId(undefined);
     }
-  }, [isOpen, depositPaid]);
+  }, [isOpen]);
 
   const cancelMutation = trpc.rental.orders.cancel.useMutation({
     onSuccess: () => {
@@ -158,7 +158,15 @@ export default function CancelOrderModal({
               type="checkbox"
               id="refundDp"
               checked={refundEnabled}
-              onChange={(e) => setRefundEnabled(e.target.checked)}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setRefundEnabled(checked);
+                if (checked && refundAmount === 0) {
+                  setRefundAmount(depositPaid);
+                } else if (!checked) {
+                  setRefundAmount(0);
+                }
+              }}
               className="rounded"
             />
             <label

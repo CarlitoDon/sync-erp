@@ -536,15 +536,15 @@ describe('US3: Full Rental Asset Lifecycle', () => {
       await prisma.rentalItemUnit.findUnique({
         where: { id: unit2.id },
       });
-    // Should be CLEANING then AVAILABLE typically, but finalizeReturn sets to cleaning.
-    expect(itemUnit2AfterReturn?.status).toBe(UnitStatus.CLEANING);
+    // Unit with major damage transitions to MAINTENANCE (FR-012, H6), not CLEANING
+    expect(itemUnit2AfterReturn?.status).toBe(UnitStatus.MAINTENANCE);
 
     const completedOrder = await prisma.rentalOrder.findUnique({
       where: { id: rentalOrderId },
     });
     expect(completedOrder?.status).toBe(RentalOrderStatus.COMPLETED);
 
-    // Verify Return Journal (Rental Revenue 4200 Credit, Deposit 2400 Debit)
+    // Verify Return under Spec 045: Return finalized without phantom cash receipt journal or debiting 2400 (H6)
     const returnJournal = await prisma.journalEntry.findFirst({
       where: {
         companyId: COMPANY_ID,
@@ -553,15 +553,8 @@ describe('US3: Full Rental Asset Lifecycle', () => {
       },
       include: { lines: { include: { account: true } } },
     });
-    expect(returnJournal).toBeDefined();
-    const rentalRevenueCredit = returnJournal?.lines.find(
-      (l) => l.account.code === '4200'
-    );
-    expect(Number(rentalRevenueCredit?.credit)).toBeGreaterThan(0);
-    const depositLiabilityDebit = returnJournal?.lines.find(
-      (l) => l.account.code === '2400'
-    );
-    expect(Number(depositLiabilityDebit?.debit)).toBe(1000000); // Full deposit debited
+    // Spec 045 Down Payment model: No pseudo deposit in 2400 debited, no phantom cash journal created
+    expect(returnJournal).toBeNull();
 
     // ==========================================
     // 5. Disposal - Sell the Suboptimal Unit

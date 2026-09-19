@@ -54,6 +54,8 @@ export interface PostRentalExtensionParams {
   paymentAccountId?: string;
   paymentMethod?: string;
   customerName?: string;
+  reference?: string;
+  sourceId?: string;
   tx?: Prisma.TransactionClient;
   businessDate?: Date;
 }
@@ -63,6 +65,18 @@ export interface PostRentalDamageFeeParams {
   orderId: string;
   orderNumber: string;
   damageFeeAmount: number;
+  paymentAccountId?: string;
+  paymentMethod?: string;
+  customerName?: string;
+  tx?: Prisma.TransactionClient;
+  businessDate?: Date;
+}
+
+export interface PostRentalLateFeeParams {
+  companyId: string;
+  orderId: string;
+  orderNumber: string;
+  lateFeeAmount: number;
   paymentAccountId?: string;
   paymentMethod?: string;
   customerName?: string;
@@ -276,10 +290,10 @@ export class JournalRentalService {
     }
 
     const data = {
-      reference: `Rental Extension: ${orderNumber}`,
+      reference: params.reference ?? `Rental Extension: ${orderNumber}`,
       memo: `Rental extension payment for ${orderNumber}${customerName ? ` - ${customerName}` : ''}`,
       sourceType: JournalSourceType.PAYMENT,
-      sourceId: orderId,
+      sourceId: params.sourceId ?? orderId,
       date: businessDate,
       lines,
     };
@@ -332,6 +346,57 @@ export class JournalRentalService {
       lines: [
         { accountCode: contraAccountCode, debit: dDamage.toNumber() },
         { accountCode: '4200', credit: dDamage.toNumber() },
+      ],
+    };
+
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  /**
+   * Post Direct Rental Late Fee Journal
+   * Debet: Kas / Bank (Asset)
+   * Kredit: Pendapatan Denda '4200' (Revenue)
+   */
+  async postRentalLateFee(
+    params: PostRentalLateFeeParams
+  ): Promise<JournalEntry> {
+    const {
+      companyId,
+      orderId,
+      orderNumber,
+      lateFeeAmount,
+      paymentAccountId,
+      paymentMethod,
+      customerName,
+      tx,
+      businessDate,
+    } = params;
+
+    const dLate = new Decimal(lateFeeAmount || 0);
+    if (dLate.lte(0)) {
+      throw new DomainError(
+        'Late fee amount must be greater than 0',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    const contraAccountCode = await this.resolveCashBankAccountCode(
+      companyId,
+      paymentAccountId,
+      paymentMethod,
+      tx
+    );
+
+    const data = {
+      reference: `Rental Late Fee: ${orderNumber}`,
+      memo: `Rental late fee for ${orderNumber}${customerName ? ` - ${customerName}` : ''}`,
+      sourceType: JournalSourceType.RENTAL_RETURN,
+      sourceId: `${orderId}:late`,
+      date: businessDate,
+      lines: [
+        { accountCode: contraAccountCode, debit: dLate.toNumber() },
+        { accountCode: '4200', credit: dLate.toNumber() },
       ],
     };
 
@@ -565,12 +630,43 @@ export class JournalRentalService {
     method: string,
     tx?: Prisma.TransactionClient
   ): Promise<string> {
-    const candidateCodes =
+    const isBank =
       method === PaymentMethodType.BANK ||
       method === PaymentMethodType.QRIS ||
-      method === PaymentMethodType.EWALLET
-        ? ['1211', '1201', '1200']
-        : ['1000', '1101', '1100'];
+      method === PaymentMethodType.EWALLET ||
+      method.toUpperCase().includes('BANK');
+
+    // First try active CompanyPaymentMethod
+    const defaultPm = tx
+      ? await tx.companyPaymentMethod.findFirst({
+          where: {
+            companyId,
+            isActive: true,
+            type: isBank ? PaymentMethodType.BANK : PaymentMethodType.CASH,
+          },
+          include: { account: true },
+          orderBy: [{ isDefault: 'desc' }, { sortOrder: 'asc' }],
+        })
+      : await prisma.companyPaymentMethod.findFirst({
+          where: {
+            companyId,
+            isActive: true,
+            type: isBank ? PaymentMethodType.BANK : PaymentMethodType.CASH,
+          },
+          include: { account: true },
+          orderBy: [{ isDefault: 'desc' }, { sortOrder: 'asc' }],
+        });
+
+    if (defaultPm?.account?.code) {
+      console.warn(
+        `[JournalRental] Resolved payment contra account ${defaultPm.account.code} (${defaultPm.account.name}) via CompanyPaymentMethod`
+      );
+      return defaultPm.account.code;
+    }
+
+    const candidateCodes = isBank
+      ? ['1211', '1201', '1200', '1100']
+      : ['1000', '1101', '1100'];
 
     for (const code of candidateCodes) {
       const account = tx
@@ -582,6 +678,9 @@ export class JournalRentalService {
           });
 
       if (account && isValidPaymentContraAccount(method, account.name)) {
+        console.warn(
+          `[JournalRental] Fallback to candidate account ${account.code} (${account.name}) for ${method}`
+        );
         return account.code;
       }
     }

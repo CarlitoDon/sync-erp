@@ -3,6 +3,7 @@ import { trpc } from '@/lib/trpc';
 import { apiAction } from '@/hooks/useApiAction';
 import {
   ManualConfirmAccountingTreatment,
+  OrderSource,
   RentalPaymentStatus,
   PaymentMethodTypeSchema,
   ConfirmRentalOrderSchema,
@@ -187,9 +188,11 @@ export function useConfirmOrder({
   // Payment status
   const paymentStatus = order?.rentalPaymentStatus;
   const isPaymentVerified =
-    paymentStatus === RentalPaymentStatus.CONFIRMED ||
-    paymentStatus === RentalPaymentStatus.AWAITING_CONFIRM;
+    order?.orderSource === OrderSource.ADMIN
+      ? true
+      : paymentStatus === RentalPaymentStatus.CONFIRMED;
   const isPaymentPending =
+    order?.orderSource !== OrderSource.ADMIN &&
     paymentStatus === RentalPaymentStatus.PENDING;
   const canConfirm =
     isPaymentVerified && availabilityCheck.isAvailable;

@@ -4,6 +4,10 @@ import {
   InvoiceStatus,
   InvoiceType,
   UnitCondition,
+  UnitStatus,
+  RentalOrderStatus,
+  ReturnStatus,
+  JournalSourceType,
   DepositPolicyType,
   AccountType,
   BillingProvider,
@@ -309,5 +313,139 @@ describe('Rental Invoice Integration', () => {
     expect(invoice.status).toBe(InvoiceStatus.DRAFT);
     expect(Number(invoice.amount)).toBe(50000);
     expect(invoice.partnerId).toBe(customerId);
+
+    // 6. Duplicate invoice creation must be rejected
+    await expect(
+      rentalService.createInvoiceFromReturn(COMPANY_ID, returnProcess.id)
+    ).rejects.toThrow();
+  });
+
+  it('should process return with on-the-spot payment covering damage and late fees without journal unique constraint conflict', async () => {
+    const spotUnit = await prisma.rentalItemUnit.create({
+      data: {
+        companyId: COMPANY_ID,
+        rentalItemId,
+        unitCode: `UNIT-SPOT-${Date.now()}`,
+        status: UnitStatus.AVAILABLE,
+        condition: UnitCondition.GOOD,
+      },
+    });
+
+    const startDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+    const endDate = new Date(startDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const lateReturnDate = new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+    const order = await rentalService.createOrder(
+      COMPANY_ID,
+      {
+        partnerId: customerId,
+        rentalStartDate: startDate,
+        rentalEndDate: endDate,
+        items: [{ rentalItemId, quantity: 1 }],
+      },
+      ACTOR_ID
+    );
+
+    await rentalService.confirmOrder(
+      COMPANY_ID,
+      {
+        orderId: order.id,
+        paymentMethod: 'CASH',
+        unitAssignments: [{ unitId: spotUnit.id }],
+      },
+      ACTOR_ID
+    );
+
+    await rentalService.releaseOrder(
+      COMPANY_ID,
+      {
+        orderId: order.id,
+        unitAssignments: [
+          {
+            unitId: spotUnit.id,
+            beforePhotos: ['https://example.com/before.jpg'],
+            condition: UnitCondition.GOOD,
+          },
+        ],
+      },
+      ACTOR_ID
+    );
+
+    // Total charges: 150,000 (damage) + 200,000 (late: 1 day overdue after 24h grace) = 350,000
+    // Customer pays partial: 200,000 cash on the spot (covers 150,000 damage + 50,000 late)
+    const returnProcess = await rentalService.processReturn(
+      COMPANY_ID,
+      {
+        orderId: order.id,
+        actualReturnDate: lateReturnDate,
+        units: [
+          {
+            unitId: spotUnit.id,
+            condition: UnitCondition.NEEDS_REPAIR,
+            damageSeverity: 'MAJOR', // 150,000
+            afterPhotos: [],
+          },
+        ],
+        damagePayment: {
+          amount: 200000,
+          paymentMethod: 'CASH',
+        },
+      },
+      ACTOR_ID
+    );
+
+    // Unsettled because 200,000 < 350,000 total charges
+    expect(returnProcess.settlementStatus).toBe(ReturnStatus.DRAFT);
+
+    // N1: Units remain RENTED and order remains ACTIVE while return is unsettled
+    const unitWhileUnsettled = await prisma.rentalItemUnit.findUnique({
+      where: { id: spotUnit.id },
+    });
+    expect(unitWhileUnsettled?.status).toBe(UnitStatus.RENTED);
+
+    const orderWhileUnsettled = await prisma.rentalOrder.findUnique({
+      where: { id: order.id },
+    });
+    expect(orderWhileUnsettled?.status).toBe(RentalOrderStatus.ACTIVE);
+
+    // N3: Verify journals were created for both damage (150k) and late (50k) without unique constraint collision
+    const journals = await prisma.journalEntry.findMany({
+      where: {
+        companyId: COMPANY_ID,
+        sourceType: JournalSourceType.RENTAL_RETURN,
+      },
+    });
+    expect(journals.length).toBe(2);
+
+    // N2: Create Invoice for remaining balance (350,000 - 200,000 paid = 150,000)
+    const invoice = await rentalService.createInvoiceFromReturn(
+      COMPANY_ID,
+      returnProcess.id
+    );
+    expect(invoice).toBeDefined();
+    expect(Number(invoice.amount)).toBe(150000);
+
+    // Duplicate invoice creation rejected
+    await expect(
+      rentalService.createInvoiceFromReturn(COMPANY_ID, returnProcess.id)
+    ).rejects.toThrow();
+
+    // H6: Finalize return settles return, routes unit to MAINTENANCE, completes order
+    const finalized = await rentalService.finalizeReturn(
+      COMPANY_ID,
+      returnProcess.id,
+      ACTOR_ID
+    );
+    expect(finalized.settlementStatus).toBe(ReturnStatus.SETTLED);
+
+    const finalUnit = await prisma.rentalItemUnit.findUnique({
+      where: { id: spotUnit.id },
+    });
+    expect(finalUnit?.status).toBe(UnitStatus.MAINTENANCE);
+
+    const finalOrder = await prisma.rentalOrder.findUnique({
+      where: { id: order.id },
+    });
+    expect(finalOrder?.status).toBe(RentalOrderStatus.COMPLETED);
   });
 });

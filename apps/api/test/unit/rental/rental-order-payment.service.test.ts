@@ -228,7 +228,7 @@ describe('RentalOrderPaymentService', () => {
       ).rejects.toThrow('Order not found');
     });
 
-    it('should throw if status is not AWAITING_CONFIRM', async () => {
+    it('should throw if status is not AWAITING_CONFIRM or PENDING', async () => {
       asMock(prisma.rentalOrder.findUnique).mockResolvedValue({
         ...mockOrder,
         rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
@@ -242,7 +242,58 @@ describe('RentalOrderPaymentService', () => {
           ACTOR_ID
         )
       ).rejects.toThrow(
-        'Only payments with AWAITING_CONFIRM status can be verified'
+        'Only payments with AWAITING_CONFIRM or PENDING status can be verified'
+      );
+    });
+
+    it('should throw 400 when confirming PENDING payment without reference (M4)', async () => {
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue({
+        ...mockOrder,
+        rentalPaymentStatus: RentalPaymentStatus.PENDING,
+        paymentReference: null,
+      });
+
+      await expect(
+        service.verifyPayment(
+          COMPANY_ID,
+          ORDER_ID,
+          'confirm',
+          ACTOR_ID,
+          '' // Empty reference
+        )
+      ).rejects.toThrow(
+        'Payment reference or proof is required to confirm a PENDING payment'
+      );
+    });
+
+    it('should confirm PENDING payment when reference is provided (M4)', async () => {
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue({
+        ...mockOrder,
+        rentalPaymentStatus: RentalPaymentStatus.PENDING,
+        paymentReference: null,
+      });
+      asMock(prisma.rentalOrder.update).mockResolvedValue({
+        ...mockOrder,
+        rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
+        paymentReference: 'BCA-TRF-9988',
+      });
+
+      const result = await service.verifyPayment(
+        COMPANY_ID,
+        ORDER_ID,
+        'confirm',
+        ACTOR_ID,
+        'BCA-TRF-9988'
+      );
+
+      expect(result.rentalPaymentStatus).toBe(RentalPaymentStatus.CONFIRMED);
+      expect(prisma.rentalOrder.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
+            paymentReference: 'BCA-TRF-9988',
+          }),
+        })
       );
     });
   });

@@ -36,6 +36,7 @@ import { RentalActionsCard } from '../components/RentalActionsCard';
 import { RentalFinancialSummary } from '../components/RentalFinancialSummary';
 import { RentalPaymentStatusCard } from '../components/RentalPaymentStatusCard';
 import { RentalExtensionsCard } from '../components/RentalExtensionsCard';
+import { RentalReturnCard } from '../components/RentalReturnCard';
 
 function buildEffectiveEndDateByOrderItem(order: PortableRentalOrder) {
   const effectiveEndByItemId = new Map<string, Date | string>();
@@ -216,6 +217,8 @@ export default function RentalOrderDetail() {
               extensions={order.extensions}
               orderItems={order.items}
             />
+
+            <RentalReturnCard returnRecord={order.return} />
 
             <UnitAssignmentsCard
               assignments={order.unitAssignments ?? []}

@@ -11,6 +11,8 @@ import {
   AuditLogAction,
   EntityType,
   OrderSource,
+  UnitStatus,
+  JournalSourceType,
 } from '@sync-erp/database';
 import { RentalRepository } from './rental.repository';
 import { DocumentNumberService } from '../common/services/document-number.service';
@@ -363,25 +365,51 @@ export class RentalOrderLifecycleService {
 
     // Use transaction for consistency
     const updatedOrder = await prisma.$transaction(async (tx) => {
+      // Atomic conditional status update (H7 idempotency guard)
+      const cancelUpdateResult = await tx.rentalOrder.updateMany({
+        where: {
+          id: orderId,
+          status: {
+            in: [RentalOrderStatus.DRAFT, RentalOrderStatus.CONFIRMED],
+          },
+        },
+        data: {
+          status: RentalOrderStatus.CANCELLED,
+          cancelledAt: new Date(),
+          notes: order.notes
+            ? `${order.notes}\n[Cancelled: ${reason}]`
+            : `[Cancelled: ${reason}]`,
+        },
+      });
+
+      if (cancelUpdateResult.count === 0) {
+        throw new DomainError(
+          'Order is no longer in DRAFT or CONFIRMED status or has already been cancelled',
+          409,
+          DomainErrorCodes.ORDER_INVALID_STATE
+        );
+      }
+
       // Release reserved units if any
-      const assignments = await tx.rentalOrderUnitAssignment.findMany(
-        {
-          where: { rentalOrderId: orderId },
-        }
-      );
+      const assignments = await tx.rentalOrderUnitAssignment.findMany({
+        where: { rentalOrderId: orderId },
+      });
 
       if (assignments.length > 0) {
         await tx.rentalItemUnit.updateMany({
           where: {
             id: { in: assignments.map((a) => a.rentalItemUnitId) },
           },
-          data: { status: 'AVAILABLE' }, // Using literal string or enum if imported
+          data: { status: UnitStatus.AVAILABLE },
         });
       }
 
-      // Handle deposit refund if collected
-      if (order.deposit) {
-        // Assuming DepositStatus.REFUNDED
+      // Post cancellation refund journal (FR-015/FR-020) only if refundPayment is provided
+      const refundAmount =
+        refundPayment?.amount !== undefined ? refundPayment.amount : 0;
+
+      // Handle deposit refund if collected and refund payment was provided
+      if (order.deposit && refundAmount > 0) {
         await tx.rentalDeposit.update({
           where: { id: order.deposit.id },
           data: {
@@ -391,35 +419,32 @@ export class RentalOrderLifecycleService {
         });
       }
 
-      // Post cancellation refund journal (FR-015/FR-020) if DP exists or refundPayment provided
-      const refundAmount =
-        refundPayment?.amount !== undefined
-          ? refundPayment.amount
-          : Number(order.depositAmount || 0);
-
       if (refundAmount > 0) {
-        await this.journalService.postRentalCancellationRefund({
-          companyId,
-          orderId: order.id,
-          orderNumber: order.orderNumber!,
-          refundAmount,
-          paymentAccountId: refundPayment?.paymentAccountId,
-          paymentMethod:
-            refundPayment?.paymentMethod ?? order.paymentMethod ?? 'BANK',
-          customerName: order.partner?.name,
-          tx,
+        const existingRefundJournal = await tx.journalEntry.findFirst({
+          where: {
+            companyId,
+            sourceType: JournalSourceType.PAYMENT,
+            reference: `Rental Refund DP: ${order.orderNumber!}`,
+          },
         });
+
+        if (!existingRefundJournal) {
+          await this.journalService.postRentalCancellationRefund({
+            companyId,
+            orderId: order.id,
+            orderNumber: order.orderNumber!,
+            refundAmount,
+            paymentAccountId: refundPayment?.paymentAccountId,
+            paymentMethod:
+              refundPayment?.paymentMethod ?? order.paymentMethod ?? 'BANK',
+            customerName: order.partner?.name,
+            tx,
+          });
+        }
       }
 
-      const updated = await tx.rentalOrder.update({
+      const updated = await tx.rentalOrder.findUniqueOrThrow({
         where: { id: orderId },
-        data: {
-          status: RentalOrderStatus.CANCELLED,
-          cancelledAt: new Date(),
-          notes: order.notes
-            ? `${order.notes}\n[Cancelled: ${reason}]`
-            : `[Cancelled: ${reason}]`,
-        },
       });
 
       await recordAudit({
@@ -715,8 +740,16 @@ export class RentalOrderLifecycleService {
         input.newEndDate.getTime() + 18 * 60 * 60 * 1000
       );
 
-      const updatedOrder = await tx.rentalOrder.update({
-        where: { id: order.id },
+      const orderUpdateResult = await tx.rentalOrder.updateMany({
+        where: {
+          id: order.id,
+          status: { in: extendableStatuses },
+          ...(shouldUpdateOrderDates && !isItemLevelExtension
+            ? { rentalEndDate: order.rentalEndDate }
+            : order.updatedAt
+              ? { updatedAt: order.updatedAt }
+              : {}),
+        },
         data: {
           rentalEndDate: shouldUpdateOrderDates
             ? input.newEndDate
@@ -725,36 +758,70 @@ export class RentalOrderLifecycleService {
             ? newDueDateTime
             : order.dueDateTime,
           subtotal:
-            input.updateOrderTotal === false
+            !isPaid || input.updateOrderTotal === false
               ? order.subtotal
               : order.subtotal.plus(itemAdditionalAmount),
           totalAmount:
-            input.updateOrderTotal === false
+            !isPaid || input.updateOrderTotal === false
               ? order.totalAmount
               : order.totalAmount.plus(totalAdditionalAmount),
         },
+      });
+
+      if (orderUpdateResult.count === 0) {
+        throw new DomainError(
+          'Order is no longer in an extendable status or has been modified by another request',
+          409,
+          DomainErrorCodes.ORDER_INVALID_STATE
+        );
+      }
+
+      const updatedOrder = await tx.rentalOrder.findUniqueOrThrow({
+        where: { id: order.id },
         include: { items: true, extensions: true },
       });
 
-      // Post extension journal if payment is provided or marked paid
+      // Post extension journal if payment is provided or marked paid (H7 idempotency guard)
       const extPaymentAmount =
         input.payment?.amount ?? totalAdditionalAmount.toNumber();
       if (extPaymentAmount > 0 && isPaid) {
-        await this.journalService.postRentalExtension({
-          companyId,
-          orderId: order.id,
-          orderNumber: order.orderNumber!,
-          extensionAmount: itemAdditionalAmount.toNumber(),
-          extraDeliveryFee: deliveryFee.toNumber(),
-          paymentAccountId: input.payment?.paymentAccountId,
-          paymentMethod: input.payment?.paymentMethod ?? 'BANK',
-          tx,
-          businessDate: input.businessDate
-            ? input.businessDate instanceof Date
-              ? input.businessDate
-              : new Date(input.businessDate)
-            : new Date(),
+        const extensionRef =
+          extensionNumber > 1
+            ? `Rental Extension #${extensionNumber}: ${order.orderNumber!}`
+            : `Rental Extension: ${order.orderNumber!}`;
+        const extensionSourceId = `${order.id}:ext:${extension.id}`;
+
+        const existingExtJournal = await tx.journalEntry.findFirst({
+          where: {
+            companyId,
+            sourceType: JournalSourceType.PAYMENT,
+            OR: [
+              { reference: extensionRef },
+              { reference: `Rental Extension: ${order.orderNumber!} (Ext #${extensionNumber})` },
+              { sourceId: extensionSourceId },
+            ],
+          },
         });
+
+        if (!existingExtJournal) {
+          await this.journalService.postRentalExtension({
+            companyId,
+            orderId: order.id,
+            orderNumber: order.orderNumber!,
+            extensionAmount: itemAdditionalAmount.toNumber(),
+            extraDeliveryFee: deliveryFee.toNumber(),
+            paymentAccountId: input.payment?.paymentAccountId,
+            paymentMethod: input.payment?.paymentMethod ?? 'BANK',
+            reference: extensionRef,
+            sourceId: extensionSourceId,
+            tx,
+            businessDate: input.businessDate
+              ? input.businessDate instanceof Date
+                ? input.businessDate
+                : new Date(input.businessDate)
+              : new Date(),
+          });
+        }
       }
 
       await recordAudit({

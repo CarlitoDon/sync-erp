@@ -709,6 +709,18 @@ export class RentalExternalOrderService {
       return { success: true, status: 'ALREADY_CONFIRMED' };
     }
 
+    // M4: Tighten payment verification so PENDING without reference/proof cannot be confirmed arbitrarily
+    if (
+      order.rentalPaymentStatus === RentalPaymentStatus.PENDING &&
+      !input.transactionId?.trim()
+    ) {
+      throw new DomainError(
+        'Transaction ID or reference is required to confirm a PENDING payment',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
     if (
       order.orderSource === OrderSource.WEBSITE &&
       input.amount === undefined
