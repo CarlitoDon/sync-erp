@@ -23,6 +23,7 @@ import {
   GlobeAltIcon,
   ComputerDesktopIcon,
   CurrencyDollarIcon,
+  ArrowRightIcon,
 } from '@heroicons/react/24/outline';
 import {
   RentalOrderStatus,
@@ -54,6 +55,11 @@ export default function RentalOrdersPage() {
       { enabled: !!currentCompany?.id }
     );
   const orders = ordersData?.items ?? [];
+
+  const { data: tasksSummary } = trpc.rental.tasks.getSummary.useQuery(
+    undefined,
+    { enabled: !!currentCompany?.id }
+  );
 
   // Mutations
   const cancelMutation = trpc.rental.orders.cancel.useMutation({
@@ -211,6 +217,56 @@ export default function RentalOrdersPage() {
           setSelectedOrderId(null);
         }}
       />
+
+      {/* Admin Task Queue Banner */}
+      {tasksSummary && tasksSummary.totalPendingTasks > 0 && (
+        <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200 rounded-lg flex flex-wrap items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-full text-blue-700 shrink-0">
+              <ClipboardDocumentListIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-blue-900 text-sm">
+                Ada {tasksSummary.totalPendingTasks} tugas operasional admin rental perlu tindakan!
+              </p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-blue-700 mt-0.5">
+                {tasksSummary.overdueCount > 0 && (
+                  <span className="font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
+                    🚨 {tasksSummary.overdueCount} Terlambat
+                  </span>
+                )}
+                {tasksSummary.byCategory.confirmationCount > 0 && (
+                  <span>
+                    • {tasksSummary.byCategory.confirmationCount} Perlu Konfirmasi / DP
+                  </span>
+                )}
+                {tasksSummary.byCategory.deliveryCount > 0 && (
+                  <span>
+                    • {tasksSummary.byCategory.deliveryCount} Kirim & Serah Terima
+                  </span>
+                )}
+                {tasksSummary.byCategory.pelunasanCount > 0 && (
+                  <span>
+                    • {tasksSummary.byCategory.pelunasanCount} Tagihan Pelunasan
+                  </span>
+                )}
+                {tasksSummary.byCategory.pickupCount > 0 && (
+                  <span>
+                    • {tasksSummary.byCategory.pickupCount} Jadwal Jemput
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <Link
+            to="/rental/tasks"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
+          >
+            Buka Tugas Admin
+            <ArrowRightIcon className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Payment Verification Alert */}
       {awaitingVerificationCount > 0 && (

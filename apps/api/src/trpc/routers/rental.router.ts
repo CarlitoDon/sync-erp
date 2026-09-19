@@ -20,6 +20,7 @@ import {
   ApiRentalOrderStatusSchema,
   ApiUnitStatusSchema,
   PortableRentalOrder,
+  GetRentalAdminTasksInputSchema,
 } from '@sync-erp/shared';
 import type {
   RentalOrderStatus,
@@ -410,6 +411,29 @@ export const rentalRouter = router({
           input,
           ctx.userId
         );
+      }),
+  }),
+
+  // ==========================================
+  // Admin Task Queue
+  // ==========================================
+  tasks: router({
+    getQueue: protectedProcedure
+      .input(GetRentalAdminTasksInputSchema.optional())
+      .query(async ({ ctx, input }) => {
+        return rentalService.getAdminTaskQueue(ctx.companyId, input);
+      }),
+
+    getSummary: protectedProcedure
+      .input(
+        z
+          .object({
+            referenceDate: z.coerce.date().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ ctx, input }) => {
+        return rentalService.getAdminTaskSummary(ctx.companyId, input);
       }),
   }),
 });

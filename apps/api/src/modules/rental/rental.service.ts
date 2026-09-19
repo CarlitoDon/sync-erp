@@ -28,6 +28,7 @@ import { RentalWebhookService } from './rental-webhook.service';
 import { RentalExternalOrderService } from './rental-external-order.service';
 import { RentalAvailabilityService } from './rental-availability.service';
 import { RentalOrderHistoricalSettlementService } from './rental-order-historical-settlement.service';
+import { RentalAdminTaskService } from './rental-admin-task.service';
 import {
   type CreateRentalItemInput,
   type ConvertStockToUnitInput,
@@ -39,6 +40,9 @@ import {
   type ProcessReturnInput,
   type RentalItemWithRelations,
   type PrismaRentalOrderWithRelations,
+  type GetRentalAdminTasksInput,
+  type RentalAdminTaskQueueResponse,
+  type RentalAdminTaskQueueSummary,
 } from '@sync-erp/shared';
 
 export { Prisma } from '@sync-erp/database';
@@ -51,6 +55,7 @@ export class RentalService {
   public readonly externalOrderService: RentalExternalOrderService;
   private readonly availabilityService: RentalAvailabilityService;
   private readonly historicalSettlementService: RentalOrderHistoricalSettlementService;
+  private readonly adminTaskService: RentalAdminTaskService;
 
   constructor(webhookService?: RentalWebhookService) {
     this.itemService = new RentalItemService();
@@ -65,6 +70,7 @@ export class RentalService {
     this.availabilityService = new RentalAvailabilityService();
     this.historicalSettlementService =
       new RentalOrderHistoricalSettlementService();
+    this.adminTaskService = new RentalAdminTaskService();
   }
 
   // ==========================================
@@ -346,5 +352,28 @@ export class RentalService {
       startDate,
       endDate
     );
+  }
+
+  // ==========================================
+  // Admin Task Queue (delegated to RentalAdminTaskService)
+  // ==========================================
+
+  async getAdminTaskQueue(
+    companyId: string,
+    input?: GetRentalAdminTasksInput
+  ): Promise<RentalAdminTaskQueueResponse> {
+    return this.adminTaskService.getAdminTaskQueue(companyId, input);
+  }
+
+  async getAdminTaskSummary(
+    companyId: string,
+    input?: { referenceDate?: Date }
+  ): Promise<RentalAdminTaskQueueSummary> {
+    const res = await this.adminTaskService.getAdminTaskQueue(companyId, {
+      referenceDate: input?.referenceDate,
+      category: 'ALL',
+      urgency: 'ALL',
+    });
+    return res.summary;
   }
 }
