@@ -1,25 +1,33 @@
+import { z } from 'zod';
 import { DepositPolicyType, prisma } from '@sync-erp/database';
 
-export interface SyncBundleItem {
-  externalId: string;
-  name: string;
-  shortName?: string;
-  description?: string;
-  dailyRate: number;
-  dimensions?: string;
-  capacity?: string;
-  imagePath?: string;
-  includes: string[]; // ["2 bantal", "kasur busa", etc.]
-}
+export const SyncBundleItemSchema = z.object({
+  externalId: z.string().min(1),
+  name: z.string().min(1),
+  shortName: z.string().optional(),
+  description: z.string().optional(),
+  dailyRate: z.number().nonnegative(),
+  dimensions: z.string().optional(),
+  capacity: z.string().optional(),
+  imagePath: z.string().optional(),
+  includes: z.array(z.string()),
+});
 
-export interface SyncFromSantiLivingInput {
-  companyId: string;
-  bundles: SyncBundleItem[];
-}
+export type SyncBundleItem = z.infer<typeof SyncBundleItemSchema>;
+
+export const SyncFromSantiLivingInputSchema = z.object({
+  companyId: z.string().min(1),
+  bundles: z.array(SyncBundleItemSchema),
+});
+
+export type SyncFromSantiLivingInput = z.infer<
+  typeof SyncFromSantiLivingInputSchema
+>;
 
 export async function syncFromSantiLiving(
-  input: SyncFromSantiLivingInput
+  rawInput: SyncFromSantiLivingInput
 ) {
+  const input = SyncFromSantiLivingInputSchema.parse(rawInput);
   const results = [];
 
   for (const bundle of input.bundles) {

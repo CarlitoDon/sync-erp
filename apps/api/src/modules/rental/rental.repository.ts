@@ -1,6 +1,6 @@
 import { Prisma } from '@sync-erp/database';
 import {
-  prisma,
+  getDb,
   RentalItem,
   RentalItemUnit,
   RentalOrder,
@@ -21,7 +21,7 @@ export class RentalRepository {
     data: Prisma.RentalItemCreateInput,
     tx?: Prisma.TransactionClient
   ): Promise<RentalItem> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalItem.create({ data });
   }
 
@@ -30,7 +30,7 @@ export class RentalRepository {
     data: Prisma.RentalItemUpdateInput,
     tx?: Prisma.TransactionClient
   ): Promise<RentalItem> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalItem.update({
       where: { id },
       data,
@@ -41,7 +41,7 @@ export class RentalRepository {
     id: string,
     tx?: Prisma.TransactionClient
   ): Promise<RentalItem | null> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalItem.findUnique({
       where: { id },
       include: { product: true, units: true },
@@ -53,7 +53,7 @@ export class RentalRepository {
     isActive?: boolean,
     tx?: Prisma.TransactionClient
   ): Promise<RentalItem[]> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalItem.findMany({
       where: {
         companyId,
@@ -86,7 +86,7 @@ export class RentalRepository {
     data: Prisma.RentalItemUnitCreateInput,
     tx?: Prisma.TransactionClient
   ): Promise<RentalItemUnit> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalItemUnit.create({ data });
   }
 
@@ -95,7 +95,7 @@ export class RentalRepository {
     data: Prisma.RentalItemUnitUpdateInput,
     tx?: Prisma.TransactionClient
   ): Promise<RentalItemUnit> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalItemUnit.update({
       where: { id },
       data,
@@ -106,7 +106,7 @@ export class RentalRepository {
     id: string,
     tx?: Prisma.TransactionClient
   ): Promise<RentalItemUnit | null> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalItemUnit.findUnique({
       where: { id },
     });
@@ -116,7 +116,7 @@ export class RentalRepository {
     rentalItemId: string,
     tx?: Prisma.TransactionClient
   ): Promise<RentalItemUnit[]> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalItemUnit.findMany({
       where: {
         rentalItemId,
@@ -131,7 +131,7 @@ export class RentalRepository {
     unitCode: string,
     tx?: Prisma.TransactionClient
   ): Promise<RentalItemUnit | null> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalItemUnit.findUnique({
       where: {
         companyId_unitCode: { companyId, unitCode },
@@ -147,7 +147,7 @@ export class RentalRepository {
     data: Prisma.RentalOrderCreateInput,
     tx?: Prisma.TransactionClient
   ): Promise<RentalOrder> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalOrder.create({
       data,
       include: { items: true },
@@ -158,7 +158,7 @@ export class RentalRepository {
     id: string,
     tx?: Prisma.TransactionClient
   ): Promise<PrismaRentalOrderWithRelations | null> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalOrder.findUnique({
       where: { id },
       include: {
@@ -217,7 +217,7 @@ export class RentalRepository {
     data: Prisma.RentalOrderUpdateInput,
     tx?: Prisma.TransactionClient
   ): Promise<RentalOrder> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalOrder.update({
       where: { id },
       data,
@@ -229,7 +229,7 @@ export class RentalRepository {
     companyId: string,
     tx?: Prisma.TransactionClient
   ): Promise<string> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     const year = new Date().getFullYear();
     // Assuming simple counter for MVP, ideally use DocumentSequence service (T-006)
     const count = await db.rentalOrder.count({
@@ -246,7 +246,7 @@ export class RentalRepository {
     data: Prisma.RentalDepositCreateInput,
     tx?: Prisma.TransactionClient
   ): Promise<RentalDeposit> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalDeposit.create({ data });
   }
 
@@ -255,7 +255,7 @@ export class RentalRepository {
     data: Prisma.RentalDepositUpdateInput,
     tx?: Prisma.TransactionClient
   ): Promise<RentalDeposit> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalDeposit.update({
       where: { id },
       data,
@@ -266,7 +266,7 @@ export class RentalRepository {
     data: Prisma.RentalReturnCreateInput,
     tx?: Prisma.TransactionClient
   ): Promise<RentalReturn> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalReturn.create({ data });
   }
 
@@ -278,7 +278,7 @@ export class RentalRepository {
     companyId: string,
     tx?: Prisma.TransactionClient
   ): Promise<RentalPolicy | null> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalPolicy.findFirst({
       where: { companyId, isActive: true },
       orderBy: { effectiveFrom: 'desc' },
@@ -296,7 +296,7 @@ export class RentalRepository {
     },
     tx?: Prisma.TransactionClient
   ): Promise<PrismaRentalOrderWithRelations[]> {
-    const db = tx || prisma;
+    const db = getDb(tx);
     return db.rentalOrder.findMany({
       where: {
         companyId,

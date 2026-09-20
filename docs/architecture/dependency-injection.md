@@ -71,7 +71,7 @@ When `container.resolve(ServiceKeys.INVOICE_SERVICE)` is called:
 
 1.  **Always define dependencies in the constructor.**
 2.  **Always provide a default value** (`= new Dependency()`) for every dependency, unless there is a strong reason not to (e.g., circular dependency or configuration requirement).
-3.  **Register the service** in `apps/api/src/modules/common/di/register.ts` using `container.resolve()` for all its arguments.
+3.  **Register the service** in `apps/api/src/di/register.ts` using `container.resolve()` for all its arguments.
 
 ## Handling Circular Dependencies
 

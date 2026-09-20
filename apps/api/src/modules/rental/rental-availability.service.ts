@@ -1,5 +1,4 @@
-import { prisma } from '@sync-erp/database';
-import { RentalOrderStatus } from '@sync-erp/database';
+import { prisma, RentalOrderStatus, UnitStatus } from '@sync-erp/database';
 
 export class RentalAvailabilityService {
   async getSchedulerTimeline(
@@ -93,12 +92,23 @@ export class RentalAvailabilityService {
       items: items.map((item) => ({
         id: item.id,
         name: item.product?.name || 'Unknown',
-        units: item.units.map((unit) => ({
-          id: unit.id,
-          unitCode: unit.unitCode,
-          status: unit.status,
-          bookings: unitBookings.get(unit.id) || [],
-        })),
+        units: item.units.map((unit) => {
+          const bookings = unitBookings.get(unit.id) || [];
+          const hasActiveBooking = bookings.some(
+            (b) => b.status === RentalOrderStatus.ACTIVE
+          );
+          const computedStatus =
+            unit.status === UnitStatus.AVAILABLE && hasActiveBooking
+              ? UnitStatus.RENTED
+              : unit.status;
+
+          return {
+            id: unit.id,
+            unitCode: unit.unitCode,
+            status: computedStatus,
+            bookings,
+          };
+        }),
       })),
     };
   }

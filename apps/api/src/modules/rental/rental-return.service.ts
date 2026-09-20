@@ -11,13 +11,12 @@ import {
   RentalOrderStatus,
   RentalPaymentStatus,
   UnitStatus,
-  DepositStatus,
   ReturnStatus,
   InvoiceType,
   InvoiceStatus,
   EntityType,
   AuditLogAction,
-  PaymentMethodType,
+  JournalSourceType,
   Prisma,
 } from '@sync-erp/database';
 import { RentalRepository } from './rental.repository';
@@ -27,6 +26,7 @@ import { recordAudit } from '../common/audit/audit-log.service';
 import {
   DomainError,
   DomainErrorCodes,
+  requireOrderNumber,
   type ProcessReturnInput,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
@@ -43,6 +43,10 @@ const RentalPolicySnapshotSchema = z.object({
   lateFeeDailyRate: z.number(),
   cleaningFee: z.number(),
   pickupGracePeriodHours: z.number(),
+});
+
+const ReturnNotesMetadataSchema = z.object({
+  damagePaid: z.number().optional(),
 });
 
 type RentalPolicySnapshot = z.infer<
@@ -206,7 +210,12 @@ export class RentalReturnService {
               conditionType: 'RETURN',
               beforePhotos: [],
               afterPhotos: unit.afterPhotos ?? [],
-              condition: unit.condition ?? 'GOOD',
+              condition:
+                unit.conditionStatus === 'DIRTY'
+                  ? 'FAIR'
+                  : unit.conditionStatus === 'DAMAGED'
+                    ? 'NEEDS_REPAIR'
+                    : unit.condition ?? 'GOOD',
               damageSeverity: unit.damageSeverity || null,
               notes:
                 unit.damageNotes ??
@@ -219,56 +228,148 @@ export class RentalReturnService {
         )
       );
 
-      // Route clean units to AVAILABLE, soiled/damaged units to MAINTENANCE
-      const availableUnitIds: string[] = [];
-      const maintenanceUnitIds: string[] = [];
+      // Determine damage / return payment made on the spot
+      const damagePaidAmount = input.damagePayment?.amount ?? 0;
+      const isSettled =
+        settlement.totalCharges.isZero() ||
+        (damagePaidAmount > 0 &&
+          new Decimal(damagePaidAmount).gte(settlement.totalCharges));
 
-      for (const u of rawUnits) {
-        const isDamagedOrDirty =
-          u.conditionStatus === 'DIRTY' ||
-          u.conditionStatus === 'DAMAGED' ||
-          Boolean(u.damageSeverity) ||
-          u.condition === 'NEEDS_REPAIR' ||
-          u.condition === 'FAIR';
+      // On-the-spot fee journal posting (damage fee & late fee) (N3)
+      if (input.damagePayment && input.damagePayment.amount > 0) {
+        const totalPaid = new Decimal(input.damagePayment.amount);
+        const damageAmount = damageCharges.gt(0)
+          ? Decimal.min(totalPaid, damageCharges)
+          : new Decimal(0);
+        const remainingPaid = totalPaid.minus(damageAmount);
+        const lateAmount = lateFeeCalc.grandTotal.gt(0)
+          ? Decimal.min(remainingPaid, lateFeeCalc.grandTotal)
+          : new Decimal(0);
 
-        if (isDamagedOrDirty) {
-          maintenanceUnitIds.push(u.unitId);
-        } else {
-          availableUnitIds.push(u.unitId);
+        const journalDate =
+          input.actualReturnDate > new Date()
+            ? new Date()
+            : input.actualReturnDate;
+
+        const orderNumber = requireOrderNumber(order, 'Rental Return Fee');
+
+        if (damageAmount.gt(0)) {
+          await this.journalService.postRentalDamageFee({
+            companyId,
+            orderId: order.id,
+            orderNumber,
+            damageFeeAmount: damageAmount.toNumber(),
+            paymentAccountId: input.damagePayment.paymentAccountId,
+            paymentMethod: input.damagePayment.paymentMethod,
+            customerName: order.partner?.name,
+            tx,
+            businessDate: journalDate,
+          });
+        }
+
+        if (lateAmount.gt(0)) {
+          await this.journalService.postRentalLateFee({
+            companyId,
+            orderId: order.id,
+            orderNumber,
+            lateFeeAmount: lateAmount.toNumber(),
+            paymentAccountId: input.damagePayment.paymentAccountId,
+            paymentMethod: input.damagePayment.paymentMethod,
+            customerName: order.partner?.name,
+            tx,
+            businessDate: journalDate,
+          });
         }
       }
 
-      if (availableUnitIds.length > 0) {
-        await tx.rentalItemUnit.updateMany({
-          where: { id: { in: availableUnitIds } },
-          data: { status: UnitStatus.AVAILABLE },
-        });
-      }
+      // Route units: ONLY transition out of RENTED when settled (N1)!
+      // When unsettled (isSettled === false), keep units RENTED to preserve the invariant that active orders hold their units.
+      if (isSettled) {
+        const availableUnitIds: string[] = [];
+        const maintenanceUnitIds: string[] = [];
 
-      if (maintenanceUnitIds.length > 0) {
-        await tx.rentalItemUnit.updateMany({
-          where: { id: { in: maintenanceUnitIds } },
-          data: { status: UnitStatus.MAINTENANCE },
-        });
-      }
+        for (const u of rawUnits) {
+          const isDamagedOrDirty =
+            u.conditionStatus === 'DIRTY' ||
+            u.conditionStatus === 'DAMAGED' ||
+            Boolean(u.damageSeverity) ||
+            u.condition === 'NEEDS_REPAIR' ||
+            u.condition === 'FAIR';
 
-      // On-the-spot damage/cleaning fee journal posting
-      if (input.damagePayment && input.damagePayment.amount > 0) {
-        await this.journalService.postRentalDamageFee({
-          companyId,
-          orderId: order.id,
-          orderNumber: order.orderNumber!,
-          damageFeeAmount: input.damagePayment.amount,
-          paymentAccountId: input.damagePayment.paymentAccountId,
-          paymentMethod: input.damagePayment.paymentMethod,
-          customerName: order.partner?.name,
-          tx,
-          businessDate: input.actualReturnDate,
-        });
+          if (isDamagedOrDirty) {
+            maintenanceUnitIds.push(u.unitId);
+          } else {
+            availableUnitIds.push(u.unitId);
+          }
+        }
+
+        if (availableUnitIds.length > 0) {
+          // Protect units that are already assigned to another ACTIVE order from being set to AVAILABLE
+          const activeAssignments = await tx.rentalOrderUnitAssignment.findMany({
+            where: {
+              rentalItemUnitId: { in: availableUnitIds },
+              rentalOrderId: { not: order.id },
+              rentalOrder: { status: RentalOrderStatus.ACTIVE },
+            },
+            select: { rentalItemUnitId: true },
+          });
+          const activeUnitIds = new Set(
+            activeAssignments.map((a) => a.rentalItemUnitId)
+          );
+          const trulyAvailableUnitIds = availableUnitIds.filter(
+            (id) => !activeUnitIds.has(id)
+          );
+
+          if (trulyAvailableUnitIds.length > 0) {
+            await tx.rentalItemUnit.updateMany({
+              where: { id: { in: trulyAvailableUnitIds } },
+              data: { status: UnitStatus.AVAILABLE },
+            });
+          }
+
+          if (activeUnitIds.size > 0) {
+            await tx.rentalItemUnit.updateMany({
+              where: { id: { in: Array.from(activeUnitIds) } },
+              data: { status: UnitStatus.RENTED },
+            });
+          }
+        }
+
+        if (maintenanceUnitIds.length > 0) {
+          // Protect units that are active in another order from being set to MAINTENANCE (M7)
+          const activeMaintenanceAssignments =
+            await tx.rentalOrderUnitAssignment.findMany({
+              where: {
+                rentalItemUnitId: { in: maintenanceUnitIds },
+                rentalOrderId: { not: order.id },
+                rentalOrder: { status: RentalOrderStatus.ACTIVE },
+              },
+              select: { rentalItemUnitId: true },
+            });
+          const activeMaintenanceUnitIds = new Set(
+            activeMaintenanceAssignments.map((a) => a.rentalItemUnitId)
+          );
+          const trulyMaintenanceUnitIds = maintenanceUnitIds.filter(
+            (id) => !activeMaintenanceUnitIds.has(id)
+          );
+
+          if (trulyMaintenanceUnitIds.length > 0) {
+            await tx.rentalItemUnit.updateMany({
+              where: { id: { in: trulyMaintenanceUnitIds } },
+              data: { status: UnitStatus.MAINTENANCE },
+            });
+          }
+
+          if (activeMaintenanceUnitIds.size > 0) {
+            await tx.rentalItemUnit.updateMany({
+              where: { id: { in: Array.from(activeMaintenanceUnitIds) } },
+              data: { status: UnitStatus.RENTED },
+            });
+          }
+        }
       }
 
       // Create return record
-      const isSettled = Boolean(input.damagePayment) || damageCharges.isZero();
       const rentalReturn = await tx.rentalReturn.create({
         data: {
           rentalOrderId: order.id,
@@ -285,19 +386,25 @@ export class RentalReturnService {
           settlementStatus: isSettled ? ReturnStatus.SETTLED : ReturnStatus.DRAFT,
           settledAt: isSettled ? new Date() : null,
           processedBy: userId,
+          notes:
+            damagePaidAmount > 0
+              ? JSON.stringify({ damagePaid: damagePaidAmount })
+              : null,
         },
       });
 
-      // Update order status
-      await tx.rentalOrder.update({
-        where: { id: order.id },
-        data: {
-          status: RentalOrderStatus.COMPLETED,
-          rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
-          paymentConfirmedAt: new Date(),
-          completedAt: new Date(),
-        },
-      });
+      // Update order status if settled
+      if (isSettled) {
+        await tx.rentalOrder.update({
+          where: { id: order.id },
+          data: {
+            status: RentalOrderStatus.COMPLETED,
+            rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
+            paymentConfirmedAt: new Date(),
+            completedAt: new Date(),
+          },
+        });
+      }
 
       await recordAudit({
         companyId,
@@ -327,7 +434,7 @@ export class RentalReturnService {
         where: { id: returnId },
         include: {
           rentalOrder: {
-            include: { deposit: true, unitAssignments: true },
+            include: { partner: true, unitAssignments: true },
           },
         },
       });
@@ -342,49 +449,123 @@ export class RentalReturnService {
 
       Policy.validateSettlement(returnRecord);
 
-      // Update deposit status
-      if (returnRecord.rentalOrder.deposit) {
-        const depositStatus =
-          returnRecord.depositRefund.gt(0) &&
-          returnRecord.depositDeduction.gt(0)
-            ? DepositStatus.PARTIAL_REFUND
-            : returnRecord.depositRefund.isZero()
-              ? DepositStatus.FORFEITED
-              : DepositStatus.REFUNDED;
+      // Route units according to condition logs (Clean -> AVAILABLE, Soiled/Damaged -> MAINTENANCE) (H6/FR-012)
+      // Never set units to CLEANING
+      const conditionLogs = await tx.itemConditionLog.findMany({
+        where: {
+          rentalOrderId: returnRecord.rentalOrderId,
+          conditionType: 'RETURN',
+        },
+        orderBy: { recordedAt: 'desc' },
+      });
+      const logsByUnitId = new Map(
+        conditionLogs.map((l) => [l.rentalItemUnitId, l])
+      );
 
-        await tx.rentalDeposit.update({
-          where: { id: returnRecord.rentalOrder.deposit.id },
-          data: {
-            status: depositStatus,
-            refundedAt:
-              depositStatus !== DepositStatus.FORFEITED
-                ? new Date()
-                : null,
-          },
-        });
-      }
-
-      // Set units to CLEANING
-      const unitIds = returnRecord.rentalOrder.unitAssignments.map(
+      const assignedUnitIds = returnRecord.rentalOrder.unitAssignments.map(
         (a) => a.rentalItemUnitId
       );
-      await tx.rentalItemUnit.updateMany({
-        where: { id: { in: unitIds } },
-        data: { status: UnitStatus.CLEANING },
-      });
 
-      // Finalize return
-      const finalized = await tx.rentalReturn.update({
-        where: { id: returnId },
+      const availableUnitIds: string[] = [];
+      const maintenanceUnitIds: string[] = [];
+
+      for (const unitId of assignedUnitIds) {
+        const log = logsByUnitId.get(unitId);
+        const isDamagedOrDirty =
+          log &&
+          (Boolean(log.damageSeverity) ||
+            log.condition === 'NEEDS_REPAIR' ||
+            log.condition === 'FAIR');
+
+        if (isDamagedOrDirty) {
+          maintenanceUnitIds.push(unitId);
+        } else {
+          availableUnitIds.push(unitId);
+        }
+      }
+
+      if (availableUnitIds.length > 0) {
+        // Protect units that are already assigned to another ACTIVE order from being set to AVAILABLE
+        const activeAssignments = await tx.rentalOrderUnitAssignment.findMany({
+          where: {
+            rentalItemUnitId: { in: availableUnitIds },
+            rentalOrderId: { not: returnRecord.rentalOrderId },
+            rentalOrder: { status: RentalOrderStatus.ACTIVE },
+          },
+          select: { rentalItemUnitId: true },
+        });
+        const activeUnitIds = new Set(
+          activeAssignments.map((a) => a.rentalItemUnitId)
+        );
+        const trulyAvailableUnitIds = availableUnitIds.filter(
+          (id) => !activeUnitIds.has(id)
+        );
+
+        if (trulyAvailableUnitIds.length > 0) {
+          await tx.rentalItemUnit.updateMany({
+            where: { id: { in: trulyAvailableUnitIds } },
+            data: { status: UnitStatus.AVAILABLE },
+          });
+        }
+      }
+
+      if (maintenanceUnitIds.length > 0) {
+        // Protect units that are active in another order from being set to MAINTENANCE (M7)
+        const activeMaintenanceAssignments =
+          await tx.rentalOrderUnitAssignment.findMany({
+            where: {
+              rentalItemUnitId: { in: maintenanceUnitIds },
+              rentalOrderId: { not: returnRecord.rentalOrderId },
+              rentalOrder: { status: RentalOrderStatus.ACTIVE },
+            },
+            select: { rentalItemUnitId: true },
+          });
+        const activeMaintenanceUnitIds = new Set(
+          activeMaintenanceAssignments.map((a) => a.rentalItemUnitId)
+        );
+        const trulyMaintenanceUnitIds = maintenanceUnitIds.filter(
+          (id) => !activeMaintenanceUnitIds.has(id)
+        );
+
+        if (trulyMaintenanceUnitIds.length > 0) {
+          await tx.rentalItemUnit.updateMany({
+            where: { id: { in: trulyMaintenanceUnitIds } },
+            data: { status: UnitStatus.MAINTENANCE },
+          });
+        }
+      }
+
+      // Finalize return atomically (H7 idempotency guard)
+      const finalizeResult = await tx.rentalReturn.updateMany({
+        where: {
+          id: returnId,
+          settlementStatus: ReturnStatus.DRAFT,
+        },
         data: {
           settlementStatus: ReturnStatus.SETTLED,
           settledAt: new Date(),
+          settledBy: userId,
         },
       });
 
-      // Complete order
-      await tx.rentalOrder.update({
-        where: { id: returnRecord.rentalOrderId },
+      if (finalizeResult.count === 0) {
+        throw new DomainError(
+          'Return is no longer in DRAFT status or has already been finalized',
+          409,
+          DomainErrorCodes.ORDER_INVALID_STATE
+        );
+      }
+
+      const finalized = await tx.rentalReturn.findUniqueOrThrow({
+        where: { id: returnId },
+      });
+
+      // Complete order atomically
+      await tx.rentalOrder.updateMany({
+        where: {
+          id: returnRecord.rentalOrderId,
+          status: RentalOrderStatus.ACTIVE,
+        },
         data: {
           status: RentalOrderStatus.COMPLETED,
           rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
@@ -393,38 +574,12 @@ export class RentalReturnService {
         },
       });
 
-      // Post return journal
-      if (returnRecord.rentalOrder.deposit) {
-        const deposit = returnRecord.rentalOrder.deposit;
-        const rentalRevenue = Number(returnRecord.totalCharges);
-
-        await this.journalService.postRentalReturn(
-          companyId,
-          returnId,
-          returnRecord.rentalOrder.orderNumber!,
-          Number(deposit.amount),
-          rentalRevenue,
-          Number(returnRecord.depositRefund),
-          deposit.paymentMethod || 'CASH',
-          tx
-        );
-
-        // Create refund payment record
-        if (returnRecord.depositRefund.gt(0)) {
-          await tx.payment.create({
-            data: {
-              companyId,
-              amount: returnRecord.depositRefund.negated(),
-              method:
-                (deposit.paymentMethod as PaymentMethodType) ||
-                PaymentMethodType.CASH,
-              paymentType: 'DEPOSIT_REFUND',
-              reference: `Refund: ${returnRecord.rentalOrder.orderNumber}`,
-              date: new Date(),
-            },
-          });
-        }
-      }
+      // Spec 045 Down Payment model (H6):
+      // - Do NOT debit account 2400 (liability was 2200 and already recognized upon release)
+      // - Do NOT refund already recognized rental revenue (4200)
+      // - Return charges are either settled on the spot via damagePayment in processReturn,
+      //   or billed via createInvoiceFromReturn. finalizeReturn completes the return settlement
+      //   and releases the units without creating phantom cash receipts or duplicate journals.
 
       await recordAudit({
         companyId,
@@ -454,7 +609,73 @@ export class RentalReturnService {
         );
       }
 
-      if (returnRecord.additionalChargesDue.lte(0)) {
+      // Guard against duplicate active invoices for the same rental return
+      const existingInvoice = await tx.invoice.findFirst({
+        where: {
+          companyId,
+          type: InvoiceType.RENTAL,
+          status: { not: InvoiceStatus.VOID },
+          notes: {
+            contains: `Ref: ${returnRecord.rentalOrder.orderNumber}`,
+          },
+        },
+      });
+
+      if (existingInvoice) {
+        throw new DomainError(
+          'Invoice already exists for this rental return',
+          409,
+          DomainErrorCodes.ORDER_INVALID_STATE
+        );
+      }
+
+      // Determine damage / return fee already paid on the spot (N2)
+      let damagePaid = new Decimal(0);
+      if (returnRecord.notes) {
+        try {
+          const parsed: unknown = JSON.parse(returnRecord.notes);
+          const validated = ReturnNotesMetadataSchema.safeParse(parsed);
+          if (
+            validated.success &&
+            typeof validated.data.damagePaid === 'number'
+          ) {
+            damagePaid = new Decimal(validated.data.damagePaid);
+          }
+        } catch {
+          // not json
+        }
+      }
+      if (damagePaid.isZero()) {
+        const returnJournals = await tx.journalEntry.findMany({
+          where: {
+            companyId,
+            sourceType: JournalSourceType.RENTAL_RETURN,
+            sourceId: {
+              in: [
+                returnRecord.rentalOrderId,
+                `${returnRecord.rentalOrderId}:late`,
+                `${returnRecord.rentalOrderId}:damage`,
+              ],
+            },
+          },
+          include: { lines: true },
+        });
+        for (const entry of returnJournals) {
+          for (const line of entry.lines) {
+            if (line.credit && new Decimal(line.credit).gt(0)) {
+              damagePaid = damagePaid.plus(line.credit);
+            }
+          }
+        }
+      }
+
+      const baseDue = returnRecord.additionalChargesDue.gt(0)
+        ? returnRecord.additionalChargesDue
+        : returnRecord.totalCharges;
+
+      const invoiceAmount = Decimal.max(0, baseDue.minus(damagePaid));
+
+      if (invoiceAmount.lte(0)) {
         throw new DomainError(
           'No additional charges due for this return',
           400,
@@ -470,10 +691,10 @@ export class RentalReturnService {
           type: InvoiceType.RENTAL,
           status: InvoiceStatus.DRAFT,
           dueDate: new Date(),
-          amount: returnRecord.additionalChargesDue,
-          subtotal: returnRecord.additionalChargesDue,
+          amount: invoiceAmount,
+          subtotal: invoiceAmount,
           taxAmount: 0,
-          balance: returnRecord.additionalChargesDue,
+          balance: invoiceAmount,
           notes: `Auto-generated invoice for rental overage charges. Ref: ${returnRecord.rentalOrder.orderNumber}`,
           items: {
             create: [
@@ -481,8 +702,8 @@ export class RentalReturnService {
                 description:
                   'Additional Rental Charges (Late/Damage/Cleaning)',
                 quantity: 1,
-                price: returnRecord.additionalChargesDue,
-                amount: returnRecord.additionalChargesDue,
+                price: invoiceAmount,
+                amount: invoiceAmount,
               },
             ],
           },

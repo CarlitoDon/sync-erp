@@ -14,27 +14,19 @@ import {
 } from '@sync-erp/database';
 import { InventoryRepository } from './inventory.repository';
 import { JournalService } from '../accounting/services/journal.service';
+import { ProductService } from '../product/product.service';
 import { DomainError } from '@sync-erp/shared';
 import { recordAudit } from '../common/audit/audit-log.service';
-import type { PurchaseOrderService as POServiceType } from '../procurement/purchase-order.service';
+import { OrderStatusSyncPort } from './ports/order-status-sync.port';
+import { DefaultGRNOrderStatusSync } from './ports/default-order-status-sync';
 
 export class InventoryGRNService {
-  private _purchaseOrderService: POServiceType | null = null;
-
   constructor(
     private readonly repository: InventoryRepository,
-    private readonly journalService: JournalService
+    private readonly journalService: JournalService,
+    private readonly productService: ProductService = new ProductService(),
+    private readonly orderStatusSync: OrderStatusSyncPort = new DefaultGRNOrderStatusSync()
   ) {}
-
-  // Lazy load to break circular dependency
-  private async getPurchaseOrderService(): Promise<POServiceType> {
-    if (!this._purchaseOrderService) {
-      const { PurchaseOrderService } =
-        await import('../procurement/purchase-order.service');
-      this._purchaseOrderService = new PurchaseOrderService();
-    }
-    return this._purchaseOrderService;
-  }
 
   async createGRN(
     companyId: string,
@@ -231,8 +223,7 @@ export class InventoryGRNService {
       }
 
       // Recalculate order status
-      const poService = await this.getPurchaseOrderService();
-      await poService.recalculateStatus(
+      await this.orderStatusSync.recalculateOrderStatus(
         fulfillment.orderId,
         companyId,
         t
@@ -326,15 +317,10 @@ export class InventoryGRNService {
       // I should replicate that logic to be safe.
       // Wait, I need `productService`.
 
-      const { ProductService } =
-        await import('../product/product.service');
-      const productService = new ProductService(); // Or inject it?
-      // I will inject it for consistency.
-
       for (const item of fulfillment.items) {
         const qty = Number(item.quantity);
         // Reverse IN (so decrement stock)
-        await productService.updateStock(item.productId, -qty, t);
+        await this.productService.updateStock(item.productId, -qty, t);
       }
 
       // Reversal journal
@@ -351,8 +337,7 @@ export class InventoryGRNService {
       const voided = await this.repository.voidFulfillment(grnId, t);
 
       // Recalculate order status
-      const poService = await this.getPurchaseOrderService();
-      await poService.recalculateStatus(
+      await this.orderStatusSync.recalculateOrderStatus(
         fulfillment.orderId,
         companyId,
         t

@@ -39,6 +39,20 @@ describe('RentalOrderLifecycleService', () => {
     asMock(prisma.rentalBundle.findMany).mockResolvedValue([]);
     asMock(prisma.rentalOrderUnitAssignment.findMany).mockResolvedValue([]);
     asMock(prisma.auditLog.create).mockResolvedValue({});
+    asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 1 });
+    asMock(prisma.rentalOrder.findUniqueOrThrow).mockImplementation(
+      async ({ where }: { where: { id: string } }) => {
+        const order = await mockRentalRepository.findOrderById(where.id);
+        return (
+          order || {
+            id: where.id,
+            status: RentalOrderStatus.CANCELLED,
+            items: [],
+            extensions: [],
+          }
+        );
+      }
+    );
   });
 
   describe('createOrder', () => {
@@ -239,7 +253,8 @@ describe('RentalOrderLifecycleService', () => {
         cb(prisma)
       );
       asMock(prisma.rentalOrderUnitAssignment.findMany).mockResolvedValue([]);
-      asMock(prisma.rentalOrder.update).mockResolvedValue({
+      asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 1 });
+      asMock(prisma.rentalOrder.findUniqueOrThrow).mockResolvedValue({
         ...order,
         status: RentalOrderStatus.CANCELLED,
       });
@@ -252,9 +267,14 @@ describe('RentalOrderLifecycleService', () => {
       );
 
       // Verify transaction call or specific update
-      expect(prisma.rentalOrder.update).toHaveBeenCalledWith(
+      expect(prisma.rentalOrder.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'order-1' },
+          where: expect.objectContaining({
+            id: 'order-1',
+            status: {
+              in: [RentalOrderStatus.DRAFT, RentalOrderStatus.CONFIRMED],
+            },
+          }),
           data: expect.objectContaining({
             status: RentalOrderStatus.CANCELLED,
           }),
@@ -277,7 +297,8 @@ describe('RentalOrderLifecycleService', () => {
         cb(prisma)
       );
       asMock(prisma.rentalOrderUnitAssignment.findMany).mockResolvedValue([]);
-      asMock(prisma.rentalOrder.update).mockResolvedValue({
+      asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 1 });
+      asMock(prisma.rentalOrder.findUniqueOrThrow).mockResolvedValue({
         ...order,
         status: RentalOrderStatus.CANCELLED,
       });
@@ -308,6 +329,30 @@ describe('RentalOrderLifecycleService', () => {
         service.cancelOrder(
           'company-1',
           'order-3',
+          'reason',
+          'user-1'
+        )
+      ).rejects.toThrow(DomainError);
+    });
+
+    it('should throw 409 conflict if concurrent cancellation occurs (H7)', async () => {
+      const order = {
+        id: 'order-concurrent-cancel',
+        status: RentalOrderStatus.DRAFT,
+        companyId: 'company-1',
+        items: [],
+        deposit: null,
+      };
+      mockRentalRepository.findOrderById.mockResolvedValue(order);
+      asMock(prisma.$transaction).mockImplementation((cb: (p: typeof import("@sync-erp/database").prisma) => void) =>
+        cb(prisma)
+      );
+      asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.cancelOrder(
+          'company-1',
+          'order-concurrent-cancel',
           'reason',
           'user-1'
         )
@@ -351,11 +396,13 @@ describe('RentalOrderLifecycleService', () => {
       asMock(prisma.rentalOrderExtension.create).mockResolvedValue({
         id: 'ext-1',
       });
-      asMock(prisma.rentalOrder.update).mockResolvedValue({
+      asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 1 });
+      asMock(prisma.rentalOrder.findUniqueOrThrow).mockResolvedValue({
         ...order,
         rentalEndDate: newEnd,
         subtotal: new Decimal(877000),
         totalAmount: new Decimal(877000),
+        extensions: [{ id: 'ext-1' }],
       });
       mockRentalRepository.findOrderById.mockResolvedValue({
         ...order,
@@ -401,7 +448,7 @@ describe('RentalOrderLifecycleService', () => {
         data: { additionalAmount: Decimal };
       };
       const orderUpdateArg = asMock(
-        prisma.rentalOrder.update
+        prisma.rentalOrder.updateMany
       ).mock.calls[0]?.[0] as {
         data: { subtotal: Decimal; totalAmount: Decimal };
       };
@@ -475,11 +522,13 @@ describe('RentalOrderLifecycleService', () => {
       asMock(prisma.rentalOrderExtension.create).mockResolvedValue({
         id: 'ext-3',
       });
-      asMock(prisma.rentalOrder.update).mockResolvedValue({
+      asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 1 });
+      asMock(prisma.rentalOrder.findUniqueOrThrow).mockResolvedValue({
         ...order,
         rentalEndDate: new Date('2026-03-25T00:00:00.000Z'),
         subtotal: new Decimal(1286000),
         totalAmount: new Decimal(1286000),
+        extensions: [{ id: 'ext-3' }],
       });
       mockRentalRepository.findOrderById.mockResolvedValue({
         ...order,
@@ -565,10 +614,12 @@ describe('RentalOrderLifecycleService', () => {
       asMock(prisma.rentalOrderExtension.create).mockResolvedValue({
         id: 'ext-4',
       });
-      asMock(prisma.rentalOrder.update).mockResolvedValue({
+      asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 1 });
+      asMock(prisma.rentalOrder.findUniqueOrThrow).mockResolvedValue({
         ...order,
         subtotal: new Decimal(545000),
         totalAmount: new Decimal(568000),
+        extensions: [{ id: 'ext-4', items: [{ id: 'ext-item-1' }] }],
       });
       mockRentalRepository.findOrderById.mockResolvedValue({
         ...order,
@@ -618,7 +669,7 @@ describe('RentalOrderLifecycleService', () => {
         };
       };
       const orderUpdateArg = asMock(
-        prisma.rentalOrder.update
+        prisma.rentalOrder.updateMany
       ).mock.calls[0]?.[0] as {
         data: { rentalEndDate: Date; subtotal: Decimal; totalAmount: Decimal };
       };
@@ -647,6 +698,130 @@ describe('RentalOrderLifecycleService', () => {
       expect(orderUpdateArg.data.rentalEndDate).toEqual(currentEnd);
       expect(orderUpdateArg.data.subtotal.toString()).toBe('545000');
       expect(orderUpdateArg.data.totalAmount.toString()).toBe('568000');
+    });
+
+    it('should NOT increment order subtotal/totalAmount when extension is unpaid (M2)', async () => {
+      const currentEnd = new Date('2026-03-25T00:00:00.000Z');
+      const newEnd = new Date('2026-03-26T00:00:00.000Z');
+      const order = {
+        id: 'order-extend-unpaid',
+        orderNumber: 'RNT-202603-00099',
+        companyId: 'company-1',
+        status: RentalOrderStatus.ACTIVE,
+        rentalEndDate: currentEnd,
+        subtotal: new Decimal(500000),
+        totalAmount: new Decimal(500000),
+        items: [],
+        extensions: [],
+      };
+
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue(order);
+      asMock(prisma.rentalOrderExtension.create).mockResolvedValue({ id: 'ext-unpaid' });
+      asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 1 });
+      asMock(prisma.rentalOrder.findUniqueOrThrow).mockResolvedValue({
+        ...order,
+        extensions: [{ id: 'ext-unpaid' }],
+      });
+      mockRentalRepository.findOrderById.mockResolvedValue({
+        ...order,
+        extensions: [{ id: 'ext-unpaid' }],
+      });
+
+      await service.extendOrder(
+        'company-1',
+        {
+          orderId: 'order-extend-unpaid',
+          newEndDate: newEnd,
+          additionalAmount: 50000,
+          reason: 'Unpaid extension',
+          isPaid: false,
+          allowHistorical: true,
+        },
+        'user-1'
+      );
+
+      const orderUpdateArg = asMock(
+        prisma.rentalOrder.updateMany
+      ).mock.calls[0]?.[0] as {
+        data: { subtotal: Decimal; totalAmount: Decimal };
+      };
+
+      expect(orderUpdateArg.data.subtotal.toString()).toBe('500000');
+      expect(orderUpdateArg.data.totalAmount.toString()).toBe('500000');
+    });
+
+    it('should throw 409 conflict if concurrent modification causes extendOrder count 0', async () => {
+      const order = {
+        id: 'order-extend-concurrent',
+        orderNumber: 'RNT-202603-00099',
+        companyId: 'company-1',
+        status: RentalOrderStatus.ACTIVE,
+        rentalEndDate: new Date('2026-03-25T00:00:00.000Z'),
+        subtotal: new Decimal(500000),
+        totalAmount: new Decimal(500000),
+        items: [],
+        extensions: [],
+      };
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue(order);
+      asMock(prisma.rentalOrderExtension.create).mockResolvedValue({ id: 'ext-1' });
+      asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.extendOrder(
+          'company-1',
+          {
+            orderId: 'order-extend-concurrent',
+            newEndDate: new Date('2026-03-26T00:00:00.000Z'),
+            additionalAmount: 50000,
+            allowHistorical: true,
+          },
+          'user-1'
+        )
+      ).rejects.toThrow(DomainError);
+    });
+
+    it('should skip postRentalExtension if extension journal already exists (H7 idempotency guard)', async () => {
+      const currentEnd = new Date('2026-03-25T00:00:00.000Z');
+      const newEnd = new Date('2026-03-26T00:00:00.000Z');
+      const order = {
+        id: 'order-extend-idempotent',
+        orderNumber: 'RNT-202603-00099',
+        companyId: 'company-1',
+        status: RentalOrderStatus.ACTIVE,
+        rentalEndDate: currentEnd,
+        subtotal: new Decimal(500000),
+        totalAmount: new Decimal(500000),
+        items: [],
+        extensions: [],
+      };
+
+      asMock(prisma.rentalOrder.findUnique).mockResolvedValue(order);
+      asMock(prisma.rentalOrderExtension.create).mockResolvedValue({ id: 'ext-idem-1' });
+      asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 1 });
+      asMock(prisma.rentalOrder.findUniqueOrThrow).mockResolvedValue({
+        ...order,
+        extensions: [{ id: 'ext-idem-1' }],
+      });
+      mockRentalRepository.findOrderById.mockResolvedValue({
+        ...order,
+        extensions: [{ id: 'ext-idem-1' }],
+      });
+      // Simulate existing journal found
+      asMock(prisma.journalEntry.findFirst).mockResolvedValue({ id: 'journal-ext-existing' });
+
+      await service.extendOrder(
+        'company-1',
+        {
+          orderId: 'order-extend-idempotent',
+          newEndDate: newEnd,
+          additionalAmount: 50000,
+          isPaid: true,
+          allowHistorical: true,
+        },
+        'user-1'
+      );
+
+      expect(mockJournalService.postRentalExtension).not.toHaveBeenCalled();
     });
   });
 });

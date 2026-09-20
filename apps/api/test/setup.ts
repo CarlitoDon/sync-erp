@@ -34,6 +34,7 @@ vi.mock('@sync-erp/database', async (importOriginal) => {
     const Enums = await import('./unit/mocks/enums');
     return {
       prisma: mp,
+      getDb: (tx?: unknown) => (tx ?? mp),
       ...Enums,
       Prisma: {
         TransactionIsolationLevel: { Serializable: 'Serializable' },

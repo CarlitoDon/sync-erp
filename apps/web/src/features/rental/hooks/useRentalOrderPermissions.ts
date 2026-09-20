@@ -72,7 +72,9 @@ export function useRentalOrderPermissions(
   const canReturn = isActive;
   const canCancel = isDraft;
   const canVerifyPayment =
-    isWebsiteOrder && isAwaitingPaymentVerification;
+    isWebsiteOrder &&
+    (isAwaitingPaymentVerification ||
+      order.rentalPaymentStatus === RentalPaymentStatus.PENDING);
   // T031/T034: extension (full/partial) & overdue daily conversion
   const canExtend = isConfirmed || isActive;
   const canConvertOverdue = isActive;

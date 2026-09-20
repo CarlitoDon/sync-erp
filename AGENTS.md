@@ -4,7 +4,7 @@ These repository-specific instructions are subordinate to higher-priority system
 
 ## Goal and PR workflow
 
-- Start every new goal from the latest `origin/dev` on a new `codex/` branch.
+- Start every new goal from the latest `origin/dev` on a new branch with a standard prefix (`fix/`, `feat/`, `refactor/`, or `chore/`).
 - A goal is complete only after its PR targeting `dev` is merged and the merge is verified on remote `dev`.
 - Finish implementation, review, and verification before committing; then push the branch, open the PR to `dev`, and wait for CI, review, and merge.
 - If CI or review fails, keep the goal active or blocked; never mark it complete.

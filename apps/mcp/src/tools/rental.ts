@@ -662,5 +662,72 @@ export function getRentalTools(): ToolSpec[] {
         );
       },
     },
+
+    // ── Admin Tasks ──────────────────────────────────────
+    {
+      name: 'rental_task_queue',
+      description:
+        'Get the admin task queue for rental operations (deliveries, pickups, invoicing, overdue, etc.). Optional filters: referenceDate (ISO date), category (DELIVER|HANDOVER|PICKUP|INVOICE|RETURN|LATE_RETURN|PAYMENT_FOLLOWUP), urgency (ALL|OVERDUE|TODAY|UPCOMING).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          companyId: companyIdProp,
+          referenceDate: {
+            type: 'string',
+            description: 'ISO date for reference (default: today)',
+          },
+          category: {
+            type: 'string',
+            description:
+              'Task category filter: DELIVER, HANDOVER, PICKUP, INVOICE, RETURN, LATE_RETURN, PAYMENT_FOLLOWUP',
+          },
+          urgency: {
+            type: 'string',
+            description: 'Urgency filter: ALL, OVERDUE, TODAY, UPCOMING',
+          },
+        },
+        required: ['companyId'],
+      },
+      handler: async (args) => {
+        const params: Record<string, unknown> = {};
+        const refDate = getOptionalString(args, 'referenceDate');
+        if (refDate) params.referenceDate = refDate;
+        const category = getOptionalString(args, 'category');
+        if (category) params.category = category;
+        const urgency = getOptionalString(args, 'urgency');
+        if (urgency) params.urgency = urgency;
+        return apiQuery(
+          'rental.tasks.getQueue',
+          Object.keys(params).length > 0 ? params : undefined,
+          getString(args, 'companyId')
+        );
+      },
+    },
+    {
+      name: 'rental_task_summary',
+      description:
+        'Get a summary of admin rental tasks (total count, overdue, today, upcoming, by category). Optional: referenceDate (ISO date).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          companyId: companyIdProp,
+          referenceDate: {
+            type: 'string',
+            description: 'ISO date for reference (default: today)',
+          },
+        },
+        required: ['companyId'],
+      },
+      handler: async (args) => {
+        const params: Record<string, unknown> = {};
+        const refDate = getOptionalString(args, 'referenceDate');
+        if (refDate) params.referenceDate = refDate;
+        return apiQuery(
+          'rental.tasks.getSummary',
+          Object.keys(params).length > 0 ? params : undefined,
+          getString(args, 'companyId')
+        );
+      },
+    },
   ];
 }

@@ -26,8 +26,9 @@ import {
   validateAndAuditClose,
 } from '../common/utils/order.utils';
 import { InventoryService } from '../inventory/inventory.service';
+import { OrderStatusSyncPort } from '../inventory/ports/order-status-sync.port';
 
-export class PurchaseOrderService {
+export class PurchaseOrderService implements OrderStatusSyncPort {
   constructor(
     private readonly repository: PurchaseOrderRepository = new PurchaseOrderRepository(),
     private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
@@ -570,6 +571,17 @@ export class PurchaseOrderService {
     }
 
     return order;
+  }
+
+  /**
+   * Implements OrderStatusSyncPort for inventory decoupling.
+   */
+  async recalculateOrderStatus(
+    orderId: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<void> {
+    await this.recalculateStatus(orderId, companyId, tx);
   }
 
   /**

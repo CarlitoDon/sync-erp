@@ -13,9 +13,9 @@ import type { Context } from '@src/trpc/context';
 import { apiKeyService } from '@src/services/api-key.service';
 import {
   container,
-  registerServices,
   ServiceKeys,
 } from '@modules/common/di';
+import { registerServices } from '@src/di/register';
 import type { RentalWebhookService } from '@modules/rental/rental-webhook.service';
 
 const COMPANY_ID = 'test-public-rental-router-int-001';

@@ -22,6 +22,10 @@ import { prisma } from '@sync-erp/database';
 
 const service = new RentalExternalOrderService();
 
+function isStringArray(val: unknown): val is string[] {
+  return Array.isArray(val) && val.every((item) => typeof item === 'string');
+}
+
 export const publicRentalOrderRouter = router({
   /**
    * Get order by public token
@@ -205,7 +209,9 @@ export const publicRentalOrderRouter = router({
                  const parseComponents = adapter.parseComponents;
                  finalInput.items = finalInput.items!.map((item) => ({
                    ...item,
-                   components: item.components ? parseComponents(item.components as unknown as string[]) : undefined
+                   components: isStringArray(item.components)
+                     ? parseComponents(item.components)
+                     : undefined,
                  }));
                }
              }
@@ -214,9 +220,9 @@ export const publicRentalOrderRouter = router({
           // No integration adapter — normalize string[] components to service format
           finalInput.items = finalInput.items.map((item) => ({
             ...item,
-            components: item.components
-              ? (item.components as unknown as string[]).map((c) => ({ quantity: 1, label: c }))
-              : undefined
+            components: isStringArray(item.components)
+              ? item.components.map((c) => ({ quantity: 1, label: c }))
+              : undefined,
           }));
         }
 
@@ -300,22 +306,22 @@ export const publicRentalOrderRouter = router({
            if (integration) {
              const plugin = integrationRegistry.get(integration.appId);
              const adapter = plugin?.getOrderAdapter?.();
-              if (adapter && adapter.parseComponents) {
-                const parseComponents = adapter.parseComponents;
-                finalInput.items = finalInput.items!.map((item) => ({
-                  ...item,
-                  components: item.components
-                    ? parseComponents(item.components as unknown as string[])
-                    : undefined,
-                }));
-              }
-           }
+               if (adapter && adapter.parseComponents) {
+                 const parseComponents = adapter.parseComponents;
+                 finalInput.items = finalInput.items!.map((item) => ({
+                   ...item,
+                   components: isStringArray(item.components)
+                     ? parseComponents(item.components)
+                     : undefined,
+                 }));
+               }
+            }
         } else if (finalInput.items) {
           // No integration adapter — normalize string[] components to service format
           finalInput.items = finalInput.items.map((item) => ({
             ...item,
-            components: item.components
-              ? (item.components as unknown as string[]).map((c) => ({ quantity: 1, label: c }))
+            components: isStringArray(item.components)
+              ? item.components.map((c) => ({ quantity: 1, label: c }))
               : undefined,
           }));
         }

@@ -108,6 +108,12 @@ export class RentalPolicy {
 
   /**
    * Ensure unit assignments match order items before release.
+   *
+   * @deprecated Unused legacy assignment validation from pre-Feature 045 architecture.
+   * Unit reservation and assignment validation is now handled dynamically during confirmation
+   * and release via `RentalOrderFulfillmentService.releaseOrder` and `RentalAvailabilityService`.
+   * Scheduled for removal in Phase B / v2.0 cleanup.
+   * @see RentalOrderFulfillmentService.releaseOrder
    */
   static ensureAssignmentsValid(
     orderItems: { rentalItemId: string; quantity: number }[],

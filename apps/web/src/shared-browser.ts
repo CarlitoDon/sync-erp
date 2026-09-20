@@ -24,3 +24,8 @@ export * from '../../../packages/shared/src/domain/BusinessDate';
 export * from '../../../packages/shared/src/utils/paymentTerms';
 export * from '../../../packages/shared/src/utils/auth';
 export * from '../../../packages/shared/src/utils/formatters';
+export * from '../../../packages/shared/src/utils/rental-payment-status';
+export * from '../../../packages/shared/src/constants/journal-references';
+export * from '../../../packages/shared/src/utils/rental-order';
+export * from '../../../packages/shared/src/utils/cost-calculations';
+export { asPartial } from '../../../packages/shared/src/utils/test-utils';

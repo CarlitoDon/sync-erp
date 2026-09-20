@@ -2,58 +2,58 @@
  * Service Registration
  *
  * Registers all services and repositories with the DI container.
- * Called once on app startup.
+ * Called once on app startup from the composition root.
  */
 
-import { container, ServiceKeys } from './container';
+import { container, ServiceKeys } from '../modules/common/di';
 
 // Repositories
-import { InventoryRepository } from '../../inventory/inventory.repository';
-import { JournalRepository } from '../../accounting/repositories/journal.repository';
-import { InvoiceRepository } from '../../accounting/repositories/invoice.repository';
-import { PurchaseOrderRepository } from '../../procurement/purchase-order.repository';
-import { SalesOrderRepository } from '../../sales/sales-order.repository';
-import { PaymentRepository } from '../../accounting/repositories/payment.repository';
-import { ProductRepository } from '../../product/product.repository';
-import { PartnerRepository } from '../../partner/partner.repository';
-import { AccountRepository } from '../../accounting/repositories/account.repository';
-import { AuthRepository } from '../../auth/auth.repository';
-import { UserRepository } from '../../user/user.repository';
-import { CompanyRepository } from '../../company/company.repository';
-import { CustomerDepositRepository } from '../../sales/customer-deposit.repository';
-import { UpfrontPaymentRepository } from '../../procurement/upfront-payment.repository';
-import { CashBankRepository } from '../../cash-bank/cash-bank.repository'; // Feature 042
-import { RentalRepository } from '../../rental/rental.repository'; // Feature 043
+import { InventoryRepository } from '../modules/inventory/inventory.repository';
+import { JournalRepository } from '../modules/accounting/repositories/journal.repository';
+import { InvoiceRepository } from '../modules/accounting/repositories/invoice.repository';
+import { PurchaseOrderRepository } from '../modules/procurement/purchase-order.repository';
+import { SalesOrderRepository } from '../modules/sales/sales-order.repository';
+import { PaymentRepository } from '../modules/accounting/repositories/payment.repository';
+import { ProductRepository } from '../modules/product/product.repository';
+import { PartnerRepository } from '../modules/partner/partner.repository';
+import { AccountRepository } from '../modules/accounting/repositories/account.repository';
+import { AuthRepository } from '../modules/auth/auth.repository';
+import { UserRepository } from '../modules/user/user.repository';
+import { CompanyRepository } from '../modules/company/company.repository';
+import { CustomerDepositRepository } from '../modules/sales/customer-deposit.repository';
+import { UpfrontPaymentRepository } from '../modules/procurement/upfront-payment.repository';
+import { CashBankRepository } from '../modules/cash-bank/cash-bank.repository'; // Feature 042
+import { RentalRepository } from '../modules/rental/rental.repository'; // Feature 043
 
 // Services
-import { ProductService } from '../../product/product.service';
-import { PartnerService } from '../../partner/partner.service';
-import { AccountService } from '../../accounting/services/account.service';
-import { DocumentNumberService } from '../services/document-number.service';
-import { JournalService } from '../../accounting/services/journal.service';
-import { InventoryService } from '../../inventory/inventory.service';
-import { BillService } from '../../accounting/services/bill.service';
-import { InvoiceService } from '../../accounting/services/invoice.service';
-import { PaymentService } from '../../accounting/services/payment.service';
-import { PurchaseOrderService } from '../../procurement/purchase-order.service';
-import { SalesOrderService } from '../../sales/sales-order.service';
-import { IdempotencyService } from '../services/idempotency.service';
-import { EmailService } from '../services/email.service';
-import { AuthAuditService } from '../../auth/auth-audit.service';
-import { GoogleOAuthService } from '../../auth/google-oauth.service';
-import { CompanyService } from '../../company/company.service';
-import { AuthService } from '../../auth/auth.service';
-import { UserService } from '../../user/user.service';
-import { CustomerDepositService } from '../../sales/customer-deposit.service';
-import { UpfrontPaymentService } from '../../procurement/upfront-payment.service';
-import { DashboardService } from '../../dashboard/service';
-import { AdminService } from '../../admin/service';
-import { AdminRepository } from '../../admin/repository';
-import { ReportService } from '../../accounting/services/report.service';
-import { ExpenseService } from '../../accounting/services/expense.service';
-import { CashBankService } from '../../cash-bank/cash-bank.service'; // Feature 042
-import { RentalService } from '../../rental/rental.service'; // Feature 043
-import { RentalWebhookService } from '../../rental/rental-webhook.service'; // Feature 043 - Notifications
+import { ProductService } from '../modules/product/product.service';
+import { PartnerService } from '../modules/partner/partner.service';
+import { AccountService } from '../modules/accounting/services/account.service';
+import { DocumentNumberService } from '../modules/common/services/document-number.service';
+import { JournalService } from '../modules/accounting/services/journal.service';
+import { InventoryService } from '../modules/inventory/inventory.service';
+import { BillService } from '../modules/accounting/services/bill.service';
+import { InvoiceService } from '../modules/accounting/services/invoice.service';
+import { PaymentService } from '../modules/accounting/services/payment.service';
+import { PurchaseOrderService } from '../modules/procurement/purchase-order.service';
+import { SalesOrderService } from '../modules/sales/sales-order.service';
+import { IdempotencyService } from '../modules/common/services/idempotency.service';
+import { EmailService } from '../modules/common/services/email.service';
+import { AuthAuditService } from '../modules/auth/auth-audit.service';
+import { GoogleOAuthService } from '../modules/auth/google-oauth.service';
+import { CompanyService } from '../modules/company/company.service';
+import { AuthService } from '../modules/auth/auth.service';
+import { UserService } from '../modules/user/user.service';
+import { CustomerDepositService } from '../modules/sales/customer-deposit.service';
+import { UpfrontPaymentService } from '../modules/procurement/upfront-payment.service';
+import { DashboardService } from '../modules/dashboard/service';
+import { AdminService } from '../modules/admin/service';
+import { AdminRepository } from '../modules/admin/repository';
+import { ReportService } from '../modules/accounting/services/report.service';
+import { ExpenseService } from '../modules/accounting/services/expense.service';
+import { CashBankService } from '../modules/cash-bank/cash-bank.service'; // Feature 042
+import { RentalService } from '../modules/rental/rental.service'; // Feature 043
+import { RentalWebhookService } from '../modules/rental/rental-webhook.service'; // Feature 043 - Notifications
 
 /**
  * Register all services with the DI container
@@ -184,7 +184,8 @@ export function registerServices(): void {
     ServiceKeys.COMPANY_SERVICE,
     () =>
       new CompanyService(
-        container.resolve(ServiceKeys.COMPANY_REPOSITORY)
+        container.resolve(ServiceKeys.COMPANY_REPOSITORY),
+        container.resolve(ServiceKeys.ACCOUNT_SERVICE)
       )
   );
   container.register(
@@ -213,7 +214,19 @@ export function registerServices(): void {
       new InventoryService(
         container.resolve(ServiceKeys.INVENTORY_REPOSITORY),
         container.resolve(ServiceKeys.PRODUCT_SERVICE),
-        container.resolve(ServiceKeys.JOURNAL_SERVICE)
+        container.resolve(ServiceKeys.JOURNAL_SERVICE),
+        {
+          recalculateOrderStatus: (orderId, companyId, tx) =>
+            container
+              .resolve<SalesOrderService>(ServiceKeys.SALES_ORDER_SERVICE)
+              .recalculateOrderStatus(orderId, companyId, tx),
+        },
+        {
+          recalculateOrderStatus: (orderId, companyId, tx) =>
+            container
+              .resolve<PurchaseOrderService>(ServiceKeys.PURCHASE_ORDER_SERVICE)
+              .recalculateOrderStatus(orderId, companyId, tx),
+        }
       )
   );
 
@@ -250,7 +263,8 @@ export function registerServices(): void {
         container.resolve(ServiceKeys.SALES_ORDER_REPOSITORY),
         container.resolve(ServiceKeys.PRODUCT_SERVICE),
         container.resolve(ServiceKeys.DOCUMENT_NUMBER_SERVICE),
-        container.resolve(ServiceKeys.INVENTORY_SERVICE)
+        container.resolve(ServiceKeys.INVENTORY_SERVICE),
+        container.resolve(ServiceKeys.INVOICE_SERVICE)
       )
   );
 

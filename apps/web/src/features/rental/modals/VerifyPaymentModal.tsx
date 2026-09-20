@@ -3,7 +3,11 @@ import FormModal from '@/components/ui/FormModal';
 import { trpc } from '@/lib/trpc';
 import { apiAction } from '@/hooks/useApiAction';
 import { formatCurrency, formatDateTime } from '@/utils/format';
-import type { RentalOrderWithRelations } from '@sync-erp/shared';
+import { toast } from 'react-hot-toast';
+import {
+  type RentalOrderWithRelations,
+  RentalPaymentStatus,
+} from '@sync-erp/shared';
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -48,6 +52,17 @@ export default function VerifyPaymentModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order || !action) return;
+
+    if (
+      action === 'confirm' &&
+      order.rentalPaymentStatus === RentalPaymentStatus.PENDING &&
+      !paymentReference.trim()
+    ) {
+      toast.error(
+        'Referensi pembayaran / bukti mutasi wajib diisi untuk status PENDING'
+      );
+      return;
+    }
 
     await apiAction(
       () =>
@@ -135,7 +150,12 @@ export default function VerifyPaymentModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Referensi Pembayaran (opsional)
+                Referensi Pembayaran{' '}
+                {order.rentalPaymentStatus === RentalPaymentStatus.PENDING ? (
+                  <span className="text-red-500 font-semibold">(wajib untuk status PENDING)</span>
+                ) : (
+                  '(opsional)'
+                )}
               </label>
               <input
                 type="text"
@@ -143,9 +163,12 @@ export default function VerifyPaymentModal({
                 onChange={(e) => setPaymentReference(e.target.value)}
                 placeholder="Contoh: No. Rekening, ID Transaksi..."
                 className="w-full px-3 py-2 border rounded-lg"
+                required={order.rentalPaymentStatus === RentalPaymentStatus.PENDING}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Nomor transaksi/rekening pengirim untuk referensi
+                {order.rentalPaymentStatus === RentalPaymentStatus.PENDING
+                  ? 'Wajib diisi untuk konfirmasi pembayaran status PENDING (tanpa bukti klaim dari customer)'
+                  : 'Nomor transaksi/rekening pengirim untuk referensi'}
               </p>
             </div>
 
@@ -159,7 +182,11 @@ export default function VerifyPaymentModal({
               </button>
               <button
                 type="submit"
-                disabled={verifyMutation.isPending}
+                disabled={
+                  verifyMutation.isPending ||
+                  (order.rentalPaymentStatus === RentalPaymentStatus.PENDING &&
+                    !paymentReference.trim())
+                }
                 className="px-6 py-2 bg-green-600 text-white rounded-lg disabled:opacity-50 hover:bg-green-700"
               >
                 {verifyMutation.isPending ? 'Memproses...' : 'Konfirmasi Pembayaran'}

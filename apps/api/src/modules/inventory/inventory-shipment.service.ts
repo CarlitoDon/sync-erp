@@ -14,26 +14,17 @@ import { JournalService } from '../accounting/services/journal.service';
 import { ProductService } from '../product/product.service';
 import { DomainError } from '@sync-erp/shared';
 import { recordAudit } from '../common/audit/audit-log.service';
-import type { SalesOrderService as SOServiceType } from '../sales/sales-order.service';
 import { InventoryPolicy } from './inventory.policy';
+import { OrderStatusSyncPort } from './ports/order-status-sync.port';
+import { DefaultShipmentOrderStatusSync } from './ports/default-order-status-sync';
 
 export class InventoryShipmentService {
-  private _salesOrderService: SOServiceType | null = null;
-
   constructor(
     private readonly repository: InventoryRepository,
     private readonly journalService: JournalService,
-    private readonly productService: ProductService
+    private readonly productService: ProductService,
+    private readonly orderStatusSync: OrderStatusSyncPort = new DefaultShipmentOrderStatusSync()
   ) {}
-
-  private async getSalesOrderService(): Promise<SOServiceType> {
-    if (!this._salesOrderService) {
-      const { SalesOrderService } =
-        await import('../sales/sales-order.service');
-      this._salesOrderService = new SalesOrderService();
-    }
-    return this._salesOrderService;
-  }
 
   async createShipment(
     companyId: string,
@@ -204,8 +195,7 @@ export class InventoryShipmentService {
       }
 
       // Recalculate order status
-      const soService = await this.getSalesOrderService();
-      await soService.recalculateStatus(
+      await this.orderStatusSync.recalculateOrderStatus(
         fulfillment.orderId,
         companyId,
         t
@@ -314,8 +304,7 @@ export class InventoryShipmentService {
       );
 
       // Recalculate order status
-      const soService = await this.getSalesOrderService();
-      await soService.recalculateStatus(
+      await this.orderStatusSync.recalculateOrderStatus(
         fulfillment.orderId,
         companyId,
         t

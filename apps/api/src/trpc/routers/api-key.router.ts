@@ -4,7 +4,7 @@ import {
   router,
 } from '../trpc';
 import { z } from 'zod';
-import { prisma } from '@sync-erp/database';
+import { prisma, OrderSource } from '@sync-erp/database';
 import { TRPCError } from '@trpc/server';
 import { apiKeyService } from '../../services/api-key.service';
 import { webhookService } from '../../services/webhook.service';
@@ -219,7 +219,7 @@ export const apiKeyRouter = router({
       prisma.rentalOrder.count({
         where: {
           companyId: ctx.companyId,
-          orderSource: 'WEBSITE',
+          orderSource: OrderSource.WEBSITE,
           createdAt: {
             gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
           },

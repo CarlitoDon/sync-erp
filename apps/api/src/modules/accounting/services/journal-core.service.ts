@@ -44,7 +44,8 @@ export class JournalCoreService {
     companyId: string,
     journalId: string,
     reason?: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
+    reversalDate?: Date
   ): Promise<JournalEntry> {
     const original = await this.repository.findById(
       journalId,
@@ -69,7 +70,7 @@ export class JournalCoreService {
     return this.create(
       companyId,
       {
-        date: new Date(),
+        date: reversalDate || new Date(),
         reference: `Reversal: ${original.reference || journalId}`,
         memo: reason || `Reversal of journal ${journalId}`,
         lines: reversalLines,

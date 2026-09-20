@@ -1,0 +1,1758 @@
+[
+  {
+    "from": "accounting",
+    "to": "cash-bank",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/payment.service.ts",
+        "toFile": "apps/api/src/modules/cash-bank/cash-bank.repository.ts",
+        "line": 12,
+        "isTypeOnly": false,
+        "symbols": [
+          "CashBankRepository"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "accounting",
+    "to": "common",
+    "total": 16,
+    "runtime": 16,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/accounting/policies/bill.policy.ts",
+        "toFile": "apps/api/src/modules/common/utils/document-validation.utils.ts",
+        "line": 15,
+        "isTypeOnly": false,
+        "symbols": [
+          "validateBusinessDate",
+          "validateDraftStatus",
+          "validateOrderStatus",
+          "ensureFulfillmentExists",
+          "validate3WayMatching",
+          "(type) ThreeWayMatchDocument",
+          "(type) ThreeWayMatchOrder"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/policies/invoice.policy.ts",
+        "toFile": "apps/api/src/modules/common/utils/document-validation.utils.ts",
+        "line": 15,
+        "isTypeOnly": false,
+        "symbols": [
+          "validateBusinessDate",
+          "validateDraftStatus",
+          "validateOrderStatus",
+          "ensureFulfillmentExists",
+          "validate3WayMatching",
+          "(type) ThreeWayMatchDocument",
+          "(type) ThreeWayMatchOrder"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/bill.service.ts",
+        "toFile": "apps/api/src/modules/common/utils/finance.utils.ts",
+        "line": 24,
+        "isTypeOnly": false,
+        "symbols": [
+          "normalizeTaxRate"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/bill.service.ts",
+        "toFile": "apps/api/src/modules/common/services/document-number.service.ts",
+        "line": 40,
+        "isTypeOnly": false,
+        "symbols": [
+          "DocumentNumberService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/bill.service.ts",
+        "toFile": "apps/api/src/modules/common/utils/payment-terms.utils.ts",
+        "line": 44,
+        "isTypeOnly": false,
+        "symbols": [
+          "calculateDueDate"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/bill.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 45,
+        "isTypeOnly": false,
+        "symbols": [],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/bill.service.ts",
+        "toFile": "apps/api/src/modules/common/utils/document.utils.ts",
+        "line": 46,
+        "isTypeOnly": false,
+        "symbols": [
+          "validateAndAuditVoid",
+          "validateCanVoid"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/expense.service.ts",
+        "toFile": "apps/api/src/modules/common/services/document-number.service.ts",
+        "line": 9,
+        "isTypeOnly": false,
+        "symbols": [
+          "DocumentNumberService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "toFile": "apps/api/src/modules/common/utils/finance.utils.ts",
+        "line": 28,
+        "isTypeOnly": false,
+        "symbols": [
+          "normalizeTaxRate"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "toFile": "apps/api/src/modules/common/services/document-number.service.ts",
+        "line": 40,
+        "isTypeOnly": false,
+        "symbols": [
+          "DocumentNumberService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "toFile": "apps/api/src/modules/common/services/idempotency.service.ts",
+        "line": 41,
+        "isTypeOnly": false,
+        "symbols": [
+          "IdempotencyService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 42,
+        "isTypeOnly": false,
+        "symbols": [],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "toFile": "apps/api/src/modules/common/utils/payment-terms.utils.ts",
+        "line": 45,
+        "isTypeOnly": false,
+        "symbols": [
+          "calculateDueDate"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "toFile": "apps/api/src/modules/common/utils/document.utils.ts",
+        "line": 46,
+        "isTypeOnly": false,
+        "symbols": [
+          "validateAndAuditVoid",
+          "validateCanVoid"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/payment.service.ts",
+        "toFile": "apps/api/src/modules/common/utils/permission.utils.ts",
+        "line": 13,
+        "isTypeOnly": false,
+        "symbols": [
+          "ensureHasPermission"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/payment.service.ts",
+        "toFile": "apps/api/src/modules/common/services/idempotency.service.ts",
+        "line": 22,
+        "isTypeOnly": false,
+        "symbols": [
+          "IdempotencyService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "accounting",
+    "to": "inventory",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/bill.service.ts",
+        "toFile": "apps/api/src/modules/inventory/inventory.repository.ts",
+        "line": 42,
+        "isTypeOnly": false,
+        "symbols": [
+          "InventoryRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "toFile": "apps/api/src/modules/inventory/inventory.repository.ts",
+        "line": 27,
+        "isTypeOnly": false,
+        "symbols": [
+          "InventoryRepository"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "accounting",
+    "to": "procurement",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/bill.service.ts",
+        "toFile": "apps/api/src/modules/procurement/purchase-order.repository.ts",
+        "line": 43,
+        "isTypeOnly": false,
+        "symbols": [
+          "PurchaseOrderRepository"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "accounting",
+    "to": "sales",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "toFile": "apps/api/src/modules/sales/customer-deposit.service.ts",
+        "line": 44,
+        "isTypeOnly": false,
+        "symbols": [
+          "CustomerDepositService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "toFile": "apps/api/src/modules/sales/sales-order.repository.ts",
+        "line": 50,
+        "isTypeOnly": false,
+        "symbols": [
+          "SalesOrderRepository"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "admin",
+    "to": "auth",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/admin/admin.policy.ts",
+        "toFile": "apps/api/src/modules/auth/rbac.policy.ts",
+        "line": 11,
+        "isTypeOnly": false,
+        "symbols": [
+          "isPrivilegedRole",
+          "normalizeRole"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "auth",
+    "to": "common",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/auth/auth.service.ts",
+        "toFile": "apps/api/src/modules/common/services/email.service.ts",
+        "line": 15,
+        "isTypeOnly": false,
+        "symbols": [
+          "EmailService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/auth/google-oauth.router.ts",
+        "toFile": "apps/api/src/modules/common/di/index.ts",
+        "line": 3,
+        "isTypeOnly": false,
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "auth",
+    "to": "user",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/auth/auth.service.ts",
+        "toFile": "apps/api/src/modules/user/user.service.ts",
+        "line": 10,
+        "isTypeOnly": false,
+        "symbols": [
+          "PublicUser",
+          "toPublicUser",
+          "UserService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "cash-bank",
+    "to": "accounting",
+    "total": 5,
+    "runtime": 5,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/cash-bank/cash-account.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/account.service.ts",
+        "line": 2,
+        "isTypeOnly": false,
+        "symbols": [
+          "AccountService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/cash-bank/cash-account.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 3,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/cash-bank/cash-bank.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/account.service.ts",
+        "line": 5,
+        "isTypeOnly": false,
+        "symbols": [
+          "AccountService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/cash-bank/cash-bank.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 6,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/cash-bank/cash-transaction.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 5,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService",
+          "CreateJournalLineInput"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "cash-bank",
+    "to": "common",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/cash-bank/cash-bank.router.ts",
+        "toFile": "apps/api/src/modules/common/di/index.ts",
+        "line": 12,
+        "isTypeOnly": false,
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "accounting",
+    "total": 11,
+    "runtime": 11,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/repositories/journal.repository.ts",
+        "line": 12,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/repositories/invoice.repository.ts",
+        "line": 13,
+        "isTypeOnly": false,
+        "symbols": [
+          "InvoiceRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/repositories/payment.repository.ts",
+        "line": 16,
+        "isTypeOnly": false,
+        "symbols": [
+          "PaymentRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/repositories/account.repository.ts",
+        "line": 19,
+        "isTypeOnly": false,
+        "symbols": [
+          "AccountRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/services/account.service.ts",
+        "line": 31,
+        "isTypeOnly": false,
+        "symbols": [
+          "AccountService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 33,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/services/bill.service.ts",
+        "line": 35,
+        "isTypeOnly": false,
+        "symbols": [
+          "BillService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "line": 36,
+        "isTypeOnly": false,
+        "symbols": [
+          "InvoiceService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/services/payment.service.ts",
+        "line": 37,
+        "isTypeOnly": false,
+        "symbols": [
+          "PaymentService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/services/report.service.ts",
+        "line": 52,
+        "isTypeOnly": false,
+        "symbols": [
+          "ReportService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/accounting/services/expense.service.ts",
+        "line": 53,
+        "isTypeOnly": false,
+        "symbols": [
+          "ExpenseService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "admin",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/admin/service.ts",
+        "line": 50,
+        "isTypeOnly": false,
+        "symbols": [
+          "AdminService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/admin/repository.ts",
+        "line": 51,
+        "isTypeOnly": false,
+        "symbols": [
+          "AdminRepository"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "auth",
+    "total": 4,
+    "runtime": 4,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/auth/auth.repository.ts",
+        "line": 20,
+        "isTypeOnly": false,
+        "symbols": [
+          "AuthRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/auth/auth-audit.service.ts",
+        "line": 42,
+        "isTypeOnly": false,
+        "symbols": [
+          "AuthAuditService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/auth/google-oauth.service.ts",
+        "line": 43,
+        "isTypeOnly": false,
+        "symbols": [
+          "GoogleOAuthService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/auth/auth.service.ts",
+        "line": 45,
+        "isTypeOnly": false,
+        "symbols": [
+          "AuthService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "cash-bank",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/cash-bank/cash-bank.repository.ts",
+        "line": 25,
+        "isTypeOnly": false,
+        "symbols": [
+          "CashBankRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/cash-bank/cash-bank.service.ts",
+        "line": 54,
+        "isTypeOnly": false,
+        "symbols": [
+          "CashBankService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "company",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/company/company.repository.ts",
+        "line": 22,
+        "isTypeOnly": false,
+        "symbols": [
+          "CompanyRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/company/company.service.ts",
+        "line": 44,
+        "isTypeOnly": false,
+        "symbols": [
+          "CompanyService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "dashboard",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/dashboard/service.ts",
+        "line": 49,
+        "isTypeOnly": false,
+        "symbols": [
+          "DashboardService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "inventory",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/inventory/inventory.repository.ts",
+        "line": 11,
+        "isTypeOnly": false,
+        "symbols": [
+          "InventoryRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/inventory/inventory.service.ts",
+        "line": 34,
+        "isTypeOnly": false,
+        "symbols": [
+          "InventoryService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "partner",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/partner/partner.repository.ts",
+        "line": 18,
+        "isTypeOnly": false,
+        "symbols": [
+          "PartnerRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/partner/partner.service.ts",
+        "line": 30,
+        "isTypeOnly": false,
+        "symbols": [
+          "PartnerService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "procurement",
+    "total": 4,
+    "runtime": 4,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/procurement/purchase-order.repository.ts",
+        "line": 14,
+        "isTypeOnly": false,
+        "symbols": [
+          "PurchaseOrderRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/procurement/upfront-payment.repository.ts",
+        "line": 24,
+        "isTypeOnly": false,
+        "symbols": [
+          "UpfrontPaymentRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "line": 38,
+        "isTypeOnly": false,
+        "symbols": [
+          "PurchaseOrderService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/procurement/upfront-payment.service.ts",
+        "line": 48,
+        "isTypeOnly": false,
+        "symbols": [
+          "UpfrontPaymentService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "product",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/product/product.repository.ts",
+        "line": 17,
+        "isTypeOnly": false,
+        "symbols": [
+          "ProductRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/product/product.service.ts",
+        "line": 29,
+        "isTypeOnly": false,
+        "symbols": [
+          "ProductService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "rental",
+    "total": 3,
+    "runtime": 3,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/rental/rental.repository.ts",
+        "line": 26,
+        "isTypeOnly": false,
+        "symbols": [
+          "RentalRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/rental/rental.service.ts",
+        "line": 55,
+        "isTypeOnly": false,
+        "symbols": [
+          "RentalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/rental/rental-webhook.service.ts",
+        "line": 56,
+        "isTypeOnly": false,
+        "symbols": [
+          "RentalWebhookService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "sales",
+    "total": 4,
+    "runtime": 4,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/sales/sales-order.repository.ts",
+        "line": 15,
+        "isTypeOnly": false,
+        "symbols": [
+          "SalesOrderRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/sales/customer-deposit.repository.ts",
+        "line": 23,
+        "isTypeOnly": false,
+        "symbols": [
+          "CustomerDepositRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/sales/sales-order.service.ts",
+        "line": 39,
+        "isTypeOnly": false,
+        "symbols": [
+          "SalesOrderService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/sales/customer-deposit.service.ts",
+        "line": 47,
+        "isTypeOnly": false,
+        "symbols": [
+          "CustomerDepositService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "common",
+    "to": "user",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/user/user.repository.ts",
+        "line": 21,
+        "isTypeOnly": false,
+        "symbols": [
+          "UserRepository"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/common/di/register.ts",
+        "toFile": "apps/api/src/modules/user/user.service.ts",
+        "line": 46,
+        "isTypeOnly": false,
+        "symbols": [
+          "UserService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "company",
+    "to": "accounting",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/company/company.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/account.service.ts",
+        "line": 14,
+        "isTypeOnly": false,
+        "symbols": [
+          "AccountService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "company",
+    "to": "auth",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/company/company.service.ts",
+        "toFile": "apps/api/src/modules/auth/rbac.policy.ts",
+        "line": 21,
+        "isTypeOnly": false,
+        "symbols": [
+          "canAssignRole",
+          "isPrivilegedRole",
+          "normalizeRole"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "company",
+    "to": "common",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/company/company.service.ts",
+        "toFile": "apps/api/src/modules/common/di/index.ts",
+        "line": 13,
+        "isTypeOnly": false,
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "company",
+    "to": "inventory",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/company/company.service.ts",
+        "toFile": "apps/api/src/modules/inventory/inventory.policy.ts",
+        "line": 12,
+        "isTypeOnly": false,
+        "symbols": [
+          "InventoryPolicy"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "inventory",
+    "to": "accounting",
+    "total": 6,
+    "runtime": 6,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-fulfillment.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 13,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-grn.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 16,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-movement.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 17,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-return.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 12,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 13,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 20,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "inventory",
+    "to": "common",
+    "total": 3,
+    "runtime": 3,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-grn.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 18,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-return.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 15,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 16,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "inventory",
+    "to": "procurement",
+    "total": 2,
+    "runtime": 1,
+    "dynamic": 1,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-grn.service.ts",
+        "toFile": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "line": 19,
+        "isTypeOnly": true,
+        "symbols": [
+          "POServiceType"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-grn.service.ts",
+        "toFile": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "line": 33,
+        "isTypeOnly": false,
+        "symbols": [
+          "dynamic import"
+        ],
+        "isDynamic": true
+      }
+    ]
+  },
+  {
+    "from": "inventory",
+    "to": "product",
+    "total": 6,
+    "runtime": 6,
+    "dynamic": 1,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-fulfillment.service.ts",
+        "toFile": "apps/api/src/modules/product/product.service.ts",
+        "line": 12,
+        "isTypeOnly": false,
+        "symbols": [
+          "ProductService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-grn.service.ts",
+        "toFile": "apps/api/src/modules/product/product.service.ts",
+        "line": 330,
+        "isTypeOnly": false,
+        "symbols": [
+          "dynamic import"
+        ],
+        "isDynamic": true
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-movement.service.ts",
+        "toFile": "apps/api/src/modules/product/product.service.ts",
+        "line": 16,
+        "isTypeOnly": false,
+        "symbols": [
+          "ProductService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-return.service.ts",
+        "toFile": "apps/api/src/modules/product/product.service.ts",
+        "line": 13,
+        "isTypeOnly": false,
+        "symbols": [
+          "ProductService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "toFile": "apps/api/src/modules/product/product.service.ts",
+        "line": 14,
+        "isTypeOnly": false,
+        "symbols": [
+          "ProductService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory.service.ts",
+        "toFile": "apps/api/src/modules/product/product.service.ts",
+        "line": 19,
+        "isTypeOnly": false,
+        "symbols": [
+          "ProductService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "inventory",
+    "to": "sales",
+    "total": 2,
+    "runtime": 1,
+    "dynamic": 1,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "toFile": "apps/api/src/modules/sales/sales-order.service.ts",
+        "line": 17,
+        "isTypeOnly": true,
+        "symbols": [
+          "SOServiceType"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "toFile": "apps/api/src/modules/sales/sales-order.service.ts",
+        "line": 32,
+        "isTypeOnly": false,
+        "symbols": [
+          "dynamic import"
+        ],
+        "isDynamic": true
+      }
+    ]
+  },
+  {
+    "from": "procurement",
+    "to": "accounting",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/procurement/upfront-payment.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 16,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "procurement",
+    "to": "common",
+    "total": 3,
+    "runtime": 3,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "toFile": "apps/api/src/modules/common/services/document-number.service.ts",
+        "line": 16,
+        "isTypeOnly": false,
+        "symbols": [
+          "DocumentNumberService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 17,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "toFile": "apps/api/src/modules/common/utils/order.utils.ts",
+        "line": 24,
+        "isTypeOnly": false,
+        "symbols": [
+          "calculateDpAmount",
+          "validateAndAuditClose"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "procurement",
+    "to": "inventory",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "toFile": "apps/api/src/modules/inventory/inventory.service.ts",
+        "line": 28,
+        "isTypeOnly": false,
+        "symbols": [
+          "InventoryService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "product",
+    "to": "inventory",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/product/product.service.ts",
+        "toFile": "apps/api/src/modules/inventory/rules/stockRule.ts",
+        "line": 10,
+        "isTypeOnly": false,
+        "symbols": [
+          "calculateNewAvgCost"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "rental",
+    "to": "accounting",
+    "total": 6,
+    "runtime": 6,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order-fulfillment.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 22,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order-historical-settlement.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 12,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order-lifecycle.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 20,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order-payment.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 21,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 10,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-return.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 23,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "rental",
+    "to": "billing",
+    "total": 3,
+    "runtime": 3,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-bundle.service.ts",
+        "toFile": "apps/api/src/modules/billing/billing-limits.service.ts",
+        "line": 9,
+        "isTypeOnly": false,
+        "symbols": [
+          "assertBillingFeatureAvailable"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order-fulfillment.service.ts",
+        "toFile": "apps/api/src/modules/billing/billing-limits.service.ts",
+        "line": 33,
+        "isTypeOnly": false,
+        "symbols": [
+          "isBillingFeatureEnabled"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-return.service.ts",
+        "toFile": "apps/api/src/modules/billing/billing-limits.service.ts",
+        "line": 37,
+        "isTypeOnly": false,
+        "symbols": [
+          "isBillingFeatureEnabled"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "rental",
+    "to": "common",
+    "total": 10,
+    "runtime": 10,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-external-order.service.ts",
+        "toFile": "apps/api/src/modules/common/services/document-number.service.ts",
+        "line": 10,
+        "isTypeOnly": false,
+        "symbols": [
+          "DocumentNumberService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-item.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 23,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order-fulfillment.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 24,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order-historical-settlement.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 13,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order-lifecycle.service.ts",
+        "toFile": "apps/api/src/modules/common/services/document-number.service.ts",
+        "line": 18,
+        "isTypeOnly": false,
+        "symbols": [
+          "DocumentNumberService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order-lifecycle.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 19,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order-payment.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 22,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-order.service.ts",
+        "toFile": "apps/api/src/modules/common/services/document-number.service.ts",
+        "line": 11,
+        "isTypeOnly": false,
+        "symbols": [
+          "DocumentNumberService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-policy.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 15,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-return.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 25,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "rental",
+    "to": "inventory",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 1,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-item.service.ts",
+        "toFile": "apps/api/src/modules/inventory/inventory.service.ts",
+        "line": 385,
+        "isTypeOnly": false,
+        "symbols": [
+          "dynamic import"
+        ],
+        "isDynamic": true
+      }
+    ]
+  },
+  {
+    "from": "rental",
+    "to": "product",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 1,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/rental/rental-item.service.ts",
+        "toFile": "apps/api/src/modules/product/product.service.ts",
+        "line": 210,
+        "isTypeOnly": false,
+        "symbols": [
+          "dynamic import"
+        ],
+        "isDynamic": true
+      }
+    ]
+  },
+  {
+    "from": "sales",
+    "to": "accounting",
+    "total": 2,
+    "runtime": 2,
+    "dynamic": 1,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/sales/customer-deposit.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/journal.service.ts",
+        "line": 15,
+        "isTypeOnly": false,
+        "symbols": [
+          "JournalService"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/sales/sales-order.service.ts",
+        "toFile": "apps/api/src/modules/accounting/services/invoice.service.ts",
+        "line": 285,
+        "isTypeOnly": false,
+        "symbols": [
+          "dynamic import"
+        ],
+        "isDynamic": true
+      }
+    ]
+  },
+  {
+    "from": "sales",
+    "to": "common",
+    "total": 4,
+    "runtime": 4,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/sales/sales-order.service.ts",
+        "toFile": "apps/api/src/modules/common/audit/audit-log.service.ts",
+        "line": 24,
+        "isTypeOnly": false,
+        "symbols": [
+          "recordAudit"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/sales/sales-order.service.ts",
+        "toFile": "apps/api/src/modules/common/di/index.ts",
+        "line": 25,
+        "isTypeOnly": false,
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/sales/sales-order.service.ts",
+        "toFile": "apps/api/src/modules/common/utils/order.utils.ts",
+        "line": 26,
+        "isTypeOnly": false,
+        "symbols": [
+          "calculateDpAmount",
+          "validateAndAuditClose"
+        ],
+        "isDynamic": false
+      },
+      {
+        "fromFile": "apps/api/src/modules/sales/sales-order.service.ts",
+        "toFile": "apps/api/src/modules/common/services/document-number.service.ts",
+        "line": 36,
+        "isTypeOnly": false,
+        "symbols": [
+          "DocumentNumberService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "sales",
+    "to": "inventory",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/sales/sales-order.service.ts",
+        "toFile": "apps/api/src/modules/inventory/inventory.service.ts",
+        "line": 38,
+        "isTypeOnly": false,
+        "symbols": [
+          "InventoryService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "sales",
+    "to": "product",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/sales/sales-order.service.ts",
+        "toFile": "apps/api/src/modules/product/product.service.ts",
+        "line": 17,
+        "isTypeOnly": false,
+        "symbols": [
+          "ProductService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  },
+  {
+    "from": "user",
+    "to": "company",
+    "total": 1,
+    "runtime": 1,
+    "dynamic": 0,
+    "details": [
+      {
+        "fromFile": "apps/api/src/modules/user/user.service.ts",
+        "toFile": "apps/api/src/modules/company/company.service.ts",
+        "line": 4,
+        "isTypeOnly": false,
+        "symbols": [
+          "CompanyService"
+        ],
+        "isDynamic": false
+      }
+    ]
+  }
+]

@@ -4,6 +4,7 @@ import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
 import { Input } from '@/components/ui/input';
 import { apiAction } from '@/hooks/useApiAction';
+import { useCashBankAccounts } from '@/hooks/useCashBankAccounts';
 import { useBillingFeatures } from '@/hooks/useBillingFeatures';
 import type { RentalOrderWithRelations } from '@sync-erp/shared';
 import {
@@ -99,20 +100,7 @@ export default function UnitAssignmentModal({
   >();
   const [settlementReference, setSettlementReference] = useState('');
 
-  const { data: accounts = [] } = trpc.finance.listAccounts.useQuery(
-    undefined,
-    { enabled: isOpen }
-  );
-  const cashBankAccounts = useMemo(() => {
-    const headers = new Set(['1100', '1200', '1210']);
-    return accounts.filter((account) => {
-      if (account.isGroup || headers.has(account.code)) return false;
-      return (
-        (account.code >= '1100' && account.code <= '1199') ||
-        (account.code >= '1200' && account.code <= '1299')
-      );
-    });
-  }, [accounts]);
+  const { cashBankAccounts } = useCashBankAccounts({ enabled: isOpen });
 
   // Initialize assignments from reserved units when modal opens
   useEffect(() => {

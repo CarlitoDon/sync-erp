@@ -1,5 +1,10 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { PaymentMethodType } from '@sync-erp/database';
+import {
+  buildRentalDpRef,
+  buildRentalReleaseRef,
+  buildRentalDamageFeeRef,
+} from '@sync-erp/shared';
 import { JournalRentalService } from '../../../src/modules/accounting/services/journal-rental.service';
 import { JournalCoreService } from '../../../src/modules/accounting/services/journal-core.service';
 import { JournalRepository } from '../../../src/modules/accounting/repositories/journal.repository';
@@ -136,9 +141,9 @@ describe('Rental Flow Lifecycle E2E (045)', () => {
     );
 
     // Order of postings follows the lifecycle sequence
-    expect(calls[0].reference).toBe(`Rental DP: ${orderNumber}`);
-    expect(calls[1].reference).toBe(`Rental Release: ${orderNumber}`);
-    expect(calls[2].reference).toBe(`Rental Damage Fee: ${orderNumber}`);
+    expect(calls[0].reference).toBe(buildRentalDpRef(orderNumber));
+    expect(calls[1].reference).toBe(buildRentalReleaseRef(orderNumber));
+    expect(calls[2].reference).toBe(buildRentalDamageFeeRef(orderNumber));
 
     // Every journal must balance (debit === credit)
     for (const journal of calls) {

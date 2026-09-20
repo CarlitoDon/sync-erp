@@ -7,8 +7,12 @@
  * Pattern: Policy.ensure*() throws DomainError if constraint violated.
  */
 
-import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
-import { isPrivilegedRole, normalizeRole } from '../auth/rbac.policy';
+import {
+  DomainError,
+  DomainErrorCodes,
+  isPrivilegedRole,
+  normalizeRole,
+} from '@sync-erp/shared';
 
 /**
  * AdminPolicy - Access control for admin observability operations.
