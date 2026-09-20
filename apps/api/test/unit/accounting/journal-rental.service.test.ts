@@ -1,6 +1,14 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { PaymentMethodType, Prisma } from '@sync-erp/database';
-import { DomainError } from '@sync-erp/shared';
+import {
+  DomainError,
+  buildRentalDpRef,
+  buildRentalReleaseRef,
+  buildRentalExtensionRef,
+  buildRentalDamageFeeRef,
+  buildRentalLateFeeRef,
+  buildRentalRefundDpRef,
+} from '@sync-erp/shared';
 import { JournalRentalService } from '../../../src/modules/accounting/services/journal-rental.service';
 import { JournalService } from '../../../src/modules/accounting/services/journal.service';
 import { JournalCoreService } from '../../../src/modules/accounting/services/journal-core.service';
@@ -103,7 +111,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
 
       expect(mockPrisma.journalEntry.create).toHaveBeenCalledTimes(1);
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental DP: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalDpRef('ORD-001'));
       expect(callArgs.data.memo).toBe('Down payment for rental order ORD-001 - Budi Santoso');
       expect(callArgs.data.sourceType).toBe(JournalSourceType.RENTAL_DEPOSIT);
       expect(callArgs.data.sourceId).toBe('order-1');
@@ -201,7 +209,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
 
       expect(mockPrisma.journalEntry.create).toHaveBeenCalledTimes(1);
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental Release: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalReleaseRef('ORD-001'));
       expect(callArgs.data.sourceType).toBe(JournalSourceType.PAYMENT);
       expect(callArgs.data.sourceId).toBe('order-1');
 
@@ -280,7 +288,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
       });
 
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental Extension: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalExtensionRef('ORD-001'));
       expect(callArgs.data.memo).toBe('Rental extension payment for ORD-001 - Budi Santoso');
       expect(callArgs.data.sourceType).toBe(JournalSourceType.PAYMENT);
       expect(callArgs.data.sourceId).toBe('order-1');
@@ -336,7 +344,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
       });
 
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental Damage Fee: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalDamageFeeRef('ORD-001'));
       expect(callArgs.data.memo).toBe('Rental damage/cleaning fee for ORD-001 - Budi Santoso');
       expect(callArgs.data.sourceType).toBe(JournalSourceType.RENTAL_RETURN);
       expect(callArgs.data.sourceId).toBe('order-1');
@@ -373,7 +381,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
       });
 
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental Late Fee: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalLateFeeRef('ORD-001'));
       expect(callArgs.data.memo).toBe('Rental late fee for ORD-001 - Budi Santoso');
       expect(callArgs.data.sourceType).toBe(JournalSourceType.RENTAL_RETURN);
       expect(callArgs.data.sourceId).toBe('order-1:late');
@@ -410,7 +418,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
       });
 
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental Refund DP: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalRefundDpRef('ORD-001'));
       expect(callArgs.data.memo).toBe('Rental DP cancellation refund for ORD-001 - Budi Santoso');
       expect(callArgs.data.sourceType).toBe(JournalSourceType.PAYMENT);
       expect(callArgs.data.sourceId).toBe('order-1');

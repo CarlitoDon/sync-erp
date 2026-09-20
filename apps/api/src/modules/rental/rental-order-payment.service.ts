@@ -20,7 +20,7 @@ import {
 import { RentalWebhookService } from './rental-webhook.service';
 import { JournalService } from '../accounting/services/journal.service';
 import { recordAudit } from '../common/audit/audit-log.service';
-import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import { DomainError, DomainErrorCodes, requireOrderNumber } from '@sync-erp/shared';
 
 export class RentalOrderPaymentService {
   constructor(
@@ -210,7 +210,7 @@ export class RentalOrderPaymentService {
               await this.journalService.postRentalDownPayment({
                 companyId,
                 orderId: order.id,
-                orderNumber: order.orderNumber!,
+                orderNumber: requireOrderNumber(order, 'Rental Order Payment Verification'),
                 downPaymentAmount: depositAmount.toNumber(),
                 paymentMethod: order.paymentMethod || 'BANK',
                 customerName: order.partner?.name,

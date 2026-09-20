@@ -232,7 +232,7 @@ export default function RentalOrderDetail() {
                 tidak pernah tampil "Belum Bayar" (chip Lunas dari
                 rentalPaymentStatus CONFIRMED). */}
             <RentalPaymentStatusCard
-              rentalPaymentStatus={order.rentalPaymentStatus}
+              order={order}
               paymentClaimedAt={order.paymentClaimedAt}
               paymentConfirmedAt={order.paymentConfirmedAt}
               paymentReference={order.paymentReference}

@@ -135,7 +135,7 @@ describe('RentalOrderFulfillmentService', () => {
 
       await expect(
         service.confirmOrder(COMPANY_ID, input, ACTOR_ID)
-      ).rejects.toThrow('Can only confirm DRAFT orders');
+      ).rejects.toThrow('Only DRAFT orders can be confirmed');
     });
   });
 

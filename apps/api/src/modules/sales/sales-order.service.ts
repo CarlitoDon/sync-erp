@@ -36,13 +36,19 @@ import {
 import { DocumentNumberService } from '../common/services/document-number.service';
 // Use InventoryService instead of repository for proper service-to-service call
 import { InventoryService } from '../inventory/inventory.service';
+import { OrderStatusSyncPort } from '../inventory/ports/order-status-sync.port';
 
-export class SalesOrderService {
+export interface DownPaymentInvoicePort {
+  createDownPaymentInvoice(companyId: string, orderId: string): Promise<unknown>;
+}
+
+export class SalesOrderService implements OrderStatusSyncPort {
   constructor(
     private readonly repository: SalesOrderRepository = new SalesOrderRepository(),
     private readonly productService: ProductService = new ProductService(),
     private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
-    private readonly inventoryService: InventoryService = new InventoryService()
+    private readonly inventoryService: InventoryService = new InventoryService(),
+    private readonly dpInvoicePort?: DownPaymentInvoicePort
   ) {}
 
   /**
@@ -281,14 +287,20 @@ export class SalesOrderService {
       (order.dpAmount && Number(order.dpAmount) > 0);
 
     if (hasDpRequired) {
-      // Resolve InvoiceService from DI container (avoids circular dependency)
-      const { InvoiceService } = await import(
-        '../accounting/services/invoice.service'
-      );
-      const invoiceService = container.resolve<InstanceType<typeof InvoiceService>>(
-        ServiceKeys.INVOICE_SERVICE
-      );
-      await invoiceService.createDownPaymentInvoice(companyId, id);
+      if (this.dpInvoicePort) {
+        await this.dpInvoicePort.createDownPaymentInvoice(companyId, id);
+      } else if (container.has(ServiceKeys.INVOICE_SERVICE)) {
+        const invoiceService = container.resolve<DownPaymentInvoicePort>(
+          ServiceKeys.INVOICE_SERVICE
+        );
+        await invoiceService.createDownPaymentInvoice(companyId, id);
+      } else {
+        const { InvoiceService } = await import(
+          '../accounting/services/invoice.service'
+        );
+        const invoiceService = new InvoiceService();
+        await invoiceService.createDownPaymentInvoice(companyId, id);
+      }
     }
 
     return updated;
@@ -538,6 +550,17 @@ export class SalesOrderService {
     }
 
     return order;
+  }
+
+  /**
+   * Implements OrderStatusSyncPort for inventory decoupling.
+   */
+  async recalculateOrderStatus(
+    orderId: string,
+    companyId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<void> {
+    await this.recalculateStatus(orderId, companyId, tx);
   }
 
   /**

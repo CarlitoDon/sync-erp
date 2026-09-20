@@ -18,6 +18,7 @@
     "postinstall": "node scripts/patch-zod-prisma-types.mjs && npm run db:generate --workspace=@sync-erp/database",
     "typecheck": "tsc -b",
     "typecheck:watch": "tsc -b --watch",
+    "check:circular": "node scripts/check-circular-deps.mjs --no-module-cycles",
     "lint": "turbo run lint",
     "lint:watch": "esw . --watch --ext .ts,.tsx --color",
     "test": "turbo run test",

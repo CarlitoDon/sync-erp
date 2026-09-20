@@ -4,6 +4,7 @@ import FormModal from '@/components/ui/FormModal';
 import Select from '@/components/ui/Select';
 import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import { apiAction } from '@/hooks/useApiAction';
+import { useCashBankAccounts } from '@/hooks/useCashBankAccounts';
 import { toast } from 'react-hot-toast';
 import {
   RentalOrderWithRelations,
@@ -56,17 +57,7 @@ export default function ReturnModal({
   const [damageAccountId, setDamageAccountId] = useState<
     string | undefined
   >();
-  const { data: accounts = [] } = trpc.finance.listAccounts.useQuery(
-    undefined,
-    { enabled: isOpen }
-  );
-  const cashBankAccounts = accounts.filter((account) => {
-    if (account.isGroup) return false;
-    return (
-      (account.code >= '1100' && account.code <= '1199') ||
-      (account.code >= '1200' && account.code <= '1299')
-    );
-  });
+  const { cashBankAccounts } = useCashBankAccounts({ enabled: isOpen });
 
   const processReturnMutation =
     trpc.rental.returns.process.useMutation({

@@ -26,6 +26,7 @@ import { recordAudit } from '../common/audit/audit-log.service';
 import {
   DomainError,
   DomainErrorCodes,
+  requireOrderNumber,
   type ProcessReturnInput,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
@@ -250,11 +251,13 @@ export class RentalReturnService {
             ? new Date()
             : input.actualReturnDate;
 
+        const orderNumber = requireOrderNumber(order, 'Rental Return Fee');
+
         if (damageAmount.gt(0)) {
           await this.journalService.postRentalDamageFee({
             companyId,
             orderId: order.id,
-            orderNumber: order.orderNumber!,
+            orderNumber,
             damageFeeAmount: damageAmount.toNumber(),
             paymentAccountId: input.damagePayment.paymentAccountId,
             paymentMethod: input.damagePayment.paymentMethod,
@@ -268,7 +271,7 @@ export class RentalReturnService {
           await this.journalService.postRentalLateFee({
             companyId,
             orderId: order.id,
-            orderNumber: order.orderNumber!,
+            orderNumber,
             lateFeeAmount: lateAmount.toNumber(),
             paymentAccountId: input.damagePayment.paymentAccountId,
             paymentMethod: input.damagePayment.paymentMethod,

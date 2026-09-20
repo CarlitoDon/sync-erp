@@ -25,6 +25,8 @@ import { recordAudit } from '../common/audit/audit-log.service';
 import {
   DomainError,
   DomainErrorCodes,
+  JOURNAL_REF_PREFIX,
+  requireOrderNumber,
   type ConfirmRentalOrderInput,
   type ManualConfirmRentalOrderInput,
   type ReleaseRentalOrderInput,
@@ -56,13 +58,7 @@ export class RentalOrderFulfillmentService {
         );
       }
 
-      if (order.status !== RentalOrderStatus.DRAFT) {
-        throw new DomainError(
-          'Can only confirm DRAFT orders',
-          400,
-          DomainErrorCodes.OPERATION_NOT_ALLOWED
-        );
-      }
+      Policy.ensureCanConfirm(order);
 
       // Get order items with their rental item info
       const orderItems = await tx.rentalOrderItem.findMany({
@@ -293,7 +289,7 @@ export class RentalOrderFulfillmentService {
           await this.journalService.postRentalDownPayment({
             companyId,
             orderId: order.id,
-            orderNumber: order.orderNumber!,
+            orderNumber: requireOrderNumber(order, 'Rental DP Journal Posting'),
             downPaymentAmount: depositAmount.toNumber(),
             paymentAccountId: input.paymentAccountId,
             paymentMethod: paymentMethodStr,
@@ -335,13 +331,7 @@ export class RentalOrderFulfillmentService {
         );
       }
 
-      if (order.status !== RentalOrderStatus.DRAFT) {
-        throw new DomainError(
-          'Can only confirm DRAFT orders',
-          400,
-          DomainErrorCodes.OPERATION_NOT_ALLOWED
-        );
-      }
+      Policy.ensureCanConfirm(order);
 
       // Get payment method
       const paymentMethod = await tx.companyPaymentMethod.findFirst({
@@ -561,7 +551,7 @@ export class RentalOrderFulfillmentService {
           await this.journalService.postRentalDownPayment({
             companyId,
             orderId: order.id,
-            orderNumber: order.orderNumber!,
+            orderNumber: requireOrderNumber(order, 'Manual Confirm DP Journal Posting'),
             downPaymentAmount: depositAmount.toNumber(),
             paymentAccountId:
               input.paymentAccountId ?? paymentMethod.accountId ?? undefined,
@@ -753,7 +743,7 @@ export class RentalOrderFulfillmentService {
             companyId,
             sourceType: JournalSourceType.PAYMENT,
             sourceId: order.id,
-            reference: { startsWith: 'Rental Release:' },
+            reference: { startsWith: JOURNAL_REF_PREFIX.RENTAL_RELEASE },
           },
         });
 
@@ -761,7 +751,7 @@ export class RentalOrderFulfillmentService {
           await this.journalService.postRentalReleaseSettlement({
             companyId,
             orderId: order.id,
-            orderNumber: order.orderNumber!,
+            orderNumber: requireOrderNumber(order, 'Rental Release Journal Posting'),
             settlementAmount,
             downPaymentAmount: effectiveDownPayment,
             rentalRevenueAmount,

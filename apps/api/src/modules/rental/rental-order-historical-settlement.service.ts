@@ -125,6 +125,8 @@ export class RentalOrderHistoricalSettlementService {
         },
       });
 
+      // Architectural Context: Uses deprecated postRentalReturn with depositAmount=0 as a transitional
+      // backfill mechanism to recognize full rental revenue for historical completed orders without a release step.
       await this.journalService.postRentalReturn(
         companyId,
         rentalReturn.id,

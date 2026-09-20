@@ -98,7 +98,7 @@ export class PartnerService {
 **DI Container** (lazy singleton, registered on app startup):
 
 ```typescript
-// apps/api/src/modules/common/di/register.ts
+// apps/api/src/di/register.ts
 container.register(ServiceKeys.PARTNER_SERVICE, () => 
   new PartnerService(container.resolve(ServiceKeys.PARTNER_REPOSITORY))
 );
@@ -479,7 +479,7 @@ export class PartnerService {
   }
 }
 
-// Register in apps/api/src/modules/common/di/register.ts
+// Register in apps/api/src/di/register.ts
 container.register(ServiceKeys.PARTNER_REPOSITORY, () => new PartnerRepository());
 container.register(ServiceKeys.PARTNER_SERVICE, () => 
   new PartnerService(container.resolve(ServiceKeys.PARTNER_REPOSITORY))
@@ -615,7 +615,7 @@ describe('P2P Full Cycle', () => {
 - [ ] Add tRPC router in `apps/api/src/trpc/routers/{domain}.router.ts`
 - [ ] Register router in `apps/api/src/trpc/router.ts`
 - [ ] Create service with constructor DI for dependencies
-- [ ] Register service in `apps/api/src/modules/common/di/register.ts`
+- [ ] Register service in `apps/api/src/di/register.ts`
 - [ ] Add `ServiceKeys` constant in `container.ts`
 - [ ] Service methods receive `companyId` as first param
 - [ ] Repository methods filter by `companyId`

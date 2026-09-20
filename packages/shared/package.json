@@ -32,7 +32,8 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsc --watch",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^7.1.0",

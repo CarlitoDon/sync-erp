@@ -12,6 +12,7 @@ import {
   BillingProvider,
   BillingSubscriptionStatus,
 } from '@sync-erp/database';
+import { buildRentalDpRef, requireOrderNumber } from '@sync-erp/shared';
 import { BillService } from '@modules/accounting/services/bill.service';
 import { PaymentService } from '@modules/accounting/services/payment.service';
 import { PurchaseOrderService } from '@modules/procurement/purchase-order.service';
@@ -461,7 +462,7 @@ describe('US3: Full Rental Asset Lifecycle', () => {
       where: {
         companyId: COMPANY_ID,
         sourceType: JournalSourceType.RENTAL_DEPOSIT,
-        reference: { contains: rentalOrder.orderNumber! },
+        reference: buildRentalDpRef(requireOrderNumber(rentalOrder, 'test deposit verification')),
       },
       include: { lines: { include: { account: true } } },
     });
@@ -549,7 +550,7 @@ describe('US3: Full Rental Asset Lifecycle', () => {
       where: {
         companyId: COMPANY_ID,
         sourceType: JournalSourceType.RENTAL_RETURN,
-        reference: { contains: rentalOrder.orderNumber! },
+        reference: { contains: requireOrderNumber(rentalOrder) },
       },
       include: { lines: { include: { account: true } } },
     });

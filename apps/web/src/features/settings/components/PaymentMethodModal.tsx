@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { apiAction } from '@/hooks/useApiAction';
+import { useCashBankAccounts } from '@/hooks/useCashBankAccounts';
 import {
   Dialog,
   DialogContent,
@@ -47,24 +48,7 @@ export function PaymentMethodModal({
   const utils = trpc.useUtils();
 
   // Get accounts for dropdown
-  const { data: accounts } = trpc.finance.listAccounts.useQuery();
-
-  // Filter to only Cash & Bank accounts (codes starting with 11xx or 12xx)
-  // Exclude header accounts: 1100, 1200, 1210
-  const cashBankAccounts = useMemo(() => {
-    if (!accounts) return [];
-    const headerCodes = ['1100', '1200', '1210'];
-    return accounts.filter((acc) => {
-      const code = acc.code;
-      // Exclude header accounts
-      if (headerCodes.includes(code)) return false;
-      // Cash accounts: 1101-1199, Bank accounts: 1201-1299 (excluding 1210)
-      return (
-        (code >= '1100' && code <= '1199') ||
-        (code >= '1200' && code <= '1299')
-      );
-    });
-  }, [accounts]);
+  const { cashBankAccounts } = useCashBankAccounts({ enabled: open });
 
   const createMutation = trpc.paymentMethod.create.useMutation({
     onSuccess: () => {

@@ -19,9 +19,14 @@ import { DocumentNumberService } from '../common/services/document-number.servic
 import { recordAudit } from '../common/audit/audit-log.service';
 import { JournalService } from '../accounting/services/journal.service';
 import { RentalWebhookService } from './rental-webhook.service';
+import { RentalPolicy } from './rental.policy';
 import {
   DomainError,
   DomainErrorCodes,
+  buildRentalRefundDpRef,
+  buildRentalExtensionRef,
+  buildRentalExtensionLegacyRef,
+  requireOrderNumber,
   type CreateRentalOrderInput,
   type ExtendRentalOrderInput,
   type CancelRentalRefundPaymentInput,
@@ -348,20 +353,7 @@ export class RentalOrderLifecycleService {
       );
     }
 
-    if (
-      !(
-        [
-          RentalOrderStatus.DRAFT,
-          RentalOrderStatus.CONFIRMED,
-        ] as RentalOrderStatus[]
-      ).includes(order.status)
-    ) {
-      throw new DomainError(
-        'Cannot cancel order in current status',
-        400,
-        DomainErrorCodes.OPERATION_NOT_ALLOWED
-      );
-    }
+    RentalPolicy.ensureCanCancel(order);
 
     // Use transaction for consistency
     const updatedOrder = await prisma.$transaction(async (tx) => {
@@ -420,11 +412,12 @@ export class RentalOrderLifecycleService {
       }
 
       if (refundAmount > 0) {
+        const orderNumber = requireOrderNumber(order, 'Rental Cancellation Refund');
         const existingRefundJournal = await tx.journalEntry.findFirst({
           where: {
             companyId,
             sourceType: JournalSourceType.PAYMENT,
-            reference: `Rental Refund DP: ${order.orderNumber!}`,
+            reference: buildRentalRefundDpRef(orderNumber),
           },
         });
 
@@ -432,7 +425,7 @@ export class RentalOrderLifecycleService {
           await this.journalService.postRentalCancellationRefund({
             companyId,
             orderId: order.id,
-            orderNumber: order.orderNumber!,
+            orderNumber,
             refundAmount,
             paymentAccountId: refundPayment?.paymentAccountId,
             paymentMethod:
@@ -785,10 +778,8 @@ export class RentalOrderLifecycleService {
       const extPaymentAmount =
         input.payment?.amount ?? totalAdditionalAmount.toNumber();
       if (extPaymentAmount > 0 && isPaid) {
-        const extensionRef =
-          extensionNumber > 1
-            ? `Rental Extension #${extensionNumber}: ${order.orderNumber!}`
-            : `Rental Extension: ${order.orderNumber!}`;
+        const orderNumber = requireOrderNumber(order, 'Rental Order Extension');
+        const extensionRef = buildRentalExtensionRef(orderNumber, extensionNumber);
         const extensionSourceId = `${order.id}:ext:${extension.id}`;
 
         const existingExtJournal = await tx.journalEntry.findFirst({
@@ -797,7 +788,7 @@ export class RentalOrderLifecycleService {
             sourceType: JournalSourceType.PAYMENT,
             OR: [
               { reference: extensionRef },
-              { reference: `Rental Extension: ${order.orderNumber!} (Ext #${extensionNumber})` },
+              { reference: buildRentalExtensionLegacyRef(orderNumber, extensionNumber) },
               { sourceId: extensionSourceId },
             ],
           },
@@ -807,7 +798,7 @@ export class RentalOrderLifecycleService {
           await this.journalService.postRentalExtension({
             companyId,
             orderId: order.id,
-            orderNumber: order.orderNumber!,
+            orderNumber,
             extensionAmount: itemAdditionalAmount.toNumber(),
             extraDeliveryFee: deliveryFee.toNumber(),
             paymentAccountId: input.payment?.paymentAccountId,

@@ -10,19 +10,15 @@ import {
 import { CompanyRepository } from './company.repository';
 import { CompanyPolicy } from './company.policy';
 import { InventoryPolicy } from '../inventory/inventory.policy';
-import { container, ServiceKeys } from '../common/di';
-import { AccountService } from '../accounting/services/account.service';
 import {
   CreateCompanyDto,
   JoinCompanyDto,
   DomainError,
   DomainErrorCodes,
-} from '@sync-erp/shared';
-import {
   canAssignRole,
   isPrivilegedRole,
   normalizeRole,
-} from '../auth/rbac.policy';
+} from '@sync-erp/shared';
 
 const MEMBERSHIP_MUTATION_MAX_ATTEMPTS = 3;
 
@@ -35,9 +31,14 @@ function isRetryableMembershipMutationConflict(error: unknown): boolean {
   return code === 'P2034' || code === '40001' || code === '40P01';
 }
 
+export interface AccountSeederPort {
+  seedDefaultAccounts(companyId: string): Promise<unknown>;
+}
+
 export class CompanyService {
   constructor(
-    private readonly repository: CompanyRepository = new CompanyRepository()
+    private readonly repository: CompanyRepository = new CompanyRepository(),
+    private readonly accountSeeder?: AccountSeederPort
   ) {}
 
   async create(
@@ -626,9 +627,8 @@ export class CompanyService {
 
     // Add the standard default accounts as a second pass so newly created
     // companies can immediately post procurement and sales journals.
-    const accountService = container.resolve<AccountService>(
-      ServiceKeys.ACCOUNT_SERVICE
-    );
-    await accountService.seedDefaultAccounts(companyId);
+    if (this.accountSeeder) {
+      await this.accountSeeder.seedDefaultAccounts(companyId);
+    }
   }
 }
