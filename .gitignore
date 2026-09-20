@@ -56,6 +56,7 @@ apps/api/deploy/
 
 # Sensitive data — DO NOT COMMIT
 cookies.txt
+backups/
 *.session
 storage/
 mcp-debug.log
@@ -72,3 +73,9 @@ router4/
 
 .codex/
 .claude/
+
+# Agent scratch & survey workspaces (untracked hygiene, run tw-20260920-maintfix)
+.agents/
+ORIGINAL_REQUEST.md
+test_output*.log
+typecheck.log

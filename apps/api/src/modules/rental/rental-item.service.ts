@@ -458,13 +458,26 @@ export class RentalItemService {
     );
 
     if (userId) {
+      const candidateAction =
+        'RENTAL_UNIT_UPDATED' in AuditLogAction
+          ? (AuditLogAction as typeof AuditLogAction & {
+              RENTAL_UNIT_UPDATED?: AuditLogAction;
+            }).RENTAL_UNIT_UPDATED
+          : undefined;
+      const auditAction = candidateAction ?? AuditLogAction.RENTAL_UNIT_ADDED;
+
       await recordAudit({
         companyId,
         actorId: userId,
-        action: AuditLogAction.RENTAL_UNIT_ADDED,
+        action: auditAction,
         entityType: EntityType.RENTAL_ITEM_UNIT,
         entityId: unitId,
         businessDate: new Date(),
+        payloadSnapshot: {
+          previousStatus: unit.status,
+          newStatus: status,
+          reason,
+        },
       });
     }
 

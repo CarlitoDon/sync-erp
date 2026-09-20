@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 import { resolve } from 'path';
-import { PrismaClient } from './generated/client/client.js';
+import { PrismaClient, Prisma } from './generated/client/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
@@ -96,6 +96,34 @@ if (process.env.NODE_ENV !== 'production') {
 
 export { PrismaClient } from './generated/client/client.js';
 export { Prisma } from './generated/client/client.js';
+
+/**
+ * Union type representing either the top-level PrismaClient singleton
+ * or an active interactive Prisma TransactionClient.
+ *
+ * Ensures all standard model delegates (rentalOrder, account, etc.) and raw query methods
+ * are available while abstracting transaction execution context.
+ */
+export type DbClient = PrismaClient | Prisma.TransactionClient;
+
+/**
+ * Resolves the active database client.
+ * Returns the interactive transaction client if provided; otherwise falls back to the default PrismaClient singleton.
+ *
+ * @param tx - Optional active Prisma transaction client
+ * @returns The transactional client or default prisma singleton
+ *
+ * @example
+ * ```ts
+ * async function findRentalOrder(orderId: string, tx?: Prisma.TransactionClient) {
+ *   const db = getDb(tx);
+ *   return db.rentalOrder.findUnique({ where: { id: orderId } });
+ * }
+ * ```
+ */
+export function getDb(tx?: Prisma.TransactionClient | null): DbClient {
+  return tx ?? prisma;
+}
 
 /**
  * Execute a callback within a company context for RLS enforcement.

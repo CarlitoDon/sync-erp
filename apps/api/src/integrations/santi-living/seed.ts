@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { DbClient } from '@sync-erp/database';
+
+export type SeedPrismaClient = DbClient;
 
 export async function seedSantiLiving(
-  prisma: any,
+  prisma: SeedPrismaClient,
   companyId: string,
   isDevelopment: boolean = false
-) {
+): Promise<void> {
   const appId = 'santi-living';
   const integration = await prisma.integration.upsert({
     where: {

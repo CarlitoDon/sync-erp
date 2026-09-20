@@ -1,6 +1,8 @@
 // Database Package - Main Entry Point
 export {
   prisma,
+  getDb,
+  type DbClient,
   withCompanyContext,
   setCompanyContext,
 } from './client.js';

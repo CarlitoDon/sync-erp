@@ -21,6 +21,7 @@ import { JournalService } from '../accounting/services/journal.service';
 import { InventoryMovementService } from './inventory-movement.service';
 import { InventoryFulfillmentService } from './inventory-fulfillment.service';
 import { StockAdjustmentInput } from '@sync-erp/shared';
+import { OrderStatusSyncPort } from './ports/order-status-sync.port';
 
 export class InventoryService {
   private readonly movementService: InventoryMovementService;
@@ -29,7 +30,9 @@ export class InventoryService {
   constructor(
     repository: InventoryRepository = new InventoryRepository(),
     productService: ProductService = new ProductService(),
-    journalService: JournalService = new JournalService()
+    journalService: JournalService = new JournalService(),
+    salesOrderStatusSync?: OrderStatusSyncPort,
+    procurementOrderStatusSync?: OrderStatusSyncPort
   ) {
     this.movementService = new InventoryMovementService(
       repository,
@@ -39,7 +42,9 @@ export class InventoryService {
     this.fulfillmentService = new InventoryFulfillmentService(
       repository,
       productService,
-      journalService
+      journalService,
+      salesOrderStatusSync,
+      procurementOrderStatusSync
     );
   }
 

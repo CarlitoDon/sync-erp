@@ -124,6 +124,12 @@ jobs:
           npm run test:unit --workspace=@sync-erp/api
           npm run test --workspace=@sync-erp/mcp
 
+      - name: Test (shared)
+        # packages/shared vitest suite. DATABASE_URL must be DEFINED (no
+        # connection is opened); it is inherited from the workflow-level env
+        # above, which mirrors the localhost test DB service.
+        run: npm test --workspace=@sync-erp/shared
+
       - name: Test release artifact validator
         run: npm run test:release-artifact
 
@@ -289,6 +295,10 @@ jobs:
 
       - name: Type check
         run: npm run typecheck
+
+      - name: Test (web)
+        # apps/web vitest suite. Inherits workflow-level DATABASE_URL/NODE_ENV.
+        run: npm test --workspace=@sync-erp/web
 
       - name: Build Web
         run: NODE_ENV=production npm run build:web

@@ -73,9 +73,23 @@ describe('Rental Payment Flow', () => {
         },
         {
           companyId: COMPANY_ID,
+          code: '1200',
+          name: 'Bank',
+          type: AccountType.ASSET,
+          isGroup: false,
+        },
+        {
+          companyId: COMPANY_ID,
           code: '1400',
           name: 'Inventory Asset',
           type: AccountType.ASSET,
+          isGroup: false,
+        },
+        {
+          companyId: COMPANY_ID,
+          code: '2200',
+          name: 'Uang Muka Sewa',
+          type: AccountType.LIABILITY,
           isGroup: false,
         },
         {
@@ -379,7 +393,7 @@ describe('Rental Payment Flow', () => {
       },
     });
 
-    // 2. Admin tries to verify PENDING payment → Should fail
+    // 2. Admin tries to verify PENDING payment without reference → Should fail (M4)
     await expect(
       rentalService.verifyPayment(
         COMPANY_ID,
@@ -387,7 +401,17 @@ describe('Rental Payment Flow', () => {
         'confirm',
         ACTOR_ID
       )
-    ).rejects.toThrow('AWAITING_CONFIRM');
+    ).rejects.toThrow('Payment reference or proof is required');
+
+    // 3. Admin verifies with reference → Should succeed (M4)
+    const verified = await rentalService.verifyPayment(
+      COMPANY_ID,
+      order.id,
+      'confirm',
+      ACTOR_ID,
+      'REF-TRF-12345'
+    );
+    expect(verified.rentalPaymentStatus).toBe(RentalPaymentStatus.CONFIRMED);
   });
 
   it('Edge Case: Double confirmation is idempotent (no error)', async () => {

@@ -14,6 +14,7 @@ import {
   BillingProvider,
   BillingSubscriptionStatus,
 } from '@sync-erp/database';
+import { buildRentalDpRef, requireOrderNumber } from '@sync-erp/shared';
 import { RentalOrderFulfillmentService } from '@modules/rental/rental-order-fulfillment.service';
 import { RentalRepository } from '@modules/rental/rental.repository';
 import { RentalService } from '@modules/rental/rental.service';
@@ -313,7 +314,7 @@ describe('RentalOrderFulfillmentService Integration', () => {
       where: {
         companyId: COMPANY_ID,
         sourceType: JournalSourceType.RENTAL_DEPOSIT,
-        reference: { contains: order.orderNumber! },
+        reference: buildRentalDpRef(requireOrderNumber(order, 'test deposit verification')),
       },
       include: { lines: { include: { account: true } } },
     });

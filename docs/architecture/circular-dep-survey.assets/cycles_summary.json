@@ -1,0 +1,543 @@
+{
+  "totalFiles": 193,
+  "totalEdges": 449,
+  "runtimeCyclesCount": 4,
+  "allCyclesCount": 8,
+  "runtimeCycles": [
+    [
+      {
+        "from": "apps/api/src/modules/auth/auth.service.ts",
+        "to": "apps/api/src/modules/user/user.service.ts",
+        "line": 10,
+        "specifier": "../user/user.service",
+        "symbols": [
+          "PublicUser",
+          "toPublicUser",
+          "UserService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/user/user.service.ts",
+        "to": "apps/api/src/modules/company/company.service.ts",
+        "line": 4,
+        "specifier": "../company/company.service",
+        "symbols": [
+          "CompanyService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/company/company.service.ts",
+        "to": "apps/api/src/modules/common/di/index.ts",
+        "line": 13,
+        "specifier": "../common/di",
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/index.ts",
+        "to": "apps/api/src/modules/common/di/register.ts",
+        "line": 4,
+        "specifier": "./register",
+        "symbols": [
+          "registerServices"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/register.ts",
+        "to": "apps/api/src/modules/auth/auth.service.ts",
+        "line": 45,
+        "specifier": "../../auth/auth.service",
+        "symbols": [
+          "AuthService"
+        ]
+      }
+    ],
+    [
+      {
+        "from": "apps/api/src/modules/common/di/index.ts",
+        "to": "apps/api/src/modules/common/di/register.ts",
+        "line": 4,
+        "specifier": "./register",
+        "symbols": [
+          "registerServices"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/register.ts",
+        "to": "apps/api/src/modules/sales/sales-order.service.ts",
+        "line": 39,
+        "specifier": "../../sales/sales-order.service",
+        "symbols": [
+          "SalesOrderService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/sales/sales-order.service.ts",
+        "to": "apps/api/src/modules/common/di/index.ts",
+        "line": 25,
+        "specifier": "../common/di",
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ]
+      }
+    ],
+    [
+      {
+        "from": "apps/api/src/modules/common/di/index.ts",
+        "to": "apps/api/src/modules/common/di/register.ts",
+        "line": 4,
+        "specifier": "./register",
+        "symbols": [
+          "registerServices"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/register.ts",
+        "to": "apps/api/src/modules/company/company.service.ts",
+        "line": 44,
+        "specifier": "../../company/company.service",
+        "symbols": [
+          "CompanyService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/company/company.service.ts",
+        "to": "apps/api/src/modules/common/di/index.ts",
+        "line": 13,
+        "specifier": "../common/di",
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ]
+      }
+    ],
+    [
+      {
+        "from": "apps/api/src/modules/common/di/index.ts",
+        "to": "apps/api/src/modules/common/di/register.ts",
+        "line": 4,
+        "specifier": "./register",
+        "symbols": [
+          "registerServices"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/register.ts",
+        "to": "apps/api/src/modules/user/user.service.ts",
+        "line": 46,
+        "specifier": "../../user/user.service",
+        "symbols": [
+          "UserService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/user/user.service.ts",
+        "to": "apps/api/src/modules/company/company.service.ts",
+        "line": 4,
+        "specifier": "../company/company.service",
+        "symbols": [
+          "CompanyService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/company/company.service.ts",
+        "to": "apps/api/src/modules/common/di/index.ts",
+        "line": 13,
+        "specifier": "../common/di",
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ]
+      }
+    ]
+  ],
+  "allCycles": [
+    [
+      {
+        "from": "apps/api/src/modules/auth/auth.service.ts",
+        "to": "apps/api/src/modules/user/user.service.ts",
+        "isTypeOnly": false,
+        "line": 10,
+        "specifier": "../user/user.service",
+        "symbols": [
+          "PublicUser",
+          "toPublicUser",
+          "UserService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/user/user.service.ts",
+        "to": "apps/api/src/modules/company/company.service.ts",
+        "isTypeOnly": false,
+        "line": 4,
+        "specifier": "../company/company.service",
+        "symbols": [
+          "CompanyService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/company/company.service.ts",
+        "to": "apps/api/src/modules/common/di/index.ts",
+        "isTypeOnly": false,
+        "line": 13,
+        "specifier": "../common/di",
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/index.ts",
+        "to": "apps/api/src/modules/common/di/register.ts",
+        "isTypeOnly": false,
+        "line": 4,
+        "specifier": "./register",
+        "symbols": [
+          "registerServices"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/register.ts",
+        "to": "apps/api/src/modules/auth/auth.service.ts",
+        "isTypeOnly": false,
+        "line": 45,
+        "specifier": "../../auth/auth.service",
+        "symbols": [
+          "AuthService"
+        ]
+      }
+    ],
+    [
+      {
+        "from": "apps/api/src/modules/common/di/index.ts",
+        "to": "apps/api/src/modules/common/di/register.ts",
+        "isTypeOnly": false,
+        "line": 4,
+        "specifier": "./register",
+        "symbols": [
+          "registerServices"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/register.ts",
+        "to": "apps/api/src/modules/inventory/inventory.service.ts",
+        "isTypeOnly": false,
+        "line": 34,
+        "specifier": "../../inventory/inventory.service",
+        "symbols": [
+          "InventoryService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/inventory/inventory.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory-fulfillment.service.ts",
+        "isTypeOnly": false,
+        "line": 22,
+        "specifier": "./inventory-fulfillment.service",
+        "symbols": [
+          "InventoryFulfillmentService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/inventory/inventory-fulfillment.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "isTypeOnly": false,
+        "line": 15,
+        "specifier": "./inventory-shipment.service",
+        "symbols": [
+          "InventoryShipmentService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "to": "apps/api/src/modules/sales/sales-order.service.ts",
+        "isTypeOnly": true,
+        "line": 17,
+        "specifier": "../sales/sales-order.service",
+        "symbols": [
+          "SOServiceType"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/sales/sales-order.service.ts",
+        "to": "apps/api/src/modules/common/di/index.ts",
+        "isTypeOnly": false,
+        "line": 25,
+        "specifier": "../common/di",
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ]
+      }
+    ],
+    [
+      {
+        "from": "apps/api/src/modules/common/di/index.ts",
+        "to": "apps/api/src/modules/common/di/register.ts",
+        "isTypeOnly": false,
+        "line": 4,
+        "specifier": "./register",
+        "symbols": [
+          "registerServices"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/register.ts",
+        "to": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "isTypeOnly": false,
+        "line": 38,
+        "specifier": "../../procurement/purchase-order.service",
+        "symbols": [
+          "PurchaseOrderService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory.service.ts",
+        "isTypeOnly": false,
+        "line": 28,
+        "specifier": "../inventory/inventory.service",
+        "symbols": [
+          "InventoryService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/inventory/inventory.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory-fulfillment.service.ts",
+        "isTypeOnly": false,
+        "line": 22,
+        "specifier": "./inventory-fulfillment.service",
+        "symbols": [
+          "InventoryFulfillmentService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/inventory/inventory-fulfillment.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "isTypeOnly": false,
+        "line": 15,
+        "specifier": "./inventory-shipment.service",
+        "symbols": [
+          "InventoryShipmentService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "to": "apps/api/src/modules/sales/sales-order.service.ts",
+        "isTypeOnly": true,
+        "line": 17,
+        "specifier": "../sales/sales-order.service",
+        "symbols": [
+          "SOServiceType"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/sales/sales-order.service.ts",
+        "to": "apps/api/src/modules/common/di/index.ts",
+        "isTypeOnly": false,
+        "line": 25,
+        "specifier": "../common/di",
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ]
+      }
+    ],
+    [
+      {
+        "from": "apps/api/src/modules/common/di/index.ts",
+        "to": "apps/api/src/modules/common/di/register.ts",
+        "isTypeOnly": false,
+        "line": 4,
+        "specifier": "./register",
+        "symbols": [
+          "registerServices"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/register.ts",
+        "to": "apps/api/src/modules/sales/sales-order.service.ts",
+        "isTypeOnly": false,
+        "line": 39,
+        "specifier": "../../sales/sales-order.service",
+        "symbols": [
+          "SalesOrderService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/sales/sales-order.service.ts",
+        "to": "apps/api/src/modules/common/di/index.ts",
+        "isTypeOnly": false,
+        "line": 25,
+        "specifier": "../common/di",
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ]
+      }
+    ],
+    [
+      {
+        "from": "apps/api/src/modules/common/di/index.ts",
+        "to": "apps/api/src/modules/common/di/register.ts",
+        "isTypeOnly": false,
+        "line": 4,
+        "specifier": "./register",
+        "symbols": [
+          "registerServices"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/register.ts",
+        "to": "apps/api/src/modules/company/company.service.ts",
+        "isTypeOnly": false,
+        "line": 44,
+        "specifier": "../../company/company.service",
+        "symbols": [
+          "CompanyService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/company/company.service.ts",
+        "to": "apps/api/src/modules/common/di/index.ts",
+        "isTypeOnly": false,
+        "line": 13,
+        "specifier": "../common/di",
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ]
+      }
+    ],
+    [
+      {
+        "from": "apps/api/src/modules/common/di/index.ts",
+        "to": "apps/api/src/modules/common/di/register.ts",
+        "isTypeOnly": false,
+        "line": 4,
+        "specifier": "./register",
+        "symbols": [
+          "registerServices"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/common/di/register.ts",
+        "to": "apps/api/src/modules/user/user.service.ts",
+        "isTypeOnly": false,
+        "line": 46,
+        "specifier": "../../user/user.service",
+        "symbols": [
+          "UserService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/user/user.service.ts",
+        "to": "apps/api/src/modules/company/company.service.ts",
+        "isTypeOnly": false,
+        "line": 4,
+        "specifier": "../company/company.service",
+        "symbols": [
+          "CompanyService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/company/company.service.ts",
+        "to": "apps/api/src/modules/common/di/index.ts",
+        "isTypeOnly": false,
+        "line": 13,
+        "specifier": "../common/di",
+        "symbols": [
+          "container",
+          "ServiceKeys"
+        ]
+      }
+    ],
+    [
+      {
+        "from": "apps/api/src/modules/inventory/inventory-fulfillment.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory-grn.service.ts",
+        "isTypeOnly": false,
+        "line": 14,
+        "specifier": "./inventory-grn.service",
+        "symbols": [
+          "InventoryGRNService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/inventory/inventory-grn.service.ts",
+        "to": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "isTypeOnly": true,
+        "line": 19,
+        "specifier": "../procurement/purchase-order.service",
+        "symbols": [
+          "POServiceType"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/procurement/purchase-order.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory.service.ts",
+        "isTypeOnly": false,
+        "line": 28,
+        "specifier": "../inventory/inventory.service",
+        "symbols": [
+          "InventoryService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/inventory/inventory.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory-fulfillment.service.ts",
+        "isTypeOnly": false,
+        "line": 22,
+        "specifier": "./inventory-fulfillment.service",
+        "symbols": [
+          "InventoryFulfillmentService"
+        ]
+      }
+    ],
+    [
+      {
+        "from": "apps/api/src/modules/inventory/inventory-fulfillment.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "isTypeOnly": false,
+        "line": 15,
+        "specifier": "./inventory-shipment.service",
+        "symbols": [
+          "InventoryShipmentService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/inventory/inventory-shipment.service.ts",
+        "to": "apps/api/src/modules/sales/sales-order.service.ts",
+        "isTypeOnly": true,
+        "line": 17,
+        "specifier": "../sales/sales-order.service",
+        "symbols": [
+          "SOServiceType"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/sales/sales-order.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory.service.ts",
+        "isTypeOnly": false,
+        "line": 38,
+        "specifier": "../inventory/inventory.service",
+        "symbols": [
+          "InventoryService"
+        ]
+      },
+      {
+        "from": "apps/api/src/modules/inventory/inventory.service.ts",
+        "to": "apps/api/src/modules/inventory/inventory-fulfillment.service.ts",
+        "isTypeOnly": false,
+        "line": 22,
+        "specifier": "./inventory-fulfillment.service",
+        "symbols": [
+          "InventoryFulfillmentService"
+        ]
+      }
+    ]
+  ]
+}

@@ -6,15 +6,20 @@ import {
   ActionButton,
 } from '@/components/ui';
 import { CurrencyDollarIcon } from '@heroicons/react/24/outline';
-import { formatDateTime } from '@/utils/format';
+import { formatCurrency, formatDateTime } from '@/utils/format';
 import {
-  PAYMENT_STATUS_COLORS,
-  PAYMENT_STATUS_LABELS,
-} from '../constants';
+  evaluateRentalPaymentStatus,
+  RentalPaymentStatusInput,
+  DecimalLike,
+} from '@sync-erp/shared';
 import { RentalOrderPermissions } from '../hooks/useRentalOrderPermissions';
 
 interface RentalPaymentStatusCardProps {
+  order?: RentalPaymentStatusInput | null;
   rentalPaymentStatus?: string | null;
+  status?: string;
+  totalAmount?: DecimalLike;
+  depositAmount?: DecimalLike;
   paymentClaimedAt?: Date | string | null;
   paymentConfirmedAt?: Date | string | null;
   paymentReference?: string | null;
@@ -24,7 +29,11 @@ interface RentalPaymentStatusCardProps {
 }
 
 export function RentalPaymentStatusCard({
+  order,
   rentalPaymentStatus,
+  status,
+  totalAmount,
+  depositAmount,
   paymentClaimedAt,
   paymentConfirmedAt,
   paymentReference,
@@ -32,7 +41,17 @@ export function RentalPaymentStatusCard({
   permissions,
   onVerifyPayment,
 }: RentalPaymentStatusCardProps) {
-  if (!rentalPaymentStatus) return null;
+  const orderInput: RentalPaymentStatusInput = order ?? {
+    status: status ?? '',
+    rentalPaymentStatus,
+    totalAmount,
+    depositAmount,
+  };
+
+  const paymentInfo = evaluateRentalPaymentStatus(orderInput);
+
+  // If no order or payment status info is available at all, hide card
+  if (!order && !rentalPaymentStatus && !status) return null;
 
   return (
     <Card
@@ -52,13 +71,20 @@ export function RentalPaymentStatusCard({
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-500">Status</span>
           <span
-            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${PAYMENT_STATUS_COLORS[rentalPaymentStatus as keyof typeof PAYMENT_STATUS_COLORS] || 'bg-gray-100 text-gray-700'}`}
+            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${paymentInfo.badgeClass}`}
           >
-            {PAYMENT_STATUS_LABELS[
-              rentalPaymentStatus as keyof typeof PAYMENT_STATUS_LABELS
-            ] || rentalPaymentStatus}
+            {paymentInfo.label}
           </span>
         </div>
+
+        {paymentInfo.status === 'DP_TERBAYAR' && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">Sisa Tagihan</span>
+            <span className="font-medium text-amber-700">
+              {formatCurrency(paymentInfo.remainingAmount)}
+            </span>
+          </div>
+        )}
 
         {paymentClaimedAt && (
           <div className="flex items-center justify-between text-sm">

@@ -38,6 +38,17 @@ describe('RentalOrderFulfillmentService', () => {
     asMock(prisma.companySubscription.findUnique).mockResolvedValue({
       planKey: 'starter',
     });
+    asMock(prisma.rentalOrder.updateMany).mockResolvedValue({ count: 1 });
+    asMock(prisma.rentalOrder.findUniqueOrThrow).mockImplementation(({ where }: { where: { id: string } }) =>
+      Promise.resolve({
+        id: where.id,
+        companyId: COMPANY_ID,
+        status: RentalOrderStatus.CONFIRMED,
+        unitAssignments: [{ rentalItemUnitId: 'unit-1' }],
+        items: [],
+        deposit: null,
+      })
+    );
   });
 
   describe('confirmOrder', () => {
@@ -124,7 +135,7 @@ describe('RentalOrderFulfillmentService', () => {
 
       await expect(
         service.confirmOrder(COMPANY_ID, input, ACTOR_ID)
-      ).rejects.toThrow('Can only confirm DRAFT orders');
+      ).rejects.toThrow('Only DRAFT orders can be confirmed');
     });
   });
 
@@ -299,7 +310,7 @@ describe('RentalOrderFulfillmentService', () => {
         },
         data: { status: UnitStatus.RESERVED },
       });
-      expect(prisma.rentalOrder.update).toHaveBeenCalled();
+      expect(prisma.rentalOrder.updateMany).toHaveBeenCalled();
       expect(mockJournalService.postRentalDownPayment).not.toHaveBeenCalled();
       expect(prisma.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -392,6 +403,7 @@ describe('RentalOrderFulfillmentService', () => {
       paymentStatus: 'PAID',
       depositStatus: DepositStatus.COLLECTED,
       depositAmount: new Decimal(50000),
+      unitAssignments: [{ rentalItemUnitId: 'unit-1' }],
     };
 
     it('should release order and update units to RENTED', async () => {
@@ -404,6 +416,10 @@ describe('RentalOrderFulfillmentService', () => {
         count: 1,
       });
       asMock(prisma.rentalOrder.update).mockResolvedValue({
+        ...mockOrder,
+        status: RentalOrderStatus.ACTIVE,
+      });
+      asMock(prisma.rentalOrder.findUniqueOrThrow).mockResolvedValue({
         ...mockOrder,
         status: RentalOrderStatus.ACTIVE,
       });
@@ -454,6 +470,10 @@ describe('RentalOrderFulfillmentService', () => {
         count: 1,
       });
       asMock(prisma.rentalOrder.update).mockResolvedValue({
+        ...mockOrder,
+        status: RentalOrderStatus.ACTIVE,
+      });
+      asMock(prisma.rentalOrder.findUniqueOrThrow).mockResolvedValue({
         ...mockOrder,
         status: RentalOrderStatus.ACTIVE,
       });

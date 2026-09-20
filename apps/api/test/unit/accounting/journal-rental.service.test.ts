@@ -1,6 +1,14 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { PaymentMethodType, Prisma } from '@sync-erp/database';
-import { DomainError } from '@sync-erp/shared';
+import {
+  DomainError,
+  buildRentalDpRef,
+  buildRentalReleaseRef,
+  buildRentalExtensionRef,
+  buildRentalDamageFeeRef,
+  buildRentalLateFeeRef,
+  buildRentalRefundDpRef,
+} from '@sync-erp/shared';
 import { JournalRentalService } from '../../../src/modules/accounting/services/journal-rental.service';
 import { JournalService } from '../../../src/modules/accounting/services/journal.service';
 import { JournalCoreService } from '../../../src/modules/accounting/services/journal-core.service';
@@ -103,7 +111,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
 
       expect(mockPrisma.journalEntry.create).toHaveBeenCalledTimes(1);
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental DP: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalDpRef('ORD-001'));
       expect(callArgs.data.memo).toBe('Down payment for rental order ORD-001 - Budi Santoso');
       expect(callArgs.data.sourceType).toBe(JournalSourceType.RENTAL_DEPOSIT);
       expect(callArgs.data.sourceId).toBe('order-1');
@@ -201,7 +209,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
 
       expect(mockPrisma.journalEntry.create).toHaveBeenCalledTimes(1);
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental Release: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalReleaseRef('ORD-001'));
       expect(callArgs.data.sourceType).toBe(JournalSourceType.PAYMENT);
       expect(callArgs.data.sourceId).toBe('order-1');
 
@@ -280,7 +288,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
       });
 
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental Extension: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalExtensionRef('ORD-001'));
       expect(callArgs.data.memo).toBe('Rental extension payment for ORD-001 - Budi Santoso');
       expect(callArgs.data.sourceType).toBe(JournalSourceType.PAYMENT);
       expect(callArgs.data.sourceId).toBe('order-1');
@@ -336,7 +344,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
       });
 
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental Damage Fee: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalDamageFeeRef('ORD-001'));
       expect(callArgs.data.memo).toBe('Rental damage/cleaning fee for ORD-001 - Budi Santoso');
       expect(callArgs.data.sourceType).toBe(JournalSourceType.RENTAL_RETURN);
       expect(callArgs.data.sourceId).toBe('order-1');
@@ -361,6 +369,43 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
     });
   });
 
+  describe('T007b: postRentalLateFee', () => {
+    it('should create balanced dual-entry: Dr Kas/Bank, Cr Pendapatan Denda (4200) with distinct sourceId', async () => {
+      await rentalService.postRentalLateFee({
+        companyId: COMPANY_ID,
+        orderId: 'order-1',
+        orderNumber: 'ORD-001',
+        lateFeeAmount: 50000,
+        paymentMethod: PaymentMethodType.CASH,
+        customerName: 'Budi Santoso',
+      });
+
+      const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
+      expect(callArgs.data.reference).toBe(buildRentalLateFeeRef('ORD-001'));
+      expect(callArgs.data.memo).toBe('Rental late fee for ORD-001 - Budi Santoso');
+      expect(callArgs.data.sourceType).toBe(JournalSourceType.RENTAL_RETURN);
+      expect(callArgs.data.sourceId).toBe('order-1:late');
+
+      const lines = callArgs.data.lines.create;
+      expect(lines).toHaveLength(2);
+      expect(lines[0].debit).toBe(50000);
+      expect(lines[0].accountId).toBe('acc-cash-main-id');
+      expect(lines[1].credit).toBe(50000);
+      expect(lines[1].accountId).toBe('acc-rev-id');
+    });
+
+    it('should reject non-positive late fee amount', async () => {
+      await expect(
+        rentalService.postRentalLateFee({
+          companyId: COMPANY_ID,
+          orderId: 'order-1',
+          orderNumber: 'ORD-001',
+          lateFeeAmount: 0,
+        })
+      ).rejects.toThrow(DomainError);
+    });
+  });
+
   describe('T008: postRentalCancellationRefund', () => {
     it('should create balanced dual-entry: Dr Uang Muka Sewa (2200), Cr Kas/Bank', async () => {
       await rentalService.postRentalCancellationRefund({
@@ -373,7 +418,7 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
       });
 
       const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
-      expect(callArgs.data.reference).toBe('Rental Refund DP: ORD-001');
+      expect(callArgs.data.reference).toBe(buildRentalRefundDpRef('ORD-001'));
       expect(callArgs.data.memo).toBe('Rental DP cancellation refund for ORD-001 - Budi Santoso');
       expect(callArgs.data.sourceType).toBe(JournalSourceType.PAYMENT);
       expect(callArgs.data.sourceId).toBe('order-1');
@@ -399,11 +444,12 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
   });
 
   describe('T009: JournalService Facade Delegation', () => {
-    it('should correctly delegate all 5 rental methods from facade to rental service', async () => {
+    it('should correctly delegate all rental methods from facade to rental service', async () => {
       const spyDP = vi.spyOn(facadeService.rental, 'postRentalDownPayment');
       const spyRel = vi.spyOn(facadeService.rental, 'postRentalReleaseSettlement');
       const spyExt = vi.spyOn(facadeService.rental, 'postRentalExtension');
       const spyDmg = vi.spyOn(facadeService.rental, 'postRentalDamageFee');
+      const spyLate = vi.spyOn(facadeService.rental, 'postRentalLateFee');
       const spyRef = vi.spyOn(facadeService.rental, 'postRentalCancellationRefund');
 
       await facadeService.postRentalDownPayment({
@@ -439,6 +485,14 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
         damageFeeAmount: 25000,
       });
       expect(spyDmg).toHaveBeenCalledTimes(1);
+
+      await facadeService.postRentalLateFee({
+        companyId: COMPANY_ID,
+        orderId: 'order-1',
+        orderNumber: 'ORD-001',
+        lateFeeAmount: 25000,
+      });
+      expect(spyLate).toHaveBeenCalledTimes(1);
 
       await facadeService.postRentalCancellationRefund({
         companyId: COMPANY_ID,

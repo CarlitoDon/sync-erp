@@ -2,13 +2,22 @@ import type {
   JournalEntry,
 } from '@sync-erp/database';
 import {
-  PaymentMethodType,
   Prisma,
-  prisma,
 } from '@sync-erp/database';
-import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import {
+  DomainError,
+  DomainErrorCodes,
+  buildRentalDpRef,
+  buildRentalReleaseRef,
+  buildRentalExtensionRef,
+  buildRentalDamageFeeRef,
+  buildRentalLateFeeRef,
+  buildRentalRefundDpRef,
+} from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
-import { JournalCoreService } from './journal-core.service';
+import { JournalCoreService } from './journal-core.service.js';
+import { JournalAccountResolver } from './journal-account-resolver.service.js';
+import { JournalRentalLegacyService } from './journal-rental-legacy.service.js';
 
 /* eslint-disable @sync-erp/no-hardcoded-enum -- Mock-safe enum constant for rental journal source types in unit tests */
 const JournalSourceType = {
@@ -54,6 +63,8 @@ export interface PostRentalExtensionParams {
   paymentAccountId?: string;
   paymentMethod?: string;
   customerName?: string;
+  reference?: string;
+  sourceId?: string;
   tx?: Prisma.TransactionClient;
   businessDate?: Date;
 }
@@ -63,6 +74,18 @@ export interface PostRentalDamageFeeParams {
   orderId: string;
   orderNumber: string;
   damageFeeAmount: number;
+  paymentAccountId?: string;
+  paymentMethod?: string;
+  customerName?: string;
+  tx?: Prisma.TransactionClient;
+  businessDate?: Date;
+}
+
+export interface PostRentalLateFeeParams {
+  companyId: string;
+  orderId: string;
+  orderNumber: string;
+  lateFeeAmount: number;
   paymentAccountId?: string;
   paymentMethod?: string;
   customerName?: string;
@@ -83,7 +106,14 @@ export interface PostRentalCancellationRefundParams {
 }
 
 export class JournalRentalService {
-  constructor(private readonly core: JournalCoreService) {}
+  constructor(
+    private readonly core: JournalCoreService,
+    private readonly accountResolver: JournalAccountResolver = new JournalAccountResolver(),
+    private readonly legacy: JournalRentalLegacyService = new JournalRentalLegacyService(
+      core,
+      accountResolver
+    )
+  ) {}
 
   // ==========================================
   // FEATURE 045 BALANCED PROCEDURES
@@ -118,15 +148,16 @@ export class JournalRentalService {
       );
     }
 
-    const contraAccountCode = await this.resolveCashBankAccountCode(
-      companyId,
-      paymentAccountId,
-      paymentMethod,
-      tx
-    );
+    const contraAccountCode =
+      await this.accountResolver.resolveCashBankAccountCode(
+        companyId,
+        paymentAccountId,
+        paymentMethod,
+        tx
+      );
 
     const data = {
-      reference: `Rental DP: ${orderNumber}`,
+      reference: buildRentalDpRef(orderNumber),
       memo: `Down payment for rental order ${orderNumber}${customerName ? ` - ${customerName}` : ''}`,
       sourceType: JournalSourceType.RENTAL_DEPOSIT,
       sourceId: orderId,
@@ -189,12 +220,13 @@ export class JournalRentalService {
       );
     }
 
-    const contraAccountCode = await this.resolveCashBankAccountCode(
-      companyId,
-      paymentAccountId,
-      paymentMethod,
-      tx
-    );
+    const contraAccountCode =
+      await this.accountResolver.resolveCashBankAccountCode(
+        companyId,
+        paymentAccountId,
+        paymentMethod,
+        tx
+      );
 
     const lines: { accountCode: string; debit?: number; credit?: number }[] = [];
 
@@ -212,7 +244,7 @@ export class JournalRentalService {
     }
 
     const data = {
-      reference: `Rental Release: ${orderNumber}`,
+      reference: buildRentalReleaseRef(orderNumber),
       memo: `Rental handover release settlement for ${orderNumber}${customerName ? ` - ${customerName}` : ''}`,
       sourceType: JournalSourceType.PAYMENT,
       sourceId: orderId,
@@ -257,12 +289,13 @@ export class JournalRentalService {
       );
     }
 
-    const contraAccountCode = await this.resolveCashBankAccountCode(
-      companyId,
-      paymentAccountId,
-      paymentMethod,
-      tx
-    );
+    const contraAccountCode =
+      await this.accountResolver.resolveCashBankAccountCode(
+        companyId,
+        paymentAccountId,
+        paymentMethod,
+        tx
+      );
 
     const lines: { accountCode: string; debit?: number; credit?: number }[] = [
       { accountCode: contraAccountCode, debit: totalCash.toNumber() },
@@ -276,10 +309,10 @@ export class JournalRentalService {
     }
 
     const data = {
-      reference: `Rental Extension: ${orderNumber}`,
+      reference: params.reference ?? buildRentalExtensionRef(orderNumber),
       memo: `Rental extension payment for ${orderNumber}${customerName ? ` - ${customerName}` : ''}`,
       sourceType: JournalSourceType.PAYMENT,
-      sourceId: orderId,
+      sourceId: params.sourceId ?? orderId,
       date: businessDate,
       lines,
     };
@@ -316,15 +349,16 @@ export class JournalRentalService {
       );
     }
 
-    const contraAccountCode = await this.resolveCashBankAccountCode(
-      companyId,
-      paymentAccountId,
-      paymentMethod,
-      tx
-    );
+    const contraAccountCode =
+      await this.accountResolver.resolveCashBankAccountCode(
+        companyId,
+        paymentAccountId,
+        paymentMethod,
+        tx
+      );
 
     const data = {
-      reference: `Rental Damage Fee: ${orderNumber}`,
+      reference: buildRentalDamageFeeRef(orderNumber),
       memo: `Rental damage/cleaning fee for ${orderNumber}${customerName ? ` - ${customerName}` : ''}`,
       sourceType: JournalSourceType.RENTAL_RETURN,
       sourceId: orderId,
@@ -332,6 +366,58 @@ export class JournalRentalService {
       lines: [
         { accountCode: contraAccountCode, debit: dDamage.toNumber() },
         { accountCode: '4200', credit: dDamage.toNumber() },
+      ],
+    };
+
+    return this.core.resolveAndCreate(companyId, data, tx);
+  }
+
+  /**
+   * Post Direct Rental Late Fee Journal
+   * Debet: Kas / Bank (Asset)
+   * Kredit: Pendapatan Denda '4200' (Revenue)
+   */
+  async postRentalLateFee(
+    params: PostRentalLateFeeParams
+  ): Promise<JournalEntry> {
+    const {
+      companyId,
+      orderId,
+      orderNumber,
+      lateFeeAmount,
+      paymentAccountId,
+      paymentMethod,
+      customerName,
+      tx,
+      businessDate,
+    } = params;
+
+    const dLate = new Decimal(lateFeeAmount || 0);
+    if (dLate.lte(0)) {
+      throw new DomainError(
+        'Late fee amount must be greater than 0',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    const contraAccountCode =
+      await this.accountResolver.resolveCashBankAccountCode(
+        companyId,
+        paymentAccountId,
+        paymentMethod,
+        tx
+      );
+
+    const data = {
+      reference: buildRentalLateFeeRef(orderNumber),
+      memo: `Rental late fee for ${orderNumber}${customerName ? ` - ${customerName}` : ''}`,
+      sourceType: JournalSourceType.RENTAL_RETURN,
+      sourceId: `${orderId}:late`,
+      date: businessDate,
+      lines: [
+        { accountCode: contraAccountCode, debit: dLate.toNumber() },
+        { accountCode: '4200', credit: dLate.toNumber() },
       ],
     };
 
@@ -367,15 +453,16 @@ export class JournalRentalService {
       );
     }
 
-    const contraAccountCode = await this.resolveCashBankAccountCode(
-      companyId,
-      paymentAccountId,
-      paymentMethod,
-      tx
-    );
+    const contraAccountCode =
+      await this.accountResolver.resolveCashBankAccountCode(
+        companyId,
+        paymentAccountId,
+        paymentMethod,
+        tx
+      );
 
     const data = {
-      reference: `Rental Refund DP: ${orderNumber}`,
+      reference: buildRentalRefundDpRef(orderNumber),
       memo: `Rental DP cancellation refund for ${orderNumber}${customerName ? ` - ${customerName}` : ''}`,
       sourceType: JournalSourceType.PAYMENT,
       sourceId: orderId,
@@ -393,6 +480,14 @@ export class JournalRentalService {
   // LEGACY BACKWARD COMPATIBILITY METHODS
   // ==========================================
 
+  /**
+   * Post a legacy security deposit journal entry (credits Account 2400 - Customer Deposits).
+   *
+   * @deprecated Replaced by `postRentalDownPayment` under Feature 045 Down Payment model.
+   * Sync ERP rentals use Down Payments credited to Account 2200 (Uang Muka Sewa), not security
+   * deposits in Account 2400. Retained solely for backward compatibility with historical records.
+   * @see postRentalDownPayment
+   */
   async postRentalDeposit(
     companyId: string,
     depositId: string,
@@ -401,24 +496,26 @@ export class JournalRentalService {
     paymentMethod: string,
     tx?: Prisma.TransactionClient,
     businessDate?: Date
-  ) {
-    const contraAccountCode =
-      await this.resolvePaymentContraAccountCode(
-        companyId,
-        paymentMethod,
-        tx
-      );
-    const data = this.prepareRentalDepositJournal(
+  ): Promise<JournalEntry> {
+    return this.legacy.postRentalDeposit(
+      companyId,
       depositId,
       orderNumber,
       amount,
       paymentMethod,
-      contraAccountCode,
+      tx,
       businessDate
     );
-    return this.core.resolveAndCreate(companyId, data, tx);
   }
 
+  /**
+   * Post a legacy rental return settlement journal entry.
+   *
+   * @deprecated In Feature 045 Down Payment model, revenue is recognized upon unit release via
+   * `postRentalReleaseSettlement`, and returns only post damage/late fees (`postRentalDamageFee`,
+   * `postRentalLateFee`). This method is retained exclusively for historical order backfill migrations
+   * in `RentalOrderHistoricalSettlementService`. Do NOT use for standard rental return workflows.
+   */
   async postRentalReturn(
     companyId: string,
     returnId: string,
@@ -429,193 +526,17 @@ export class JournalRentalService {
     paymentMethod: string,
     tx?: Prisma.TransactionClient,
     businessDate?: Date
-  ) {
-    const contraAccountCode =
-      await this.resolvePaymentContraAccountCode(
-        companyId,
-        paymentMethod,
-        tx
-      );
-    const data = this.prepareRentalReturnJournal(
+  ): Promise<JournalEntry> {
+    return this.legacy.postRentalReturn(
+      companyId,
       returnId,
       orderNumber,
       depositAmount,
       rentalRevenue,
       depositRefund,
       paymentMethod,
-      contraAccountCode,
+      tx,
       businessDate
     );
-    return this.core.resolveAndCreate(companyId, data, tx);
   }
-
-  // --- Helpers (Private) ---
-
-  private prepareRentalDepositJournal(
-    depositId: string,
-    orderNumber: string,
-    amount: number,
-    paymentMethod: string,
-    contraAccountCode: string,
-    businessDate?: Date
-  ) {
-    return {
-      reference: `Rental Deposit: ${orderNumber}`,
-      memo: `Rental deposit collected via ${paymentMethod}`,
-      sourceType: JournalSourceType.RENTAL_DEPOSIT,
-      sourceId: depositId,
-      lines: [
-        { accountCode: contraAccountCode, debit: amount }, // Cash/Bank (Asset)
-        { accountCode: '2400', credit: amount }, // Customer Deposits (Liability)
-      ],
-      date: businessDate,
-    };
-  }
-
-  private prepareRentalReturnJournal(
-    returnId: string,
-    orderNumber: string,
-    depositAmount: number,
-    rentalRevenue: number,
-    depositRefund: number,
-    paymentMethod: string,
-    contraAccountCode: string,
-    businessDate?: Date
-  ) {
-    const lines: {
-      accountCode: string;
-      debit?: number;
-      credit?: number;
-    }[] = [];
-
-    // Debit deposit liability only when a real deposit exists.
-    if (depositAmount > 0) {
-      lines.push({ accountCode: '2400', debit: depositAmount });
-    }
-
-    // Credit rental revenue
-    if (rentalRevenue > 0) {
-      lines.push({ accountCode: '4200', credit: rentalRevenue });
-    }
-
-    // If refund, credit cash (money going out)
-    if (depositRefund > 0) {
-      lines.push({ accountCode: contraAccountCode, credit: depositRefund });
-    }
-
-    // If damage charges exceed deposit (additional collection needed)
-    const additionalCharge =
-      rentalRevenue - depositAmount + depositRefund;
-    if (additionalCharge > 0) {
-      // This means customer pays extra
-      lines.push({
-        accountCode: contraAccountCode,
-        debit: additionalCharge,
-      });
-    }
-
-    return {
-      reference: `Rental Return: ${orderNumber}`,
-      memo: `Rental return settlement via ${paymentMethod} - Revenue: ${rentalRevenue}, Refund: ${depositRefund}`,
-      sourceType: JournalSourceType.RENTAL_RETURN,
-      sourceId: returnId,
-      date: businessDate,
-      lines,
-    };
-  }
-
-  private async resolveCashBankAccountCode(
-    companyId: string,
-    paymentAccountId?: string,
-    paymentMethod?: string,
-    tx?: Prisma.TransactionClient
-  ): Promise<string> {
-    if (paymentAccountId) {
-      const account = tx
-        ? await tx.account.findUnique({ where: { id: paymentAccountId } })
-        : await prisma.account.findUnique({ where: { id: paymentAccountId } });
-
-      if (account && account.companyId === companyId) {
-        return account.code;
-      }
-
-      // Check by code for tests/mock compatibility
-      const accountByCode = tx
-        ? await tx.account.findUnique({
-            where: { companyId_code: { companyId, code: paymentAccountId } },
-          })
-        : await prisma.account.findUnique({
-            where: { companyId_code: { companyId, code: paymentAccountId } },
-          });
-
-      if (accountByCode) {
-        return accountByCode.code;
-      }
-    }
-
-    return this.resolvePaymentContraAccountCode(
-      companyId,
-      paymentMethod || PaymentMethodType.CASH,
-      tx
-    );
-  }
-
-  private async resolvePaymentContraAccountCode(
-    companyId: string,
-    method: string,
-    tx?: Prisma.TransactionClient
-  ): Promise<string> {
-    const candidateCodes =
-      method === PaymentMethodType.BANK ||
-      method === PaymentMethodType.QRIS ||
-      method === PaymentMethodType.EWALLET
-        ? ['1211', '1201', '1200']
-        : ['1000', '1101', '1100'];
-
-    for (const code of candidateCodes) {
-      const account = tx
-        ? await tx.account.findUnique({
-            where: { companyId_code: { companyId, code } },
-          })
-        : await prisma.account.findUnique({
-            where: { companyId_code: { companyId, code } },
-          });
-
-      if (account && isValidPaymentContraAccount(method, account.name)) {
-        return account.code;
-      }
-    }
-
-    throw new DomainError(
-      `No valid settlement account found for ${method} payment`,
-      400,
-      DomainErrorCodes.INVALID_INPUT
-    );
-  }
-}
-
-function isValidPaymentContraAccount(method: string, accountName: string) {
-  const normalized = accountName.toLowerCase();
-  if (
-    normalized.includes('inventory') ||
-    normalized.includes('receivable')
-  ) {
-    return false;
-  }
-
-  if (
-    method === PaymentMethodType.BANK ||
-    method === PaymentMethodType.QRIS ||
-    method === PaymentMethodType.EWALLET
-  ) {
-    return (
-      normalized.includes('bank') ||
-      normalized.includes('bca') ||
-      normalized.includes('mandiri') ||
-      normalized.includes('bri') ||
-      normalized.includes('bni')
-    );
-  }
-
-  return normalized.includes('cash') || normalized.includes('kas');
 }

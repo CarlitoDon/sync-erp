@@ -15,6 +15,7 @@ import { InventoryGRNService } from './inventory-grn.service';
 import { InventoryShipmentService } from './inventory-shipment.service';
 import { InventoryReturnService } from './inventory-return.service';
 import { DomainError } from '@sync-erp/shared';
+import { OrderStatusSyncPort } from './ports/order-status-sync.port';
 
 export class InventoryFulfillmentService {
   private readonly grnService: InventoryGRNService;
@@ -24,16 +25,21 @@ export class InventoryFulfillmentService {
   constructor(
     repository: InventoryRepository = new InventoryRepository(),
     productService: ProductService = new ProductService(),
-    journalService: JournalService = new JournalService()
+    journalService: JournalService = new JournalService(),
+    salesOrderStatusSync?: OrderStatusSyncPort,
+    procurementOrderStatusSync?: OrderStatusSyncPort
   ) {
     this.grnService = new InventoryGRNService(
       repository,
-      journalService
+      journalService,
+      productService,
+      procurementOrderStatusSync
     );
     this.shipmentService = new InventoryShipmentService(
       repository,
       journalService,
-      productService
+      productService,
+      salesOrderStatusSync
     );
     this.returnService = new InventoryReturnService(
       repository,

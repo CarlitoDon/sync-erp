@@ -6,8 +6,8 @@ import {
   UpdateProductInput,
   DomainError,
   DomainErrorCodes,
+  calculateNewAvgCost,
 } from '@sync-erp/shared';
-import { calculateNewAvgCost } from '../inventory/rules/stockRule';
 
 export class ProductService {
   constructor(

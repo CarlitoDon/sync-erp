@@ -80,6 +80,7 @@ export const mockJournalService = {
   postRentalReleaseSettlement: vi.fn(),
   postRentalExtension: vi.fn(),
   postRentalDamageFee: vi.fn(),
+  postRentalLateFee: vi.fn(),
   postRentalCancellationRefund: vi.fn(),
 };
 

@@ -36,6 +36,7 @@ import { RentalActionsCard } from '../components/RentalActionsCard';
 import { RentalFinancialSummary } from '../components/RentalFinancialSummary';
 import { RentalPaymentStatusCard } from '../components/RentalPaymentStatusCard';
 import { RentalExtensionsCard } from '../components/RentalExtensionsCard';
+import { RentalReturnCard } from '../components/RentalReturnCard';
 
 function buildEffectiveEndDateByOrderItem(order: PortableRentalOrder) {
   const effectiveEndByItemId = new Map<string, Date | string>();
@@ -217,6 +218,8 @@ export default function RentalOrderDetail() {
               orderItems={order.items}
             />
 
+            <RentalReturnCard returnRecord={order.return} />
+
             <UnitAssignmentsCard
               assignments={order.unitAssignments ?? []}
               calculations={calculations}
@@ -229,7 +232,7 @@ export default function RentalOrderDetail() {
                 tidak pernah tampil "Belum Bayar" (chip Lunas dari
                 rentalPaymentStatus CONFIRMED). */}
             <RentalPaymentStatusCard
-              rentalPaymentStatus={order.rentalPaymentStatus}
+              order={order}
               paymentClaimedAt={order.paymentClaimedAt}
               paymentConfirmedAt={order.paymentConfirmedAt}
               paymentReference={order.paymentReference}

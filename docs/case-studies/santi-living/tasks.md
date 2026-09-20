@@ -183,7 +183,7 @@
 **Files:**
 - `apps/api/src/modules/rental/rental-webhook.service.ts` (NEW)
 - `apps/api/src/modules/rental/rental.service.ts`
-- `apps/api/src/modules/common/di/register.ts`
+- `apps/api/src/di/register.ts`
 
 ---
 

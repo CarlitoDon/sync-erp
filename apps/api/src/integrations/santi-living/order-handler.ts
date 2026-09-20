@@ -1,29 +1,44 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { IntegrationOrderAdapter } from '../types.js';
+import {
+  IntegrationComponentItem,
+  IntegrationOrderAdapter,
+  IntegrationOrderContext,
+  IntegrationOrderInput,
+  IntegrationOrderInputSchema,
+  IntegrationOrderItemInput,
+  OrderServicePort,
+} from '../types.js';
 import { parseComponentLabel } from './mappers/component.mapper.js';
 import { SANTI_LIVING_DEFAULTS } from './config/defaults.js';
+
+function isStringArray(arr: unknown[]): arr is string[] {
+  return arr.every((el) => typeof el === 'string');
+}
 
 export const santiLivingOrderAdapter: IntegrationOrderAdapter = {
   skuPrefix: SANTI_LIVING_DEFAULTS.skuPrefix,
   createdBy: SANTI_LIVING_DEFAULTS.createdBy,
-  parseComponents(raw: string[]) {
+  parseComponents(raw: string[]): IntegrationComponentItem[] {
     return raw.map((component) => parseComponentLabel(component));
   },
-  async createOrder(orderService: any, input: any, context: any) {
-    // This hook allows modifying the input before it hits the generic PublicOrderService
-    // In our case we need to map components strings to object structure expected by generic service
+  async createOrder(
+    orderService: OrderServicePort,
+    input: IntegrationOrderInput,
+    context?: IntegrationOrderContext
+  ): Promise<unknown> {
+    // Validate boundary input
+    const validatedInput = IntegrationOrderInputSchema.parse(input);
 
-    const items = input.items.map((item: any) => {
+    // Map component strings to object structure expected by generic service
+    const items = validatedInput.items.map((item: IntegrationOrderItemInput) => {
       if (
         item.components &&
         Array.isArray(item.components) &&
-        typeof item.components[0] === 'string'
+        item.components.length > 0 &&
+        isStringArray(item.components)
       ) {
         return {
           ...item,
-          components: item.components.map((c: string) =>
-            parseComponentLabel(c)
-          ),
+          components: item.components.map((c: string) => parseComponentLabel(c)),
         };
       }
       return item;
@@ -31,7 +46,7 @@ export const santiLivingOrderAdapter: IntegrationOrderAdapter = {
 
     return orderService.createOrder(
       {
-        ...input,
+        ...validatedInput,
         items,
         createdBy: SANTI_LIVING_DEFAULTS.createdBy,
         skuPrefix: SANTI_LIVING_DEFAULTS.skuPrefix,

@@ -1,4 +1,8 @@
-export function parseComponentLabel(componentLabel: string) {
+import type { IntegrationComponentItem } from '../../types.js';
+
+export function parseComponentLabel(
+  componentLabel: string
+): IntegrationComponentItem {
   const quantityMatch = componentLabel.match(/^(\d+)\s+(.+)$/);
 
   return {
