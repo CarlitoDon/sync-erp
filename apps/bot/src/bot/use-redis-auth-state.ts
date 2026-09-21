@@ -19,15 +19,36 @@ const REDIS_KEY_PREFIX =
   process.env.REDIS_KEY_PREFIX || 'baileys:auth:';
 const CREDS_KEY = `${REDIS_KEY_PREFIX}creds`;
 
-// Initialize Redis client
-const getRedisClient = () => {
-  const url = process.env.REDIS_URL || 'redis://localhost:6379';
-  return new Redis(url, {
-    maxRetriesPerRequest: 3,
-    lazyConnect: true,
-    family: 0, // Support both IPv4 and IPv6 (crucial for Railway)
-  });
+// Initialize Redis client singleton
+let sharedRedis: Redis | null = null;
+
+export const getRedisClient = (): Redis => {
+  if (!sharedRedis) {
+    const url = process.env.REDIS_URL || 'redis://localhost:6379';
+    sharedRedis = new Redis(url, {
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+      family: 0, // Support both IPv4 and IPv6 (crucial for Railway)
+    });
+  }
+  return sharedRedis;
 };
+
+/**
+ * Resolves a WhatsApp LID (Linked Identity) to its primary phone number using Baileys sync state.
+ */
+export async function resolvePhoneFromLid(lid: string): Promise<string | null> {
+  try {
+    const redis = getRedisClient();
+    const key = `${REDIS_KEY_PREFIX}lid-mapping-${lid}_reverse`;
+    const val = await redis.get(key);
+    if (!val) return null;
+    const parsed: unknown = JSON.parse(val);
+    return typeof parsed === 'string' ? parsed : String(parsed);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Custom auth state handler using Redis

@@ -11,6 +11,7 @@ import { isBoom } from '@hapi/boom';
 import QRCode from 'qrcode';
 import pino from 'pino';
 import { trpc } from '../lib/trpc';
+import { z } from 'zod';
 import { useRedisAuthState, resolvePhoneFromLid, getRedisClient } from './use-redis-auth-state';
 import { isCustomerAllowed } from '../utils/whitelist';
 import { appendChatHistory, getFormattedChatHistory } from '../utils/chat-history';
@@ -271,11 +272,29 @@ function toSafeErrorMessage(error: unknown, fallback: string): string {
   return sanitized.slice(0, MAX_API_ERROR_CHARS) || fallback;
 }
 
+const aiSalesStatusSchema = z.object({
+  aiSalesEnabled: z.boolean(),
+});
+
+function isProcedureWithQuery(
+  val: unknown
+): val is { query: () => Promise<unknown> } {
+  if (typeof val !== 'object' || val === null) return false;
+  return 'query' in val && typeof (val as Record<string, unknown>).query === 'function';
+}
+
 async function checkAiSalesEnabled(): Promise<boolean> {
   try {
-    const res = await trpc.bot.getAiSalesStatus.query();
-    if (typeof res?.aiSalesEnabled === 'boolean') {
-      cachedAiSalesEnabled = res.aiSalesEnabled;
+    const rawBot: unknown = trpc.bot;
+    if (typeof rawBot === 'object' && rawBot !== null && 'getAiSalesStatus' in rawBot) {
+      const candidate: unknown = (rawBot as Record<string, unknown>).getAiSalesStatus;
+      if (isProcedureWithQuery(candidate)) {
+        const rawRes: unknown = await candidate.query();
+        const parsed = aiSalesStatusSchema.safeParse(rawRes);
+        if (parsed.success) {
+          cachedAiSalesEnabled = parsed.data.aiSalesEnabled;
+        }
+      }
     }
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -533,14 +552,10 @@ async function updateApiStatus(
   error?: string | null
 ) {
   try {
-    const res = await trpc.bot.updateStatus.mutate({
+    await trpc.bot.updateStatus.mutate({
       status,
       qr,
-      error: error ?? null,
     });
-    if (typeof res?.aiSalesEnabled === 'boolean') {
-      cachedAiSalesEnabled = res.aiSalesEnabled;
-    }
     // eslint-disable-next-line no-console
     console.log(`[API] Status updated: ${status}${error ? ` (error: ${error})` : ''}`);
   } catch (err) {
