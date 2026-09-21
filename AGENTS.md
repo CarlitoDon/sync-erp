@@ -2,14 +2,15 @@
 
 These repository-specific instructions are subordinate to higher-priority system, developer, and user instructions.
 
-## Goal and PR workflow
+## Goal, Branch & Deployment Workflow
 
-- Start every new goal from the latest `origin/dev` on a new branch with a standard prefix (`fix/`, `feat/`, `refactor/`, or `chore/`).
-- A goal is complete only after its PR targeting `dev` is merged and the merge is verified on remote `dev`.
-- Finish implementation, review, and verification before committing; then push the branch, open the PR to `dev`, and wait for CI, review, and merge.
-- If CI or review fails, keep the goal active or blocked; never mark it complete.
-- Never push directly to `dev` or `main`.
-- After merge, start the next goal from the updated `origin/dev`, not from the old goal branch.
+- **Development (`dev`)**:
+  - Direct commits and pushes to `dev` are allowed for rapid development and testing without requiring a PR.
+  - Every commit pushed to `dev` automatically and immediately triggers deployment to Coolify Staging (`api`, `bot`, `mcp`) and Vercel Preview (`web`).
+  - Feature branches (`feat/`, `fix/`, `chore/`) may still be used if desired, and can be merged directly to `dev` without requiring PR approvals.
+- **Production (`main`)**:
+  - Direct push to `main` remains protected.
+  - Production releases are promoted from `dev` to `main` via PR, and will automatically deploy to Coolify Production upon merge once Quality Gates pass.
 
 ## Delegation
 

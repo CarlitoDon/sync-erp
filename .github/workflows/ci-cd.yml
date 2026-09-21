@@ -35,6 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       api: ${{ steps.filter.outputs.api }}
+      bot: ${{ steps.filter.outputs.bot }}
+      mcp: ${{ steps.filter.outputs.mcp }}
       web: ${{ steps.filter.outputs.web }}
     steps:
       - uses: actions/checkout@v4
@@ -50,20 +52,27 @@ jobs:
               - '.github/workflows/ci-cd.yml'
               - '.github/workflows/deploy-coolify.yml'
               - 'apps/api/**'
-              - 'apps/mcp/**'
               - 'packages/database/**'
               - 'packages/shared/**'
               - 'package.json'
               - 'package-lock.json'
-              - 'scripts/validate-api-artifact.mjs'
-              - 'scripts/validate-api-artifact.test.mjs'
-              - 'scripts/verify-release-health.mjs'
-              - 'scripts/verify-release-health.test.mjs'
-              - 'scripts/verify-google-oauth-config.mjs'
-              - 'scripts/verify-google-oauth-config.test.mjs'
-              - 'scripts/write-release-manifest.mjs'
-              - 'scripts/trigger-coolify-deploy.sh'
-              - 'scripts/trigger-coolify-deploy.test.sh'
+              - 'turbo.json'
+            bot:
+              - '.github/workflows/ci-cd.yml'
+              - '.github/workflows/deploy-coolify.yml'
+              - 'apps/bot/**'
+              - 'packages/database/**'
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+            mcp:
+              - '.github/workflows/ci-cd.yml'
+              - '.github/workflows/deploy-coolify.yml'
+              - 'apps/mcp/**'
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'package-lock.json'
               - 'turbo.json'
             web:
               - '.github/workflows/ci-cd.yml'
@@ -229,16 +238,73 @@ jobs:
           path: apps/web/dist/
           retention-days: 7
 
-  deploy_api:
-    name: Trigger API Coolify deployment
+  # --- Staging Deploys (Immediate on dev push, no waiting for slow gates) ---
+  deploy_api_staging:
+    name: Deploy API to Coolify (Staging)
+    needs: [changes]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.changes.outputs.api == 'true'
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      service: api
+      environment: staging
+      caller_event: ${{ github.event_name }}
+    secrets: inherit
+
+  deploy_bot_staging:
+    name: Deploy Bot to Coolify (Staging)
+    needs: [changes]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.changes.outputs.bot == 'true'
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      service: bot
+      environment: staging
+      caller_event: ${{ github.event_name }}
+    secrets: inherit
+
+  deploy_mcp_staging:
+    name: Deploy MCP to Coolify (Staging)
+    needs: [changes]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.changes.outputs.mcp == 'true'
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      service: mcp
+      environment: staging
+      caller_event: ${{ github.event_name }}
+    secrets: inherit
+
+  # --- Production Deploys (Gated on main push) ---
+  deploy_api_production:
+    name: Deploy API to Coolify (Production)
     needs: [changes, ci-api, ci-api-integration]
     if: |
-      (github.event_name == 'push' && needs.changes.outputs.api == 'true') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.api == 'true') ||
       (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode == 'deploy')
     uses: ./.github/workflows/deploy-coolify.yml
     with:
       service: api
-      environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      environment: production
+      caller_event: ${{ github.event_name }}
+    secrets: inherit
+
+  deploy_bot_production:
+    name: Deploy Bot to Coolify (Production)
+    needs: [changes, ci-api]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.bot == 'true'
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      service: bot
+      environment: production
+      caller_event: ${{ github.event_name }}
+    secrets: inherit
+
+  deploy_mcp_production:
+    name: Deploy MCP to Coolify (Production)
+    needs: [changes, ci-api]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.mcp == 'true'
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      service: mcp
+      environment: production
       caller_event: ${{ github.event_name }}
     secrets: inherit
 
