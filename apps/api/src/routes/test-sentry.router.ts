@@ -4,9 +4,7 @@ export function isSentryTestRouteEnabled(): boolean {
   const explicitlyEnabled = process.env.SENTRY_TEST_ROUTE_ENABLED === 'true';
   if (!explicitlyEnabled) return false;
 
-  const isProduction =
-    process.env.NODE_ENV === 'production' ||
-    process.env.HOSTINGER_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === 'production';
 
   if (!isProduction) return true;
 

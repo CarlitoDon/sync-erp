@@ -25,7 +25,7 @@ export async function getReadiness(): Promise<ReadinessResult> {
   }
 
   // Staging serves MCP as a separately deployed process. Its authenticated
-  // protocol readiness is verified by deploy-mcp-hostinger.yml, not by the
+  // protocol readiness is verified by deployment health checks, not by the
   // optional in-process API MCP router configuration.
   const mcp: DependencyReadiness = 'external';
 

@@ -8,17 +8,9 @@ const cwd = process.cwd();
 const originalEnvKeys = new Set(Object.keys(process.env));
 
 // Determine environment and load appropriate .env file
-// Railway sets NODE_ENV=production for ALL environments, so we check HOSTINGER_ENV first
-// Priority: HOSTINGER_ENV > NODE_ENV
 function getEnvMode(): 'development' | 'test' | 'staging' | 'production' {
-  const hostingerEnv = process.env.HOSTINGER_ENV; // 'staging' or 'production' on Hostinger
   const nodeEnv = process.env.NODE_ENV;
 
-  // Railway environment takes precedence
-  if (hostingerEnv === 'staging') return 'staging';
-  if (hostingerEnv === 'production') return 'production';
-
-  // Fallback to NODE_ENV for local development
   if (nodeEnv === 'test' || process.env.VITEST) return 'test';
   if (nodeEnv === 'staging') return 'staging';
   if (nodeEnv === 'production') return 'production';

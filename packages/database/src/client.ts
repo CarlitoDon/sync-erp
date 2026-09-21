@@ -8,17 +8,9 @@ import pg from 'pg';
 const appDir = process.cwd();
 
 // Determine environment and load appropriate .env file
-// Railway sets NODE_ENV=production for ALL environments, so we check HOSTINGER_ENV first
-// Priority: HOSTINGER_ENV > NODE_ENV
 function getEnvFile(): string {
-  const hostingerEnv = process.env.HOSTINGER_ENV; // 'staging' or 'production' on Hostinger
   const nodeEnv = process.env.NODE_ENV;
 
-  // Railway environment takes precedence
-  if (hostingerEnv === 'staging') return '.env.staging';
-  if (hostingerEnv === 'production') return '.env.production';
-
-  // Fallback to NODE_ENV for local development
   if (nodeEnv === 'test' || process.env.VITEST) return '.env.test';
   if (nodeEnv === 'staging') return '.env.staging';
   if (nodeEnv === 'production') return '.env.production';
@@ -82,7 +74,7 @@ export const prisma =
         process.env.NODE_ENV === 'development'
           ? ['error', 'warn']
           : ['error'],
-      // Increase transaction timeout to handle Railway <-> Supabase latency
+      // Configure transaction timeout
       transactionOptions: {
         maxWait: 10000, // Max wait time to acquire transaction: 10s
         timeout: 30000, // Transaction operation timeout: 30s

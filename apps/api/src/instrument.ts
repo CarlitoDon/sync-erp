@@ -36,7 +36,6 @@ export function initSentry(): void {
 
   const environment =
     process.env.SENTRY_ENVIRONMENT ||
-    process.env.HOSTINGER_ENV ||
     process.env.NODE_ENV ||
     'development';
 
