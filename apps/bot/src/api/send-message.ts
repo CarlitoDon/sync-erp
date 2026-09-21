@@ -5,6 +5,8 @@ import {
   formatPhoneNumber,
   isValidIndonesianNumber,
 } from '../utils/phone';
+import { isCustomerAllowed } from '../utils/whitelist';
+import { appendChatHistory } from '../utils/chat-history';
 
 const SendMessageSchema = z.object({
   phone: z.string(),
@@ -21,6 +23,14 @@ const SendMessageSchema = z.object({
  * is not sufficient — it must be explicitly disabled.
  */
 const PLAIN_TEXT_OPTIONS = { linkPreview: null } as const;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function randomBetween(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 export const sendMessage = async (req: Request, res: Response) => {
   // 1. Validate Payload
@@ -44,6 +54,16 @@ export const sendMessage = async (req: Request, res: Response) => {
     });
   }
 
+  // 2b. Validate Customer Whitelist (Redis-backed dynamic whitelist)
+  const allowed = await isCustomerAllowed(phone);
+  if (!allowed) {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message:
+        'Nomor penerima tidak terdaftar di whitelist (Wife-Only Guardrail active).',
+    });
+  }
+
   // 3. Check Bot Status
   if (getStatus() !== 'READY') {
     return res.status(503).json({
@@ -59,7 +79,7 @@ export const sendMessage = async (req: Request, res: Response) => {
       .json({ error: 'Internal Error: Socket instance missing' });
   }
 
-  // 4. Send Message
+  // 4. Send Message with typing simulation
   // Baileys expects format: 628xxx@s.whatsapp.net
   const targetNumber = formatPhoneNumber(phone).replace(
     '@c.us',
@@ -67,19 +87,39 @@ export const sendMessage = async (req: Request, res: Response) => {
   );
 
   try {
+    // Typing indicator: show "composing" presence, delay 1-2s, then send
+    await sock.sendPresenceUpdate('composing', targetNumber);
+    await delay(randomBetween(1000, 2000));
+
     const response = await sock.sendMessage(targetNumber, {
       text: message,
       ...PLAIN_TEXT_OPTIONS,
     });
 
+    await sock.sendPresenceUpdate('available', targetNumber);
+
     // eslint-disable-next-line no-console
     console.log(`Message sent to ${targetNumber}`);
+
+    // Record in conversation history for LLM continuity
+    await appendChatHistory(phone, {
+      role: 'assistant',
+      name: 'Carla',
+      text: message,
+      timestamp: new Date().toISOString(),
+    });
 
     return res.status(200).json({
       success: true,
       messageId: response?.key?.id || 'unknown',
     });
   } catch (error: unknown) {
+    // Ensure we clear composing state on error
+    try {
+      await sock.sendPresenceUpdate('available', targetNumber);
+    } catch {
+      // ignore
+    }
     console.error('Failed to send message:', error);
     const errorMessage =
       error instanceof Error
