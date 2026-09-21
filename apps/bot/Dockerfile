@@ -3,6 +3,7 @@ WORKDIR /repo
 
 # Force development environment so build tooling (turbo, tsup, prisma) is installed
 ENV NODE_ENV=development
+ENV NO_DTS=true
 
 # Copy manifests first so dependency installation remains cacheable.
 COPY package*.json ./
@@ -16,7 +17,7 @@ COPY packages/eslint-plugin/package.json ./packages/eslint-plugin/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 
 # Skip lifecycle scripts until the workspace source and Prisma schema are present.
-RUN npm ci --ignore-scripts --include=dev
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts --include=dev
 
 # Copy only build inputs; do not bake local env/session files into the image.
 COPY apps/api/src ./apps/api/src
@@ -31,8 +32,7 @@ COPY packages/scripts/patch-zod-types.mjs ./packages/scripts/patch-zod-types.mjs
 COPY packages/shared/src ./packages/shared/src
 COPY packages/shared/tsconfig.json packages/shared/tsup.config.ts ./packages/shared/
 
-# Generate Prisma client before building dependent workspace packages.
-RUN cd packages/database && npx prisma generate --generator client
+# Turbo automatically runs db:generate before build via task dependencies.
 RUN npx turbo build --filter=@sync-erp/bot
 
 FROM node:20-alpine AS runner

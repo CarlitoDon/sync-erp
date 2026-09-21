@@ -5,7 +5,7 @@ export default defineConfig({
   format: ['esm'],
   outDir: 'dist',
   clean: true,
-  dts: true,
+  dts: process.env.NO_DTS !== 'true',
   // Bundle workspace packages? No, usually shared logic should be bundled but deps kept external generally?
   // But wait, the user's example says:
   /*

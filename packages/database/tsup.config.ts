@@ -5,6 +5,6 @@ export default defineConfig({
   format: ['esm'],
   outDir: 'dist',
   clean: true,
-  dts: true,
+  dts: process.env.NO_DTS !== 'true',
   external: [ 'dotenv'],
 });
