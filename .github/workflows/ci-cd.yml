@@ -136,71 +136,6 @@ jobs:
       - name: Build API
         run: npm run build:api
 
-      - name: Prepare deployment package
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode != 'none')
-        run: |
-          rm -rf deploy/api-mcp
-          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database deploy/api-mcp/prisma
-          cp -R apps/api/dist deploy/api-mcp/
-          cp apps/api/package.pro.json deploy/api-mcp/package.json
-          cp packages/database/prisma/schema.prisma deploy/api-mcp/prisma/
-          cp packages/database/prisma.config.ts deploy/api-mcp/prisma.config.ts
-          cp -R packages/database/prisma/migrations deploy/api-mcp/prisma/
-
-          # Build a complete Linux/Node 20 production dependency tree on the runner.
-          npm install \
-            --prefix deploy/api-mcp \
-            --omit=dev \
-            --no-audit \
-            --no-fund \
-            --legacy-peer-deps
-
-          mkdir -p deploy/api-mcp/node_modules/@sync-erp/database
-          cp -R packages/database/dist deploy/api-mcp/node_modules/@sync-erp/database/
-          cp packages/database/package.json deploy/api-mcp/node_modules/@sync-erp/database/
-
-          if [ -d packages/database/src/generated ]; then
-            cp -R packages/database/src/generated deploy/api-mcp/node_modules/@sync-erp/database/
-          fi
-
-      - name: Write API release manifest
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode != 'none')
-        env:
-          RELEASE_SHA: ${{ github.sha }}
-          RELEASE_REPOSITORY: ${{ github.repository }}
-          RELEASE_REF: ${{ github.ref }}
-          RELEASE_RUN_ID: ${{ github.run_id }}
-        run: |
-          RELEASE_VERSION="$(node -e 'console.log(JSON.parse(require("node:fs").readFileSync("apps/api/package.json", "utf8")).version)')"
-          node scripts/write-release-manifest.mjs \
-            --output deploy/api-mcp/release.json \
-            --service sync-erp-api \
-            --commit "$RELEASE_SHA" \
-            --version "$RELEASE_VERSION" \
-            --repository "$RELEASE_REPOSITORY" \
-            --ref "$RELEASE_REF" \
-            --run-id "$RELEASE_RUN_ID"
-
-      - name: Validate API release artifact
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode != 'none')
-        run: node scripts/validate-api-artifact.mjs --artifact-dir deploy/api-mcp --expected-sha "$GITHUB_SHA"
-
-      - name: Include release health verifier
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode != 'none')
-        run: cp scripts/verify-release-health.mjs deploy/api-mcp/verify-release-health.mjs
-
-      - name: Include OAuth redirect verifier
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode != 'none')
-        run: cp scripts/verify-google-oauth-config.mjs deploy/api-mcp/verify-google-oauth-config.mjs
-
-      - name: Upload API build artifact
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode != 'none')
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-mcp-build
-          path: deploy/api-mcp/
-          retention-days: 7
-
   ci-api-integration:
     name: Quality Gates (API - Integration)
     runs-on: ubuntu-latest
@@ -294,33 +229,12 @@ jobs:
           path: apps/web/dist/
           retention-days: 7
 
-  validate_api_artifact_for_coolify:
-    name: Validate API artifact for Coolify trigger
+  deploy_api:
+    name: Trigger API Coolify deployment
     needs: [changes, ci-api, ci-api-integration]
     if: |
       (github.event_name == 'push' && needs.changes.outputs.api == 'true') ||
       (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode == 'deploy')
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download API build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: api-mcp-build
-          path: deploy/api-mcp/
-
-      - name: Validate downloaded API release artifact
-        run: node scripts/validate-api-artifact.mjs --artifact-dir deploy/api-mcp --expected-sha "$GITHUB_SHA"
-
-  deploy_api:
-    name: Trigger API Coolify deployment
-    needs: [changes, ci-api, ci-api-integration, validate_api_artifact_for_coolify]
-    if: |
-      needs.validate_api_artifact_for_coolify.result == 'success' &&
-      ((github.event_name == 'push' && needs.changes.outputs.api == 'true') ||
-       (github.event_name == 'workflow_dispatch' && inputs.api_deploy_mode == 'deploy'))
     uses: ./.github/workflows/deploy-coolify.yml
     with:
       service: api
