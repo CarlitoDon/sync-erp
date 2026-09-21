@@ -263,7 +263,7 @@ function toSafeErrorMessage(error: unknown, fallback: string): string {
     // Sanitize key=value (URL/query parameter format)
     .replace(/((?:key|secret|token|password|auth)[a-z0-9_-]*)=([^\s&]+)/gi, '$1=***')
     // Sanitize "key": "value" (JSON format)
-    .replace(/(\"(?:key|secret|token|password|auth)[a-z0-9_-]*\"\s*:\s*)\"([^\"]+)\"/gi, '$1\"***\"')
+    .replace(/("(?:key|secret|token|password|auth)[a-z0-9_-]*"\s*:\s*)"([^"]+)"/gi, '$1"***"')
     // Sanitize Bearer tokens
     .replace(/(Bearer\s+)[A-Za-z0-9._-]+/gi, '$1***')
     .trim();
@@ -481,27 +481,22 @@ async function startBaileysSocket() {
           console.log(
             `[debounce] Buffered message from ${customerPhone}. Total buffered: ${existing.messages.length}`,
           );
-        } else {
-          debounceMap.set(cleanPhone, {
-            timer: setTimeout(() => {}, 0), // placeholder, replaced below
-            messages: [messageText],
-            customerName,
-            timestamp,
-          });
-        }
-
-        const entry = debounceMap.get(cleanPhone)!;
-        // Reset/create timer
-        if (existing) {
           existing.timer = setTimeout(
-            () => fireDebounce(cleanPhone, customerPhone, entry),
+            () => fireDebounce(cleanPhone, customerPhone, existing),
             DEBOUNCE_DELAY_MS,
           );
         } else {
+          const entry: DebounceEntry = {
+            timer: null as unknown as NodeJS.Timeout,
+            messages: [messageText],
+            customerName,
+            timestamp,
+          };
           entry.timer = setTimeout(
             () => fireDebounce(cleanPhone, customerPhone, entry),
             DEBOUNCE_DELAY_MS,
           );
+          debounceMap.set(cleanPhone, entry);
         }
       }
     } catch (error) {

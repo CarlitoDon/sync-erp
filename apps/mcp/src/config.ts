@@ -13,6 +13,16 @@ const ConfigSchema = z.object({
 
 export type Config = z.infer<typeof ConfigSchema>;
 
+const WhatsAppConfigSchema = z.object({
+  botUrl: z.string().url().default('http://127.0.0.1:3060'),
+  botSecret: z.string().default(''),
+  googleMapsApiKey: z.string().default(''),
+  redisUrl: z.string().default('redis://127.0.0.1:6379'),
+  carlaTelegramBotToken: z.string().default(''),
+});
+
+export type WhatsAppConfig = z.infer<typeof WhatsAppConfigSchema>;
+
 const HttpRuntimeConfigSchema = z.object({
   bearerTokens: z.array(z.string().min(16)),
   maxSessions: z.number().int().positive().default(50),
@@ -101,4 +111,31 @@ export function getHttpRuntimeConfig(): HttpRuntimeConfig {
 
 export function isHttpMcpEnabled(): boolean {
   return getHttpRuntimeConfig().bearerTokens.length > 0;
+}
+
+let cachedWhatsAppConfig: WhatsAppConfig | null = null;
+
+export function getWhatsAppConfig(): WhatsAppConfig {
+  if (cachedWhatsAppConfig) {
+    return cachedWhatsAppConfig;
+  }
+
+  const raw = {
+    botUrl: process.env.WHATSAPP_BOT_URL ?? 'http://127.0.0.1:3060',
+    botSecret: process.env.WHATSAPP_BOT_SECRET ?? '',
+    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? '',
+    redisUrl: process.env.REDIS_URL ?? 'redis://127.0.0.1:6379',
+    carlaTelegramBotToken: process.env.CARLA_TELEGRAM_BOT_TOKEN ?? '',
+  };
+
+  const parsed = WhatsAppConfigSchema.safeParse(raw);
+  if (!parsed.success) {
+    const message = parsed.error.issues
+      .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+      .join('; ');
+    throw new Error(`Invalid WhatsApp config: ${message}`);
+  }
+
+  cachedWhatsAppConfig = parsed.data;
+  return cachedWhatsAppConfig;
 }

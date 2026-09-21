@@ -14,6 +14,7 @@ import type { ToolSpec } from '../types.js';
 import { Redis } from 'ioredis';
 import { z } from 'zod';
 import { getString, getOptionalString, getOptionalNumber } from './_helpers.js';
+import { getWhatsAppConfig } from '../config.js';
 
 // ---------------------------------------------------------------------------
 // Redis Singleton
@@ -23,8 +24,8 @@ let sharedRedis: Redis | null = null;
 
 function getRedisClient(): Redis {
   if (!sharedRedis) {
-    const url = process.env.REDIS_URL ?? 'redis://127.0.0.1:6379';
-    sharedRedis = new Redis(url, {
+    const config = getWhatsAppConfig();
+    sharedRedis = new Redis(config.redisUrl, {
       maxRetriesPerRequest: 3,
       lazyConnect: true,
       family: 0,
@@ -37,7 +38,7 @@ function getRedisClient(): Redis {
 // Phone normalization
 // ---------------------------------------------------------------------------
 
-function normalizePhone(raw: string): string {
+export function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '');
   if (digits.startsWith('0')) {
     return `62${digits.slice(1)}`;
@@ -77,7 +78,7 @@ const GooglePlacesResponseSchema = z.object({
   })).optional().default([]),
 });
 
-function calculateDeliveryFee(distanceKm: number): number {
+export function calculateDeliveryFee(distanceKm: number): number {
   if (distanceKm <= 0) return 0;
   const ROUND_TRIPS = 4;
   const KM_PER_LITER = 10;
@@ -205,11 +206,16 @@ async function searchPlaces(
 /** Resolve a Google Maps short URL (maps.app.goo.gl) by following redirect and extracting coords */
 async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; lng: number } | null> {
   try {
+    // Use GET with redirect: 'follow' (HEAD is blocked by some redirect servers)
     const res = await fetch(url, {
-      method: 'HEAD',
+      method: 'GET',
       redirect: 'follow',
       signal: AbortSignal.timeout(6000),
     });
+    // Immediately cancel response body to avoid downloading page HTML
+    if (res.body) {
+      await res.body.cancel();
+    }
     const finalUrl = res.url;
 
     // Try to extract coordinates from URL patterns like @-7.123,110.456 or !3d-7.123!4d110.456
@@ -251,13 +257,16 @@ async function handleWhatsappSendMessage(args: Record<string, unknown>): Promise
   const phone = getString(args, 'phone');
   const message = getString(args, 'message');
 
-  const botUrl = process.env.WHATSAPP_BOT_URL ?? 'http://127.0.0.1:3060';
-  const secret = process.env.WHATSAPP_BOT_SECRET ?? '';
+  const config = getWhatsAppConfig();
+  const botUrl = config.botUrl;
+  const secret = config.botSecret;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
   if (secret) {
+    // apps/bot authenticateApiKey middleware expects Bearer token matching SYNC_ERP_BOT_SECRET
+    headers.Authorization = `Bearer ${secret}`;
     headers['X-Bot-Secret'] = secret;
   }
 
@@ -290,7 +299,8 @@ async function handleWhatsappSendMessage(args: Record<string, unknown>): Promise
 // ---------------------------------------------------------------------------
 
 async function handleEstimateDeliveryFee(args: Record<string, unknown>): Promise<string> {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY?.trim();
+  const config = getWhatsAppConfig();
+  const apiKey = config.googleMapsApiKey.trim();
   if (!apiKey) {
     throw new Error('GOOGLE_MAPS_API_KEY is not configured');
   }
@@ -362,7 +372,7 @@ async function handleSetCustomerNote(args: Record<string, unknown>): Promise<str
 
 const SESSION_MODE_ESCALATION_TTL = 1800; // 30 minutes
 
-const EscalateArgsSchema = z.object({
+export const EscalateArgsSchema = z.object({
   customerPhone: z.string().min(1),
   customerName: z.string().min(1),
   productInterest: z.string().min(1),
@@ -371,7 +381,13 @@ const EscalateArgsSchema = z.object({
   urgencyLevel: z.enum(['low', 'medium', 'high', 'critical']),
 });
 
-function buildLeadCard(params: z.infer<typeof EscalateArgsSchema>): string {
+const TelegramErrorResponseSchema = z.object({
+  ok: z.boolean(),
+  description: z.string().optional(),
+  error_code: z.number().optional(),
+});
+
+export function buildLeadCard(params: z.infer<typeof EscalateArgsSchema>): string {
   const urgencyEmoji: Record<string, string> = {
     low: '🟢',
     medium: '🟡',
@@ -408,7 +424,8 @@ async function handleEscalateToOwner(args: Record<string, unknown>): Promise<str
 
   const params = parsed.data;
 
-  const token = process.env.CARLA_TELEGRAM_BOT_TOKEN?.trim();
+  const config = getWhatsAppConfig();
+  const token = config.carlaTelegramBotToken.trim();
   if (!token) {
     throw new Error('CARLA_TELEGRAM_BOT_TOKEN is not configured');
   }
@@ -427,9 +444,10 @@ async function handleEscalateToOwner(args: Record<string, unknown>): Promise<str
   });
 
   if (!tgRes.ok) {
-    const errBody: unknown = await tgRes.json().catch(() => null);
-    const errText = errBody && typeof errBody === 'object' && 'description' in errBody
-      ? String((errBody as Record<string, unknown>).description)
+    const rawErr: unknown = await tgRes.json().catch(() => null);
+    const parsedErr = TelegramErrorResponseSchema.safeParse(rawErr);
+    const errText = parsedErr.success && parsedErr.data.description
+      ? parsedErr.data.description
       : `HTTP ${tgRes.status}`;
     throw new Error(`Telegram sendMessage failed: ${errText}`);
   }
