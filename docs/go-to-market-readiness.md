@@ -41,8 +41,8 @@ Sync ERP is ready for controlled pilot selling, not yet for unmonitored public s
 - [ ] Point `sync-erp.com` to Vercel with `A sync-erp.com 76.76.21.21`.
 - [ ] Point `app.sync-erp.com` to Vercel with `A app.sync-erp.com 76.76.21.21`.
 - [ ] Point `staging.sync-erp.com` to Vercel with `A staging.sync-erp.com 76.76.21.21`.
-- [ ] Point `api.sync-erp.com` to Hostinger with `A api.sync-erp.com 46.17.173.54`.
-- [ ] Point `api-staging.sync-erp.com` to Hostinger with `A api-staging.sync-erp.com 46.17.173.54`.
+- [ ] Point `api.sync-erp.com` to Coolify.
+- [ ] Point `api-staging.sync-erp.com` to Coolify.
 - [ ] Re-check DNS propagation and HTTPS health after records are updated.
 
 ## AdSense Monetization Checklist

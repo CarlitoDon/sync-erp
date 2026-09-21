@@ -36,7 +36,7 @@ function mockFetch(results) {
   return { calls, fetchImpl };
 }
 
-test('accepts an exact public callback from a Hostinger loopback request', async () => {
+test('accepts an exact public callback from a loopback request', async () => {
   const { calls, fetchImpl } = mockFetch([
     response(302, providerUrl.href),
     response(200, undefined, '<html>Google sign in</html>'),

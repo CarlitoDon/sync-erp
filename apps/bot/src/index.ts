@@ -2,9 +2,16 @@ import './env';
 
 import { startServer } from './server';
 import { initializeBaileys, getSocket } from './bot/baileys';
+import { seedWhitelistFromEnv } from './utils/whitelist';
 
 // Start Express Server
 startServer();
+
+// Seed whitelist from env into Redis (SADD, does not wipe existing entries)
+seedWhitelistFromEnv().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.warn('[startup] Failed to seed whitelist from env:', err instanceof Error ? err.message : String(err));
+});
 
 // Start Baileys WhatsApp Client
 // eslint-disable-next-line no-console

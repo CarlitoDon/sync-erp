@@ -19,7 +19,7 @@ Replaced with Redis-backed rate limiting using `ioredis`. Falls back to in-memor
 Add `REDIS_URL` to your environment:
 
 ```env
-# Production (Hostinger/Railway)
+# Production (Coolify)
 REDIS_URL=redis://:password@redis-host:6379
 
 # Local development (default)
@@ -185,7 +185,7 @@ fetch('/api/trpc/auth.login', {
 
 ## Deployment Checklist
 
-- [ ] Provision Redis instance (Hostinger managed or external)
+- [ ] Provision Redis instance (Coolify managed or external)
 - [ ] Add `REDIS_URL` to API environment variables
 - [ ] Run `npm install` in API package
 - [ ] Verify rate limits persist across restarts
