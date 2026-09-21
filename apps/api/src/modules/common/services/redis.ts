@@ -17,7 +17,7 @@ export function getRedis(): Redis {
   client = new Redis(url, {
     maxRetriesPerRequest: 3,
     lazyConnect: true,
-    family: 0, // Support both IPv4 and IPv6 (crucial for Railway/Hostinger)
+    family: 0, // Support both IPv4 and IPv6
     keyPrefix: process.env.REDIS_KEY_PREFIX || 'sync-erp:api:',
   });
 
