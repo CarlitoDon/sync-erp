@@ -4,6 +4,7 @@ import {
   buildLeadCard,
   EscalateArgsSchema,
   EscalatedLeadPayloadSchema,
+  RentalOrderAutoBookLeadArgsSchema,
   LAST_ESCALATION_KEY_PREFIX,
   LAST_ESCALATION_TTL,
   getWhatsAppTools,
@@ -47,7 +48,7 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
   });
 
   describe('Lead Card Builder', () => {
-    it('formats structured lead card for Telegram notification', () => {
+    it('formats context-aware lead card for discount request', () => {
       const card = buildLeadCard({
         customerName: 'Budi Santoso',
         customerPhone: '081234567890',
@@ -57,12 +58,30 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
         urgencyLevel: 'high',
       });
 
-      expect(card).toContain('🚨 ESKALASI LEAD MASUK');
+      expect(card).toContain('🏷️ PENGAJUAN DISKON / NEGO HARGA');
       expect(card).toContain('👤 Nama: Budi Santoso');
       expect(card).toContain('📱 WA: 081234567890');
       expect(card).toContain('🎯 Minat: Kasur Busa 160x200 + Bantal');
       expect(card).toContain('⏱️ Urgensi: 🟠 HIGH');
       expect(card).toContain('Minta diskon 20% karena sewa 6 bulan');
+      expect(card).toContain('• "Kasih diskon [X]%" / "acc" → saya update harga & WA customer');
+      expect(card).toContain('• "Take over" → saya mute, kamu handle langsung');
+    });
+
+    it('formats context-aware lead card for payment verification', () => {
+      const card = buildLeadCard({
+        customerName: 'Meiny',
+        customerPhone: '081234567890',
+        productInterest: 'Paket Single 90 x 3 unit',
+        escalationReason: 'Customer mengonfirmasi pembayaran DP / kirim bukti transfer.',
+        leadSummary: 'Transfer DP Rp52.000 via QRIS sudah dikirim. Total order Rp173.000.',
+        urgencyLevel: 'high',
+      });
+
+      expect(card).toContain('💳 KONFIRMASI PEMBAYARAN DP');
+      expect(card).toContain('👤 Nama: Meiny');
+      expect(card).toContain('• "acc bayar" / "sudah masuk" → saya konfirmasi booking sah ke customer');
+      expect(card).toContain('• "belum masuk" → saya minta customer cek transaksi/mutasi');
       expect(card).toContain('• "Take over" → saya mute, kamu handle langsung');
     });
 
@@ -88,7 +107,7 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
   describe('WhatsApp Tools Registry', () => {
     it('registers all 8 WhatsApp tools with correct names and schemas', () => {
       const tools = getWhatsAppTools();
-      expect(tools.length).toBe(9);
+      expect(tools.length).toBe(11);
 
       const toolNames = tools.map((t) => t.name);
       expect(toolNames).toEqual([
@@ -101,6 +120,8 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
         'return_to_bot',
         'resume_bot',
         'get_last_escalated_lead',
+        'whatsapp_send_qris',
+        'rental_order_auto_book_lead',
       ]);
 
       // Every tool must have a handler function and an input schema
@@ -522,6 +543,87 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
 
       expect(await redis.get(`whatsapp:session_mode:${normalized}`)).toBeNull();
       expect(await redis.get(`whatsapp:session_mute:${normalized}`)).toBeNull();
+    });
+
+    describe('rental_order_auto_book_lead Schema & Handler', () => {
+      it('validates defaults with companyId filled', () => {
+        const parsed = RentalOrderAutoBookLeadArgsSchema.safeParse({});
+        expect(parsed.success).toBe(true);
+        if (parsed.success) {
+          expect(parsed.data.companyId).toBe('04d0ed88-0db8-4641-b98b-101728cd0caa');
+        }
+      });
+
+      it('accepts valid full payload overrides', () => {
+        const parsed = RentalOrderAutoBookLeadArgsSchema.safeParse({
+          companyId: '04d0ed88-0db8-4641-b98b-101728cd0caa',
+          chatId: '8215203590',
+          customerPhone: '082241851577',
+          customerName: 'Budi Santoso',
+          rentalStartDate: '2026-09-22',
+          rentalEndDate: '2026-09-24',
+          bundleSize: '160',
+          quantity: 2,
+          deliveryFee: 15000,
+          deliveryAddress: 'Jl. Kaliurang KM 5',
+          notes: 'Kasur bersih',
+          paymentReference: 'QRIS-DP',
+        });
+        expect(parsed.success).toBe(true);
+        if (parsed.success) {
+          expect(parsed.data.quantity).toBe(2);
+          expect(parsed.data.bundleSize).toBe('160');
+          expect(parsed.data.deliveryFee).toBe(15000);
+        }
+      });
+
+      it('rejects invalid companyId format', () => {
+        const parsed = RentalOrderAutoBookLeadArgsSchema.safeParse({
+          companyId: 'not-a-uuid',
+        });
+        expect(parsed.success).toBe(false);
+      });
+
+      it('rejects non-positive quantity', () => {
+        const parsed = RentalOrderAutoBookLeadArgsSchema.safeParse({
+          quantity: 0,
+        });
+        expect(parsed.success).toBe(false);
+      });
+
+      it('rejects negative deliveryFee', () => {
+        const parsed = RentalOrderAutoBookLeadArgsSchema.safeParse({
+          deliveryFee: -5000,
+        });
+        expect(parsed.success).toBe(false);
+      });
+
+      it('throws descriptive error if customer phone cannot be resolved', async () => {
+        const tool = getWhatsAppTools().find((t) => t.name === 'rental_order_auto_book_lead');
+        expect(tool).toBeDefined();
+
+        // No escalation in Redis and no phone provided
+        await expect(
+          tool!.handler({
+            companyId: '04d0ed88-0db8-4641-b98b-101728cd0caa',
+            chatId: '9999999999', // non-existent chat
+          })
+        ).rejects.toThrow(/Customer phone could not be resolved/);
+      });
+
+      it('throws descriptive error if rental dates cannot be determined', async () => {
+        const tool = getWhatsAppTools().find((t) => t.name === 'rental_order_auto_book_lead');
+        expect(tool).toBeDefined();
+
+        // Phone provided but no escalation and no dates
+        await expect(
+          tool!.handler({
+            companyId: '04d0ed88-0db8-4641-b98b-101728cd0caa',
+            customerPhone: '082241851577',
+            chatId: '9999999999',
+          })
+        ).rejects.toThrow(/Rental dates could not be determined/);
+      });
     });
   });
 });

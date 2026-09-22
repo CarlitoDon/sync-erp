@@ -58,10 +58,12 @@ app.get('/status', authenticateApiKey, getStatus);
 
 import { sendOrder } from './api/send-order';
 import { sendMessage } from './api/send-message';
+import { sendImage } from './api/send-image';
 import { ping } from './api/ping';
 
 app.post('/send-order', authenticateApiKey, sendOrder);
 app.post('/send-message', authenticateApiKey, sendMessage);
+app.post('/send-image', authenticateApiKey, sendImage);
 app.post('/ping', authenticateApiKey, ping);
 
 import { logout } from './api/logout';
