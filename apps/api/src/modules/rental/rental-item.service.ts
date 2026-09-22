@@ -536,11 +536,19 @@ export class RentalItemService {
         },
       });
 
+    const bookedUnitsByItem = new Map<string, Set<string>>();
     for (const assignment of overlappingAssignments) {
-      const rentalItemId = assignment.rentalItemUnit.rentalItemId;
-      availability[rentalItemId] = Math.max(
+      const rItemId = assignment.rentalItemUnit.rentalItemId;
+      if (!bookedUnitsByItem.has(rItemId)) {
+        bookedUnitsByItem.set(rItemId, new Set());
+      }
+      bookedUnitsByItem.get(rItemId)!.add(assignment.rentalItemUnitId);
+    }
+
+    for (const [rItemId, bookedUnitIds] of bookedUnitsByItem.entries()) {
+      availability[rItemId] = Math.max(
         0,
-        (availability[rentalItemId] ?? 0) - 1
+        (availability[rItemId] ?? 0) - bookedUnitIds.size
       );
     }
 

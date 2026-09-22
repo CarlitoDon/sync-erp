@@ -9,12 +9,14 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (partnerId: string) => void;
+  zIndex?: string;
 }
 
 export default function QuickCreateCustomerModal({
   isOpen,
   onClose,
   onSuccess,
+  zIndex = 'z-[60]',
 }: Props) {
   const utils = trpc.useUtils();
   const [form, setForm] = useState({
@@ -57,6 +59,7 @@ export default function QuickCreateCustomerModal({
       isOpen={isOpen}
       onClose={handleClose}
       title="Tambah Customer Baru"
+      zIndex={zIndex}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input

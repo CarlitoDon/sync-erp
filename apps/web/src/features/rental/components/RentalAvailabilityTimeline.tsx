@@ -12,8 +12,8 @@ import {
   isWeekend,
 } from '../utils/schedulerTimeline';
 
-const LABEL_COLUMN_WIDTH = 224;
-const DAY_COLUMN_WIDTH = 96;
+const LABEL_COLUMN_WIDTH = 210;
+const DAY_COLUMN_WIDTH = 64;
 
 const BOOKING_STYLES: Record<string, string> = {
   CONFIRMED:
@@ -23,11 +23,27 @@ const BOOKING_STYLES: Record<string, string> = {
 };
 
 const UNIT_STATUS_STYLES: Record<string, string> = {
-  AVAILABLE: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  RESERVED: 'bg-amber-50 text-amber-700 ring-amber-200',
-  RENTED: 'bg-blue-50 text-blue-700 ring-blue-200',
-  MAINTENANCE: 'bg-rose-50 text-rose-700 ring-rose-200',
-  CLEANING: 'bg-orange-50 text-orange-700 ring-orange-200',
+  AVAILABLE: 'bg-emerald-50 text-emerald-700 ring-emerald-200/80',
+  RESERVED: 'bg-amber-50 text-amber-700 ring-amber-200/80',
+  RENTED: 'bg-blue-50 text-blue-700 ring-blue-200/80',
+  MAINTENANCE: 'bg-rose-50 text-rose-700 ring-rose-200/80',
+  CLEANING: 'bg-orange-50 text-orange-700 ring-orange-200/80',
+};
+
+const UNIT_STATUS_DOT: Record<string, string> = {
+  AVAILABLE: 'bg-emerald-500',
+  RESERVED: 'bg-amber-500',
+  RENTED: 'bg-blue-500',
+  MAINTENANCE: 'bg-rose-500',
+  CLEANING: 'bg-orange-500',
+};
+
+const UNIT_STATUS_LABELS: Record<string, string> = {
+  AVAILABLE: 'Ready',
+  RESERVED: 'Booked',
+  RENTED: 'Sewa',
+  MAINTENANCE: 'Rusak',
+  CLEANING: 'Cuci',
 };
 
 export type RentalAvailabilityTimelineData =
@@ -48,10 +64,9 @@ interface DragState {
   scrollTop: number;
 }
 
-function formatDayHeader(date: Date): string {
+function formatDayName(date: Date): string {
   return date.toLocaleDateString('id-ID', {
     weekday: 'short',
-    day: 'numeric',
   });
 }
 
@@ -88,7 +103,7 @@ export function RentalAvailabilityTimeline({
   const hasBookings = timeline.items.some((item) =>
     item.units.some((unit) => unit.bookings.length > 0)
   );
-  const gridColumns = `${LABEL_COLUMN_WIDTH}px repeat(${daysToShow}, ${DAY_COLUMN_WIDTH}px)`;
+  const gridColumns = `${LABEL_COLUMN_WIDTH}px repeat(${daysToShow}, minmax(${DAY_COLUMN_WIDTH}px, 1fr))`;
   const gridWidth =
     LABEL_COLUMN_WIDTH + daysToShow * DAY_COLUMN_WIDTH;
 
@@ -172,7 +187,7 @@ export function RentalAvailabilityTimeline({
   return (
     <div
       ref={viewportRef}
-      className={`h-[min(68vh,42rem)] min-h-96 overflow-auto overscroll-contain border-y border-slate-200 bg-white ${
+      className={`h-[min(76vh,52rem)] min-h-[30rem] overflow-auto overscroll-contain border-y border-slate-200 bg-white ${
         isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
       }`}
       tabIndex={0}
@@ -182,12 +197,12 @@ export function RentalAvailabilityTimeline({
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
     >
-      <div style={{ width: gridWidth }}>
+      <div style={{ minWidth: gridWidth, width: '100%' }}>
         <div
           className="sticky top-0 z-30 grid border-b border-slate-200 bg-slate-50 shadow-[0_1px_0_rgba(15,23,42,0.05)]"
           style={{ gridTemplateColumns: gridColumns }}
         >
-          <div className="sticky left-0 z-40 flex min-h-14 items-center border-r border-slate-200 bg-slate-50 px-4 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+          <div className="sticky left-0 z-40 flex min-h-12 items-center border-r border-slate-200 bg-slate-50 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
             Item / unit
           </div>
           {dates.map((date) => {
@@ -197,15 +212,28 @@ export function RentalAvailabilityTimeline({
             return (
               <div
                 key={date.toISOString()}
-                className={`flex min-h-14 items-center justify-center border-r border-slate-200 px-1 text-center text-xs font-semibold ${
+                className={`flex min-h-12 flex-col items-center justify-center border-r border-slate-200 px-0.5 py-1 text-center transition-colors ${
                   isCurrentDay
-                    ? 'bg-primary-50 text-primary-800'
+                    ? 'bg-primary-50/80'
                     : isWeekendDay
-                      ? 'bg-slate-100/80 text-slate-600'
-                      : 'text-slate-600'
+                      ? 'bg-slate-100/70'
+                      : 'bg-slate-50'
                 }`}
               >
-                <span>{formatDayHeader(date)}</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                  {formatDayName(date)}
+                </span>
+                <span
+                  className={`mt-0.5 text-xs font-semibold ${
+                    isCurrentDay
+                      ? 'flex h-5 w-5 items-center justify-center rounded-full bg-primary-600 text-white shadow-xs'
+                      : isWeekendDay
+                        ? 'text-slate-500'
+                        : 'text-slate-700'
+                  }`}
+                >
+                  {date.getDate()}
+                </span>
               </div>
             );
           })}
@@ -228,14 +256,14 @@ export function RentalAvailabilityTimeline({
             aria-label={`Item rental ${item.name}`}
           >
             <div
-              className="grid border-b border-slate-200 bg-slate-50/70"
+              className="grid border-b border-slate-200 bg-slate-100/80"
               style={{ gridTemplateColumns: gridColumns }}
             >
-              <div className="sticky left-0 z-20 flex min-h-10 items-center border-r border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900">
+              <div className="sticky left-0 z-20 flex min-h-8 items-center border-r border-slate-200 bg-slate-100 px-3 text-xs font-bold text-slate-800">
                 <span className="truncate">{item.name}</span>
               </div>
               <div
-                className="flex min-h-10 items-center px-4 text-xs font-medium text-slate-500"
+                className="flex min-h-8 items-center px-3 text-[11px] font-medium text-slate-500"
                 style={{ gridColumn: '2 / -1' }}
               >
                 {item.units.length} unit
@@ -248,38 +276,48 @@ export function RentalAvailabilityTimeline({
                 className="grid border-b border-slate-100 bg-white transition-colors duration-[var(--duration-fast)] hover:bg-slate-50/70"
                 style={{ gridTemplateColumns: gridColumns }}
               >
-                <div className="sticky left-0 z-20 flex min-h-14 items-center gap-2 border-r border-slate-200 bg-white px-4 shadow-[1px_0_0_rgba(15,23,42,0.04)]">
-                  <span className="min-w-0 truncate font-mono text-sm font-semibold text-slate-800">
+                <div className="sticky left-0 z-20 flex min-h-10 items-center gap-1.5 border-r border-slate-200 bg-white px-3 shadow-[1px_0_0_rgba(15,23,42,0.04)]">
+                  <span
+                    className="min-w-0 flex-1 truncate font-mono text-xs font-semibold text-slate-800"
+                    title={unit.unitCode}
+                  >
                     {unit.unitCode}
                   </span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
+                    className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ring-1 ${
                       UNIT_STATUS_STYLES[unit.status] ??
                       'bg-slate-100 text-slate-700 ring-slate-200'
                     }`}
+                    title={`Status unit: ${unit.status}`}
                   >
-                    {unit.status}
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        UNIT_STATUS_DOT[unit.status] ?? 'bg-slate-400'
+                      }`}
+                      aria-hidden="true"
+                    />
+                    {UNIT_STATUS_LABELS[unit.status] ?? unit.status}
                   </span>
                   {unit.status === 'AVAILABLE' && (
                     <button
                       type="button"
                       onClick={onCreateOrder}
-                      className="ml-auto rounded p-1 text-emerald-700 transition-colors duration-[var(--duration-fast)] hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                      className="shrink-0 rounded p-1 text-slate-400 transition-colors duration-[var(--duration-fast)] hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                       aria-label={`Buat order untuk unit ${unit.unitCode}`}
                       title="Buat order untuk unit ini"
                     >
                       <PlusCircleIcon
-                        className="h-4 w-4"
+                        className="h-3.5 w-3.5"
                         aria-hidden="true"
                       />
                     </button>
                   )}
                 </div>
                 <div
-                  className="relative grid min-h-14"
+                  className="relative grid min-h-10"
                   style={{
                     gridColumn: '2 / -1',
-                    gridTemplateColumns: `repeat(${daysToShow}, ${DAY_COLUMN_WIDTH}px)`,
+                    gridTemplateColumns: `repeat(${daysToShow}, minmax(${DAY_COLUMN_WIDTH}px, 1fr))`,
                   }}
                 >
                   {dates.map((date, index) => (
@@ -288,9 +326,9 @@ export function RentalAvailabilityTimeline({
                       aria-hidden="true"
                       className={`h-full border-r border-slate-100 ${
                         isSameLocalDay(date, today)
-                          ? 'bg-primary-50/70'
+                          ? 'bg-primary-50/50'
                           : isWeekend(date)
-                            ? 'bg-slate-50/80'
+                            ? 'bg-slate-50/70'
                             : ''
                       }`}
                       style={{ gridColumn: index + 1, gridRow: 1 }}
@@ -305,13 +343,19 @@ export function RentalAvailabilityTimeline({
                     );
                     if (!geometry) return null;
 
+                    const displayName =
+                      booking.partnerName || booking.orderNumber;
+                    const tooltipText = `${booking.partnerName || 'Pelanggan'} (${booking.orderNumber}) • ${formatBookingDate(
+                      booking.startDate
+                    )} – ${formatBookingDate(booking.endDate)}`;
+
                     return (
                       <Link
                         key={booking.orderId}
                         to={`/rental/orders/${booking.orderId}`}
                         aria-label={bookingLabel(booking)}
-                        title={bookingLabel(booking)}
-                        className={`z-10 mx-1 flex h-8 min-w-0 self-center rounded-md px-2 text-xs font-semibold text-white shadow-sm transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
+                        title={tooltipText}
+                        className={`z-10 mx-0.5 flex h-7 min-w-0 self-center rounded-md px-2 text-[11px] font-medium text-white shadow-xs transition-all duration-[var(--duration-fast)] hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
                           BOOKING_STYLES[booking.status] ??
                           'bg-slate-600 hover:bg-slate-700 focus-visible:ring-slate-500'
                         }`}
@@ -320,8 +364,8 @@ export function RentalAvailabilityTimeline({
                           gridRow: 1,
                         }}
                       >
-                        <span className="truncate leading-8">
-                          {booking.orderNumber}
+                        <span className="truncate leading-7 font-medium">
+                          {displayName}
                         </span>
                       </Link>
                     );

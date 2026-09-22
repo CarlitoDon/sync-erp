@@ -34,8 +34,8 @@ export default function Layout() {
         ${isCollapsed ? 'md:ml-[4.5rem]' : 'md:ml-[17rem]'}
       `}
       >
-        {/* Sticky Top Header (Matches design-guidelines.html) */}
-        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
+        {/* Sticky Top Header (Mobile only, hidden on desktop) */}
+        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-md md:hidden">
           <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               <div className="md:hidden">
@@ -56,20 +56,6 @@ export default function Layout() {
                   </span>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <a
-                href="/design-guidelines.html"
-                target="_blank"
-                rel="noreferrer"
-                className="hidden rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:inline-flex"
-              >
-                Design System &rarr;
-              </a>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                Workspace Aktif
-              </span>
             </div>
           </div>
         </header>
