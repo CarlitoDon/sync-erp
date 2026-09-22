@@ -1,7 +1,14 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: [
+    'src/index.ts',
+    'src/types/index.ts',
+    'src/validators/index.ts',
+    'src/constants/index.ts',
+    'src/trpc/index.ts',
+    'src/whatsapp/index.ts'
+  ],
   format: ['esm'],
   outDir: 'dist',
   clean: true,

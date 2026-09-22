@@ -1,15 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  normalizePhone,
   calculateDeliveryFee,
   buildLeadCard,
-  formatRaraMessageWithSignature,
   EscalateArgsSchema,
   EscalatedLeadPayloadSchema,
   LAST_ESCALATION_KEY_PREFIX,
   LAST_ESCALATION_TTL,
   getWhatsAppTools,
 } from './whatsapp.js';
+import { normalizePhone, formatRaraMessageWithSignature } from '@sync-erp/shared/whatsapp';
 import { getWhatsAppConfig, resetWhatsAppConfig } from '../config.js';
 import { Redis } from 'ioredis';
 

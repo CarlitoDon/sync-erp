@@ -136,10 +136,7 @@ export const sendMessage = async (req: Request, res: Response) => {
 
   // 4. Send Message with multi-bubble support and typing simulation
   // Baileys expects format: 628xxx@s.whatsapp.net
-  const targetNumber = formatPhoneNumber(phone).replace(
-    '@c.us',
-    '@s.whatsapp.net'
-  );
+  const targetNumber = formatPhoneNumber(phone);
 
   const bubbles = splitMessageBubbles(message);
   if (bubbles.length === 0) {

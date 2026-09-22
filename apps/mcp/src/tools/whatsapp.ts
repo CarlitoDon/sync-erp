@@ -36,17 +36,7 @@ function getRedisClient(): Redis {
   return sharedRedis;
 }
 
-// ---------------------------------------------------------------------------
-// Phone normalization
-// ---------------------------------------------------------------------------
-
-export function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '');
-  if (digits.startsWith('0')) {
-    return `62${digits.slice(1)}`;
-  }
-  return digits;
-}
+import { normalizePhone, BUBBLE_DELIMITER_REGEX, splitBubbles, formatRaraMessageWithSignature } from '@sync-erp/shared/whatsapp';
 
 // ---------------------------------------------------------------------------
 // Delivery fee calculator (ported from santi-living)
@@ -264,40 +254,7 @@ const WhatsAppSendResponseSchema = z.object({
   message: z.string().optional(),
 });
 
-/**
- * Ensures WhatsApp message follows Rara signature requirements:
- * 1. The final bubble ends with "-r" on a new line.
- * 2. Preceding bubbles do not carry "-r".
- */
-export function formatRaraMessageWithSignature(message: string): string {
-  const trimmed = message.trim();
-  if (!trimmed) return message;
 
-  // Split by bubble separator regex (matching apps/bot splitMessageBubbles logic)
-  const separatorPattern = /(?:^|\r?\n|\\r?n)[ \t]*-{3,}[ \t]*(?:\r?\n|\\r?n|$)/;
-  const parts = trimmed
-    .split(separatorPattern)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0 && !/^[- \t]+$/.test(p));
-
-  if (parts.length <= 1) {
-    const single = parts.length === 1 ? parts[0] : trimmed;
-    // Strip any existing trailing -r (with optional leading newline and whitespace)
-    const cleaned = single.replace(/(?:(?:\r?\n|\\r?n)[ \t]*)?-r[ \t]*$/i, '').trimEnd();
-    return `${cleaned}\n\n-r`;
-  }
-
-  const cleanedBubbles = parts.map((bubble, index) => {
-    const isLast = index === parts.length - 1;
-    const cleaned = bubble.replace(/(?:(?:\r?\n|\\r?n)[ \t]*)?-r[ \t]*$/i, '').trimEnd();
-    if (isLast) {
-      return `${cleaned}\n\n-r`;
-    }
-    return cleaned;
-  });
-
-  return cleanedBubbles.join('\n---\n');
-}
 
 // ---------------------------------------------------------------------------
 // Tool 1: whatsapp_send_message

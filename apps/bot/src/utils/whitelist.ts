@@ -10,17 +10,7 @@ import { isInternalStaff, INTERNAL_STAFF_PHONES, INTERNAL_STAFF_LIDS } from '../
 
 const WHITELIST_KEY = 'whatsapp:allowed_phones';
 
-/**
- * Normalizes phone number into international digit format without '+' or spaces.
- * E.g., '08123456789' -> '628123456789', '+62 812-3456-789' -> '628123456789'
- */
-export function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '');
-  if (digits.startsWith('0')) {
-    return `62${digits.slice(1)}`;
-  }
-  return digits;
-}
+import { normalizePhone } from '@sync-erp/shared/whatsapp';
 
 /**
  * Parses the ALLOWED_CUSTOMER_PHONES environment variable into a Set of normalized phone strings.

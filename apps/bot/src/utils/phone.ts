@@ -1,3 +1,8 @@
+import { formatJid } from '@sync-erp/shared/whatsapp';
+
+/**
+ * @deprecated Use formatJid from @sync-erp/shared/whatsapp instead
+ */
 export const formatPhoneNumber = (phone: string): string => {
   // Remove non-digits
   let cleaned = phone.replace(/[\s-]/g, "");
@@ -10,8 +15,8 @@ export const formatPhoneNumber = (phone: string): string => {
   }
 
   // Add WhatsApp suffix if not present
-  if (!cleaned.endsWith("@c.us")) {
-    cleaned += "@c.us";
+  if (!cleaned.endsWith("@s.whatsapp.net")) {
+    cleaned += "@s.whatsapp.net";
   }
 
   return cleaned;

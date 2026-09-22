@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  normalizePhone,
   getAllowedCustomerPhones,
   isCustomerAllowed,
   seedWhitelistFromEnv,
 } from './whitelist';
+import { normalizePhone } from '@sync-erp/shared/whatsapp';
 
 // ---------------------------------------------------------------------------
 // Mock Redis — isCustomerAllowed and seedWhitelistFromEnv use Redis
