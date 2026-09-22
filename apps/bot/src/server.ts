@@ -3,6 +3,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import { authenticateApiKey } from './middleware/auth';
+import { getQrDataUrl } from './bot/baileys';
 
 dotenv.config();
 
@@ -17,7 +18,6 @@ app.use(bodyParser.json());
 const startTime = new Date();
 
 // Health check endpoint
-// Health check endpoint
 app.get('/', (_req, res) => {
   res.status(200).send('Bot is running!');
 });
@@ -29,6 +29,15 @@ app.get('/health', (_req, res) => {
     startedAt: startTime.toISOString(),
     service: 'sync-erp-whatsapp-connector',
   });
+});
+
+app.get('/qr', (_req, res) => {
+  const qr = getQrDataUrl();
+  if (qr) {
+    res.status(200).send(`<!DOCTYPE html><html><head><title>WhatsApp QR</title></head><body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#111;"><img src="${qr}" style="max-width:320px;border-radius:8px;background:#fff;padding:16px;"/><script>setTimeout(()=>location.reload(), 10000);</script></body></html>`);
+  } else {
+    res.status(200).send(`<!DOCTYPE html><html><head><title>WhatsApp QR</title></head><body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif;background:#111;color:#fff;"><h2>WhatsApp Bot Connected (or initializing)</h2><script>setTimeout(()=>location.reload(), 10000);</script></body></html>`);
+  }
 });
 
 import { getStatus } from './api/status';
