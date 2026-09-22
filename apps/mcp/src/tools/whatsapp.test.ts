@@ -13,6 +13,60 @@ import { normalizePhone, formatRaraMessageWithSignature } from '@sync-erp/shared
 import { getWhatsAppConfig, resetWhatsAppConfig } from '../config.js';
 import { Redis } from 'ioredis';
 
+// ---------------------------------------------------------------------------
+// In-Memory Mock Redis for CI/Unit Tests (zero dependency on live Redis)
+// ---------------------------------------------------------------------------
+const { MockRedis } = vi.hoisted(() => {
+  const storage = new Map<string, string>();
+  const sets = new Map<string, Set<string>>();
+  const ttls = new Map<string, number>();
+
+  class MockRedis {
+    async get(key: string): Promise<string | null> {
+      return storage.get(key) ?? null;
+    }
+    async set(key: string, value: string, mode?: string, ttl?: number): Promise<'OK'> {
+      storage.set(key, value);
+      if (mode === 'EX' && typeof ttl === 'number') {
+        ttls.set(key, ttl);
+      }
+      return 'OK';
+    }
+    async del(...keys: string[]): Promise<number> {
+      let count = 0;
+      for (const key of keys) {
+        if (storage.delete(key)) count++;
+        if (sets.delete(key)) count++;
+        ttls.delete(key);
+      }
+      return count;
+    }
+    async sadd(key: string, member: string): Promise<number> {
+      if (!sets.has(key)) sets.set(key, new Set());
+      sets.get(key)!.add(member);
+      return 1;
+    }
+    async srem(key: string, member: string): Promise<number> {
+      const s = sets.get(key);
+      return s ? (s.delete(member) ? 1 : 0) : 0;
+    }
+    async scard(key: string): Promise<number> {
+      return sets.get(key)?.size ?? 0;
+    }
+    async ttl(key: string): Promise<number> {
+      return ttls.get(key) ?? -1;
+    }
+    disconnect(): void {}
+  }
+
+  return { MockRedis };
+});
+
+vi.mock('ioredis', () => ({
+  Redis: MockRedis,
+  default: MockRedis,
+}));
+
 describe('WhatsApp Sales Bot MCP Tools', () => {
   describe('Phone Normalization', () => {
     it('converts leading 0 to 62 prefix', () => {
