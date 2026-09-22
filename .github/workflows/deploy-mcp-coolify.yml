@@ -92,6 +92,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build shared package
+        run: npm run build --workspace=@sync-erp/shared
+
       - name: Build MCP
         run: npm run build --workspace=@sync-erp/mcp
 
