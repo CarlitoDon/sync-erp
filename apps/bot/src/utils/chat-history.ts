@@ -37,6 +37,25 @@ export async function appendChatHistory(
 }
 
 /**
+ * Clears the chat history and any customer note for a phone in Redis.
+ */
+export async function clearChatHistory(phone: string): Promise<void> {
+  try {
+    const redis = getRedisClient();
+    const cleanPhone = phone.replace(/\D/g, '');
+    await redis.del(`${HISTORY_KEY_PREFIX}${cleanPhone}`);
+    await redis.del(`whatsapp:customer_note:${cleanPhone}`);
+    await redis.del(`whatsapp:session_mode:${cleanPhone}`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[ChatHistory] Failed to clear chat history for ${phone}:`,
+      err instanceof Error ? err.message : String(err)
+    );
+  }
+}
+
+/**
  * Retrieves the recent chat history for a customer formatted as readable conversation transcript.
  */
 export async function getFormattedChatHistory(phone: string): Promise<string> {

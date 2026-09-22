@@ -14,7 +14,7 @@ import { trpc } from '../lib/trpc';
 import { z } from 'zod';
 import { useRedisAuthState, resolvePhoneFromLid, getRedisClient } from './use-redis-auth-state';
 import { isCustomerAllowed } from '../utils/whitelist';
-import { appendChatHistory, getFormattedChatHistory } from '../utils/chat-history';
+import { appendChatHistory, getFormattedChatHistory, clearChatHistory } from '../utils/chat-history';
 
 let sock: WASocket | null = null;
 let qrDataUrl: string | null = null;
@@ -32,19 +32,44 @@ const MAX_API_ERROR_CHARS = 450;
 /** Delay before retrying after init throws (avoids a hot loop when Redis/WA is down). */
 const INIT_RETRY_DELAY_MS = 5_000;
 
-/** Internal staff phone numbers to exclude from customer inbound hook */
-const INTERNAL_STAFF_PHONES = new Set([
-  '6285158858310', // Don
-  '6292241851577', // Office
-  '628987257284',  // Hesy
-  '628562747614',  // Andre
-  '6283176406083', // Zay
-]);
+import {
+  INTERNAL_STAFF_PHONES,
+  INTERNAL_STAFF_LIDS,
+  isInternalStaff,
+} from '../constants/staff';
+export { INTERNAL_STAFF_PHONES, INTERNAL_STAFF_LIDS, isInternalStaff };
 
 let cachedAiSalesEnabled = true;
 
 // ---------------------------------------------------------------------------
-// Debounce map: per-phone message buffering (3-second window)
+// Bot-sent message tracking: avoids self-triggering auto-takeover on bot egress
+// ---------------------------------------------------------------------------
+
+const botSentMessageIds = new Set<string>();
+const MAX_BOT_SENT_IDS = 1000;
+
+export function recordBotSentMessageId(messageId: string): void {
+  if (!messageId || messageId === 'unknown') return;
+  botSentMessageIds.add(messageId);
+  if (botSentMessageIds.size > MAX_BOT_SENT_IDS) {
+    const first = botSentMessageIds.values().next().value;
+    if (first) {
+      botSentMessageIds.delete(first);
+    }
+  }
+}
+
+export function isBotSentMessage(messageId: string | null | undefined): boolean {
+  if (!messageId) return false;
+  return botSentMessageIds.has(messageId);
+}
+
+export function clearBotSentMessageIds(): void {
+  botSentMessageIds.clear();
+}
+
+// ---------------------------------------------------------------------------
+// Debounce map: per-phone message buffering (7-second window)
 // ---------------------------------------------------------------------------
 
 interface DebounceEntry {
@@ -55,7 +80,23 @@ interface DebounceEntry {
 }
 
 const debounceMap = new Map<string, DebounceEntry>();
-const DEBOUNCE_DELAY_MS = 3000;
+const DEBOUNCE_DELAY_MS = Number(process.env.WHATSAPP_DEBOUNCE_MS) || 7000;
+
+// ---------------------------------------------------------------------------
+// In-flight guard: prevent concurrent webhook dispatches per phone.
+// If Rara is still processing a previous message, new messages are queued
+// and dispatched as a single batch after the current one completes.
+// ---------------------------------------------------------------------------
+
+interface InFlightEntry {
+  pending: boolean;
+  queuedMessages: string[];
+  customerName: string;
+  customerPhone: string;
+  timestamp: string;
+}
+
+const inFlightMap = new Map<string, InFlightEntry>();
 
 // ---------------------------------------------------------------------------
 // Frustration Breaker — detect consecutive clarification messages
@@ -179,46 +220,41 @@ async function dispatchToWebhook(
   }
 
   const webhookUrl =
+    process.env.RARA_WEBHOOK_URL ||
     process.env.CARLA_WEBHOOK_URL ||
-    'http://127.0.0.1:8645/webhooks/whatsapp-inbound';
+    'http://host.docker.internal:8645/webhooks/whatsapp-inbound';
 
   // eslint-disable-next-line no-console
   console.log(
-    `[Baileys] Forwarding debounced message from ${customerPhone} (${customerName}) to Carla webhook: ${webhookUrl}`,
+    `[Baileys] Forwarding debounced message from ${customerPhone} (${customerName}) to Rara webhook: ${webhookUrl}`,
   );
 
   try {
     const payload: Record<string, unknown> = {
       customerPhone,
-      customerName,
+      customerName: customerName || 'Pelanggan',
       messageText,
-      chatHistory,
+      chatHistory: chatHistory || '(Belum ada riwayat sebelumnya)',
       timestamp,
+      customerNotes: customerNotes || 'Tidak ada catatan khusus',
+      autoEscalation: autoEscalation ? JSON.stringify(autoEscalation) : 'None',
     };
-
-    if (customerNotes) {
-      payload.customerNotes = customerNotes;
-    }
-
-    if (autoEscalation) {
-      payload.autoEscalation = autoEscalation;
-    }
 
     const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(180000),
     });
     if (!res.ok) {
       // eslint-disable-next-line no-console
       console.warn(
-        `[Baileys] Carla webhook returned HTTP ${res.status} for message from ${customerPhone}`,
+        `[Baileys] Rara webhook returned HTTP ${res.status} for message from ${customerPhone}`,
       );
     }
   } catch (postErr) {
     console.error(
-      '[Baileys] Failed to forward customer message to Carla webhook:',
+      '[Baileys] Failed to forward customer message to Rara webhook:',
       postErr instanceof Error ? postErr.message : String(postErr),
     );
   }
@@ -420,7 +456,6 @@ async function startBaileysSocket() {
 
     try {
       for (const msg of messages) {
-        if (msg.key.fromMe) continue;
         const remoteJid = msg.key.remoteJid;
         if (!remoteJid) continue;
         if (remoteJid.endsWith('@g.us')) continue; // Ignore group chats
@@ -446,8 +481,75 @@ async function startBaileysSocket() {
           }
         }
 
-        // Exclude internal staff
-        if (INTERNAL_STAFF_PHONES.has(cleanPhone)) {
+        // Exclude internal staff, admin stores, and leadership unconditionally
+        if (
+          isInternalStaff(cleanPhone) ||
+          isInternalStaff(rawPhone) ||
+          isInternalStaff(remoteJid) ||
+          isInternalStaff(normalizedJid)
+        ) {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[Baileys] Message involving internal staff/store ${cleanPhone} (raw: ${rawPhone}) ignored.`
+          );
+          continue;
+        }
+
+        // Handle outbound message sent by owner manually (fromMe: true)
+        if (msg.key.fromMe) {
+          const messageId = msg.key.id;
+          // Ignore messages sent by the bot itself via /send-message API
+          if (messageId && isBotSentMessage(messageId)) {
+            continue;
+          }
+
+          // Owner (Mas Don) replied manually from his phone / WhatsApp Web:
+          // 1. Cancel any pending debounce timer so bot does not reply to customer
+          const existing = debounceMap.get(cleanPhone);
+          if (existing) {
+            clearTimeout(existing.timer);
+            debounceMap.delete(cleanPhone);
+            // eslint-disable-next-line no-console
+            console.log(
+              `[Baileys] Cancelled pending debounce for ${cleanPhone}: owner replied manually.`
+            );
+          }
+
+          // 2. Clear any queued in-flight messages
+          const flight = inFlightMap.get(cleanPhone);
+          if (flight) {
+            flight.queuedMessages = [];
+          }
+
+          // 3. Auto-takeover: set session_mode = HUMAN for 2 hours (7200s)
+          try {
+            const redis = getRedisClient();
+            await redis.set(`whatsapp:session_mode:${cleanPhone}`, 'HUMAN', 'EX', 7200);
+            // eslint-disable-next-line no-console
+            console.log(
+              `[Baileys] Owner manual reply detected for ${cleanPhone}. Auto-takeover: session_mode set to HUMAN for 2h.`
+            );
+          } catch (err) {
+            console.warn(
+              '[Baileys] Error setting session_mode on owner manual reply:',
+              err instanceof Error ? err.message : String(err)
+            );
+          }
+
+          // 4. Record owner's message in chat history so context is preserved
+          const messageText = extractMessageContent(msg.message);
+          if (messageText.trim()) {
+            const timestamp = msg.messageTimestamp
+              ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
+              : new Date().toISOString();
+            await appendChatHistory(cleanPhone, {
+              role: 'assistant',
+              name: 'Don (Owner)',
+              text: messageText,
+              timestamp,
+            });
+          }
+
           continue;
         }
 
@@ -466,6 +568,37 @@ async function startBaileysSocket() {
         const messageText = extractMessageContent(msg.message);
 
         if (!messageText.trim()) continue;
+
+        // /restart command: clear chat history and active session for this customer
+        if (messageText.trim().toLowerCase() === '/restart') {
+          // eslint-disable-next-line no-console
+          console.log(`[Baileys] /restart command received from ${cleanPhone}. Resetting conversation...`);
+
+          // 1. Cancel any active debounce
+          const activeDebounce = debounceMap.get(cleanPhone);
+          if (activeDebounce) {
+            clearTimeout(activeDebounce.timer);
+            debounceMap.delete(cleanPhone);
+          }
+
+          // 2. Clear any in-flight queue
+          const activeFlight = inFlightMap.get(cleanPhone);
+          if (activeFlight) {
+            activeFlight.queuedMessages = [];
+          }
+
+          // 3. Clear Redis chat history, customer note, and session mode
+          await clearChatHistory(cleanPhone);
+
+          // 4. Send instant confirmation reply
+          const targetJid = remoteJid.endsWith('@s.whatsapp.net') || remoteJid.endsWith('@lid')
+            ? remoteJid
+            : `${cleanPhone}@s.whatsapp.net`;
+          await sock.sendMessage(targetJid, {
+            text: '🔄 Riwayat percakapan telah direset bersih. Rara siap melayani dari awal lagi ya kak! 😊',
+          });
+          continue;
+        }
 
         // Check emergency killswitch / AI sales toggle
         const aiSalesActive = await checkAiSalesEnabled();
@@ -533,17 +666,69 @@ async function fireDebounce(
 ): Promise<void> {
   debounceMap.delete(cleanPhone);
   const combinedMessage = entry.messages.join('\n');
+
+  // In-flight guard: if a webhook is already processing for this phone,
+  // queue the messages for dispatch after the current one finishes.
+  const existing = inFlightMap.get(cleanPhone);
+  if (existing?.pending) {
+    existing.queuedMessages.push(combinedMessage);
+    existing.timestamp = entry.timestamp;
+    // eslint-disable-next-line no-console
+    console.log(
+      `[in-flight] Queued ${entry.messages.length} message(s) for ${customerPhone} (webhook still processing)`,
+    );
+    return;
+  }
+
+  // Mark as in-flight
+  const flight: InFlightEntry = {
+    pending: true,
+    queuedMessages: [],
+    customerName: entry.customerName,
+    customerPhone,
+    timestamp: entry.timestamp,
+  };
+  inFlightMap.set(cleanPhone, flight);
+
   // eslint-disable-next-line no-console
   console.log(
     `[debounce] Firing for ${customerPhone} with ${entry.messages.length} message(s)`,
   );
-  await dispatchToWebhook(
-    cleanPhone,
-    customerPhone,
-    entry.customerName,
-    combinedMessage,
-    entry.timestamp,
-  );
+
+  try {
+    await dispatchToWebhook(
+      cleanPhone,
+      customerPhone,
+      entry.customerName,
+      combinedMessage,
+      entry.timestamp,
+    );
+  } finally {
+    // Drain queued messages that arrived during processing
+    while (flight.queuedMessages.length > 0) {
+      const queued = flight.queuedMessages.splice(0);
+      const batchMessage = queued.join('\n');
+      // eslint-disable-next-line no-console
+      console.log(
+        `[in-flight] Draining ${queued.length} queued message(s) for ${customerPhone}`,
+      );
+      try {
+        await dispatchToWebhook(
+          cleanPhone,
+          customerPhone,
+          flight.customerName,
+          batchMessage,
+          flight.timestamp,
+        );
+      } catch (err) {
+        console.error(
+          `[in-flight] Error dispatching queued messages for ${customerPhone}:`,
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+    }
+    inFlightMap.delete(cleanPhone);
+  }
 }
 
 async function updateApiStatus(
