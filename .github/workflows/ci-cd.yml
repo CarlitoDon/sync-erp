@@ -101,8 +101,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          # Same-deps restore first for Turbo hits; SHA key keeps per-commit freshness.
+          key: ${{ runner.os }}-turbo-${{ hashFiles('package-lock.json', 'turbo.json') }}-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-turbo-${{ hashFiles('package-lock.json', 'turbo.json') }}-
             ${{ runner.os }}-turbo-
 
       # Always run install. setup-node restores the npm cache but not the
@@ -177,8 +179,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          # Same-deps restore first for Turbo hits; SHA key keeps per-commit freshness.
+          key: ${{ runner.os }}-turbo-${{ hashFiles('package-lock.json', 'turbo.json') }}-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-turbo-${{ hashFiles('package-lock.json', 'turbo.json') }}-
             ${{ runner.os }}-turbo-
 
       - name: Install dependencies
@@ -210,8 +214,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          # Same-deps restore first for Turbo hits; SHA key keeps per-commit freshness.
+          key: ${{ runner.os }}-turbo-${{ hashFiles('package-lock.json', 'turbo.json') }}-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-turbo-${{ hashFiles('package-lock.json', 'turbo.json') }}-
             ${{ runner.os }}-turbo-
 
       # Always run install — see ci-api job comment.
