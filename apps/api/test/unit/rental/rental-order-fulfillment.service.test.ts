@@ -306,7 +306,7 @@ describe('RentalOrderFulfillmentService', () => {
       expect(prisma.rentalItemUnit.updateMany).toHaveBeenCalledWith({
         where: {
           id: { in: ['unit-1'] },
-          status: UnitStatus.AVAILABLE,
+          status: { notIn: [UnitStatus.MAINTENANCE, UnitStatus.RETIRED] },
         },
         data: { status: UnitStatus.RESERVED },
       });

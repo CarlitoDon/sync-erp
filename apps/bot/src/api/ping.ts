@@ -42,10 +42,7 @@ export const ping = async (_req: Request, res: Response) => {
   }
 
   // 4. Send "pong" to admin
-  const targetNumber = formatPhoneNumber(ADMIN_PHONE).replace(
-    '@c.us',
-    '@s.whatsapp.net'
-  );
+  const targetNumber = formatPhoneNumber(ADMIN_PHONE);
 
   const timestamp = new Date().toLocaleString('id-ID', {
     timeZone: 'Asia/Jakarta',

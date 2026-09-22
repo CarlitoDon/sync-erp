@@ -26,6 +26,10 @@
     "./trpc": {
       "types": "./dist/trpc/index.d.ts",
       "import": "./dist/trpc/index.js"
+    },
+    "./whatsapp": {
+      "types": "./dist/whatsapp/index.d.ts",
+      "import": "./dist/whatsapp/index.js"
     }
   },
   "scripts": {

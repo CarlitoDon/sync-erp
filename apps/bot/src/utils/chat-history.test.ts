@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { appendChatHistory, getFormattedChatHistory } from './chat-history';
+import { appendChatHistory, getFormattedChatHistory, clearChatHistory } from './chat-history';
 
 // Mock getRedisClient
 const mockStore: Record<string, string[]> = {};
@@ -21,6 +21,10 @@ vi.mock('../bot/use-redis-auth-state', () => ({
       const list = mockStore[key] || [];
       return list.slice(start, stop === -1 ? undefined : stop + 1);
     }),
+    del: vi.fn(async (key: string) => {
+      delete mockStore[key];
+      return 1;
+    }),
   }),
 }));
 
@@ -36,18 +40,34 @@ describe('Chat History Utility', () => {
 
     await appendChatHistory(phone, {
       role: 'assistant',
-      name: 'Carla',
+      name: 'Rara',
       text: 'Halo kak! Selamat malam, ada yang bisa dibantu?',
       timestamp: '2026-09-20T12:28:00Z',
     });
 
     const formatted = await getFormattedChatHistory(phone);
     expect(formatted).toContain('Mila: halo k');
-    expect(formatted).toContain('Carla: Halo kak! Selamat malam, ada yang bisa dibantu?');
+    expect(formatted).toContain('Rara: Halo kak! Selamat malam, ada yang bisa dibantu?');
   });
 
   it('returns placeholder when history is empty', async () => {
     const formatted = await getFormattedChatHistory('628999999999');
+    expect(formatted).toBe('(Percakapan baru - belum ada riwayat sebelumnya)');
+  });
+
+  it('clears chat history when clearChatHistory is called', async () => {
+    const phone = '628111222333';
+    await appendChatHistory(phone, {
+      role: 'customer',
+      name: 'Tester',
+      text: 'hello',
+      timestamp: '2026-09-22T07:00:00Z',
+    });
+    let formatted = await getFormattedChatHistory(phone);
+    expect(formatted).toContain('Tester: hello');
+
+    await clearChatHistory(phone);
+    formatted = await getFormattedChatHistory(phone);
     expect(formatted).toBe('(Percakapan baru - belum ada riwayat sebelumnya)');
   });
 });

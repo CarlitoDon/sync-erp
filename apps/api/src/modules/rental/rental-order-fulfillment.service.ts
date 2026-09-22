@@ -116,11 +116,37 @@ export class RentalOrderFulfillmentService {
       } else {
         unitIds = [];
         for (const [rentalItemId, qty] of requiredUnits.entries()) {
+          const overlappingAssignments =
+            (await tx.rentalOrderUnitAssignment.findMany({
+              where: {
+                rentalItemUnit: {
+                  rentalItemId,
+                  companyId,
+                },
+                rentalOrder: {
+                  id: { not: order.id },
+                  status: {
+                    in: [
+                      RentalOrderStatus.CONFIRMED,
+                      RentalOrderStatus.ACTIVE,
+                    ],
+                  },
+                  rentalStartDate: { lt: order.rentalEndDate },
+                  rentalEndDate: { gt: order.rentalStartDate },
+                },
+              },
+              select: { rentalItemUnitId: true },
+            })) ?? [];
+          const bookedUnitIds = overlappingAssignments.map(
+            (a) => a.rentalItemUnitId
+          );
+
           const availableUnits = await tx.rentalItemUnit.findMany({
             where: {
               rentalItemId,
               companyId,
-              status: UnitStatus.AVAILABLE,
+              status: { notIn: [UnitStatus.MAINTENANCE, UnitStatus.RETIRED] },
+              id: { notIn: bookedUnitIds },
             },
             take: qty,
             orderBy: { unitCode: 'asc' },
@@ -222,7 +248,7 @@ export class RentalOrderFulfillmentService {
       const reservationResult = await tx.rentalItemUnit.updateMany({
         where: {
           id: { in: unitIds },
-          status: UnitStatus.AVAILABLE,
+          status: { notIn: [UnitStatus.MAINTENANCE, UnitStatus.RETIRED] },
         },
         data: { status: UnitStatus.RESERVED },
       });
@@ -388,11 +414,37 @@ export class RentalOrderFulfillmentService {
       // AUTO-ASSIGN units
       const unitIds: string[] = [];
       for (const [rentalItemId, qty] of requiredUnits.entries()) {
+        const overlappingAssignments =
+          (await tx.rentalOrderUnitAssignment.findMany({
+            where: {
+              rentalItemUnit: {
+                rentalItemId,
+                companyId,
+              },
+              rentalOrder: {
+                id: { not: order.id },
+                status: {
+                  in: [
+                    RentalOrderStatus.CONFIRMED,
+                    RentalOrderStatus.ACTIVE,
+                  ],
+                },
+                rentalStartDate: { lt: order.rentalEndDate },
+                rentalEndDate: { gt: order.rentalStartDate },
+              },
+            },
+            select: { rentalItemUnitId: true },
+          })) ?? [];
+        const bookedUnitIds = overlappingAssignments.map(
+          (a) => a.rentalItemUnitId
+        );
+
         const availableUnits = await tx.rentalItemUnit.findMany({
           where: {
             rentalItemId,
             companyId,
-            status: UnitStatus.AVAILABLE,
+            status: { notIn: [UnitStatus.MAINTENANCE, UnitStatus.RETIRED] },
+            id: { notIn: bookedUnitIds },
           },
           take: qty,
           orderBy: { unitCode: 'asc' },
@@ -472,7 +524,7 @@ export class RentalOrderFulfillmentService {
             await tx.rentalItemUnit.updateMany({
               where: {
                 id: { in: unitIds },
-                status: UnitStatus.AVAILABLE,
+                status: { notIn: [UnitStatus.MAINTENANCE, UnitStatus.RETIRED] },
               },
               data: { status: UnitStatus.RESERVED },
             });
@@ -488,7 +540,7 @@ export class RentalOrderFulfillmentService {
           await tx.rentalItemUnit.updateMany({
             where: {
               id: { in: unitIds },
-              status: UnitStatus.AVAILABLE,
+              status: { notIn: [UnitStatus.MAINTENANCE, UnitStatus.RETIRED] },
             },
             data: { status: UnitStatus.RESERVED },
           });

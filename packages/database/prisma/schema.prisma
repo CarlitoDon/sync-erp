@@ -1823,3 +1823,18 @@ enum TenantWebhookOutboxStatus {
   FAILED
   DEAD_LETTER
 }
+
+/// Singleton row tracking the WhatsApp bot process status.
+/// Written by bot status pushes (bot.updateStatus) and live-fetch persistence
+/// (bot.getStatus); read by admin polling for staleness/down alerting.
+model WhatsappBotStatus {
+  id             String    @id @default("singleton")
+  status         String    @default("INITIALIZING")
+  qr             String?
+  lastError      String?
+  lastErrorAt    DateTime?
+  lastAlertedAt  DateTime?
+  lastAlertState String?
+  aiSalesEnabled Boolean   @default(true)
+  updatedAt      DateTime  @updatedAt
+}

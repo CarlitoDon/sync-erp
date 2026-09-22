@@ -123,6 +123,29 @@ function compactRentalOrderList(
   );
 }
 
+function compactRentalItemList(rawJson: string): string {
+  const parsed: unknown = JSON.parse(rawJson);
+  const items = toRecordArray(parsed).map((item) => {
+    const product = toRecord(item.product);
+    const rawUnits = toRecordArray(item.units);
+    return {
+      id: getRecordString(item, 'id'),
+      name: product ? getRecordString(product, 'name') : undefined,
+      sku: product ? getRecordString(product, 'sku') : undefined,
+      dailyRate: getRecordString(item, 'dailyRate'),
+      weeklyRate: getRecordString(item, 'weeklyRate'),
+      monthlyRate: getRecordString(item, 'monthlyRate'),
+      depositPerUnit: getRecordString(item, 'depositPerUnit'),
+      totalUnits: rawUnits.length,
+      availableUnits: rawUnits.filter(
+        (u) => getRecordString(u, 'status') === 'AVAILABLE'
+      ).length,
+    };
+  });
+
+  return JSON.stringify(items, null, 2);
+}
+
 export function getRentalTools(): ToolSpec[] {
   return [
     // ── Items ────────────────────────────────────────
@@ -137,12 +160,14 @@ export function getRentalTools(): ToolSpec[] {
         },
         required: ['companyId'],
       },
-      handler: async (args) =>
-        apiQuery(
+      handler: async (args) => {
+        const raw = await apiQuery(
           'rental.items.list',
           buildInput([['category', getOptionalString(args, 'category')]]),
           getString(args, 'companyId')
-        ),
+        );
+        return compactRentalItemList(raw);
+      },
     },
     {
       name: 'rental_item_create',
@@ -328,7 +353,7 @@ export function getRentalTools(): ToolSpec[] {
     {
       name: 'rental_order_create',
       description:
-        'Create a rental order. Input JSON: {partnerId, rentalStartDate, rentalEndDate, items: [{rentalItemId|rentalBundleId, quantity, pricePerDay?, lineTotal?}], deliveryFee?, discountAmount?, notes?}. Use source invoice pricePerDay/lineTotal and deliveryFee when historical or package pricing differs from master rates. Use lineTotal when the invoice has an exact line subtotal that should not be re-derived from a daily rate.',
+        'Create a rental order. Input JSON: {partnerId, rentalStartDate, rentalEndDate, items: [{rentalItemId|rentalBundleId, quantity, pricePerDay?, lineTotal?}], deliveryFee?, discountAmount?, notes?}. Rental duration is calculated per night (rentalEndDate - rentalStartDate). Use source invoice pricePerDay/lineTotal and deliveryFee when historical or package pricing differs from master rates. Use lineTotal when the invoice has an exact line subtotal that should not be re-derived from a daily rate.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -505,27 +530,78 @@ export function getRentalTools(): ToolSpec[] {
     // ── Availability ────────────────────────────────────────
     {
       name: 'rental_availability_check',
-      description: 'Check rental item availability for a date range',
+      description:
+        'Check rental item availability for a date range on a per-night basis (startDate is check-in, endDate is check-out). ' +
+        'Example: for 1 to 5 October, use startDate="YYYY-10-01" and endDate="YYYY-10-05" (4 nights duration). ' +
+        'Returns available unit counts mapped with item names and SKUs.',
       inputSchema: {
         type: 'object',
         properties: {
           companyId: companyIdProp,
-          startDate: { type: 'string', description: 'ISO date' },
-          endDate: { type: 'string', description: 'ISO date' },
+          startDate: {
+            type: 'string',
+            description: 'Start date / check-in date in ISO format (YYYY-MM-DD)',
+          },
+          endDate: {
+            type: 'string',
+            description:
+              'End date / check-out date in ISO format (YYYY-MM-DD). For per-night rentals, 1 - 5 October means startDate="YYYY-10-01" and endDate="YYYY-10-05" (4 nights).',
+          },
           itemId: { type: 'string', description: 'Optional: filter by item UUID' },
         },
         required: ['companyId', 'startDate', 'endDate'],
       },
-      handler: async (args) =>
-        apiQuery(
+      handler: async (args) => {
+        const companyId = getString(args, 'companyId');
+        const startDate = getString(args, 'startDate');
+        const endDate = getString(args, 'endDate');
+        const itemId = getOptionalString(args, 'itemId');
+
+        const rawAvailability = await apiQuery(
           'rental.availability.check',
           buildInput([
-            ['startDate', getString(args, 'startDate')],
-            ['endDate', getString(args, 'endDate')],
-            ['itemId', getOptionalString(args, 'itemId')],
+            ['startDate', startDate],
+            ['endDate', endDate],
+            ['itemId', itemId],
           ]),
-          getString(args, 'companyId')
-        ),
+          companyId
+        );
+
+        try {
+          const rawItems = await apiQuery('rental.items.list', buildInput([]), companyId);
+          const parsedItems: unknown = JSON.parse(rawItems);
+          const parsedAvail: unknown = JSON.parse(rawAvailability);
+
+          if (typeof parsedAvail === 'object' && parsedAvail !== null) {
+            const availMap = parsedAvail as Record<string, number>;
+            const items = toRecordArray(parsedItems)
+              .map((item) => {
+                const product = toRecord(item.product);
+                const id = getRecordString(item, 'id') ?? '';
+                return {
+                  itemId: id,
+                  name: product ? getRecordString(product, 'name') : undefined,
+                  sku: product ? getRecordString(product, 'sku') : undefined,
+                  availableCount: availMap[id] ?? 0,
+                };
+              })
+              .filter((item) => !itemId || item.itemId === itemId);
+
+            return JSON.stringify(
+              {
+                availability: availMap,
+                items,
+              },
+              null,
+              2
+            );
+          }
+        } catch {
+          // Fallback to raw availability if enrichment fails
+        }
+
+        return rawAvailability;
+      },
     },
     {
       name: 'rental_units_by_item',

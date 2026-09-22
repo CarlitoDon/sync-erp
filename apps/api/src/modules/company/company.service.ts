@@ -271,7 +271,7 @@ export class CompanyService {
             await this.repository.lockForMembershipMutation(tx, companyId);
             return operation(tx);
           },
-          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+          { isolationLevel: 'Serializable' }
         );
       } catch (error) {
         if (

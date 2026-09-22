@@ -1,4 +1,4 @@
-export const SCHEDULER_WINDOW_OPTIONS = [14, 28, 42] as const;
+export const SCHEDULER_WINDOW_OPTIONS = [7, 14, 28, 42] as const;
 
 export type SchedulerWindowDays =
   (typeof SCHEDULER_WINDOW_OPTIONS)[number];

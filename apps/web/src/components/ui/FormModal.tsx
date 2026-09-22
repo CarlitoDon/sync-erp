@@ -7,6 +7,7 @@ interface FormModalProps {
   title: string;
   children: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl';
+  zIndex?: string;
 }
 /* eslint-enable @sync-erp/no-hardcoded-enum */
 
@@ -25,12 +26,13 @@ export default function FormModal({
   title,
   children,
   maxWidth = 'lg',
+  zIndex = 'z-50',
 }: FormModalProps) {
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto"
+      className={`fixed inset-0 ${zIndex} overflow-y-auto`}
       aria-labelledby="modal-title"
       role="dialog"
       aria-modal="true"

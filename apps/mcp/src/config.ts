@@ -18,7 +18,7 @@ const WhatsAppConfigSchema = z.object({
   botSecret: z.string().default(''),
   googleMapsApiKey: z.string().default(''),
   redisUrl: z.string().default('redis://127.0.0.1:6379'),
-  carlaTelegramBotToken: z.string().default(''),
+  raraTelegramBotToken: z.string().default(''),
 });
 
 export type WhatsAppConfig = z.infer<typeof WhatsAppConfigSchema>;
@@ -121,11 +121,20 @@ export function getWhatsAppConfig(): WhatsAppConfig {
   }
 
   const raw = {
-    botUrl: process.env.WHATSAPP_BOT_URL ?? 'http://127.0.0.1:3060',
-    botSecret: process.env.WHATSAPP_BOT_SECRET ?? '',
+    botUrl:
+      process.env.WHATSAPP_BOT_URL ??
+      process.env.SYNC_ERP_BOT_URL ??
+      'http://127.0.0.1:3060',
+    botSecret:
+      process.env.WHATSAPP_BOT_SECRET ??
+      process.env.SYNC_ERP_BOT_SECRET ??
+      '',
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? '',
     redisUrl: process.env.REDIS_URL ?? 'redis://127.0.0.1:6379',
-    carlaTelegramBotToken: process.env.CARLA_TELEGRAM_BOT_TOKEN ?? '',
+    raraTelegramBotToken:
+      process.env.RARA_TELEGRAM_BOT_TOKEN ??
+      process.env.TELEGRAM_BOT_TOKEN ??
+      '',
   };
 
   const parsed = WhatsAppConfigSchema.safeParse(raw);
@@ -138,4 +147,8 @@ export function getWhatsAppConfig(): WhatsAppConfig {
 
   cachedWhatsAppConfig = parsed.data;
   return cachedWhatsAppConfig;
+}
+
+export function resetWhatsAppConfig(): void {
+  cachedWhatsAppConfig = null;
 }

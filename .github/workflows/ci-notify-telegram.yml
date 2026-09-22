@@ -1,0 +1,44 @@
+name: CI Notify Telegram
+
+on:
+  workflow_run:
+    workflows: ["CI/CD", "E2E (Playwright)"]
+    types: [completed]
+    branches: [dev, main]
+
+permissions:
+  contents: none
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_IDS: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          set -u
+          if [ -z "${BOT_TOKEN:-}" ] || [ -z "${CHAT_IDS:-}" ]; then
+            echo "Telegram secrets not configured, skipping notify"
+            exit 0
+          fi
+          short_sha="$(printf '%.7s' "${HEAD_SHA:-unknown}")"
+          text="CI finished: ${WORKFLOW_NAME:-unknown} | branch: ${BRANCH:-unknown} | sha: ${short_sha} | conclusion: ${CONCLUSION:-unknown} | ${RUN_URL:-}"
+          old_ifs="$IFS"
+          IFS=','
+          # shellcheck disable=SC2086
+          for chat_id in $CHAT_IDS; do
+            chat_id="$(echo "$chat_id" | tr -d '[:space:]')"
+            [ -z "$chat_id" ] && continue
+            curl -sS -m 15 -o /dev/null \
+              --data-urlencode "chat_id=$chat_id" \
+              --data-urlencode "text=$text" \
+              "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" || echo "notify failed (non-blocking)"
+          done
+          IFS="$old_ifs"

@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import 'dotenv/config';
-import prisma from '../src/client';
+import { prisma } from '../src/client.js';
 
 async function testDatabase() {
   console.log('🔍 Testing Prisma Postgres connection...\n');
@@ -26,6 +26,7 @@ async function testDatabase() {
     process.exit(1);
   } finally {
     await prisma.$disconnect();
+    process.exit(0);
   }
 }
 

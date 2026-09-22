@@ -6,6 +6,106 @@
   "rewrites": [
     {
       "source": "/api/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "sync-erp-staging.khusnudhoni.online"
+        }
+      ],
+      "destination": "https://api-staging-sync-erp.khusnudhoni.online/api/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "staging.santiliving.com"
+        }
+      ],
+      "destination": "https://api-staging-sync-erp.khusnudhoni.online/api/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "sync-erp-staging.santiliving.com"
+        }
+      ],
+      "destination": "https://api-staging-sync-erp.khusnudhoni.online/api/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*-git-dev-.*"
+        }
+      ],
+      "destination": "https://api-staging-sync-erp.khusnudhoni.online/api/:path*"
+    },
+    {
+      "source": "/health",
+      "has": [
+        {
+          "type": "host",
+          "value": "sync-erp-staging.khusnudhoni.online"
+        }
+      ],
+      "destination": "https://api-staging-sync-erp.khusnudhoni.online/health"
+    },
+    {
+      "source": "/health",
+      "has": [
+        {
+          "type": "host",
+          "value": "staging.santiliving.com"
+        }
+      ],
+      "destination": "https://api-staging-sync-erp.khusnudhoni.online/health"
+    },
+    {
+      "source": "/health",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*-git-dev-.*"
+        }
+      ],
+      "destination": "https://api-staging-sync-erp.khusnudhoni.online/health"
+    },
+    {
+      "source": "/readyz",
+      "has": [
+        {
+          "type": "host",
+          "value": "sync-erp-staging.khusnudhoni.online"
+        }
+      ],
+      "destination": "https://api-staging-sync-erp.khusnudhoni.online/readyz"
+    },
+    {
+      "source": "/readyz",
+      "has": [
+        {
+          "type": "host",
+          "value": "staging.santiliving.com"
+        }
+      ],
+      "destination": "https://api-staging-sync-erp.khusnudhoni.online/readyz"
+    },
+    {
+      "source": "/readyz",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*-git-dev-.*"
+        }
+      ],
+      "destination": "https://api-staging-sync-erp.khusnudhoni.online/readyz"
+    },
+    {
+      "source": "/api/:path*",
       "destination": "https://api-sync-erp.khusnudhoni.online/api/:path*"
     },
     {

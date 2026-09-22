@@ -19,6 +19,7 @@
       "@/*": ["./src/*"],
       "@routes/*": ["./src/routes/*"],
       "@sync-erp/database": ["../../packages/database/src"],
+      "@sync-erp/shared/whatsapp": ["../../packages/shared/src/whatsapp"],
       "@sync-erp/shared": ["../../packages/shared/src"]
     },
     "outDir": "dist"
