@@ -591,12 +591,14 @@ async function startBaileysSocket() {
           await clearChatHistory(cleanPhone);
 
           // 4. Send instant confirmation reply
-          const targetJid = remoteJid.endsWith('@s.whatsapp.net') || remoteJid.endsWith('@lid')
-            ? remoteJid
-            : `${cleanPhone}@s.whatsapp.net`;
-          await sock.sendMessage(targetJid, {
-            text: '🔄 Riwayat percakapan telah direset bersih. Rara siap melayani dari awal lagi ya kak! 😊',
-          });
+          if (sock) {
+            const targetJid = remoteJid.endsWith('@s.whatsapp.net') || remoteJid.endsWith('@lid')
+              ? remoteJid
+              : `${cleanPhone}@s.whatsapp.net`;
+            await sock.sendMessage(targetJid, {
+              text: '🔄 Riwayat percakapan telah direset bersih. Rara siap melayani dari awal lagi ya kak! 😊',
+            });
+          }
           continue;
         }
 
