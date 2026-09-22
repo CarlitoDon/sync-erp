@@ -274,6 +274,14 @@ export const mockPrisma = {
     count: vi.fn(),
     deleteMany: vi.fn(),
   },
+  whatsappBotStatus: {
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+    upsert: vi.fn(),
+  },
   $transaction: vi.fn((arg) => {
     // Handle both patterns: array of queries or callback function
     if (Array.isArray(arg)) {

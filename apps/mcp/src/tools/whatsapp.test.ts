@@ -3,10 +3,15 @@ import {
   normalizePhone,
   calculateDeliveryFee,
   buildLeadCard,
+  formatRaraMessageWithSignature,
   EscalateArgsSchema,
+  EscalatedLeadPayloadSchema,
+  LAST_ESCALATION_KEY_PREFIX,
+  LAST_ESCALATION_TTL,
   getWhatsAppTools,
 } from './whatsapp.js';
-import { getWhatsAppConfig } from '../config.js';
+import { getWhatsAppConfig, resetWhatsAppConfig } from '../config.js';
+import { Redis } from 'ioredis';
 
 describe('WhatsApp Sales Bot MCP Tools', () => {
   describe('Phone Normalization', () => {
@@ -82,9 +87,9 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
   });
 
   describe('WhatsApp Tools Registry', () => {
-    it('registers all 7 WhatsApp tools with correct names and schemas', () => {
+    it('registers all 8 WhatsApp tools with correct names and schemas', () => {
       const tools = getWhatsAppTools();
-      expect(tools.length).toBe(7);
+      expect(tools.length).toBe(9);
 
       const toolNames = tools.map((t) => t.name);
       expect(toolNames).toEqual([
@@ -95,6 +100,8 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
         'manage_customer_whitelist',
         'take_over_conversation',
         'return_to_bot',
+        'resume_bot',
+        'get_last_escalated_lead',
       ]);
 
       // Every tool must have a handler function and an input schema
@@ -109,8 +116,13 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
   describe('WhatsApp Configuration Schema', () => {
     const originalEnv = { ...process.env };
 
+    beforeEach(() => {
+      resetWhatsAppConfig();
+    });
+
     afterEach(() => {
       process.env = { ...originalEnv };
+      resetWhatsAppConfig();
     });
 
     it('loads defaults when optional env vars are omitted', () => {
@@ -118,12 +130,399 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
       delete process.env.WHATSAPP_BOT_SECRET;
       delete process.env.GOOGLE_MAPS_API_KEY;
       delete process.env.REDIS_URL;
-      delete process.env.CARLA_TELEGRAM_BOT_TOKEN;
+      delete process.env.RARA_TELEGRAM_BOT_TOKEN;
+      delete process.env.TELEGRAM_BOT_TOKEN;
 
       const config = getWhatsAppConfig();
       expect(config.botUrl).toBe('http://127.0.0.1:3060');
       expect(config.redisUrl).toBe('redis://127.0.0.1:6379');
       expect(config.botSecret).toBe('');
+      expect(config.raraTelegramBotToken).toBe('');
+    });
+
+    it('loads RARA_TELEGRAM_BOT_TOKEN when configured', () => {
+      process.env.RARA_TELEGRAM_BOT_TOKEN = 'test_token_123';
+      const config = getWhatsAppConfig();
+      expect(config.raraTelegramBotToken).toBe('test_token_123');
+    });
+
+    it('escalate_to_owner fails when RARA_TELEGRAM_BOT_TOKEN is missing', async () => {
+      delete process.env.RARA_TELEGRAM_BOT_TOKEN;
+      delete process.env.TELEGRAM_BOT_TOKEN;
+      resetWhatsAppConfig();
+
+      const tool = getWhatsAppTools().find((t) => t.name === 'escalate_to_owner');
+      expect(tool).toBeDefined();
+
+      await expect(
+        tool!.handler({
+          customerName: 'Budi Santoso',
+          customerPhone: '081234567890',
+          productInterest: 'Kasur Busa',
+          escalationReason: 'Nego diskon',
+          leadSummary: 'Customer minta diskon',
+          urgencyLevel: 'high',
+        })
+      ).rejects.toThrow('RARA_TELEGRAM_BOT_TOKEN is not configured');
+    });
+
+    it('rejects escalating internal staff (Admin 1 +6281249182155) to owner', async () => {
+      const tool = getWhatsAppTools().find((t) => t.name === 'escalate_to_owner');
+      expect(tool).toBeDefined();
+
+      await expect(
+        tool!.handler({
+          customerName: 'Admin 1 Sales Santi Mebel',
+          customerPhone: '081249182155',
+          productInterest: 'Kursi Napolly',
+          escalationReason: 'Nota',
+          leadSummary: 'Pesan kursi napolly',
+          urgencyLevel: 'high',
+        })
+      ).rejects.toThrow('Cannot escalate internal staff or store conversation to owner');
+    });
+
+    it('rejects setting customer note for internal staff (Admin 1 +6281249182155)', async () => {
+      const tool = getWhatsAppTools().find((t) => t.name === 'set_customer_note');
+      expect(tool).toBeDefined();
+
+      await expect(
+        tool!.handler({
+          phone: '081249182155',
+          note: 'Staff internal',
+        })
+      ).rejects.toThrow('Cannot set customer note for internal staff or store phone');
+    });
+  });
+
+  describe('whatsapp_send_message handler', () => {
+    it('parses multi-bubble response and returns messageIds and bubbleCount', async () => {
+      const tool = getWhatsAppTools().find((t) => t.name === 'whatsapp_send_message');
+      expect(tool).toBeDefined();
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          messageId: 'msg-last',
+          messageIds: ['msg-1', 'msg-last'],
+          bubbleCount: 2,
+        }),
+      } as unknown as Response);
+
+      try {
+        const resultJson = await tool!.handler({
+          phone: '08123456789',
+          message: 'halo kak 😊\n---\nrencana sewa mau kapan ya kak?',
+        });
+        const parsed = JSON.parse(resultJson);
+        expect(parsed.success).toBe(true);
+        expect(parsed.bubbleCount).toBe(2);
+        expect(parsed.messageIds).toEqual(['msg-1', 'msg-last']);
+        expect(parsed.messageId).toBe('msg-last');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+      it('verifies that whatsapp_send_message always appends -r to the final bubble in outbound payload', async () => {
+        const tool = getWhatsAppTools().find((t) => t.name === 'whatsapp_send_message');
+        expect(tool).toBeDefined();
+
+        let capturedPayload: unknown = null;
+        const originalFetch = globalThis.fetch;
+        globalThis.fetch = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+          if (init?.body) {
+            capturedPayload = JSON.parse(String(init.body));
+          }
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              success: true,
+              messageId: 'msg-outbound',
+              bubbleCount: 2,
+            }),
+          } as Response);
+        });
+
+        try {
+          await tool!.handler({
+            phone: '08123456789',
+            message: 'halo kak 😊\n---\nrencana sewa mau kapan ya kak?',
+          });
+
+          expect(capturedPayload).not.toBeNull();
+          const payload = capturedPayload as { phone: string; message: string };
+          expect(payload.phone).toBe('08123456789');
+          // First bubble has NO -r
+          expect(payload.message).toContain('halo kak 😊');
+          // Final bubble ends with -r
+          expect(payload.message).toMatch(/rencana sewa mau kapan ya kak\?\n\n-r$/);
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      });
+
+      it('rejects sending automated sales message to internal staff (Admin 1 +6281249182155)', async () => {
+      const tools = getWhatsAppTools();
+      const tool = tools.find((t) => t.name === 'whatsapp_send_message');
+      expect(tool).toBeDefined();
+
+      await expect(
+        tool!.handler({
+          phone: '081249182155',
+          message: 'halo kak',
+        })
+      ).rejects.toThrow('Cannot send automated customer sales message to internal staff/store');
+    });
+  });
+
+  describe('formatRaraMessageWithSignature (Rara -r Signature Tag Guardrail)', () => {
+    it('appends -r on a new line to a single bubble without signature', () => {
+      expect(formatRaraMessageWithSignature('halo kak')).toBe('halo kak\n\n-r');
+    });
+
+    it('does not double-append if single bubble already ends with -r', () => {
+      expect(formatRaraMessageWithSignature('halo kak\n\n-r')).toBe('halo kak\n\n-r');
+      expect(formatRaraMessageWithSignature('halo kak\n-r')).toBe('halo kak\n\n-r');
+      expect(formatRaraMessageWithSignature('halo kak -r')).toBe('halo kak\n\n-r');
+    });
+
+    it('appends -r to the final bubble in multi-bubble messages and keeps bubble 1 clean', () => {
+      const input = 'halo kak 😊\n---\nrencana sewa mau kapan ya kak?';
+      const result = formatRaraMessageWithSignature(input);
+      expect(result).toBe('halo kak 😊\n---\nrencana sewa mau kapan ya kak?\n\n-r');
+    });
+
+    it('does not duplicate -r if the final bubble already ends with -r', () => {
+      const input = 'halo kak 😊\n---\nrencana sewa mau kapan ya kak?\n\n-r';
+      const result = formatRaraMessageWithSignature(input);
+      expect(result).toBe('halo kak 😊\n---\nrencana sewa mau kapan ya kak?\n\n-r');
+    });
+
+    it('strips -r from non-final bubbles and ensures only the final bubble has -r', () => {
+      const input = 'halo kak 😊\n\n-r\n---\nrencana sewa mau kapan ya kak?\n\n-r';
+      const result = formatRaraMessageWithSignature(input);
+      expect(result).toBe('halo kak 😊\n---\nrencana sewa mau kapan ya kak?\n\n-r');
+    });
+
+    it('handles 3-bubble messages correctly', () => {
+      const input = 'halo kak 😊\n---\nini pricelist kami yaa kak\n---\nrencana untuk kapan ya kak?';
+      const result = formatRaraMessageWithSignature(input);
+      expect(result).toBe('halo kak 😊\n---\nini pricelist kami yaa kak\n---\nrencana untuk kapan ya kak?\n\n-r');
+    });
+
+    it('returns empty string if input is empty or whitespace', () => {
+      expect(formatRaraMessageWithSignature('')).toBe('');
+      expect(formatRaraMessageWithSignature('   ')).toBe('   ');
+    });
+  });
+
+  describe('manage_customer_whitelist Guardrails', () => {
+    it('rejects adding internal staff (Admin 1 +6281249182155) to whitelist', async () => {
+      const tools = getWhatsAppTools();
+      const tool = tools.find((t) => t.name === 'manage_customer_whitelist');
+      expect(tool).toBeDefined();
+
+      await expect(
+        tool!.handler({
+          action: 'add',
+          phone: '081249182155',
+        })
+      ).rejects.toThrow('Cannot add internal staff or store phone number to customer whitelist');
+    });
+
+    it('rejects adding internal staff/leadership number to whitelist', async () => {
+      const tools = getWhatsAppTools();
+      const tool = tools.find((t) => t.name === 'manage_customer_whitelist');
+      expect(tool).toBeDefined();
+
+      await expect(
+        tool!.handler({
+          action: 'add',
+          phone: '085158858310',
+        })
+      ).rejects.toThrow('Cannot add internal staff or store phone number to customer whitelist');
+    });
+  });
+
+  describe('Escalation State Bridge (escalate_to_owner & get_last_escalated_lead)', () => {
+    const testChatId = '8215203590';
+    const testRedisKey = `${LAST_ESCALATION_KEY_PREFIX}${testChatId}`;
+    let redis: Redis;
+
+    beforeEach(() => {
+      redis = new Redis('redis://127.0.0.1:6379', { lazyConnect: true });
+    });
+
+    afterEach(async () => {
+      await redis.del(testRedisKey);
+      await redis.del(`${LAST_ESCALATION_KEY_PREFIX}9999999999`);
+      redis.disconnect();
+    });
+
+    it('escalate_to_owner saves escalation payload to Redis with 1-hour TTL', async () => {
+      process.env.RARA_TELEGRAM_BOT_TOKEN = 'mock_rara_token';
+      resetWhatsAppConfig();
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+      } as unknown as Response);
+
+      try {
+        const tool = getWhatsAppTools().find((t) => t.name === 'escalate_to_owner');
+        expect(tool).toBeDefined();
+
+        const resJson = await tool!.handler({
+          customerName: 'Santi Living Jogja',
+          customerPhone: '082241851577',
+          productInterest: '5 kasur 120x200 5 hari',
+          escalationReason: 'Minta diskon sewa 5 kasur',
+          leadSummary: 'Customer sewa 5 kasur 120x200 untuk event keluarga 5 hari.',
+          urgencyLevel: 'high',
+        });
+
+        const parsed = JSON.parse(resJson);
+        expect(parsed.success).toBe(true);
+        expect(parsed.lastEscalationSaved).toBe(true);
+        expect(parsed.customerPhone).toBe('6282241851577');
+
+        // Check Redis state
+        const savedRaw = await redis.get(testRedisKey);
+        expect(savedRaw).toBeDefined();
+        const savedLead = JSON.parse(savedRaw!);
+        expect(savedLead.customerName).toBe('Santi Living Jogja');
+        expect(savedLead.customerPhone).toBe('6282241851577');
+        expect(savedLead.productInterest).toBe('5 kasur 120x200 5 hari');
+        expect(savedLead.urgencyLevel).toBe('high');
+        expect(savedLead.escalatedAt).toBeDefined();
+
+        // Check TTL is approximately 3600 (within 3500-3600)
+        const ttl = await redis.ttl(testRedisKey);
+        expect(ttl).toBeGreaterThan(3500);
+        expect(ttl).toBeLessThanOrEqual(LAST_ESCALATION_TTL);
+      } finally {
+        globalThis.fetch = originalFetch;
+        delete process.env.RARA_TELEGRAM_BOT_TOKEN;
+        resetWhatsAppConfig();
+      }
+    });
+
+    it('get_last_escalated_lead returns found: false when no escalation exists', async () => {
+      await redis.del(testRedisKey);
+
+      const tool = getWhatsAppTools().find((t) => t.name === 'get_last_escalated_lead');
+      expect(tool).toBeDefined();
+
+      const resJson = await tool!.handler({});
+      const parsed = JSON.parse(resJson);
+      expect(parsed.found).toBe(false);
+      expect(parsed.message).toContain('No active escalated lead found');
+    });
+
+    it('get_last_escalated_lead returns lead when present in Redis', async () => {
+      const mockLead = {
+        customerPhone: '6282241851577',
+        customerName: 'Santi Living Jogja',
+        productInterest: '5 kasur 120x200 5 hari',
+        escalationReason: 'Nego harga promo',
+        leadSummary: 'Permintaan diskon 10%',
+        urgencyLevel: 'high',
+        escalatedAt: new Date().toISOString(),
+      };
+      await redis.set(testRedisKey, JSON.stringify(mockLead), 'EX', 3600);
+
+      const tool = getWhatsAppTools().find((t) => t.name === 'get_last_escalated_lead');
+      expect(tool).toBeDefined();
+
+      const resJson = await tool!.handler({});
+      const parsed = JSON.parse(resJson);
+      expect(parsed.found).toBe(true);
+      expect(parsed.lead.customerName).toBe('Santi Living Jogja');
+      expect(parsed.lead.customerPhone).toBe('6282241851577');
+      expect(parsed.lead.productInterest).toBe('5 kasur 120x200 5 hari');
+      expect(parsed.lead.urgencyLevel).toBe('high');
+    });
+
+    it('get_last_escalated_lead supports custom chatId', async () => {
+      const customChatId = '9999999999';
+      const customKey = `${LAST_ESCALATION_KEY_PREFIX}${customChatId}`;
+      const mockLead = {
+        customerPhone: '628111222333',
+        customerName: 'Admin Partner',
+        productInterest: 'Queen 160',
+        escalationReason: 'B2B Inquiry',
+        leadSummary: 'Summary B2B',
+        urgencyLevel: 'medium',
+        escalatedAt: new Date().toISOString(),
+      };
+      await redis.set(customKey, JSON.stringify(mockLead), 'EX', 3600);
+
+      const tool = getWhatsAppTools().find((t) => t.name === 'get_last_escalated_lead');
+      expect(tool).toBeDefined();
+
+      const resJson = await tool!.handler({ chatId: customChatId });
+      const parsed = JSON.parse(resJson);
+      expect(parsed.found).toBe(true);
+      expect(parsed.lead.customerPhone).toBe('628111222333');
+    });
+
+    it('get_last_escalated_lead handles corrupted or invalid JSON in Redis', async () => {
+      await redis.set(testRedisKey, 'not-valid-json', 'EX', 3600);
+
+      const tool = getWhatsAppTools().find((t) => t.name === 'get_last_escalated_lead');
+      expect(tool).toBeDefined();
+
+      const resJson = await tool!.handler({});
+      const parsed = JSON.parse(resJson);
+      expect(parsed.found).toBe(false);
+      expect(parsed.error).toContain('Failed to parse escalation payload');
+    });
+
+    it('get_last_escalated_lead handles invalid payload schema in Redis', async () => {
+      await redis.set(testRedisKey, JSON.stringify({ invalid: 'schema' }), 'EX', 3600);
+
+      const tool = getWhatsAppTools().find((t) => t.name === 'get_last_escalated_lead');
+      expect(tool).toBeDefined();
+
+      const resJson = await tool!.handler({});
+      const parsed = JSON.parse(resJson);
+      expect(parsed.found).toBe(false);
+      expect(parsed.error).toContain('Corrupted escalation payload');
+    });
+
+    it('return_to_bot and resume_bot clear both session_mode and session_mute keys in Redis', async () => {
+      const testPhone = '082241851577';
+      const normalized = '6282241851577';
+
+      // Seed both mode and mute
+      await redis.set(`whatsapp:session_mode:${normalized}`, 'HUMAN', 'EX', 1800);
+      await redis.set(`whatsapp:session_mute:${normalized}`, 'muted', 'EX', 1800);
+
+      const returnTool = getWhatsAppTools().find((t) => t.name === 'return_to_bot');
+      expect(returnTool).toBeDefined();
+
+      const resReturn = await returnTool!.handler({ phone: testPhone });
+      expect(JSON.parse(resReturn).success).toBe(true);
+
+      expect(await redis.get(`whatsapp:session_mode:${normalized}`)).toBeNull();
+      expect(await redis.get(`whatsapp:session_mute:${normalized}`)).toBeNull();
+
+      // Seed again for resume_bot alias
+      await redis.set(`whatsapp:session_mode:${normalized}`, 'HUMAN', 'EX', 1800);
+      await redis.set(`whatsapp:session_mute:${normalized}`, 'muted', 'EX', 1800);
+
+      const resumeTool = getWhatsAppTools().find((t) => t.name === 'resume_bot');
+      expect(resumeTool).toBeDefined();
+
+      const resResume = await resumeTool!.handler({ phone: testPhone });
+      expect(JSON.parse(resResume).success).toBe(true);
+
+      expect(await redis.get(`whatsapp:session_mode:${normalized}`)).toBeNull();
+      expect(await redis.get(`whatsapp:session_mute:${normalized}`)).toBeNull();
     });
   });
 });

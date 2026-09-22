@@ -1,7 +1,7 @@
 /**
  * WhatsApp Sales Bot Tools
  *
- * Tools for the Carla WhatsApp AI Sales Bot:
+ * Tools for the Rara WhatsApp AI Sales Bot:
  *  - whatsapp_send_message: Send a WhatsApp message via apps/bot HTTP endpoint
  *  - estimate_delivery_fee: Calculate delivery fee via Google Routes + Places APIs
  *  - set_customer_note: Store per-customer owner notes in Redis
@@ -9,12 +9,14 @@
  *  - manage_customer_whitelist: Manage allowed phones in Redis Set
  *  - take_over_conversation: Mute bot for a phone (HUMAN mode)
  *  - return_to_bot: Unmute bot for a phone (BOT mode)
+ *  - get_last_escalated_lead: Retrieve the latest customer lead escalated to owner via Telegram
  */
 import type { ToolSpec } from '../types.js';
 import { Redis } from 'ioredis';
 import { z } from 'zod';
 import { getString, getOptionalString, getOptionalNumber } from './_helpers.js';
 import { getWhatsAppConfig } from '../config.js';
+import { isInternalStaff } from '../constants/staff.js';
 
 // ---------------------------------------------------------------------------
 // Redis Singleton
@@ -54,8 +56,8 @@ const WAREHOUSE_LAT = -7.7673015;
 const WAREHOUSE_LNG = 110.2938902;
 const GOOGLE_ROUTES_ENDPOINT = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 const GOOGLE_PLACES_ENDPOINT = 'https://places.googleapis.com/v1/places:searchText';
-const ROUTES_TIMEOUT_MS = 6000;
-const PLACES_TIMEOUT_MS = 5000;
+const ROUTES_TIMEOUT_MS = 12000;
+const PLACES_TIMEOUT_MS = 10000;
 const PLACES_MAX_BIAS_RADIUS_METERS = 50_000;
 
 const RoutesResponseSchema = z.object({
@@ -74,7 +76,7 @@ const GooglePlacesResponseSchema = z.object({
       longText: z.string(),
       shortText: z.string().optional(),
       types: z.array(z.string()),
-    })).optional(),
+    })).optional().default([]),
   })).optional().default([]),
 });
 
@@ -206,6 +208,12 @@ async function searchPlaces(
 /** Resolve a Google Maps short URL (maps.app.goo.gl) by following redirect and extracting coords */
 async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; lng: number } | null> {
   try {
+    // Check direct query params first before network fetch
+    const qMatch = url.match(/[?&](?:q|ll|query)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (qMatch) {
+      return { lat: parseFloat(qMatch[1]), lng: parseFloat(qMatch[2]) };
+    }
+
     // Use GET with redirect: 'follow' (HEAD is blocked by some redirect servers)
     const res = await fetch(url, {
       method: 'GET',
@@ -218,9 +226,14 @@ async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; lng: nu
     }
     const finalUrl = res.url;
 
-    // Try to extract coordinates from URL patterns like @-7.123,110.456 or !3d-7.123!4d110.456
+    // Try to extract coordinates from URL patterns like @-7.123,110.456 or !3d-7.123!4d110.456 or ?q=-7.123,110.456
     const atPattern = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
     const bangPattern = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/;
+    const finalQMatch = finalUrl.match(/[?&](?:q|ll|query)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+    if (finalQMatch) {
+      return { lat: parseFloat(finalQMatch[1]), lng: parseFloat(finalQMatch[2]) };
+    }
 
     const atMatch = finalUrl.match(atPattern);
     if (atMatch) {
@@ -245,9 +258,46 @@ async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; lng: nu
 const WhatsAppSendResponseSchema = z.object({
   success: z.boolean(),
   messageId: z.string().optional(),
+  messageIds: z.array(z.string()).optional(),
+  bubbleCount: z.number().optional(),
   error: z.string().optional(),
   message: z.string().optional(),
 });
+
+/**
+ * Ensures WhatsApp message follows Rara signature requirements:
+ * 1. The final bubble ends with "-r" on a new line.
+ * 2. Preceding bubbles do not carry "-r".
+ */
+export function formatRaraMessageWithSignature(message: string): string {
+  const trimmed = message.trim();
+  if (!trimmed) return message;
+
+  // Split by bubble separator regex (matching apps/bot splitMessageBubbles logic)
+  const separatorPattern = /(?:^|\r?\n|\\r?n)[ \t]*-{3,}[ \t]*(?:\r?\n|\\r?n|$)/;
+  const parts = trimmed
+    .split(separatorPattern)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0 && !/^[- \t]+$/.test(p));
+
+  if (parts.length <= 1) {
+    const single = parts.length === 1 ? parts[0] : trimmed;
+    // Strip any existing trailing -r (with optional leading newline and whitespace)
+    const cleaned = single.replace(/(?:(?:\r?\n|\\r?n)[ \t]*)?-r[ \t]*$/i, '').trimEnd();
+    return `${cleaned}\n\n-r`;
+  }
+
+  const cleanedBubbles = parts.map((bubble, index) => {
+    const isLast = index === parts.length - 1;
+    const cleaned = bubble.replace(/(?:(?:\r?\n|\\r?n)[ \t]*)?-r[ \t]*$/i, '').trimEnd();
+    if (isLast) {
+      return `${cleaned}\n\n-r`;
+    }
+    return cleaned;
+  });
+
+  return cleanedBubbles.join('\n---\n');
+}
 
 // ---------------------------------------------------------------------------
 // Tool 1: whatsapp_send_message
@@ -255,7 +305,14 @@ const WhatsAppSendResponseSchema = z.object({
 
 async function handleWhatsappSendMessage(args: Record<string, unknown>): Promise<string> {
   const phone = getString(args, 'phone');
-  const message = getString(args, 'message');
+  const rawMessage = getString(args, 'message');
+  const message = formatRaraMessageWithSignature(rawMessage);
+
+  if (isInternalStaff(phone)) {
+    throw new Error(
+      `Cannot send automated customer sales message to internal staff/store: ${phone}`
+    );
+  }
 
   const config = getWhatsAppConfig();
   const botUrl = config.botUrl;
@@ -274,7 +331,7 @@ async function handleWhatsappSendMessage(args: Record<string, unknown>): Promise
     method: 'POST',
     headers,
     body: JSON.stringify({ phone, message }),
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(30000),
   });
 
   const rawJson: unknown = await response.json();
@@ -291,7 +348,12 @@ async function handleWhatsappSendMessage(args: Record<string, unknown>): Promise
     throw new Error(`WhatsApp send failed: ${errMsg}`);
   }
 
-  return JSON.stringify({ success: true, messageId: data.messageId });
+  return JSON.stringify({
+    success: true,
+    messageId: data.messageId,
+    messageIds: data.messageIds,
+    bubbleCount: data.bubbleCount ?? 1,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -321,11 +383,19 @@ async function handleEstimateDeliveryFee(args: Record<string, unknown>): Promise
   } else if (address !== undefined && address.trim().length > 0) {
     const trimmedAddress = address.trim();
 
-    // Check if it's a URL (Google Maps short link)
-    if (trimmedAddress.startsWith('http://') || trimmedAddress.startsWith('https://')) {
-      const coords = await resolveGoogleMapsUrl(trimmedAddress);
+    // 1. Direct coordinate pattern inside address text: e.g. "(Koordinat: -7.7588, 110.3986)" or "-7.7588, 110.3986"
+    const coordMatch = trimmedAddress.match(/(?:Koordinat:\s*)?(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/i);
+    // 2. Embedded URL pattern inside address text
+    const urlMatch = trimmedAddress.match(/https?:\/\/[^\s]+/);
+
+    if (coordMatch) {
+      destLat = parseFloat(coordMatch[1]);
+      destLng = parseFloat(coordMatch[2]);
+      resolvedAddress = `Coordinates from text: ${destLat}, ${destLng}`;
+    } else if (urlMatch) {
+      const coords = await resolveGoogleMapsUrl(urlMatch[0]);
       if (!coords) {
-        throw new Error(`Could not extract coordinates from URL: ${trimmedAddress}`);
+        throw new Error(`Could not extract coordinates from URL: ${urlMatch[0]}`);
       }
       destLat = coords.lat;
       destLng = coords.lng;
@@ -357,7 +427,14 @@ async function handleSetCustomerNote(args: Record<string, unknown>): Promise<str
   const phone = getString(args, 'phone');
   const note = getString(args, 'note');
 
+  if (isInternalStaff(phone)) {
+    throw new Error(`Cannot set customer note for internal staff or store phone: ${phone}`);
+  }
+
   const normalized = normalizePhone(phone);
+  if (isInternalStaff(normalized)) {
+    throw new Error(`Cannot set customer note for internal staff or store phone: ${phone}`);
+  }
   const key = `whatsapp:customer_note:${normalized}`;
   const redis = getRedisClient();
 
@@ -371,6 +448,8 @@ async function handleSetCustomerNote(args: Record<string, unknown>): Promise<str
 // ---------------------------------------------------------------------------
 
 const SESSION_MODE_ESCALATION_TTL = 1800; // 30 minutes
+export const LAST_ESCALATION_KEY_PREFIX = 'whatsapp:last_escalation:';
+export const LAST_ESCALATION_TTL = 3600; // 1 hour
 
 export const EscalateArgsSchema = z.object({
   customerPhone: z.string().min(1),
@@ -380,6 +459,18 @@ export const EscalateArgsSchema = z.object({
   leadSummary: z.string().min(1),
   urgencyLevel: z.enum(['low', 'medium', 'high', 'critical']),
 });
+
+export const EscalatedLeadPayloadSchema = z.object({
+  customerPhone: z.string(),
+  customerName: z.string(),
+  productInterest: z.string(),
+  escalationReason: z.string(),
+  leadSummary: z.string(),
+  urgencyLevel: z.enum(['low', 'medium', 'high', 'critical']),
+  escalatedAt: z.string(),
+});
+
+export type EscalatedLeadPayload = z.infer<typeof EscalatedLeadPayloadSchema>;
 
 const TelegramErrorResponseSchema = z.object({
   ok: z.boolean(),
@@ -410,7 +501,7 @@ export function buildLeadCard(params: z.infer<typeof EscalateArgsSchema>): strin
     params.leadSummary,
     '──────────────────────────',
     'Reply ke saya untuk:',
-    '• "Kasih diskon 10%" → saya set note + WA customer',
+    '• "Kasih diskon 10%" / "acc jam 12" → saya set note + WA customer',
     '• "Take over" → saya mute, kamu handle langsung',
   ].join('\n');
 }
@@ -424,10 +515,16 @@ async function handleEscalateToOwner(args: Record<string, unknown>): Promise<str
 
   const params = parsed.data;
 
+  if (isInternalStaff(params.customerPhone)) {
+    throw new Error(
+      `Cannot escalate internal staff or store conversation to owner: ${params.customerPhone}`
+    );
+  }
+
   const config = getWhatsAppConfig();
-  const token = config.carlaTelegramBotToken.trim();
+  const token = config.raraTelegramBotToken.trim();
   if (!token) {
-    throw new Error('CARLA_TELEGRAM_BOT_TOKEN is not configured');
+    throw new Error('RARA_TELEGRAM_BOT_TOKEN is not configured');
   }
 
   const DON_CHAT_ID = '8215203590';
@@ -462,11 +559,29 @@ async function handleEscalateToOwner(args: Record<string, unknown>): Promise<str
     SESSION_MODE_ESCALATION_TTL,
   );
 
+  // Save escalated lead to Redis key: whatsapp:last_escalation:${DON_CHAT_ID} with TTL 1 hour
+  const escalationPayload: EscalatedLeadPayload = {
+    customerPhone: normalizedPhone,
+    customerName: params.customerName,
+    productInterest: params.productInterest,
+    escalationReason: params.escalationReason,
+    leadSummary: params.leadSummary,
+    urgencyLevel: params.urgencyLevel,
+    escalatedAt: new Date().toISOString(),
+  };
+  await redis.set(
+    `${LAST_ESCALATION_KEY_PREFIX}${DON_CHAT_ID}`,
+    JSON.stringify(escalationPayload),
+    'EX',
+    LAST_ESCALATION_TTL,
+  );
+
   return JSON.stringify({
     success: true,
     customerPhone: normalizedPhone,
     notifiedDon: true,
     autoMutedFor: SESSION_MODE_ESCALATION_TTL,
+    lastEscalationSaved: true,
   });
 }
 
@@ -493,6 +608,11 @@ async function handleManageCustomerWhitelist(args: Record<string, unknown>): Pro
   const normalized = normalizePhone(phone);
 
   if (action === 'add') {
+    if (isInternalStaff(normalized) || isInternalStaff(phone)) {
+      throw new Error(
+        `Cannot add internal staff or store phone number to customer whitelist: ${phone}`
+      );
+    }
     await redis.sadd(WHITELIST_KEY, normalized);
   } else {
     await redis.srem(WHITELIST_KEY, normalized);
@@ -537,11 +657,59 @@ async function handleReturnToBot(args: Record<string, unknown>): Promise<string>
 
   const redis = getRedisClient();
   await redis.del(`whatsapp:session_mode:${normalized}`);
+  await redis.del(`whatsapp:session_mute:${normalized}`);
 
   // eslint-disable-next-line no-console
   console.log(`[Mute Guard] ${normalized} returned to BOT mode`);
 
   return JSON.stringify({ success: true, phone: normalized, message: 'Bot reactivated' });
+}
+
+// ---------------------------------------------------------------------------
+// Tool 8: get_last_escalated_lead
+// ---------------------------------------------------------------------------
+
+export const GetLastEscalatedLeadArgsSchema = z.object({
+  chatId: z.string().optional(),
+});
+
+async function handleGetLastEscalatedLead(args: Record<string, unknown>): Promise<string> {
+  const parsed = GetLastEscalatedLeadArgsSchema.safeParse(args);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ');
+    throw new Error(`Invalid get_last_escalated_lead args: ${issues}`);
+  }
+
+  const chatId = parsed.data.chatId?.trim() || '8215203590';
+  const redis = getRedisClient();
+  const raw = await redis.get(`${LAST_ESCALATION_KEY_PREFIX}${chatId}`);
+  if (!raw) {
+    return JSON.stringify({
+      found: false,
+      message: `No active escalated lead found for chat ID ${chatId} (or lead expired after 1 hour).`,
+    });
+  }
+
+  try {
+    const rawJson: unknown = JSON.parse(raw);
+    const leadParsed = EscalatedLeadPayloadSchema.safeParse(rawJson);
+    if (!leadParsed.success) {
+      return JSON.stringify({
+        found: false,
+        error: 'Corrupted escalation payload in Redis',
+      });
+    }
+
+    return JSON.stringify({
+      found: true,
+      lead: leadParsed.data,
+    });
+  } catch {
+    return JSON.stringify({
+      found: false,
+      error: 'Failed to parse escalation payload in Redis',
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -553,7 +721,9 @@ export function getWhatsAppTools(): ToolSpec[] {
     {
       name: 'whatsapp_send_message',
       description:
-        'Send a WhatsApp message to a customer phone number. Use this to deliver all replies to the customer.',
+        'Send a WhatsApp message to a customer phone number. Use this to deliver all replies to the customer. ' +
+        'To send multiple chat bubbles in sequence with realistic typing pauses, separate bubbles using "\\n---\\n". ' +
+        'Every message must end with the signature tag "-r" on a new line at the very end of the final chat bubble (first/preceding bubbles do NOT carry "-r").',
       inputSchema: {
         type: 'object',
         properties: {
@@ -563,7 +733,8 @@ export function getWhatsAppTools(): ToolSpec[] {
           },
           message: {
             type: 'string',
-            description: 'Message text to send via WhatsApp',
+            description:
+              'Message text to send via WhatsApp. Separate 2–3 chat bubbles using "\\n---\\n" (e.g. "halo kak 😊\\n---\\nrencana sewa kapan ya kak?\\n\\n-r"). Final bubble must end with signature tag "-r" on a new line.',
           },
         },
         required: ['phone', 'message'],
@@ -601,7 +772,7 @@ export function getWhatsAppTools(): ToolSpec[] {
       name: 'set_customer_note',
       description:
         'Store a private owner instruction for a specific customer. ' +
-        'These notes are injected into Carla\'s webhook prompt each time the customer sends a message. ' +
+        'These notes are injected into Rara\'s webhook prompt each time the customer sends a message. ' +
         'Example: "Simbah Don, berikan diskon 10%". Only accessible via Telegram (not from webhook).',
       inputSchema: {
         type: 'object',
@@ -624,7 +795,7 @@ export function getWhatsAppTools(): ToolSpec[] {
       description:
         'Send a structured lead card notification to Don (owner) via Telegram. ' +
         'Also automatically mutes the bot for this customer for 30 minutes. ' +
-        'Use for: special discount requests, claims of relationship with owner, complex situations.',
+        'Use for: special discount requests, claims of relationship with owner, customer insisting on delivery/pickup outside operational slots (06.00-09.00 & 17.00-21.00 WIB), complex situations.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -711,6 +882,42 @@ export function getWhatsAppTools(): ToolSpec[] {
         required: ['phone'],
       },
       handler: handleReturnToBot,
+    },
+    {
+      name: 'resume_bot',
+      description:
+        'Reactivate the bot for a customer that was previously muted (HUMAN mode). ' +
+        'Deletes the HUMAN session mode from Redis so bot resumes answering. ' +
+        'Alias for return_to_bot. Only accessible via Telegram.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          phone: {
+            type: 'string',
+            description: 'Customer phone number to reactivate bot for',
+          },
+        },
+        required: ['phone'],
+      },
+      handler: handleReturnToBot,
+    },
+    {
+      name: 'get_last_escalated_lead',
+      description:
+        'Retrieve the latest customer lead escalated to owner/Don via WhatsApp/Telegram. ' +
+        'Use this in Telegram when Don replies with instructions (e.g. "kasih diskon 10%", discount, approval, acc, "take over", tolak, nego) ' +
+        'without explicitly stating the customer name or phone number.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          chatId: {
+            type: 'string',
+            description: 'Telegram chat ID of the owner/recipient (optional, defaults to Don: 8215203590)',
+          },
+        },
+        required: [],
+      },
+      handler: handleGetLastEscalatedLead,
     },
   ];
 }

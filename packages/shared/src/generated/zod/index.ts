@@ -215,6 +215,8 @@ export const RentalPolicyScalarFieldEnumSchema = z.enum(['id','companyId','effec
 
 export const RentalDamagePolicyScalarFieldEnumSchema = z.enum(['id','companyId','category','rentalItemId','severity','charge','description','isActive','createdAt','updatedAt']);
 
+export const WhatsappBotStatusScalarFieldEnumSchema = z.enum(['id','status','qr','lastError','lastErrorAt','lastAlertedAt','lastAlertState','aiSalesEnabled','updatedAt']);
+
 export const SortOrderSchema = z.enum(['asc','desc']);
 
 export const NullableJsonNullValueInputSchema: z.ZodType<Prisma.NullableJsonNullValueInput> = z.enum(['DbNull','JsonNull',]).transform((value) => value === 'JsonNull' ? Prisma.JsonNull : value === 'DbNull' ? Prisma.DbNull : value);
@@ -1685,3 +1687,26 @@ export const RentalDamagePolicySchema = z.object({
 })
 
 export type RentalDamagePolicy = z.infer<typeof RentalDamagePolicySchema>
+
+/////////////////////////////////////////
+// WHATSAPP BOT STATUS SCHEMA
+/////////////////////////////////////////
+
+/**
+ * Singleton row tracking the WhatsApp bot process status.
+ * Written by bot status pushes (bot.updateStatus) and live-fetch persistence
+ * (bot.getStatus); read by admin polling for staleness/down alerting.
+ */
+export const WhatsappBotStatusSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  qr: z.string().nullable(),
+  lastError: z.string().nullable(),
+  lastErrorAt: z.coerce.date().nullable(),
+  lastAlertedAt: z.coerce.date().nullable(),
+  lastAlertState: z.string().nullable(),
+  aiSalesEnabled: z.boolean(),
+  updatedAt: z.coerce.date(),
+})
+
+export type WhatsappBotStatus = z.infer<typeof WhatsappBotStatusSchema>

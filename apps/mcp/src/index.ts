@@ -4,6 +4,7 @@
  * Exposes the MCP server over StreamableHTTP transport (MCP spec 2025-03-26).
  * Replaces the legacy SSE transport for multi-session support.
  */
+import './env.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express from 'express';
 import { createServer } from './server.js';
@@ -255,7 +256,7 @@ async function cleanupExpiredSessions() {
   }
 }
 
-const PORT = Number(process.env.MCP_PORT ?? 3005);
+const PORT = Number(process.env.MCP_PORT ?? process.env.PORT ?? 3008);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Sync ERP MCP Server listening on port ${PORT}`);

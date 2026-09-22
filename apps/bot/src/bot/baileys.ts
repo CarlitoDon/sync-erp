@@ -273,6 +273,31 @@ function extractMessageContent(msg: proto.IMessage | null | undefined): string {
     msg.documentWithCaptionMessage?.message ||
     msg;
 
+  if (message.locationMessage) {
+    const loc = message.locationMessage;
+    const parts: string[] = [];
+    if (loc.name) parts.push(loc.name);
+    if (loc.address) parts.push(loc.address);
+    if (loc.degreesLatitude != null && loc.degreesLongitude != null) {
+      parts.push(`(Koordinat: ${loc.degreesLatitude}, ${loc.degreesLongitude})`);
+      parts.push(`https://maps.google.com/?q=${loc.degreesLatitude},${loc.degreesLongitude}`);
+    }
+    if (loc.comment) parts.push(loc.comment);
+    if (loc.url) parts.push(loc.url);
+    return parts.join(' - ') || '[Share Location]';
+  }
+
+  if (message.liveLocationMessage) {
+    const loc = message.liveLocationMessage;
+    const parts: string[] = ['[Live Location]'];
+    if (loc.degreesLatitude != null && loc.degreesLongitude != null) {
+      parts.push(`(Koordinat: ${loc.degreesLatitude}, ${loc.degreesLongitude})`);
+      parts.push(`https://maps.google.com/?q=${loc.degreesLatitude},${loc.degreesLongitude}`);
+    }
+    if (loc.caption) parts.push(loc.caption);
+    return parts.join(' - ');
+  }
+
   return (
     message.conversation ||
     message.extendedTextMessage?.text ||
