@@ -37,7 +37,7 @@ function getRedisClient(): Redis {
   return sharedRedis;
 }
 
-import { normalizePhone, BUBBLE_DELIMITER_REGEX, splitBubbles, formatRaraMessageWithSignature } from '@sync-erp/shared/whatsapp';
+import { normalizePhone, formatRaraMessageWithSignature } from '@sync-erp/shared/whatsapp';
 
 // ---------------------------------------------------------------------------
 // Delivery fee calculator (ported from santi-living)
