@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -13,6 +14,10 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+// Serve inbound downloaded media (e.g. proof of payment photos)
+const mediaDir = path.resolve(process.cwd(), 'storage/inbound-media');
+app.use('/media', express.static(mediaDir));
 
 // Helper to determine start time
 const startTime = new Date();
