@@ -174,15 +174,27 @@ async function main(): Promise<void> {
       data: {
         companyId: SANTI_LIVING_COMPANY_ID,
         productId: airCooler.id,
-        dailyRate: new Prisma.Decimal(35000),
-        weeklyRate: new Prisma.Decimal(175000),
-        monthlyRate: new Prisma.Decimal(450000),
+        dailyRate: new Prisma.Decimal(45000),
+        weeklyRate: new Prisma.Decimal(270000),
+        monthlyRate: new Prisma.Decimal(550000),
         depositPolicyType: DepositPolicyType.PER_UNIT,
         depositPerUnit: new Prisma.Decimal(100000),
         isActive: true,
       },
     });
     console.log(`Created RentalItem for Air Cooler: ID ${airCoolerRental.id}`);
+  } else {
+    airCoolerRental = await prisma.rentalItem.update({
+      where: { id: airCoolerRental.id },
+      data: {
+        dailyRate: new Prisma.Decimal(45000),
+        weeklyRate: new Prisma.Decimal(270000),
+        monthlyRate: new Prisma.Decimal(550000),
+        depositPolicyType: DepositPolicyType.PER_UNIT,
+        depositPerUnit: new Prisma.Decimal(100000),
+      },
+    });
+    console.log(`Updated RentalItem for Air Cooler: ID ${airCoolerRental.id}`);
   }
 
   const existingCoolerUnits = await prisma.rentalItemUnit.findMany({
@@ -246,15 +258,27 @@ async function main(): Promise<void> {
       data: {
         companyId: SANTI_LIVING_COMPANY_ID,
         productId: kipasProduct.id,
-        dailyRate: new Prisma.Decimal(25000),
+        dailyRate: new Prisma.Decimal(20000),
         weeklyRate: new Prisma.Decimal(120000),
-        monthlyRate: new Prisma.Decimal(300000),
+        monthlyRate: new Prisma.Decimal(250000),
         depositPolicyType: DepositPolicyType.PER_UNIT,
         depositPerUnit: new Prisma.Decimal(50000),
         isActive: true,
       },
     });
     console.log(`Created RentalItem for Kipas Angin: ID ${kipasRental.id}`);
+  } else {
+    kipasRental = await prisma.rentalItem.update({
+      where: { id: kipasRental.id },
+      data: {
+        dailyRate: new Prisma.Decimal(20000),
+        weeklyRate: new Prisma.Decimal(120000),
+        monthlyRate: new Prisma.Decimal(250000),
+        depositPolicyType: DepositPolicyType.PER_UNIT,
+        depositPerUnit: new Prisma.Decimal(50000),
+      },
+    });
+    console.log(`Updated RentalItem for Kipas Angin: ID ${kipasRental.id}`);
   }
 
   const existingKipasUnits = await prisma.rentalItemUnit.findMany({
@@ -327,7 +351,7 @@ async function main(): Promise<void> {
         companyId: SANTI_LIVING_COMPANY_ID,
         productId: tvProduct.id,
         dailyRate: new Prisma.Decimal(50000),
-        weeklyRate: new Prisma.Decimal(250000),
+        weeklyRate: new Prisma.Decimal(300000),
         monthlyRate: new Prisma.Decimal(600000),
         depositPolicyType: DepositPolicyType.PER_UNIT,
         depositPerUnit: new Prisma.Decimal(200000),
@@ -335,6 +359,18 @@ async function main(): Promise<void> {
       },
     });
     console.log(`Created RentalItem for TV LED: ID ${tvRental.id}`);
+  } else {
+    tvRental = await prisma.rentalItem.update({
+      where: { id: tvRental.id },
+      data: {
+        dailyRate: new Prisma.Decimal(50000),
+        weeklyRate: new Prisma.Decimal(300000),
+        monthlyRate: new Prisma.Decimal(600000),
+        depositPolicyType: DepositPolicyType.PER_UNIT,
+        depositPerUnit: new Prisma.Decimal(200000),
+      },
+    });
+    console.log(`Updated RentalItem for TV LED: ID ${tvRental.id}`);
   }
 
   const existingTvUnits = await prisma.rentalItemUnit.findMany({
@@ -399,7 +435,7 @@ async function main(): Promise<void> {
         companyId: SANTI_LIVING_COMPANY_ID,
         productId: karpetBasic.id,
         dailyRate: new Prisma.Decimal(30000),
-        weeklyRate: new Prisma.Decimal(140000),
+        weeklyRate: new Prisma.Decimal(180000),
         monthlyRate: new Prisma.Decimal(350000),
         depositPolicyType: DepositPolicyType.PER_UNIT,
         depositPerUnit: new Prisma.Decimal(50000),
@@ -407,6 +443,18 @@ async function main(): Promise<void> {
       },
     });
     console.log(`Created RentalItem for Karpet Basic: ID ${karpetBasicRental.id}`);
+  } else {
+    karpetBasicRental = await prisma.rentalItem.update({
+      where: { id: karpetBasicRental.id },
+      data: {
+        dailyRate: new Prisma.Decimal(30000),
+        weeklyRate: new Prisma.Decimal(180000),
+        monthlyRate: new Prisma.Decimal(350000),
+        depositPolicyType: DepositPolicyType.PER_UNIT,
+        depositPerUnit: new Prisma.Decimal(50000),
+      },
+    });
+    console.log(`Updated RentalItem for Karpet Basic: ID ${karpetBasicRental.id}`);
   }
 
   const existingBasicUnits = await prisma.rentalItemUnit.findMany({
@@ -500,7 +548,7 @@ async function main(): Promise<void> {
         companyId: SANTI_LIVING_COMPANY_ID,
         productId: karpetSponge.id,
         dailyRate: new Prisma.Decimal(40000),
-        weeklyRate: new Prisma.Decimal(180000),
+        weeklyRate: new Prisma.Decimal(240000),
         monthlyRate: new Prisma.Decimal(450000),
         depositPolicyType: DepositPolicyType.PER_UNIT,
         depositPerUnit: new Prisma.Decimal(75000),
@@ -508,6 +556,18 @@ async function main(): Promise<void> {
       },
     });
     console.log(`Created RentalItem for Karpet Busa Sponge: ID ${karpetSpongeRental.id}`);
+  } else {
+    karpetSpongeRental = await prisma.rentalItem.update({
+      where: { id: karpetSpongeRental.id },
+      data: {
+        dailyRate: new Prisma.Decimal(40000),
+        weeklyRate: new Prisma.Decimal(240000),
+        monthlyRate: new Prisma.Decimal(450000),
+        depositPolicyType: DepositPolicyType.PER_UNIT,
+        depositPerUnit: new Prisma.Decimal(75000),
+      },
+    });
+    console.log(`Updated RentalItem for Karpet Busa Sponge: ID ${karpetSpongeRental.id}`);
   }
 
   const existingSpongeUnits = await prisma.rentalItemUnit.findMany({

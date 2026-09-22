@@ -7,6 +7,8 @@ import {
   formatPhoneNumber,
   isValidIndonesianNumber,
 } from '../../utils/phone';
+import { isInternalStaff } from '../../constants/staff';
+import { isCustomerAllowed } from '../../utils/whitelist';
 import { TRPCError } from '@trpc/server';
 
 export const botRouter = router({
@@ -50,10 +52,7 @@ export const botRouter = router({
         });
       }
 
-      const targetNumber = formatPhoneNumber(input.phone).replace(
-        '@c.us',
-        '@s.whatsapp.net'
-      );
+      const targetNumber = formatPhoneNumber(input.phone);
       const onWa = await sock.onWhatsApp(targetNumber);
       const exists = Boolean(onWa?.[0]?.exists);
 
@@ -111,9 +110,7 @@ export const botRouter = router({
       }
 
       // 3. Format Message & Target (Baileys format: 628xxx@s.whatsapp.net)
-      const targetNumber = formatPhoneNumber(
-        input.customerWhatsapp
-      ).replace('@c.us', '@s.whatsapp.net');
+      const targetNumber = formatPhoneNumber(input.customerWhatsapp);
       const message = formatOrderMessage(input);
 
       // 3.5 Check number existence on WhatsApp
@@ -196,6 +193,16 @@ export const botRouter = router({
         });
       }
 
+      // 1b. Check staff protection
+      if (isInternalStaff(input.phone)) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Cannot send to internal staff' });
+      }
+      // 1c. Check whitelist
+      const allowed = await isCustomerAllowed(input.phone);
+      if (!allowed) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Phone not in whitelist' });
+      }
+
       // 2. Check Bot Status (Wait if waking up from sleep)
       let retries = 15;
       while (getStatus() === 'INITIALIZING' && retries > 0) {
@@ -222,10 +229,7 @@ export const botRouter = router({
       }
 
       // 3. Send Message (Baileys format: 628xxx@s.whatsapp.net)
-      const targetNumber = formatPhoneNumber(input.phone).replace(
-        '@c.us',
-        '@s.whatsapp.net'
-      );
+      const targetNumber = formatPhoneNumber(input.phone);
 
       try {
         // Egress hardening: linkPreview must be explicitly null so a message

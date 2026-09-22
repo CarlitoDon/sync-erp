@@ -3,6 +3,7 @@
  *
  * Exposes the MCP server over stdio transport (for CLI/desktop clients).
  */
+import './env.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createServer } from './server.js';
 

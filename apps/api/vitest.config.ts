@@ -17,6 +17,10 @@ export default defineConfig({
       '@src': path.resolve(__dirname, 'src'),
       '@middlewares': path.resolve(__dirname, 'src/middlewares'),
       '@routes': path.resolve(__dirname, 'src/routes'),
+      '@sync-erp/shared/whatsapp': path.resolve(
+        __dirname,
+        '../../packages/shared/src/whatsapp/index.ts'
+      ),
       '@sync-erp/shared': path.resolve(
         __dirname,
         '../../packages/shared/src/index.ts'

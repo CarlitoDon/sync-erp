@@ -94,13 +94,12 @@ export class RentalAvailabilityService {
         name: item.product?.name || 'Unknown',
         units: item.units.map((unit) => {
           const bookings = unitBookings.get(unit.id) || [];
-          const hasActiveBooking = bookings.some(
-            (b) => b.status === RentalOrderStatus.ACTIVE
-          );
           const computedStatus =
-            unit.status === UnitStatus.AVAILABLE && hasActiveBooking
-              ? UnitStatus.RENTED
-              : unit.status;
+            unit.status === UnitStatus.MAINTENANCE ||
+            unit.status === UnitStatus.RETIRED ||
+            unit.status === UnitStatus.CLEANING
+              ? unit.status
+              : UnitStatus.AVAILABLE;
 
           return {
             id: unit.id,

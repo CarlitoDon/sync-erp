@@ -4,12 +4,9 @@ import { Card, Button } from '@/components/ui';
 import { apiAction } from '@/hooks/useApiAction';
 
 function StatusIcon({ status }: { status: string }) {
-  if (status === 'READY')
-    return <span className="text-2xl">✅</span>;
-  if (status === 'DISCONNECTED')
-    return <span className="text-2xl">🔴</span>;
-  if (status === 'QR_PENDING')
-    return <span className="text-2xl">📱</span>;
+  if (status === 'READY') return <span className="text-2xl">✅</span>;
+  if (status === 'DISCONNECTED') return <span className="text-2xl">🔴</span>;
+  if (status === 'QR_PENDING') return <span className="text-2xl">📱</span>;
   return <span className="text-2xl animate-pulse">⏳</span>;
 }
 
@@ -46,10 +43,20 @@ function formatTimeAgo(date: Date): string {
   return `${Math.floor(diff / 3600)}h ago`;
 }
 
+function formatTimeAgoId(date: Date): string {
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diff < 5) return 'baru saja';
+  if (diff < 60) return `${diff} dtk yang lalu`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} mnt yang lalu`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} jam yang lalu`;
+  return `${Math.floor(diff / 86400)} hari yang lalu`;
+}
+
 export function WhatsAppSettingsPage() {
   const { data: statusData, refetch } = trpc.bot.getStatus.useQuery();
   const pingMutation = trpc.bot.ping.useMutation();
   const logoutMutation = trpc.bot.logout.useMutation();
+  const toggleAiSalesMutation = trpc.bot.toggleAiSales.useMutation();
   const [lastPingResult, setLastPingResult] = useState<string | null>(
     null
   );
@@ -62,13 +69,47 @@ export function WhatsAppSettingsPage() {
     return () => clearInterval(interval);
   }, [refetch]);
 
-  const { status, qr, lastUpdated } = statusData || {
-    status: 'LOADING',
-    qr: null,
-    lastUpdated: null,
-  };
-
+  const status = statusData?.status ?? 'LOADING';
+  const qr = statusData?.qr ?? null;
+  const lastUpdated = statusData?.lastUpdated ?? null;
   const lastUpdatedDate = lastUpdated ? new Date(lastUpdated) : null;
+
+  const rawLastError = statusData?.lastError ?? null;
+  const lastError =
+    typeof rawLastError === 'string' && rawLastError.trim().length > 0
+      ? rawLastError
+      : null;
+  const lastErrorAtRaw = statusData?.lastErrorAt ?? null;
+  const lastErrorAtCandidate = lastErrorAtRaw
+    ? new Date(lastErrorAtRaw)
+    : null;
+  const lastErrorAtDate =
+    lastErrorAtCandidate &&
+    !Number.isNaN(lastErrorAtCandidate.getTime())
+      ? lastErrorAtCandidate
+      : null;
+  const isStale = statusData?.stale ?? false;
+  const aiSalesEnabled = statusData?.aiSalesEnabled ?? true;
+
+  const handleToggleAiSales = async () => {
+    const willDisable = aiSalesEnabled !== false;
+    const message = willDisable
+      ? 'Hentikan Operasi AI Sales (Emergency Cut)?\n\nBot WhatsApp tidak akan membalas atau memproses pesan otomatis dari pelanggan sampai Anda mengaktifkannya kembali.'
+      : 'Pulihkan Operasi AI Sales?\n\nBot WhatsApp akan kembali memproses dan membalas pesan pelanggan secara otomatis.';
+
+    if (!window.confirm(message)) return;
+
+    await apiAction(
+      () =>
+        toggleAiSalesMutation.mutateAsync({
+          enabled: !aiSalesEnabled,
+        }),
+      willDisable
+        ? '🛑 Operasi AI Sales berhasil dihentikan (Emergency Cut aktif)!'
+        : '✅ Operasi AI Sales telah berhasil dipulihkan!'
+    );
+    refetch();
+  };
 
   const handlePing = async () => {
     setLastPingResult(null);
@@ -99,10 +140,28 @@ export function WhatsAppSettingsPage() {
       <div>
         <h1 className="text-2xl font-bold">WhatsApp Integration</h1>
         <p className="text-gray-500">
-          Manage your WhatsApp Business connection and test
-          connectivity.
+          Manage your WhatsApp Business connection, monitor status, and control AI Sales operations.
         </p>
       </div>
+
+      {/* Emergency Cut Warning Banner */}
+      {aiSalesEnabled === false && (
+        <div
+          className="bg-red-50 border-2 border-red-500 rounded-xl p-4 flex items-start gap-3 shadow-sm"
+          role="alert"
+        >
+          <span className="text-2xl">🛑</span>
+          <div className="flex-1">
+            <h3 className="text-red-800 font-bold text-base">
+              Operasi AI Sales Sedang Dihentikan (Emergency Cut Aktif)
+            </h3>
+            <p className="text-red-700 text-sm mt-0.5">
+              Bot WhatsApp tidak akan membalas atau memproses pesan inbound dari pelanggan secara otomatis.
+              Semua percakapan baru ditahan demi keamanan operasional sampai saklar darurat diaktifkan kembali.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Connection Status Card */}
@@ -131,6 +190,42 @@ export function WhatsAppSettingsPage() {
               )}
             </div>
           </div>
+
+          {/* Staleness indicator (optional field; hidden on older API shape) */}
+          {isStale === true && (
+            <div
+              className="bg-amber-50 p-4 rounded-lg border border-amber-200 mb-4"
+              role="alert"
+            >
+              <p className="text-amber-800 text-sm font-medium">
+                ⚠️ Data{' '}
+                {lastUpdatedDate
+                  ? `${formatTimeAgoId(lastUpdatedDate)}`
+                  : 'kedaluwarsa'}{' '}
+                — bot tidak terjangkau, menampilkan status terakhir
+                yang diketahui.
+              </p>
+            </div>
+          )}
+
+          {/* Last error (optional fields; hidden when null/undefined) */}
+          {lastError && (
+            <div
+              className="bg-red-50 p-4 rounded-lg border border-red-200 mb-4"
+              role="alert"
+            >
+              <p className="text-red-700 text-sm font-medium">
+                ⚠️ Kesalahan terakhir: {lastError}
+              </p>
+              {lastErrorAtDate && (
+                <p className="text-red-500 text-xs mt-1">
+                  Terjadi pada{' '}
+                  {lastErrorAtDate.toLocaleString('id-ID')} (
+                  {formatTimeAgoId(lastErrorAtDate)})
+                </p>
+              )}
+            </div>
+          )}
 
           {/* QR Code Section */}
           {status === 'QR_PENDING' && qr && (
@@ -184,9 +279,53 @@ export function WhatsAppSettingsPage() {
 
         {/* Actions Card */}
         <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Actions</h2>
+          <h2 className="text-lg font-semibold mb-4">Actions & Controls</h2>
 
           <div className="space-y-4">
+            {/* Emergency Cut Operation (Saklar Darurat AI Sales) */}
+            <div
+              className={`p-4 rounded-lg border transition-colors ${
+                aiSalesEnabled
+                  ? 'bg-emerald-50/60 border-emerald-200'
+                  : 'bg-red-50 border-red-300'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4 mb-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-sm text-gray-900">
+                      ⚡ Emergency Cut: AI Sales Operation
+                    </h3>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        aiSalesEnabled
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800 font-bold'
+                      }`}
+                    >
+                      {aiSalesEnabled ? 'Aktif' : 'Berhenti Darurat'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Saklar darurat untuk menghentikan respon otomatis AI Sales seketika jika terjadi kendala.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <Button
+                  size="sm"
+                  variant={aiSalesEnabled ? 'danger' : 'primary'}
+                  onClick={handleToggleAiSales}
+                  isLoading={toggleAiSalesMutation.isPending}
+                  loadingText="Memproses..."
+                >
+                  {aiSalesEnabled
+                    ? '🛑 Cut Operation (Hentikan AI Sales)'
+                    : '✅ Pulihkan Operasi AI Sales'}
+                </Button>
+              </div>
+            </div>
+
             {/* Ping Test */}
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="flex items-center justify-between mb-2">
@@ -233,6 +372,12 @@ export function WhatsAppSettingsPage() {
                 <div className="flex justify-between">
                   <span>Status</span>
                   <span className="font-mono">{status}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>AI Sales Operation</span>
+                  <span className={`font-mono font-semibold ${aiSalesEnabled ? 'text-green-600' : 'text-red-600'}`}>
+                    {aiSalesEnabled ? 'ENABLED' : 'HALTED (CUT)'}
+                  </span>
                 </div>
                 {lastUpdatedDate && (
                   <div className="flex justify-between">

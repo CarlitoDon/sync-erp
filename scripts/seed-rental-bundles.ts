@@ -31,7 +31,7 @@ const SPREI_CONFIGS: SpreiItemConfig[] = [
     unitPrefix: 'SPREI90',
     unitCount: 26, // 2x stock kasur 90 (13 x 2 = 26)
     dailyRate: 10000,
-    weeklyRate: 45000,
+    weeklyRate: 60000,
     monthlyRate: 120000,
     depositPerUnit: 20000,
     price: 35000,
@@ -44,7 +44,7 @@ const SPREI_CONFIGS: SpreiItemConfig[] = [
     unitPrefix: 'SPREI100',
     unitCount: 12, // 2x stock kasur 100 (6 x 2 = 12)
     dailyRate: 10000,
-    weeklyRate: 45000,
+    weeklyRate: 60000,
     monthlyRate: 120000,
     depositPerUnit: 20000,
     price: 35000,
@@ -57,7 +57,7 @@ const SPREI_CONFIGS: SpreiItemConfig[] = [
     unitPrefix: 'SPREI120',
     unitCount: 12, // 2x stock kasur 120 (6 x 2 = 12)
     dailyRate: 10000,
-    weeklyRate: 45000,
+    weeklyRate: 60000,
     monthlyRate: 120000,
     depositPerUnit: 20000,
     price: 40000,
@@ -70,10 +70,23 @@ const SPREI_CONFIGS: SpreiItemConfig[] = [
     unitPrefix: 'SPREI160',
     unitCount: 16, // 2x stock kasur 160 (8 x 2 = 16)
     dailyRate: 10000,
-    weeklyRate: 45000,
+    weeklyRate: 60000,
     monthlyRate: 120000,
     depositPerUnit: 20000,
     price: 45000,
+    averageCost: 35000,
+  },
+  {
+    sku: 'SPREI-180',
+    name: 'Sprei 180x200',
+    sizeLabel: '180x200',
+    unitPrefix: 'SPREI180',
+    unitCount: 8,
+    dailyRate: 10000,
+    weeklyRate: 60000,
+    monthlyRate: 120000,
+    depositPerUnit: 20000,
+    price: 50000,
     averageCost: 35000,
   },
 ];
@@ -102,8 +115,8 @@ const BUNDLE_DEFINITIONS: BundleDefinition[] = [
     name: 'Single Standard (Paket 90)',
     shortName: 'Paket 90',
     description: 'Paket Kasur busa 90x200 + Sprei 90 + 1 Bantal standar (Single)',
-    dailyRate: 40000,
-    weeklyRate: 180000,
+    dailyRate: 35000,
+    weeklyRate: 210000,
     monthlyRate: 450000,
     dimensions: '90 x 200 cm',
     capacity: '1 orang',
@@ -119,8 +132,8 @@ const BUNDLE_DEFINITIONS: BundleDefinition[] = [
     name: 'Single Super (Paket 100)',
     shortName: 'Paket 100',
     description: 'Paket Kasur busa 100x200 + Sprei 100 + 1 Bantal standar (Single)',
-    dailyRate: 45000,
-    weeklyRate: 200000,
+    dailyRate: 40000,
+    weeklyRate: 240000,
     monthlyRate: 500000,
     dimensions: '100 x 200 cm',
     capacity: '1 orang',
@@ -136,8 +149,8 @@ const BUNDLE_DEFINITIONS: BundleDefinition[] = [
     name: 'Double (Paket 120)',
     shortName: 'Paket 120',
     description: 'Paket Kasur busa 120x200 + Sprei 120 + 2 Bantal standar (Double)',
-    dailyRate: 50000,
-    weeklyRate: 220000,
+    dailyRate: 45000,
+    weeklyRate: 270000,
     monthlyRate: 550000,
     dimensions: '120 x 200 cm',
     capacity: '1-2 orang',
@@ -153,8 +166,8 @@ const BUNDLE_DEFINITIONS: BundleDefinition[] = [
     name: 'Queen (Paket 160)',
     shortName: 'Paket 160',
     description: 'Paket Kasur busa 160x200 + Sprei 160 + 2 Bantal standar (Double)',
-    dailyRate: 60000,
-    weeklyRate: 270000,
+    dailyRate: 55000,
+    weeklyRate: 330000,
     monthlyRate: 700000,
     dimensions: '160 x 200 cm',
     capacity: '2 orang',
@@ -162,6 +175,23 @@ const BUNDLE_DEFINITIONS: BundleDefinition[] = [
     components: [
       { itemSku: 'KASUR-160X200', quantity: 1, label: 'Kasur busa 160x200' },
       { itemSku: 'SPREI-160', quantity: 1, label: 'Sprei bersih 160x200' },
+      { itemSku: 'BANTAL-STD', quantity: 2, label: 'Bantal standar' },
+    ],
+  },
+  {
+    externalId: 'package-king',
+    name: 'King (Paket 180)',
+    shortName: 'Paket 180',
+    description: 'Paket Kasur busa 180x200 + Sprei 180 + 2 Bantal standar (King)',
+    dailyRate: 65000,
+    weeklyRate: 390000,
+    monthlyRate: 850000,
+    dimensions: '180 x 200 cm',
+    capacity: '2-3 orang',
+    imagePath: '/images/paket-180.webp',
+    components: [
+      { itemSku: 'KASUR-180X200', quantity: 1, label: 'Kasur busa 180x200' },
+      { itemSku: 'SPREI-180', quantity: 1, label: 'Sprei bersih 180x200' },
       { itemSku: 'BANTAL-STD', quantity: 2, label: 'Bantal standar' },
     ],
   },
@@ -261,7 +291,16 @@ async function main(): Promise<void> {
       });
       console.log(`  -> Created RentalItem: ${rentalItem.id}`);
     } else {
-      console.log(`  -> Found RentalItem: ${rentalItem.id}`);
+      rentalItem = await prisma.rentalItem.update({
+        where: { id: rentalItem.id },
+        data: {
+          dailyRate: new Prisma.Decimal(cfg.dailyRate),
+          weeklyRate: new Prisma.Decimal(cfg.weeklyRate),
+          monthlyRate: new Prisma.Decimal(cfg.monthlyRate),
+          depositPerUnit: new Prisma.Decimal(cfg.depositPerUnit),
+        },
+      });
+      console.log(`  -> Updated RentalItem: ${rentalItem.id}`);
     }
 
     rentalItemMap.set(cfg.sku, rentalItem.id);
@@ -343,7 +382,7 @@ async function main(): Promise<void> {
         companyId: SANTI_LIVING_COMPANY_ID,
         productId: selimutProduct.id,
         dailyRate: new Prisma.Decimal(10000),
-        weeklyRate: new Prisma.Decimal(45000),
+        weeklyRate: new Prisma.Decimal(60000),
         monthlyRate: new Prisma.Decimal(120000),
         depositPolicyType: DepositPolicyType.PER_UNIT,
         depositPerUnit: new Prisma.Decimal(25000),
@@ -351,6 +390,17 @@ async function main(): Promise<void> {
       },
     });
     console.log(`Created RentalItem for Selimut: ${selimutRentalItem.id}`);
+  } else {
+    selimutRentalItem = await prisma.rentalItem.update({
+      where: { id: selimutRentalItem.id },
+      data: {
+        dailyRate: new Prisma.Decimal(10000),
+        weeklyRate: new Prisma.Decimal(60000),
+        monthlyRate: new Prisma.Decimal(120000),
+        depositPerUnit: new Prisma.Decimal(25000),
+      },
+    });
+    console.log(`Updated RentalItem for Selimut: ${selimutRentalItem.id}`);
   }
   rentalItemMap.set(selimutSku, selimutRentalItem.id);
 

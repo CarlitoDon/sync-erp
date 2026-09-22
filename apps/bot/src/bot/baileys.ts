@@ -273,11 +273,62 @@ function extractMessageContent(msg: proto.IMessage | null | undefined): string {
     msg.documentWithCaptionMessage?.message ||
     msg;
 
+  if (message.locationMessage) {
+    const loc = message.locationMessage;
+    const parts: string[] = [];
+    if (loc.name) parts.push(loc.name);
+    if (loc.address) parts.push(loc.address);
+    if (loc.degreesLatitude != null && loc.degreesLongitude != null) {
+      parts.push(`(Koordinat: ${loc.degreesLatitude}, ${loc.degreesLongitude})`);
+      parts.push(`https://maps.google.com/?q=${loc.degreesLatitude},${loc.degreesLongitude}`);
+    }
+    if (loc.comment) parts.push(loc.comment);
+    if (loc.url) parts.push(loc.url);
+    return parts.join(' - ') || '[Share Location]';
+  }
+
+  if (message.liveLocationMessage) {
+    const loc = message.liveLocationMessage;
+    const parts: string[] = ['[Live Location]'];
+    if (loc.degreesLatitude != null && loc.degreesLongitude != null) {
+      parts.push(`(Koordinat: ${loc.degreesLatitude}, ${loc.degreesLongitude})`);
+      parts.push(`https://maps.google.com/?q=${loc.degreesLatitude},${loc.degreesLongitude}`);
+    }
+    if (loc.caption) parts.push(loc.caption);
+    return parts.join(' - ');
+  }
+
+  if (message.imageMessage) {
+    const caption = message.imageMessage.caption?.trim();
+    return caption
+      ? `[Mengirim Gambar / Bukti Transfer: "${caption}"]`
+      : '[Mengirim Gambar / Bukti Pembayaran]';
+  }
+
+  if (message.documentMessage) {
+    const filename = message.documentMessage.fileName || 'Dokumen';
+    const caption = message.documentMessage.caption?.trim();
+    return caption
+      ? `[Mengirim Dokumen / File: "${filename}" - "${caption}"]`
+      : `[Mengirim Dokumen / File: "${filename}"]`;
+  }
+
+  if (message.videoMessage) {
+    const caption = message.videoMessage.caption?.trim();
+    return caption ? `[Mengirim Video: "${caption}"]` : '[Mengirim Video]';
+  }
+
+  if (message.stickerMessage) {
+    return '[Stiker]';
+  }
+
+  if (message.audioMessage) {
+    return '[Pesan Suara / Audio]';
+  }
+
   return (
     message.conversation ||
     message.extendedTextMessage?.text ||
-    message.imageMessage?.caption ||
-    message.videoMessage?.caption ||
     ''
   );
 }

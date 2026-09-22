@@ -57,8 +57,27 @@ export function useCreateOrder({
     discountAmount: '',
     deliveryAddress: '',
     paymentMethod: '',
+    upstairsMattressCount: '',
+    fittedSheetCount: '',
+    googleMapsUrl: '',
     items: [] as OrderItem[],
   });
+  // Date-based availability check
+  const hasValidDateRange =
+    Boolean(orderForm.rentalStartDate) &&
+    Boolean(orderForm.rentalEndDate) &&
+    new Date(orderForm.rentalEndDate) >= new Date(orderForm.rentalStartDate);
+
+  const { data: availabilityMap } = trpc.rental.availability.check.useQuery(
+    {
+      startDate: new Date(orderForm.rentalStartDate),
+      endDate: new Date(orderForm.rentalEndDate),
+    },
+    {
+      enabled: isOpen && !!currentCompany?.id && hasValidDateRange,
+    }
+  );
+
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
 
   // Pricing calculations
@@ -100,6 +119,9 @@ export function useCreateOrder({
       discountAmount: '',
       deliveryAddress: '',
       paymentMethod: '',
+      upstairsMattressCount: '',
+      fittedSheetCount: '',
+      googleMapsUrl: '',
       items: [],
     });
   }, []);
@@ -159,13 +181,23 @@ export function useCreateOrder({
 
   const getAvailableUnits = useCallback(
     (itemId: string) => {
+      if (
+        hasValidDateRange &&
+        availabilityMap &&
+        availabilityMap[itemId] !== undefined
+      ) {
+        return availabilityMap[itemId];
+      }
       const item = rentalItems.find((ri) => ri.id === itemId);
       return (
-        item?.units?.filter((u) => u.status === UnitStatus.AVAILABLE)
-          .length || 0
+        item?.units?.filter(
+          (u) =>
+            u.status !== UnitStatus.MAINTENANCE &&
+            u.status !== UnitStatus.RETIRED
+        ).length || 0
       );
     },
-    [rentalItems]
+    [availabilityMap, hasValidDateRange, rentalItems]
   );
 
   const updateFormField = useCallback(
@@ -184,6 +216,45 @@ export function useCreateOrder({
         ? new Date(orderForm.dueDateTime)
         : new Date(orderForm.rentalEndDate + 'T18:00:00');
 
+      // Structured logistics notes
+      const notesLines: string[] = [];
+      if (orderForm.notes?.trim()) {
+        notesLines.push(orderForm.notes.trim());
+      }
+      if (
+        orderForm.upstairsMattressCount &&
+        Number(orderForm.upstairsMattressCount) > 0
+      ) {
+        notesLines.push(
+          `Kasur naik lantai atas: ${orderForm.upstairsMattressCount} unit`
+        );
+      }
+      if (
+        orderForm.fittedSheetCount &&
+        Number(orderForm.fittedSheetCount) > 0
+      ) {
+        notesLines.push(
+          `Pasang sprei: ${orderForm.fittedSheetCount} unit`
+        );
+      }
+      if (orderForm.googleMapsUrl?.trim()) {
+        notesLines.push(
+          `Titik Google Maps: ${orderForm.googleMapsUrl.trim()}`
+        );
+      }
+      const finalNotes = notesLines.length > 0 ? notesLines.join('\n') : undefined;
+
+      // Full address incorporating maps link
+      const addressParts: string[] = [];
+      if (orderForm.deliveryAddress?.trim()) {
+        addressParts.push(orderForm.deliveryAddress.trim());
+      }
+      if (orderForm.googleMapsUrl?.trim()) {
+        addressParts.push(`Maps: ${orderForm.googleMapsUrl.trim()}`);
+      }
+      const finalDeliveryAddress =
+        addressParts.length > 0 ? addressParts.join('\n') : undefined;
+
       await apiAction(
         () =>
           createMutation.mutateAsync({
@@ -195,14 +266,14 @@ export function useCreateOrder({
               orderForm.rentalEndDate
             ).toISOString(),
             dueDateTime: dueDateTime.toISOString(),
-            notes: orderForm.notes || undefined,
+            notes: finalNotes,
             deliveryFee: orderForm.deliveryFee
               ? Number(orderForm.deliveryFee)
               : undefined,
             discountAmount: orderForm.discountAmount
               ? Number(orderForm.discountAmount)
               : undefined,
-            deliveryAddress: orderForm.deliveryAddress || undefined,
+            deliveryAddress: finalDeliveryAddress,
             paymentMethod: orderForm.paymentMethod || undefined,
             items: orderForm.items
               .filter(

@@ -111,7 +111,7 @@ async function main(): Promise<void> {
         companyId: SANTI_LIVING_COMPANY_ID,
         productId: product.id,
         dailyRate: new Prisma.Decimal(25000),
-        weeklyRate: new Prisma.Decimal(120000),
+        weeklyRate: new Prisma.Decimal(150000),
         monthlyRate: new Prisma.Decimal(350000),
         depositPolicyType: DepositPolicyType.PER_UNIT,
         depositPerUnit: new Prisma.Decimal(100000),
@@ -120,7 +120,17 @@ async function main(): Promise<void> {
     });
     console.log(`Created RentalItem for product: ${product.name} - ID: ${rentalItem.id}`);
   } else {
-    console.log(`Found existing RentalItem: ${rentalItem.id}`);
+    rentalItem = await prisma.rentalItem.update({
+      where: { id: rentalItem.id },
+      data: {
+        dailyRate: new Prisma.Decimal(25000),
+        weeklyRate: new Prisma.Decimal(150000),
+        monthlyRate: new Prisma.Decimal(350000),
+        depositPolicyType: DepositPolicyType.PER_UNIT,
+        depositPerUnit: new Prisma.Decimal(100000),
+      },
+    });
+    console.log(`Updated RentalItem for product: ${product.name} - ID: ${rentalItem.id}`);
   }
 
   // 5. Check and create 13 physical RentalItemUnits

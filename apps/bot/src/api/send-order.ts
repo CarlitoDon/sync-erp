@@ -50,9 +50,7 @@ export const sendOrder = async (req: Request, res: Response) => {
   }
 
   // Baileys format: 628xxx@s.whatsapp.net
-  const targetNumber = formatPhoneNumber(
-    payload.customerWhatsapp
-  ).replace('@c.us', '@s.whatsapp.net');
+  const targetNumber = formatPhoneNumber(payload.customerWhatsapp);
 
   try {
     // 4b. Verify phone number existence on WhatsApp

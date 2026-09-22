@@ -16,3 +16,4 @@ export * from './utils/rental-order';
 export * from './constants/journal-references';
 export * from './utils/cost-calculations';
 export * from './policies/rbac';
+export * from './whatsapp/index';

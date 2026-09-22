@@ -2,6 +2,7 @@ import { SHUTDOWN_TIMEOUT_MS } from '@sync-erp/shared';
 import { createApp } from './app';
 import { startWebhookOutboxWorker } from './modules/rental/webhook-outbox.service';
 import { startTenantWebhookOutboxWorker } from './services/tenant-webhook-outbox.service';
+import { startBotHeartbeatWorker } from './services/bot-heartbeat.service';
 import { registerIntegrations } from './integrations/registry';
 
 registerIntegrations();
@@ -12,6 +13,8 @@ const stopWebhookOutboxWorker =
   startWebhookOutboxWorker();
 const stopTenantWebhookOutboxWorker =
   startTenantWebhookOutboxWorker();
+const stopBotHeartbeatWorker =
+  startBotHeartbeatWorker();
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
@@ -22,6 +25,7 @@ const gracefulShutdown = (signal: string) => {
   console.warn(`\n[${signal}] Shutting down gracefully...`);
   stopWebhookOutboxWorker();
   stopTenantWebhookOutboxWorker();
+  stopBotHeartbeatWorker();
   server.close(() => {
     console.warn('[API] Server closed successfully.');
     process.exit(0);

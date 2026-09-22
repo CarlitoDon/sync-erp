@@ -1,20 +1,10 @@
+import { formatJid } from '@sync-erp/shared/whatsapp';
+
+/**
+ * @deprecated Use formatJid from @sync-erp/shared/whatsapp instead
+ */
 export const formatPhoneNumber = (phone: string): string => {
-  // Remove non-digits
-  let cleaned = phone.replace(/[\s-]/g, "");
-
-  // Replace leading 0 with 62
-  if (cleaned.startsWith("0")) {
-    cleaned = "62" + cleaned.substring(1);
-  } else if (cleaned.startsWith("+62")) {
-    cleaned = cleaned.substring(1);
-  }
-
-  // Add WhatsApp suffix if not present
-  if (!cleaned.endsWith("@c.us")) {
-    cleaned += "@c.us";
-  }
-
-  return cleaned;
+  return formatJid(phone);
 };
 
 export const isValidIndonesianNumber = (phone: string): boolean => {

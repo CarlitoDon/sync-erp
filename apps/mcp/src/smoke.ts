@@ -1,3 +1,4 @@
+import './env.js';
 import { randomUUID } from 'node:crypto';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -12,10 +13,16 @@ function getEnv(name: string, fallback?: string): string {
 }
 
 function getAuthHeaders() {
-  const token = getEnv(
-    'SYNC_ERP_MCP_BEARER_TOKEN',
-    process.env.MCP_BEARER_TOKEN
-  );
+  const token =
+    process.env.SYNC_ERP_MCP_BEARER_TOKEN ??
+    process.env.MCP_BEARER_TOKEN ??
+    process.env.SYNC_ERP_MCP_BEARER_TOKENS?.split(',')[0]?.trim();
+
+  if (!token) {
+    throw new Error(
+      'Missing required environment variable: SYNC_ERP_MCP_BEARER_TOKEN or SYNC_ERP_MCP_BEARER_TOKENS'
+    );
+  }
 
   return {
     Authorization: `Bearer ${token}`,
@@ -136,7 +143,7 @@ function pickOptionalNumber(
 async function main() {
   const serverUrl = getEnv(
     'SYNC_ERP_MCP_URL',
-    'http://localhost:3005/mcp'
+    'http://localhost:3008/mcp'
   );
   const authHeaders = getAuthHeaders();
   const transport = new StreamableHTTPClientTransport(new URL(serverUrl), {

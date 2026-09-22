@@ -56,6 +56,7 @@ export type {
   RentalPolicy,
   WebhookOutbox,
   TenantWebhookOutbox,
+  WhatsappBotStatus,
 } from './generated/client/client.js';
 
 // Re-export enums as values (not just types)
