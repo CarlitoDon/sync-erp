@@ -33,6 +33,8 @@ export class RentalPolicyService {
       lateFeeDailyRate?: number;
       cleaningFee?: number;
       pickupGracePeriodHours?: number;
+      upstairsFeePerUnit?: number;
+      fittedSheetFeePerUnit?: number;
     },
     userId: string
   ): Promise<RentalPolicy> {
@@ -65,6 +67,12 @@ export class RentalPolicyService {
             data.pickupGracePeriodHours ??
             current?.pickupGracePeriodHours ??
             24,
+          upstairsFeePerUnit: data.upstairsFeePerUnit !== undefined
+            ? new Decimal(data.upstairsFeePerUnit)
+            : (current?.upstairsFeePerUnit ?? new Decimal(3500)),
+          fittedSheetFeePerUnit: data.fittedSheetFeePerUnit !== undefined
+            ? new Decimal(data.fittedSheetFeePerUnit)
+            : (current?.fittedSheetFeePerUnit ?? new Decimal(2000)),
           defaultDepositPolicyType:
             current?.defaultDepositPolicyType ?? 'PERCENTAGE',
           createdBy: userId,

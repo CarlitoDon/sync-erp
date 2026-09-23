@@ -13,6 +13,7 @@ export * from './utils/formatters';
 export * from './utils/test-utils';
 export * from './utils/rental-payment-status';
 export * from './utils/rental-order';
+export * from './utils/rental-inventory-pool';
 export * from './constants/journal-references';
 export * from './utils/cost-calculations';
 export * from './policies/rbac';

@@ -104,6 +104,7 @@ export const CreateRentalOrderSchema = z
       .optional(),
     items: z.array(RentalOrderItemSchema).min(1),
     notes: z.string().optional(),
+    depositAmount: z.number().nonnegative().optional(),
     deliveryFee: z.number().nonnegative().optional(),
     deliveryAddress: z.string().optional(),
     street: z.string().optional(),

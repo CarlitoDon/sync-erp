@@ -4,6 +4,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useCallback,
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -72,33 +73,52 @@ export default function Select({
   const [dropdownStyle, setDropdownStyle] =
     useState<React.CSSProperties>({});
 
-  useLayoutEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownStyle(
-        portal
-          ? {
-              position: 'fixed',
-              top: rect.bottom + 4,
-              left: rect.left,
-              width: rect.width,
-              zIndex: 9999,
-            }
-          : {
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              width: '100%',
-              marginTop: '0.25rem',
-              zIndex: 9999,
-            }
-      );
+  const calculateDropdownStyle = useCallback((): React.CSSProperties => {
+    if (!buttonRef.current) return {};
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUpward = spaceBelow < 250 && rect.top > spaceBelow;
+
+    return portal
+      ? {
+          position: 'fixed',
+          top: openUpward ? undefined : rect.bottom + 4,
+          bottom: openUpward ? window.innerHeight - rect.top + 4 : undefined,
+          left: rect.left,
+          width: rect.width,
+          zIndex: 9999,
+        }
+      : {
+          position: 'absolute',
+          top: openUpward ? undefined : '100%',
+          bottom: openUpward ? '100%' : undefined,
+          left: 0,
+          width: '100%',
+          marginTop: openUpward ? undefined : '0.25rem',
+          marginBottom: openUpward ? '0.25rem' : undefined,
+          zIndex: 9999,
+        };
+  }, [portal]);
+
+  const handleToggle = () => {
+    if (disabled) return;
+    if (!isOpen) {
+      setDropdownStyle(calculateDropdownStyle());
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
     }
-  }, [isOpen, portal]);
+  };
+
+  useLayoutEffect(() => {
+    if (isOpen) {
+      setDropdownStyle(calculateDropdownStyle());
+    }
+  }, [isOpen, calculateDropdownStyle]);
 
   useEffect(() => {
     if (isOpen && searchable && searchInputRef.current) {
-      searchInputRef.current.focus();
+      searchInputRef.current.focus({ preventScroll: true });
     }
   }, [isOpen, searchable]);
 
@@ -127,17 +147,48 @@ export default function Select({
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      const handleScroll = (event: Event) => {
-        if (dropdownRef.current?.contains(event.target as Node)) {
+    if (!isOpen) return;
+
+    const handleScrollOrResize = (event: Event) => {
+      if (dropdownRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
+      if (!portal) return;
+
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        // If trigger button scrolled off screen completely, close dropdown
+        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+          setIsOpen(false);
           return;
         }
+        setDropdownStyle(calculateDropdownStyle());
+      }
+    };
+
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [isOpen, portal]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        e.preventDefault();
         setIsOpen(false);
-      };
-      window.addEventListener('scroll', handleScroll, true);
-      return () =>
-        window.removeEventListener('scroll', handleScroll, true);
-    }
+        buttonRef.current?.focus({ preventScroll: true });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [isOpen]);
 
   const allOptions: SelectOption[] = groups
@@ -166,7 +217,7 @@ export default function Select({
   }, [groups, searchTerm]);
 
   const selectedOption = allOptions.find(
-    (opt) => opt.value === value
+    (opt) => String(opt.value) === String(value)
   );
 
   const hasResults = groups
@@ -187,45 +238,50 @@ export default function Select({
     }
   };
 
-  const renderOption = (option: SelectOption) => (
-    <div
-      key={option.value}
-      className={`relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-cyan-50 ${
-        value === option.value
-          ? 'bg-cyan-50 font-medium text-cyan-900'
-          : 'text-slate-900'
-      }`}
-      onClick={() => {
-        onChange(String(option.value));
-        setIsOpen(false);
-      }}
-    >
-      <span className="block truncate">{option.label}</span>
-      {value === option.value && (
-        <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-cyan-700">
-          <svg
-            className="h-5 w-5"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              fillRule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </span>
-      )}
-    </div>
-  );
+  const renderOption = (option: SelectOption) => {
+    const isSelected = String(value) === String(option.value);
+    return (
+      <div
+        key={option.value}
+        className={`relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-cyan-50 ${
+          isSelected
+            ? 'bg-cyan-50 font-medium text-cyan-900'
+            : 'text-slate-900'
+        }`}
+        onClick={() => {
+          onChange(String(option.value));
+          setIsOpen(false);
+        }}
+      >
+        <span className="block truncate">{option.label}</span>
+        {isSelected && (
+          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-cyan-700">
+            <svg
+              className="h-5 w-5"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const dropdownContent = (
     <div
       ref={dropdownRef}
       style={dropdownStyle}
-      className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-200/60 focus:outline-none"
+      className={`overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-200/60 focus:outline-none ${
+        portal ? 'fixed z-[9999]' : 'absolute z-[9999]'
+      }`}
     >
       {searchable && (
         <div className="border-b border-slate-100 p-2">
@@ -298,7 +354,7 @@ export default function Select({
         ref={buttonRef}
         type="button"
         data-testid="select-trigger"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={handleToggle}
         disabled={disabled}
         className={`flex w-full cursor-default items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-left shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 sm:text-sm ${
           disabled

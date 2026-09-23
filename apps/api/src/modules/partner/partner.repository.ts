@@ -2,8 +2,10 @@ import {
   Prisma,
   prisma,
   type Partner,
+  type Address,
   PartnerType,
 } from '@sync-erp/database';
+import { CreateAddressInput } from '@sync-erp/shared';
 
 export class PartnerRepository {
   async create(
@@ -15,20 +17,30 @@ export class PartnerRepository {
   async findById(
     id: string,
     companyId: string
-  ): Promise<Partner | null> {
+  ): Promise<(Partner & { addresses: Address[] }) | null> {
     return prisma.partner.findFirst({
       where: { id, companyId },
+      include: {
+        addresses: {
+          orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+        },
+      },
     });
   }
 
   async findAll(
     companyId: string,
     type?: PartnerType
-  ): Promise<Partner[]> {
+  ): Promise<(Partner & { addresses: Address[] })[]> {
     return prisma.partner.findMany({
       where: {
         companyId,
         ...(type && { type }),
+      },
+      include: {
+        addresses: {
+          orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+        },
       },
       orderBy: { name: 'asc' },
     });
@@ -117,6 +129,12 @@ export class PartnerRepository {
           }
         }
 
+        // Re-link Address
+        await tx.address.updateMany({
+          where: { partnerId: sourceId, companyId },
+          data: { partnerId: targetPartnerId },
+        });
+
         // Delete source partner
         await tx.partner.delete({
           where: { id: sourceId },
@@ -125,5 +143,136 @@ export class PartnerRepository {
 
       return target;
     });
+  }
+
+  async listAddresses(
+    partnerId: string,
+    companyId: string
+  ): Promise<Address[]> {
+    const addresses = await prisma.address.findMany({
+      where: { partnerId, companyId },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    if (addresses.length === 0) {
+      // Check if partner has legacy address stored in Partner table
+      const partner = await prisma.partner.findFirst({
+        where: { id: partnerId, companyId },
+      });
+      if (partner && (partner.address || partner.street)) {
+        const migrated = await prisma.address.create({
+          data: {
+            companyId,
+            partnerId,
+            name: 'Alamat Utama',
+            isDefault: true,
+            address: partner.address,
+            street: partner.street,
+            kelurahan: partner.kelurahan,
+            kecamatan: partner.kecamatan,
+            kota: partner.kota,
+            provinsi: partner.provinsi,
+            zip: partner.zip,
+            latitude: partner.latitude,
+            longitude: partner.longitude,
+          },
+        });
+        return [migrated];
+      }
+    }
+
+    return addresses;
+  }
+
+  async createAddress(
+    companyId: string,
+    data: CreateAddressInput
+  ): Promise<Address> {
+    return prisma.$transaction(async (tx) => {
+      const count = await tx.address.count({
+        where: { partnerId: data.partnerId, companyId },
+      });
+      // First address must always be default; otherwise respect requested flag
+      const isDefault = count === 0 ? true : (data.isDefault ?? false);
+
+      if (isDefault && count > 0) {
+        await tx.address.updateMany({
+          where: { partnerId: data.partnerId, companyId },
+          data: { isDefault: false },
+        });
+      }
+
+      return tx.address.create({
+        data: {
+          companyId,
+          partnerId: data.partnerId,
+          name: data.name,
+          isDefault,
+          address: data.address,
+          street: data.street,
+          kelurahan: data.kelurahan,
+          kecamatan: data.kecamatan,
+          kota: data.kota,
+          provinsi: data.provinsi,
+          zip: data.zip,
+          latitude:
+            data.latitude !== undefined && data.latitude !== null
+              ? new Prisma.Decimal(data.latitude)
+              : undefined,
+          longitude:
+            data.longitude !== undefined && data.longitude !== null
+              ? new Prisma.Decimal(data.longitude)
+              : undefined,
+        },
+      });
+    });
+  }
+
+  async setDefaultAddress(
+    id: string,
+    partnerId: string,
+    companyId: string
+  ): Promise<Address> {
+    return prisma.$transaction(async (tx) => {
+      await tx.address.updateMany({
+        where: { partnerId, companyId },
+        data: { isDefault: false },
+      });
+      return tx.address.update({
+        where: { id },
+        data: { isDefault: true },
+      });
+    });
+  }
+
+  async deleteAddress(
+    id: string,
+    companyId: string
+  ): Promise<Address> {
+    const existing = await prisma.address.findFirst({
+      where: { id, companyId },
+    });
+    if (!existing) {
+      throw new Error('Alamat tidak ditemukan');
+    }
+    const deleted = await prisma.address.delete({
+      where: { id },
+    });
+
+    // If the deleted address was default, promote the newest remaining address to default
+    if (existing.isDefault) {
+      const remaining = await prisma.address.findFirst({
+        where: { partnerId: existing.partnerId, companyId },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (remaining) {
+        await prisma.address.update({
+          where: { id: remaining.id },
+          data: { isDefault: true },
+        });
+      }
+    }
+
+    return deleted;
   }
 }

@@ -233,6 +233,119 @@ describe('RentalOrderLifecycleService', () => {
       );
       expect(nestedItems.create[0]?.pricingTier).toBe('CUSTOM');
     });
+
+    it('should throw if upstairs mattress count exceeds total mattresses in order', async () => {
+      mockRentalRepository.getCurrentPolicy.mockResolvedValue(null);
+      asMock(prisma.rentalItem.findMany).mockResolvedValue([
+        {
+          id: 'item-1',
+          dailyRate: new Decimal(100000),
+          weeklyRate: new Decimal(600000),
+          monthlyRate: new Decimal(2000000),
+          product: { name: 'Kasur Busa 90' },
+          category: { name: 'Kasur' },
+        },
+      ]);
+
+      const input = {
+        companyId: 'company-1',
+        partnerId: 'customer-1',
+        rentalStartDate: new Date('2025-01-01'),
+        rentalEndDate: new Date('2025-01-03'),
+        items: [
+          {
+            rentalItemId: 'item-1',
+            quantity: 2,
+          },
+        ],
+        notes: 'Kasur naik lantai atas: 5 unit',
+      };
+
+      await expect(
+        service.createOrder('company-1', input as never, 'user-1')
+      ).rejects.toThrow(
+        /Jumlah kasur naik lantai atas \(5\) tidak boleh melebihi total kasur yang dipesan \(2\)/
+      );
+    });
+
+    it('should throw if fitted sheet count exceeds total mattresses in order', async () => {
+      mockRentalRepository.getCurrentPolicy.mockResolvedValue(null);
+      asMock(prisma.rentalItem.findMany).mockResolvedValue([
+        {
+          id: 'item-1',
+          dailyRate: new Decimal(100000),
+          weeklyRate: new Decimal(600000),
+          monthlyRate: new Decimal(2000000),
+          product: { name: 'Kasur Busa 90' },
+          category: { name: 'Kasur' },
+        },
+      ]);
+
+      const input = {
+        companyId: 'company-1',
+        partnerId: 'customer-1',
+        rentalStartDate: new Date('2025-01-01'),
+        rentalEndDate: new Date('2025-01-03'),
+        items: [
+          {
+            rentalItemId: 'item-1',
+            quantity: 1,
+          },
+        ],
+        notes: 'Kasur dipasang sprei: 4 unit',
+      };
+
+      await expect(
+        service.createOrder('company-1', input as never, 'user-1')
+      ).rejects.toThrow(
+        /Jumlah kasur dipasang sprei \(4\) tidak boleh melebihi total kasur yang dipesan \(1\)/
+      );
+    });
+
+    it('should throw STOCK_UNAVAILABLE if cross-inventory demand exceeds availability', async () => {
+      mockRentalRepository.getCurrentPolicy.mockResolvedValue(null);
+      asMock(prisma.rentalItem.findMany).mockResolvedValue([
+        {
+          id: 'item-1',
+          dailyRate: new Decimal(100000),
+          weeklyRate: new Decimal(600000),
+          monthlyRate: new Decimal(2000000),
+          product: { name: 'Bantal Standar' },
+          category: { name: 'Perlengkapan Tidur' },
+        },
+      ]);
+
+      const mockItemService = {
+        checkAvailability: vi.fn().mockResolvedValue({
+          'item-1': 10,
+        }),
+      };
+
+      const customService = new RentalOrderLifecycleService(
+        mockRentalRepository as unknown as import('../../../src/modules/rental/rental.repository').RentalRepository,
+        mockDocumentNumberService as unknown as import('../../../src/modules/common/services/document-number.service').DocumentNumberService,
+        mockJournalService as unknown as import('../../../src/modules/accounting/services/journal.service').JournalService,
+        mockRentalWebhookService as unknown as import('../../../src/modules/rental/rental-webhook.service').RentalWebhookService,
+        mockItemService as unknown as import('../../../src/modules/rental/rental-item.service').RentalItemService
+      );
+
+      const input = {
+        companyId: 'company-1',
+        partnerId: 'customer-1',
+        rentalStartDate: new Date('2025-01-01'),
+        rentalEndDate: new Date('2025-01-03'),
+        items: [
+          {
+            rentalItemId: 'item-1',
+            quantity: 15,
+          },
+        ],
+      };
+
+      await expect(
+        customService.createOrder('company-1', input as never, 'user-1')
+      ).rejects.toThrow(/Stok tidak mencukupi untuk "Bantal Standar"/);
+    });
   });
 
   describe('cancelOrder', () => {

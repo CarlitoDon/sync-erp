@@ -5,6 +5,8 @@ import {
   CreatePartnerSchema,
   UpdatePartnerSchema,
   MergePartnersSchema,
+  CreateAddressInputSchema,
+  AddressListQuerySchema,
 } from '@sync-erp/shared';
 import { z } from 'zod';
 
@@ -81,6 +83,51 @@ export const partnerRouter = router({
         input.targetPartnerId,
         input.sourcePartnerIds
       );
+    }),
+
+  /**
+   * List partner addresses
+   */
+  listAddresses: protectedProcedure
+    .input(AddressListQuerySchema)
+    .query(async ({ ctx, input }) => {
+      return partnerService.listAddresses(input.partnerId, ctx.companyId);
+    }),
+
+  /**
+   * Create new address for partner
+   */
+  createAddress: protectedProcedure
+    .input(CreateAddressInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      return partnerService.createAddress(ctx.companyId, input);
+    }),
+
+  /**
+   * Set default address for partner
+   */
+  setDefaultAddress: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        partnerId: z.string().uuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return partnerService.setDefaultAddress(
+        input.id,
+        input.partnerId,
+        ctx.companyId
+      );
+    }),
+
+  /**
+   * Delete address
+   */
+  deleteAddress: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return partnerService.deleteAddress(input.id, ctx.companyId);
     }),
 });
 

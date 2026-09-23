@@ -1,8 +1,11 @@
 /// <reference types="vite/client" />
+/// <reference types="@types/google.maps" />
 
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
   readonly VITE_SYNC_ERP_API_URL?: string;
+  readonly VITE_GOOGLE_MAPS_BROWSER_KEY?: string;
+  readonly VITE_GOOGLE_MAPS_API_KEY?: string;
   readonly VITE_GOOGLE_ADSENSE_CLIENT_ID?: string;
   readonly VITE_GOOGLE_ADSENSE_ENABLED?: string;
   readonly VITE_GOOGLE_ADSENSE_AUTO_ADS_ENABLED?: string;
@@ -18,4 +21,9 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
+}
+
+interface Window {
+  google?: typeof google;
+  [key: `__syncErpGoogleMapsCallback_${string}`]: (() => void) | undefined;
 }

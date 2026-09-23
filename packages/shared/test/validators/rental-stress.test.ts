@@ -392,6 +392,7 @@ describe('Rental Validator Decomposition - Empirical Stress & Compatibility Suit
         ],
         deliveryFee: 50000,
         discountAmount: 10000,
+        depositAmount: 100000,
         notes: 'Deliver to front porch',
       };
 
@@ -401,6 +402,7 @@ describe('Rental Validator Decomposition - Empirical Stress & Compatibility Suit
       expect(parsed.rentalStartDate.toISOString()).toBe('2026-10-01T08:00:00.000Z');
       expect(parsed.rentalEndDate.toISOString()).toBe('2026-10-05T08:00:00.000Z');
       expect(parsed.partnerId).toBe(VALID_UUID);
+      expect(parsed.depositAmount).toBe(100000);
       expect(parsed.items).toHaveLength(1);
     });
 

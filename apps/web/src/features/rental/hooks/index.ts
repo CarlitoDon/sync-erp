@@ -4,6 +4,7 @@ export {
   useRentalPricing,
   useRentalDays,
   getPricingTierLabel,
+  calculateLineTotal,
 } from './useRentalPricing';
 export {
   usePhotoUpload,
@@ -11,4 +12,8 @@ export {
 } from './usePhotoUpload';
 export { useConfirmOrder } from './useConfirmOrder';
 export { useCreateOrder } from './useCreateOrder';
-export type { OrderItem } from './useCreateOrder';
+export type {
+  OrderItem,
+  EditableRentalOrder,
+  EditableRentalOrderItem,
+} from './useCreateOrder';

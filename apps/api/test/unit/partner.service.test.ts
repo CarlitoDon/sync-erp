@@ -11,6 +11,10 @@ class MockPartnerRepository implements PartnerRepository {
   update = vi.fn();
   delete = vi.fn();
   merge = vi.fn();
+  listAddresses = vi.fn();
+  createAddress = vi.fn();
+  setDefaultAddress = vi.fn();
+  deleteAddress = vi.fn();
 }
 
 describe('PartnerService', () => {
@@ -82,4 +86,75 @@ describe('PartnerService', () => {
       expect(mockRepo.merge).toHaveBeenCalledWith('company-1', dummyPartner.id, ['source-2']);
     });
   });
+
+  describe('address management', () => {
+    const dummyAddress = {
+      id: 'addr-1',
+      companyId: 'company-1',
+      partnerId: dummyPartner.id,
+      label: 'Home',
+      street: 'Jl. Malioboro No. 1',
+      kelurahan: 'Sosromenduran',
+      kecamatan: 'Gedongtengen',
+      kota: 'Kota Yogyakarta',
+      provinsi: 'Daerah Istimewa Yogyakarta',
+      zip: '55271',
+      latitude: null,
+      longitude: null,
+      isDefault: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('listAddresses returns addresses from repository', async () => {
+      mockRepo.listAddresses.mockResolvedValue([dummyAddress]);
+      const result = await service.listAddresses(dummyPartner.id, 'company-1');
+      expect(result).toEqual([dummyAddress]);
+      expect(mockRepo.listAddresses).toHaveBeenCalledWith(dummyPartner.id, 'company-1');
+    });
+
+    it('createAddress throws DomainError if partner not found', async () => {
+      mockRepo.findById.mockResolvedValue(null);
+      await expect(
+        service.createAddress('company-1', {
+          partnerId: 'non-existent',
+          street: 'Jl. Kaliurang',
+          isDefault: false,
+        })
+      ).rejects.toThrow(DomainError);
+    });
+
+    it('createAddress calls repository when partner exists', async () => {
+      mockRepo.findById.mockResolvedValue(dummyPartner);
+      mockRepo.createAddress.mockResolvedValue(dummyAddress);
+
+      const result = await service.createAddress('company-1', {
+        partnerId: dummyPartner.id,
+        street: 'Jl. Malioboro No. 1',
+        isDefault: true,
+      });
+
+      expect(result).toEqual(dummyAddress);
+      expect(mockRepo.createAddress).toHaveBeenCalledWith('company-1', {
+        partnerId: dummyPartner.id,
+        street: 'Jl. Malioboro No. 1',
+        isDefault: true,
+      });
+    });
+
+    it('setDefaultAddress delegates to repository', async () => {
+      mockRepo.setDefaultAddress.mockResolvedValue(dummyAddress);
+      const result = await service.setDefaultAddress('addr-1', dummyPartner.id, 'company-1');
+      expect(result).toEqual(dummyAddress);
+      expect(mockRepo.setDefaultAddress).toHaveBeenCalledWith('addr-1', dummyPartner.id, 'company-1');
+    });
+
+    it('deleteAddress delegates to repository', async () => {
+      mockRepo.deleteAddress.mockResolvedValue(dummyAddress);
+      const result = await service.deleteAddress('addr-1', 'company-1');
+      expect(result).toEqual(dummyAddress);
+      expect(mockRepo.deleteAddress).toHaveBeenCalledWith('addr-1', 'company-1');
+    });
+  });
 });
+

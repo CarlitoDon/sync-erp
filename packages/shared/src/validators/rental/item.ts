@@ -4,6 +4,7 @@ import {
   RentalItemUnitSchema,
   ProductSchema,
   ProductCategorySchema,
+  RentalItemCategorySchema,
 } from '../../generated/zod/index.js';
 
 // ==========================================
@@ -12,6 +13,7 @@ import {
 
 // Extended Schema for Service Return Type (Portable)
 export const RentalItemWithRelationsSchema = RentalItemSchema.extend({
+  category: RentalItemCategorySchema.nullable().optional(),
   product: ProductSchema.extend({
     category: ProductCategorySchema.nullable().optional(),
   }).optional(),

@@ -9,12 +9,14 @@ import {
   TruckIcon,
   CalendarDaysIcon,
   ClockIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { RentalOrderPermissions } from '../hooks/useRentalOrderPermissions';
 
 interface RentalActionsCardProps {
   permissions: RentalOrderPermissions;
+  onEdit?: () => void;
   onConfirm: () => void;
   onRelease: () => void;
   onReturn: () => void;
@@ -25,6 +27,7 @@ interface RentalActionsCardProps {
 
 export function RentalActionsCard({
   permissions,
+  onEdit,
   onConfirm,
   onRelease,
   onReturn,
@@ -38,6 +41,17 @@ export function RentalActionsCard({
         <CardTitle>Actions</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {permissions.canEdit && onEdit && (
+          <ActionButton
+            variant="outline"
+            className="w-full flex justify-center items-center gap-2 border-slate-300 text-slate-700 hover:bg-slate-50"
+            onClick={onEdit}
+          >
+            <PencilSquareIcon className="w-4 h-4 text-slate-500" />
+            Edit Order Draft
+          </ActionButton>
+        )}
+
         {permissions.canConfirm && (
           <ActionButton
             variant="primary"

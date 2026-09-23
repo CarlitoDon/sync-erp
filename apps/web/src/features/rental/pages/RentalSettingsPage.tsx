@@ -32,6 +32,8 @@ export default function RentalSettingsPage() {
     lateFeeDailyRate: 0,
     cleaningFee: 0,
     pickupGracePeriodHours: 2,
+    upstairsFeePerUnit: 3500,
+    fittedSheetFeePerUnit: 2000,
   });
 
   useEffect(() => {
@@ -41,6 +43,12 @@ export default function RentalSettingsPage() {
         lateFeeDailyRate: Number(policy.lateFeeDailyRate) ?? 0,
         cleaningFee: Number(policy.cleaningFee) ?? 0,
         pickupGracePeriodHours: policy.pickupGracePeriodHours ?? 2,
+        upstairsFeePerUnit: policy.upstairsFeePerUnit !== undefined && policy.upstairsFeePerUnit !== null
+          ? Number(policy.upstairsFeePerUnit)
+          : 3500,
+        fittedSheetFeePerUnit: policy.fittedSheetFeePerUnit !== undefined && policy.fittedSheetFeePerUnit !== null
+          ? Number(policy.fittedSheetFeePerUnit)
+          : 2000,
       });
     }
   }, [policy]);
@@ -60,6 +68,8 @@ export default function RentalSettingsPage() {
           lateFeeDailyRate: Number(form.lateFeeDailyRate),
           cleaningFee: Number(form.cleaningFee),
           pickupGracePeriodHours: Number(form.pickupGracePeriodHours),
+          upstairsFeePerUnit: Number(form.upstairsFeePerUnit),
+          fittedSheetFeePerUnit: Number(form.fittedSheetFeePerUnit),
         }),
       'Pengaturan berhasil disimpan'
     );
@@ -175,6 +185,58 @@ export default function RentalSettingsPage() {
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Biaya pembersihan per transaksi
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Logistics & Special Services Pricing */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 pb-2 border-b">
+              <Cog6ToothIcon className="w-5 h-5 text-gray-500" />
+              <h3 className="font-medium text-gray-900">
+                Tarif Layanan Khusus & Logistik
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Biaya Naik Lantai Atas per Kasur (Rp)
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={String(form.upstairsFeePerUnit)}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      upstairsFeePerUnit: Number(e.target.value),
+                    })
+                  }
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Ongkos jasa menaikkan kasur ke lantai atas per unit (default Rp 3.500)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Biaya Pasang Sprei & Bantal per Kasur (Rp)
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={String(form.fittedSheetFeePerUnit)}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      fittedSheetFeePerUnit: Number(e.target.value),
+                    })
+                  }
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Ongkos jasa pemasangan sprei dan sarung bantal per unit (default Rp 2.000)
                 </p>
               </div>
             </div>

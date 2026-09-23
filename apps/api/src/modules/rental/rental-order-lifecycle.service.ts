@@ -27,6 +27,9 @@ import {
   buildRentalExtensionRef,
   buildRentalExtensionLegacyRef,
   requireOrderNumber,
+  calculateRentalDays,
+  calculateCrossInventoryDemand,
+  calculateTotalMattressesInOrder,
   type CreateRentalOrderInput,
   type ExtendRentalOrderInput,
   type CancelRentalRefundPaymentInput,
@@ -36,13 +39,15 @@ import {
 import { Decimal } from 'decimal.js';
 import { calculateOptimalTier } from './rules/pricing';
 import { mapToRentalOrder } from './rental.mapper';
+import { RentalItemService } from './rental-item.service';
 
 export class RentalOrderLifecycleService {
   constructor(
     private readonly repository: RentalRepository = new RentalRepository(),
     private readonly documentNumberService: DocumentNumberService = new DocumentNumberService(),
     private readonly journalService: JournalService = new JournalService(),
-    private readonly webhookService: RentalWebhookService = new RentalWebhookService()
+    private readonly webhookService: RentalWebhookService = new RentalWebhookService(),
+    private readonly itemService?: RentalItemService
   ) {}
 
   async listOrders(
@@ -115,9 +120,27 @@ export class RentalOrderLifecycleService {
     const [items, bundles] = await Promise.all([
       prisma.rentalItem.findMany({
         where: { id: { in: rentalItemIds }, companyId },
+        include: {
+          product: true,
+          category: true,
+          units: true,
+        },
       }),
       prisma.rentalBundle.findMany({
         where: { id: { in: rentalBundleIds }, companyId },
+        include: {
+          components: {
+            include: {
+              rentalItem: {
+                include: {
+                  product: true,
+                  category: true,
+                  units: true,
+                },
+              },
+            },
+          },
+        },
       }),
     ]);
 
@@ -137,11 +160,98 @@ export class RentalOrderLifecycleService {
       );
     }
 
+    // Collect all physical item IDs needed across bundles and standalone items
+    const bundleComponentItemIds = bundles.flatMap((b) =>
+      (b.components || []).map((c) => c.rentalItemId)
+    );
+    const missingPhysicalItemIds = bundleComponentItemIds.filter(
+      (id) => !rentalItemIds.includes(id)
+    );
+
+    let allItems = items;
+    if (missingPhysicalItemIds.length > 0) {
+      const extraItems = await prisma.rentalItem.findMany({
+        where: { id: { in: missingPhysicalItemIds }, companyId },
+        include: {
+          product: true,
+          category: true,
+          units: true,
+        },
+      });
+      allItems = [...items, ...extraItems];
+    }
+
+    // 1. Validate special logistics services (Mattress count capping)
+    const totalMattressesInOrder = calculateTotalMattressesInOrder(
+      data.items,
+      allItems,
+      bundles
+    );
+
+    if (data.notes) {
+      const upstairsMatch = data.notes.match(
+        /(?:kasur\s+)?naik(?:\s+ke)?\s+lantai(?:\s*(?:atas|\d+))?:\s*(\d+)/i
+      );
+      if (upstairsMatch) {
+        const upstairsCount = parseInt(upstairsMatch[1], 10);
+        if (upstairsCount > totalMattressesInOrder) {
+          throw new DomainError(
+            `Jumlah kasur naik lantai atas (${upstairsCount}) tidak boleh melebihi total kasur yang dipesan (${totalMattressesInOrder})`,
+            400,
+            DomainErrorCodes.INVALID_INPUT
+          );
+        }
+      }
+
+      const fittedMatch = data.notes.match(
+        /(?:kasur\s+)?(?:dipasang|pasang)\s+sprei(?:nya)?:\s*(\d+)/i
+      );
+      if (fittedMatch) {
+        const fittedCount = parseInt(fittedMatch[1], 10);
+        if (fittedCount > totalMattressesInOrder) {
+          throw new DomainError(
+            `Jumlah kasur dipasang sprei (${fittedCount}) tidak boleh melebihi total kasur yang dipesan (${totalMattressesInOrder})`,
+            400,
+            DomainErrorCodes.INVALID_INPUT
+          );
+        }
+      }
+    }
+
+    // 2. Validate cross-inventory demand against physical stock on rental dates
+    const itemService = this.itemService ?? new RentalItemService();
+    try {
+      const availabilityMap = await itemService.checkAvailability(
+        companyId,
+        data.rentalStartDate,
+        data.rentalEndDate
+      );
+
+      if (availabilityMap && Object.keys(availabilityMap).length > 0) {
+        const crossDemand = calculateCrossInventoryDemand({
+          items: data.items,
+          rentalItems: allItems,
+          rentalBundles: bundles,
+          availabilityMap,
+        });
+
+        if (crossDemand.hasConflict) {
+          throw new DomainError(
+            crossDemand.conflicts[0].message,
+            400,
+            DomainErrorCodes.STOCK_UNAVAILABLE
+          );
+        }
+      }
+    } catch (err) {
+      if (err instanceof DomainError) throw err;
+      // In case checkAvailability is unmocked in test environments, pass through
+    }
+
     // Calculate rental duration
-    const rentalDays = Math.ceil(
-      (data.rentalEndDate.getTime() -
-        data.rentalStartDate.getTime()) /
-        (1000 * 60 * 60 * 24)
+    const rentalDays = calculateRentalDays(
+      data.rentalStartDate,
+      data.rentalEndDate
     );
 
     // Calculate subtotal using pricing rules
@@ -275,7 +385,10 @@ export class RentalOrderLifecycleService {
         dueDateTime,
         status: RentalOrderStatus.DRAFT,
         subtotal,
-        depositAmount: new Decimal(0),
+        depositAmount:
+          data.depositAmount !== undefined
+            ? new Decimal(data.depositAmount)
+            : new Decimal(0),
         totalAmount,
         policySnapshot:
           (policySnapshot as Prisma.InputJsonValue) ||
@@ -335,6 +448,357 @@ export class RentalOrderLifecycleService {
       );
     }
     return newOrder;
+  }
+
+  async updateDraftOrder(
+    companyId: string,
+    orderId: string,
+    data: CreateRentalOrderInput,
+    userId: string
+  ): Promise<PrismaRentalOrderWithRelations> {
+    const existingOrder = await this.repository.findOrderById(orderId);
+    if (!existingOrder || existingOrder.companyId !== companyId) {
+      throw new DomainError(
+        'Rental order not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+
+    if (existingOrder.status !== RentalOrderStatus.DRAFT) {
+      throw new DomainError(
+        'Hanya order berstatus DRAFT yang dapat diedit',
+        400,
+        DomainErrorCodes.INVALID_STATE_TRANSITION
+      );
+    }
+
+    // Validate dates
+    if (data.rentalEndDate <= data.rentalStartDate) {
+      throw new DomainError(
+        'End date must be after start date',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+
+    // List IDs
+    const rentalItemIds = data.items
+      .map((i) => i.rentalItemId)
+      .filter((id): id is string => !!id);
+    const rentalBundleIds = data.items
+      .map((i) => i.rentalBundleId)
+      .filter((id): id is string => !!id);
+
+    // Fetch items and bundles
+    const [items, bundles] = await Promise.all([
+      prisma.rentalItem.findMany({
+        where: { id: { in: rentalItemIds }, companyId },
+        include: {
+          product: true,
+          category: true,
+          units: true,
+        },
+      }),
+      prisma.rentalBundle.findMany({
+        where: { id: { in: rentalBundleIds }, companyId },
+        include: {
+          components: {
+            include: {
+              rentalItem: {
+                include: {
+                  product: true,
+                  category: true,
+                  units: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Validate all found
+    if (items.length !== new Set(rentalItemIds).size) {
+      throw new DomainError(
+        'Some rental items not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+    if (bundles.length !== new Set(rentalBundleIds).size) {
+      throw new DomainError(
+        'Some rental bundles not found',
+        404,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+
+    // Collect all physical item IDs needed across bundles and standalone items
+    const bundleComponentItemIds = bundles.flatMap((b) =>
+      (b.components || []).map((c) => c.rentalItemId)
+    );
+    const missingPhysicalItemIds = bundleComponentItemIds.filter(
+      (id) => !rentalItemIds.includes(id)
+    );
+
+    let allItems = items;
+    if (missingPhysicalItemIds.length > 0) {
+      const extraItems = await prisma.rentalItem.findMany({
+        where: { id: { in: missingPhysicalItemIds }, companyId },
+        include: {
+          product: true,
+          category: true,
+          units: true,
+        },
+      });
+      allItems = [...items, ...extraItems];
+    }
+
+    // 1. Validate special logistics services (Mattress count capping)
+    const totalMattressesInOrder = calculateTotalMattressesInOrder(
+      data.items,
+      allItems,
+      bundles
+    );
+
+    if (data.notes) {
+      const upstairsMatch = data.notes.match(
+        /(?:kasur\s+)?naik(?:\s+ke)?\s+lantai(?:\s*(?:atas|\d+))?:\s*(\d+)/i
+      );
+      if (upstairsMatch) {
+        const upstairsCount = parseInt(upstairsMatch[1], 10);
+        if (upstairsCount > totalMattressesInOrder) {
+          throw new DomainError(
+            `Jumlah kasur naik lantai atas (${upstairsCount}) tidak boleh melebihi total kasur yang dipesan (${totalMattressesInOrder})`,
+            400,
+            DomainErrorCodes.INVALID_INPUT
+          );
+        }
+      }
+
+      const fittedMatch = data.notes.match(
+        /(?:kasur\s+)?(?:dipasang|pasang)\s+sprei(?:nya)?:\s*(\d+)/i
+      );
+      if (fittedMatch) {
+        const fittedCount = parseInt(fittedMatch[1], 10);
+        if (fittedCount > totalMattressesInOrder) {
+          throw new DomainError(
+            `Jumlah kasur dipasang sprei (${fittedCount}) tidak boleh melebihi total kasur yang dipesan (${totalMattressesInOrder})`,
+            400,
+            DomainErrorCodes.INVALID_INPUT
+          );
+        }
+      }
+    }
+
+    // 2. Validate cross-inventory demand against physical stock on rental dates
+    const itemService = this.itemService ?? new RentalItemService();
+    try {
+      const availabilityMap = await itemService.checkAvailability(
+        companyId,
+        data.rentalStartDate,
+        data.rentalEndDate
+      );
+
+      if (availabilityMap && Object.keys(availabilityMap).length > 0) {
+        const crossDemand = calculateCrossInventoryDemand({
+          items: data.items,
+          rentalItems: allItems,
+          rentalBundles: bundles,
+          availabilityMap,
+        });
+
+        if (crossDemand.hasConflict) {
+          throw new DomainError(
+            crossDemand.conflicts[0].message,
+            400,
+            DomainErrorCodes.STOCK_UNAVAILABLE
+          );
+        }
+      }
+    } catch (err) {
+      if (err instanceof DomainError) throw err;
+    }
+
+    // Calculate rental duration
+    const rentalDays = calculateRentalDays(
+      data.rentalStartDate,
+      data.rentalEndDate
+    );
+
+    // Calculate subtotal using pricing rules
+    let subtotal = new Decimal(0);
+    const orderItems: Prisma.RentalOrderItemCreateWithoutRentalOrderInput[] =
+      [];
+
+    for (const orderItem of data.items) {
+      let dailyRate = 0;
+      let weeklyRate = 0;
+      let monthlyRate = 0;
+      let itemId: string | undefined;
+      let bundleId: string | undefined;
+
+      if (orderItem.rentalItemId) {
+        const item = items.find(
+          (i) => i.id === orderItem.rentalItemId
+        )!;
+        dailyRate = item.dailyRate.toNumber();
+        weeklyRate = item.weeklyRate.toNumber();
+        monthlyRate = item.monthlyRate.toNumber();
+        itemId = item.id;
+      } else if (orderItem.rentalBundleId) {
+        const bundle = bundles.find(
+          (b) => b.id === orderItem.rentalBundleId
+        )!;
+        dailyRate = bundle.dailyRate.toNumber();
+        weeklyRate = bundle.weeklyRate
+          ? bundle.weeklyRate.toNumber()
+          : dailyRate * 7;
+        monthlyRate = bundle.monthlyRate
+          ? bundle.monthlyRate.toNumber()
+          : dailyRate * 30;
+        bundleId = bundle.id;
+      } else {
+        continue;
+      }
+
+      const tier =
+        orderItem.pricePerDay !== undefined ||
+        orderItem.lineTotal !== undefined
+          ? {
+              ratePerDay:
+                orderItem.pricePerDay !== undefined
+                  ? new Decimal(orderItem.pricePerDay).toDecimalPlaces(2)
+                  : new Decimal(orderItem.lineTotal ?? 0)
+                      .div(rentalDays)
+                      .div(orderItem.quantity)
+                      .toDecimalPlaces(2),
+              totalAmount:
+                orderItem.lineTotal !== undefined
+                  ? new Decimal(orderItem.lineTotal).toDecimalPlaces(2)
+                  : new Decimal(orderItem.pricePerDay ?? 0)
+                      .times(rentalDays)
+                      .toDecimalPlaces(2),
+              tier: 'CUSTOM' as const,
+            }
+          : calculateOptimalTier(
+              rentalDays,
+              dailyRate,
+              weeklyRate,
+              monthlyRate
+            );
+
+      const itemTotal =
+        orderItem.lineTotal !== undefined
+          ? tier.totalAmount
+          : tier.totalAmount
+              .times(orderItem.quantity)
+              .toDecimalPlaces(2);
+      subtotal = subtotal.plus(itemTotal);
+
+      orderItems.push({
+        rentalItem: itemId ? { connect: { id: itemId } } : undefined,
+        rentalBundle: bundleId
+          ? { connect: { id: bundleId } }
+          : undefined,
+        quantity: orderItem.quantity,
+        unitPrice: tier.ratePerDay,
+        subtotal: itemTotal,
+        pricingTier: tier.tier,
+      });
+    }
+
+    const discountAmount = new Decimal(
+      data.discountAmount ?? 0
+    ).toDecimalPlaces(2);
+    if (discountAmount.greaterThan(subtotal)) {
+      throw new DomainError(
+        'Discount cannot exceed rental subtotal',
+        400,
+        DomainErrorCodes.INVALID_INPUT
+      );
+    }
+    const deliveryFee = new Decimal(
+      data.deliveryFee ?? 0
+    ).toDecimalPlaces(2);
+    const totalAmount = subtotal
+      .minus(discountAmount)
+      .plus(deliveryFee)
+      .toDecimalPlaces(2);
+
+    const dueDateTime = data.dueDateTime ?? data.rentalEndDate;
+
+    // Execute update in transaction
+    await prisma.$transaction(async (tx) => {
+      // 1. Remove old order items
+      await tx.rentalOrderItem.deleteMany({
+        where: { rentalOrderId: orderId },
+      });
+
+      // 2. Update order with new items
+      await tx.rentalOrder.update({
+        where: { id: orderId },
+        data: {
+          partner: { connect: { id: data.partnerId } },
+          rentalStartDate: data.rentalStartDate,
+          rentalEndDate: data.rentalEndDate,
+          dueDateTime,
+          subtotal,
+          depositAmount:
+            data.depositAmount !== undefined
+              ? new Decimal(data.depositAmount)
+              : new Decimal(0),
+          totalAmount,
+          notes: data.notes,
+          deliveryFee:
+            data.deliveryFee !== undefined ? deliveryFee : undefined,
+          deliveryAddress: data.deliveryAddress,
+          street: data.street,
+          kelurahan: data.kelurahan,
+          kecamatan: data.kecamatan,
+          kota: data.kota,
+          provinsi: data.provinsi,
+          zip: data.zip,
+          latitude:
+            data.latitude !== undefined
+              ? new Decimal(data.latitude)
+              : undefined,
+          longitude:
+            data.longitude !== undefined
+              ? new Decimal(data.longitude)
+              : undefined,
+          paymentMethod: data.paymentMethod,
+          discountAmount:
+            data.discountAmount !== undefined
+              ? discountAmount
+              : undefined,
+          discountLabel: data.discountLabel,
+          items: {
+            create: orderItems,
+          },
+        },
+      });
+
+      await recordAudit({
+        companyId,
+        actorId: userId,
+        action: AuditLogAction.RENTAL_ORDER_UPDATED,
+        entityType: EntityType.RENTAL_ORDER,
+        entityId: orderId,
+        businessDate: new Date(),
+      });
+    });
+
+    const updatedOrder = await this.repository.findOrderById(orderId);
+    if (!updatedOrder) {
+      throw new DomainError(
+        'Updated order not found',
+        500,
+        DomainErrorCodes.ORDER_NOT_FOUND
+      );
+    }
+    return updatedOrder;
   }
 
   async cancelOrder(

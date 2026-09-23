@@ -1,8 +1,9 @@
-import { Partner, PartnerType } from '@sync-erp/database';
+import { Partner, Address, PartnerType } from '@sync-erp/database';
 import { PartnerRepository } from './partner.repository';
 import {
   CreatePartnerInput,
   UpdatePartnerInput,
+  CreateAddressInput,
   DomainError,
   DomainErrorCodes,
 } from '@sync-erp/shared';
@@ -98,5 +99,42 @@ export class PartnerService {
       );
     }
     return this.repository.merge(companyId, targetPartnerId, sourcePartnerIds);
+  }
+
+  async listAddresses(
+    partnerId: string,
+    companyId: string
+  ): Promise<Address[]> {
+    return this.repository.listAddresses(partnerId, companyId);
+  }
+
+  async createAddress(
+    companyId: string,
+    data: CreateAddressInput
+  ): Promise<Address> {
+    const existing = await this.getById(data.partnerId, companyId);
+    if (!existing) {
+      throw new DomainError(
+        'Partner not found',
+        404,
+        DomainErrorCodes.PARTNER_NOT_FOUND
+      );
+    }
+    return this.repository.createAddress(companyId, data);
+  }
+
+  async setDefaultAddress(
+    id: string,
+    partnerId: string,
+    companyId: string
+  ): Promise<Address> {
+    return this.repository.setDefaultAddress(id, partnerId, companyId);
+  }
+
+  async deleteAddress(
+    id: string,
+    companyId: string
+  ): Promise<Address> {
+    return this.repository.deleteAddress(id, companyId);
   }
 }

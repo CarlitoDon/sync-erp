@@ -1,5 +1,5 @@
 import { Decimal } from 'decimal.js';
-import { DomainError, DomainErrorCodes } from '@sync-erp/shared';
+import { DomainError, DomainErrorCodes, calculateRentalDays } from '@sync-erp/shared';
 
 /**
  * Pure pricing calculation logic (no side effects, 100% testable)
@@ -100,8 +100,9 @@ export function calculateRentalSubtotal(
   rentalStartDate: Date,
   rentalEndDate: Date
 ): Decimal {
-  const rentalDays = Math.ceil(
-    (rentalEndDate.getTime() - rentalStartDate.getTime()) / (1000 * 60 * 60 * 24)
+  const rentalDays = calculateRentalDays(
+    rentalStartDate,
+    rentalEndDate
   );
 
   if (rentalDays <= 0) {

@@ -9,16 +9,26 @@ import {
 describe('CHALLENGER 1 STRESS SUITE: useCashBankAccounts & isCashBankAccount', () => {
   describe('Tricky & Boundary Account Codes', () => {
     it('strictly excludes all standard COA header codes', () => {
+      expect(CASH_BANK_HEADER_CODES).toContain('1000');
+      expect(CASH_BANK_HEADER_CODES).toContain('1050');
       expect(CASH_BANK_HEADER_CODES).toContain('1100');
       expect(CASH_BANK_HEADER_CODES).toContain('1200');
       expect(CASH_BANK_HEADER_CODES).toContain('1210');
 
+      expect(isCashBankAccount({ code: '1000', isGroup: false })).toBe(false);
+      expect(isCashBankAccount({ code: '1050', isGroup: false })).toBe(false);
       expect(isCashBankAccount({ code: '1100', isGroup: false })).toBe(false);
       expect(isCashBankAccount({ code: '1200', isGroup: false })).toBe(false);
       expect(isCashBankAccount({ code: '1210', isGroup: false })).toBe(false);
     });
 
     it('strictly includes valid boundary cash and bank codes', () => {
+      // Indonesian standard cash and bank range boundaries (e.g. Santi Living)
+      expect(isCashBankAccount({ code: '1001', isGroup: false })).toBe(true);
+      expect(isCashBankAccount({ code: '1051', isGroup: false })).toBe(true);
+      expect(isCashBankAccount({ code: '1056', isGroup: false })).toBe(true);
+      expect(isCashBankAccount({ code: '1099', isGroup: false })).toBe(true);
+
       // Cash range boundaries
       expect(isCashBankAccount({ code: '1101', isGroup: false })).toBe(true);
       expect(isCashBankAccount({ code: '1150', isGroup: false })).toBe(true);
@@ -32,9 +42,8 @@ describe('CHALLENGER 1 STRESS SUITE: useCashBankAccounts & isCashBankAccount', (
     });
 
     it('strictly excludes out-of-range boundary codes', () => {
-      expect(isCashBankAccount({ code: '1099', isGroup: false })).toBe(false);
+      expect(isCashBankAccount({ code: '0999', isGroup: false })).toBe(false);
       expect(isCashBankAccount({ code: '1300', isGroup: false })).toBe(false);
-      expect(isCashBankAccount({ code: '1000', isGroup: false })).toBe(false);
       expect(isCashBankAccount({ code: '1400', isGroup: false })).toBe(false);
       expect(isCashBankAccount({ code: '2100', isGroup: false })).toBe(false);
       expect(isCashBankAccount({ code: '9999', isGroup: false })).toBe(false);

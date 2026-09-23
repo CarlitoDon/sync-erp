@@ -3,11 +3,19 @@ import { trpc } from '@/lib/trpc';
 
 /**
  * Standard Chart of Accounts (COA) Header and Clearing Accounts to exclude:
- * - 1100: Cash (Group Header)
- * - 1200: Bank (Group Header)
+ * - 1000: Cash Header (Indonesian Standard)
+ * - 1050: Bank Header (Indonesian Standard)
+ * - 1100: Cash (Group Header in default seeder / AR in Indonesian COA)
+ * - 1200: Bank (Group Header in default seeder / Inventory in Indonesian COA)
  * - 1210: Goods in Transit (Inventory clearing asset, not a liquid bank account)
  */
-export const CASH_BANK_HEADER_CODES: readonly string[] = ['1100', '1200', '1210'] as const;
+export const CASH_BANK_HEADER_CODES: readonly string[] = [
+  '1000',
+  '1050',
+  '1100',
+  '1200',
+  '1210',
+] as const;
 const CASH_BANK_HEADER_SET = new Set<string>(CASH_BANK_HEADER_CODES);
 
 /**
@@ -60,8 +68,9 @@ export interface UseCashBankAccountsReturn {
 /**
  * Pure predicate to filter Cash & Bank accounts:
  * 1. Exclude group accounts (isGroup === true)
- * 2. Exclude headers/clearing accounts (1100, 1200, 1210)
- * 3. Include codes in range 1100..1199 (Cash) and 1200..1299 (Bank)
+ * 2. Exclude headers/clearing accounts (1000, 1050, 1100, 1200, 1210)
+ * 3. Include codes in range 1000..1099 (Cash & Bank in Indonesian COA e.g. Santi Living),
+ *    1100..1199 (Cash in Standard COA), and 1200..1299 (Bank in Standard COA)
  */
 export function isCashBankAccount(account: {
   code: string;
@@ -70,6 +79,7 @@ export function isCashBankAccount(account: {
   if (account.isGroup) return false;
   if (CASH_BANK_HEADER_SET.has(account.code)) return false;
   return (
+    (account.code >= '1000' && account.code <= '1099') ||
     (account.code >= '1100' && account.code <= '1199') ||
     (account.code >= '1200' && account.code <= '1299')
   );

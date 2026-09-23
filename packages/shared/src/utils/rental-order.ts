@@ -39,3 +39,57 @@ export function assertHasOrderNumber<
 ): asserts order is T & { orderNumber: string } {
   requireOrderNumber(order, context);
 }
+
+/**
+ * Calculate rental duration in calendar days between two dates.
+ * Santi Living / Sync ERP rental duration is strictly based on calendar day difference.
+ * Minimum duration is 1 day.
+ *
+ * @param startDate Rental start date/timestamp
+ * @param endDate Rental end date/timestamp
+ * @returns Number of rental days (integer >= 1)
+ */
+export function calculateRentalDays(
+  startDate: Date | string | null | undefined,
+  endDate: Date | string | null | undefined
+): number {
+  if (!startDate || !endDate) return 0;
+
+  // Handle YYYY-MM-DD string inputs directly without timezone distortion
+  if (
+    typeof startDate === 'string' &&
+    typeof endDate === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(startDate) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(endDate)
+  ) {
+    const [sy, sm, sd] = startDate.split('-').map(Number);
+    const [ey, em, ed] = endDate.split('-').map(Number);
+    const startUtc = Date.UTC(sy, sm - 1, sd);
+    const endUtc = Date.UTC(ey, em - 1, ed);
+    const diff = Math.round((endUtc - startUtc) / 86400000);
+    return Math.max(1, diff);
+  }
+
+  const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
+  const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return 0;
+  }
+
+  // Use UTC year, month, date to normalize time-of-day offsets
+  const startUtc = Date.UTC(
+    start.getUTCFullYear(),
+    start.getUTCMonth(),
+    start.getUTCDate()
+  );
+  const endUtc = Date.UTC(
+    end.getUTCFullYear(),
+    end.getUTCMonth(),
+    end.getUTCDate()
+  );
+
+  const diff = Math.round((endUtc - startUtc) / 86400000);
+  return Math.max(1, diff);
+}
+
