@@ -52,10 +52,10 @@ describe('CreateOrderModal - Category, Stock Range & Invoice Preview', () => {
     expect(res3Days.unitPrice).toBe(150000);
     expect(res3Days.lineTotal).toBe(300000);
 
-    // 7 days: weekly tier (300,000 per unit * 2 = 600,000 instead of 50,000 * 7 = 350,000 * 2 = 700,000)
+    // 7 days: flat daily pricing (50,000 * 7 = 350,000 per unit * 2 = 700,000)
     const res7Days = calculateLineTotal(item, rentalItems, rentalBundles, 7);
-    expect(res7Days.unitPrice).toBe(300000);
-    expect(res7Days.lineTotal).toBe(600000);
+    expect(res7Days.unitPrice).toBe(350000);
+    expect(res7Days.lineTotal).toBe(700000);
   });
 
   it('renders invoice preview card with draft badge, customer, period, and itemized table', () => {

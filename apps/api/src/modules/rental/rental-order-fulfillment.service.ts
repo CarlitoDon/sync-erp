@@ -204,10 +204,24 @@ export class RentalOrderFulfillmentService {
             ? new Decimal(order.depositAmount.toString())
             : new Decimal(0);
 
-      const paymentMethodStr =
+      let resolvedAccountId = input.paymentAccountId;
+      let paymentMethodStr =
         input.paymentMethod ||
         order.paymentMethod ||
         PaymentMethodType.BANK;
+
+      if (input.paymentMethodId) {
+        const companyPm = await tx.companyPaymentMethod.findFirst({
+          where: { id: input.paymentMethodId, companyId },
+          include: { account: true },
+        });
+        if (companyPm) {
+          paymentMethodStr = companyPm.code || companyPm.type;
+          if (!resolvedAccountId && companyPm.accountId) {
+            resolvedAccountId = companyPm.accountId;
+          }
+        }
+      }
 
       const allocations = unitIds.map((unitId) => {
         const perUnitAmount = depositAmount.dividedBy(
@@ -229,6 +243,7 @@ export class RentalOrderFulfillmentService {
           status: DepositStatus.COLLECTED,
           collectedAt: new Date(),
           paymentMethod: paymentMethodStr,
+          paymentReference: input.paymentReference,
           allocations: {
             create: allocations,
           },
@@ -276,6 +291,8 @@ export class RentalOrderFulfillmentService {
           paymentConfirmedAt: isFullyPaid ? new Date() : undefined,
           depositAmount,
           confirmedAt: new Date(),
+          paymentMethod: paymentMethodStr || order.paymentMethod,
+          paymentReference: input.paymentReference ?? order.paymentReference,
         },
       });
 
@@ -317,7 +334,7 @@ export class RentalOrderFulfillmentService {
             orderId: order.id,
             orderNumber: requireOrderNumber(order, 'Rental DP Journal Posting'),
             downPaymentAmount: depositAmount.toNumber(),
-            paymentAccountId: input.paymentAccountId,
+            paymentAccountId: resolvedAccountId,
             paymentMethod: paymentMethodStr,
             customerName: order.partner?.name,
             tx,
@@ -562,6 +579,8 @@ export class RentalOrderFulfillmentService {
           paymentConfirmedAt: isFullyPaid ? new Date() : undefined,
           depositAmount,
           confirmedAt: new Date(),
+          paymentMethod: paymentMethod.code || order.paymentMethod,
+          paymentReference: input.paymentReference ?? order.paymentReference,
           notes: order.notes
             ? `${order.notes}\n[Manual Confirm: ${input.notes}]`
             : `[Manual Confirm: ${input.notes}]`,

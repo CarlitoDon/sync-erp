@@ -22,6 +22,10 @@ export const ConfirmRentalOrderSchema = z.object({
    */
   depositAmount: z.number().nonnegative().optional(),
   /**
+   * Optional CompanyPaymentMethod ID mapped to GL account for single dropdown selection.
+   */
+  paymentMethodId: z.string().uuid().optional(),
+  /**
    * Payment method used for Down Payment (CASH, BANK, QRIS).
    */
   paymentMethod: z.union([RentalPaymentMethodSchema, z.string()]).optional(),
