@@ -13,6 +13,9 @@ import {
   ChevronUpIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
+  TagIcon,
+  SparklesIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline';
 import QuickCreateCustomerModal from './QuickCreateCustomerModal';
 import MapSelectorModal from './MapSelectorModal';
@@ -57,6 +60,12 @@ export default function CreateOrderModal({
     upstairsTotalFee,
     fittedSheetTotalFee,
     specialServicesTotalFee,
+    computedDiscounts,
+    totalDiscountAmount,
+    addDiscount,
+    removeDiscount,
+    updateDiscount,
+    applyPresetDiscount,
     orderForm,
     updateFormField,
     isQuickCreateOpen,
@@ -90,7 +99,8 @@ export default function CreateOrderModal({
   const extractUrlMutation = trpc.maps.extractFromUrl.useMutation();
 
   const deliveryFee = Number(orderForm.deliveryFee || 0);
-  const discountAmount = Number(orderForm.discountAmount || 0);
+  const safeDiscounts = computedDiscounts || [];
+  const discountAmount = totalDiscountAmount ?? Number(orderForm.discountAmount || 0);
   const totalAmount = Math.max(
     0,
     subtotal - discountAmount + deliveryFee + (specialServicesTotalFee || 0)
@@ -960,7 +970,7 @@ export default function CreateOrderModal({
                     </div>
                   )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1">
+                <div className="pt-1 max-w-xs">
                   <Input
                     label="Ongkos Kirim (Ongkir)"
                     type="number"
@@ -972,21 +982,197 @@ export default function CreateOrderModal({
                     selectOnFocus
                     placeholder="0"
                   />
-                  <Input
-                    label="Diskon"
-                    type="number"
-                    min={0}
-                    value={orderForm.discountAmount}
-                    onChange={(e) =>
-                      updateFormField('discountAmount', e.target.value)
-                    }
-                    selectOnFocus
-                    placeholder="0"
-                  />
                 </div>
               </div>
 
-              {/* Card 5: Deposit & Catatan Tambahan */}
+              {/* Card 5: Diskon & Potongan Harga */}
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 sm:p-6 space-y-4 shadow-2xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200/60 gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <TagIcon className="w-4 h-4 text-primary-600" />
+                      <h4 className="text-sm font-semibold text-slate-800 tracking-tight">
+                        Diskon & Potongan Harga
+                      </h4>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Tambahkan satu atau beberapa diskon (misal: Gratis Ongkir, Diskon Sewa 10%, Potongan Khusus)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => applyPresetDiscount('FREE_DELIVERY')}
+                      disabled={deliveryFee <= 0}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-2xs cursor-pointer"
+                      title={deliveryFee <= 0 ? 'Isi ongkos kirim terlebih dahulu' : 'Terapkan diskon 100% ongkir'}
+                    >
+                      <SparklesIcon className="w-3.5 h-3.5 text-primary-500" />
+                      + Gratis Ongkir
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPresetDiscount('PERCENT_10')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      + Diskon 10% Sewa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPresetDiscount('PERCENT_5')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      + Diskon 5% Sewa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        addDiscount({
+                          label: 'Diskon Kustom',
+                          type: 'FIXED',
+                          value: 0,
+                          target: 'ORDER',
+                        })
+                      }
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-dashed border-slate-300 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-400 transition-colors cursor-pointer"
+                    >
+                      <PlusIcon className="w-3.5 h-3.5" />
+                      + Diskon Kustom
+                    </button>
+                  </div>
+                </div>
+
+                {/* List of active discounts */}
+                {safeDiscounts.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {safeDiscounts.map((discount, idx) => (
+                      <div
+                        key={discount.id || idx}
+                        className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-white shadow-2xs"
+                      >
+                        {/* Label & Target */}
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <input
+                              type="text"
+                              value={discount.label}
+                              onChange={(e) =>
+                                updateDiscount(discount.id, { label: e.target.value })
+                              }
+                              placeholder="Label / Alasan diskon..."
+                              className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                            />
+                          </div>
+                          <div>
+                            <select
+                              value={discount.target}
+                              onChange={(e) =>
+                                updateDiscount(discount.id, {
+                                  target: e.target.value as 'ORDER' | 'RENTAL' | 'DELIVERY',
+                                })
+                              }
+                              className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-700 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                            >
+                              <option value="RENTAL">Target: Subtotal Sewa</option>
+                              <option value="DELIVERY">Target: Ongkos Kirim</option>
+                              <option value="ORDER">Target: Total Order</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Type toggle & Value input */}
+                        <div className="flex items-center gap-2">
+                          <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateDiscount(discount.id, {
+                                  type: 'PERCENTAGE',
+                                  value: discount.type === 'PERCENTAGE' ? discount.value : 10,
+                                })
+                              }
+                              className={`px-2 py-1 text-xs font-semibold rounded-md transition-colors ${
+                                discount.type === 'PERCENTAGE'
+                                  ? 'bg-white text-primary-700 shadow-2xs'
+                                  : 'text-slate-500 hover:text-slate-800'
+                              }`}
+                            >
+                              %
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateDiscount(discount.id, {
+                                  type: 'FIXED',
+                                  value: discount.type === 'FIXED' ? discount.value : discount.amount,
+                                })
+                              }
+                              className={`px-2 py-1 text-xs font-semibold rounded-md transition-colors ${
+                                discount.type === 'FIXED'
+                                  ? 'bg-white text-primary-700 shadow-2xs'
+                                  : 'text-slate-500 hover:text-slate-800'
+                              }`}
+                            >
+                              Rp
+                            </button>
+                          </div>
+
+                          <div className="relative w-28 shrink-0">
+                            <input
+                              type="number"
+                              min={0}
+                              value={discount.value === 0 ? '' : discount.value}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? 0 : Number(e.target.value);
+                                updateDiscount(discount.id, { value: Math.max(0, val) });
+                              }}
+                              placeholder="0"
+                              className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold text-right pr-6 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400 pointer-events-none">
+                              {discount.type === 'PERCENTAGE' ? '%' : ''}
+                            </span>
+                          </div>
+
+                          {/* Calculated deduction badge */}
+                          <div className="w-24 text-right shrink-0">
+                            <span className="inline-block text-xs font-bold text-rose-600">
+                              -{formatCurrency(discount.amount)}
+                            </span>
+                          </div>
+
+                          {/* Delete button */}
+                          <button
+                            type="button"
+                            onClick={() => removeDiscount(discount.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title="Hapus diskon"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="flex justify-between items-center px-3 py-2 bg-rose-50/50 rounded-xl border border-rose-100 text-xs">
+                      <span className="text-slate-600 font-medium">
+                        Total Potongan ({safeDiscounts.length} diskon aktif):
+                      </span>
+                      <span className="font-bold text-rose-600 text-sm">
+                        -{formatCurrency(totalDiscountAmount)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 px-3 rounded-xl border border-dashed border-slate-200 bg-white">
+                    <p className="text-xs text-slate-500">
+                      Belum ada diskon yang diterapkan. Klik salah satu preset di atas atau tambah diskon kustom.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Card 6: Deposit & Catatan Tambahan */}
               <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 sm:p-6 space-y-4 shadow-2xs">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
                   <div>
@@ -1219,14 +1405,28 @@ export default function CreateOrderModal({
                           </span>
                         </div>
                       )}
-                      {discountAmount > 0 && (
+                      {safeDiscounts.length > 0 ? (
+                        safeDiscounts.map((d, i) => (
+                          <div key={d.id || i} className="flex justify-between text-slate-600">
+                            <span className="flex items-center gap-1.5">
+                              <span className="text-rose-600 font-medium">{d.label || 'Diskon'}</span>
+                              <span className="text-[10px] text-slate-400">
+                                ({d.type === 'PERCENTAGE' ? `${d.value}%` : 'potongan tetap'})
+                              </span>
+                            </span>
+                            <span className="font-medium text-rose-600">
+                              -{formatCurrency(d.amount)}
+                            </span>
+                          </div>
+                        ))
+                      ) : discountAmount > 0 ? (
                         <div className="flex justify-between text-slate-600">
                           <span>Diskon</span>
                           <span className="font-medium text-rose-600">
                             -{formatCurrency(discountAmount)}
                           </span>
                         </div>
-                      )}
+                      ) : null}
                       <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
                         <span>Total Tagihan</span>
                         <span className="text-primary-700 text-base">

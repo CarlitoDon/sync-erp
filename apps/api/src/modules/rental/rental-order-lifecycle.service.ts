@@ -336,22 +336,33 @@ export class RentalOrderLifecycleService {
       });
     }
 
-    const discountAmount = new Decimal(
-      data.discountAmount ?? 0
+    let finalDiscountAmount = new Decimal(data.discountAmount ?? 0).toDecimalPlaces(2);
+    let finalDiscountLabel = data.discountLabel;
+    if (data.discounts && data.discounts.length > 0) {
+      const sumDiscounts = data.discounts.reduce((acc, d) => acc + (d.amount || 0), 0);
+      finalDiscountAmount = new Decimal(sumDiscounts).toDecimalPlaces(2);
+      if (!finalDiscountLabel) {
+        finalDiscountLabel = data.discounts
+          .map((d) => `${d.label} (-Rp ${Number(d.amount).toLocaleString('id-ID')})`)
+          .join(', ');
+      }
+    }
+
+    const deliveryFee = new Decimal(
+      data.deliveryFee ?? 0
     ).toDecimalPlaces(2);
-    if (discountAmount.greaterThan(subtotal)) {
+
+    if (finalDiscountAmount.greaterThan(subtotal.plus(deliveryFee))) {
       throw new DomainError(
-        'Discount cannot exceed rental subtotal',
+        'Discount cannot exceed rental subtotal and delivery fee',
         400,
         DomainErrorCodes.INVALID_INPUT
       );
     }
-    const deliveryFee = new Decimal(
-      data.deliveryFee ?? 0
-    ).toDecimalPlaces(2);
+
     const totalAmount = subtotal
-      .minus(discountAmount)
       .plus(deliveryFee)
+      .minus(finalDiscountAmount)
       .toDecimalPlaces(2);
 
     // Resolve dueDateTime default
@@ -365,7 +376,10 @@ export class RentalOrderLifecycleService {
           lateFeeDailyRate: policy.lateFeeDailyRate.toNumber(),
           cleaningFee: policy.cleaningFee.toNumber(),
           pickupGracePeriodHours: policy.pickupGracePeriodHours,
+          discounts: data.discounts || undefined,
         }
+      : data.discounts
+      ? { discounts: data.discounts }
       : null;
 
     // Generate order number
@@ -414,10 +428,10 @@ export class RentalOrderLifecycleService {
             : undefined,
         paymentMethod: data.paymentMethod,
         discountAmount:
-          data.discountAmount !== undefined
-            ? discountAmount
+          data.discountAmount !== undefined || (data.discounts && data.discounts.length > 0)
+            ? finalDiscountAmount
             : undefined,
-        discountLabel: data.discountLabel,
+        discountLabel: finalDiscountLabel,
         orderSource: OrderSource.ADMIN,
         items: {
           create: orderItems,
@@ -709,22 +723,33 @@ export class RentalOrderLifecycleService {
       });
     }
 
-    const discountAmount = new Decimal(
-      data.discountAmount ?? 0
+    let finalDiscountAmount = new Decimal(data.discountAmount ?? 0).toDecimalPlaces(2);
+    let finalDiscountLabel = data.discountLabel;
+    if (data.discounts && data.discounts.length > 0) {
+      const sumDiscounts = data.discounts.reduce((acc, d) => acc + (d.amount || 0), 0);
+      finalDiscountAmount = new Decimal(sumDiscounts).toDecimalPlaces(2);
+      if (!finalDiscountLabel) {
+        finalDiscountLabel = data.discounts
+          .map((d) => `${d.label} (-Rp ${Number(d.amount).toLocaleString('id-ID')})`)
+          .join(', ');
+      }
+    }
+
+    const deliveryFee = new Decimal(
+      data.deliveryFee ?? 0
     ).toDecimalPlaces(2);
-    if (discountAmount.greaterThan(subtotal)) {
+
+    if (finalDiscountAmount.greaterThan(subtotal.plus(deliveryFee))) {
       throw new DomainError(
-        'Discount cannot exceed rental subtotal',
+        'Discount cannot exceed rental subtotal and delivery fee',
         400,
         DomainErrorCodes.INVALID_INPUT
       );
     }
-    const deliveryFee = new Decimal(
-      data.deliveryFee ?? 0
-    ).toDecimalPlaces(2);
+
     const totalAmount = subtotal
-      .minus(discountAmount)
       .plus(deliveryFee)
+      .minus(finalDiscountAmount)
       .toDecimalPlaces(2);
 
     const dueDateTime = data.dueDateTime ?? data.rentalEndDate;
@@ -770,10 +795,16 @@ export class RentalOrderLifecycleService {
               : undefined,
           paymentMethod: data.paymentMethod,
           discountAmount:
-            data.discountAmount !== undefined
-              ? discountAmount
+            data.discountAmount !== undefined || (data.discounts && data.discounts.length > 0)
+              ? finalDiscountAmount
               : undefined,
-          discountLabel: data.discountLabel,
+          discountLabel: finalDiscountLabel,
+          policySnapshot: data.discounts
+            ? {
+                ...((existingOrder.policySnapshot as Record<string, unknown>) || {}),
+                discounts: data.discounts,
+              }
+            : undefined,
           items: {
             create: orderItems,
           },

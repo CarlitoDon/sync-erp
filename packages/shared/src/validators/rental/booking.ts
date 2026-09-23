@@ -86,6 +86,17 @@ const RentalOrderItemSchema = z
     message: 'Either rentalItemId or rentalBundleId is required',
   });
 
+export const OrderDiscountSchema = z.object({
+  id: z.string(),
+  label: z.string().min(1, 'Label diskon wajib diisi'),
+  type: z.enum(['FIXED', 'PERCENTAGE']),
+  value: z.number().min(0),
+  target: z.enum(['ORDER', 'RENTAL', 'DELIVERY']).default('ORDER'),
+  amount: z.number().min(0),
+});
+
+export type OrderDiscount = z.infer<typeof OrderDiscountSchema>;
+
 export const CreateRentalOrderSchema = z
   .object({
     partnerId: z.string().uuid(),
@@ -118,6 +129,7 @@ export const CreateRentalOrderSchema = z
     paymentMethod: z.string().optional(),
     discountAmount: z.number().nonnegative().optional(),
     discountLabel: z.string().optional(),
+    discounts: z.array(OrderDiscountSchema).optional(),
   })
   .refine(
     (data) => {

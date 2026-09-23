@@ -47,8 +47,6 @@ export function useRentalPricing(
 
     items.forEach((item) => {
       let dailyRate = 0;
-      let weeklyRate = 0;
-      let monthlyRate = 0;
       let depositPolicy: {
         type: DepositPolicyType;
         percentage?: number;
@@ -61,8 +59,6 @@ export function useRentalPricing(
         );
         if (rentalItem) {
           dailyRate = Number(rentalItem.dailyRate);
-          weeklyRate = Number(rentalItem.weeklyRate);
-          monthlyRate = Number(rentalItem.monthlyRate);
           depositPolicy = {
             type: rentalItem.depositPolicyType,
             percentage: Number(rentalItem.depositPercentage),
@@ -75,8 +71,6 @@ export function useRentalPricing(
         );
         if (bundle) {
           dailyRate = Number(bundle.dailyRate);
-          weeklyRate = Number(bundle.weeklyRate);
-          monthlyRate = Number(bundle.monthlyRate);
           // Default deposit for bundles
           depositPolicy = {
             type: DepositPolicyType.PERCENTAGE,
@@ -91,17 +85,6 @@ export function useRentalPricing(
 
       if (!item.pricePerDay) {
         unitPrice = dailyRate * rentalDays;
-
-        if (rentalDays >= 30 && monthlyRate) {
-          if (monthlyRate < unitPrice) {
-            unitPrice = monthlyRate;
-          }
-        } else if (rentalDays >= 7 && weeklyRate) {
-          const weeklyPrice = weeklyRate * Math.ceil(rentalDays / 7);
-          if (weeklyPrice < unitPrice) {
-            unitPrice = weeklyPrice;
-          }
-        }
       }
 
       const qty = typeof item.quantity === 'number' ? item.quantity : Number(item.quantity) || 0;
@@ -145,9 +128,7 @@ export function useRentalDays(
 /**
  * Get pricing tier label based on rental duration.
  */
-export function getPricingTierLabel(rentalDays: number): string {
-  if (rentalDays >= 30) return 'tarif bulanan';
-  if (rentalDays >= 7) return 'tarif mingguan';
+export function getPricingTierLabel(_rentalDays: number): string {
   return 'tarif harian';
 }
 
@@ -163,13 +144,11 @@ export interface LineTotalCalculation {
  */
 export function calculateLineTotal(
   item: OrderItem,
-  rentalItems: { id: string; dailyRate: unknown; weeklyRate: unknown; monthlyRate: unknown; product?: { name?: string } }[],
-  rentalBundles: { id: string; name?: string; dailyRate: unknown; weeklyRate: unknown; monthlyRate: unknown }[],
+  rentalItems: { id: string; dailyRate: unknown; weeklyRate?: unknown; monthlyRate?: unknown; product?: { name?: string } }[],
+  rentalBundles: { id: string; name?: string; dailyRate: unknown; weeklyRate?: unknown; monthlyRate?: unknown }[],
   rentalDays: number
 ): LineTotalCalculation {
   let dailyRate = 0;
-  let weeklyRate = 0;
-  let monthlyRate = 0;
   let name = 'Item';
 
   if (item.rentalItemId) {
@@ -177,32 +156,18 @@ export function calculateLineTotal(
     if (ri) {
       name = ri.product?.name || 'Item';
       dailyRate = Number(ri.dailyRate) || 0;
-      weeklyRate = Number(ri.weeklyRate) || 0;
-      monthlyRate = Number(ri.monthlyRate) || 0;
     }
   } else if (item.rentalBundleId) {
     const rb = rentalBundles.find((b) => b.id === item.rentalBundleId);
     if (rb) {
       name = rb.name || 'Paket Bundle';
       dailyRate = Number(rb.dailyRate) || 0;
-      weeklyRate = Number(rb.weeklyRate) || 0;
-      monthlyRate = Number(rb.monthlyRate) || 0;
     }
   }
 
   let unitPrice = Number(item.pricePerDay || 0) * rentalDays;
   if (!item.pricePerDay) {
     unitPrice = dailyRate * rentalDays;
-    if (rentalDays >= 30 && monthlyRate) {
-      if (monthlyRate < unitPrice) {
-        unitPrice = monthlyRate;
-      }
-    } else if (rentalDays >= 7 && weeklyRate) {
-      const weeklyPrice = weeklyRate * Math.ceil(rentalDays / 7);
-      if (weeklyPrice < unitPrice) {
-        unitPrice = weeklyPrice;
-      }
-    }
   }
 
   const qty = typeof item.quantity === 'number' ? item.quantity : Number(item.quantity) || 0;

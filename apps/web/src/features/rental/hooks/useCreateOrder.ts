@@ -5,6 +5,7 @@ import { apiAction } from '@/hooks/useApiAction';
 import {
   UnitStatus,
   PartnerType,
+  OrderDiscount,
   calculateCrossInventoryDemand,
   calculateRemainingForLine,
   calculateTotalMattressesInOrder,
@@ -40,6 +41,8 @@ export interface EditableRentalOrder {
   notes?: string | null;
   deliveryFee?: DecimalLike;
   discountAmount?: DecimalLike;
+  discountLabel?: string | null;
+  policySnapshot?: unknown;
   depositAmount?: DecimalLike;
   deliveryAddress?: string | null;
   street?: string | null;
@@ -63,6 +66,7 @@ export interface CreateOrderFormState {
   notes: string;
   deliveryFee: string;
   discountAmount: string;
+  discounts: OrderDiscount[];
   deliveryAddress: string;
   street: string;
   kelurahan: string;
@@ -107,6 +111,7 @@ export function parseOrderToFormState(
       notes: '',
       deliveryFee: '',
       discountAmount: '',
+      discounts: [],
       deliveryAddress: '',
       street: '',
       kelurahan: '',
@@ -270,6 +275,21 @@ export function parseOrderToFormState(
       order.discountAmount !== null && order.discountAmount !== undefined
         ? String(toNumber(order.discountAmount))
         : '',
+    discounts:
+      Array.isArray((order.policySnapshot as Record<string, unknown>)?.discounts)
+        ? ((order.policySnapshot as Record<string, unknown>).discounts as OrderDiscount[])
+        : order.discountAmount && Number(toNumber(order.discountAmount)) > 0
+        ? [
+            {
+              id: 'initial-discount',
+              label: order.discountLabel || 'Diskon',
+              type: 'FIXED' as const,
+              value: Number(toNumber(order.discountAmount)),
+              target: 'ORDER' as const,
+              amount: Number(toNumber(order.discountAmount)),
+            },
+          ]
+        : [],
     deliveryAddress: cleanDeliveryAddress || order.street || '',
     street: order.street || '',
     kelurahan: order.kelurahan || '',
@@ -525,6 +545,7 @@ export function useCreateOrder({
       Boolean(orderForm.notes?.trim()) ||
       Boolean(orderForm.deliveryFee) ||
       Boolean(orderForm.discountAmount) ||
+      (orderForm.discounts?.length || 0) > 0 ||
       Boolean(orderForm.deliveryAddress?.trim()) ||
       Boolean(orderForm.street?.trim()) ||
       Boolean(orderForm.upstairsMattressCount) ||
@@ -641,6 +662,106 @@ export function useCreateOrder({
       items: prev.items.filter((_, i) => i !== idx),
     }));
   }, []);
+
+  // Multiple Discounts Calculation & Handlers
+  const computedDiscounts = useMemo(() => {
+    const rawDeliveryFee = Number(orderForm.deliveryFee) || 0;
+    return (orderForm.discounts || []).map((d) => {
+      let amount = d.value;
+      if (d.type === 'PERCENTAGE') {
+        let base = subtotal;
+        if (d.target === 'DELIVERY') base = rawDeliveryFee;
+        else if (d.target === 'ORDER') base = subtotal + rawDeliveryFee;
+        amount = Math.round((base * d.value) / 100);
+      }
+      // Safety cap so discount cannot exceed target
+      if (d.target === 'DELIVERY') {
+        amount = Math.min(amount, rawDeliveryFee);
+      } else if (d.target === 'RENTAL') {
+        amount = Math.min(amount, subtotal);
+      } else {
+        amount = Math.min(amount, subtotal + rawDeliveryFee);
+      }
+      return {
+        ...d,
+        amount: Math.max(0, amount),
+      };
+    });
+  }, [orderForm.discounts, subtotal, orderForm.deliveryFee]);
+
+  const totalDiscountAmount = useMemo(() => {
+    if (computedDiscounts.length > 0) {
+      return computedDiscounts.reduce((acc, d) => acc + d.amount, 0);
+    }
+    return Number(orderForm.discountAmount) || 0;
+  }, [computedDiscounts, orderForm.discountAmount]);
+
+  const addDiscount = useCallback(
+    (discount: Omit<OrderDiscount, 'id' | 'amount'> & { id?: string; amount?: number }) => {
+      const id = discount.id || `disc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const amount = discount.amount ?? discount.value;
+      setOrderForm((prev) => ({
+        ...prev,
+        discountAmount: '',
+        discounts: [...(prev.discounts || []), { ...discount, id, amount }],
+      }));
+    },
+    []
+  );
+
+  const removeDiscount = useCallback((id: string) => {
+    setOrderForm((prev) => ({
+      ...prev,
+      discounts: (prev.discounts || []).filter((d) => d.id !== id),
+    }));
+  }, []);
+
+  const updateDiscount = useCallback((id: string, partial: Partial<OrderDiscount>) => {
+    setOrderForm((prev) => ({
+      ...prev,
+      discounts: (prev.discounts || []).map((d) => (d.id === id ? { ...d, ...partial } : d)),
+    }));
+  }, []);
+
+  const applyPresetDiscount = useCallback(
+    (preset: 'FREE_DELIVERY' | 'PERCENT_10' | 'PERCENT_5' | 'CUSTOM') => {
+      const rawDeliveryFee = Number(orderForm.deliveryFee) || 0;
+      if (preset === 'FREE_DELIVERY') {
+        addDiscount({
+          label: 'Gratis Ongkir',
+          type: 'PERCENTAGE',
+          value: 100,
+          target: 'DELIVERY',
+          amount: rawDeliveryFee,
+        });
+      } else if (preset === 'PERCENT_10') {
+        addDiscount({
+          label: 'Diskon Sewa 10%',
+          type: 'PERCENTAGE',
+          value: 10,
+          target: 'RENTAL',
+          amount: Math.round((subtotal * 10) / 100),
+        });
+      } else if (preset === 'PERCENT_5') {
+        addDiscount({
+          label: 'Diskon Sewa 5%',
+          type: 'PERCENTAGE',
+          value: 5,
+          target: 'RENTAL',
+          amount: Math.round((subtotal * 5) / 100),
+        });
+      } else {
+        addDiscount({
+          label: 'Diskon Khusus',
+          type: 'FIXED',
+          value: 0,
+          target: 'ORDER',
+          amount: 0,
+        });
+      }
+    },
+    [addDiscount, orderForm.deliveryFee, subtotal]
+  );
 
   const getAvailableUnits = useCallback(
     (itemId: string) => {
@@ -1049,9 +1170,21 @@ export function useCreateOrder({
             dueDateTime: dueDateTime.toISOString(),
             notes: finalNotes,
             deliveryFee: totalDeliveryFee,
-            discountAmount: orderForm.discountAmount
-              ? Number(orderForm.discountAmount)
-              : undefined,
+            discountAmount:
+              totalDiscountAmount > 0 ? totalDiscountAmount : undefined,
+            discountLabel:
+              computedDiscounts.length > 0
+                ? computedDiscounts
+                    .map(
+                      (d) =>
+                        `${d.label} (-Rp ${Number(d.amount).toLocaleString('id-ID')})`
+                    )
+                    .join(', ')
+                : orderForm.discountAmount
+                ? 'Diskon'
+                : undefined,
+            discounts:
+              computedDiscounts.length > 0 ? computedDiscounts : undefined,
             deliveryAddress: finalDeliveryAddress,
             street: orderForm.street || undefined,
             kelurahan: orderForm.kelurahan || undefined,
@@ -1104,6 +1237,8 @@ export function useCreateOrder({
       crossDemandResult,
       specialServicesTotalFee,
       editingOrder,
+      totalDiscountAmount,
+      computedDiscounts,
     ]
   );
 
@@ -1154,6 +1289,14 @@ export function useCreateOrder({
     upstairsTotalFee,
     fittedSheetTotalFee,
     specialServicesTotalFee,
+
+    // Multiple Discounts
+    computedDiscounts,
+    totalDiscountAmount,
+    addDiscount,
+    removeDiscount,
+    updateDiscount,
+    applyPresetDiscount,
 
     // Form state
     orderForm,

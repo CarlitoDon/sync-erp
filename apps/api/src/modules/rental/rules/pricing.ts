@@ -28,8 +28,8 @@ export interface PricingTier {
 export function calculateOptimalTier(
   rentalDays: number,
   dailyRate: number,
-  weeklyRate: number,
-  monthlyRate: number
+  _weeklyRate?: number,
+  _monthlyRate?: number
 ): PricingTier {
   if (rentalDays <= 0) {
     throw new DomainError(
@@ -40,39 +40,8 @@ export function calculateOptimalTier(
   }
 
   const daily = new Decimal(dailyRate);
-  const weekly = new Decimal(weeklyRate);
-  const monthly = new Decimal(monthlyRate);
   const days = new Decimal(rentalDays);
-
-  // Calculate cost for each tier
   const dailyCost = daily.times(days);
-
-  // Weekly: 7 days = 1 week, 10 days = 2 weeks (rounded up)
-  const weekCount = Math.ceil(rentalDays / 7);
-  const weeklyCost = weekly.times(weekCount);
-
-  // Monthly: 30 days = 1 month, 35 days = 2 months (rounded up)
-  const monthCount = Math.ceil(rentalDays / 30);
-  const monthlyCost = monthly.times(monthCount);
-
-  // Select most economical
-  if (monthlyCost.lessThanOrEqualTo(weeklyCost) && monthlyCost.lessThanOrEqualTo(dailyCost)) {
-    return {
-      tier: 'MONTHLY',
-      ratePerDay: monthlyCost.dividedBy(days),
-      totalDays: rentalDays,
-      totalAmount: monthlyCost,
-    };
-  }
-
-  if (weeklyCost.lessThanOrEqualTo(dailyCost)) {
-    return {
-      tier: 'WEEKLY',
-      ratePerDay: weeklyCost.dividedBy(days),
-      totalDays: rentalDays,
-      totalAmount: weeklyCost,
-    };
-  }
 
   return {
     tier: 'DAILY',

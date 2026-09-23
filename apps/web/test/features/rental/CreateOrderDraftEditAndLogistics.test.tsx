@@ -145,6 +145,12 @@ describe('CreateOrderModal - Draft Editing & Logistics Integration', () => {
         upstairsTotalFee: 7000,
         fittedSheetTotalFee: 4000,
         specialServicesTotalFee: 11000,
+        computedDiscounts: [],
+        totalDiscountAmount: 0,
+        addDiscount: vi.fn(),
+        removeDiscount: vi.fn(),
+        updateDiscount: vi.fn(),
+        applyPresetDiscount: vi.fn(),
         orderForm: {
           partnerId: 'cust-1',
           rentalStartDate: '2026-10-01',
@@ -251,6 +257,12 @@ describe('CreateOrderModal - Draft Editing & Logistics Integration', () => {
         upstairsTotalFee: 0,
         fittedSheetTotalFee: 0,
         specialServicesTotalFee: 0,
+        computedDiscounts: [],
+        totalDiscountAmount: 0,
+        addDiscount: vi.fn(),
+        removeDiscount: vi.fn(),
+        updateDiscount: vi.fn(),
+        applyPresetDiscount: vi.fn(),
         orderForm: {
           partnerId: '',
           rentalStartDate: '2026-10-01',
@@ -317,6 +329,181 @@ describe('CreateOrderModal - Draft Editing & Logistics Integration', () => {
       // Submit button must be disabled
       const submitBtn = screen.getByRole('button', { name: /Simpan Order Draft/i });
       expect(submitBtn).toBeDisabled();
+    });
+
+    it('renders multiple discounts preset buttons and breakdown in invoice preview', () => {
+      mockUseCreateOrder.mockReturnValue({
+        rentalItems: [
+          { id: 'ri-1', dailyRate: 35000, product: { name: 'Single Standard [Paket 90]' } },
+        ],
+        rentalBundles: [],
+        customers: [{ id: 'cust-1', name: 'Budi Santoso' }],
+        partnerAddresses: [],
+        isLoadingData: false,
+        rentalDays: 21,
+        subtotal: 735000,
+        totalMattressesInOrder: 1,
+        stockConflicts: [],
+        hasStockError: false,
+        getDynamicRemainingForLine: vi.fn().mockReturnValue(10),
+        upstairsFeePerUnit: 3500,
+        fittedSheetFeePerUnit: 2000,
+        upstairsTotalFee: 0,
+        fittedSheetTotalFee: 0,
+        specialServicesTotalFee: 0,
+        computedDiscounts: [
+          {
+            id: 'disc-1',
+            label: 'Gratis Ongkir',
+            type: 'PERCENTAGE',
+            value: 100,
+            target: 'DELIVERY',
+            amount: 14000,
+          },
+          {
+            id: 'disc-2',
+            label: 'Diskon Sewa 10%',
+            type: 'PERCENTAGE',
+            value: 10,
+            target: 'RENTAL',
+            amount: 73500,
+          },
+        ],
+        totalDiscountAmount: 87500,
+        addDiscount: vi.fn(),
+        removeDiscount: vi.fn(),
+        updateDiscount: vi.fn(),
+        applyPresetDiscount: vi.fn(),
+        orderForm: {
+          partnerId: 'cust-1',
+          rentalStartDate: '2026-10-01',
+          deliveryTime: '07:00',
+          rentalEndDate: '2026-10-22',
+          pickupTime: '18:00',
+          dueDateTime: '',
+          notes: '',
+          deliveryFee: '14000',
+          discountAmount: '',
+          deliveryAddress: 'Jl. Gejayan No. 10',
+          street: 'Jl. Gejayan No. 10',
+          kelurahan: '',
+          kecamatan: '',
+          kota: 'Sleman',
+          provinsi: 'DIY',
+          zip: '',
+          latitude: null,
+          longitude: null,
+          saveToCustomerAddresses: false,
+          selectedCustomerAddressId: '',
+          requiresDeposit: false,
+          depositAmount: '',
+          upstairsMattressCount: '',
+          fittedSheetCount: '',
+          googleMapsUrl: '',
+          items: [{ type: 'item', rentalItemId: 'ri-1', quantity: 1 }],
+        },
+        updateFormField: vi.fn(),
+        isQuickCreateOpen: false,
+        setIsQuickCreateOpen: vi.fn(),
+        isDirty: true,
+        isEditing: false,
+        isCreating: false,
+        handleClose: vi.fn(),
+        handleSubmit: vi.fn(),
+        addItem: vi.fn(),
+        updateItem: vi.fn(),
+        updateItemUnified: vi.fn(),
+        updateItemQuantity: vi.fn(),
+        applyLocationData: vi.fn(),
+        selectSavedAddress: vi.fn(),
+        removeItem: vi.fn(),
+        getAvailableUnits: vi.fn().mockReturnValue(10),
+        getBundleAvailableUnits: vi.fn().mockReturnValue(10),
+        handleQuickCreateSuccess: vi.fn(),
+      });
+
+      render(
+        <CreateOrderModal
+          isOpen={true}
+          onClose={vi.fn()}
+        />
+      );
+
+      // Verify preset buttons exist
+      expect(screen.getByRole('button', { name: /\+ Gratis Ongkir/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /\+ Diskon 10% Sewa/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /\+ Diskon 5% Sewa/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /\+ Diskon Kustom/i })).toBeInTheDocument();
+
+      // Verify active discounts in list
+      expect(screen.getAllByDisplayValue('Gratis Ongkir').length).toBeGreaterThan(0);
+      expect(screen.getAllByDisplayValue('Diskon Sewa 10%').length).toBeGreaterThan(0);
+
+      // Verify summary shows individual discounts
+      expect(screen.getByText(/Total Potongan \(2 diskon aktif\)/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Flat Daily Pricing & Multi-Discount Parsing', () => {
+    it('calculates 21 days at flat daily rate with no weekly/monthly discount', async () => {
+      const { calculateLineTotal, getPricingTierLabel } = await import(
+        '@/features/rental/hooks/useRentalPricing'
+      );
+
+      const item = { type: 'item' as const, rentalItemId: 'ri-1', quantity: 1 };
+      const rentalItems = [
+        {
+          id: 'ri-1',
+          dailyRate: 35000,
+          weeklyRate: 210000,
+          monthlyRate: 750000,
+          product: { name: 'Single Standard [Paket 90]' },
+        },
+      ];
+
+      // 21 days must equal 21 * 35.000 = 735.000, NOT 3 * 210.000 = 630.000
+      const result = calculateLineTotal(item, rentalItems, [], 21);
+      expect(result.lineTotal).toBe(735000);
+      expect(result.dailyRate).toBe(35000);
+
+      // Tier label should always be tarif harian
+      expect(getPricingTierLabel(21)).toBe('tarif harian');
+      expect(getPricingTierLabel(7)).toBe('tarif harian');
+      expect(getPricingTierLabel(30)).toBe('tarif harian');
+    });
+
+    it('parses policySnapshot.discounts with multiple discounts correctly', () => {
+      const orderWithDiscounts: EditableRentalOrder = {
+        id: 'ord-disc-1',
+        rentalStartDate: '2026-10-01',
+        rentalEndDate: '2026-10-22',
+        policySnapshot: {
+          discounts: [
+            {
+              id: 'd1',
+              label: 'Gratis Ongkir Promo',
+              type: 'FIXED',
+              value: 15000,
+              target: 'DELIVERY',
+              amount: 15000,
+            },
+            {
+              id: 'd2',
+              label: 'Diskon Spesial 10%',
+              type: 'PERCENTAGE',
+              value: 10,
+              target: 'RENTAL',
+              amount: 73500,
+            },
+          ],
+        },
+      };
+
+      const state = parseOrderToFormState(orderWithDiscounts);
+      expect(state.discounts).toHaveLength(2);
+      expect(state.discounts?.[0].label).toBe('Gratis Ongkir Promo');
+      expect(state.discounts?.[1].value).toBe(10);
+      expect(state.discounts?.[1].target).toBe('RENTAL');
     });
   });
 });
