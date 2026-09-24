@@ -1,4 +1,5 @@
 import { DecimalLike, toNumber } from '@/types/decimal';
+import { calculateRentalDays } from '@sync-erp/shared';
 
 interface RentalOrderItem {
   quantity: number;
@@ -71,8 +72,9 @@ export function useRentalOrderCalculations(
   // Duration calculation
   const startDate = new Date(order.rentalStartDate);
   const endDate = new Date(order.rentalEndDate);
-  const durationDays = Math.ceil(
-    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+  const durationDays = calculateRentalDays(
+    order.rentalStartDate,
+    order.rentalEndDate
   );
   const startDayName = startDate.toLocaleDateString('id-ID', {
     weekday: 'long',

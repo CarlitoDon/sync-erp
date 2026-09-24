@@ -1,4 +1,5 @@
 import React from 'react';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 
 /* eslint-disable @sync-erp/no-hardcoded-enum */
 interface FormModalProps {
@@ -6,8 +7,9 @@ interface FormModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '5xl';
   zIndex?: string;
+  disableBackdropClick?: boolean;
 }
 /* eslint-enable @sync-erp/no-hardcoded-enum */
 
@@ -18,6 +20,7 @@ const maxWidthClasses = {
   xl: 'sm:max-w-xl',
   '2xl': 'sm:max-w-2xl',
   '4xl': 'sm:max-w-4xl',
+  '5xl': 'sm:max-w-5xl',
 };
 
 export default function FormModal({
@@ -27,7 +30,21 @@ export default function FormModal({
   children,
   maxWidth = 'lg',
   zIndex = 'z-50',
+  disableBackdropClick = false,
 }: FormModalProps) {
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -43,7 +60,7 @@ export default function FormModal({
           className="fixed inset-0 transition-opacity"
           aria-hidden="true"
           style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}
-          onClick={onClose}
+          onClick={disableBackdropClick ? undefined : onClose}
         />
 
         {/* Centering trick */}
@@ -55,16 +72,27 @@ export default function FormModal({
         </span>
 
         <div
-          className={`relative z-10 inline-block max-h-[90vh] transform overflow-y-auto rounded-lg border border-slate-200 bg-white text-left align-bottom shadow-xl shadow-slate-950/20 transition-all sm:my-8 sm:w-full sm:align-middle ${maxWidthClasses[maxWidth]}`}
+          className={`relative z-10 inline-block max-h-[92vh] transform overflow-y-auto rounded-2xl border border-slate-200/80 bg-white text-left align-bottom shadow-2xl shadow-slate-900/15 transition-all sm:my-8 sm:w-full sm:align-middle ${maxWidthClasses[maxWidth]}`}
         >
-          {/* Header */}
-          <div className="rounded-lg bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-            <h3
-              className="sticky top-0 mb-4 bg-white pb-2 text-lg font-semibold leading-6 text-slate-950"
-              id="modal-title"
-            >
-              {title}
-            </h3>
+          {/* Header & Content */}
+          <div className="rounded-2xl bg-white p-5 sm:p-7">
+            <div className="flex items-center justify-between -mx-5 -mt-5 sm:-mx-7 sm:-mt-7 px-5 pt-5 sm:px-7 sm:pt-6 pb-4 mb-6 border-b border-slate-100 bg-white/95 backdrop-blur-xs sticky top-0 z-20 rounded-t-2xl">
+              <h3
+                className="text-lg sm:text-xl font-bold tracking-tight text-slate-900"
+                id="modal-title"
+              >
+                {title}
+              </h3>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer"
+                aria-label="Tutup modal"
+                title="Tutup"
+              >
+                <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
 
             {/* Content area */}
             <div>{children}</div>

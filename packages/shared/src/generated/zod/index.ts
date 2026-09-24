@@ -123,6 +123,8 @@ export const CompanyMemberScalarFieldEnumSchema = z.enum(['id','userId','company
 
 export const PartnerScalarFieldEnumSchema = z.enum(['id','companyId','type','name','email','phone','address','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','createdAt','updatedAt']);
 
+export const AddressScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','name','isDefault','address','street','kelurahan','kecamatan','kota','provinsi','zip','latitude','longitude','createdAt','updatedAt']);
+
 export const ProductScalarFieldEnumSchema = z.enum(['id','companyId','categoryId','sku','name','price','averageCost','stockQty','unitOfMeasure','costingMethod','isService','createdAt','updatedAt']);
 
 export const OrderScalarFieldEnumSchema = z.enum(['id','companyId','partnerId','type','status','orderNumber','date','totalAmount','taxRate','paymentTerms','paymentStatus','paidAmount','dpPercent','dpAmount','notes','version','createdAt','updatedAt']);
@@ -181,7 +183,9 @@ export const CashTransactionScalarFieldEnumSchema = z.enum(['id','companyId','ty
 
 export const CashTransactionItemScalarFieldEnumSchema = z.enum(['id','cashTransactionId','accountId','description','amount']);
 
-export const RentalItemScalarFieldEnumSchema = z.enum(['id','companyId','productId','dailyRate','weeklyRate','monthlyRate','depositPolicyType','depositPercentage','depositPerUnit','isActive','createdAt','updatedAt']);
+export const RentalItemScalarFieldEnumSchema = z.enum(['id','companyId','productId','categoryId','dailyRate','weeklyRate','monthlyRate','depositPolicyType','depositPercentage','depositPerUnit','isActive','createdAt','updatedAt']);
+
+export const RentalItemCategoryScalarFieldEnumSchema = z.enum(['id','companyId','name','description','createdAt','updatedAt']);
 
 export const RentalBundleScalarFieldEnumSchema = z.enum(['id','companyId','externalId','name','shortName','description','dailyRate','weeklyRate','monthlyRate','dimensions','capacity','imagePath','isActive','createdAt','updatedAt','integrationId']);
 
@@ -211,7 +215,7 @@ export const CleaningLogScalarFieldEnumSchema = z.enum(['id','rentalItemUnitId',
 
 export const CustomerRentalRiskScalarFieldEnumSchema = z.enum(['id','partnerId','companyId','riskLevel','notes','flaggedAt','flaggedBy','lastReviewedAt','totalRentals','lateReturns','damageIncidents','depositForfeits']);
 
-export const RentalPolicyScalarFieldEnumSchema = z.enum(['id','companyId','effectiveFrom','replacedAt','isActive','gracePeriodHours','cleaningFee','lateFeeDailyRate','defaultDepositPolicyType','defaultDepositPercentage','defaultDepositPerUnit','pickupGracePeriodHours','createdAt','createdBy']);
+export const RentalPolicyScalarFieldEnumSchema = z.enum(['id','companyId','effectiveFrom','replacedAt','isActive','gracePeriodHours','cleaningFee','lateFeeDailyRate','defaultDepositPolicyType','defaultDepositPercentage','defaultDepositPerUnit','pickupGracePeriodHours','upstairsFeePerUnit','fittedSheetFeePerUnit','createdAt','createdBy']);
 
 export const RentalDamagePolicyScalarFieldEnumSchema = z.enum(['id','companyId','category','rentalItemId','severity','charge','description','isActive','createdAt','updatedAt']);
 
@@ -357,7 +361,7 @@ export const IdempotencyStatusSchema = z.enum(['PROCESSING','COMPLETED','FAILED'
 
 export type IdempotencyStatusType = `${z.infer<typeof IdempotencyStatusSchema>}`
 
-export const AuditLogActionSchema = z.enum(['INVOICE_POSTED','INVOICE_VOIDED','BILL_POSTED','BILL_VOIDED','PAYMENT_RECORDED','ORDER_CREATED','ORDER_CONFIRMED','ORDER_CANCELLED','GOODS_RECEIVED','SHIPMENT_CREATED','GRN_POSTED','GRN_VOIDED','SHIPMENT_VOIDED','PAYMENT_VOIDED','PRICE_VARIANCE_ACKNOWLEDGED','CASH_TRANSACTION_POSTED','CASH_TRANSACTION_VOIDED','RENTAL_ITEM_CREATED','RENTAL_UNIT_ADDED','RENTAL_ORDER_CREATED','RENTAL_ORDER_CONFIRMED','RENTAL_ORDER_RELEASED','RENTAL_ORDER_CANCELLED','RENTAL_RETURN_PROCESSED','RENTAL_RETURN_SETTLED','RENTAL_ORDER_EXTENDED']);
+export const AuditLogActionSchema = z.enum(['INVOICE_POSTED','INVOICE_VOIDED','BILL_POSTED','BILL_VOIDED','PAYMENT_RECORDED','ORDER_CREATED','ORDER_CONFIRMED','ORDER_CANCELLED','GOODS_RECEIVED','SHIPMENT_CREATED','GRN_POSTED','GRN_VOIDED','SHIPMENT_VOIDED','PAYMENT_VOIDED','PRICE_VARIANCE_ACKNOWLEDGED','CASH_TRANSACTION_POSTED','CASH_TRANSACTION_VOIDED','RENTAL_ITEM_CREATED','RENTAL_UNIT_ADDED','RENTAL_ORDER_CREATED','RENTAL_ORDER_CONFIRMED','RENTAL_ORDER_RELEASED','RENTAL_ORDER_CANCELLED','RENTAL_RETURN_PROCESSED','RENTAL_RETURN_SETTLED','RENTAL_ORDER_EXTENDED','RENTAL_ORDER_UPDATED']);
 
 export type AuditLogActionType = `${z.infer<typeof AuditLogActionSchema>}`
 
@@ -762,6 +766,31 @@ export const PartnerSchema = z.object({
 })
 
 export type Partner = z.infer<typeof PartnerSchema>
+
+/////////////////////////////////////////
+// ADDRESS SCHEMA
+/////////////////////////////////////////
+
+export const AddressSchema = z.object({
+  id: z.string(),
+  companyId: z.string(),
+  partnerId: z.string(),
+  name: z.string().nullable(),
+  isDefault: z.boolean(),
+  address: z.string().nullable(),
+  street: z.string().nullable(),
+  kelurahan: z.string().nullable(),
+  kecamatan: z.string().nullable(),
+  kota: z.string().nullable(),
+  provinsi: z.string().nullable(),
+  zip: z.string().nullable(),
+  latitude: z.instanceof(PrismaDecimal, { message: "Field 'latitude' must be a Decimal. Location: ['Models', 'Address']"}).nullable(),
+  longitude: z.instanceof(PrismaDecimal, { message: "Field 'longitude' must be a Decimal. Location: ['Models', 'Address']"}).nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type Address = z.infer<typeof AddressSchema>
 
 /////////////////////////////////////////
 // PRODUCT SCHEMA
@@ -1307,6 +1336,7 @@ export const RentalItemSchema = z.object({
   id: z.string(),
   companyId: z.string(),
   productId: z.string(),
+  categoryId: z.string().nullable(),
   dailyRate: z.instanceof(PrismaDecimal, { message: "Field 'dailyRate' must be a Decimal. Location: ['Models', 'RentalItem']"}),
   weeklyRate: z.instanceof(PrismaDecimal, { message: "Field 'weeklyRate' must be a Decimal. Location: ['Models', 'RentalItem']"}),
   monthlyRate: z.instanceof(PrismaDecimal, { message: "Field 'monthlyRate' must be a Decimal. Location: ['Models', 'RentalItem']"}),
@@ -1318,6 +1348,21 @@ export const RentalItemSchema = z.object({
 })
 
 export type RentalItem = z.infer<typeof RentalItemSchema>
+
+/////////////////////////////////////////
+// RENTAL ITEM CATEGORY SCHEMA
+/////////////////////////////////////////
+
+export const RentalItemCategorySchema = z.object({
+  id: z.string(),
+  companyId: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type RentalItemCategory = z.infer<typeof RentalItemCategorySchema>
 
 /////////////////////////////////////////
 // RENTAL BUNDLE SCHEMA
@@ -1663,6 +1708,8 @@ export const RentalPolicySchema = z.object({
   defaultDepositPercentage: z.instanceof(PrismaDecimal, { message: "Field 'defaultDepositPercentage' must be a Decimal. Location: ['Models', 'RentalPolicy']"}).nullable(),
   defaultDepositPerUnit: z.instanceof(PrismaDecimal, { message: "Field 'defaultDepositPerUnit' must be a Decimal. Location: ['Models', 'RentalPolicy']"}).nullable(),
   pickupGracePeriodHours: z.number(),
+  upstairsFeePerUnit: z.instanceof(PrismaDecimal, { message: "Field 'upstairsFeePerUnit' must be a Decimal. Location: ['Models', 'RentalPolicy']"}),
+  fittedSheetFeePerUnit: z.instanceof(PrismaDecimal, { message: "Field 'fittedSheetFeePerUnit' must be a Decimal. Location: ['Models', 'RentalPolicy']"}),
   createdAt: z.coerce.date(),
   createdBy: z.string(),
 })

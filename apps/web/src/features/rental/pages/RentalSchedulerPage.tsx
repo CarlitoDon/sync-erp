@@ -48,6 +48,7 @@ export default function RentalSchedulerPage() {
   const [daysToShow, setDaysToShow] =
     useState<SchedulerWindowDays>(14);
   const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
+  const [selectedRentalItemId, setSelectedRentalItemId] = useState<string | undefined>();
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   const visibleEndDate = useMemo(
@@ -124,8 +125,15 @@ export default function RentalSchedulerPage() {
     <>
       <CreateOrderModal
         isOpen={isCreateOrderOpen}
-        onClose={() => setIsCreateOrderOpen(false)}
-        onSuccess={() => setIsCreateOrderOpen(false)}
+        initialItemId={selectedRentalItemId}
+        onClose={() => {
+          setIsCreateOrderOpen(false);
+          setSelectedRentalItemId(undefined);
+        }}
+        onSuccess={() => {
+          setIsCreateOrderOpen(false);
+          setSelectedRentalItemId(undefined);
+        }}
       />
 
       <DateRangePickerModal
@@ -144,7 +152,12 @@ export default function RentalSchedulerPage() {
           title="Rental Scheduler"
           description="Pantau ketersediaan unit dan booking rental dalam satu timeline."
           actions={
-            <Button onClick={() => setIsCreateOrderOpen(true)}>
+            <Button
+              onClick={() => {
+                setSelectedRentalItemId(undefined);
+                setIsCreateOrderOpen(true);
+              }}
+            >
               <PlusIcon className="h-4 w-4" aria-hidden="true" />
               Buat order
             </Button>
@@ -252,7 +265,10 @@ export default function RentalSchedulerPage() {
             timeline={timeline}
             startDate={startDate}
             daysToShow={daysToShow}
-            onCreateOrder={() => setIsCreateOrderOpen(true)}
+            onCreateOrder={(context) => {
+              setSelectedRentalItemId(context?.rentalItemId);
+              setIsCreateOrderOpen(true);
+            }}
           />
         </Card>
 

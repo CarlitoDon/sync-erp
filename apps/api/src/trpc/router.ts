@@ -29,6 +29,7 @@ import { paymentMethodRouter } from './routers/payment-method.router'; // Compan
 import { billingRouter } from './routers/billing.router';
 import { onboardingRouter } from './routers/onboarding.router';
 import { attachmentRouter } from './routers/attachment.router';
+import { mapsRouter } from './routers/maps.router';
 export { Prisma } from '@sync-erp/database';
 
 export const appRouter = router({
@@ -71,6 +72,7 @@ export const appRouter = router({
   apiKey: apiKeyRouter, // Multi-tenant API key management
   integration: integrationRouter, // Integrations Marketplace
   bot: botRouter,
+  maps: mapsRouter,
 });
 
 export type AppRouter = typeof appRouter;

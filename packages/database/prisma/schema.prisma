@@ -51,6 +51,7 @@ model Company {
   rentalDamagePolicies      RentalDamagePolicy[]
   rentalDeposits            RentalDeposit[]
   rentalItems               RentalItem[]
+  rentalItemCategories      RentalItemCategory[]
   rentalItemUnits           RentalItemUnit[]
   rentalOrders              RentalOrder[]
   rentalOrderExtensions     RentalOrderExtension[]
@@ -70,6 +71,7 @@ model Company {
   billingWebhookEvents      BillingWebhookEvent[]
 
   paymentMethods CompanyPaymentMethod[]
+  addresses      Address[]
 }
 
 enum CompanyOnboardingStatus {
@@ -435,10 +437,39 @@ model Partner {
   orders       Order[]
   company      Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
   rentalOrders RentalOrder[]
+  addresses    Address[]
 
   @@index([companyId])
   @@index([companyId, type])
   @@index([kota])
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  companyId String
+  partnerId String
+  name      String?  // Label e.g. "Utama", "Rumah", "Kantor"
+  isDefault Boolean  @default(false)
+
+  address   String?  @db.Text // Full combined address
+  street    String?  // Jalan/nama jalan
+  kelurahan String?
+  kecamatan String?
+  kota      String?  // Kabupaten/Kota
+  provinsi  String?
+  zip       String?  // Kode pos
+  latitude  Decimal? @db.Decimal(10, 8)
+  longitude Decimal? @db.Decimal(11, 8)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([partnerId])
+  @@index([companyId, partnerId])
 }
 
 model Product {
@@ -1029,6 +1060,8 @@ model RentalItem {
   id                   String                     @id @default(uuid())
   companyId            String
   productId            String                     @unique
+  categoryId           String?
+  category             RentalItemCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   dailyRate            Decimal                    @db.Decimal(15, 2)
   weeklyRate           Decimal                    @db.Decimal(15, 2)
   monthlyRate          Decimal                    @db.Decimal(15, 2)
@@ -1049,6 +1082,21 @@ model RentalItem {
   @@index([companyId])
   @@index([companyId, isActive])
   @@index([productId])
+  @@index([categoryId])
+}
+
+model RentalItemCategory {
+  id          String       @id @default(uuid())
+  companyId   String
+  name        String
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  rentalItems RentalItem[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
 }
 
 // Rental Bundle - groups multiple rental items as a package (e.g., kasur + sprei + bantal + selimut)
@@ -1437,6 +1485,8 @@ model RentalPolicy {
   defaultDepositPercentage Decimal?          @db.Decimal(5, 2)
   defaultDepositPerUnit    Decimal?          @db.Decimal(15, 2)
   pickupGracePeriodHours   Int               @default(24)
+  upstairsFeePerUnit       Decimal           @default(3500) @db.Decimal(15, 2)
+  fittedSheetFeePerUnit    Decimal           @default(2000) @db.Decimal(15, 2)
   createdAt                DateTime          @default(now())
   createdBy                String
   company                  Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -1664,6 +1714,7 @@ enum AuditLogAction {
   RENTAL_RETURN_PROCESSED
   RENTAL_RETURN_SETTLED
   RENTAL_ORDER_EXTENDED
+  RENTAL_ORDER_UPDATED
 }
 
 enum EntityType {
@@ -1745,6 +1796,7 @@ enum RentalOrderStatus {
   COMPLETED
   CANCELLED
 }
+
 
 enum RentalPaymentStatus {
   PENDING // Order created, awaiting payment

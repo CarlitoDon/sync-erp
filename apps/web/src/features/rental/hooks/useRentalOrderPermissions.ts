@@ -21,6 +21,7 @@ export interface RentalOrderPermissions {
   isAwaitingPaymentVerification: boolean;
 
   // Action permissions
+  canEdit: boolean;
   canConfirm: boolean;
   canRelease: boolean;
   canReturn: boolean;
@@ -45,6 +46,7 @@ export function useRentalOrderPermissions(
       isCancelled: false,
       isWebsiteOrder: false,
       isAwaitingPaymentVerification: false,
+      canEdit: false,
       canConfirm: false,
       canRelease: false,
       canReturn: false,
@@ -67,6 +69,7 @@ export function useRentalOrderPermissions(
     RentalPaymentStatus.AWAITING_CONFIRM;
 
   // Action permissions
+  const canEdit = isDraft;
   const canConfirm = isDraft;
   const canRelease = isConfirmed;
   const canReturn = isActive;
@@ -87,6 +90,7 @@ export function useRentalOrderPermissions(
     isCancelled,
     isWebsiteOrder,
     isAwaitingPaymentVerification,
+    canEdit,
     canConfirm,
     canRelease,
     canReturn,

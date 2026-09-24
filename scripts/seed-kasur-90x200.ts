@@ -105,11 +105,16 @@ async function main(): Promise<void> {
     where: { productId: product.id },
   });
 
+  const kasurCategory = await prisma.rentalItemCategory.findFirst({
+    where: { companyId: SANTI_LIVING_COMPANY_ID, name: 'Kasur' },
+  });
+
   if (!rentalItem) {
     rentalItem = await prisma.rentalItem.create({
       data: {
         companyId: SANTI_LIVING_COMPANY_ID,
         productId: product.id,
+        categoryId: kasurCategory?.id,
         dailyRate: new Prisma.Decimal(25000),
         weeklyRate: new Prisma.Decimal(150000),
         monthlyRate: new Prisma.Decimal(350000),
@@ -123,6 +128,7 @@ async function main(): Promise<void> {
     rentalItem = await prisma.rentalItem.update({
       where: { id: rentalItem.id },
       data: {
+        categoryId: kasurCategory?.id,
         dailyRate: new Prisma.Decimal(25000),
         weeklyRate: new Prisma.Decimal(150000),
         monthlyRate: new Prisma.Decimal(350000),

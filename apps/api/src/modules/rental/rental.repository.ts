@@ -60,6 +60,7 @@ export class RentalRepository {
         ...(isActive !== undefined && { isActive }),
       },
       include: {
+        category: true,
         product: { include: { category: true } },
         units: {
           select: {

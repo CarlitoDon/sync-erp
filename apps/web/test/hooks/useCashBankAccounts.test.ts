@@ -12,10 +12,17 @@ describe('useCashBankAccounts helper logic', () => {
       expect(isCashBankAccount({ code: '1201', isGroup: true })).toBe(false);
     });
 
-    it('excludes explicit header and clearing accounts (1100, 1200, 1210)', () => {
+    it('excludes explicit header and clearing accounts (1000, 1050, 1100, 1200, 1210)', () => {
       for (const headerCode of CASH_BANK_HEADER_CODES) {
         expect(isCashBankAccount({ code: headerCode, isGroup: false })).toBe(false);
       }
+    });
+
+    it('includes valid cash & bank accounts in range 1000..1099 (Indonesian standard e.g. Santi Living)', () => {
+      expect(isCashBankAccount({ code: '1001', isGroup: false })).toBe(true); // Kas Dompet Hitam
+      expect(isCashBankAccount({ code: '1051', isGroup: false })).toBe(true); // Bank Jago
+      expect(isCashBankAccount({ code: '1056', isGroup: false })).toBe(true); // Bank BCA
+      expect(isCashBankAccount({ code: '1099', isGroup: false })).toBe(true);
     });
 
     it('includes valid cash accounts in range 1100..1199', () => {
@@ -32,6 +39,7 @@ describe('useCashBankAccounts helper logic', () => {
     });
 
     it('excludes accounts outside cash/bank ranges', () => {
+      expect(isCashBankAccount({ code: '0999', isGroup: false })).toBe(false);
       expect(isCashBankAccount({ code: '1300', isGroup: false })).toBe(false); // Accounts Receivable
       expect(isCashBankAccount({ code: '1400', isGroup: false })).toBe(false); // Inventory
       expect(isCashBankAccount({ code: '2100', isGroup: false })).toBe(false); // Accounts Payable

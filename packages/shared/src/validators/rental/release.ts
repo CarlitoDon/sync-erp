@@ -46,3 +46,18 @@ export const ReleaseRentalOrderSchema = z.object({
 export type ReleaseRentalOrderInput = z.infer<
   typeof ReleaseRentalOrderSchema
 >;
+
+export const RecordSettlementSchema = z.object({
+  orderId: z.string().uuid(),
+  /**
+   * Payment method entity ID (CompanyPaymentMethod.id) — account is resolved server-side.
+   */
+  paymentMethodId: z.string().uuid(),
+  /**
+   * Optional override amount. Defaults to remaining balance (totalAmount - depositAmount).
+   */
+  settlementAmount: z.number().nonnegative().optional(),
+  reference: z.string().optional(),
+});
+export type RecordSettlementInput = z.infer<typeof RecordSettlementSchema>;
+

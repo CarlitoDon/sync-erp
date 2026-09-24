@@ -99,6 +99,8 @@ export const UpdateRentalPolicySchema = z.object({
   defaultDepositPercentage: z.number().min(1).max(100).optional(),
   defaultDepositPerUnit: z.number().positive().optional(),
   pickupGracePeriodHours: z.number().int().min(0).max(72).optional(),
+  upstairsFeePerUnit: z.number().nonnegative().optional(),
+  fittedSheetFeePerUnit: z.number().nonnegative().optional(),
 });
 export type UpdateRentalPolicyInput = z.infer<
   typeof UpdateRentalPolicySchema
