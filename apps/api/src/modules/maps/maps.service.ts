@@ -18,6 +18,7 @@ export interface PlaceSearchResult {
   address: string;
   latitude: number;
   longitude: number;
+  locationAddress?: FormattedLocationAddress;
 }
 
 const NominatimAddressSchema = z.object({
@@ -28,6 +29,7 @@ const NominatimAddressSchema = z.object({
   hamlet: z.string().optional(),
   city_district: z.string().optional(),
   municipality: z.string().optional(),
+  subdistrict: z.string().optional(),
   city: z.string().optional(),
   town: z.string().optional(),
   county: z.string().optional(),
@@ -60,16 +62,26 @@ const GOOGLE_PLACES_ENDPOINT = 'https://places.googleapis.com/v1/places:searchTe
 const GOOGLE_PLACES_TIMEOUT_MS = 5_000;
 const HTTP_REQUEST_TIMEOUT_MS = 5_000;
 
+const GooglePlacesComponentSchema = z.object({
+  longText: z.string().optional(),
+  shortText: z.string().optional(),
+  types: z.array(z.string()).optional().default([]),
+  languageCode: z.string().optional(),
+});
+
 const GooglePlacesResponseSchema = z.object({
   places: z.array(
     z.object({
       id: z.string(),
-      displayName: z.object({ text: z.string() }),
-      formattedAddress: z.string(),
-      location: z.object({ latitude: z.number(), longitude: z.number() }),
+      displayName: z.object({ text: z.string(), languageCode: z.string().optional() }).optional(),
+      formattedAddress: z.string().optional(),
+      location: z.object({ latitude: z.number(), longitude: z.number() }).optional(),
+      addressComponents: z.array(GooglePlacesComponentSchema).optional().default([]),
     })
   ).optional().default([]),
 });
+
+type GooglePlace = z.infer<typeof GooglePlacesResponseSchema>['places'][number];
 
 export class MapsService {
   /**
@@ -171,7 +183,7 @@ export class MapsService {
   /**
    * Resolve shortened URL (e.g. maps.app.goo.gl or goo.gl) and extract coordinates
    */
-  async resolveUrlAndExtractCoords(rawUrl: string): Promise<{ lat: number; lng: number } | null> {
+  async resolveUrlAndExtractCoords(rawUrl: string): Promise<{ lat: number; lng: number; placeName?: string; placeAddress?: FormattedLocationAddress } | null> {
     const directCoords = this.extractCoordinatesFromText(rawUrl);
     if (directCoords) return directCoords;
 
@@ -183,13 +195,15 @@ export class MapsService {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), HTTP_REQUEST_TIMEOUT_MS);
+      const isShortUrl = trimmed.includes('goo.gl') || trimmed.includes('page.link');
       // Follow redirects to find target destination URL
       const response = await fetch(trimmed, {
         method: 'GET',
         redirect: 'follow',
         headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': isShortUrl
+            ? 'curl/8.0'
+            : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
         signal: controller.signal,
       });
@@ -199,20 +213,96 @@ export class MapsService {
       const coordsFromFinalUrl = this.extractCoordinatesFromText(finalUrl);
       if (coordsFromFinalUrl) return coordsFromFinalUrl;
 
+      // Check for Google Maps place name or search query in URL path: e.g. /maps/place/<query> or /maps/search/<query> or query param ?q=<query>
+      const placePathMatch = finalUrl.match(/\/(?:place|search)\/([^/?#]+)/i);
+      const queryParamMatch = finalUrl.match(/[?&](?:q|query)=([^&#]+)/i);
+      const rawPlaceCandidate = placePathMatch ? placePathMatch[1] : queryParamMatch ? queryParamMatch[1] : null;
+
+      if (rawPlaceCandidate) {
+        const rawPlaceText = decodeURIComponent(rawPlaceCandidate.replace(/\+/g, ' ')).trim();
+        // If place query looks like an address/place name (not pure coordinates which would have been matched above)
+        if (rawPlaceText && !/^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$/.test(rawPlaceText)) {
+          const places = await this.searchPlaces(rawPlaceText);
+          if (places.length > 0 && this.isValidCoords(places[0].latitude, places[0].longitude)) {
+            return {
+              lat: places[0].latitude,
+              lng: places[0].longitude,
+              placeName: places[0].name !== rawPlaceText ? places[0].name : undefined,
+              placeAddress: places[0].locationAddress,
+            };
+          }
+          const cleanedPlaceText = rawPlaceText.replace(/^[A-Z0-9]{4}\+[A-Z0-9]{2,}\s*,?\s*/i, '').trim();
+          if (cleanedPlaceText && cleanedPlaceText !== rawPlaceText) {
+            const cleanPlaces = await this.searchPlaces(cleanedPlaceText);
+            if (cleanPlaces.length > 0 && this.isValidCoords(cleanPlaces[0].latitude, cleanPlaces[0].longitude)) {
+              return {
+                lat: cleanPlaces[0].latitude,
+                lng: cleanPlaces[0].longitude,
+                placeName: cleanPlaces[0].name !== cleanedPlaceText ? cleanPlaces[0].name : undefined,
+                placeAddress: cleanPlaces[0].locationAddress,
+              };
+            }
+          }
+        }
+      }
+
       // If coordinates are in HTML meta tags or body
       const htmlText = await response.text();
 
-      // Check for meta tags (og:image or staticmap or maps URL)
+      // Check for Google Maps deep link interstitial (data-desktop-link / data-iPad-link)
+      const deepLinkMatch = htmlText.match(/data-(?:desktop|iPad)-link="([^"]+)"/i);
+      if (deepLinkMatch) {
+        const desktopUrl = deepLinkMatch[1].replace(/&amp;/g, '&');
+        try {
+          const nextController = new AbortController();
+          const nextTimeout = setTimeout(() => nextController.abort(), HTTP_REQUEST_TIMEOUT_MS);
+          const nextRes = await fetch(desktopUrl, {
+            method: 'GET',
+            redirect: 'follow',
+            headers: {
+              'User-Agent': 'curl/8.0',
+            },
+            signal: nextController.signal,
+          });
+          clearTimeout(nextTimeout);
+          const coordsFromNextUrl = this.extractCoordinatesFromText(nextRes.url);
+          if (coordsFromNextUrl) return coordsFromNextUrl;
+          const nextText = await nextRes.text();
+          const protoMatch = nextText.match(/!3d(-?\d+(?:\.\d+)?)[!&]4d(-?\d+(?:\.\d+)?)/);
+          if (protoMatch) {
+            const lat = parseFloat(protoMatch[1]);
+            const lng = parseFloat(protoMatch[2]);
+            if (this.isValidCoords(lat, lng)) return { lat, lng };
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Check for staticmap ONLY if it has an explicit marker pin (never rely on default center viewport)
       const staticMapMatch = htmlText.match(/staticmap\?[^"'\s]*/i);
       if (staticMapMatch) {
-        const coordsFromStatic = this.extractCoordinatesFromText(staticMapMatch[0]);
-        if (coordsFromStatic) return coordsFromStatic;
+        const staticMapUrl = staticMapMatch[0];
+        const markerMatch = staticMapUrl.match(/markers=[^&]*(?:%7C|\|)(-?\d+(?:\.\d+)?)[,%](-?\d+(?:\.\d+)?)/i);
+        if (markerMatch) {
+          const lat = parseFloat(markerMatch[1]);
+          const lng = parseFloat(markerMatch[2]);
+          if (this.isValidCoords(lat, lng)) return { lat, lng };
+        }
       }
 
       const metaMatch = htmlText.match(/https:\/\/(?:www\.)?(?:google\.com\/maps|maps\.google\.com)\?[^"'\s]*/i);
       if (metaMatch) {
         const coordsFromMeta = this.extractCoordinatesFromText(metaMatch[0]);
         if (coordsFromMeta) return coordsFromMeta;
+      }
+
+      // Check for !3d !4d in htmlText
+      const protoMatchInHtml = htmlText.match(/!3d(-?\d+(?:\.\d+)?)[!&]4d(-?\d+(?:\.\d+)?)/);
+      if (protoMatchInHtml) {
+        const lat = parseFloat(protoMatchInHtml[1]);
+        const lng = parseFloat(protoMatchInHtml[2]);
+        if (this.isValidCoords(lat, lng)) return { lat, lng };
       }
 
       // Check for window.APP_INITIALIZATION_STATE or coords in page script
@@ -276,6 +366,60 @@ export class MapsService {
   }
 
   /**
+   * Parse structured address from Google Places API place result
+   */
+  parseGooglePlaceToAddress(place: GooglePlace): FormattedLocationAddress | null {
+    if (!place.location || !this.isValidCoords(place.location.latitude, place.location.longitude)) {
+      return null;
+    }
+    const comps = place.addressComponents || [];
+    const getComp = (type: string) => comps.find((c) => c.types && c.types.includes(type));
+
+    const streetNumber = getComp('street_number')?.shortText || getComp('street_number')?.longText || '';
+    const route = getComp('route')?.shortText || getComp('route')?.longText || '';
+    const dusun = getComp('administrative_area_level_5')?.longText || '';
+    const kelurahan = getComp('administrative_area_level_4')?.longText || '';
+    let kecamatan = getComp('administrative_area_level_3')?.longText || '';
+    kecamatan = kecamatan.replace(/^Kecamatan\s+/i, '').replace(/^Kec\.\s*/i, '').trim();
+
+    let kota = getComp('administrative_area_level_2')?.longText || '';
+    kota = kota.replace(/^(Kabupaten|Kota)\s+/i, '').trim();
+
+    const provinsi = getComp('administrative_area_level_1')?.longText || '';
+    const zip = getComp('postal_code')?.longText || '';
+
+    const placeName = place.displayName?.text?.trim() || '';
+
+    const roadPart = [route, streetNumber].filter(Boolean).join(' ');
+    const streetSegments: string[] = [];
+    if (placeName) streetSegments.push(placeName);
+    if (roadPart && roadPart !== placeName) streetSegments.push(roadPart);
+    if (dusun && dusun !== placeName && dusun !== kelurahan) streetSegments.push(dusun);
+
+    const street = streetSegments.join(', ') || place.formattedAddress?.split(',')[0] || '';
+
+    const fullParts: string[] = [];
+    if (street) fullParts.push(street);
+    if (kelurahan && !street.includes(kelurahan)) fullParts.push(kelurahan);
+    if (kecamatan) fullParts.push(kecamatan);
+    if (kota) fullParts.push(kota);
+    if (provinsi) fullParts.push(provinsi);
+    if (zip) fullParts.push(zip);
+
+    return {
+      street,
+      kelurahan,
+      kecamatan,
+      kota,
+      provinsi,
+      zip,
+      fullAddress: fullParts.join(', ') || place.formattedAddress || '',
+      latitude: place.location.latitude,
+      longitude: place.location.longitude,
+    };
+  }
+
+  /**
    * Search places via Google Places API (New) or fallback to OpenStreetMap Nominatim
    */
   async searchPlaces(query: string): Promise<PlaceSearchResult[]> {
@@ -292,7 +436,7 @@ export class MapsService {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
             'X-Goog-FieldMask':
-              'places.id,places.displayName,places.formattedAddress,places.location',
+              'places.id,places.displayName,places.formattedAddress,places.location,places.addressComponents',
           },
           body: JSON.stringify({
             textQuery: query.trim(),
@@ -308,13 +452,19 @@ export class MapsService {
           const rawData: unknown = await response.json();
           const parsed = GooglePlacesResponseSchema.safeParse(rawData);
           if (parsed.success && parsed.data.places && parsed.data.places.length > 0) {
-            return parsed.data.places.map((place) => ({
-              id: place.id,
-              name: place.displayName.text,
-              address: place.formattedAddress,
-              latitude: place.location.latitude,
-              longitude: place.location.longitude,
-            }));
+            return parsed.data.places
+              .filter(
+                (p): p is typeof p & { location: { latitude: number; longitude: number } } =>
+                  Boolean(p.location && typeof p.location.latitude === 'number' && typeof p.location.longitude === 'number')
+              )
+              .map((place) => ({
+                id: place.id,
+                name: place.displayName?.text || place.formattedAddress?.split(',')[0] || query,
+                address: place.formattedAddress || '',
+                latitude: place.location.latitude,
+                longitude: place.location.longitude,
+                locationAddress: this.parseGooglePlaceToAddress(place) ?? undefined,
+              }));
           }
         }
       } catch (err) {
@@ -371,11 +521,88 @@ export class MapsService {
    * Combined method: given a URL or text, extract coordinates and reverse geocode
    */
   async extractAddressFromUrl(urlOrText: string): Promise<FormattedLocationAddress> {
-    const coords = await this.resolveUrlAndExtractCoords(urlOrText);
+    const trimmed = urlOrText.trim();
+    if (!trimmed) {
+      throw new Error('Tautan atau teks alamat kosong.');
+    }
+
+    // 1. Try to extract candidate place / query text from URL or text
+    let placeCandidateText: string | null = null;
+    let placeNameInUrl: string | null = null;
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      const placePathMatch = trimmed.match(/\/(?:place|search)\/([^/@?#]+)/i);
+      const queryParamMatch = trimmed.match(/[?&](?:q|query)=([^&#]+)/i);
+      const rawCandidate = placePathMatch ? placePathMatch[1] : queryParamMatch ? queryParamMatch[1] : null;
+      if (rawCandidate) {
+        placeCandidateText = decodeURIComponent(rawCandidate.replace(/\+/g, ' ')).trim();
+        if (placePathMatch) {
+          placeNameInUrl = placeCandidateText;
+        }
+      }
+    } else if (!this.extractCoordinatesFromText(trimmed)) {
+      placeCandidateText = trimmed;
+    }
+
+    // 2. If candidate text looks like a place name or address, try Google Places directly first
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY?.trim();
+    if (apiKey && placeCandidateText && !/^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$/.test(placeCandidateText)) {
+      try {
+        const places = await this.searchPlaces(placeCandidateText);
+        if (places.length > 0 && places[0].locationAddress) {
+          return places[0].locationAddress;
+        }
+      } catch (err) {
+        console.warn(
+          '[MapsService] Google Places direct resolution failed:',
+          err instanceof Error ? err.message : String(err)
+        );
+      }
+    }
+
+    // 3. Fallback: resolve URL and extract coordinates
+    const coords = await this.resolveUrlAndExtractCoords(trimmed);
     if (!coords) {
       throw new Error('Tidak dapat mengekstrak titik koordinat dari tautan atau teks yang diberikan.');
     }
-    return this.reverseGeocode(coords.lat, coords.lng);
+
+    if (coords.placeAddress) {
+      return coords.placeAddress;
+    }
+
+    // 4. Reverse geocode via Nominatim
+    const address = await this.reverseGeocode(coords.lat, coords.lng);
+
+    // If we have placeName from URL/coords and street doesn't already contain it, prepend it
+    const candidateName = coords.placeName || placeNameInUrl;
+    if (candidateName && !address.street.toLowerCase().includes(candidateName.toLowerCase())) {
+      address.street = `${candidateName}, ${address.street}`;
+      const parts: string[] = [address.street];
+      if (address.kelurahan && !address.street.includes(address.kelurahan)) parts.push(address.kelurahan);
+      if (address.kecamatan) parts.push(address.kecamatan);
+      if (address.kota) parts.push(address.kota);
+      if (address.provinsi) parts.push(address.provinsi);
+      if (address.zip) parts.push(address.zip);
+      address.fullAddress = parts.join(', ');
+    }
+
+    // Fallback: check if kecamatan is still empty and can be inferred from input text / url
+    if (!address.kecamatan) {
+      const kecRegex = /(?:kecamatan|kec\.)\s+([a-zA-Z\s]+?)(?:,|$)/i;
+      const kecMatch = trimmed.match(kecRegex);
+      if (kecMatch && kecMatch[1]) {
+        address.kecamatan = kecMatch[1].trim();
+        const parts: string[] = [address.street];
+        if (address.kelurahan && !address.street.includes(address.kelurahan)) parts.push(address.kelurahan);
+        parts.push(address.kecamatan);
+        if (address.kota) parts.push(address.kota);
+        if (address.provinsi) parts.push(address.provinsi);
+        if (address.zip) parts.push(address.zip);
+        address.fullAddress = parts.join(', ');
+      }
+    }
+
+    return address;
   }
 
   parseDmsCoordinates(text: string): { lat: number; lng: number } | null {
@@ -431,19 +658,60 @@ export class MapsService {
   ): FormattedLocationAddress {
     const road = addr.road || '';
 
-    // Kelurahan / Desa:
-    // Check suburb (urban), village, hamlet
-    const kelurahan = addr.suburb || addr.village || addr.hamlet || '';
+    // Kabupaten/Kota:
+    const countyCandidate = addr.county || '';
+    const cityCandidate = addr.city || '';
+    const explicitlyTypedCity = [cityCandidate, countyCandidate].find((v) => /^(kabupaten|kota)\s+/i.test(v));
+    const kota = explicitlyTypedCity || countyCandidate || cityCandidate || (countyCandidate ? '' : (addr.town || ''));
 
     // Kecamatan:
-    // city_district or municipality
-    const kecamatan = addr.city_district || addr.municipality || '';
+    // city_district, municipality, subdistrict, or town (when county or city represents the regency/city)
+    const townCandidate =
+      addr.town && kota && addr.town.toLowerCase() !== kota.toLowerCase()
+        ? addr.town
+        : '';
+    let kecamatan =
+      addr.subdistrict ||
+      addr.city_district ||
+      townCandidate ||
+      addr.municipality ||
+      '';
 
-    // Kabupaten/Kota:
-    const cityCandidate = addr.city || addr.town || '';
-    const countyCandidate = addr.county || '';
-    const explicitlyTypedCity = [cityCandidate, countyCandidate].find((v) => /^(kabupaten|kota)\s+/i.test(v));
-    const kota = explicitlyTypedCity || countyCandidate || cityCandidate;
+    const normalizeLocName = (s: string) =>
+      s.toLowerCase().replace(/^(kabupaten|kota|kecamatan|kec\.|kelurahan|desa)\s+/i, '').trim();
+
+    // Fallback: In Indonesia OSM Nominatim display_name is often: "Village, Kecamatan, Kabupaten/Kota, Provinsi, ..."
+    if (!kecamatan && displayName) {
+      const parts = displayName.split(',').map((p) => p.trim());
+      const normalizedKota = normalizeLocName(kota);
+      const kotaIdx = parts.findIndex(
+        (p) => normalizedKota && normalizeLocName(p) === normalizedKota
+      );
+      if (kotaIdx > 0 && parts[kotaIdx - 1]) {
+        const candidate = parts[kotaIdx - 1];
+        if (
+          normalizeLocName(candidate) !== normalizeLocName(addr.village || '') &&
+          normalizeLocName(candidate) !== normalizeLocName(addr.road || '')
+        ) {
+          kecamatan = candidate.replace(/^(kecamatan|kec\.)\s*/i, '').trim();
+        }
+      }
+    }
+
+    if (!kecamatan && displayName) {
+      const kecRegex = /(?:kecamatan|kec\.)\s+([a-zA-Z\s]+?)(?:,|$)/i;
+      const kecMatch = displayName.match(kecRegex);
+      if (kecMatch && kecMatch[1]) {
+        kecamatan = kecMatch[1].trim();
+      }
+    }
+
+    // Kelurahan / Desa:
+    // Check village, suburb (urban), hamlet
+    let kelurahan = addr.village || addr.suburb || addr.hamlet || '';
+    if (kelurahan && kecamatan && kelurahan.toLowerCase() === kecamatan.toLowerCase()) {
+      kelurahan = addr.village || addr.hamlet || '';
+    }
 
     // Provinsi:
     let provinsi = addr.state || addr.province || addr.region || '';

@@ -36,6 +36,7 @@ import {
 } from '@sync-erp/shared';
 import type { RentalOrderWithRelations } from '@sync-erp/shared';
 import UnitAssignmentModal from '../modals/UnitAssignmentModal';
+import SettlementModal from '../modals/SettlementModal';
 import ConfirmOrderModal from '../modals/ConfirmOrderModal';
 import CreateOrderModal from '../modals/CreateOrderModal';
 import ReturnModal from '../modals/ReturnModal';
@@ -75,6 +76,7 @@ export default function RentalOrdersPage() {
   const [editingOrder, setEditingOrder] = useState<RentalOrderWithRelations | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isReleaseOpen, setIsReleaseOpen] = useState(false);
+  const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [isReturnOpen, setIsReturnOpen] = useState(false);
   const [isVerifyPaymentOpen, setIsVerifyPaymentOpen] =
     useState(false);
@@ -505,13 +507,26 @@ export default function RentalOrdersPage() {
                           Serahkan
                         </button>
                       )}
+                      {order.status === RentalOrderStatus.ACTIVE &&
+                        order.rentalPaymentStatus !== RentalPaymentStatus.CONFIRMED && (
+                        <button
+                          onClick={() => {
+                            setSelectedOrderId(order.id);
+                            setIsSettlementOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100"
+                        >
+                          <CurrencyDollarIcon className="w-4 h-4" />
+                          Catat Pelunasan
+                        </button>
+                      )}
                       {order.status === RentalOrderStatus.ACTIVE && (
                         <button
                           onClick={() => {
                             setSelectedOrderId(order.id);
                             setIsReturnOpen(true);
                           }}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-purple-50 text-purple-700 rounded hover:bg-purple-100"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-slate-100 text-slate-700 rounded hover:bg-slate-200"
                         >
                           <ArrowUturnLeftIcon className="w-4 h-4" />
                           Proses Return
@@ -536,6 +551,21 @@ export default function RentalOrdersPage() {
         order={selectedOrder || null}
         onSuccess={() => {
           setIsReleaseOpen(false);
+          setSelectedOrderId(null);
+          utils.rental.orders.list.invalidate();
+        }}
+      />
+
+      {/* Settlement Modal */}
+      <SettlementModal
+        isOpen={isSettlementOpen}
+        onClose={() => {
+          setIsSettlementOpen(false);
+          setSelectedOrderId(null);
+        }}
+        order={selectedOrder || null}
+        onSuccess={() => {
+          setIsSettlementOpen(false);
           setSelectedOrderId(null);
           utils.rental.orders.list.invalidate();
         }}

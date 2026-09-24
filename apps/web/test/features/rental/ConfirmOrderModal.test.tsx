@@ -172,11 +172,11 @@ describe('ConfirmOrderModal Component', () => {
 
     // Verify Total Tagihan Order
     expect(screen.getByText('Total Tagihan Order')).toBeInTheDocument();
-    expect(screen.getByText('Rp 87.500')).toBeInTheDocument();
+    expect(screen.getAllByText('Rp 87.500').length).toBeGreaterThanOrEqual(1);
 
     // Verify DP & Sisa Pelunasan
     expect(screen.getByText('Uang Muka (DP) yang dibayar:')).toBeInTheDocument();
-    expect(screen.getByText('Rp 26.000')).toBeInTheDocument();
+    expect(screen.getAllByText('Rp 26.000').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Sisa Tagihan Pelunasan:')).toBeInTheDocument();
     expect(screen.getByText('Rp 61.500')).toBeInTheDocument();
   });
@@ -208,7 +208,7 @@ describe('ConfirmOrderModal Component', () => {
     );
 
     expect(
-      screen.getByText('Bukti Transfer / Pembayaran DP')
+      screen.getByText(/Bukti Transfer \/ Pembayaran/)
     ).toBeInTheDocument();
     expect(
       screen.getByText('Klik untuk memilih file atau seret file ke sini')

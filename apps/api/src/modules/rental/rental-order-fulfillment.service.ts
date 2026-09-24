@@ -17,6 +17,7 @@ import {
   PaymentMethodType,
   JournalSourceType,
   OrderSource,
+  UnitCondition,
 } from '@sync-erp/database';
 import { RentalRepository } from './rental.repository';
 import { JournalService } from '../accounting/services/journal.service';
@@ -30,6 +31,7 @@ import {
   type ConfirmRentalOrderInput,
   type ManualConfirmRentalOrderInput,
   type ReleaseRentalOrderInput,
+  type RecordSettlementInput,
 } from '@sync-erp/shared';
 import { Decimal } from 'decimal.js';
 import { isBillingFeatureEnabled } from '../billing/billing-limits.service';
@@ -145,7 +147,7 @@ export class RentalOrderFulfillmentService {
             where: {
               rentalItemId,
               companyId,
-              status: { notIn: [UnitStatus.MAINTENANCE, UnitStatus.RETIRED] },
+              status: UnitStatus.AVAILABLE,
               id: { notIn: bookedUnitIds },
             },
             take: qty,
@@ -263,7 +265,7 @@ export class RentalOrderFulfillmentService {
       const reservationResult = await tx.rentalItemUnit.updateMany({
         where: {
           id: { in: unitIds },
-          status: { notIn: [UnitStatus.MAINTENANCE, UnitStatus.RETIRED] },
+          status: UnitStatus.AVAILABLE,
         },
         data: { status: UnitStatus.RESERVED },
       });
@@ -738,7 +740,7 @@ export class RentalOrderFulfillmentService {
               conditionType: 'RELEASE',
               beforePhotos: assignment.beforePhotos ?? [],
               afterPhotos: [],
-              condition: assignment.condition,
+              condition: assignment.condition ?? UnitCondition.GOOD,
               notes:
                 assignment.notes ??
                 (hasMediaAccess ? undefined : 'No media access on current plan'),
@@ -755,24 +757,6 @@ export class RentalOrderFulfillmentService {
         data: { status: UnitStatus.RENTED },
       });
 
-      // Extract payment & compute settlement values
-      const payment = input.payment;
-      const downPaymentAmount = Number(order.depositAmount || 0);
-      const rentalRevenueAmount = Number(order.subtotal);
-      const deliveryFeeAmount = Number(order.deliveryFee || 0);
-      const totalExpected = new Decimal(rentalRevenueAmount).plus(deliveryFeeAmount);
-      // Cap the DP recognized in this release to the order total.
-      // If deposit > order total, the excess stays in acc 2200 until the
-      // return/refund flow clears it with a separate deposit-refund journal.
-      const effectiveDownPayment = Math.min(
-        downPaymentAmount,
-        totalExpected.toNumber()
-      );
-      const settlementAmount =
-        payment?.settlementAmount !== undefined
-          ? payment.settlementAmount
-          : Math.max(0, totalExpected.minus(effectiveDownPayment).toNumber());
-
       // Update order conditionally (H7 idempotency guard)
       const releaseUpdateResult = await tx.rentalOrder.updateMany({
         where: {
@@ -782,11 +766,6 @@ export class RentalOrderFulfillmentService {
         data: {
           status: RentalOrderStatus.ACTIVE,
           activatedAt: new Date(),
-          rentalPaymentStatus: RentalPaymentStatus.CONFIRMED,
-          paymentConfirmedAt: new Date(),
-          paymentConfirmedBy: userId,
-          ...(payment?.reference && { paymentReference: payment.reference }),
-          ...(payment?.paymentMethod && { paymentMethod: payment.paymentMethod }),
         },
       });
 
@@ -807,37 +786,6 @@ export class RentalOrderFulfillmentService {
         },
       })) as RentalOrder;
 
-      // Post settlement journal upon release (70% balance + DP recognition) only if not already posted (H7)
-      if (settlementAmount > 0 || effectiveDownPayment > 0) {
-        const existingReleaseJournal = await tx.journalEntry.findFirst({
-          where: {
-            companyId,
-            sourceType: JournalSourceType.PAYMENT,
-            sourceId: order.id,
-            reference: { startsWith: JOURNAL_REF_PREFIX.RENTAL_RELEASE },
-          },
-        });
-
-        if (!existingReleaseJournal) {
-          await this.journalService.postRentalReleaseSettlement({
-            companyId,
-            orderId: order.id,
-            orderNumber: requireOrderNumber(order, 'Rental Release Journal Posting'),
-            settlementAmount,
-            downPaymentAmount: effectiveDownPayment,
-            rentalRevenueAmount,
-            deliveryFeeAmount,
-            paymentAccountId: payment?.paymentAccountId,
-            paymentMethod:
-              payment?.paymentMethod ||
-              order.paymentMethod ||
-              PaymentMethodType.CASH,
-            customerName: order.partner?.name,
-            tx,
-          });
-        }
-      }
-
       await recordAudit({
         companyId,
         actorId: userId,
@@ -847,6 +795,135 @@ export class RentalOrderFulfillmentService {
         businessDate: new Date(),
         payloadSnapshot: { unitCount: unitIds.length },
       });
+
+      return updated;
+    });
+  }
+
+  async recordSettlement(
+    companyId: string,
+    input: RecordSettlementInput,
+    userId: string
+  ): Promise<RentalOrder> {
+    return prisma.$transaction(async (tx) => {
+      const order = await this.repository.findOrderById(input.orderId, tx);
+      if (!order || order.companyId !== companyId) {
+        throw new DomainError(
+          'Order not found',
+          404,
+          DomainErrorCodes.ORDER_NOT_FOUND
+        );
+      }
+
+      if (order.status !== RentalOrderStatus.ACTIVE) {
+        throw new DomainError(
+          'Order must be in ACTIVE status to record settlement',
+          409,
+          DomainErrorCodes.ORDER_INVALID_STATE
+        );
+      }
+
+      if (order.rentalPaymentStatus === RentalPaymentStatus.CONFIRMED) {
+        throw new DomainError(
+          'Order payment has already been fully settled',
+          409,
+          DomainErrorCodes.ORDER_INVALID_STATE
+        );
+      }
+
+      const companyPaymentMethod = await tx.companyPaymentMethod.findFirst({
+        where: { id: input.paymentMethodId, companyId },
+        include: { account: true },
+      });
+
+      if (!companyPaymentMethod) {
+        throw new DomainError(
+          'Payment method not found',
+          400,
+          DomainErrorCodes.INVALID_INPUT
+        );
+      }
+
+      const totalAmount = Number(
+        order.totalAmount ??
+          new Decimal(order.subtotal ?? 0)
+            .plus(order.deliveryFee ?? 0)
+            .minus(order.discountAmount ?? 0)
+            .toNumber()
+      );
+      const depositPaid = Number(order.depositAmount ?? 0);
+      const remainingBalance = Math.max(0, totalAmount - depositPaid);
+      const settlementAmount = input.settlementAmount ?? remainingBalance;
+      const isFullyPaid = depositPaid + settlementAmount >= totalAmount;
+
+      await tx.rentalOrder.update({
+        where: { id: order.id },
+        data: {
+          rentalPaymentStatus: isFullyPaid
+            ? RentalPaymentStatus.CONFIRMED
+            : order.rentalPaymentStatus,
+          paymentMethod: companyPaymentMethod.code || companyPaymentMethod.type,
+          paymentReference: input.reference ?? order.paymentReference,
+          ...(isFullyPaid && {
+            paymentConfirmedAt: new Date(),
+            paymentConfirmedBy: userId,
+          }),
+        },
+      });
+
+      // Check if a settlement journal already exists (idempotency guard — same pattern as releaseOrder, using JOURNAL_REF_PREFIX.RENTAL_RELEASE)
+      const existingReleaseJournal = await tx.journalEntry.findFirst({
+        where: {
+          companyId,
+          sourceType: JournalSourceType.PAYMENT,
+          sourceId: order.id,
+          reference: { startsWith: JOURNAL_REF_PREFIX.RENTAL_RELEASE },
+        },
+      });
+
+      if (!existingReleaseJournal && settlementAmount > 0) {
+        await this.journalService.postRentalReleaseSettlement({
+          companyId,
+          orderId: order.id,
+          orderNumber: requireOrderNumber(order, 'Record Settlement Journal'),
+          settlementAmount,
+          downPaymentAmount: Math.min(depositPaid, totalAmount),
+          rentalRevenueAmount: Number(order.subtotal ?? 0),
+          deliveryFeeAmount: Number(order.deliveryFee ?? 0),
+          discountAmount: Number(order.discountAmount ?? 0),
+          paymentAccountId: companyPaymentMethod.accountId ?? undefined,
+          paymentMethod:
+            companyPaymentMethod.code ||
+            companyPaymentMethod.type ||
+            PaymentMethodType.CASH,
+          customerName: order.partner?.name,
+          tx,
+        });
+      }
+
+      await recordAudit({
+        companyId,
+        actorId: userId,
+        action: AuditLogAction.RENTAL_ORDER_RELEASED,
+        entityType: EntityType.RENTAL_ORDER,
+        entityId: order.id,
+        businessDate: new Date(),
+        payloadSnapshot: {
+          action: 'SETTLEMENT_RECORDED',
+          settlementAmount,
+          isFullyPaid,
+          paymentMethod: companyPaymentMethod.name || companyPaymentMethod.code,
+        },
+      });
+
+      const updated = (await tx.rentalOrder.findUniqueOrThrow({
+        where: { id: order.id },
+        include: {
+          items: true,
+          unitAssignments: true,
+          deposit: true,
+        },
+      })) as RentalOrder;
 
       return updated;
     });

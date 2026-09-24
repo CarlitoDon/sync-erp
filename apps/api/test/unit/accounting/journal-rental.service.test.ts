@@ -273,6 +273,39 @@ describe('JournalRentalService (Double-Entry Accounting Automation)', () => {
         })
       ).rejects.toThrow('Rental release settlement must have positive financial value');
     });
+
+    it('should correctly balance journal when discount is applied', async () => {
+      mockPrisma.journalEntry.create.mockClear();
+      await rentalService.postRentalReleaseSettlement({
+        companyId: COMPANY_ID,
+        orderId: 'order-hany',
+        orderNumber: 'RNT-202609-00002',
+        settlementAmount: 298000,
+        downPaymentAmount: 128000,
+        rentalRevenueAmount: 400000,
+        deliveryFeeAmount: 35000,
+        discountAmount: 9000,
+        paymentMethod: PaymentMethodType.CASH,
+        customerName: 'Hany',
+      });
+
+      expect(mockPrisma.journalEntry.create).toHaveBeenCalledTimes(1);
+      const callArgs = mockPrisma.journalEntry.create.mock.calls[0][0];
+      const lines = callArgs.data.lines.create;
+      const totalDebit = lines.reduce((sum: number, l: { debit?: number }) => sum + (l.debit || 0), 0);
+      const totalCredit = lines.reduce((sum: number, l: { credit?: number }) => sum + (l.credit || 0), 0);
+
+      expect(totalDebit).toBe(426000);
+      expect(totalCredit).toBe(426000);
+      expect(totalDebit).toBe(totalCredit);
+
+      const dpLine = lines.find((l: { accountId: string; debit?: number }) => l.accountId === 'acc-dp-id');
+      expect(dpLine?.debit).toBe(128000);
+
+      const revLines = lines.filter((l: { accountId: string; credit?: number }) => l.accountId === 'acc-rev-id');
+      const totalRevCredit = revLines.reduce((sum: number, l: { credit?: number }) => sum + (l.credit || 0), 0);
+      expect(totalRevCredit).toBe(426000);
+    });
   });
 
   describe('T006: postRentalExtension', () => {

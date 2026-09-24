@@ -182,6 +182,37 @@ describe('MapsService', () => {
       expect(res.provinsi).toBe('Daerah Istimewa Yogyakarta');
     });
 
+    it('maps town as kecamatan when county exists in Indonesian administrative structure', async () => {
+      const mockResponse = {
+        lat: '-7.925178',
+        lon: '110.350209',
+        display_name: 'Patalan, Jetis, Bantul, Daerah Istimewa Yogyakarta, 55781, Indonesia',
+        address: {
+          village: 'Patalan',
+          town: 'Jetis',
+          county: 'Bantul',
+          state: 'Daerah Istimewa Yogyakarta',
+          postcode: '55781',
+          country: 'Indonesia',
+        },
+      };
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+
+      const res = await service.reverseGeocode(-7.925178, 110.350209);
+      expect(res.kelurahan).toBe('Patalan');
+      expect(res.kecamatan).toBe('Jetis');
+      expect(res.kota).toBe('Bantul');
+      expect(res.provinsi).toBe('Daerah Istimewa Yogyakarta');
+      expect(res.zip).toBe('55781');
+      expect(res.fullAddress).toBe('Patalan, Jetis, Bantul, Daerah Istimewa Yogyakarta, 55781');
+    });
+
     it('throws error when coordinates are invalid', async () => {
       await expect(service.reverseGeocode(100, 200)).rejects.toThrow(
         'Koordinat tidak valid'
@@ -261,4 +292,108 @@ describe('MapsService', () => {
       }
     });
   });
+
+  describe('resolveUrlAndExtractCoords', () => {
+    it('resolves maps.app.goo.gl redirect with curl user agent', async () => {
+      const targetUrl =
+        'https://www.google.com/maps/place/Gudang/@-7.925178,110.3502086/data=!4m6!3m5!1s0x0!7e2!8m2!3d-7.925178!4d110.3502086';
+
+      vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (_input, init) => {
+        expect((init?.headers as Record<string, string>)?.['User-Agent']).toBe('curl/8.0');
+        const res = new Response('Redirecting...', { status: 302 });
+        Object.defineProperty(res, 'url', { value: targetUrl });
+        return res;
+      });
+
+      const res = await service.resolveUrlAndExtractCoords('https://maps.app.goo.gl/TPauZjSPWxLSPai18');
+      expect(res).toEqual({ lat: -7.925178, lng: 110.3502086 });
+    });
+
+    it('prioritizes town over municipality when county exists (Kasihan over Gamping in Bantul)', async () => {
+      const mockResponse = {
+        lat: '-7.82555',
+        lon: '110.311449',
+        display_name: 'Bangunjiwo, Kasihan, Bantul, Daerah Istimewa Yogyakarta, 55184, Indonesia',
+        address: {
+          village: 'Bangunjiwo',
+          town: 'Kasihan',
+          municipality: 'Gamping',
+          county: 'Bantul',
+          state: 'Daerah Istimewa Yogyakarta',
+          postcode: '55184',
+          country: 'Indonesia',
+        },
+      };
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+
+      const res = await service.reverseGeocode(-7.82555, 110.311449);
+      expect(res.kelurahan).toBe('Bangunjiwo');
+      expect(res.kecamatan).toBe('Kasihan');
+      expect(res.kota).toBe('Bantul');
+      expect(res.provinsi).toBe('Daerah Istimewa Yogyakarta');
+      expect(res.zip).toBe('55184');
+    });
+
+    it('handles Google deep link interstitial with data-desktop-link', async () => {
+      const interstitialHtml = `
+        <html>
+          <div data-desktop-link="https://maps.app.goo.gl/TPauZjSPWxLSPai18?_imcp=1"></div>
+        </html>
+      `;
+      const targetUrl =
+        'https://www.google.com/maps/place/Gudang/data=!4m6!3m5!1s0x0!7e2!8m2!3d-7.925178!4d110.3502086';
+
+      vi.spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce(
+          new Response(interstitialHtml, {
+            status: 200,
+            headers: { 'Content-Type': 'text/html' },
+          })
+        )
+        .mockImplementationOnce(async () => {
+          const res = new Response('OK', { status: 200 });
+          Object.defineProperty(res, 'url', { value: targetUrl });
+          return res;
+        });
+
+      const res = await service.resolveUrlAndExtractCoords('https://maps.app.goo.gl/TPauZjSPWxLSPai18');
+      expect(res).toEqual({ lat: -7.925178, lng: 110.3502086 });
+    });
+
+    it('resolves place text in Google Maps path via searchPlaces when coords are not in URL', async () => {
+      const redirectUrl =
+        'https://www.google.com/maps/place/58F6%2BQGQ+Ilham+Bengkel,+Donotirto,+Bangunjiwo,+Kec.+Kasihan,+Kabupaten+Bantul,+Daerah+Istimewa+Yogyakarta+55184/data=!4m2!3m1!1s0x2e7af9f58a2a4f51:0x7caf1259fb211313!18m1!1e1';
+
+      vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async () => {
+        const res = new Response('<html><body>No static map coordinates</body></html>', { status: 200 });
+        Object.defineProperty(res, 'url', { value: redirectUrl });
+        return res;
+      });
+
+      vi.spyOn(service, 'searchPlaces').mockResolvedValueOnce([
+        {
+          id: 'place-123',
+          name: 'Ilham Bengkel',
+          address: '58F6+QGQ, Donotirto, Bangunjiwo, Kec. Kasihan, Kabupaten Bantul',
+          latitude: -7.82555,
+          longitude: 110.311449,
+        },
+      ]);
+
+      const res = await service.resolveUrlAndExtractCoords('https://maps.app.goo.gl/XDkcDmdAakjeRKteA');
+      expect(res).toEqual({
+        lat: -7.82555,
+        lng: 110.311449,
+        placeName: 'Ilham Bengkel',
+      });
+    });
+  });
 });
+
+

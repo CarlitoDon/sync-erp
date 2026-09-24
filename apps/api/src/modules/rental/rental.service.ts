@@ -37,6 +37,7 @@ import {
   type HistoricalRentalSettlementInput,
   type ManualConfirmRentalOrderInput,
   type ReleaseRentalOrderInput,
+  type RecordSettlementInput,
   type ProcessReturnInput,
   type RentalItemWithRelations,
   type PrismaRentalOrderWithRelations,
@@ -207,6 +208,14 @@ export class RentalService {
     userId: string
   ): Promise<RentalOrder> {
     return this.orderService.releaseOrder(companyId, input, userId);
+  }
+
+  async recordSettlement(
+    companyId: string,
+    input: RecordSettlementInput,
+    userId: string
+  ): Promise<RentalOrder> {
+    return this.orderService.recordSettlement(companyId, input, userId);
   }
 
   async cancelOrder(

@@ -47,6 +47,7 @@ export interface PostRentalReleaseSettlementParams {
   downPaymentAmount: number;
   rentalRevenueAmount: number;
   deliveryFeeAmount?: number;
+  discountAmount?: number;
   paymentAccountId?: string;
   paymentMethod?: string;
   customerName?: string;
@@ -189,6 +190,7 @@ export class JournalRentalService {
       downPaymentAmount,
       rentalRevenueAmount,
       deliveryFeeAmount,
+      discountAmount,
       paymentAccountId,
       paymentMethod,
       customerName,
@@ -198,8 +200,19 @@ export class JournalRentalService {
 
     const dSettlement = new Decimal(settlementAmount || 0);
     const dDownPayment = new Decimal(downPaymentAmount || 0);
-    const dRevenue = new Decimal(rentalRevenueAmount || 0);
-    const dDelivery = new Decimal(deliveryFeeAmount || 0);
+    const dDiscount = new Decimal(discountAmount || 0);
+    let dRevenue = new Decimal(rentalRevenueAmount || 0);
+    let dDelivery = new Decimal(deliveryFeeAmount || 0);
+
+    if (dDiscount.gt(0)) {
+      if (dDelivery.gte(dDiscount)) {
+        dDelivery = dDelivery.minus(dDiscount);
+      } else {
+        const remainingDiscount = dDiscount.minus(dDelivery);
+        dDelivery = new Decimal(0);
+        dRevenue = dRevenue.minus(remainingDiscount);
+      }
+    }
 
     const totalDebit = dSettlement.plus(dDownPayment);
     const totalCredit = dRevenue.plus(dDelivery);

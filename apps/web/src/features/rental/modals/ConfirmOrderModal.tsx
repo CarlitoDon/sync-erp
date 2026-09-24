@@ -22,6 +22,7 @@ import {
   ArrowDownTrayIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
+import { CheckCircleIcon } from '@heroicons/react/20/solid';
 import QuickAddUnitsModal from './QuickAddUnitsModal';
 import PhotoLightbox from '../components/PhotoLightbox';
 import { useConfirmOrder } from '../hooks';
@@ -116,6 +117,12 @@ export default function ConfirmOrderModal({
 
   if (!order && !isLoading) return null;
 
+  const totalAmountNum = Number(order?.totalAmount ?? 0);
+  const suggestedDp30 = Math.round((totalAmountNum * 0.3) / 1000) * 1000;
+  const isLunas = depositInput >= totalAmountNum && totalAmountNum > 0;
+  const isDp30 = depositInput === suggestedDp30 && !isLunas && depositInput > 0;
+  const isZeroDp = depositInput === 0;
+
   const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -185,7 +192,7 @@ export default function ConfirmOrderModal({
         onClose={handleCloseModal}
         title={`Konfirmasi Order - ${order?.orderNumber || '...'}`}
       >
-        <div className="space-y-4 max-h-[82vh] overflow-y-auto px-1 pb-1">
+        <div className="space-y-4">
           {isLoading ? (
             <div className="py-8 text-center text-gray-500">
               Memuat data order...
@@ -403,7 +410,11 @@ export default function ConfirmOrderModal({
                 {/* Rincian DP & Sisa Pelunasan */}
                 <div className="pt-2 border-t border-dashed border-slate-200 space-y-1 text-xs">
                   <div className="flex justify-between text-slate-600">
-                    <span>Uang Muka (DP) yang dibayar:</span>
+                    <span>
+                      {breakdown.isFullyPaid
+                        ? 'Dibayar di Muka (Lunas):'
+                        : 'Uang Muka (DP) yang dibayar:'}
+                    </span>
                     <span className="font-semibold text-blue-700">
                       Rp {breakdown.depositAmount.toLocaleString('id-ID')}
                     </span>
@@ -417,7 +428,9 @@ export default function ConfirmOrderModal({
                           : 'text-amber-700'
                       }`}
                     >
-                      Rp {breakdown.remainingBalance.toLocaleString('id-ID')}
+                      {breakdown.remainingBalance === 0
+                        ? 'Rp 0 (Lunas)'
+                        : `Rp ${breakdown.remainingBalance.toLocaleString('id-ID')}`}
                     </span>
                   </div>
                   <div className="pt-1">
@@ -434,55 +447,131 @@ export default function ConfirmOrderModal({
                 </div>
               </div>
 
-              {/* Requirement 2 & User Instruction: Down Payment, Single Dropdown & Proof Upload */}
-              <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4 space-y-3.5">
+              {/* Apple-style Payment Structure Card */}
+              <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-4 sm:p-5 space-y-4 shadow-2xs">
+                {/* Header */}
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-blue-900 flex items-center gap-1.5">
-                    <BanknotesIcon className="w-5 h-5 text-blue-700" />
-                    Pembayaran Uang Muka (DP)
-                  </h4>
-                  <span className="text-xs text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full font-medium">
-                    Saran DP ±30%: Rp{' '}
-                    {(
-                      Math.round(
-                        (Number(order?.totalAmount ?? 0) * 0.3) / 1000
-                      ) * 1000
-                    ).toLocaleString('id-ID')}
-                  </span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/90 flex items-center justify-center text-slate-700 shadow-2xs">
+                      <BanknotesIcon className="w-4.5 h-4.5" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-semibold text-slate-900 tracking-tight">
+                        Ketentuan Pembayaran di Muka
+                      </h4>
+                      <p className="text-[11px] text-slate-500 font-normal">
+                        Isi nominal atau gunakan isian cepat di bawah
+                      </p>
+                    </div>
+                  </div>
+                  {isLunas ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
+                      <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" aria-hidden="true" />
+                      Lunas 100%
+                    </span>
+                  ) : isDp30 ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
+                      <CheckCircleIcon className="w-3.5 h-3.5 text-blue-600 shrink-0" aria-hidden="true" />
+                      DP Standar (30%)
+                    </span>
+                  ) : isZeroDp ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-200/60 border border-slate-300/80 px-2.5 py-0.5 rounded-full shadow-2xs">
+                      <CheckCircleIcon className="w-3.5 h-3.5 text-slate-600 shrink-0" aria-hidden="true" />
+                      Tanpa DP (COD)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center text-[11px] font-medium text-slate-700 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full shadow-2xs">
+                      Nominal Kustom
+                    </span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Amount Input — the primary interaction */}
+                <div className="space-y-2">
                   <CurrencyInput
-                    label="Nominal DP"
+                    label={isLunas ? 'Nominal Pembayaran (Lunas)' : 'Nominal Pembayaran / DP'}
                     value={depositInput}
                     onChange={setDepositInput}
                     min={0}
-                    max={Number(order?.totalAmount ?? 0)}
+                    max={totalAmountNum}
                     required
                   />
 
-                  {/* Single Unified Dropdown for Sales: Auto-mapped to GL Account */}
-                  <Select
-                    label="Metode Pembayaran DP"
-                    value={selectedPaymentMethodId}
-                    onChange={handleSelectPaymentMethod}
-                    placeholder="Pilih metode pembayaran"
-                    required
-                    options={paymentMethods.map((pm) => ({
-                      value: pm.id,
-                      label: `${pm.name}${
-                        pm.account
-                          ? ` (${pm.account.code} — ${pm.account.name})`
-                          : ' (Belum ada Akun GL)'
-                      }`,
-                    }))}
-                    onCreate={handleQuickCreatePaymentMethod}
-                    createLabel="Tambah metode pembayaran"
-                  />
+                  {/* Inline preset pills — fast-fill shortcuts */}
+                  <div
+                    className="flex items-center gap-1.5 flex-wrap"
+                    role="group"
+                    aria-label="Isian cepat nominal pembayaran"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setDepositInput(totalAmountNum)}
+                      aria-pressed={isLunas}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors touch-manipulation active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden ${
+                        isLunas
+                          ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      {isLunas && <CheckCircleIcon className="w-3 h-3 shrink-0" aria-hidden="true" />}
+                      {'Lunas '}
+                      <span className="tabular-nums">{'Rp '}{totalAmountNum.toLocaleString('id-ID')}</span>
+                    </button>
+
+                    {suggestedDp30 > 0 && suggestedDp30 < totalAmountNum && (
+                      <button
+                        type="button"
+                        onClick={() => setDepositInput(suggestedDp30)}
+                        aria-pressed={isDp30}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors touch-manipulation active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-hidden ${
+                          isDp30
+                            ? 'bg-blue-50 border-blue-400 text-blue-800'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {isDp30 && <CheckCircleIcon className="w-3 h-3 shrink-0" aria-hidden="true" />}
+                        {'DP 30% '}
+                        <span className="tabular-nums">{'Rp '}{suggestedDp30.toLocaleString('id-ID')}</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setDepositInput(0)}
+                      aria-pressed={isZeroDp}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors touch-manipulation active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:outline-hidden ${
+                        isZeroDp
+                          ? 'bg-slate-100 border-slate-400 text-slate-800'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      {isZeroDp && <CheckCircleIcon className="w-3 h-3 shrink-0" aria-hidden="true" />}
+                      Tanpa DP
+                    </button>
+                  </div>
                 </div>
 
+                {/* Payment Method */}
+                <Select
+                  label={isLunas ? 'Metode Pembayaran (Lunas)' : 'Metode Pembayaran DP'}
+                  value={selectedPaymentMethodId}
+                  onChange={handleSelectPaymentMethod}
+                  placeholder="Pilih metode pembayaran"
+                  required
+                  options={paymentMethods.map((pm) => ({
+                    value: pm.id,
+                    label: `${pm.name}${
+                      pm.account
+                        ? ` (${pm.account.code} — ${pm.account.name})`
+                        : ' (Belum ada Akun GL)'
+                    }`,
+                  }))}
+                  onCreate={handleQuickCreatePaymentMethod}
+                  createLabel="Tambah metode pembayaran"
+                />
+
                 {selectedPaymentMethod && !selectedPaymentMethod.accountId && (
-                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded">
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 p-2.5 rounded-xl">
                     ⚠️ Metode &quot;{selectedPaymentMethod.name}&quot; belum
                     terhubung ke Akun GL Kas/Bank. Jurnal kas tidak akan
                     diposting otomatis. Anda dapat menghubungkannya di menu{' '}
@@ -499,20 +588,20 @@ export default function ConfirmOrderModal({
                 )}
 
                 <Input
-                  label="Referensi Pembayaran"
+                  label="Referensi Pembayaran (Opsional)"
                   value={paymentReference}
                   onChange={(event) => setPaymentReference(event.target.value)}
-                  placeholder="No. transfer / kode transaksi / bukti bayar (opsional)"
+                  placeholder="No. transfer / kode transaksi / bukti bayar…"
                 />
 
                 {/* Upload Bukti Bayar Down Payment Section */}
-                <div className="pt-2 border-t border-blue-200/60 space-y-2">
+                <div className="pt-2 border-t border-slate-200/80 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-blue-900">
-                      Bukti Transfer / Pembayaran DP
+                    <label className="block text-xs font-semibold text-slate-800">
+                      Bukti Transfer / Pembayaran
                     </label>
-                    <span className="text-[11px] text-blue-600">
-                      (Gambar JPG/PNG atau PDF, maks. 10MB)
+                    <span className="text-[11px] text-slate-500">
+                      (Gambar JPG/PNG atau PDF, maks.&nbsp;10&nbsp;MB)
                     </span>
                   </div>
 
@@ -532,17 +621,17 @@ export default function ConfirmOrderModal({
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                       onClick={() => fileInputRef.current?.click()}
-                      className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
+                      className={`border border-dashed rounded-xl p-3.5 text-center cursor-pointer transition-all ${
                         isDragOver
-                          ? 'border-blue-500 bg-blue-100/50'
-                          : 'border-blue-200 bg-white/60 hover:bg-white hover:border-blue-300'
+                          ? 'border-blue-500 bg-blue-50/50'
+                          : 'border-slate-300 bg-white/70 hover:bg-white hover:border-slate-400'
                       }`}
                     >
-                      <DocumentArrowUpIcon className="w-6 h-6 text-blue-500 mx-auto mb-1" />
-                      <p className="text-xs text-blue-900 font-medium">
+                      <DocumentArrowUpIcon className="w-5 h-5 text-slate-400 mx-auto mb-1" />
+                      <p className="text-xs text-slate-800 font-medium">
                         Klik untuk memilih file atau seret file ke sini
                       </p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">
+                      <p className="text-[11px] text-slate-500 mt-0.5">
                         Mendukung foto slip transfer, struk bank, screenshot
                         QRIS, atau PDF
                       </p>
@@ -551,26 +640,26 @@ export default function ConfirmOrderModal({
 
                   {/* Selected File Preview Card */}
                   {proofFile && (
-                    <div className="bg-white border border-blue-200 rounded-lg p-3 flex items-center justify-between gap-3 shadow-xs">
+                    <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-3 shadow-2xs">
                       <div className="flex items-center gap-3 min-w-0">
                         {proofPreviewUrl ? (
                           <img
                             src={proofPreviewUrl}
                             alt="Preview Bukti Bayar"
                             onClick={() => openImagePreview(proofPreviewUrl)}
-                            className="w-12 h-12 rounded object-cover border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity shrink-0"
+                            className="w-12 h-12 rounded-lg object-cover border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity shrink-0"
                             title="Klik untuk memperbesar gambar"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                          <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                             <DocumentTextIcon className="w-6 h-6" />
                           </div>
                         )}
                         <div className="min-w-0 text-left">
-                          <p className="text-xs font-semibold text-gray-900 truncate">
+                          <p className="text-xs font-semibold text-slate-900 truncate">
                             {proofFile.name}
                           </p>
-                          <p className="text-[11px] text-gray-500">
+                          <p className="text-[11px] text-slate-500">
                             {formatFileSize(proofFile.size)} •{' '}
                             <span className="text-blue-600 font-medium">
                               Siap diunggah saat konfirmasi
@@ -587,14 +676,14 @@ export default function ConfirmOrderModal({
                           onClick={handleUploadProofNow}
                           disabled={isUploadingProof}
                           isLoading={isUploadingProof}
-                          className="text-xs h-8 px-2.5 text-blue-700 border-blue-200 hover:bg-blue-50"
+                          className="text-xs h-8 px-2.5 text-blue-700 border-slate-200 hover:bg-slate-50"
                         >
                           Unggah Sekarang
                         </Button>
                         <button
                           type="button"
                           onClick={handleRemoveProofFile}
-                          className="p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
                           title="Hapus file terpilih"
                         >
                           <XMarkIcon className="w-5 h-5" />
@@ -604,7 +693,7 @@ export default function ConfirmOrderModal({
                   )}
 
                   {proofError && (
-                    <p className="text-xs text-red-600">{proofError}</p>
+                    <p className="text-xs text-rose-600">{proofError}</p>
                   )}
 
                   {/* Existing Attachments Display */}
@@ -691,15 +780,20 @@ export default function ConfirmOrderModal({
 
               {/* Info Box - only show if can confirm */}
               {canConfirm && (
-                <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
-                  <p>
-                    <strong>Konfirmasi akan:</strong>
+                <div className="bg-slate-100/80 border border-slate-200/90 p-3.5 rounded-xl text-xs text-slate-700 space-y-1.5">
+                  <p className="font-semibold text-slate-900 flex items-center gap-1.5">
+                    <CheckCircleIcon className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
+                    Aksi yang akan dijalankan sistem:
                   </p>
-                  <ul className="list-disc list-inside mt-1 text-xs space-y-1">
-                    <li>Otomatis assign unit yang tersedia</li>
-                    <li>Reserve unit untuk order ini</li>
+                  <ul className="list-disc list-inside text-[11px] text-slate-600 space-y-1 pl-1">
+                    <li>Otomatis assign unit stok yang tersedia ke order ini</li>
+                    <li>Reserve unit agar tidak terambil order lain</li>
                     <li>Mengubah status order menjadi CONFIRMED</li>
-                    <li>Mencatat bukti pembayaran &amp; posting jurnal kas DP</li>
+                    <li>
+                      {breakdown.isFullyPaid
+                        ? 'Mencatat bukti pembayaran & posting pelunasan kas (Lunas 100%)'
+                        : 'Mencatat bukti pembayaran & posting jurnal kas DP'}
+                    </li>
                   </ul>
                 </div>
               )}
@@ -829,8 +923,8 @@ export default function ConfirmOrderModal({
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              {/* Sticky Modal Footer */}
+              <div className="sticky bottom-0 -mx-5 -mb-5 sm:-mx-7 sm:-mb-7 mt-6 border-t border-slate-200/80 bg-white/95 backdrop-blur-xs px-5 py-4 sm:px-7 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] rounded-b-2xl z-20 flex items-center justify-end gap-3">
                 <Button variant="outline" onClick={handleCloseModal}>
                   Tutup
                 </Button>

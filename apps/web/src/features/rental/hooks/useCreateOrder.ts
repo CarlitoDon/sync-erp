@@ -242,7 +242,7 @@ export function parseOrderToFormState(
   const depositNum = toNumber(order.depositAmount);
 
   const baseDeliveryMatch = notesText.match(
-    /ongkos kirim dasar:\s*rp\s*([\d\.]+)/i
+    /ongkos kirim dasar:\s*rp\s*([\d.]+)/i
   );
   let parsedDeliveryFee = '';
   if (baseDeliveryMatch) {
