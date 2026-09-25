@@ -38,6 +38,7 @@ function splitBubbles(text: string): string[] {
  */
 const BUBBLE_DELAY_MS = 1200;
 
+
 export async function dispatchToWebhook(
   cleanPhone: string,
   customerPhone: string,
