@@ -6,6 +6,7 @@
 
 import type { WASocket } from '@whiskeysockets/baileys';
 import { dispatchToWebhook } from './webhook-dispatcher';
+import { getBotConfig } from '../config/bot.config';
 
 export interface DebounceEntry {
   timer: ReturnType<typeof setTimeout> | null;
@@ -25,7 +26,6 @@ export interface InFlightEntry {
 
 const debounceMap = new Map<string, DebounceEntry>();
 const inFlightMap = new Map<string, InFlightEntry>();
-const DEBOUNCE_DELAY_MS = Number(process.env.WHATSAPP_DEBOUNCE_MS) || 7000;
 
 export async function fireDebounce(
   cleanPhone: string,
@@ -107,6 +107,8 @@ export function bufferIncomingMessage(
   mediaUrl?: string | null,
 ): void {
   const existing = debounceMap.get(cleanPhone);
+  const delayMs = getBotConfig().debounceMs;
+
   if (existing) {
     if (existing.timer) clearTimeout(existing.timer);
     existing.messages.push(messageText);
@@ -117,7 +119,7 @@ export function bufferIncomingMessage(
     );
     existing.timer = setTimeout(
       () => fireDebounce(cleanPhone, customerPhone, existing, sock),
-      DEBOUNCE_DELAY_MS,
+      delayMs,
     );
   } else {
     const entry: DebounceEntry = {
@@ -129,7 +131,7 @@ export function bufferIncomingMessage(
     };
     entry.timer = setTimeout(
       () => fireDebounce(cleanPhone, customerPhone, entry, sock),
-      DEBOUNCE_DELAY_MS,
+      delayMs,
     );
     debounceMap.set(cleanPhone, entry);
   }
