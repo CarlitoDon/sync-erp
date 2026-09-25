@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { CookieOptions, Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { container, ServiceKeys } from '../common/di';
 import { AuthService } from './auth.service';
 import {
@@ -15,20 +15,7 @@ const googleOAuthService = container.resolve<GoogleOAuthService>(
   ServiceKeys.GOOGLE_OAUTH_SERVICE
 );
 
-function getSessionCookieOptions(): CookieOptions {
-  const isSecureEnv =
-    process.env.SECURE_COOKIES === 'true' ||
-    process.env.NODE_ENV === 'production' ||
-    process.env.NODE_ENV === 'staging';
-
-  return {
-    httpOnly: true,
-    secure: isSecureEnv,
-    sameSite: isSecureEnv ? 'none' : 'lax',
-    path: '/',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  };
-}
+import { getSessionCookieOptions } from './cookie';
 
 function getAuthAuditContext(req: Request) {
   const forwardedFor = req.headers['x-forwarded-for'];
@@ -161,7 +148,7 @@ router.get('/callback', async (req, res) => {
     res.cookie(
       'sessionId',
       result.session!.id,
-      getSessionCookieOptions()
+      getSessionCookieOptions(req)
     );
     res.redirect(302, googleOAuthService.getSuccessRedirectUrl());
   } catch (err) {
