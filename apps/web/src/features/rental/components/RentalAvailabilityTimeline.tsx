@@ -53,7 +53,7 @@ interface RentalAvailabilityTimelineProps {
   timeline: RentalAvailabilityTimelineData;
   startDate: Date;
   daysToShow: number;
-  onCreateOrder: () => void;
+  onCreateOrder: (context?: { rentalItemId: string }) => void;
 }
 
 interface DragState {
@@ -301,10 +301,12 @@ export function RentalAvailabilityTimeline({
                   {unit.status === 'AVAILABLE' && (
                     <button
                       type="button"
-                      onClick={onCreateOrder}
+                      onClick={() =>
+                        onCreateOrder({ rentalItemId: item.id })
+                      }
                       className="shrink-0 rounded p-1 text-slate-400 transition-colors duration-[var(--duration-fast)] hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                       aria-label={`Buat order untuk unit ${unit.unitCode}`}
-                      title="Buat order untuk unit ini"
+                      title={`Buat order untuk unit ${unit.unitCode}`}
                     >
                       <PlusCircleIcon
                         className="h-3.5 w-3.5"

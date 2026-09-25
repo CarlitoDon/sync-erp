@@ -172,7 +172,7 @@ export function getRentalTools(): ToolSpec[] {
     {
       name: 'rental_item_create',
       description:
-        'Create a rental item. Input JSON: {name, category?, dailyRate, weeklyRate?, monthlyRate?, productId?}',
+        'Create a rental item. Input JSON: {name, category?, dailyRate, productId?}',
       inputSchema: {
         type: 'object',
         properties: {
@@ -353,7 +353,7 @@ export function getRentalTools(): ToolSpec[] {
     {
       name: 'rental_order_create',
       description:
-        'Create a rental order. Input JSON: {partnerId, rentalStartDate, rentalEndDate, items: [{rentalItemId|rentalBundleId, quantity, pricePerDay?, lineTotal?}], deliveryFee?, discountAmount?, notes?}. Rental duration is calculated per night (rentalEndDate - rentalStartDate). Use source invoice pricePerDay/lineTotal and deliveryFee when historical or package pricing differs from master rates. Use lineTotal when the invoice has an exact line subtotal that should not be re-derived from a daily rate.',
+        'Create a rental order draft. Input JSON: {partnerId, rentalStartDate, rentalEndDate, items: [{rentalItemId|rentalBundleId, quantity, pricePerDay?, lineTotal?}], deliveryFee?, discounts?: [{id, label, type: "FIXED"|"PERCENTAGE", value, amount, target?: "ORDER"|"RENTAL"|"DELIVERY"}], discountAmount?, discountLabel?, paymentMethod?, notes?}. Rental duration is calculated per night (rentalEndDate - rentalStartDate).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -367,6 +367,31 @@ export function getRentalTools(): ToolSpec[] {
         return apiMutation(
           'rental.orders.create',
           input as Record<string, unknown>,
+          getString(args, 'companyId')
+        );
+      },
+    },
+    {
+      name: 'rental_order_update',
+      description:
+        'Update a rental order draft. Input JSON: {partnerId, rentalStartDate, rentalEndDate, items: [{rentalItemId|rentalBundleId, quantity, pricePerDay?, lineTotal?}], deliveryFee?, discounts?: [{id, label, type: "FIXED"|"PERCENTAGE", value, amount, target?: "ORDER"|"RENTAL"|"DELIVERY"}], discountAmount?, discountLabel?, paymentMethod?, notes?}. Only draft orders can be updated.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          companyId: companyIdProp,
+          orderId: { type: 'string', description: 'Rental order UUID to update' },
+          input: { type: 'string', description: 'JSON of updated rental order fields' },
+        },
+        required: ['companyId', 'orderId', 'input'],
+      },
+      handler: async (args) => {
+        const input: unknown = JSON.parse(getString(args, 'input'));
+        return apiMutation(
+          'rental.orders.update',
+          {
+            orderId: getString(args, 'orderId'),
+            data: input,
+          } as Record<string, unknown>,
           getString(args, 'companyId')
         );
       },

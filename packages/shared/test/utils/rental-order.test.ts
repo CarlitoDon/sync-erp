@@ -3,6 +3,7 @@ import { DomainError, DomainErrorCodes } from '../../src/errors/domain-error';
 import {
   requireOrderNumber,
   assertHasOrderNumber,
+  calculateRentalDays,
 } from '../../src/utils/rental-order';
 
 describe('requireOrderNumber & assertHasOrderNumber', () => {
@@ -66,3 +67,33 @@ describe('requireOrderNumber & assertHasOrderNumber', () => {
     expect(() => assertHasOrderNumber(order)).toThrow(DomainError);
   });
 });
+
+describe('calculateRentalDays', () => {
+  it('calculates duration correctly for calendar date strings', () => {
+    // 3 days: 23 to 26
+    expect(calculateRentalDays('2026-09-23', '2026-09-26')).toBe(3);
+    // 1 day: 23 to 24
+    expect(calculateRentalDays('2026-09-23', '2026-09-24')).toBe(1);
+    // Same day: 23 to 23 (minimum 1 day)
+    expect(calculateRentalDays('2026-09-23', '2026-09-23')).toBe(1);
+  });
+
+  it('calculates duration correctly when timestamps have delivery/pickup times', () => {
+    // Delivery at 10:00 and pickup at 18:00 (8h gap) should still be 3 days for 23 to 26
+    const start = new Date('2026-09-23T10:00:00.000Z');
+    const end = new Date('2026-09-26T18:00:00.000Z');
+    expect(calculateRentalDays(start, end)).toBe(3);
+
+    // 1-day rental with 10:00 delivery and 18:00 pickup
+    const start1 = new Date('2026-09-23T10:00:00.000Z');
+    const end1 = new Date('2026-09-24T18:00:00.000Z');
+    expect(calculateRentalDays(start1, end1)).toBe(1);
+  });
+
+  it('handles null, undefined, and invalid inputs gracefully', () => {
+    expect(calculateRentalDays(null, '2026-09-26')).toBe(0);
+    expect(calculateRentalDays('2026-09-23', null)).toBe(0);
+    expect(calculateRentalDays('invalid', '2026-09-26')).toBe(0);
+  });
+});
+

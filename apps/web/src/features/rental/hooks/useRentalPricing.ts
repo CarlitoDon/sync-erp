@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import { DepositPolicyType } from '@sync-erp/shared';
+import { DepositPolicyType, calculateRentalDays } from '@sync-erp/shared';
 
 interface OrderItem {
   rentalItemId?: string;
   rentalBundleId?: string;
-  quantity: number;
+  quantity: number | '';
   pricePerDay?: number;
 }
 
@@ -47,8 +47,6 @@ export function useRentalPricing(
 
     items.forEach((item) => {
       let dailyRate = 0;
-      let weeklyRate = 0;
-      let monthlyRate = 0;
       let depositPolicy: {
         type: DepositPolicyType;
         percentage?: number;
@@ -61,8 +59,6 @@ export function useRentalPricing(
         );
         if (rentalItem) {
           dailyRate = Number(rentalItem.dailyRate);
-          weeklyRate = Number(rentalItem.weeklyRate);
-          monthlyRate = Number(rentalItem.monthlyRate);
           depositPolicy = {
             type: rentalItem.depositPolicyType,
             percentage: Number(rentalItem.depositPercentage),
@@ -75,8 +71,6 @@ export function useRentalPricing(
         );
         if (bundle) {
           dailyRate = Number(bundle.dailyRate);
-          weeklyRate = Number(bundle.weeklyRate);
-          monthlyRate = Number(bundle.monthlyRate);
           // Default deposit for bundles
           depositPolicy = {
             type: DepositPolicyType.PERCENTAGE,
@@ -91,20 +85,10 @@ export function useRentalPricing(
 
       if (!item.pricePerDay) {
         unitPrice = dailyRate * rentalDays;
-
-        if (rentalDays >= 30 && monthlyRate) {
-          if (monthlyRate < unitPrice) {
-            unitPrice = monthlyRate;
-          }
-        } else if (rentalDays >= 7 && weeklyRate) {
-          const weeklyPrice = weeklyRate * Math.ceil(rentalDays / 7);
-          if (weeklyPrice < unitPrice) {
-            unitPrice = weeklyPrice;
-          }
-        }
       }
 
-      const lineTotal = unitPrice * item.quantity;
+      const qty = typeof item.quantity === 'number' ? item.quantity : Number(item.quantity) || 0;
+      const lineTotal = unitPrice * qty;
       subtotal += lineTotal;
 
       // Calculate deposit based on policy type
@@ -113,13 +97,13 @@ export function useRentalPricing(
           (lineTotal * Number(depositPolicy.percentage || 50)) / 100;
       } else if (depositPolicy.type === DepositPolicyType.PER_UNIT) {
         depositRequired +=
-          Number(depositPolicy.perUnit || 0) * item.quantity;
+          Number(depositPolicy.perUnit || 0) * qty;
       } else {
         // HYBRID: max of both
         const pctDeposit =
           (lineTotal * Number(depositPolicy.percentage || 50)) / 100;
         const unitDeposit =
-          Number(depositPolicy.perUnit || 0) * item.quantity;
+          Number(depositPolicy.perUnit || 0) * qty;
         depositRequired += Math.max(pctDeposit, unitDeposit);
       }
     });
@@ -137,19 +121,58 @@ export function useRentalDays(
 ): number {
   return useMemo(() => {
     if (!startDate || !endDate) return 0;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    return Math.ceil(
-      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    return calculateRentalDays(startDate, endDate);
   }, [startDate, endDate]);
 }
 
 /**
  * Get pricing tier label based on rental duration.
  */
-export function getPricingTierLabel(rentalDays: number): string {
-  if (rentalDays >= 30) return 'tarif bulanan';
-  if (rentalDays >= 7) return 'tarif mingguan';
+export function getPricingTierLabel(_rentalDays: number): string {
   return 'tarif harian';
 }
+
+export interface LineTotalCalculation {
+  unitPrice: number;
+  lineTotal: number;
+  dailyRate: number;
+  name: string;
+}
+
+/**
+ * Calculate single line total for preview invoice or receipt display.
+ */
+export function calculateLineTotal(
+  item: OrderItem,
+  rentalItems: { id: string; dailyRate: unknown; weeklyRate?: unknown; monthlyRate?: unknown; product?: { name?: string } }[],
+  rentalBundles: { id: string; name?: string; dailyRate: unknown; weeklyRate?: unknown; monthlyRate?: unknown }[],
+  rentalDays: number
+): LineTotalCalculation {
+  let dailyRate = 0;
+  let name = 'Item';
+
+  if (item.rentalItemId) {
+    const ri = rentalItems.find((r) => r.id === item.rentalItemId);
+    if (ri) {
+      name = ri.product?.name || 'Item';
+      dailyRate = Number(ri.dailyRate) || 0;
+    }
+  } else if (item.rentalBundleId) {
+    const rb = rentalBundles.find((b) => b.id === item.rentalBundleId);
+    if (rb) {
+      name = rb.name || 'Paket Bundle';
+      dailyRate = Number(rb.dailyRate) || 0;
+    }
+  }
+
+  let unitPrice = Number(item.pricePerDay || 0) * rentalDays;
+  if (!item.pricePerDay) {
+    unitPrice = dailyRate * rentalDays;
+  }
+
+  const qty = typeof item.quantity === 'number' ? item.quantity : Number(item.quantity) || 0;
+  const lineTotal = unitPrice * qty;
+
+  return { unitPrice, lineTotal, dailyRate, name };
+}
+

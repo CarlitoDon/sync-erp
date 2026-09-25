@@ -15,6 +15,7 @@ import {
   ExtendRentalOrderInput,
   ManualConfirmRentalOrderInput,
   ReleaseRentalOrderInput,
+  RecordSettlementInput,
   PrismaRentalOrderWithRelations,
 } from '@sync-erp/shared';
 import { RentalWebhookService } from './rental-webhook.service';
@@ -134,6 +135,18 @@ export class RentalOrderService {
     userId: string
   ): Promise<RentalOrder> {
     return this.fulfillmentService.releaseOrder(
+      companyId,
+      input,
+      userId
+    );
+  }
+
+  async recordSettlement(
+    companyId: string,
+    input: RecordSettlementInput,
+    userId: string
+  ): Promise<RentalOrder> {
+    return this.fulfillmentService.recordSettlement(
       companyId,
       input,
       userId

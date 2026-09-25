@@ -37,10 +37,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       onFocus,
       disabled,
       required,
+      id,
       ...props
     },
     ref
   ) => {
+    const inputId = id || (label ? `input-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : undefined);
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       if (selectOnFocus) {
         e.target.select();
@@ -51,12 +53,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={`w-full ${containerClassName}`}>
         {label && (
-          <label className="mb-1 block text-sm font-medium text-slate-700">
+          <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-slate-700">
             {label}
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         <input
+          id={inputId}
           type={type}
           className={`flex h-10 w-full rounded-md border ${
             error ? 'border-red-500' : 'border-slate-300'

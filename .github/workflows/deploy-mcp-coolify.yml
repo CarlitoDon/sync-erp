@@ -92,11 +92,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build shared package
-        run: npm run build --workspace=@sync-erp/shared
-
-      - name: Build MCP
-        run: npm run build --workspace=@sync-erp/mcp
+      - name: Build MCP and dependencies
+        run: npm run build:mcp
 
       - name: Prepare deployment package
         env:
@@ -120,6 +117,14 @@ jobs:
             --ref "$RELEASE_REF" \
             --run-id "$RELEASE_RUN_ID"
           cp scripts/verify-release-health.mjs deploy/mcp/verify-release-health.mjs
+
+          node -e '
+            const fs = require("node:fs");
+            const pkgPath = "deploy/mcp/package.json";
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+            delete pkg.devDependencies;
+            fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+          '
 
           npm install \
             --prefix deploy/mcp \

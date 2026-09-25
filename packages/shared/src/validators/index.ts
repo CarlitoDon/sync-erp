@@ -17,6 +17,7 @@ export * from './company.js';
 export * from './finance.js';
 export * from './user.js';
 export * from './rental.js';
+export * from './address.js';
 
 export const PaginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),

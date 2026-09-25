@@ -19,6 +19,7 @@ import ReturnModal from '../modals/ReturnModal';
 import VerifyPaymentModal from '../modals/VerifyPaymentModal';
 import RentalExtensionModal from '../modals/RentalExtensionModal';
 import ConvertOverdueModal from '../modals/ConvertOverdueModal';
+import CreateOrderModal from '../modals/CreateOrderModal';
 import { OrderSource, type PortableRentalOrder } from '@sync-erp/shared';
 import {
   UserIcon,
@@ -30,6 +31,7 @@ import { useState } from 'react';
 import { useRentalOrderPermissions } from '../hooks/useRentalOrderPermissions';
 import { useRentalOrderCalculations } from '../hooks/useRentalOrderCalculations';
 import { RentalPeriodCard } from '../components/RentalPeriodCard';
+import { RentalLogisticsCard } from '../components/RentalLogisticsCard';
 import { RentalItemsTable } from '../components/RentalItemsTable';
 import { UnitAssignmentsCard } from '../components/UnitAssignmentsCard';
 import { RentalActionsCard } from '../components/RentalActionsCard';
@@ -61,6 +63,7 @@ function buildEffectiveEndDateByOrderItem(order: PortableRentalOrder) {
 export default function RentalOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const { currentCompany } = useCompany();
+  const utils = trpc.useUtils();
   const modals = useRentalOrderModals(id);
 
   const { data: order, isLoading } =
@@ -71,6 +74,7 @@ export default function RentalOrderDetail() {
 
   const permissions = useRentalOrderPermissions(order);
   const calculations = useRentalOrderCalculations(order);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isExtendOpen, setIsExtendOpen] = useState(false);
   const [isOverdueOpen, setIsOverdueOpen] = useState(false);
 
@@ -135,6 +139,17 @@ export default function RentalOrderDetail() {
         onSuccess={() => undefined}
       />
 
+      <CreateOrderModal
+        isOpen={isEditOpen}
+        editingOrder={order}
+        onClose={() => setIsEditOpen(false)}
+        onSuccess={() => {
+          setIsEditOpen(false);
+          utils.rental.orders.getById.invalidate({ id: order.id });
+          utils.rental.orders.list.invalidate();
+        }}
+      />
+
       <PageContainer>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -182,6 +197,8 @@ export default function RentalOrderDetail() {
               endDate={order.rentalEndDate}
               calculations={calculations}
             />
+
+            <RentalLogisticsCard order={order} />
 
             <RentalItemsTable
               items={order.items.map((item) => ({
@@ -243,6 +260,7 @@ export default function RentalOrderDetail() {
 
             <RentalActionsCard
               permissions={permissions}
+              onEdit={() => setIsEditOpen(true)}
               onConfirm={handleConfirm}
               onRelease={handleRelease}
               onReturn={handleReturn}

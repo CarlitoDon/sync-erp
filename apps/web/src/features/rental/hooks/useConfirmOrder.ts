@@ -13,6 +13,10 @@ import {
   type RentalPaymentMethod,
 } from '@sync-erp/shared';
 import { toast } from 'react-hot-toast';
+import {
+  calculateRentalOrderBreakdown,
+  type RentalOrderFinancialBreakdown,
+} from '../utils/rentalOrderBreakdown';
 
 interface Shortage {
   rentalItemId: string;
@@ -30,6 +34,27 @@ interface UseConfirmOrderParams {
   onClose: () => void;
 }
 
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== 'string') {
+        reject(new Error('Gagal membaca file'));
+        return;
+      }
+      const base64 = result.split(',')[1];
+      if (!base64) {
+        reject(new Error('Format file tidak valid'));
+        return;
+      }
+      resolve(base64);
+    };
+    reader.onerror = () => reject(new Error('Gagal membaca file'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function useConfirmOrder({
   orderId,
   isOpen,
@@ -41,11 +66,12 @@ export function useConfirmOrder({
 
   // Manual override state
   const [manualMode, setManualMode] = useState(false);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState('');
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [depositInput, setDepositInput] = useState(0);
   const [depositPaymentMethod, setDepositPaymentMethod] =
-    useState<RentalPaymentMethod>('BANK');
+    useState<RentalPaymentMethod>(RentalPaymentMethodSchema.enum.BANK);
   const [depositPaymentAccountId, setDepositPaymentAccountId] = useState<
     string | undefined
   >();
@@ -55,18 +81,35 @@ export function useConfirmOrder({
   const [accountingTreatment, setAccountingTreatment] =
     useState<ManualConfirmAccountingTreatment>('POST_CASH_JOURNAL');
 
+  // Proof of payment file upload state
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
+  const [proofError, setProofError] = useState<string | null>(null);
+
+  const handleRemoveProofFile = useCallback(() => {
+    setProofFile(null);
+    if (proofPreviewUrl) {
+      URL.revokeObjectURL(proofPreviewUrl);
+      setProofPreviewUrl(null);
+    }
+    setProofError(null);
+  }, [proofPreviewUrl]);
+
   const resetManualConfirmForm = useCallback(() => {
     setManualMode(false);
+    setSelectedPaymentMethodId('');
     setPaymentMethodId('');
     setPaymentAmount(0);
     setDepositInput(0);
-    setDepositPaymentMethod('BANK');
+    setDepositPaymentMethod(RentalPaymentMethodSchema.enum.BANK);
     setDepositPaymentAccountId(undefined);
     setPaymentReference('');
     setManualNotes('');
     setSkipStockCheck(false);
     setAccountingTreatment('POST_CASH_JOURNAL');
-  }, []);
+    handleRemoveProofFile();
+  }, [handleRemoveProofFile]);
 
   // Queries
   const { data: order, isLoading } =
@@ -84,26 +127,149 @@ export function useConfirmOrder({
     trpc.paymentMethod.list.useQuery(undefined, { enabled: isOpen });
   const { cashBankAccounts } = useCashBankAccounts({ enabled: isOpen });
 
+  // Attachments query for this order
+  const attachmentsQuery = trpc.attachment.list.useQuery(
+    {
+      entityType: 'RENTAL_ORDER',
+      entityId: orderId!,
+    },
+    { enabled: isOpen && !!orderId }
+  );
+
+  const uploadAttachmentMutation = trpc.attachment.upload.useMutation({
+    onSuccess: () => {
+      if (orderId) {
+        utils.attachment.list.invalidate({
+          entityType: 'RENTAL_ORDER',
+          entityId: orderId,
+        });
+      }
+      setProofFile(null);
+      if (proofPreviewUrl) {
+        URL.revokeObjectURL(proofPreviewUrl);
+        setProofPreviewUrl(null);
+      }
+      setProofError(null);
+    },
+    onError: (err) => {
+      setProofError(err.message);
+      toast.error(`Gagal upload bukti bayar: ${err.message}`);
+    },
+  });
+
+  const deleteAttachmentMutation = trpc.attachment.delete.useMutation({
+    onSuccess: () => {
+      if (orderId) {
+        utils.attachment.list.invalidate({
+          entityType: 'RENTAL_ORDER',
+          entityId: orderId,
+        });
+      }
+      toast.success('Bukti bayar dihapus');
+    },
+    onError: (err) => {
+      toast.error(`Gagal menghapus file: ${err.message}`);
+    },
+  });
+
+  // Calculate suggested deposit (DP ±30% default)
   const suggestedDeposit = order
     ? Number(order.depositAmount) > 0
       ? Number(order.depositAmount)
-      : Number(order.totalAmount) * 0.3
+      : Math.round((Number(order.totalAmount) * 0.3) / 1000) * 1000
     : 0;
 
+  // Single dropdown auto-mapping logic
+  const selectedPaymentMethod = useMemo(
+    () => paymentMethods.find((m) => m.id === selectedPaymentMethodId),
+    [paymentMethods, selectedPaymentMethodId]
+  );
+
+  const handleSelectPaymentMethod = useCallback(
+    (id: string) => {
+      setSelectedPaymentMethodId(id);
+      const pm = paymentMethods.find((m) => m.id === id);
+      if (pm) {
+        const mappedMethod: RentalPaymentMethod =
+          pm.type === PaymentMethodTypeSchema.enum.CASH
+            ? RentalPaymentMethodSchema.enum.CASH
+            : pm.type === PaymentMethodTypeSchema.enum.QRIS
+              ? RentalPaymentMethodSchema.enum.QRIS
+              : RentalPaymentMethodSchema.enum.BANK;
+        setDepositPaymentMethod(mappedMethod);
+        setDepositPaymentAccountId(pm.accountId || undefined);
+        setPaymentMethodId(pm.id);
+      } else {
+        setDepositPaymentAccountId(undefined);
+        setPaymentMethodId('');
+      }
+    },
+    [paymentMethods]
+  );
+
+  // Initialize and synchronize states on modal open
   useEffect(() => {
     if (isOpen && order) {
       setDepositInput(suggestedDeposit);
       setPaymentAmount(suggestedDeposit);
-      setDepositPaymentMethod('BANK');
-      setDepositPaymentAccountId(undefined);
+      setPaymentReference(order.paymentReference || '');
+
+      // Auto-select payment method matching order or default
+      if (paymentMethods.length > 0 && !selectedPaymentMethodId) {
+        let matchedId = '';
+        if (order.paymentMethod) {
+          const orderMethodLower = order.paymentMethod.toLowerCase();
+          const match = paymentMethods.find(
+            (m) =>
+              m.code.toLowerCase() === orderMethodLower ||
+              m.type.toLowerCase() === orderMethodLower ||
+              (orderMethodLower === 'transfer' &&
+                m.type === PaymentMethodTypeSchema.enum.BANK)
+          );
+          if (match) {
+            matchedId = match.id;
+          }
+        }
+        if (!matchedId) {
+          const defaultMethod =
+            paymentMethods.find((m) => m.isDefault) || paymentMethods[0];
+          if (defaultMethod) {
+            matchedId = defaultMethod.id;
+          }
+        }
+
+        if (matchedId) {
+          handleSelectPaymentMethod(matchedId);
+        }
+      }
     }
     if (!isOpen) {
       setDepositInput(0);
       setPaymentAmount(0);
-      setDepositPaymentMethod('BANK');
+      setSelectedPaymentMethodId('');
+      setDepositPaymentMethod(RentalPaymentMethodSchema.enum.BANK);
       setDepositPaymentAccountId(undefined);
+      setPaymentReference('');
+      handleRemoveProofFile();
     }
-  }, [isOpen, order?.id, order?.depositAmount, order?.totalAmount, suggestedDeposit]);
+  }, [
+    isOpen,
+    order?.id,
+    order?.depositAmount,
+    order?.totalAmount,
+    order?.paymentMethod,
+    order?.paymentReference,
+    suggestedDeposit,
+    paymentMethods,
+    handleSelectPaymentMethod,
+    handleRemoveProofFile,
+  ]);
+
+  // Comprehensive financial breakdown calculation
+  const breakdown: RentalOrderFinancialBreakdown = useMemo(
+    () => calculateRentalOrderBreakdown(order, depositInput),
+    [order, depositInput]
+  );
 
   // Availability check
   const availabilityCheck = useMemo(() => {
@@ -209,13 +375,79 @@ export function useConfirmOrder({
     trpc.paymentMethod.create.useMutation({
       onSuccess: (data) => {
         utils.paymentMethod.list.invalidate();
-        setPaymentMethodId(data.id);
+        setSelectedPaymentMethodId(data.id);
+        handleSelectPaymentMethod(data.id);
         toast.success(`Metode "${data.name}" berhasil dibuat!`);
       },
       onError: (error) => {
         toast.error(`Gagal membuat metode: ${error.message}`);
       },
     });
+
+  // Proof of payment file handlers
+  const handleSelectProofFile = useCallback((file: File) => {
+    const validExtensions = /\.(jpg|jpeg|png|webp|pdf)$/i;
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf';
+
+    if (!isImage && !isPdf && !validExtensions.test(file.name)) {
+      setProofError('File harus berupa gambar (JPG, PNG, WebP) atau PDF.');
+      toast.error('File harus berupa gambar (JPG, PNG, WebP) atau PDF.');
+      return;
+    }
+
+    if (file.size === 0) {
+      setProofError('File tidak boleh kosong.');
+      toast.error('File tidak boleh kosong.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setProofError('Ukuran file maksimal 10MB.');
+      toast.error('Ukuran file maksimal 10MB.');
+      return;
+    }
+
+    setProofError(null);
+    setProofFile(file);
+    if (isImage || file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      setProofPreviewUrl(url);
+    } else {
+      setProofPreviewUrl(null);
+    }
+  }, []);
+
+  const handleUploadProofNow = useCallback(async () => {
+    if (!orderId || !proofFile) return;
+    try {
+      setIsUploadingProof(true);
+      setProofError(null);
+      const base64 = await readFileAsBase64(proofFile);
+      await uploadAttachmentMutation.mutateAsync({
+        entityType: 'RENTAL_ORDER',
+        entityId: orderId,
+        fileName: proofFile.name,
+        mimeType: proofFile.type || undefined,
+        fileBase64: base64,
+        notes: `Bukti transfer DP - ${paymentReference || 'Konfirmasi Order'}`,
+      });
+      toast.success('Bukti bayar DP berhasil diunggah!');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Upload gagal';
+      setProofError(msg);
+      toast.error(msg);
+    } finally {
+      setIsUploadingProof(false);
+    }
+  }, [orderId, proofFile, paymentReference, uploadAttachmentMutation]);
+
+  const handleDeleteAttachment = useCallback(
+    async (attachmentId: string) => {
+      await deleteAttachmentMutation.mutateAsync({ id: attachmentId });
+    },
+    [deleteAttachmentMutation]
+  );
 
   // Derived values
   const totalItems =
@@ -261,13 +493,36 @@ export function useConfirmOrder({
 
   const handleConfirm = useCallback(async () => {
     if (!order || !canConfirm) return;
+    if (depositInput > 0 && !selectedPaymentMethodId) {
+      toast.error('Pilih metode pembayaran DP terlebih dahulu.');
+      return;
+    }
     await apiAction(
-      () => {
+      async () => {
+        // Upload proof if selected
+        if (proofFile && order.id) {
+          setIsUploadingProof(true);
+          try {
+            const base64 = await readFileAsBase64(proofFile);
+            await uploadAttachmentMutation.mutateAsync({
+              entityType: 'RENTAL_ORDER',
+              entityId: order.id,
+              fileName: proofFile.name,
+              mimeType: proofFile.type || undefined,
+              fileBase64: base64,
+              notes: `Bukti transfer DP - ${paymentReference || 'Konfirmasi Order'}`,
+            });
+          } finally {
+            setIsUploadingProof(false);
+          }
+        }
+
         const payload = ConfirmRentalOrderSchema.parse({
           orderId: order.id,
           depositAmount: depositInput,
+          paymentMethodId: selectedPaymentMethodId || undefined,
           paymentMethod: depositPaymentMethod,
-          paymentAccountId: depositPaymentAccountId,
+          paymentAccountId: depositPaymentAccountId || undefined,
           paymentReference: paymentReference || undefined,
           unitAssignments: [],
         });
@@ -278,24 +533,50 @@ export function useConfirmOrder({
   }, [
     order,
     canConfirm,
-    confirmMutation,
+    proofFile,
     depositInput,
+    selectedPaymentMethodId,
     depositPaymentMethod,
     depositPaymentAccountId,
     paymentReference,
+    confirmMutation,
+    uploadAttachmentMutation,
   ]);
 
   const handleManualConfirm = useCallback(async () => {
-    if (!order || !paymentMethodId || !manualNotes.trim()) return;
+    const effectivePaymentMethodId = selectedPaymentMethodId || paymentMethodId;
+    if (!effectivePaymentMethodId) {
+      toast.error('Pilih metode pembayaran terlebih dahulu.');
+      return;
+    }
+    if (!order || !manualNotes.trim()) return;
     await apiAction(
-      () => {
+      async () => {
+        // Upload proof if selected
+        if (proofFile && order.id) {
+          setIsUploadingProof(true);
+          try {
+            const base64 = await readFileAsBase64(proofFile);
+            await uploadAttachmentMutation.mutateAsync({
+              entityType: 'RENTAL_ORDER',
+              entityId: order.id,
+              fileName: proofFile.name,
+              mimeType: proofFile.type || undefined,
+              fileBase64: base64,
+              notes: `Bukti transfer DP - ${paymentReference || 'Konfirmasi Order'}`,
+            });
+          } finally {
+            setIsUploadingProof(false);
+          }
+        }
+
         const payload = ManualConfirmRentalOrderSchema.parse({
           orderId: order.id,
-          paymentMethodId,
+          paymentMethodId: effectivePaymentMethodId,
           paymentAmount: paymentAmount || depositInput,
           depositAmount: depositInput,
           paymentMethod: depositPaymentMethod,
-          paymentAccountId: depositPaymentAccountId,
+          paymentAccountId: depositPaymentAccountId || undefined,
           paymentReference: paymentReference || undefined,
           skipStockCheck,
           accountingTreatment,
@@ -307,9 +588,10 @@ export function useConfirmOrder({
     );
   }, [
     order,
+    selectedPaymentMethodId,
     paymentMethodId,
     manualNotes,
-    manualConfirmMutation,
+    proofFile,
     paymentAmount,
     depositInput,
     depositPaymentMethod,
@@ -317,6 +599,8 @@ export function useConfirmOrder({
     paymentReference,
     skipStockCheck,
     accountingTreatment,
+    manualConfirmMutation,
+    uploadAttachmentMutation,
   ]);
 
   const handleCloseModal = useCallback(() => {
@@ -347,9 +631,13 @@ export function useConfirmOrder({
     order,
     isLoading,
     paymentMethods,
+    selectedPaymentMethodId,
+    handleSelectPaymentMethod,
+    selectedPaymentMethod,
     availabilityCheck,
     totalItems,
     depositAmount,
+    breakdown,
 
     // Status flags
     isPaymentPending,
@@ -384,6 +672,19 @@ export function useConfirmOrder({
     depositPaymentAccountId,
     setDepositPaymentAccountId,
     cashBankAccounts,
+
+    // Proof file upload state & handlers
+    proofFile,
+    proofPreviewUrl,
+    isUploadingProof,
+    proofError,
+    attachments: attachmentsQuery.data || [],
+    isLoadingAttachments: attachmentsQuery.isLoading,
+    handleSelectProofFile,
+    handleRemoveProofFile,
+    handleUploadProofNow,
+    handleDeleteAttachment,
+    isDeletingAttachment: deleteAttachmentMutation.isPending,
 
     // Handlers
     handleConfirm,

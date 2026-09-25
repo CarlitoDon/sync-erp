@@ -27,5 +27,6 @@ export * from '../../../packages/shared/src/utils/formatters';
 export * from '../../../packages/shared/src/utils/rental-payment-status';
 export * from '../../../packages/shared/src/constants/journal-references';
 export * from '../../../packages/shared/src/utils/rental-order';
+export * from '../../../packages/shared/src/utils/rental-inventory-pool';
 export * from '../../../packages/shared/src/utils/cost-calculations';
 export { asPartial } from '../../../packages/shared/src/utils/test-utils';

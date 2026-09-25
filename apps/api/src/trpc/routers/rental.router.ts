@@ -9,6 +9,7 @@ import {
   ManualConfirmRentalOrderSchema,
   HistoricalRentalSettlementSchema,
   ReleaseRentalOrderSchema,
+  RecordSettlementSchema,
   ProcessReturnSchema,
   UpdateRentalPolicySchema,
   ExtendRentalOrderSchema,
@@ -186,6 +187,25 @@ export const rentalRouter = router({
         }
       ),
 
+    update: protectedProcedure
+      .input(
+        z.object({
+          orderId: z.string().uuid(),
+          data: CreateRentalOrderSchema,
+        })
+      )
+      .mutation(
+        async ({ ctx, input }): Promise<PortableRentalOrder> => {
+          const result = await lifecycleService.updateDraftOrder(
+            ctx.companyId,
+            input.orderId,
+            input.data,
+            ctx.userId
+          );
+          return mapToPortableOrder(result);
+        }
+      ),
+
     confirm: protectedProcedure
       .input(ConfirmRentalOrderSchema)
       .mutation(
@@ -218,6 +238,19 @@ export const rentalRouter = router({
       .mutation(
         async ({ ctx, input }): Promise<PortableRentalOrder> => {
           const result = await rentalService.releaseOrder(
+            ctx.companyId,
+            input,
+            ctx.userId
+          );
+          return mapToPortableOrder(result);
+        }
+      ),
+
+    recordSettlement: protectedProcedure
+      .input(RecordSettlementSchema)
+      .mutation(
+        async ({ ctx, input }): Promise<PortableRentalOrder> => {
+          const result = await rentalService.recordSettlement(
             ctx.companyId,
             input,
             ctx.userId

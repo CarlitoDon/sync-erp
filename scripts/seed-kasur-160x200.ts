@@ -75,10 +75,15 @@ async function main(): Promise<void> {
   });
 
   if (!rentalItem) {
+    const kasurCategory = await prisma.rentalItemCategory.findFirst({
+      where: { companyId: SANTI_LIVING_COMPANY_ID, name: 'Kasur' },
+    });
+
     rentalItem = await prisma.rentalItem.create({
       data: {
         companyId: SANTI_LIVING_COMPANY_ID,
         productId: product.id,
+        categoryId: kasurCategory?.id,
         dailyRate: new Prisma.Decimal(50000),
         weeklyRate: new Prisma.Decimal(300000),
         monthlyRate: new Prisma.Decimal(700000),

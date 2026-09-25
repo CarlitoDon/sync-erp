@@ -14,6 +14,7 @@ export type {
   CompanyMember,
   OAuthAccount,
   Partner,
+  Address,
   Product,
   Order,
   OrderItem,
@@ -41,6 +42,7 @@ export type {
   BillInstallmentSchedule,
   // Feature 043: Rental Business
   RentalItem,
+  RentalItemCategory,
   RentalItemUnit,
   RentalOrder,
   RentalOrderItem,

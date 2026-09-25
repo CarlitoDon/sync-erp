@@ -112,9 +112,70 @@ describe('RentalOrderFulfillmentService', () => {
       expect(result.status).toBe(RentalOrderStatus.CONFIRMED);
       expect(prisma.rentalDeposit.create).toHaveBeenCalled();
       expect(mockJournalService.postRentalDownPayment).toHaveBeenCalled();
+      expect(prisma.rentalOrder.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            paymentMethod: 'BANK',
+          }),
+        })
+      );
       expect(prisma.rentalItemUnit.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: { status: UnitStatus.RESERVED },
+        })
+      );
+    });
+
+    it('should resolve CompanyPaymentMethod and pass mapped accountId to journal posting in confirmOrder', async () => {
+      mockRentalRepository.findOrderById.mockResolvedValue(
+        mockOrder as unknown as import("@sync-erp/shared").PrismaRentalOrderWithRelations
+      );
+      asMock(prisma.rentalOrderItem.findMany).mockResolvedValue([
+        { rentalItemId: 'item-1', quantity: 1, rentalBundleId: null },
+      ]);
+      asMock(prisma.rentalItemUnit.findMany).mockResolvedValue([
+        { id: 'unit-1', status: UnitStatus.AVAILABLE },
+      ]);
+      asMock(prisma.rentalItemUnit.updateMany).mockResolvedValue({ count: 1 });
+      mockRentalRepository.getCurrentPolicy.mockResolvedValue({
+        defaultDepositPolicyType: DepositPolicyType.PER_UNIT,
+      } as never);
+      asMock(prisma.rentalDeposit.create).mockResolvedValue({
+        id: 'deposit-1',
+        amount: new Decimal(50000),
+      });
+      asMock(prisma.rentalOrderUnitAssignment.createMany).mockResolvedValue({ count: 1 });
+      asMock(prisma.companyPaymentMethod.findFirst).mockResolvedValue({
+        id: 'pm-qris',
+        code: 'QRIS_JAGO',
+        type: 'QRIS',
+        accountId: 'acc-1055',
+        account: { id: 'acc-1055', code: '1055', name: 'Bank Jago Mila' },
+      });
+
+      await service.confirmOrder(
+        COMPANY_ID,
+        {
+          orderId: 'order-1',
+          paymentMethodId: 'pm-qris',
+          paymentReference: 'QRIS-REF-99',
+          unitAssignments: [],
+        },
+        ACTOR_ID
+      );
+
+      expect(mockJournalService.postRentalDownPayment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          paymentAccountId: 'acc-1055',
+          paymentMethod: 'QRIS_JAGO',
+        })
+      );
+      expect(prisma.rentalOrder.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            paymentMethod: 'QRIS_JAGO',
+            paymentReference: 'QRIS-REF-99',
+          }),
         })
       );
     });
@@ -230,6 +291,14 @@ describe('RentalOrderFulfillmentService', () => {
           orderNumber: 'ORD-001',
           downPaymentAmount: 50000,
           paymentMethod: 'BANK',
+        })
+      );
+      expect(prisma.rentalOrder.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            paymentMethod: 'BANK',
+            paymentReference: 'REF-123',
+          }),
         })
       );
       expect(prisma.auditLog.create).toHaveBeenCalledWith(

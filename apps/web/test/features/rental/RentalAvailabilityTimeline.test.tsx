@@ -84,4 +84,24 @@ describe('RentalAvailabilityTimeline', () => {
       /belum ada booking pada rentang ini/i
     );
   });
+
+  it('calls onCreateOrder with rentalItemId when clicking + button on available unit', () => {
+    const onCreateOrder = vi.fn();
+    render(
+      <MemoryRouter>
+        <RentalAvailabilityTimeline
+          timeline={timeline}
+          startDate={new Date(2026, 7, 24)}
+          daysToShow={14}
+          onCreateOrder={onCreateOrder}
+        />
+      </MemoryRouter>
+    );
+
+    const plusBtn = screen.getByRole('button', {
+      name: /buat order untuk unit td-01/i,
+    });
+    plusBtn.click();
+    expect(onCreateOrder).toHaveBeenCalledWith({ rentalItemId: 'item-1' });
+  });
 });
