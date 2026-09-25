@@ -7,9 +7,7 @@ import {
   formatPhoneNumber,
   isValidIndonesianNumber,
 } from '../../utils/phone';
-import { isInternalStaff } from '../../constants/staff';
 import { isCustomerAllowed } from '../../utils/whitelist';
-import { getBotConfig, isTestNumber } from '../../config/bot.config';
 import { TRPCError } from '@trpc/server';
 
 export const botRouter = router({
@@ -194,15 +192,10 @@ export const botRouter = router({
         });
       }
 
-      // 1b. Check staff protection (bypass for test numbers)
-      const isTester = isTestNumber(input.phone);
-      if (isInternalStaff(input.phone) && !isTester && getBotConfig().staffProtectionEnabled) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Cannot send to internal staff' });
-      }
-      // 1c. Check whitelist
+      // 1b. Check recipient permission (single source of truth: Redis whitelist & staff protection)
       const allowed = await isCustomerAllowed(input.phone);
       if (!allowed) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Phone not in whitelist' });
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Phone not allowed by whitelist or blocked' });
       }
 
       // 2. Check Bot Status (Wait if waking up from sleep)

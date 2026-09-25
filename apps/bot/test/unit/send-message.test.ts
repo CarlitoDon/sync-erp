@@ -220,11 +220,11 @@ describe('sendMessage Handler', () => {
     expect(sendMessageMock).not.toHaveBeenCalled();
   });
 
-  it('rejects sending automated sales message to internal staff (Admin 1 +6281249182155)', async () => {
-    vi.mocked(isCustomerAllowed).mockResolvedValue(true); // Even if whitelist returned true
+  it('rejects sending automated sales message to numbers disallowed by policy', async () => {
+    vi.mocked(isCustomerAllowed).mockResolvedValue(false);
 
     const req = makeRequest({
-      phone: '081249182155', // Admin 1
+      phone: '081249182155',
       message: 'halo kak',
     });
     const res = makeResponse();
@@ -235,7 +235,6 @@ describe('sendMessage Handler', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         error: 'Forbidden',
-        message: expect.stringContaining('staf internal'),
       })
     );
     expect(sendMessageMock).not.toHaveBeenCalled();

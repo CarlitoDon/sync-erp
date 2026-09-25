@@ -7,8 +7,6 @@ import {
 } from '../utils/phone';
 import { isCustomerAllowed } from '../utils/whitelist';
 import { appendChatHistory } from '../utils/chat-history';
-import { isInternalStaff } from '../constants/staff';
-import { getBotConfig, isTestNumber } from '../config/bot.config';
 
 const SendMessageSchema = z.object({
   phone: z.string(),
@@ -101,23 +99,13 @@ export const sendMessage = async (req: Request, res: Response) => {
     });
   }
 
-  // 2b. Block sending automated sales messages to internal staff (bypass for test numbers)
-  const isTester = isTestNumber(phone);
-  if (isInternalStaff(phone) && !isTester && getBotConfig().staffProtectionEnabled) {
-    return res.status(403).json({
-      error: 'Forbidden',
-      message:
-        'Nomor penerima adalah staf internal / admin toko Santi Mebel & Santi Living. Pengiriman pesan bot dilarang.',
-    });
-  }
-
-  // 2c. Validate Customer Whitelist (Redis-backed dynamic whitelist)
+  // 2b. Validate recipient permission (single source of truth: Redis whitelist & staff protection)
   const allowed = await isCustomerAllowed(phone);
   if (!allowed) {
     return res.status(403).json({
       error: 'Forbidden',
       message:
-        'Nomor penerima tidak terdaftar di whitelist (Wife-Only Guardrail active).',
+        'Nomor penerima tidak diizinkan oleh whitelist atau diblokir proteksi staf.',
     });
   }
 

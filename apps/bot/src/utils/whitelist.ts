@@ -35,10 +35,12 @@ export function getAllowedCustomerPhones(): Set<string> {
 
 /**
  * Checks whether a customer phone number is permitted to chat with the bot.
- * 1. Test numbers (BOT_TEST_NUMBERS) are always permitted (bypasses staff check & whitelist).
- * 2. Internal staff numbers are blocked if staffProtectionEnabled is true.
- * 3. If whitelistEnabled is false, all non-staff numbers are permitted.
- * 4. Otherwise, checks Redis Set `whatsapp:allowed_phones`.
+ * SINGLE SOURCE OF TRUTH:
+ * 1. If explicit test number, ALWAYS permitted.
+ * 2. If present in Redis Set whatsapp:allowed_phones, ALWAYS permitted (even if staff/tester).
+ * 3. If internal staff (and not whitelisted in Redis), BLOCKED to protect internal chats.
+ * 4. If whitelist is disabled (open public mode), all non-staff permitted.
+ * 5. If whitelist is enabled and not in Redis, BLOCKED.
  */
 export async function isCustomerAllowed(phone: string): Promise<boolean> {
   const clean = normalizePhone(phone);
@@ -48,82 +50,51 @@ export async function isCustomerAllowed(phone: string): Promise<boolean> {
     return true;
   }
 
-  const { whitelistEnabled, staffProtectionEnabled } = getBotConfig();
-
-  // 2. Staff check
-  if (staffProtectionEnabled) {
-    if (isInternalStaff(phone) || isInternalStaff(clean)) {
-      return false;
-    }
-  }
-
-  // 3. Open mode: whitelist disabled
-  if (!whitelistEnabled) {
-    return true;
-  }
-
-  // 4. Redis whitelist lookup
+  // 2. Single source of truth: Redis whitelist lookup
   try {
     const redis = getRedisClient();
-    const isMember = await redis.sismember(WHITELIST_KEY, clean);
-    return isMember === 1;
+    const isMember =
+      (await redis.sismember(WHITELIST_KEY, clean)) === 1 ||
+      (await redis.sismember(WHITELIST_KEY, phone)) === 1;
+    if (isMember) {
+      return true;
+    }
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn(
       '[whitelist] Redis error checking isCustomerAllowed:',
       err instanceof Error ? err.message : String(err),
     );
-    return false;
   }
+
+  const { whitelistEnabled, staffProtectionEnabled } = getBotConfig();
+
+  // 3. Staff check: internal staff blocked unless explicitly whitelisted above
+  if (staffProtectionEnabled) {
+    if (isInternalStaff(phone) || isInternalStaff(clean)) {
+      return false;
+    }
+  }
+
+  // 4. Open mode: whitelist disabled
+  if (!whitelistEnabled) {
+    return true;
+  }
+
+  // 5. Whitelist enabled and not in Redis
+  return false;
 }
 
 /**
  * Seeds ALLOWED_CUSTOMER_PHONES and BOT_TEST_NUMBERS env vars into Redis whitelist on startup.
- * Automatically purges any internal staff phone numbers that may exist in Redis whitelist
- * (unless explicitly designated as test numbers).
+ * Does NOT purge existing whitelisted numbers in Redis.
  */
 export async function seedWhitelistFromEnv(): Promise<void> {
   try {
     const redis = getRedisClient();
     const { testNumbers, staffProtectionEnabled } = getBotConfig();
 
-    // 1. Purge internal staff phone numbers & LIDs from Redis whitelist (except test numbers)
-    if (staffProtectionEnabled) {
-      const staffToPurge: string[] = [];
-      for (const staffPhone of INTERNAL_STAFF_PHONES) {
-        if (!isTestNumber(staffPhone)) {
-          staffToPurge.push(staffPhone);
-          if (staffPhone.startsWith('62')) {
-            staffToPurge.push(`0${staffPhone.slice(2)}`);
-          }
-        }
-      }
-      for (const staffLid of INTERNAL_STAFF_LIDS) {
-        if (!isTestNumber(staffLid)) {
-          staffToPurge.push(staffLid);
-        }
-      }
-      if (staffToPurge.length > 0) {
-        await redis.srem(WHITELIST_KEY, ...staffToPurge);
-      }
-
-      // 2. Purge leftover session mode / customer notes for non-test staff
-      for (const staffPhone of INTERNAL_STAFF_PHONES) {
-        if (!isTestNumber(staffPhone)) {
-          await redis.del(`whatsapp:chat_history:${staffPhone}`);
-          await redis.del(`whatsapp:session_mode:${staffPhone}`);
-          await redis.del(`whatsapp:customer_note:${staffPhone}`);
-          if (staffPhone.startsWith('62')) {
-            const localPhone = `0${staffPhone.slice(2)}`;
-            await redis.del(`whatsapp:chat_history:${localPhone}`);
-            await redis.del(`whatsapp:session_mode:${localPhone}`);
-            await redis.del(`whatsapp:customer_note:${localPhone}`);
-          }
-        }
-      }
-    }
-
-    // 3. Seed allowed customer phones + test numbers
+    // Seed allowed customer phones + test numbers if configured
     const phones = getAllowedCustomerPhones();
     for (const testPhone of testNumbers) {
       phones.add(testPhone);

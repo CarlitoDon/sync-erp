@@ -5,8 +5,6 @@ import path from 'node:path';
 import { getSocket, getStatus, recordBotSentMessageId } from '../bot/baileys';
 import { formatPhoneNumber, isValidIndonesianNumber } from '../utils/phone';
 import { isCustomerAllowed } from '../utils/whitelist';
-import { isInternalStaff } from '../constants/staff';
-import { getBotConfig, isTestNumber } from '../config/bot.config';
 
 const SendImageSchema = z.object({
   phone: z.string(),
@@ -33,15 +31,9 @@ export async function sendImage(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const isTester = isTestNumber(phone);
-  if (isInternalStaff(phone) && !isTester && getBotConfig().staffProtectionEnabled) {
-    res.status(403).json({ error: 'Cannot send to internal staff' });
-    return;
-  }
-
   const allowed = await isCustomerAllowed(phone);
   if (!allowed) {
-    res.status(403).json({ error: 'Phone not in whitelist' });
+    res.status(403).json({ error: 'Phone not allowed by whitelist or blocked' });
     return;
   }
 

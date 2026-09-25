@@ -163,8 +163,11 @@ export async function handleEscalateToOwner(args: Record<string, unknown>): Prom
   }
 
   const params = parsed.data;
+  const redisClient = getRedisClient();
+  const isWhitelisted =
+    (await redisClient.sismember('whatsapp:allowed_phones', normalizePhone(params.customerPhone))) === 1;
 
-  if (isInternalStaff(params.customerPhone)) {
+  if (!isWhitelisted && isInternalStaff(params.customerPhone)) {
     throw new Error(
       `Cannot escalate internal staff or store conversation to owner: ${params.customerPhone}`
     );

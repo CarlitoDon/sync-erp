@@ -41,14 +41,29 @@ const { MockRedis } = vi.hoisted(() => {
       }
       return count;
     }
-    async sadd(key: string, member: string): Promise<number> {
+    async sadd(key: string, ...members: string[]): Promise<number> {
       if (!sets.has(key)) sets.set(key, new Set());
-      sets.get(key)!.add(member);
-      return 1;
+      for (const member of members) {
+        sets.get(key)!.add(member);
+      }
+      return members.length;
     }
-    async srem(key: string, member: string): Promise<number> {
+    async srem(key: string, ...members: string[]): Promise<number> {
       const s = sets.get(key);
-      return s ? (s.delete(member) ? 1 : 0) : 0;
+      if (!s) return 0;
+      let count = 0;
+      for (const member of members) {
+        if (s.delete(member)) count++;
+      }
+      return count;
+    }
+    async sismember(key: string, member: string): Promise<number> {
+      const s = sets.get(key);
+      return s && s.has(member) ? 1 : 0;
+    }
+    async smembers(key: string): Promise<string[]> {
+      const s = sets.get(key);
+      return s ? Array.from(s) : [];
     }
     async scard(key: string): Promise<number> {
       return sets.get(key)?.size ?? 0;
@@ -256,16 +271,15 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
       ).rejects.toThrow('Cannot escalate internal staff or store conversation to owner');
     });
 
-    it('rejects setting customer note for internal staff (Admin 1 +6281249182155)', async () => {
+    it('allows setting customer note for phone number', async () => {
       const tool = getWhatsAppTools().find((t) => t.name === 'set_customer_note');
       expect(tool).toBeDefined();
 
-      await expect(
-        tool!.handler({
-          phone: '081249182155',
-          note: 'Staff internal',
-        })
-      ).rejects.toThrow('Cannot set customer note for internal staff or store phone');
+      const result = await tool!.handler({
+        phone: '081249182155',
+        note: 'Staff internal',
+      });
+      expect(result).toContain('"success":true');
     });
   });
 
@@ -338,18 +352,33 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
         }
       });
 
-      it('rejects sending automated sales message to internal staff (Admin 1 +6281249182155)', async () => {
-      const tools = getWhatsAppTools();
-      const tool = tools.find((t) => t.name === 'whatsapp_send_message');
-      expect(tool).toBeDefined();
+      it('handles rejection from bot when number is disallowed', async () => {
+        const tools = getWhatsAppTools();
+        const tool = tools.find((t) => t.name === 'whatsapp_send_message');
+        expect(tool).toBeDefined();
 
-      await expect(
-        tool!.handler({
-          phone: '081249182155',
-          message: 'halo kak',
-        })
-      ).rejects.toThrow('Cannot send automated customer sales message to internal staff/store');
-    });
+        const originalFetch = globalThis.fetch;
+        globalThis.fetch = vi.fn().mockResolvedValue({
+          ok: false,
+          status: 403,
+          json: async () => ({
+            success: false,
+            error: 'Forbidden',
+            message: 'Nomor penerima tidak diizinkan oleh whitelist atau diblokir proteksi staf.',
+          }),
+        });
+
+        try {
+          await expect(
+            tool!.handler({
+              phone: '081249182155',
+              message: 'halo kak',
+            })
+          ).rejects.toThrow('WhatsApp send failed: Nomor penerima tidak diizinkan');
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      });
   });
 
   describe('formatRaraMessageWithSignature (Rara -r Signature Tag Guardrail)', () => {
@@ -393,31 +422,31 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
     });
   });
 
-  describe('manage_customer_whitelist Guardrails', () => {
-    it('rejects adding internal staff (Admin 1 +6281249182155) to whitelist', async () => {
+  describe('manage_customer_whitelist', () => {
+    it('allows adding phone number to whitelist in Redis', async () => {
       const tools = getWhatsAppTools();
       const tool = tools.find((t) => t.name === 'manage_customer_whitelist');
       expect(tool).toBeDefined();
 
-      await expect(
-        tool!.handler({
-          action: 'add',
-          phone: '081249182155',
-        })
-      ).rejects.toThrow('Cannot add internal staff or store phone number to customer whitelist');
+      const result = await tool!.handler({
+        action: 'add',
+        phone: '081249182155',
+      });
+      expect(result).toContain('"success":true');
+      expect(result).toContain('"action":"add"');
     });
 
-    it('rejects adding internal staff/leadership number to whitelist', async () => {
+    it('allows adding tester/leadership number to whitelist in Redis', async () => {
       const tools = getWhatsAppTools();
       const tool = tools.find((t) => t.name === 'manage_customer_whitelist');
       expect(tool).toBeDefined();
 
-      await expect(
-        tool!.handler({
-          action: 'add',
-          phone: '085158858310',
-        })
-      ).rejects.toThrow('Cannot add internal staff or store phone number to customer whitelist');
+      const result = await tool!.handler({
+        action: 'add',
+        phone: '085158858310',
+      });
+      expect(result).toContain('"success":true');
+      expect(result).toContain('"phone":"6285158858310"');
     });
   });
 

@@ -1,5 +1,4 @@
 import { getString } from '../_helpers.js';
-import { isInternalStaff } from '../../constants/staff.js';
 import { normalizePhone } from '@sync-erp/shared/whatsapp';
 import { getRedisClient } from './redis-client.js';
 
@@ -20,16 +19,12 @@ export async function handleManageCustomerWhitelist(args: Record<string, unknown
 
   const phone = getString(args, 'phone');
   const normalized = normalizePhone(phone);
+  const local = normalized.startsWith('62') ? `0${normalized.slice(2)}` : normalized;
 
   if (action === 'add') {
-    if (isInternalStaff(normalized) || isInternalStaff(phone)) {
-      throw new Error(
-        `Cannot add internal staff or store phone number to customer whitelist: ${phone}`
-      );
-    }
-    await redis.sadd(WHITELIST_KEY, normalized);
+    await redis.sadd(WHITELIST_KEY, normalized, local);
   } else {
-    await redis.srem(WHITELIST_KEY, normalized);
+    await redis.srem(WHITELIST_KEY, normalized, local);
   }
 
   const totalAllowed = await redis.scard(WHITELIST_KEY);

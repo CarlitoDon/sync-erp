@@ -12,7 +12,7 @@ import {
 } from '@whiskeysockets/baileys';
 import { isInternalStaff } from '../constants/staff';
 import { isCustomerAllowed } from '../utils/whitelist';
-import { getBotConfig, isTestNumber } from '../config/bot.config';
+import { getBotConfig } from '../config/bot.config';
 import { appendChatHistory } from '../utils/chat-history';
 import { resolvePhoneFromLid } from './use-redis-auth-state';
 import { handleBotCommand } from './command-handler';
@@ -95,25 +95,16 @@ export async function routeIncomingMessages(
       continue;
     }
 
-    // Staff protection: ignore inbound messages from staff (unless explicitly designated as test number)
-    const isStaff = isInternalStaff(cleanPhone) || (remoteJid.endsWith('@lid') && isInternalStaff(remoteJid));
-    const isTester = isTestNumber(cleanPhone) || isTestNumber(rawPhone);
+    // Inbound gatekeeper: single source of truth for whitelist & staff protection
+    const allowed =
+      (await isCustomerAllowed(cleanPhone)) ||
+      (rawPhone ? await isCustomerAllowed(rawPhone) : false) ||
+      (remoteJid.endsWith('@lid') ? await isCustomerAllowed(remoteJid) : false);
 
-    if (isStaff && !isTester && getBotConfig().staffProtectionEnabled) {
+    if (!allowed) {
       // eslint-disable-next-line no-console
       console.log(
-        `[message-router] Inbound message from internal staff ${cleanPhone} ignored to prevent feedback loop.`,
-      );
-      continue;
-    }
-
-    // Customer whitelist check
-    const cleanAllowed = await isCustomerAllowed(cleanPhone);
-    const rawAllowed = await isCustomerAllowed(rawPhone);
-    if (!cleanAllowed && !rawAllowed) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `[message-router] Inbound customer message from ${cleanPhone} (raw: ${rawPhone}) ignored: Not in whitelist.`,
+        `[message-router] Inbound message from ${cleanPhone} (raw: ${rawPhone}) ignored: Not allowed by whitelist/policy.`,
       );
       continue;
     }

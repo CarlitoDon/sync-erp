@@ -93,22 +93,17 @@ describe('Customer Whitelist Guardrail', () => {
       expect(await isCustomerAllowed('628123456789')).toBe(false);
     });
 
-    it('unconditionally returns false for Admin 1 (+6281249182155) even if Redis says member', async () => {
+    it('allows numbers that exist in Redis whitelist even if internal staff', async () => {
       mockSismember.mockResolvedValue(1);
-      expect(await isCustomerAllowed('6281249182155')).toBe(false);
-      expect(await isCustomerAllowed('081249182155')).toBe(false);
-      expect(await isCustomerAllowed('+62 812-4918-2155')).toBe(false);
-      // Redis should NOT even be called because staff check short-circuits
-      expect(mockSismember).not.toHaveBeenCalled();
+      expect(await isCustomerAllowed('6285158858310')).toBe(true); // Don in Redis
+      expect(await isCustomerAllowed('085158858310')).toBe(true);
     });
 
-    it('unconditionally returns false for other internal staff and office', async () => {
-      mockSismember.mockResolvedValue(1);
-      expect(await isCustomerAllowed('6285158858310')).toBe(false); // Don
-      expect(await isCustomerAllowed('628987257284')).toBe(false); // Hesy
+    it('returns false for internal staff when NOT in Redis whitelist', async () => {
+      mockSismember.mockResolvedValue(0);
+      expect(await isCustomerAllowed('6281249182155')).toBe(false); // Admin 1
+      expect(await isCustomerAllowed('628987257284')).toBe(false);  // Hesy
       expect(await isCustomerAllowed('6285229092368')).toBe(false); // Admin 2
-      expect(await isCustomerAllowed('6281326175144')).toBe(false); // Admin 3
-      expect(mockSismember).not.toHaveBeenCalled();
     });
 
     it('allows test numbers even if they belong to internal staff (bypasses staff check)', async () => {
@@ -146,28 +141,14 @@ describe('Customer Whitelist Guardrail', () => {
   });
 
   describe('seedWhitelistFromEnv', () => {
-    it('purges internal staff phones and LIDs via srem and deletes lingering keys', async () => {
-      mockSrem.mockResolvedValue(1);
-      mockDel.mockResolvedValue(1);
+    it('seeds allowed customer phones into Redis via sadd', async () => {
       mockSadd.mockResolvedValue(1);
 
       process.env.ALLOWED_CUSTOMER_PHONES = '08123456789, 6281249182155'; // Customer + Admin 1
 
       await seedWhitelistFromEnv();
 
-      // 1. Verify srem called with WHITELIST_KEY including Admin 1 phone and LID
-      expect(mockSrem).toHaveBeenCalled();
-      const sremArgs = mockSrem.mock.calls[0];
-      expect(sremArgs[0]).toBe('whatsapp:allowed_phones');
-      expect(sremArgs).toContain('6281249182155'); // Admin 1 international
-      expect(sremArgs).toContain('081249182155');  // Admin 1 local
-      expect(sremArgs).toContain('75432611295262'); // Admin 1 LID
-
-      // 2. Verify del called to clean staff residual keys
-      expect(mockDel).toHaveBeenCalledWith('whatsapp:chat_history:6281249182155');
-      expect(mockDel).toHaveBeenCalledWith('whatsapp:session_mode:6281249182155');
-
-      // 3. Verify sadd called ONLY with valid customer phone (Admin 1 excluded)
+      // Verify sadd called with valid customer phone (Admin 1 filtered from env)
       expect(mockSadd).toHaveBeenCalledWith('whatsapp:allowed_phones', '628123456789');
       const saddArgs = mockSadd.mock.calls[0];
       expect(saddArgs).not.toContain('6281249182155');
