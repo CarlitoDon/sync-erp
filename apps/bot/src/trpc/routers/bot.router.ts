@@ -9,6 +9,7 @@ import {
 } from '../../utils/phone';
 import { isInternalStaff } from '../../constants/staff';
 import { isCustomerAllowed } from '../../utils/whitelist';
+import { getBotConfig, isTestNumber } from '../../config/bot.config';
 import { TRPCError } from '@trpc/server';
 
 export const botRouter = router({
@@ -193,8 +194,9 @@ export const botRouter = router({
         });
       }
 
-      // 1b. Check staff protection
-      if (isInternalStaff(input.phone)) {
+      // 1b. Check staff protection (bypass for test numbers)
+      const isTester = isTestNumber(input.phone);
+      if (isInternalStaff(input.phone) && !isTester && getBotConfig().staffProtectionEnabled) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Cannot send to internal staff' });
       }
       // 1c. Check whitelist

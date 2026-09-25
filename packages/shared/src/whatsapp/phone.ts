@@ -25,3 +25,35 @@ export const isValidIndonesianNumber = (phone: string): boolean => {
   const cleaned = phone.replace(/[\s-]/g, "");
   return /^(\+?62|0)8[1-9][0-9]{6,12}$/.test(cleaned);
 };
+
+/**
+ * Checks whether an incoming phone number or LID is explicitly designated as a tester.
+ * Test numbers bypass internal staff protection and whitelist checks.
+ */
+export function isTestNumber(
+  identifier: string | null | undefined,
+  testNumbersEnv: string | undefined = process.env.BOT_TEST_NUMBERS
+): boolean {
+  if (!identifier || !testNumbersEnv) return false;
+  const raw = identifier.trim();
+  if (!raw) return false;
+
+  const userPart = raw.split('@')[0].split(':')[0];
+  const digits = userPart.replace(/\D/g, '');
+  if (!digits) return false;
+
+  const normalized = digits.startsWith('0') ? `62${digits.slice(1)}` : digits;
+
+  const testNumbers = new Set(
+    testNumbersEnv
+      .split(',')
+      .map((p) => normalizePhone(p.trim()))
+      .filter((p) => p.length > 0)
+  );
+
+  return (
+    testNumbers.has(normalized) ||
+    testNumbers.has(digits) ||
+    testNumbers.has(userPart)
+  );
+}
