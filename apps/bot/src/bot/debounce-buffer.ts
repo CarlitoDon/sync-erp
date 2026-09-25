@@ -26,7 +26,6 @@ export interface InFlightEntry {
 
 const debounceMap = new Map<string, DebounceEntry>();
 const inFlightMap = new Map<string, InFlightEntry>();
-const DEBOUNCE_DELAY_MS = Number(process.env.WHATSAPP_DEBOUNCE_MS) || 7000;
 
 export async function fireDebounce(
   cleanPhone: string,
