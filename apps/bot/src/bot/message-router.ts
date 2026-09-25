@@ -12,6 +12,7 @@ import {
 } from '@whiskeysockets/baileys';
 import { isInternalStaff } from '../constants/staff';
 import { isCustomerAllowed } from '../utils/whitelist';
+import { getBotConfig, isTestNumber } from '../config/bot.config';
 import { appendChatHistory } from '../utils/chat-history';
 import { resolvePhoneFromLid } from './use-redis-auth-state';
 import { handleBotCommand } from './command-handler';
@@ -60,6 +61,10 @@ export async function routeIncomingMessages(
     // Owner Outbound Takeover Detection:
     // If message is fromMe, check if owner sent manual message to customer to trigger auto-takeover
     if (msg.key.fromMe) {
+      if (!getBotConfig().autoTakeoverEnabled) {
+        continue;
+      }
+
       if (isInternalStaff(cleanPhone) || (remoteJid.endsWith('@lid') && isInternalStaff(remoteJid))) {
         continue;
       }
@@ -90,8 +95,11 @@ export async function routeIncomingMessages(
       continue;
     }
 
-    // Staff protection: ignore inbound messages from staff
-    if (isInternalStaff(cleanPhone) || (remoteJid.endsWith('@lid') && isInternalStaff(remoteJid))) {
+    // Staff protection: ignore inbound messages from staff (unless explicitly designated as test number)
+    const isStaff = isInternalStaff(cleanPhone) || (remoteJid.endsWith('@lid') && isInternalStaff(remoteJid));
+    const isTester = isTestNumber(cleanPhone) || isTestNumber(rawPhone);
+
+    if (isStaff && !isTester && getBotConfig().staffProtectionEnabled) {
       // eslint-disable-next-line no-console
       console.log(
         `[message-router] Inbound message from internal staff ${cleanPhone} ignored to prevent feedback loop.`,

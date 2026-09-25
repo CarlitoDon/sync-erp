@@ -7,6 +7,7 @@ import type { WASocket } from '@whiskeysockets/baileys';
 import { isSessionMuted } from './owner-takeover';
 import { detectFrustration } from './frustration-detector';
 import { toSafeErrorMessage } from './error-sanitizer';
+import { getBotConfig } from '../config/bot.config';
 
 export async function dispatchToWebhook(
   cleanPhone: string,
@@ -33,8 +34,7 @@ export async function dispatchToWebhook(
     );
   }
 
-  const webhookUrl =
-    process.env.RARA_WEBHOOK_URL || 'http://localhost:8045/webhook/rara';
+  const webhookUrl = getBotConfig().webhookUrl;
 
   const payload = {
     phone: customerPhone,

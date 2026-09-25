@@ -24,19 +24,21 @@ vi.mock('../bot/use-redis-auth-state.js', () => ({
 }));
 
 describe('Customer Whitelist Guardrail', () => {
-  const originalEnv = process.env.ALLOWED_CUSTOMER_PHONES;
+  const originalEnv = { ...process.env };
 
   beforeEach(() => {
     delete process.env.ALLOWED_CUSTOMER_PHONES;
+    delete process.env.BOT_WHITELIST_ENABLED;
+    delete process.env.WHITELIST_ENABLED;
+    delete process.env.BOT_TEST_NUMBERS;
+    delete process.env.TEST_CUSTOMER_PHONES;
+    delete process.env.STAFF_PROTECTION_ENABLED;
+    delete process.env.BOT_IGNORE_STAFF;
     mockSismember.mockReset();
   });
 
   afterEach(() => {
-    if (originalEnv !== undefined) {
-      process.env.ALLOWED_CUSTOMER_PHONES = originalEnv;
-    } else {
-      delete process.env.ALLOWED_CUSTOMER_PHONES;
-    }
+    process.env = { ...originalEnv };
   });
 
   describe('normalizePhone', () => {
@@ -107,6 +109,26 @@ describe('Customer Whitelist Guardrail', () => {
       expect(await isCustomerAllowed('6285229092368')).toBe(false); // Admin 2
       expect(await isCustomerAllowed('6281326175144')).toBe(false); // Admin 3
       expect(mockSismember).not.toHaveBeenCalled();
+    });
+
+    it('allows test numbers even if they belong to internal staff (bypasses staff check)', async () => {
+      process.env.BOT_TEST_NUMBERS = '085158858310';
+      // 085158858310 is Don / Owner in INTERNAL_STAFF_PHONES
+      expect(await isCustomerAllowed('6285158858310')).toBe(true);
+      expect(await isCustomerAllowed('085158858310')).toBe(true);
+    });
+
+    it('permits all non-staff customers when BOT_WHITELIST_ENABLED is false (open mode)', async () => {
+      process.env.BOT_WHITELIST_ENABLED = 'false';
+      expect(await isCustomerAllowed('628999888777')).toBe(true);
+      // Staff still blocked if staffProtectionEnabled is true
+      expect(await isCustomerAllowed('6281249182155')).toBe(false);
+    });
+
+    it('permits staff when STAFF_PROTECTION_ENABLED is false and whitelist is disabled', async () => {
+      process.env.BOT_WHITELIST_ENABLED = 'false';
+      process.env.STAFF_PROTECTION_ENABLED = 'false';
+      expect(await isCustomerAllowed('6281249182155')).toBe(true);
     });
   });
 
