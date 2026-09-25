@@ -8,6 +8,7 @@ import {
 import { isCustomerAllowed } from '../utils/whitelist';
 import { appendChatHistory } from '../utils/chat-history';
 import { isInternalStaff } from '../constants/staff';
+import { getBotConfig, isTestNumber } from '../config/bot.config';
 
 const SendMessageSchema = z.object({
   phone: z.string(),
@@ -100,8 +101,9 @@ export const sendMessage = async (req: Request, res: Response) => {
     });
   }
 
-  // 2b. Block sending automated sales messages to internal staff
-  if (isInternalStaff(phone)) {
+  // 2b. Block sending automated sales messages to internal staff (bypass for test numbers)
+  const isTester = isTestNumber(phone);
+  if (isInternalStaff(phone) && !isTester && getBotConfig().staffProtectionEnabled) {
     return res.status(403).json({
       error: 'Forbidden',
       message:

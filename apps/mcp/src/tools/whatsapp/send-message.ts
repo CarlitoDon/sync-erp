@@ -1,8 +1,12 @@
 import { z } from 'zod';
 import { getString } from '../_helpers.js';
 import { getWhatsAppConfig } from '../../config.js';
-import { isInternalStaff } from '../../constants/staff.js';
-import { normalizePhone, formatRaraMessageWithSignature } from '@sync-erp/shared/whatsapp';
+import {
+  normalizePhone,
+  formatRaraMessageWithSignature,
+  isInternalStaff,
+  isTestNumber,
+} from '@sync-erp/shared/whatsapp';
 
 export const WhatsAppSendResponseSchema = z.object({
   success: z.boolean(),
@@ -18,7 +22,7 @@ export async function handleWhatsappSendMessage(args: Record<string, unknown>): 
   const rawMessage = getString(args, 'message');
   const message = formatRaraMessageWithSignature(rawMessage);
 
-  if (isInternalStaff(phone)) {
+  if (isInternalStaff(phone) && !isTestNumber(phone)) {
     throw new Error(
       `Cannot send automated customer sales message to internal staff/store: ${phone}`
     );
