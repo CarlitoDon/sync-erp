@@ -6,7 +6,6 @@ import {
 } from '../trpc';
 import { container, ServiceKeys } from '../../modules/common/di';
 import { TRPCError } from '@trpc/server';
-import type { CookieOptions } from 'express';
 import {
   registerSchema,
   loginSchema,
@@ -20,20 +19,10 @@ const authService = container.resolve<AuthService>(
   ServiceKeys.AUTH_SERVICE
 );
 
-function getCookieOptions(): CookieOptions {
-  const isSecureEnv =
-    process.env.SECURE_COOKIES === 'true' ||
-    process.env.NODE_ENV === 'production' ||
-    process.env.NODE_ENV === 'staging';
-
-  return {
-    httpOnly: true,
-    secure: isSecureEnv,
-    sameSite: isSecureEnv ? 'none' : 'lax',
-    path: '/',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  };
-}
+import {
+  getSessionCookieOptions,
+  getClearSessionCookieOptions,
+} from '../../modules/auth/cookie';
 
 function getAuthAuditContext(ctx: Context) {
   const forwardedFor = ctx.req.headers['x-forwarded-for'];
@@ -123,7 +112,11 @@ export const authRouter = router({
           message: result.error!.message,
         });
       }
-      ctx.res.cookie('sessionId', result.session!.id, getCookieOptions());
+      ctx.res.cookie(
+        'sessionId',
+        result.session!.id,
+        getSessionCookieOptions(ctx.req)
+      );
 
       return {
         user: result.user!,
@@ -185,7 +178,11 @@ export const authRouter = router({
         });
       }
 
-      ctx.res.cookie('sessionId', result.session!.id, getCookieOptions());
+      ctx.res.cookie(
+        'sessionId',
+        result.session!.id,
+        getSessionCookieOptions(ctx.req)
+      );
 
       return {
         user: result.user!,
@@ -202,8 +199,9 @@ export const authRouter = router({
     if (sessionId) {
       await authService.logout(sessionId);
     }
-    // Clear session cookie
-    ctx.res.clearCookie('sessionId');
+    // Clear session cookie across domain and host-only paths
+    ctx.res.clearCookie('sessionId', getClearSessionCookieOptions(ctx.req));
+    ctx.res.clearCookie('sessionId', { path: '/' });
     return { success: true };
   }),
 
