@@ -1,6 +1,10 @@
 /**
  * Webhook Dispatcher
- * Dispatches customer messages and inbound media payloads to the Hermes agent webhook.
+ * Dispatches customer messages to the Hermes agent webhook and relays
+ * the LLM response back to the customer as WhatsApp message(s).
+ *
+ * Flow: Bot → POST Hermes webhook → Hermes processes (LLM) → HTTP response body
+ *       → Bot reads body → sends each bubble to customer via Baileys.
  */
 
 import type { WASocket } from '@whiskeysockets/baileys';
@@ -10,6 +14,30 @@ import { toSafeErrorMessage } from './error-sanitizer';
 import { getBotConfig } from '../config/bot.config';
 import { getRedisClient } from './use-redis-auth-state';
 import { getFormattedChatHistory } from '../utils/chat-history';
+import { recordBotSentMessageId } from './bot-message-tracker';
+
+/**
+ * Hermes response timeout in ms.
+ * LLM calls via murah-cepat can take 2–6 minutes; 600s covers worst case.
+ */
+const HERMES_RESPONSE_TIMEOUT_MS = 600_000;
+
+/**
+ * Splits a Rara multi-bubble response on `---` delimiters.
+ * Each bubble becomes a separate WhatsApp message.
+ */
+function splitBubbles(text: string): string[] {
+  return text
+    .split(/(?:^|\r?\n)[\t ]*-{3,}[\t ]*(?:\r?\n|$)/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Inter-bubble delay in ms to simulate natural typing cadence.
+ */
+const BUBBLE_DELAY_MS = 1200;
+
 
 export async function dispatchToWebhook(
   cleanPhone: string,
@@ -77,7 +105,7 @@ export async function dispatchToWebhook(
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 180000);
+    const timeout = setTimeout(() => controller.abort(), HERMES_RESPONSE_TIMEOUT_MS);
 
     const response = await fetch(webhookUrl, {
       method: 'POST',
@@ -93,7 +121,50 @@ export async function dispatchToWebhook(
       console.error(
         `[webhook-dispatcher] Webhook returned status ${response.status} for ${customerPhone}`,
       );
+      return;
     }
+
+    // --- Read Hermes response and relay to customer ---
+    const responseText = await response.text();
+    if (!responseText || !responseText.trim()) {
+      // eslint-disable-next-line no-console
+      console.log(`[webhook-dispatcher] Empty response from Hermes for ${customerPhone}`);
+      return;
+    }
+
+    if (!sock) {
+      console.error(`[webhook-dispatcher] Socket unavailable — cannot relay Rara reply to ${customerPhone}`);
+      return;
+    }
+
+    const jid = `${cleanPhone}@s.whatsapp.net`;
+    const bubbles = splitBubbles(responseText);
+
+    for (let i = 0; i < bubbles.length; i++) {
+      const bubble = bubbles[i];
+      if (!bubble) continue;
+
+      // Add typing delay between bubbles (not before first)
+      if (i > 0) {
+        await new Promise((resolve) => setTimeout(resolve, BUBBLE_DELAY_MS));
+      }
+
+      try {
+        const result = await sock.sendMessage(jid, { text: bubble });
+        const msgId = result?.key?.id ?? 'unknown';
+        recordBotSentMessageId(msgId);
+      } catch (sendErr) {
+        console.error(
+          `[webhook-dispatcher] Failed to send bubble ${i + 1}/${bubbles.length} to ${customerPhone}:`,
+          sendErr,
+        );
+      }
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `[webhook-dispatcher] Relayed ${bubbles.length} bubble(s) to ${customerPhone}`,
+    );
   } catch (postErr) {
     const safeErr = toSafeErrorMessage(postErr, 'Webhook post failed');
     console.error(
