@@ -118,6 +118,14 @@ jobs:
             --run-id "$RELEASE_RUN_ID"
           cp scripts/verify-release-health.mjs deploy/mcp/verify-release-health.mjs
 
+          node -e '
+            const fs = require("node:fs");
+            const pkgPath = "deploy/mcp/package.json";
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+            delete pkg.devDependencies;
+            fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+          '
+
           npm install \
             --prefix deploy/mcp \
             --omit=dev \
