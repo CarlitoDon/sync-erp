@@ -13,6 +13,7 @@
  */
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { getCsrfCookieOptions } from '../modules/auth/cookie';
 
 const CSRF_COOKIE = 'csrf-token';
 const CSRF_HEADER = 'x-csrf-token';
@@ -42,13 +43,7 @@ export function csrfProtection(
   let token = req.cookies[CSRF_COOKIE];
   if (!token) {
     token = generateCsrfToken();
-    res.cookie(CSRF_COOKIE, token, {
-      httpOnly: false, // JS must be able to read it
-      secure: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours (shorter than session)
-    });
+    res.cookie(CSRF_COOKIE, token, getCsrfCookieOptions(req));
   }
 
   // Attach token to request for use in route handlers
