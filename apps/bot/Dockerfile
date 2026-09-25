@@ -24,6 +24,7 @@ COPY apps/api/src ./apps/api/src
 COPY apps/mcp/src ./apps/mcp/src
 COPY apps/api/tsconfig.json apps/api/tsup.config.ts ./apps/api/
 COPY apps/bot/src ./apps/bot/src
+COPY apps/bot/assets ./apps/bot/assets
 COPY apps/bot/tsconfig.json apps/bot/tsup.config.ts ./apps/bot/
 COPY packages/database/src ./packages/database/src
 COPY packages/database/prisma ./packages/database/prisma
@@ -42,6 +43,7 @@ ENV NODE_ENV=production
 ENV PORT=3003
 
 COPY --from=builder /repo/apps/bot/dist ./apps/bot/dist
+COPY --from=builder /repo/apps/bot/assets ./apps/bot/assets
 COPY --from=builder /repo/apps/bot/package.json ./apps/bot/package.json
 COPY --from=builder /repo/node_modules ./node_modules
 # npm workspaces link these packages from node_modules; copy their built targets too.
