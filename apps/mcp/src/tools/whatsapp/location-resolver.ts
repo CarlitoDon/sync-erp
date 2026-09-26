@@ -14,11 +14,8 @@
  * - Google Routes API distance & round-trip fee calculation
  */
 
-import { z } from 'zod';
 import { getWhatsAppConfig } from '../../config.js';
 import {
-  WAREHOUSE_LAT,
-  WAREHOUSE_LNG,
   calculateDeliveryFee,
   getDistanceKmFromCoords,
   searchPlaces,
