@@ -277,26 +277,24 @@ vi.mock('../services/partner.service', () => ({
 
 ---
 
-## Hostinger Deployment
+## Deployment Architecture
 
-### [2026-02-11] SSH-Based App Management via apps-manager.sh
+### [2026-09-21] Migration to Coolify PaaS and Hostinger Retirement
 
-**Decision**: All Hostinger Node.js app management via SSH using `~/apps-manager.sh` script. Never use cPanel UI.
+**Decision**: Retired Hostinger cPanel shared hosting (`public_html/apps/*`, `*.santiliving.com` API subdomains). Migrated all backend services (API, MCP, Bot) to self-hosted Coolify PaaS running Docker containers, and frontend to Vercel.
 
-**Commands**:
-```bash
-ssh hostinger 'bash ~/apps-manager.sh status'        # Status all apps + NPROC
-ssh hostinger 'bash ~/apps-manager.sh start prod'     # Start production (api, proxy, bot)
-ssh hostinger 'bash ~/apps-manager.sh start staging'  # Start staging
-ssh hostinger 'bash ~/apps-manager.sh restart api'    # Restart single app
-ssh hostinger 'bash ~/apps-manager.sh stop all'       # Stop everything
-```
+**Domains**:
+- Production API: `https://api-sync-erp.khusnudhoni.online`
+- Production MCP: `https://mcp-sync-erp.khusnudhoni.online`
+- Staging API: `https://api-staging-sync-erp.khusnudhoni.online`
+- Staging MCP: `https://mcp-staging-sync-erp.khusnudhoni.online`
+- Production Web (Vercel): `https://sync-erp.khusnudhoni.online`
+- Staging Web (Vercel): `https://sync-erp-staging.khusnudhoni.online`
 
-**Underlying CLI**: `cloudlinux-selector start|stop|restart --json --interpreter nodejs --app-root <path>`
-
-**NPROC Limit**: 100 processes max. If exceeded, SSH blocks entirely. Stop all apps via cPanel UI as emergency fallback.
-
-**Rationale**: cPanel UI is slow and error-prone. SSH + cloudlinux-selector CLI is faster and scriptable.
+**CI/CD Pipeline**:
+- GitHub Actions push to `dev` triggers webhook for Coolify staging (`deploy-coolify.yml`).
+- PR merge to `main` triggers webhook for Coolify production.
+- Vercel automatically deploys preview/production builds for `apps/web`.
 
 ---
 

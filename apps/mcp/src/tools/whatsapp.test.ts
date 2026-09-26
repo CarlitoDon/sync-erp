@@ -174,9 +174,9 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
   });
 
   describe('WhatsApp Tools Registry', () => {
-    it('registers all 8 WhatsApp tools with correct names and schemas', () => {
+    it('registers all 13 WhatsApp tools with correct names and schemas', () => {
       const tools = getWhatsAppTools();
-      expect(tools.length).toBe(11);
+      expect(tools.length).toBe(13);
 
       const toolNames = tools.map((t) => t.name);
       expect(toolNames).toEqual([
@@ -191,6 +191,8 @@ describe('WhatsApp Sales Bot MCP Tools', () => {
         'get_last_escalated_lead',
         'whatsapp_send_qris',
         'rental_order_auto_book_lead',
+        'resolve_customer_location',
+        'whatsapp_send_snk',
       ]);
 
       // Every tool must have a handler function and an input schema

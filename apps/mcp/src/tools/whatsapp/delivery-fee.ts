@@ -203,59 +203,36 @@ export async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; 
   }
 }
 
-export async function handleEstimateDeliveryFee(args: Record<string, unknown>): Promise<string> {
-  const config = getWhatsAppConfig();
-  const apiKey = config.googleMapsApiKey.trim();
-  if (!apiKey) {
-    throw new Error('GOOGLE_MAPS_API_KEY is not configured');
-  }
+import { resolveUniversalLocation } from './location-resolver.js';
 
+export async function handleEstimateDeliveryFee(args: Record<string, unknown>): Promise<string> {
   const address = getOptionalString(args, 'address');
   const latitude = getOptionalNumber(args, 'latitude');
   const longitude = getOptionalNumber(args, 'longitude');
 
-  let destLat: number;
-  let destLng: number;
-  let resolvedAddress: string;
-
   if (latitude !== undefined && longitude !== undefined) {
-    // Direct coordinates
-    destLat = latitude;
-    destLng = longitude;
-    resolvedAddress = `${latitude}, ${longitude}`;
-  } else if (address !== undefined && address.trim().length > 0) {
-    const trimmedAddress = address.trim();
-
-    // 1. Direct coordinate pattern inside address text: e.g. "(Koordinat: -7.7588, 110.3986)" or "-7.7588, 110.3986"
-    const coordMatch = trimmedAddress.match(/(?:Koordinat:\s*)?(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/i);
-    // 2. Embedded URL pattern inside address text
-    const urlMatch = trimmedAddress.match(/https?:\/\/[^\s]+/);
-
-    if (coordMatch) {
-      destLat = parseFloat(coordMatch[1]);
-      destLng = parseFloat(coordMatch[2]);
-      resolvedAddress = `Coordinates from text: ${destLat}, ${destLng}`;
-    } else if (urlMatch) {
-      const coords = await resolveGoogleMapsUrl(urlMatch[0]);
-      if (!coords) {
-        throw new Error(`Could not extract coordinates from URL: ${urlMatch[0]}`);
-      }
-      destLat = coords.lat;
-      destLng = coords.lng;
-      resolvedAddress = `Coordinates from URL: ${destLat}, ${destLng}`;
-    } else {
-      // Plain address — use Places API
-      const place = await searchPlaces(trimmedAddress, apiKey);
-      destLat = place.lat;
-      destLng = place.lng;
-      resolvedAddress = place.address;
+    const config = getWhatsAppConfig();
+    const apiKey = config.googleMapsApiKey.trim();
+    if (!apiKey) {
+      throw new Error('GOOGLE_MAPS_API_KEY is not configured');
     }
-  } else {
-    throw new Error('Provide either (latitude + longitude) or address');
+    const distanceKm = await getDistanceKmFromCoords(latitude, longitude, apiKey);
+    const deliveryFee = calculateDeliveryFee(distanceKm);
+    return JSON.stringify({
+      distanceKm: Math.round(distanceKm * 100) / 100,
+      deliveryFee,
+      resolvedAddress: `${latitude}, ${longitude}`,
+    });
   }
 
-  const distanceKm = await getDistanceKmFromCoords(destLat, destLng, apiKey);
-  const deliveryFee = calculateDeliveryFee(distanceKm);
+  if (address !== undefined && address.trim().length > 0) {
+    const res = await resolveUniversalLocation(address);
+    return JSON.stringify({
+      distanceKm: res.distanceKm,
+      deliveryFee: res.deliveryFee,
+      resolvedAddress: res.resolvedAddress,
+    });
+  }
 
-  return JSON.stringify({ distanceKm: Math.round(distanceKm * 100) / 100, deliveryFee, resolvedAddress });
+  throw new Error('Provide either (latitude + longitude) or address');
 }

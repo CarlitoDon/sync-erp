@@ -23,7 +23,7 @@ coolify_trigger_fail() {
 
 coolify_trigger_usage() {
   printf 'usage: COOLIFY_DEPLOY_WEBHOOK=... %s SERVICE ENVIRONMENT\n' "$0" >&2
-  printf 'SERVICE must be api, bot, or mcp; ENVIRONMENT must be staging or production.\n' >&2
+  printf 'SERVICE must be api, bot, mcp, or web; ENVIRONMENT must be staging or production.\n' >&2
 }
 
 if [ "$#" -ne 2 ]; then
@@ -35,9 +35,9 @@ service="$1"
 environment="$2"
 
 case "$service" in
-  api|bot|mcp) ;;
+  api|bot|mcp|web) ;;
   *)
-    coolify_trigger_fail "unsupported service '$service'; expected api, bot, or mcp"
+    coolify_trigger_fail "unsupported service '$service'; expected api, bot, mcp, or web"
     ;;
 esac
 
@@ -96,6 +96,8 @@ case "$service/$environment" in
   bot/production) secret_name='COOLIFY_DEPLOY_WEBHOOK_BOT_PRODUCTION' ;;
   mcp/staging) secret_name='COOLIFY_DEPLOY_WEBHOOK_MCP_STAGING' ;;
   mcp/production) secret_name='COOLIFY_DEPLOY_WEBHOOK_MCP_PRODUCTION' ;;
+  web/staging) secret_name='COOLIFY_DEPLOY_WEBHOOK_WEB_STAGING' ;;
+  web/production) secret_name='COOLIFY_DEPLOY_WEBHOOK_WEB_PRODUCTION' ;;
   *) coolify_trigger_fail 'could not resolve the Coolify webhook secret name' ;;
 esac
 webhook="${COOLIFY_DEPLOY_WEBHOOK:-}"

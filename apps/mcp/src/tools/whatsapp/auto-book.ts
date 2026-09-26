@@ -112,6 +112,14 @@ export const PartnerResponseSchema = z.object({
   name: z.string(),
 });
 
+function safeJsonParse(val: string): unknown {
+  try {
+    return JSON.parse(val);
+  } catch {
+    return val;
+  }
+}
+
 export async function handleRentalOrderAutoBookLead(args: Record<string, unknown>): Promise<string> {
   const parsed = RentalOrderAutoBookLeadArgsSchema.safeParse(args);
   if (!parsed.success) {
@@ -161,7 +169,7 @@ export async function handleRentalOrderAutoBookLead(args: Record<string, unknown
 
   // 1. Partner lookup or creation
   const partnersRaw = await apiQuery('partner.list', {}, companyId);
-  const parsedPartners = PartnerListResponseSchema.safeParse(partnersRaw);
+  const parsedPartners = PartnerListResponseSchema.safeParse(safeJsonParse(partnersRaw));
   let partnerId: string | null = null;
   if (parsedPartners.success) {
     for (const p of parsedPartners.data) {
@@ -179,17 +187,17 @@ export async function handleRentalOrderAutoBookLead(args: Record<string, unknown
       phone: customerPhone,
       address: deliveryAddress,
     }, companyId);
-    const parsedNewPartner = PartnerResponseSchema.safeParse(newPartnerRaw);
+    const parsedNewPartner = PartnerResponseSchema.safeParse(safeJsonParse(newPartnerRaw));
     if (parsedNewPartner.success) {
       partnerId = parsedNewPartner.data.id;
     } else {
-      throw new Error('Failed to create customer partner in Sync ERP');
+      throw new Error(`Failed to create customer partner in Sync ERP: ${newPartnerRaw}`);
     }
   }
 
   // 2. Resolve rental bundle
   const bundlesRaw = await apiQuery('rental.bundles.list', {}, companyId);
-  const parsedBundles = BundleListResponseSchema.safeParse(bundlesRaw);
+  const parsedBundles = BundleListResponseSchema.safeParse(safeJsonParse(bundlesRaw));
   let bundleId: string | null = null;
   let bundleName = `Paket ${bundleSize}`;
   let pricePerDay = 35000;
@@ -229,7 +237,7 @@ export async function handleRentalOrderAutoBookLead(args: Record<string, unknown
     notes,
   }, companyId);
 
-  const parsedOrder = OrderResponseSchema.safeParse(orderRaw);
+  const parsedOrder = OrderResponseSchema.safeParse(safeJsonParse(orderRaw));
   if (!parsedOrder.success) {
     throw new Error(`Rental order creation failed in Sync ERP: ${JSON.stringify(orderRaw)}`);
   }

@@ -9,7 +9,7 @@ import {
 const requestUrl =
   'http://127.0.0.1:3001/api/auth/google/start?intent=login';
 const expectedRedirectUri =
-  'https://api-staging.santiliving.com/api/auth/google/callback';
+  'https://api-staging-sync-erp.khusnudhoni.online/api/auth/google/callback';
 const providerUrl = new URL(
   'https://accounts.google.com/o/oauth2/v2/auth'
 );
@@ -208,7 +208,7 @@ test('rejects a provider redirect carrying redirect_uri_mismatch', async () => {
 test('rejects request and callback URLs outside the declared policy', async () => {
   await assert.rejects(
     verifyGoogleOAuthRedirect({
-      requestUrl: 'https://api-staging.santiliving.com/api/auth/google/start',
+      requestUrl: 'https://api-staging-sync-erp.khusnudhoni.online/api/auth/google/start',
       expectedRedirectUri,
     }),
     /loopback request URL/
@@ -217,7 +217,7 @@ test('rejects request and callback URLs outside the declared policy', async () =
   await assert.rejects(
     verifyGoogleOAuthRedirect({
       requestUrl,
-      expectedRedirectUri: 'http://api-staging.santiliving.com/callback',
+      expectedRedirectUri: 'http://api-staging-sync-erp.khusnudhoni.online/callback',
     }),
     /public HTTPS URL/
   );
@@ -225,9 +225,9 @@ test('rejects request and callback URLs outside the declared policy', async () =
   await assert.rejects(
     verifyGoogleOAuthRedirect({
       requestUrl:
-        'https://api-staging.santiliving.com/api/auth/google/start',
+        'https://api-staging-sync-erp.khusnudhoni.online/api/auth/google/start',
       expectedRedirectUri:
-        'https://other-api-staging.santiliving.com/api/auth/google/callback',
+        'https://other-api-staging-sync-erp.khusnudhoni.online/api/auth/google/callback',
       requestScope: 'public-edge',
       fetchImpl: async () => response(302, providerUrl.href),
     }),
@@ -237,7 +237,7 @@ test('rejects request and callback URLs outside the declared policy', async () =
 
 test('allows the explicitly scoped public-edge request', async () => {
   const publicRequestUrl =
-    'https://api-staging.santiliving.com/api/auth/google/start?intent=login';
+    'https://api-staging-sync-erp.khusnudhoni.online/api/auth/google/start?intent=login';
   const { fetchImpl } = mockFetch([
     response(302, providerUrl.href),
     response(200, undefined, '<html>Google sign in</html>'),

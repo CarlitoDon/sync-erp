@@ -126,54 +126,26 @@ After modifying schemas: `cd packages/shared && npm run build`
 
 ---
 
-## Hostinger Deployment (SSH)
+## Deployment Topology (Coolify PaaS & Vercel)
 
-All apps are hosted on Hostinger cPanel with CloudLinux Passenger. **Never use cPanel UI** — manage everything via SSH.
+Hostinger deployment was retired per 2026-09-21. All deployments are automated via GitHub Actions:
 
-**SSH alias**: `ssh hostinger` (configured in `~/.ssh/config`, port 65002, user `u1046450@46.17.173.54`)
+### Coolify PaaS (Backend: API, MCP, Bot)
 
-### Apps Manager Script
+- **Staging (`dev` branch)**:
+  - API: `https://api-staging-sync-erp.khusnudhoni.online`
+  - MCP: `https://mcp-staging-sync-erp.khusnudhoni.online`
+  - Triggered automatically via GitHub Actions `deploy-coolify.yml` webhook on push to `dev`.
+- **Production (`main` branch)**:
+  - API: `https://api-sync-erp.khusnudhoni.online`
+  - MCP: `https://mcp-sync-erp.khusnudhoni.online`
+  - Triggered automatically on PR merge to `main`.
 
-A management script is installed at `~/apps-manager.sh` on the server:
+### Vercel (Frontend: Web)
 
-```bash
-# Check status of all apps
-ssh hostinger 'bash ~/apps-manager.sh status'
-
-# Start/stop/restart specific targets
-ssh hostinger 'bash ~/apps-manager.sh start prod'       # All production
-ssh hostinger 'bash ~/apps-manager.sh start staging'    # All staging
-ssh hostinger 'bash ~/apps-manager.sh restart api'      # Single app
-ssh hostinger 'bash ~/apps-manager.sh stop api-staging' # Single app
-ssh hostinger 'bash ~/apps-manager.sh start all'        # Everything
-```
-
-### App Names
-
-| App | Domain | Root Directory |
-| :-- | :----- | :------------- |
-| `api` | api.santiliving.com | `public_html/apps/api` |
-| `proxy` | proxy.santiliving.com | `public_html/apps/proxy` |
-| `bot` | bot.santiliving.com | `public_html/apps/bot` |
-| `api-staging` | api-staging.santiliving.com | `public_html/apps/api-staging` |
-| `proxy-staging` | proxy-staging.santiliving.com | `public_html/apps/proxy-staging` |
-| `bot-staging` | bot-staging.santiliving.com | `public_html/apps/bot-staging` |
-
-### CloudLinux CLI (underlying command)
-
-```bash
-# Direct cloudlinux-selector usage (apps-manager.sh wraps this)
-cloudlinux-selector start --json --interpreter nodejs --app-root public_html/apps/api
-cloudlinux-selector stop --json --interpreter nodejs --app-root public_html/apps/api
-cloudlinux-selector restart --json --interpreter nodejs --app-root public_html/apps/api
-```
-
-### NPROC Limit Warning
-
-Hostinger has a **100 process limit** (NPROC). If exceeded, SSH and all operations will be blocked.
-- Check with: `ssh hostinger 'ps aux | wc -l'`
-- If blocked: Stop all Node.js apps via cPanel UI, wait, then restart via SSH
-- **Never run loops** or parallel npm installs on the server
+- **Staging**: `https://sync-erp-staging.khusnudhoni.online`
+- **Production**: `https://sync-erp.khusnudhoni.online`
+- Reverse proxies `/api/*` requests to the corresponding Coolify API endpoints configured in `vercel.json`.
 
 ---
 

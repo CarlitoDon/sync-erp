@@ -123,7 +123,7 @@ describe('GoogleOAuthService', () => {
     process.env.SYNC_ERP_API_BASE_URL =
       'https://wrong-api.example.com';
     process.env.GOOGLE_OAUTH_REDIRECT_URI =
-      'https://api-staging.santiliving.com/api/auth/google/callback';
+      'https://api-staging-sync-erp.khusnudhoni.online/api/auth/google/callback';
 
     const service = new GoogleOAuthService();
     const { authorizationUrl } =
@@ -132,7 +132,7 @@ describe('GoogleOAuthService', () => {
     expect(
       new URL(authorizationUrl).searchParams.get('redirect_uri')
     ).toBe(
-      'https://api-staging.santiliving.com/api/auth/google/callback'
+      'https://api-staging-sync-erp.khusnudhoni.online/api/auth/google/callback'
     );
   });
 });

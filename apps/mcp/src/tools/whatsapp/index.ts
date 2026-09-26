@@ -3,8 +3,9 @@
  */
 import type { ToolSpec } from '../../types.js';
 import { companyIdProp } from '../_helpers.js';
-import { handleWhatsappSendMessage, handleWhatsappSendQris } from './send-message.js';
+import { handleWhatsappSendMessage, handleWhatsappSendQris, handleWhatsappSendSnk } from './send-message.js';
 import { handleEstimateDeliveryFee } from './delivery-fee.js';
+import { handleResolveCustomerLocation } from './location-resolver.js';
 import { handleSetCustomerNote } from './customer-note.js';
 import { handleEscalateToOwner, handleGetLastEscalatedLead } from './escalation.js';
 import { handleManageCustomerWhitelist } from './whitelist.js';
@@ -14,6 +15,7 @@ import { handleRentalOrderAutoBookLead } from './auto-book.js';
 export * from './redis-client.js';
 export * from './send-message.js';
 export * from './delivery-fee.js';
+export * from './location-resolver.js';
 export * from './customer-note.js';
 export * from './escalation.js';
 export * from './whitelist.js';
@@ -208,9 +210,9 @@ export function getWhatsAppTools(): ToolSpec[] {
     {
       name: 'get_last_escalated_lead',
       description:
-        'Retrieve the latest customer lead escalated to owner/Don via WhatsApp/Telegram. ' +
-        'Use this in Telegram when Don replies with instructions (e.g. "kasih diskon 10%", discount, approval, acc, "take over", tolak, nego) ' +
-        'without explicitly stating the customer name or phone number.',
+        'CRITICAL FOR TELEGRAM BOT: Retrieve the latest customer lead escalated to owner/Don. ' +
+        'MUST be called as step 1 whenever Don replies with an approval, decision, or instruction (e.g. "acc", "diskon", "ok", "tolak", "take over") ' +
+        'so you know WHICH customer and WHICH order is being discussed. NEVER rely on prior Telegram chat history.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -266,6 +268,43 @@ export function getWhatsAppTools(): ToolSpec[] {
         required: ['companyId'],
       },
       handler: handleRentalOrderAutoBookLead,
+    },
+    {
+      name: 'resolve_customer_location',
+      description:
+        'Universal location & maps resolver for Santi Living. Accepts ANY location format ' +
+        '(Google Maps short/long URL, Apple Maps, Waze, WhatsApp location pin/coords, Google Plus Code, or text landmark), ' +
+        'resolves exact verified coordinates and address in DIY, and calculates delivery distance & fee from Santi Mebel Godean warehouse.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          location: {
+            type: 'string',
+            description:
+              'Any location input: e.g. "https://maps.app.goo.gl/kBcB5WjUnJGsD4dA6", ' +
+              '"-7.7588, 110.3986", "6P58+XQ Sinduadi", or "Condongcatur Depok Sleman"',
+          },
+        },
+        required: ['location'],
+      },
+      handler: handleResolveCustomerLocation,
+    },
+    {
+      name: 'whatsapp_send_snk',
+      description:
+        'Sends the official Santi Living Syarat & Ketentuan (SnK) infographic image to a customer via WhatsApp. ' +
+        'Call this immediately after whatsapp_send_qris when finalizing booking so the customer receives terms of service.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          customerPhone: {
+            type: 'string',
+            description: 'Customer phone number',
+          },
+        },
+        required: ['customerPhone'],
+      },
+      handler: handleWhatsappSendSnk,
     },
   ];
 }

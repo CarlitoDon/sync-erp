@@ -314,120 +314,24 @@ jobs:
       caller_event: ${{ github.event_name }}
     secrets: inherit
 
-  deploy_web:
-    name: Deploy Web to Vercel
+  deploy_web_staging:
+    name: Deploy Web to Coolify (Staging)
+    needs: [changes]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.changes.outputs.web == 'true'
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      service: web
+      environment: staging
+      caller_event: ${{ github.event_name }}
+    secrets: inherit
+
+  deploy_web_production:
+    name: Deploy Web to Coolify (Production)
     needs: [changes, ci-web]
-    if: github.event_name == 'push' && needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-    concurrency:
-      group: deploy-web-${{ github.ref_name }}
-      cancel-in-progress: false
-    env:
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund --legacy-peer-deps
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Build and deploy web with Vercel CLI
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          if [[ -z "${VERCEL_TOKEN}" ]]; then
-            echo "Missing VERCEL_TOKEN secret."
-            exit 1
-          fi
-
-          # The workflow-level NODE_ENV=test is correct for quality gates, but
-          # it must not leak into Vercel's production-mode Vite build. Leaving
-          # it unset also keeps Vercel's internal install from pruning build
-          # dependencies. Mixing test/dev JSX with React's production runtime
-          # causes a blank page (`jsxDEV is not a function`).
-          unset NODE_ENV
-          unset TURBO_REMOTE_ONLY
-
-          run_with_retry() {
-            local description="$1"
-            shift
-            for i in 1 2 3 4 5; do
-              if "$@"; then
-                return 0
-              fi
-              sleep_time=$(( i * 20 ))
-              echo "${description} failed. Retry ${i}/5 in ${sleep_time}s..."
-              sleep "${sleep_time}"
-            done
-            return 1
-          }
-
-          deploy_with_retry() {
-            local description="$1"
-            shift
-            local output
-            for i in 1 2 3 4 5; do
-              if output=$("$@" 2>&1); then
-                printf '%s\n' "$output"
-                DEPLOYMENT_URL=$(printf '%s\n' "$output" | grep -Eo 'https://[^[:space:]]+\.vercel\.app' | tail -n 1)
-                if [[ -n "$DEPLOYMENT_URL" ]]; then
-                  return 0
-                fi
-              fi
-              sleep_time=$(( i * 20 ))
-              echo "${description} failed. Retry ${i}/5 in ${sleep_time}s..."
-              sleep "${sleep_time}"
-            done
-            return 1
-          }
-
-          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            export VITE_SYNC_ERP_API_URL="/api/trpc"
-            run_with_retry "vercel pull production" vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
-            run_with_retry "vercel build production" vercel build --prod --token="${VERCEL_TOKEN}"
-            deploy_with_retry "vercel deploy production" vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}"
-            CUSTOM_DOMAIN="sync-erp.khusnudhoni.online"
-          else
-            export VITE_SYNC_ERP_API_URL="/api/trpc"
-            run_with_retry "vercel pull preview" vercel pull --yes --environment=preview --token="${VERCEL_TOKEN}"
-            run_with_retry "vercel build preview" vercel build --token="${VERCEL_TOKEN}"
-            deploy_with_retry "vercel deploy preview" vercel deploy --prebuilt --token="${VERCEL_TOKEN}"
-            CUSTOM_DOMAIN="sync-erp-staging.santiliving.com"
-          fi
-
-          if find .vercel/output/static/assets -name 'index-*.js' \
-            -exec grep -q '\.jsxDEV' {} +; then
-            echo "Deployed web bundle contains the development JSX runtime."
-            exit 1
-          fi
-
-          run_with_retry "vercel alias" \
-            vercel alias set "$DEPLOYMENT_URL" "$CUSTOM_DOMAIN" --token="${VERCEL_TOKEN}"
-
-          for i in 1 2 3 4 5 6 7 8 9 10; do
-            if curl -fsS --connect-timeout 10 --max-time 20 "https://${CUSTOM_DOMAIN}/" >/dev/null 2>&1; then
-              echo "Web deployment is healthy at https://${CUSTOM_DOMAIN}/"
-              exit 0
-            fi
-            if [[ -n "${DEPLOYMENT_URL}" ]] && curl -fsS --connect-timeout 10 --max-time 20 "${DEPLOYMENT_URL}/" >/dev/null 2>&1; then
-              echo "Web deployment is healthy at ${DEPLOYMENT_URL} (custom domain ${CUSTOM_DOMAIN} DNS lookup pending)"
-              exit 0
-            fi
-            if [[ "$i" == "10" ]]; then
-              echo "Web health check failed at https://${CUSTOM_DOMAIN}/ and ${DEPLOYMENT_URL}"
-              exit 1
-            fi
-            sleep 15
-          done
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.web == 'true'
+    uses: ./.github/workflows/deploy-coolify.yml
+    with:
+      service: web
+      environment: production
+      caller_event: ${{ github.event_name }}
+    secrets: inherit

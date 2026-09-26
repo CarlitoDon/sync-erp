@@ -25,6 +25,7 @@ on:
           - api
           - bot
           - mcp
+          - web
       environment:
         description: 'Environment to deploy to'
         required: true
@@ -77,9 +78,9 @@ jobs:
           fi
 
           case "$COOLIFY_SERVICE" in
-            api|bot|mcp) ;;
+            api|bot|mcp|web) ;;
             *)
-              echo "Unsupported Coolify service '${COOLIFY_SERVICE}'. Expected api, bot, or mcp." >&2
+              echo "Unsupported Coolify service '${COOLIFY_SERVICE}'. Expected api, bot, mcp, or web." >&2
               exit 1
               ;;
           esac
@@ -205,3 +206,35 @@ jobs:
             exit 1
           fi
           bash scripts/trigger-coolify-deploy.sh mcp production
+
+      - name: Trigger web staging Coolify deployment
+        if: inputs.service == 'web' && inputs.environment == 'staging'
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK_WEB_STAGING }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            if [[ "${COOLIFY_CALLER_EVENT_NAME:-}" == "push" ]]; then
+              echo '::notice::Skipping Coolify deploy for web (staging): secret COOLIFY_DEPLOY_WEBHOOK_WEB_STAGING is not configured.'
+              exit 0
+            fi
+            echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_WEB_STAGING.' >&2
+            exit 1
+          fi
+          bash scripts/trigger-coolify-deploy.sh web staging
+
+      - name: Trigger web production Coolify deployment
+        if: inputs.service == 'web' && inputs.environment == 'production'
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK_WEB_PRODUCTION }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${COOLIFY_DEPLOY_WEBHOOK:-}" ]]; then
+            if [[ "${COOLIFY_CALLER_EVENT_NAME:-}" == "push" ]]; then
+              echo '::notice::Skipping Coolify deploy for web (production): secret COOLIFY_DEPLOY_WEBHOOK_WEB_PRODUCTION is not configured.'
+              exit 0
+            fi
+            echo 'Missing required secret COOLIFY_DEPLOY_WEBHOOK_WEB_PRODUCTION.' >&2
+            exit 1
+          fi
+          bash scripts/trigger-coolify-deploy.sh web production

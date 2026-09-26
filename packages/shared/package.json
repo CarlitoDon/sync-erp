@@ -29,7 +29,9 @@
     },
     "./whatsapp": {
       "types": "./dist/whatsapp/index.d.ts",
-      "import": "./dist/whatsapp/index.js"
+      "import": "./dist/whatsapp/index.js",
+      "require": "./dist/whatsapp/index.js",
+      "default": "./dist/whatsapp/index.js"
     }
   },
   "scripts": {

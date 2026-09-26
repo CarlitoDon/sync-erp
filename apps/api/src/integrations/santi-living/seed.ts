@@ -23,7 +23,7 @@ export async function seedSantiLiving(
       config: {
         webhookUrl: isDevelopment
           ? 'http://localhost:3002/api/webhooks/sync-erp'
-          : 'https://proxy.santiliving.com/api/webhooks/order-confirmation',
+          : 'https://santiliving.com/api/webhooks/order-confirmation',
         assetBaseUrl: 'https://storage.googleapis.com/santi-living-public',
       },
     },
@@ -49,7 +49,7 @@ export async function seedSantiLiving(
         integrationId: integration.id, // Link to integration
         webhookUrl: isDevelopment
           ? 'http://localhost:3002/api/webhooks/sync-erp'
-          : 'https://proxy.santiliving.com/api/webhooks/order-confirmation',
+          : 'https://santiliving.com/api/webhooks/order-confirmation',
       },
       create: {
         keyHash,
@@ -62,7 +62,7 @@ export async function seedSantiLiving(
         permissions: ['rental:read', 'rental:write'],
         webhookUrl: isDevelopment
           ? 'http://localhost:3002/api/webhooks/sync-erp'
-          : 'https://proxy.santiliving.com/api/webhooks/order-confirmation',
+          : 'https://santiliving.com/api/webhooks/order-confirmation',
       },
     })
     .catch(async () => {
@@ -97,7 +97,7 @@ export async function seedSantiLiving(
               ],
               webhookUrl: isDevelopment
                 ? 'http://localhost:3002/api/webhooks/sync-erp'
-                : 'https://proxy.santiliving.com/api/webhooks/sync-erp',
+                : 'https://santiliving.com/api/webhooks/sync-erp',
               webhookSecret: 'whsec_test_123',
               rateLimit: 1000,
             },

@@ -7,6 +7,7 @@ import {
 } from '../utils/phone';
 import { isCustomerAllowed } from '../utils/whitelist';
 import { appendChatHistory } from '../utils/chat-history';
+import { releaseTurn } from '../bot/debounce-buffer';
 
 const SendMessageSchema = z.object({
   phone: z.string(),
@@ -128,7 +129,12 @@ export const sendMessage = async (req: Request, res: Response) => {
   // Baileys expects format: 628xxx@s.whatsapp.net
   const targetNumber = formatPhoneNumber(phone);
 
-  const bubbles = splitMessageBubbles(message);
+  // Leak protection: sanitize internal ERP / tooling names from leaking to WhatsApp customers
+  const sanitizedMessage = message
+    .replace(/\bsync[-\s]?erp(\s+santi\s+living)?\b/gi, 'Santi Living')
+    .replace(/\berp\b/gi, 'Santi Living');
+
+  const bubbles = splitMessageBubbles(sanitizedMessage);
   if (bubbles.length === 0) {
     return res.status(400).json({
       error: 'Invalid Message',
@@ -177,6 +183,10 @@ export const sendMessage = async (req: Request, res: Response) => {
 
     await safelySetPresence(sock, 'available', targetNumber);
 
+    // Release turn lock and flush any customer messages queued during this turn
+    const cleanPhone = phone.replace(/\D/g, '').replace(/^0/, '62');
+    await releaseTurn(cleanPhone, sock);
+
     // eslint-disable-next-line no-console
     console.log(`Sent ${bubbles.length} bubble(s) to ${targetNumber}`);
 
@@ -189,6 +199,9 @@ export const sendMessage = async (req: Request, res: Response) => {
   } catch (error: unknown) {
     // Ensure we clear composing state on error
     await safelySetPresence(sock, 'available', targetNumber);
+
+    const cleanPhone = phone.replace(/\D/g, '').replace(/^0/, '62');
+    await releaseTurn(cleanPhone, sock);
 
     console.error('Failed to send message:', error);
     const errorMessage =

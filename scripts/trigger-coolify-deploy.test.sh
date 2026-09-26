@@ -129,6 +129,8 @@ run_success mcp staging refs/heads/dev 299
 run_success api production refs/heads/main 200
 run_success bot production refs/heads/main 201
 run_success mcp production refs/heads/main 202
+run_success web staging refs/heads/dev 200
+run_success web production refs/heads/main 200
 
 run_failure() {
   local expected="$1"
@@ -150,7 +152,9 @@ for route in \
   'bot staging COOLIFY_DEPLOY_WEBHOOK_BOT_STAGING' \
   'bot production COOLIFY_DEPLOY_WEBHOOK_BOT_PRODUCTION' \
   'mcp staging COOLIFY_DEPLOY_WEBHOOK_MCP_STAGING' \
-  'mcp production COOLIFY_DEPLOY_WEBHOOK_MCP_PRODUCTION'; do
+  'mcp production COOLIFY_DEPLOY_WEBHOOK_MCP_PRODUCTION' \
+  'web staging COOLIFY_DEPLOY_WEBHOOK_WEB_STAGING' \
+  'web production COOLIFY_DEPLOY_WEBHOOK_WEB_PRODUCTION'; do
   read -r service environment secret_name <<< "$route"
   run_failure "missing Coolify webhook secret; set $secret_name" \
     env "PATH=$fake_bin:$PATH" "FAKE_CURL_ARGS_FILE=$args_file" \

@@ -13,10 +13,18 @@ seedWhitelistFromEnv().catch((err) => {
   console.warn('[startup] Failed to seed whitelist from env:', err instanceof Error ? err.message : String(err));
 });
 
-// Start Baileys WhatsApp Client
-// eslint-disable-next-line no-console
-console.log('Initializing Baileys WhatsApp Client...');
-initializeBaileys();
+// Start Baileys WhatsApp Client (only when explicitly enabled; Hermes is the primary WhatsApp client)
+const enableBaileys = process.env.ENABLE_BAILEYS_CLIENT === 'true';
+if (enableBaileys) {
+  // eslint-disable-next-line no-console
+  console.log('Initializing Baileys WhatsApp Client...');
+  initializeBaileys();
+} else {
+  // eslint-disable-next-line no-console
+  console.log(
+    '[startup] Baileys client disabled (Hermes native WhatsApp client active). Running as companion API server.',
+  );
+}
 
 // Graceful shutdown to prevent credential corruption
 const gracefulShutdown = async (signal: string) => {
