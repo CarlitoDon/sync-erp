@@ -10,7 +10,7 @@
  * - STAFF_PROTECTION_ENABLED (true/false)
  */
 import { getRedisClient } from '../bot/use-redis-auth-state.js';
-import { isInternalStaff, INTERNAL_STAFF_PHONES, INTERNAL_STAFF_LIDS } from '../constants/staff.js';
+import { isInternalStaff } from '../constants/staff.js';
 import { getBotConfig, isTestNumber } from '../config/bot.config.js';
 import { normalizePhone } from '@sync-erp/shared/whatsapp';
 
