@@ -244,11 +244,11 @@ jobs:
           path: apps/web/dist/
           retention-days: 7
 
-  # --- Staging Deploys (Immediate on dev push, no waiting for slow gates) ---
+  # --- Staging Deploys (FROZEN - Skipped to save host resources) ---
   deploy_api_staging:
     name: Deploy API to Coolify (Staging)
     needs: [changes]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.changes.outputs.api == 'true'
+    if: false # Staging frozen
     uses: ./.github/workflows/deploy-coolify.yml
     with:
       service: api
@@ -259,7 +259,7 @@ jobs:
   deploy_bot_staging:
     name: Deploy Bot to Coolify (Staging)
     needs: [changes]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.changes.outputs.bot == 'true'
+    if: false # Staging frozen
     uses: ./.github/workflows/deploy-coolify.yml
     with:
       service: bot
@@ -270,7 +270,7 @@ jobs:
   deploy_mcp_staging:
     name: Deploy MCP to Coolify (Staging)
     needs: [changes]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.changes.outputs.mcp == 'true'
+    if: false # Staging frozen
     uses: ./.github/workflows/deploy-coolify.yml
     with:
       service: mcp
@@ -317,7 +317,7 @@ jobs:
   deploy_web_staging:
     name: Deploy Web to Coolify (Staging)
     needs: [changes]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.changes.outputs.web == 'true'
+    if: false # Staging frozen
     uses: ./.github/workflows/deploy-coolify.yml
     with:
       service: web

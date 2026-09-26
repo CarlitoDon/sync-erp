@@ -4,13 +4,17 @@ These repository-specific instructions are subordinate to higher-priority system
 
 ## Goal, Branch & Deployment Workflow
 
-- **Development (`dev`)**:
-  - Direct commits and pushes to `dev` are allowed for rapid development and testing without requiring a PR.
-  - Every commit pushed to `dev` automatically and immediately triggers deployment to Coolify Staging (`api`, `bot`, `mcp`) and Vercel Preview (`web`).
-  - Feature branches (`feat/`, `fix/`, `chore/`) may still be used if desired, and can be merged directly to `dev` without requiring PR approvals.
+- **Local Development (`dev` / feature branches)**:
+  - Seluruh pengerjaan fitur, perbaikan bug, dan pengujian dilakukan pada dev server lokal (`npm run dev:api`, `npm run dev:web`, dll.).
+  - Database lokal menggunakan Docker Postgres/Redis lokal atau instance test.
+  - Direct commits dan feature branches (`feat/`, `fix/`, `chore/`) dapat di-push ke `dev` untuk sinkronisasi tanpa memicu deployment otomatis ke staging.
+- **Staging Environment (Frozen)**:
+  - Environment staging dibekukan (stopped) untuk menghemat CPU, RAM, dan suhu host Mac.
+  - Deployment ke staging dinonaktifkan di CI/CD dan webhook Coolify.
 - **Production (`main`)**:
-  - Direct push to `main` remains protected.
-  - Production releases are promoted from `dev` to `main` via PR, and will automatically deploy to Coolify Production upon merge once Quality Gates pass.
+  - Direct push ke `main` tetap terlindungi (protected).
+  - Promosi fitur/perbaikan dilakukan via Pull Request (PR) dari `dev` atau feature branch ke `main`.
+  - Setelah PR di-merge ke `main`, GitHub Actions menjalankan Quality Gates (typecheck, lint, test, build), lalu otomatis men-deploy ke Coolify Production (`sync-erp.khusnudhoni.online`).
 
 ## Delegation
 
