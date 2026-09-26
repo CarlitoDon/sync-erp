@@ -23,6 +23,7 @@ COPY packages/shared/src ./packages/shared/src
 COPY packages/shared/tsconfig.json packages/shared/tsup.config.ts ./packages/shared/
 COPY apps/web ./apps/web
 
+ENV NODE_ENV=production
 RUN npx turbo build --filter=@sync-erp/web
 
 FROM nginx:alpine AS runner
